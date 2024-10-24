@@ -491,30 +491,61 @@ where
     A: AuthorizationApi,
 {
     #[expect(refining_impl_trait)]
-    async fn is_parent_of(
+    async fn is_super_type_of(
         &self,
+        parent: &VersionedUrl,
         child: &VersionedUrl,
-        parent: &BaseUrl,
     ) -> Result<bool, Report<QueryError>> {
         let client = self.store.as_client().client();
         let child_id = EntityTypeUuid::from_url(child);
+        let parent_id = EntityTypeUuid::from_url(parent);
 
         Ok(client
             .query_one(
                 "
                     SELECT EXISTS (
-                        SELECT 1 FROM closed_entity_type_inherits_from
-                         JOIN ontology_ids
-                           ON ontology_ids.ontology_id = target_entity_type_ontology_id
+                        SELECT 1 FROM entity_type_inherits_from
                         WHERE source_entity_type_ontology_id = $1
-                          AND ontology_ids.base_url = $2
+                          AND target_entity_type_ontology_id = $2
                     );
                 ",
-                &[child_id.as_uuid(), &parent.as_str()],
+                &[&child_id, &parent_id],
             )
             .await
             .change_context(QueryError)?
             .get(0))
+    }
+
+    #[expect(refining_impl_trait)]
+    async fn find_parents(
+        &self,
+        entity_types: &[VersionedUrl],
+    ) -> Result<Vec<VersionedUrl>, Report<QueryError>> {
+        let entity_type_ids = entity_types
+            .iter()
+            .map(EntityTypeUuid::from_url)
+            .collect::<Vec<_>>();
+
+        Ok(self
+            .store
+            .as_client()
+            .query(
+                "
+                    SELECT base_url, version
+                    FROM entity_type_inherits_from
+                    JOIN ontology_ids ON target_entity_type_ontology_id = ontology_id
+                    WHERE source_entity_type_ontology_id = ANY($1)
+                ",
+                &[&entity_type_ids],
+            )
+            .await
+            .change_context(QueryError)?
+            .into_iter()
+            .map(|row| VersionedUrl {
+                base_url: row.get(0),
+                version: row.get(1),
+            })
+            .collect())
     }
 }
 

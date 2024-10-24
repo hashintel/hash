@@ -45,7 +45,7 @@ pub enum EntityValidationError {
     #[error("Entities without a type are not allowed")]
     EmptyEntityTypes,
     #[error("the validator was unable to read the entity type `{ids:?}`")]
-    EntityTypeRetrieval { ids: HashSet<VersionedUrl> },
+    EntityTypeRetrieval { ids: Vec<VersionedUrl> },
     #[error("the validator was unable to read the entity `{id}`")]
     EntityRetrieval { id: EntityId },
     #[error("The link type `{link_types:?}` is not allowed")]
@@ -88,7 +88,20 @@ where
             .expect("Not a valid URL"),
             version: OntologyTypeVersion::new(1),
         };
-        let is_link = schema.schemas.contains_key(&link_type_id);
+
+        let mut is_link = false;
+        for (entity_type_id, _) in schema.all_of() {
+            if context
+                .is_super_type_of(&link_type_id, entity_type_id)
+                .await
+                .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
+                    ids: vec![entity_type_id.clone()],
+                })?
+            {
+                is_link = true;
+                break;
+            }
+        }
 
         if let Some(link_data) = self {
             if !is_link {
@@ -157,6 +170,8 @@ where
 
     // TODO: validate link data
     //   see https://linear.app/hash/issue/H-972
+    // TODO: Optimize reading of left/right parent types and/or cache them
+    #[expect(clippy::too_many_lines)]
     async fn validate_value<'a>(
         &'a self,
         value: &'a LinkData,
@@ -218,8 +233,15 @@ where
         // We track that at least one link type was found to avoid reporting an error if no
         // link type was found.
         let mut found_link_target = false;
-        for link_type_id in self.schemas.keys() {
-            let Some(maybe_allowed_targets) = left_entity_type.links.get(link_type_id) else {
+        let entity_type_ids = self.all_of().map(|(id, _)| id.clone()).collect::<Vec<_>>();
+        let covariant_entity_type_ids = provider
+            .find_parents(&entity_type_ids)
+            .await
+            .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
+                ids: entity_type_ids.clone(),
+            })?;
+        for link_type_id in entity_type_ids.into_iter().chain(covariant_entity_type_ids) {
+            let Some(maybe_allowed_targets) = left_entity_type.links.get(&link_type_id) else {
                 continue;
             };
 
@@ -234,25 +256,39 @@ where
             let mut found_match = false;
             for allowed_target in &allowed_targets.possibilities {
                 if right_entity_type
-                    .schemas
-                    .keys()
-                    .any(|right_type| right_type.base_url == allowed_target.url.base_url)
+                    .all_of()
+                    .any(|(id, _)| id.base_url == allowed_target.url.base_url)
                 {
                     found_match = true;
                     break;
+                }
+                for (right_type_id, _) in right_entity_type.all_of() {
+                    if provider
+                        .is_super_type_of(&allowed_target.url, right_type_id)
+                        .await
+                        .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
+                            ids: vec![right_type_id.clone(), allowed_target.url.clone()],
+                        })?
+                    {
+                        found_match = true;
+                        break;
+                    }
                 }
             }
 
             if !found_match {
                 status.capture(EntityValidationError::InvalidLinkTargetId {
-                    target_types: right_entity_type.schemas.keys().cloned().collect(),
+                    target_types: right_entity_type
+                        .all_of()
+                        .map(|(id, _)| id.clone())
+                        .collect(),
                 });
             }
         }
 
         if !found_link_target {
             status.capture(EntityValidationError::InvalidLinkTypeId {
-                link_types: self.schemas.keys().cloned().collect(),
+                link_types: self.all_of().map(|(id, _)| id.clone()).collect(),
             });
         }
 

@@ -27,7 +27,7 @@ pub struct ClosedEntityTypeSchemaData {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedEntityType {
-    pub schemas: HashMap<VersionedUrl, (InheritanceDepth, ClosedEntityTypeSchemaData)>,
+    schemas: HashMap<VersionedUrl, (InheritanceDepth, ClosedEntityTypeSchemaData)>,
     pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     pub required: HashSet<BaseUrl>,
@@ -47,6 +47,12 @@ pub enum ResolveClosedEntityTypeError {
 }
 
 impl ClosedEntityType {
+    pub fn all_of(&self) -> impl Iterator<Item = (&VersionedUrl, &ClosedEntityTypeSchemaData)> {
+        self.schemas
+            .iter()
+            .filter_map(|(url, (depth, data))| (depth.inner() == 0).then_some((url, data)))
+    }
+
     /// Creates a closed entity type from multiple closed entity types.
     ///
     /// This results in a closed entity type which is used for entities with multiple types.

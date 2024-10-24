@@ -1,0 +1,1144 @@
+# This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
+
+### Create account
+POST http://127.0.0.1:4000/accounts
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+
+{}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("account_id", response.body.toString());
+%}
+
+### Create account web
+POST http://127.0.0.1:4000/webs
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+   "ownedById": "{{account_id}}",
+   "owner": {
+       "kind": "account",
+       "subjectId": "{{account_id}}"
+    }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 204, "Response status is not 204");
+    });
+%}
+
+### Insert link entity type
+POST http://127.0.0.1:4000/entity-types
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "schema": [{
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@snapshot/types/entity-type/left1/v/1",
+    "type": "object",
+    "title": "Object",
+    "properties": {},
+    "links": {
+      "http://localhost:3000/@snapshot/types/entity-type/link1/v/1": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "http://localhost:3000/@snapshot/types/entity-type/right1/v/1"
+            }
+          ]
+        }
+      }
+    }
+  }, {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@snapshot/types/entity-type/left2/v/1",
+    "type": "object",
+    "title": "Object",
+    "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/left1/v/1" }],
+    "properties": {},
+    "links": {
+      "http://localhost:3000/@snapshot/types/entity-type/link2/v/1": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "http://localhost:3000/@snapshot/types/entity-type/right2/v/1"
+            }
+          ]
+        }
+      }
+    }
+  }, {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@snapshot/types/entity-type/left3/v/1",
+    "type": "object",
+    "title": "Object",
+    "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/left2/v/1" }],
+    "properties": {},
+    "links": {
+      "http://localhost:3000/@snapshot/types/entity-type/link3/v/1": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "http://localhost:3000/@snapshot/types/entity-type/right3/v/1"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@snapshot/types/entity-type/link1/v/1",
+    "type": "object",
+    "title": "Object",
+    "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" }],
+    "properties": {}
+  }, {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@snapshot/types/entity-type/link2/v/1",
+    "type": "object",
+    "title": "Object",
+    "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/link1/v/1" }],
+    "properties": {}
+  }, {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@snapshot/types/entity-type/link3/v/1",
+    "type": "object",
+    "title": "Object",
+    "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/link2/v/1" }],
+    "properties": {}
+  },
+  {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@snapshot/types/entity-type/right1/v/1",
+    "type": "object",
+    "title": "Object",
+    "properties": {}
+  }, {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@snapshot/types/entity-type/right2/v/1",
+    "type": "object",
+    "title": "Object",
+    "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/right1/v/1" }],
+    "properties": {}
+  }, {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@snapshot/types/entity-type/right3/v/1",
+    "type": "object",
+    "title": "Object",
+    "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/right2/v/1" }],
+    "properties": {}
+  }],
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  },{
+      "relation": "instantiator",
+      "subject": {
+        "kind": "account",
+        "subjectId": "{{account_id}}"
+      }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert entity Left1
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/left1/v/1"],
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("left1", response.body.metadata.recordId.entityId);
+%}
+
+### Insert entity Left2
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/left2/v/1"],
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("left2", response.body.metadata.recordId.entityId);
+%}
+
+### Insert entity Left3
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/left3/v/1"],
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("left3", response.body.metadata.recordId.entityId);
+%}
+
+### Insert entity Right1
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/right1/v/1"],
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("right1", response.body.metadata.recordId.entityId);
+%}
+
+### Insert entity Right2
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/right2/v/1"],
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("right2", response.body.metadata.recordId.entityId);
+%}
+
+### Insert entity Right3
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/right3/v/1"],
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("right3", response.body.metadata.recordId.entityId);
+%}
+
+### Insert link1 between left1 and right1
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left1}}",
+    "rightEntityId": "{{right1}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link1 between left1 and right2
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left1}}",
+    "rightEntityId": "{{right2}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link1 between left1 and right3
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left1}}",
+    "rightEntityId": "{{right3}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link1 between left2 and right1
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left2}}",
+    "rightEntityId": "{{right1}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link1 between left2 and right2
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left2}}",
+    "rightEntityId": "{{right2}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link1 between left2 and right3
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left2}}",
+    "rightEntityId": "{{right3}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link1 between left3 and right1
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left3}}",
+    "rightEntityId": "{{right1}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link1 between left3 and right2
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left3}}",
+    "rightEntityId": "{{right2}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link1 between left3 and right3
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left3}}",
+    "rightEntityId": "{{right3}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link2 between left1 and right1
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left1}}",
+    "rightEntityId": "{{right1}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link2 between left1 and right2
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left1}}",
+    "rightEntityId": "{{right2}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link2 between left1 and right3
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left1}}",
+    "rightEntityId": "{{right3}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link2 between left2 and right1
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left2}}",
+    "rightEntityId": "{{right1}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 500, "Response status is not 200");
+    });
+%}
+
+### Insert link2 between left2 and right2
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left2}}",
+    "rightEntityId": "{{right2}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link2 between left2 and right3
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left2}}",
+    "rightEntityId": "{{right3}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link2 between left3 and right1
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left3}}",
+    "rightEntityId": "{{right1}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 500, "Response status is not 200");
+    });
+%}
+
+### Insert link2 between left3 and right2
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left3}}",
+    "rightEntityId": "{{right2}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link2 between left3 and right3
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left3}}",
+    "rightEntityId": "{{right3}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link3 between left1 and right1
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left1}}",
+    "rightEntityId": "{{right1}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link3 between left1 and right2
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left1}}",
+    "rightEntityId": "{{right2}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link3 between left1 and right3
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left1}}",
+    "rightEntityId": "{{right3}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link3 between left2 and right1
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left2}}",
+    "rightEntityId": "{{right1}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 500, "Response status is not 200");
+    });
+%}
+
+### Insert link3 between left2 and right2
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left2}}",
+    "rightEntityId": "{{right2}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link3 between left2 and right3
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left2}}",
+    "rightEntityId": "{{right3}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert link3 between left3 and right1
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left3}}",
+    "rightEntityId": "{{right1}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 500, "Response status is not 200");
+    });
+%}
+
+### Insert link3 between left3 and right2
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left3}}",
+    "rightEntityId": "{{right2}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 500, "Response status is not 200");
+    });
+%}
+
+### Insert link3 between left3 and right3
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
+  "linkData": {
+    "leftEntityId": "{{left3}}",
+    "rightEntityId": "{{right3}}"
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
