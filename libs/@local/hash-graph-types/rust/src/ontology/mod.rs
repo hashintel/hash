@@ -191,10 +191,21 @@ pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
 
 pub trait PropertyTypeProvider: OntologyTypeProvider<PropertyType> {}
 
+pub enum EntityTypeVariance {
+    Covariant,
+    Contravariant,
+    Invariant,
+}
+
 pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
-    fn is_parent_of(
+    fn is_super_type_of(
         &self,
+        parent: &VersionedUrl,
         child: &VersionedUrl,
-        parent: &BaseUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
+
+    fn find_parents(
+        &self,
+        entity_types: &[VersionedUrl],
+    ) -> impl Future<Output = Result<Vec<VersionedUrl>, Report<impl Context>>> + Send;
 }

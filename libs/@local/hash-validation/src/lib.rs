@@ -228,18 +228,32 @@ mod tests {
 
     impl EntityTypeProvider for Provider {
         #[expect(refining_impl_trait)]
-        async fn is_parent_of(
+        async fn is_super_type_of(
             &self,
+            parent: &VersionedUrl,
             child: &VersionedUrl,
-            parent: &BaseUrl,
         ) -> Result<bool, Report<InvalidEntityType>> {
             Ok(
                 OntologyTypeProvider::<ClosedEntityType>::provide_type(self, child)
                     .await?
-                    .schemas
-                    .keys()
-                    .any(|id| id.base_url == *parent),
+                    .all_of()
+                    .any(|(id, _)| id == parent),
             )
+        }
+
+        #[expect(refining_impl_trait)]
+        async fn find_parents(
+            &self,
+            entity_types: &[VersionedUrl],
+        ) -> Result<Vec<VersionedUrl>, Report<InvalidEntityType>> {
+            let mut covariant_types = Vec::new();
+            for entity_type in entity_types {
+                let entity_type =
+                    OntologyTypeProvider::<ClosedEntityType>::provide_type(self, entity_type)
+                        .await?;
+                covariant_types.extend(entity_type.all_of().map(|(id, _)| id.clone()));
+            }
+            Ok(covariant_types)
         }
     }
 

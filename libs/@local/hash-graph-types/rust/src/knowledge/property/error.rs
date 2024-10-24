@@ -27,9 +27,10 @@ pub fn install_error_stack_hooks() {
         struct AttachedSchemas(HashSet<VersionedUrl>);
 
         let ids = match expected {
-            Expected::EntityType(entity_type) => {
-                entity_type.schemas.keys().cloned().collect::<Vec<_>>()
-            }
+            Expected::EntityType(entity_type) => entity_type
+                .all_of()
+                .map(|(entity_type_id, _)| entity_type_id.clone())
+                .collect::<Vec<_>>(),
             Expected::PropertyType(property_type) => vec![property_type.id.clone()],
             Expected::DataType(data_type) => vec![data_type.id.clone()],
         };
