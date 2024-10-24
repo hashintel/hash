@@ -1,4 +1,4 @@
-import { Box, useTheme } from "@mui/material";
+import { Box, Stack, useTheme } from "@mui/material";
 import { SigmaContainer } from "@react-sigma/core";
 import { EdgeCurvedArrowProgram } from "@sigma/edge-curve";
 import { createNodeBorderProgram } from "@sigma/node-border";
@@ -21,12 +21,22 @@ import { FilterControl } from "./graph-container/shared/filter-control";
 import { FullScreenContextProvider } from "./graph-container/shared/full-screen-context";
 import { GraphContextProvider } from "./graph-container/shared/graph-context";
 import { SearchControl } from "./graph-container/search-control";
+import { ZoomControl } from "./graph-container/zoom-control";
+import { FullScreenButton } from "./graph-container/full-screen-button";
 
 export type GraphContainerProps<
   NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
 > = Omit<GraphLoaderProps, "config"> & {
   defaultConfig: GraphVizConfig<NodeSizing>;
   defaultFilters?: GraphVizFilters;
+  /**
+   * When toggling fullscreen, whether:
+   * 1. the whole document will be sent into fullscreen, or
+   * 2. only the graph container will be sent into fullscreen
+   *
+   * The latter may be suitable when the graph is part of a larger layout.
+   */
+  fullScreenMode?: "document" | "element";
   onRender?: () => void;
 };
 
@@ -59,6 +69,7 @@ export const GraphContainer = memo(
     defaultConfig,
     defaultFilters,
     edges,
+    fullScreenMode,
     nodes,
     onEdgeClick,
     onNodeSecondClick,
@@ -113,7 +124,7 @@ export const GraphContainer = memo(
     );
 
     return (
-      <FullScreenContextProvider>
+      <FullScreenContextProvider fullScreenMode={fullScreenMode}>
         <Box
           ref={containerRef}
           sx={{
@@ -140,11 +151,18 @@ export const GraphContainer = memo(
               onNodeSecondClick={onNodeSecondClick}
               onRender={onRender}
             >
-              {/* <FullScreenButton /> */}
               <PathFinderControl nodes={nodes} />
               <SearchControl nodes={nodes} />
               <ConfigControl />
               <FilterControl nodes={nodes} />
+              <Stack
+                direction="row"
+                gap={1}
+                sx={{ position: "absolute", bottom: 8, right: 8 }}
+              >
+                <FullScreenButton />
+                <ZoomControl />
+              </Stack>
               <GraphDataLoader
                 nodes={nodes}
                 edges={edges}

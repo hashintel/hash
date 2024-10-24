@@ -37,6 +37,7 @@ import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import type { MinimalActor } from "../../shared/use-actors";
 import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
+import type { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
 import { GridView } from "./entities-table/grid-view";
@@ -50,8 +51,8 @@ import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import type {
   DynamicNodeSizing,
-  GraphVizFilters,
   GraphVizConfig,
+  GraphVizFilters,
 } from "./graph-visualizer";
 import { generateEntityRootedSubgraph } from "./subgraphs";
 import { TableHeaderToggle } from "./table-header-toggle";
@@ -60,7 +61,6 @@ import { tableViewIcons } from "./table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { UrlCellProps } from "./url-cell";
 import { createRenderUrlCell } from "./url-cell";
-import { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -91,6 +91,11 @@ export const EntitiesTable: FunctionComponent<{
   defaultView?: TableView;
   disableEntityOpenInNew?: boolean;
   disableTypeClick?: boolean;
+  /**
+   * If the user activates fullscreen, whether to fullscreen the whole page or a specific element, e.g. the graph only.
+   * Currently only used in the context of the graph visualizer, but the table could be usefully fullscreened as well.
+   */
+  fullScreenMode?: "document" | "element";
   hideFilters?: boolean;
   hidePropertiesColumns?: boolean;
   hideColumns?: (keyof TypeEntitiesRow)[];
@@ -104,6 +109,7 @@ export const EntitiesTable: FunctionComponent<{
   defaultView = "Table",
   disableEntityOpenInNew,
   disableTypeClick,
+  fullScreenMode,
   hideColumns,
   hideFilters,
   hidePropertiesColumns = false,
@@ -804,6 +810,7 @@ export const EntitiesTable: FunctionComponent<{
               defaultConfig={defaultGraphConfig}
               defaultFilters={defaultGraphFilters}
               entities={filteredEntities}
+              fullScreenMode={fullScreenMode}
               loadingComponent={loadingComponent}
               isPrimaryEntity={isPrimaryEntity}
               onEntityClick={handleEntityClick}

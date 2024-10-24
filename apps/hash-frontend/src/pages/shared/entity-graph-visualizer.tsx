@@ -37,6 +37,7 @@ const fallbackDefaultConfig = {
   edgeSizing: {
     min: 2,
     max: 5,
+    nonHighlightedVisibleSizeThreshold: 2,
     scale: "Linear",
   },
   nodeHighlighting: {
@@ -57,6 +58,7 @@ export const EntityGraphVisualizer = memo(
     defaultConfig: defaultConfigFromProps,
     defaultFilters,
     entities,
+    fullScreenMode,
     isPrimaryEntity,
     loadingComponent,
     subgraphWithTypes,
@@ -65,6 +67,7 @@ export const EntityGraphVisualizer = memo(
   }: {
     defaultConfig?: GraphVizConfig<DynamicNodeSizing>;
     defaultFilters?: GraphVizFilters;
+    fullScreenMode?: "document" | "element";
     entities?: T[];
     onEntityClick?: (
       entityId: EntityId,
@@ -262,6 +265,7 @@ export const EntityGraphVisualizer = memo(
         <GraphVisualizer
           defaultConfig={defaultConfig}
           defaultFilters={defaultFilters}
+          fullScreenMode={fullScreenMode}
           nodes={nodes}
           edges={edges}
           onNodeSecondClick={onNodeClick}

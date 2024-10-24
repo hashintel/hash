@@ -10,11 +10,12 @@ import { useFullScreen } from "./shared/full-screen-context";
 export const FullScreenButton = () => {
   const { isFullScreen, toggleFullScreen } = useFullScreen();
 
+  if (!document.fullscreenEnabled) {
+    return null;
+  }
+
   return (
-    <IconButton
-      onClick={toggleFullScreen}
-      sx={[controlButtonSx, { position: "absolute", top: 8, left: 13 }]}
-    >
+    <IconButton onClick={toggleFullScreen} sx={controlButtonSx}>
       {isFullScreen ? (
         <ArrowDownLeftAndArrowUpRightToCenterIcon />
       ) : (
