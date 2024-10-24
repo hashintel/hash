@@ -9,3 +9,5 @@ yarn httpyac send --all tests/circular-links.http
 yarn reset-database
 yarn httpyac send --all tests/ambiguous.http
 yarn reset-database
+yarn httpyac send --all tests/link-inheritance.http
+yarn reset-database
