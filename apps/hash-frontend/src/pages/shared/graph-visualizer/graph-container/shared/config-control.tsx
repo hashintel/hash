@@ -1,7 +1,6 @@
 import { GearIcon } from "@hashintel/block-design-system";
 import { IconButton, Select } from "@hashintel/design-system";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, outlinedInputClasses } from "@mui/material";
+import { Box } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
@@ -12,6 +11,8 @@ import {
   ItemLabel,
 } from "./control-components";
 import { useGraphContext } from "./graph-context";
+import { IntegerInput } from "./integer-input";
+import { selectSx } from "./styles";
 
 const directionOptions = ["All", "In", "Out"] as const;
 
@@ -66,9 +67,8 @@ export type DynamicEdgeSizing = {
   /**
    * The size threshold below which edges will not be shown unless they are part of a highlighted graph,
    * i.e. after the user clicks on or hovers over a node.
-   * Defaults to the minimum edge size.
    */
-  nonHighlightedVisibleSizeThreshold?: number;
+  nonHighlightedVisibleSizeThreshold: number;
   scale: Exclude<Scale, "Logarithmic" | "Percentile">;
 };
 
@@ -103,18 +103,6 @@ export type GraphVizConfig<
     startTypeId?: string;
     endTypeId?: string;
   };
-};
-
-const selectSx: SxProps<Theme> = {
-  [`.${outlinedInputClasses.root} .${outlinedInputClasses.input}`]: {
-    fontSize: 14,
-    px: 1.5,
-    py: 1,
-  },
-  [`.${outlinedInputClasses.root}`]: {
-    boxShadow: "none",
-  },
-  width: "100%",
 };
 
 const DirectionSelect = ({
@@ -184,33 +172,6 @@ const ScaleSelect = <Exclusions extends Scale | null = null>({
           </MenuItem>
         ))}
     </Select>
-  );
-};
-
-const IntegerInput = ({
-  value,
-  setValue,
-}: {
-  value: number;
-  setValue: (value: number) => void;
-}) => {
-  return (
-    <Box
-      component="input"
-      step={1}
-      min={1}
-      type="number"
-      value={value.toString()}
-      onChange={(event) => setValue(parseInt(event.target.value, 10))}
-      sx={({ palette }) => ({
-        border: `1px solid ${palette.gray[30]}`,
-        borderRadius: 1,
-        fontSize: 14,
-        py: 1.2,
-        px: 1.5,
-        mt: 0.5,
-      })}
-    />
   );
 };
 
@@ -407,6 +368,25 @@ const ConfigPanel: FunctionComponent<{
                     edgeSizing: {
                       ...config.edgeSizing,
                       max: newMax,
+                    },
+                  })
+                }
+              />
+            </Box>
+            <Box>
+              <ItemLabel tooltip="The minimum size of an edge for it to be visible without any specific nodes or paths highlighted">
+                Visible min
+              </ItemLabel>
+              <IntegerInput
+                max={config.edgeSizing.max}
+                min={config.edgeSizing.min}
+                value={config.edgeSizing.nonHighlightedVisibleSizeThreshold}
+                setValue={(newVisibleMin) =>
+                  setConfig({
+                    ...config,
+                    edgeSizing: {
+                      ...config.edgeSizing,
+                      nonHighlightedVisibleSizeThreshold: newVisibleMin,
                     },
                   })
                 }

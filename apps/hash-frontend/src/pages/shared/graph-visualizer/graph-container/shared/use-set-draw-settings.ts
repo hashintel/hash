@@ -200,14 +200,11 @@ export const useSetDrawSettings = <
     sigma.setSetting("edgeReducer", (edge, data) => {
       const edgeData = { ...data };
 
-      const selectedNode =
-        graphState.selectedNodeId ?? graphState.hoveredNodeId;
-
-      if (!selectedNode && !graphState.highlightedEdgePath) {
+      if (edge === graphState.hoveredEdgeId) {
         /**
-         * If we don't have any node hovered, clicked or any edge highlighted, leave the edge as it is
+         * Set a minimum size on hover so it's easier to distinguish and click on
          */
-        return edgeData;
+        edgeData.size = Math.max(edgeData.size, 8);
       }
 
       if (edge === graphState.hoveredEdgeId || graphState.highlightedEdgePath) {
@@ -218,11 +215,30 @@ export const useSetDrawSettings = <
         edgeData.label = `(${edgeData.significance})`;
       }
 
-      if (edge === graphState.hoveredEdgeId) {
-        /**
-         * Set a minimum size on hover so it's easier to distinguish and click on
-         */
-        edgeData.size = Math.max(edgeData.size, 5);
+      const selectedNode =
+        graphState.selectedNodeId ?? graphState.hoveredNodeId;
+
+      if (!selectedNode && !graphState.highlightedEdgePath) {
+        if (
+          edgeData.size < config.edgeSizing.nonHighlightedVisibleSizeThreshold
+        ) {
+          /**
+           * If we don't have any node hovered, clicked or any edge highlighted,
+           * hide the edge if it's below the threshold size
+           */
+          edgeData.hidden = true;
+          return edgeData;
+        }
+
+        const graph = sigma.getGraph();
+        const source = graph.source(edge);
+
+        const sourceData = graph.getNodeAttributes(source);
+        edgeData.color =
+          graphState.colorByNodeTypeId?.[sourceData.nodeTypeId] ??
+          sourceData.color;
+
+        return edgeData;
       }
 
       const graph = sigma.getGraph();
@@ -312,5 +328,12 @@ export const useSetDrawSettings = <
 
       return edgeData;
     });
-  }, [config.nodeHighlighting, isFullScreen, palette, sigma, graphState]);
+  }, [
+    config.nodeHighlighting,
+    config.edgeSizing.nonHighlightedVisibleSizeThreshold,
+    isFullScreen,
+    palette,
+    sigma,
+    graphState,
+  ]);
 };

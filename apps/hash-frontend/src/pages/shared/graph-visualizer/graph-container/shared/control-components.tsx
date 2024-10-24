@@ -112,7 +112,7 @@ export const ControlPanel = ({
         borderLeftWidth: 1,
         borderBottomLeftRadius: 4,
         boxShadow: open ? ({ boxShadows }) => boxShadows.sm : undefined,
-        minWidth: 150,
+        minWidth: 180,
         overflowY: "auto",
       }}
     >
