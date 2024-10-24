@@ -8,25 +8,26 @@ export const SimpleAutocomplete = <
   T extends {
     disabled?: boolean;
     label: string;
-    suffix?: string;
     valueForSelector: string;
-  },
+  } & { [key: string]: string | number | boolean | string[] },
 >({
   autoFocus,
   endAdornment,
-  includeSuffix,
   inputRef,
   placeholder,
   options,
   setValue,
+  sortAlphabetically = true,
+  suffixKey,
   value,
 }: {
   autoFocus?: boolean;
   endAdornment?: ReactNode;
-  includeSuffix?: boolean;
   inputRef?: RefObject<HTMLDivElement>;
   placeholder: string;
   options: T[];
+  sortAlphabetically?: boolean;
+  suffixKey?: keyof T;
   setValue: (value: T | null) => void;
   value: T | null;
 }) => {
@@ -80,7 +81,11 @@ export const SimpleAutocomplete = <
       onChange={(_event, option) => {
         setValue(option);
       }}
-      options={options.sort((a, b) => a.label.localeCompare(b.label))}
+      options={
+        sortAlphabetically
+          ? options.sort((a, b) => a.label.localeCompare(b.label))
+          : options
+      }
       renderOption={(props, option) => (
         <MenuItem
           {...props}
@@ -94,7 +99,7 @@ export const SimpleAutocomplete = <
           value={option.valueForSelector}
         >
           {option.label +
-            (includeSuffix && option.suffix ? ` ${option.suffix}` : "")}
+            (suffixKey && option[suffixKey] ? ` ${option[suffixKey]}` : "")}
         </MenuItem>
       )}
       value={value}
