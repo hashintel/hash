@@ -45,7 +45,7 @@ pub enum EntityValidationError {
     #[error("Entities without a type are not allowed")]
     EmptyEntityTypes,
     #[error("the validator was unable to read the entity type `{ids:?}`")]
-    EntityTypeRetrieval { ids: Vec<VersionedUrl> },
+    EntityTypeRetrieval { ids: HashSet<VersionedUrl> },
     #[error("the validator was unable to read the entity `{id}`")]
     EntityRetrieval { id: EntityId },
     #[error("The link type `{link_types:?}` is not allowed")]
@@ -95,7 +95,7 @@ where
                 .is_super_type_of(&link_type_id, &entity_type.id)
                 .await
                 .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                    ids: vec![entity_type.id.clone()],
+                    ids: HashSet::from([entity_type.id.clone()]),
                 })?
             {
                 is_link = true;
@@ -242,7 +242,7 @@ where
             .find_parents(&entity_type_ids)
             .await
             .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                ids: entity_type_ids.clone(),
+                ids: entity_type_ids.iter().cloned().collect(),
             })?;
         for link_type_id in entity_type_ids.into_iter().chain(covariant_entity_type_ids) {
             let Some(maybe_allowed_targets) = left_entity_type.links.get(&link_type_id) else {
@@ -272,7 +272,10 @@ where
                         .is_super_type_of(&allowed_target.url, &right_entity_type.id)
                         .await
                         .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                            ids: vec![right_entity_type.id.clone(), allowed_target.url.clone()],
+                            ids: HashSet::from([
+                                right_entity_type.id.clone(),
+                                allowed_target.url.clone(),
+                            ]),
                         })?
                     {
                         found_match = true;
