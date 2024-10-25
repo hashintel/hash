@@ -3722,12 +3722,11 @@ dependencies = [
 
 [[package]]
 name = "jsonschema"
-version = "0.24.1"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e3eb62e4868cbc3e580ac7d230d65ca063438c6a5d42c9270cda4fe55985ca1"
+checksum = "01a093392043453a13401b2c9dfb98ec7eb475ff2b1297e3553cd67d95dd0a5a"
 dependencies = [
  "ahash",
- "anyhow",
  "base64 0.22.1",
  "bytecount",
  "email_address",
@@ -3742,7 +3741,6 @@ dependencies = [
  "regex-syntax 0.8.5",
  "serde",
  "serde_json",
- "url",
  "uuid-simd",
 ]
 
@@ -5691,9 +5689,9 @@ dependencies = [
 
 [[package]]
 name = "referencing"
-version = "0.24.1"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74330e9a6f1ecd230e49b0069c071407823cc0edf11f13834ff934e878bdd89e"
+checksum = "de0f0e8df8168dc582b2df908775f8d9d6deaf9e0dd9f1b39ce1be50f4a6aa4f"
 dependencies = [
  "ahash",
  "fluent-uri",
