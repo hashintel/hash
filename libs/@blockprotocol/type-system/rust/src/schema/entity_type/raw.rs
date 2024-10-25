@@ -8,8 +8,8 @@ use tsify::Tsify;
 
 use crate::{
     schema::{
-        EntityTypeReference, OneOfSchema, PropertyTypeReference, PropertyValueArray, ValueOrArray,
-        entity_type::InverseEntityTypeMetadata,
+        EntityTypeReference, ObjectTypeTag, OneOfSchema, PropertyTypeReference, PropertyValueArray,
+        ValueOrArray, entity_type::InverseEntityTypeMetadata,
     },
     url::{BaseUrl, VersionedUrl},
 };
@@ -19,13 +19,6 @@ use crate::{
 #[serde(rename_all = "camelCase")]
 enum EntityTypeKindTag {
     EntityType,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
-#[serde(rename_all = "camelCase")]
-enum EntityTypeTag {
-    Object,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,7 +34,7 @@ type Links = HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityT
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct EntityTypeSchemaProperties<'a> {
+struct EntityConstraints<'a> {
     properties: Cow<'a, HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>>,
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     #[cfg_attr(target_arch = "wasm32", tsify(type = "[BaseUrl, ...BaseUrl[]]"))]
@@ -83,7 +76,7 @@ pub struct ClosedEntityType<'a> {
     #[serde(flatten)]
     metadata: EntityTypeSchemaMetadata<'a>,
     #[serde(flatten)]
-    schema_properties: EntityTypeSchemaProperties<'a>,
+    constraints: EntityConstraints<'a>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -93,11 +86,11 @@ pub struct EntityType<'a> {
     #[serde(rename = "$schema")]
     schema: EntityTypeSchemaTag,
     kind: EntityTypeKindTag,
-    r#type: EntityTypeTag,
+    r#type: ObjectTypeTag,
     #[serde(flatten)]
     metadata: EntityTypeSchemaMetadata<'a>,
     #[serde(flatten)]
-    schema_properties: EntityTypeSchemaProperties<'a>,
+    constraints: EntityConstraints<'a>,
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     #[cfg_attr(
         target_arch = "wasm32",
@@ -118,7 +111,7 @@ pub struct ClosedMultiEntityType<'a> {
     )]
     all_of: Cow<'a, [super::EntityTypeSchemaMetadata]>,
     #[serde(flatten)]
-    schema_properties: EntityTypeSchemaProperties<'a>,
+    constraints: EntityConstraints<'a>,
 }
 
 mod links {
@@ -218,10 +211,10 @@ impl From<EntityType<'_>> for super::EntityType {
             title: entity_type.metadata.title.into_owned(),
             title_plural: entity_type.metadata.title_plural.map(Cow::into_owned),
             description: entity_type.metadata.description.map(Cow::into_owned),
-            properties: entity_type.schema_properties.properties.into_owned(),
-            required: entity_type.schema_properties.required.into_owned(),
+            properties: entity_type.constraints.properties.into_owned(),
+            required: entity_type.constraints.required.into_owned(),
             all_of: entity_type.all_of.into_owned(),
-            links: entity_type.schema_properties.links,
+            links: entity_type.constraints.links,
             inverse: entity_type.metadata.inverse,
             label_property: entity_type.metadata.label_property.map(Cow::into_owned),
             icon: entity_type.metadata.icon.map(Cow::into_owned),
@@ -237,9 +230,9 @@ impl From<ClosedEntityType<'_>> for super::ClosedEntityType {
             title: entity_type.metadata.title.into_owned(),
             title_plural: entity_type.metadata.title_plural.map(Cow::into_owned),
             description: entity_type.metadata.description.map(Cow::into_owned),
-            properties: entity_type.schema_properties.properties.into_owned(),
-            required: entity_type.schema_properties.required.into_owned(),
-            links: entity_type.schema_properties.links,
+            properties: entity_type.constraints.properties.into_owned(),
+            required: entity_type.constraints.required.into_owned(),
+            links: entity_type.constraints.links,
             inverse: entity_type.metadata.inverse,
             label_property: entity_type.metadata.label_property.map(Cow::into_owned),
             icon: entity_type.metadata.icon.map(Cow::into_owned),
@@ -251,9 +244,9 @@ impl From<ClosedMultiEntityType<'_>> for super::ClosedMultiEntityType {
     fn from(entity_type: ClosedMultiEntityType<'_>) -> Self {
         Self {
             all_of: entity_type.all_of.into_owned(),
-            properties: entity_type.schema_properties.properties.into_owned(),
-            required: entity_type.schema_properties.required.into_owned(),
-            links: entity_type.schema_properties.links,
+            properties: entity_type.constraints.properties.into_owned(),
+            required: entity_type.constraints.required.into_owned(),
+            links: entity_type.constraints.links,
         }
     }
 }
@@ -277,7 +270,7 @@ impl<'a> From<&'a super::EntityType> for EntityType<'a> {
         Self {
             schema: EntityTypeSchemaTag::V3,
             kind: EntityTypeKindTag::EntityType,
-            r#type: EntityTypeTag::Object,
+            r#type: ObjectTypeTag::Object,
             metadata: EntityTypeSchemaMetadata {
                 id: Cow::Borrowed(&entity_type.id),
                 title: Cow::Borrowed(&entity_type.title),
@@ -287,7 +280,7 @@ impl<'a> From<&'a super::EntityType> for EntityType<'a> {
                 icon: entity_type.icon.as_deref().map(Cow::Borrowed),
                 label_property: entity_type.label_property.as_ref().map(Cow::Borrowed),
             },
-            schema_properties: EntityTypeSchemaProperties {
+            constraints: EntityConstraints {
                 properties: Cow::Borrowed(&entity_type.properties),
                 required: Cow::Borrowed(&entity_type.required),
                 links: entity_type.links.clone(),
@@ -311,7 +304,7 @@ impl<'a> From<&'a super::ClosedEntityType> for ClosedEntityType<'a> {
                 icon: entity_type.icon.as_deref().map(Cow::Borrowed),
                 label_property: entity_type.label_property.as_ref().map(Cow::Borrowed),
             },
-            schema_properties: EntityTypeSchemaProperties {
+            constraints: EntityConstraints {
                 properties: Cow::Borrowed(&entity_type.properties),
                 required: Cow::Borrowed(&entity_type.required),
                 links: entity_type.links.clone(),
@@ -324,7 +317,7 @@ impl<'a> From<&'a super::ClosedMultiEntityType> for ClosedMultiEntityType<'a> {
     fn from(entity_type: &'a super::ClosedMultiEntityType) -> Self {
         Self {
             all_of: Cow::Borrowed(&entity_type.all_of),
-            schema_properties: EntityTypeSchemaProperties {
+            constraints: EntityConstraints {
                 properties: Cow::Borrowed(&entity_type.properties),
                 required: Cow::Borrowed(&entity_type.required),
                 links: entity_type.links.clone(),
