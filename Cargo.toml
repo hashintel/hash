@@ -141,7 +141,7 @@ tower-http = { version = "=0.6.1", features = ["trace"] }
 
 # Shared third-party dependencies
 ansi-to-html = { version = "=0.2.1", default-features = false }
-anstyle = { version = "=1.0.8", default-features = false }
+anstyle = { version = "=1.0.9", default-features = false }
 anstyle-yansi = { version = "=2.0.1", default-features = false }
 approx = { version = "=0.5.1", default-features = false }
 async-scoped = { version = "=0.9.0", default-features = false }
