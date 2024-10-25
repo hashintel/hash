@@ -9,8 +9,8 @@ use thiserror::Error;
 
 use crate::{
     schema::{
-        EntityType, EntityTypeReference, EntityTypeSchemaMetadata, EntityTypeToPropertyTypeEdge,
-        EntityTypeUuid, InheritanceDepth, PropertyTypeUuid,
+        EntityType, EntityTypeReference, EntityTypeToPropertyTypeEdge, EntityTypeUuid,
+        InheritanceDepth, InverseEntityTypeMetadata, PropertyTypeUuid,
         entity_type::{EntityConstraints, EntityTypeDisplayMetadata, extend_links},
     },
     url::{BaseUrl, VersionedUrl},
@@ -22,8 +22,13 @@ use crate::{
 pub struct ClosedEntityTypeMetadata {
     #[serde(rename = "$id")]
     pub id: VersionedUrl,
-    #[serde(flatten)]
-    pub schema_metadata: EntityTypeSchemaMetadata,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(
         target_arch = "wasm32",
@@ -38,16 +43,21 @@ pub struct ClosedEntityTypeMetadata {
 pub struct ClosedEntityType {
     #[serde(rename = "$id")]
     pub id: VersionedUrl,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     #[serde(flatten)]
     pub constraints: EntityConstraints,
-    #[serde(flatten)]
-    pub schema_metadata: EntityTypeSchemaMetadata,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(
         target_arch = "wasm32",
         tsify(type = "[EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]]")
     )]
     pub all_of: Vec<EntityTypeDisplayMetadata>,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
 }
 
 #[derive(Debug, Error)]
@@ -74,16 +84,17 @@ impl ClosedEntityType {
         resolve_data: &EntityTypeResolveData,
     ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
         let mut closed_schema = Self {
-            id: schema.display_metadata.id,
+            id: schema.id,
             constraints: schema.constraints,
-            schema_metadata: schema.schema_metadata,
+            title: schema.title,
+            title_plural: schema.title_plural,
+            description: schema.description,
+            inverse: schema.inverse,
             all_of: Vec::new(),
         };
 
         for (_depth, entity_type) in resolve_data.ordered_schemas() {
-            schema
-                .all_of
-                .remove((&entity_type.display_metadata.id).into());
+            schema.all_of.remove((&entity_type.id).into());
             closed_schema
                 .constraints
                 .properties
@@ -96,10 +107,12 @@ impl ClosedEntityType {
                 &mut closed_schema.constraints.links,
                 entity_type.constraints.links.clone(),
             );
-            if !entity_type.display_metadata.is_empty() {
-                closed_schema
-                    .all_of
-                    .push(entity_type.display_metadata.clone());
+            if entity_type.icon.is_some() || entity_type.label_property.is_some() {
+                closed_schema.all_of.push(EntityTypeDisplayMetadata {
+                    id: entity_type.id.clone(),
+                    label_property: entity_type.label_property.clone(),
+                    icon: entity_type.icon.clone(),
+                });
             }
         }
 
@@ -144,7 +157,6 @@ impl ClosedMultiEntityType {
             },
             all_of: Vec::new(),
         };
-        let mut all_of = Vec::new();
 
         for schema in closed_schemas {
             for (base_url, property) in schema.constraints.properties {
@@ -164,15 +176,18 @@ impl ClosedMultiEntityType {
                 .required
                 .extend(schema.constraints.required);
             extend_links(&mut this.constraints.links, schema.constraints.links);
-            all_of.push(ClosedEntityTypeMetadata {
+            this.all_of.push(ClosedEntityTypeMetadata {
                 id: schema.id,
-                schema_metadata: schema.schema_metadata,
+                title: schema.title,
+                title_plural: schema.title_plural,
+                description: schema.description,
+                inverse: schema.inverse,
                 all_of: schema.all_of,
             });
         }
 
         ensure!(
-            !all_of.is_empty(),
+            !this.all_of.is_empty(),
             ResolveClosedEntityTypeError::EmptySchema
         );
 
@@ -346,16 +361,14 @@ mod tests {
             graph_test_data::entity_type::BUILDING_V1,
             JsonEqualityCheck::Yes,
         );
-        ontology_type_resolver.add_unresolved_entity_type(
-            EntityTypeUuid::from_url(&building.display_metadata.id),
-            Arc::new(building),
-        );
+        ontology_type_resolver
+            .add_unresolved_entity_type(EntityTypeUuid::from_url(&building.id), Arc::new(building));
 
         let church: EntityType = ensure_serialization_from_str::<EntityType>(
             graph_test_data::entity_type::CHURCH_V1,
             JsonEqualityCheck::Yes,
         );
-        let church_id = EntityTypeUuid::from_url(&church.display_metadata.id);
+        let church_id = EntityTypeUuid::from_url(&church.id);
         ontology_type_resolver.add_unresolved_entity_type(church_id, Arc::new(church.clone()));
 
         let resolved_church = ontology_type_resolver

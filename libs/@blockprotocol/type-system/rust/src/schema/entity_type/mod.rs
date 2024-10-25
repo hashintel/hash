@@ -9,7 +9,6 @@ pub use self::{
 
 mod closed;
 mod constraints;
-// mod raw;
 mod reference;
 mod validation;
 
@@ -97,18 +96,27 @@ pub struct EntityType {
     schema: EntityTypeSchemaTag,
     kind: EntityTypeKindTag,
     r#type: ObjectTypeTag,
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
     #[serde(flatten)]
     pub constraints: EntityConstraints,
-    #[serde(flatten)]
-    pub schema_metadata: EntityTypeSchemaMetadata,
-    #[serde(flatten)]
-    pub display_metadata: EntityTypeDisplayMetadata,
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     #[cfg_attr(
         target_arch = "wasm32",
         tsify(type = "[EntityTypeReference, ...EntityTypeReference[]]")
     )]
     pub all_of: HashSet<EntityTypeReference>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[deprecated]
     pub examples: Vec<HashMap<BaseUrl, JsonValue>>,

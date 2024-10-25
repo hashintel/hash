@@ -37,6 +37,9 @@ mod links {
         url::VersionedUrl,
     };
 
+    type Links =
+        HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>;
+
     // This struct is needed because it's used inside generic parameters of other structs like
     // `Array`. Those structs can't apply serde's `default` or `skip_serializing_if` which means
     // the option doesn't de/serialize as required unless wrapped in an intermediary struct.
@@ -46,10 +49,7 @@ mod links {
         inner: Option<T>,
     }
 
-    pub(super) fn serialize<S>(
-        links: &HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub(super) fn serialize<S>(links: &Links, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
@@ -68,12 +68,7 @@ mod links {
         map.end()
     }
 
-    pub(super) fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<
-        HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
-        D::Error,
-    >
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Links, D::Error>
     where
         D: serde::Deserializer<'de>,
     {

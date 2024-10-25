@@ -245,7 +245,8 @@ where
                 ids: entity_type_ids.iter().cloned().collect(),
             })?;
         for link_type_id in entity_type_ids.into_iter().chain(parent_entity_type_ids) {
-            let Some(maybe_allowed_targets) = left_entity_type.links.get(&link_type_id) else {
+            let Some(maybe_allowed_targets) = left_entity_type.constraints.links.get(&link_type_id)
+            else {
                 continue;
             };
 

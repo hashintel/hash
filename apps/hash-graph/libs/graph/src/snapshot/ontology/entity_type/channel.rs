@@ -13,9 +13,7 @@ use futures::{
 };
 use type_system::{
     Valid,
-    schema::{
-        ClosedEntityType, EntityTypeSchemaMetadata, EntityTypeUuid, InverseEntityTypeMetadata,
-    },
+    schema::{ClosedEntityType, EntityConstraints, EntityTypeUuid, InverseEntityTypeMetadata},
     url::{OntologyTypeVersion, VersionedUrl},
 };
 
@@ -85,22 +83,20 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 //   see https://linear.app/hash/issue/H-3038
                 closed_schema: Valid::new_unchecked(ClosedEntityType {
                     id: VersionedUrl {
-                        base_url: entity_type.schema.id.clone(),
+                        base_url: entity_type.schema.id.base_url.clone(),
                         version: OntologyTypeVersion::new(0),
+                    },
+                    title: String::new(),
+                    title_plural: None,
+                    description: None,
+                    inverse: InverseEntityTypeMetadata {
+                        title: None,
+                        title_plural: None,
                     },
                     constraints: EntityConstraints {
                         properties: HashMap::new(),
                         required: HashSet::new(),
                         links: HashMap::new(),
-                    },
-                    schema_metadata: EntityTypeSchemaMetadata {
-                        title: String::new(),
-                        title_plural: None,
-                        description: None,
-                        inverse: InverseEntityTypeMetadata {
-                            title: None,
-                            title_plural: None,
-                        },
                     },
                     all_of: Vec::new(),
                 }),
