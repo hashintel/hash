@@ -147,7 +147,7 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType::examples()`]: type_system::schema::EntityType::examples
     Examples,
-    /// Corresponds to [`EntityType::required()`].
+    /// Corresponds to [`EntityConstraints::required`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -158,7 +158,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType::required()`]: type_system::schema::EntityType::required
+    /// [`EntityConstraints::required`]: type_system::schema::EntityConstraints::required
     Required,
     /// The label property metadata of the entity type.
     ///
