@@ -238,13 +238,13 @@ where
             .iter()
             .map(|entity_type| entity_type.id.clone())
             .collect::<Vec<_>>();
-        let covariant_entity_type_ids = provider
+        let parent_entity_type_ids = provider
             .find_parents(&entity_type_ids)
             .await
             .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
                 ids: entity_type_ids.iter().cloned().collect(),
             })?;
-        for link_type_id in entity_type_ids.into_iter().chain(covariant_entity_type_ids) {
+        for link_type_id in entity_type_ids.into_iter().chain(parent_entity_type_ids) {
             let Some(maybe_allowed_targets) = left_entity_type.links.get(&link_type_id) else {
                 continue;
             };
@@ -253,12 +253,14 @@ where
             found_link_target = true;
 
             let Some(allowed_targets) = &maybe_allowed_targets.items else {
-                continue;
+                // For a given target there was an unconstrained link destination, so we can
+                // skip the rest of the checks
+                break;
             };
 
             // Link destinations are constrained, search for the right entity's type
             let mut found_match = false;
-            for allowed_target in &allowed_targets.possibilities {
+            'targets: for allowed_target in &allowed_targets.possibilities {
                 if right_entity_type
                     .all_of
                     .iter()
@@ -279,20 +281,21 @@ where
                         })?
                     {
                         found_match = true;
-                        break;
+                        break 'targets;
                     }
                 }
             }
 
-            if !found_match {
-                status.capture(EntityValidationError::InvalidLinkTargetId {
-                    target_types: right_entity_type
-                        .all_of
-                        .iter()
-                        .map(|entity_type| entity_type.id.clone())
-                        .collect(),
-                });
+            if found_match {
+                break;
             }
+            status.capture(EntityValidationError::InvalidLinkTargetId {
+                target_types: right_entity_type
+                    .all_of
+                    .iter()
+                    .map(|entity_type| entity_type.id.clone())
+                    .collect(),
+            });
         }
 
         if !found_link_target {

@@ -535,6 +535,7 @@ where
                     FROM entity_type_inherits_from
                     JOIN ontology_ids ON target_entity_type_ontology_id = ontology_id
                     WHERE source_entity_type_ontology_id = ANY($1)
+                    ORDER BY depth ASC;
                 ",
                 &[&entity_type_ids],
             )
