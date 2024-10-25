@@ -129,7 +129,7 @@ pub struct ServerArgs {
     #[clap(long, env = "HASH_TEMPORAL_SERVER_HOST")]
     pub temporal_host: Option<String>,
 
-    /// The URL of the Temporal server.
+    /// The port of the Temporal server.
     #[clap(long, env = "HASH_TEMPORAL_SERVER_PORT", default_value_t = 7233)]
     pub temporal_port: u16,
 }
