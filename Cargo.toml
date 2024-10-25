@@ -119,7 +119,7 @@ libp2p-yamux = { version = "=0.46.0", default-features = false }
 prometheus-client = { version = "=0.22.3", default-features = false }
 postgres-types = { version = "=0.2.8", default-features = false }
 reqwest = { version = "=0.12.8", default-features = false, features = ["rustls-tls"] }
-regex = { version = "=1.11.0", default-features = false, features = ["perf", "unicode"] }
+regex = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 semver = { version = "=1.0.23", default-features = false }
 sentry-types = { version = "=0.34.0", default-features = false }
 serde = { version = "=1.0.213", default-features = false }
