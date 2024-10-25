@@ -58,7 +58,9 @@ use temporal_versioning::{
 };
 use tokio_postgres::{GenericClient, Row, error::SqlState};
 use type_system::{
-    schema::{ClosedEntityType, EntityTypeUuid, InheritanceDepth, OntologyTypeUuid},
+    schema::{
+        ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, InheritanceDepth, OntologyTypeUuid,
+    },
     url::VersionedUrl,
 };
 use uuid::Uuid;
@@ -642,7 +644,7 @@ where
         };
 
         for mut params in params {
-            let entity_type = ClosedEntityType::from_multi_type_closed_schema(
+            let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
                 stream::iter(&params.entity_type_ids)
                     .then(|entity_type_url| async {
                         OntologyTypeProvider::<ClosedEntityType>::provide_type(
@@ -755,9 +757,9 @@ where
                 transaction_time: temporal_versioning.transaction_time,
             });
 
-            for (entity_type_url, _) in entity_type.all_of() {
-                let entity_type_id = EntityTypeUuid::from_url(entity_type_url);
-                entity_type_ids.insert(entity_type_id, entity_type_url.clone());
+            for entity_type in &entity_type.all_of {
+                let entity_type_id = EntityTypeUuid::from_url(&entity_type.id);
+                entity_type_ids.insert(entity_type_id, entity_type.id.clone());
                 entity_is_of_type_rows.push(EntityIsOfTypeRow {
                     entity_edition_id,
                     entity_type_ontology_id: entity_type_id,
@@ -1028,7 +1030,7 @@ where
             let schema = match params.entity_types {
                 EntityValidationType::ClosedSchema(schema) => schema,
                 EntityValidationType::Id(entity_type_urls) => Cow::Owned(
-                    ClosedEntityType::from_multi_type_closed_schema(
+                    ClosedMultiEntityType::from_multi_type_closed_schema(
                         stream::iter(entity_type_urls.as_ref())
                             .then(|entity_type_url| async {
                                 OntologyTypeProvider::<ClosedEntityType>::provide_type(
@@ -1046,7 +1048,7 @@ where
                 ),
             };
 
-            if schema.all_of().next().is_none() {
+            if schema.all_of.is_empty() {
                 let error = Report::new(validation::EntityValidationError::EmptyEntityTypes);
                 status.append(error);
             };
@@ -1506,7 +1508,7 @@ where
             cache: StoreCache::default(),
             authorization: Some((actor_id, Consistency::FullyConsistent)),
         };
-        let entity_type = ClosedEntityType::from_multi_type_closed_schema(
+        let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
             stream::iter(&entity_type_ids)
                 .then(|entity_type_url| async {
                     OntologyTypeProvider::<ClosedEntityType>::provide_type(

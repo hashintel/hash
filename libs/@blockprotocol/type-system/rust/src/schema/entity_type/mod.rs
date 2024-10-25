@@ -1,5 +1,7 @@
 pub use self::{
-    closed::{ClosedEntityType, ClosedEntityTypeSchemaData, EntityTypeResolveData},
+    closed::{
+        ClosedEntityType, ClosedMultiEntityType, EntityTypeResolveData, EntityTypeSchemaMetadata,
+    },
     reference::EntityTypeReference,
     validation::{EntityTypeValidationError, EntityTypeValidator},
 };

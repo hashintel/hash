@@ -4,35 +4,79 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use error_stack::{Report, ensure};
 use itertools::Itertools as _;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json::json;
 use thiserror::Error;
 
+use super::raw;
 use crate::{
     schema::{
         EntityType, EntityTypeReference, EntityTypeToPropertyTypeEdge, EntityTypeUuid,
         InheritanceDepth, PropertyTypeReference, PropertyTypeUuid, PropertyValueArray,
-        ValueOrArray, entity_type::extend_links, one_of::OneOfSchema,
+        ValueOrArray,
+        entity_type::{InverseEntityTypeMetadata, extend_links},
+        one_of::OneOfSchema,
     },
     url::{BaseUrl, VersionedUrl},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ClosedEntityTypeSchemaData {
+#[derive(Debug, Clone, Deserialize)]
+#[serde(from = "raw::ClosedEntityType")]
+pub struct ClosedEntityType {
+    pub id: VersionedUrl,
     pub title: String,
+    pub title_plural: Option<String>,
     pub description: Option<String>,
+    pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
+    pub required: HashSet<BaseUrl>,
+    pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
+    pub inverse: InverseEntityTypeMetadata,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ClosedEntityType {
-    schemas: HashMap<VersionedUrl, (InheritanceDepth, ClosedEntityTypeSchemaData)>,
+impl Serialize for ClosedEntityType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        raw::ClosedEntityType::from(self).serialize(serializer)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(from = "raw::EntityTypeSchemaMetadata")]
+pub struct EntityTypeSchemaMetadata {
+    pub id: VersionedUrl,
+    pub title: String,
+    pub title_plural: Option<String>,
+    pub description: Option<String>,
+    pub inverse: InverseEntityTypeMetadata,
+}
+
+impl Serialize for EntityTypeSchemaMetadata {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        raw::EntityTypeSchemaMetadata::from(self).serialize(serializer)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(from = "raw::ClosedMultiEntityType")]
+pub struct ClosedMultiEntityType {
+    pub all_of: Vec<EntityTypeSchemaMetadata>,
     pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
-    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     pub required: HashSet<BaseUrl>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
+}
+
+impl Serialize for ClosedMultiEntityType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        raw::ClosedMultiEntityType::from(self).serialize(serializer)
+    }
 }
 
 #[derive(Debug, Error)]
@@ -44,15 +88,50 @@ pub enum ResolveClosedEntityTypeError {
     UnknownSchemas(HashSet<EntityTypeReference>),
     #[error("Resolving the entity type encountered incompatible property: {0}.")]
     IncompatibleProperty(BaseUrl),
+    #[error("The entity type has an empty schema")]
+    EmptySchema,
 }
 
 impl ClosedEntityType {
-    pub fn all_of(&self) -> impl Iterator<Item = (&VersionedUrl, &ClosedEntityTypeSchemaData)> {
-        self.schemas
-            .iter()
-            .filter_map(|(url, (depth, data))| (depth.inner() == 0).then_some((url, data)))
-    }
+    /// Create a closed entity type from an entity type and its resolve data.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the entity type references unknown schemas in `allOf`.
+    pub fn from_resolve_data(
+        mut schema: EntityType,
+        resolve_data: &EntityTypeResolveData,
+    ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
+        let mut closed_schema = Self {
+            id: schema.id,
+            title: schema.title,
+            title_plural: schema.title_plural,
+            description: schema.description,
+            properties: schema.properties,
+            required: schema.required,
+            links: schema.links,
+            inverse: schema.inverse,
+        };
 
+        for entity_type in resolve_data.ordered_schemas() {
+            schema.all_of.remove((&entity_type.id).into());
+            closed_schema
+                .properties
+                .extend(entity_type.properties.clone());
+            closed_schema.required.extend(entity_type.required.clone());
+            extend_links(&mut closed_schema.links, entity_type.links.clone());
+        }
+
+        ensure!(
+            schema.all_of.is_empty(),
+            ResolveClosedEntityTypeError::UnknownSchemas(schema.all_of)
+        );
+
+        Ok(closed_schema)
+    }
+}
+
+impl ClosedMultiEntityType {
     /// Creates a closed entity type from multiple closed entity types.
     ///
     /// This results in a closed entity type which is used for entities with multiple types.
@@ -61,12 +140,12 @@ impl ClosedEntityType {
     ///
     /// Returns an error if the entity types have incompatible properties.
     pub fn from_multi_type_closed_schema(
-        closed_schemas: impl IntoIterator<Item = Self>,
+        closed_schemas: impl IntoIterator<Item = ClosedEntityType>,
     ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
         let mut properties = HashMap::new();
         let mut required = HashSet::new();
         let mut links = HashMap::new();
-        let mut schemas = HashMap::new();
+        let mut all_of = Vec::new();
 
         for schema in closed_schemas {
             for (base_url, property) in schema.properties {
@@ -82,80 +161,28 @@ impl ClosedEntityType {
                     }
                 }
             }
+            all_of.push(EntityTypeSchemaMetadata {
+                id: schema.id,
+                title: schema.title,
+                title_plural: schema.title_plural,
+                description: schema.description,
+                inverse: schema.inverse,
+            });
             required.extend(schema.required);
             extend_links(&mut links, schema.links);
-
-            for (url, (depth, schema_data)) in schema.schemas {
-                match schemas.entry(url) {
-                    Entry::Occupied(mut entry) => {
-                        let (existing_depth, _) = entry.get_mut();
-                        *existing_depth = cmp::min(*existing_depth, depth);
-                    }
-                    Entry::Vacant(entry) => {
-                        entry.insert((depth, schema_data));
-                    }
-                }
-            }
         }
 
+        ensure!(
+            !all_of.is_empty(),
+            ResolveClosedEntityTypeError::EmptySchema
+        );
+
         Ok(Self {
-            schemas,
+            all_of,
             properties,
             required,
             links,
         })
-    }
-
-    /// Create a closed entity type from an entity type and its resolve data.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the entity type references unknown schemas in `allOf`.
-    pub fn from_resolve_data(
-        entity_type: EntityType,
-        resolve_data: &EntityTypeResolveData,
-    ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
-        let mut all_of = entity_type.all_of;
-
-        let mut closed_schema = Self {
-            schemas: HashMap::from([(
-                entity_type.id,
-                (InheritanceDepth::new(0), ClosedEntityTypeSchemaData {
-                    title: entity_type.title,
-                    description: entity_type.description,
-                }),
-            )]),
-            properties: entity_type.properties,
-            required: entity_type.required,
-            links: entity_type.links,
-        };
-
-        for (depth, entity_type) in resolve_data.ordered_schemas() {
-            all_of.extend(entity_type.all_of.clone());
-            closed_schema.schemas.insert(
-                entity_type.id.clone(),
-                (
-                    InheritanceDepth::new(depth.inner() + 1),
-                    ClosedEntityTypeSchemaData {
-                        title: entity_type.title.clone(),
-                        description: entity_type.description.clone(),
-                    },
-                ),
-            );
-            closed_schema
-                .properties
-                .extend(entity_type.properties.clone());
-            closed_schema.required.extend(entity_type.required.clone());
-            extend_links(&mut closed_schema.links, entity_type.links.clone());
-            all_of.remove((&entity_type.id).into());
-        }
-
-        ensure!(
-            all_of.is_empty(),
-            ResolveClosedEntityTypeError::UnknownSchemas(all_of)
-        );
-
-        Ok(closed_schema)
     }
 }
 
@@ -298,12 +325,12 @@ impl EntityTypeResolveData {
     }
 
     /// Returns an iterator over the schemas ordered by inheritance depth and entity type id.
-    fn ordered_schemas(&self) -> impl Iterator<Item = (InheritanceDepth, &EntityType)> {
+    fn ordered_schemas(&self) -> impl Iterator<Item = &EntityType> {
         // TODO: Construct the sorted list on the fly when constructing this struct
         self.inheritance_depths
             .iter()
             .sorted_by_key(|(data_type_id, (depth, _))| (*depth, data_type_id.into_uuid()))
-            .map(|(_, (depth, schema))| (*depth, &**schema))
+            .map(|(_, (_, schema))| &**schema)
     }
 }
 
@@ -312,7 +339,7 @@ mod tests {
     use alloc::sync::Arc;
 
     use crate::{
-        schema::{ClosedEntityType, EntityType, EntityTypeUuid, OntologyTypeResolver},
+        schema::{EntityType, EntityTypeUuid, OntologyTypeResolver, entity_type::ClosedEntityType},
         url::BaseUrl,
         utils::tests::{JsonEqualityCheck, ensure_serialization_from_str},
     };

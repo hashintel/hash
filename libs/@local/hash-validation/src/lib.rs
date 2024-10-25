@@ -93,6 +93,7 @@ pub trait EntityProvider {
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
+    use core::iter;
     use std::collections::HashMap;
 
     use graph_types::{
@@ -116,8 +117,8 @@ mod tests {
     use thiserror::Error;
     use type_system::{
         schema::{
-            ClosedEntityType, ConversionExpression, DataType, EntityType, EntityTypeUuid,
-            OntologyTypeResolver, PropertyType,
+            ClosedEntityType, ClosedMultiEntityType, ConversionExpression, DataType, EntityType,
+            EntityTypeUuid, OntologyTypeResolver, PropertyType,
         },
         url::{BaseUrl, VersionedUrl},
     };
@@ -161,7 +162,7 @@ mod tests {
     impl Provider {
         fn new(
             entities: impl IntoIterator<Item = Entity>,
-            entity_types: impl IntoIterator<Item = (VersionedUrl, ClosedEntityType)>,
+            entity_types: impl IntoIterator<Item = ClosedEntityType>,
             property_types: impl IntoIterator<Item = PropertyType>,
             data_types: impl IntoIterator<Item = DataType>,
         ) -> Self {
@@ -172,7 +173,7 @@ mod tests {
                     .collect(),
                 entity_types: entity_types
                     .into_iter()
-                    .map(|(url, schema)| (url, Arc::new(schema)))
+                    .map(|schema| (schema.id.clone(), Arc::new(schema)))
                     .collect(),
                 property_types: property_types
                     .into_iter()
@@ -230,30 +231,20 @@ mod tests {
         #[expect(refining_impl_trait)]
         async fn is_super_type_of(
             &self,
-            parent: &VersionedUrl,
-            child: &VersionedUrl,
+            _: &VersionedUrl,
+            _: &VersionedUrl,
         ) -> Result<bool, Report<InvalidEntityType>> {
-            Ok(
-                OntologyTypeProvider::<ClosedEntityType>::provide_type(self, child)
-                    .await?
-                    .all_of()
-                    .any(|(id, _)| id == parent),
-            )
+            // Not used in tests
+            Ok(false)
         }
 
         #[expect(refining_impl_trait)]
         async fn find_parents(
             &self,
-            entity_types: &[VersionedUrl],
+            _: &[VersionedUrl],
         ) -> Result<Vec<VersionedUrl>, Report<InvalidEntityType>> {
-            let mut covariant_types = Vec::new();
-            for entity_type in entity_types {
-                let entity_type =
-                    OntologyTypeProvider::<ClosedEntityType>::provide_type(self, entity_type)
-                        .await?;
-                covariant_types.extend(entity_type.all_of().map(|(id, _)| id.clone()));
-            }
-            Ok(covariant_types)
+            // Not used in tests
+            Ok(Vec::new())
         }
     }
 
@@ -375,6 +366,9 @@ mod tests {
             .expect("entity type not resolved");
         let closed_entity_type = ClosedEntityType::from_resolve_data(entity_type, &resolved_data)
             .expect("Could not close entity type");
+        let closed_multi_entity_type =
+            ClosedMultiEntityType::from_multi_type_closed_schema(iter::once(closed_entity_type))
+                .expect("Could not close multi entity type");
 
         let entity_types = entity_types
             .into_iter()
@@ -382,11 +376,8 @@ mod tests {
                 let resolved_data = ontology_type_resolver
                     .resolve_entity_type_metadata(entity_type_uuid)
                     .expect("entity type not resolved");
-                let entity_type_id = entity_type.id.clone();
-                let closed_entity_type =
-                    ClosedEntityType::from_resolve_data(entity_type, &resolved_data)
-                        .expect("Could not close church");
-                (entity_type_id, closed_entity_type)
+                ClosedEntityType::from_resolve_data(entity_type, &resolved_data)
+                    .expect("Could not close church")
             })
             .collect::<Vec<_>>();
 
@@ -408,7 +399,7 @@ mod tests {
         .expect("failed to create property with metadata");
 
         EntityPreprocessor { components }
-            .visit_object(&closed_entity_type, &mut properties, &provider)
+            .visit_object(&closed_multi_entity_type, &mut properties, &provider)
             .await?;
 
         Ok(properties)

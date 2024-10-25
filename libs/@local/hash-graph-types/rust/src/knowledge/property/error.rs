@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use error_stack::Report;
 use serde_json::Value as JsonValue;
 use type_system::{
-    schema::{ClosedEntityType, DataType, PropertyType},
+    schema::{ClosedMultiEntityType, DataType, PropertyType},
     url::VersionedUrl,
 };
 
@@ -28,8 +28,9 @@ pub fn install_error_stack_hooks() {
 
         let ids = match expected {
             Expected::EntityType(entity_type) => entity_type
-                .all_of()
-                .map(|(entity_type_id, _)| entity_type_id.clone())
+                .all_of
+                .iter()
+                .map(|entity_type| entity_type.id.clone())
                 .collect::<Vec<_>>(),
             Expected::PropertyType(property_type) => vec![property_type.id.clone()],
             Expected::DataType(data_type) => vec![data_type.id.clone()],
@@ -75,7 +76,7 @@ pub enum Actual {
 
 #[derive(Debug)]
 pub enum Expected {
-    EntityType(Box<ClosedEntityType>),
+    EntityType(Box<ClosedMultiEntityType>),
     PropertyType(PropertyType),
     DataType(DataType),
 }
