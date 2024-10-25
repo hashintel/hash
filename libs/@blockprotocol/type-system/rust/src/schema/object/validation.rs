@@ -60,8 +60,8 @@ impl Validator<EntityType> for ObjectSchemaValidator {
         value: &'v EntityType,
     ) -> Result<&'v Valid<EntityType>, Self::Error> {
         ObjectSchemaRef {
-            properties: &value.properties,
-            required: &value.required,
+            properties: &value.constraints.properties,
+            required: &value.constraints.required,
         }
         .validate()?;
 
@@ -77,8 +77,8 @@ impl Validator<ClosedEntityType> for ObjectSchemaValidator {
         value: &'v ClosedEntityType,
     ) -> Result<&'v Valid<ClosedEntityType>, Self::Error> {
         ObjectSchemaRef {
-            properties: &value.properties,
-            required: &value.required,
+            properties: &value.constraints.properties,
+            required: &value.constraints.required,
         }
         .validate()?;
 

@@ -4,83 +4,50 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use error_stack::{Report, ensure};
 use itertools::Itertools as _;
-use serde::{Deserialize, Serialize, Serializer};
 use serde_json::json;
 use thiserror::Error;
 
-use super::raw;
 use crate::{
     schema::{
-        EntityType, EntityTypeReference, EntityTypeToPropertyTypeEdge, EntityTypeUuid,
-        InheritanceDepth, PropertyTypeReference, PropertyTypeUuid, PropertyValueArray,
-        ValueOrArray,
-        entity_type::{InverseEntityTypeMetadata, extend_links},
-        one_of::OneOfSchema,
+        EntityType, EntityTypeReference, EntityTypeSchemaMetadata, EntityTypeToPropertyTypeEdge,
+        EntityTypeUuid, InheritanceDepth, PropertyTypeUuid,
+        entity_type::{EntityConstraints, EntityTypeDisplayMetadata, extend_links},
     },
     url::{BaseUrl, VersionedUrl},
 };
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(from = "raw::ClosedEntityType")]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ClosedEntityTypeMetadata {
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
+    #[serde(flatten)]
+    pub schema_metadata: EntityTypeSchemaMetadata,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]]")
+    )]
+    pub all_of: Vec<EntityTypeDisplayMetadata>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedEntityType {
+    #[serde(rename = "$id")]
     pub id: VersionedUrl,
-    pub title: String,
-    pub title_plural: Option<String>,
-    pub description: Option<String>,
-    pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
-    pub required: HashSet<BaseUrl>,
-    pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
-    pub inverse: InverseEntityTypeMetadata,
-    pub label_property: Option<BaseUrl>,
-    pub icon: Option<String>,
-}
-
-impl Serialize for ClosedEntityType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        raw::ClosedEntityType::from(self).serialize(serializer)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(from = "raw::EntityTypeSchemaMetadata")]
-pub struct EntityTypeSchemaMetadata {
-    pub id: VersionedUrl,
-    pub title: String,
-    pub title_plural: Option<String>,
-    pub description: Option<String>,
-    pub inverse: InverseEntityTypeMetadata,
-    pub label_property: Option<BaseUrl>,
-    pub icon: Option<String>,
-}
-
-impl Serialize for EntityTypeSchemaMetadata {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        raw::EntityTypeSchemaMetadata::from(self).serialize(serializer)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(from = "raw::ClosedMultiEntityType")]
-pub struct ClosedMultiEntityType {
-    pub all_of: Vec<EntityTypeSchemaMetadata>,
-    pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
-    pub required: HashSet<BaseUrl>,
-    pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
-}
-
-impl Serialize for ClosedMultiEntityType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        raw::ClosedMultiEntityType::from(self).serialize(serializer)
-    }
+    #[serde(flatten)]
+    pub constraints: EntityConstraints,
+    #[serde(flatten)]
+    pub schema_metadata: EntityTypeSchemaMetadata,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]]")
+    )]
+    pub all_of: Vec<EntityTypeDisplayMetadata>,
 }
 
 #[derive(Debug, Error)]
@@ -101,31 +68,39 @@ impl ClosedEntityType {
     ///
     /// # Errors
     ///
-    /// Returns an error if the entity type references unknown schemas in `allOf`.
+    /// Returns an error if the entity type references unknown schema in `allOf`.
     pub fn from_resolve_data(
         mut schema: EntityType,
         resolve_data: &EntityTypeResolveData,
     ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
         let mut closed_schema = Self {
-            id: schema.id,
-            title: schema.title,
-            title_plural: schema.title_plural,
-            description: schema.description,
-            properties: schema.properties,
-            required: schema.required,
-            links: schema.links,
-            inverse: schema.inverse,
-            label_property: schema.label_property,
-            icon: schema.icon,
+            id: schema.display_metadata.id,
+            constraints: schema.constraints,
+            schema_metadata: schema.schema_metadata,
+            all_of: Vec::new(),
         };
 
-        for entity_type in resolve_data.ordered_schemas() {
-            schema.all_of.remove((&entity_type.id).into());
+        for (_depth, entity_type) in resolve_data.ordered_schemas() {
+            schema
+                .all_of
+                .remove((&entity_type.display_metadata.id).into());
             closed_schema
+                .constraints
                 .properties
-                .extend(entity_type.properties.clone());
-            closed_schema.required.extend(entity_type.required.clone());
-            extend_links(&mut closed_schema.links, entity_type.links.clone());
+                .extend(entity_type.constraints.properties.clone());
+            closed_schema
+                .constraints
+                .required
+                .extend(entity_type.constraints.required.clone());
+            extend_links(
+                &mut closed_schema.constraints.links,
+                entity_type.constraints.links.clone(),
+            );
+            if !entity_type.display_metadata.is_empty() {
+                closed_schema
+                    .all_of
+                    .push(entity_type.display_metadata.clone());
+            }
         }
 
         ensure!(
@@ -135,6 +110,19 @@ impl ClosedEntityType {
 
         Ok(closed_schema)
     }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ClosedMultiEntityType {
+    #[serde(flatten)]
+    pub constraints: EntityConstraints,
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[ClosedEntityTypeMetadata, ...ClosedEntityTypeMetadata[]]")
+    )]
+    pub all_of: Vec<ClosedEntityTypeMetadata>,
 }
 
 impl ClosedMultiEntityType {
@@ -148,14 +136,19 @@ impl ClosedMultiEntityType {
     pub fn from_multi_type_closed_schema(
         closed_schemas: impl IntoIterator<Item = ClosedEntityType>,
     ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
-        let mut properties = HashMap::new();
-        let mut required = HashSet::new();
-        let mut links = HashMap::new();
+        let mut this = Self {
+            constraints: EntityConstraints {
+                properties: HashMap::new(),
+                required: HashSet::new(),
+                links: HashMap::new(),
+            },
+            all_of: Vec::new(),
+        };
         let mut all_of = Vec::new();
 
         for schema in closed_schemas {
-            for (base_url, property) in schema.properties {
-                match properties.entry(base_url) {
+            for (base_url, property) in schema.constraints.properties {
+                match this.constraints.properties.entry(base_url) {
                     Entry::Occupied(entry) => {
                         ensure!(
                             property == *entry.get(),
@@ -167,17 +160,15 @@ impl ClosedMultiEntityType {
                     }
                 }
             }
-            all_of.push(EntityTypeSchemaMetadata {
+            this.constraints
+                .required
+                .extend(schema.constraints.required);
+            extend_links(&mut this.constraints.links, schema.constraints.links);
+            all_of.push(ClosedEntityTypeMetadata {
                 id: schema.id,
-                title: schema.title,
-                title_plural: schema.title_plural,
-                description: schema.description,
-                inverse: schema.inverse,
-                label_property: schema.label_property,
-                icon: schema.icon,
+                schema_metadata: schema.schema_metadata,
+                all_of: schema.all_of,
             });
-            required.extend(schema.required);
-            extend_links(&mut links, schema.links);
         }
 
         ensure!(
@@ -185,12 +176,7 @@ impl ClosedMultiEntityType {
             ResolveClosedEntityTypeError::EmptySchema
         );
 
-        Ok(Self {
-            all_of,
-            properties,
-            required,
-            links,
-        })
+        Ok(this)
     }
 }
 
@@ -333,12 +319,12 @@ impl EntityTypeResolveData {
     }
 
     /// Returns an iterator over the schemas ordered by inheritance depth and entity type id.
-    fn ordered_schemas(&self) -> impl Iterator<Item = &EntityType> {
+    fn ordered_schemas(&self) -> impl Iterator<Item = (InheritanceDepth, &EntityType)> {
         // TODO: Construct the sorted list on the fly when constructing this struct
         self.inheritance_depths
             .iter()
             .sorted_by_key(|(data_type_id, (depth, _))| (*depth, data_type_id.into_uuid()))
-            .map(|(_, (_, schema))| &**schema)
+            .map(|(_, (depth, schema))| (*depth, &**schema))
     }
 }
 
@@ -360,14 +346,16 @@ mod tests {
             graph_test_data::entity_type::BUILDING_V1,
             JsonEqualityCheck::Yes,
         );
-        ontology_type_resolver
-            .add_unresolved_entity_type(EntityTypeUuid::from_url(&building.id), Arc::new(building));
+        ontology_type_resolver.add_unresolved_entity_type(
+            EntityTypeUuid::from_url(&building.display_metadata.id),
+            Arc::new(building),
+        );
 
         let church: EntityType = ensure_serialization_from_str::<EntityType>(
             graph_test_data::entity_type::CHURCH_V1,
             JsonEqualityCheck::Yes,
         );
-        let church_id = EntityTypeUuid::from_url(&church.id);
+        let church_id = EntityTypeUuid::from_url(&church.display_metadata.id);
         ontology_type_resolver.add_unresolved_entity_type(church_id, Arc::new(church.clone()));
 
         let resolved_church = ontology_type_resolver
@@ -377,7 +365,7 @@ mod tests {
             .expect("Could not close church");
 
         assert!(
-            closed_church.properties.contains_key(
+            closed_church.constraints.properties.contains_key(
                 &BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/property-type/built-at/".to_owned()
                 )
@@ -385,7 +373,7 @@ mod tests {
             )
         );
         assert!(
-            closed_church.properties.contains_key(
+            closed_church.constraints.properties.contains_key(
                 &BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/property-type/number-bells/".to_owned()
                 )

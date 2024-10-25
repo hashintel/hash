@@ -154,7 +154,7 @@ impl OntologyTypeResolver {
     ) {
         debug_assert_eq!(
             entity_type_id,
-            EntityTypeUuid::from_url(&entity_type.id),
+            EntityTypeUuid::from_url(&entity_type.display_metadata.id),
             "The entity type ID must match the URL"
         );
         self.entity_types

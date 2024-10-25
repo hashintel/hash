@@ -13,7 +13,10 @@ use futures::{
 };
 use type_system::{
     Valid,
-    schema::{ClosedEntityType, EntityTypeUuid, InverseEntityTypeMetadata},
+    schema::{
+        ClosedEntityType, EntityTypeSchemaMetadata, EntityTypeUuid, InverseEntityTypeMetadata,
+    },
+    url::{OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::{
@@ -81,16 +84,25 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 // TODO: Validate ontology types in snapshots
                 //   see https://linear.app/hash/issue/H-3038
                 closed_schema: Valid::new_unchecked(ClosedEntityType {
-                    id: entity_type.schema.id.clone(),
-                    title: "<UNSET>".to_owned(),
-                    title_plural: None,
-                    description: None,
-                    properties: entity_type.schema.properties.clone(),
-                    required: HashSet::new(),
-                    links: HashMap::new(),
-                    inverse: InverseEntityTypeMetadata::default(),
-                    label_property: None,
-                    icon: None,
+                    id: VersionedUrl {
+                        base_url: entity_type.schema.id.clone(),
+                        version: OntologyTypeVersion::new(0),
+                    },
+                    constraints: EntityConstraints {
+                        properties: HashMap::new(),
+                        required: HashSet::new(),
+                        links: HashMap::new(),
+                    },
+                    schema_metadata: EntityTypeSchemaMetadata {
+                        title: String::new(),
+                        title_plural: None,
+                        description: None,
+                        inverse: InverseEntityTypeMetadata {
+                            title: None,
+                            title_plural: None,
+                        },
+                    },
+                    all_of: Vec::new(),
                 }),
                 // TODO: Validate ontology types in snapshots
                 //   see https://linear.app/hash/issue/H-3038

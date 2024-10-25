@@ -90,7 +90,7 @@ impl OntologyType for EntityType {
     type Metadata = EntityTypeMetadata;
 
     fn id(&self) -> &VersionedUrl {
-        &self.id
+        &self.display_metadata.id
     }
 
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {

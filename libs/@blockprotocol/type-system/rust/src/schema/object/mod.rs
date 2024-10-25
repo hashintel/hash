@@ -53,11 +53,11 @@ impl PropertyObjectSchema for EntityType {
     type Value = ValueOrArray<PropertyTypeReference>;
 
     fn properties(&self) -> &HashMap<BaseUrl, Self::Value> {
-        &self.properties
+        &self.constraints.properties
     }
 
     fn required(&self) -> &HashSet<BaseUrl> {
-        &self.required
+        &self.constraints.required
     }
 }
 
@@ -65,11 +65,11 @@ impl PropertyObjectSchema for ClosedMultiEntityType {
     type Value = ValueOrArray<PropertyTypeReference>;
 
     fn properties(&self) -> &HashMap<BaseUrl, Self::Value> {
-        &self.properties
+        &self.constraints.properties
     }
 
     fn required(&self) -> &HashSet<BaseUrl> {
-        &self.required
+        &self.constraints.required
     }
 }
 
