@@ -48,6 +48,10 @@ pub struct EntityType {
     pub all_of: HashSet<EntityTypeReference>,
     pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
     pub inverse: InverseEntityTypeMetadata,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     #[deprecated]
     pub examples: Vec<HashMap<BaseUrl, serde_json::Value>>,
 }

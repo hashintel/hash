@@ -74,6 +74,10 @@ pub struct EntityType<'a> {
     links: Links,
     #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
     inverse: InverseEntityTypeMetadata,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    label_property: Option<Cow<'a, BaseUrl>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    icon: Option<Cow<'a, str>>,
     #[serde(default, skip_serializing_if = "<[_]>::is_empty")]
     examples: Cow<'a, [HashMap<BaseUrl, JsonValue>]>,
 }
@@ -166,6 +170,8 @@ impl From<EntityType<'_>> for super::EntityType {
             all_of: entity_type.all_of.into_owned(),
             links: entity_type.links,
             inverse: entity_type.inverse,
+            label_property: entity_type.label_property.map(Cow::into_owned),
+            icon: entity_type.icon.map(Cow::into_owned),
             examples: entity_type.examples.into_owned(),
         }
     }
@@ -186,6 +192,8 @@ impl<'a> From<&'a super::EntityType> for EntityType<'a> {
             all_of: Cow::Borrowed(&entity_type.all_of),
             links: entity_type.links.clone(),
             inverse: entity_type.inverse.clone(),
+            label_property: entity_type.label_property.as_ref().map(Cow::Borrowed),
+            icon: entity_type.icon.as_deref().map(Cow::Borrowed),
             #[expect(deprecated)]
             examples: Cow::Borrowed(&entity_type.examples),
         }
