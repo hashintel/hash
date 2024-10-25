@@ -54,8 +54,6 @@ async fn insert() {
         classification: OntologyTypeClassificationMetadata::Owned {
             owned_by_id: OwnedById::new(api.account_id.into_uuid()),
         },
-        label_property: None,
-        icon: None,
         relationships: entity_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
         provenance: ProvidedOntologyEditionProvenance::default(),
@@ -84,8 +82,6 @@ async fn query() {
         classification: OntologyTypeClassificationMetadata::Owned {
             owned_by_id: OwnedById::new(api.account_id.into_uuid()),
         },
-        label_property: None,
-        icon: None,
         relationships: entity_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
         provenance: ProvidedOntologyEditionProvenance::default(),
@@ -159,8 +155,6 @@ async fn update() {
         classification: OntologyTypeClassificationMetadata::Owned {
             owned_by_id: OwnedById::new(api.account_id.into_uuid()),
         },
-        label_property: None,
-        icon: None,
         relationships: entity_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
         provenance: ProvidedOntologyEditionProvenance::default(),
@@ -170,8 +164,6 @@ async fn update() {
 
     api.update_entity_type(api.account_id, UpdateEntityTypesParams {
         schema: page_et_v2.clone(),
-        label_property: None,
-        icon: None,
         relationships: entity_type_relationships(),
         provenance: ProvidedOntologyEditionProvenance::default(),
     })

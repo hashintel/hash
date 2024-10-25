@@ -31,6 +31,8 @@ pub struct ClosedEntityType {
     pub required: HashSet<BaseUrl>,
     pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
     pub inverse: InverseEntityTypeMetadata,
+    pub label_property: Option<BaseUrl>,
+    pub icon: Option<String>,
 }
 
 impl Serialize for ClosedEntityType {
@@ -50,6 +52,8 @@ pub struct EntityTypeSchemaMetadata {
     pub title_plural: Option<String>,
     pub description: Option<String>,
     pub inverse: InverseEntityTypeMetadata,
+    pub label_property: Option<BaseUrl>,
+    pub icon: Option<String>,
 }
 
 impl Serialize for EntityTypeSchemaMetadata {
@@ -111,6 +115,8 @@ impl ClosedEntityType {
             required: schema.required,
             links: schema.links,
             inverse: schema.inverse,
+            label_property: schema.label_property,
+            icon: schema.icon,
         };
 
         for entity_type in resolve_data.ordered_schemas() {
@@ -167,6 +173,8 @@ impl ClosedMultiEntityType {
                 title_plural: schema.title_plural,
                 description: schema.description,
                 inverse: schema.inverse,
+                label_property: schema.label_property,
+                icon: schema.icon,
             });
             required.extend(schema.required);
             extend_links(&mut links, schema.links);

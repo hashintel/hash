@@ -53,14 +53,6 @@ export const entityTypeTypedef = gql`
       """
       ownedById: OwnedById
       entityType: ConstructEntityTypeParams!
-      """
-      The property which should be used as the label for entities of this type.
-      """
-      labelProperty: BaseUrl
-      """
-      The icon to use for the entity type.
-      """
-      icon: String
     ): EntityTypeWithMetadata!
 
     """
@@ -75,14 +67,6 @@ export const entityTypeTypedef = gql`
       New entity type schema contents to be used.
       """
       updatedEntityType: ConstructEntityTypeParams!
-      """
-      The property which should be used as the label for entities of this type.
-      """
-      labelProperty: BaseUrl
-      """
-      The icon to use for the entity type.
-      """
-      icon: String
     ): EntityTypeWithMetadata!
 
     """

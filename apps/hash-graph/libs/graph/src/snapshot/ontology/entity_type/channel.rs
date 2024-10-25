@@ -89,15 +89,12 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                     required: HashSet::new(),
                     links: HashMap::new(),
                     inverse: InverseEntityTypeMetadata::default(),
+                    label_property: None,
+                    icon: None,
                 }),
                 // TODO: Validate ontology types in snapshots
                 //   see https://linear.app/hash/issue/H-3038
                 schema: Valid::new_unchecked(entity_type.schema),
-                label_property: entity_type
-                    .metadata
-                    .label_property
-                    .map(|label_property| label_property.to_string()),
-                icon: entity_type.metadata.icon,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

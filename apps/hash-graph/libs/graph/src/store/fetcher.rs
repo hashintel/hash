@@ -440,8 +440,6 @@ where
                             classification: OntologyTypeClassificationMetadata::External {
                                 fetched_at,
                             },
-                            icon: None,
-                            label_property: None,
                         };
 
                         for referenced_ontology_type in self
@@ -554,8 +552,6 @@ where
                         .map(|(schema, metadata)| CreateEntityTypeParams {
                             schema,
                             classification: metadata.classification,
-                            icon: metadata.icon,
-                            label_property: metadata.label_property,
                             relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance::default(),
@@ -642,8 +638,6 @@ where
                             |(schema, metadata)| CreateEntityTypeParams {
                                 schema,
                                 classification: metadata.classification,
-                                icon: metadata.icon,
-                                label_property: metadata.label_property,
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance::default(),
