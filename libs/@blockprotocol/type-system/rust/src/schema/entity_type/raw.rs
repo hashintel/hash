@@ -98,6 +98,11 @@ pub struct EntityType<'a> {
     metadata: EntityTypeSchemaMetadata<'a>,
     #[serde(flatten)]
     schema_properties: EntityTypeSchemaProperties<'a>,
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[EntityTypeReference, ...EntityTypeReference[]]")
+    )]
     all_of: Cow<'a, HashSet<EntityTypeReference>>,
     #[serde(default, skip_serializing_if = "<[_]>::is_empty")]
     examples: Cow<'a, [HashMap<BaseUrl, JsonValue>]>,
