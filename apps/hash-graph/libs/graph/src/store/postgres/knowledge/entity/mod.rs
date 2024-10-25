@@ -931,16 +931,16 @@ where
             .as_client()
             .query(
                 "
-                INSERT INTO entity_is_of_type
-                SELECT entity_edition_id,
-                       target_entity_type_ontology_id AS entity_type_ontology_id,
-                       MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth
-                  FROM entity_is_of_type
-                  JOIN entity_type_inherits_from
-                    ON entity_type_ontology_id = source_entity_type_ontology_id
-                 WHERE entity_edition_id = ANY($1)
-                 GROUP BY entity_edition_id, target_entity_type_ontology_id;
-            ",
+                    INSERT INTO entity_is_of_type
+                    SELECT entity_edition_id,
+                        target_entity_type_ontology_id AS entity_type_ontology_id,
+                        MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth
+                    FROM entity_is_of_type
+                    JOIN entity_type_inherits_from
+                        ON entity_type_ontology_id = source_entity_type_ontology_id
+                    WHERE entity_edition_id = ANY($1)
+                    GROUP BY entity_edition_id, target_entity_type_ontology_id;
+                ",
                 &[&entity_edition_ids],
             )
             .await
@@ -1876,10 +1876,11 @@ where
                     INSERT INTO entity_is_of_type
                     SELECT entity_edition_id,
                            target_entity_type_ontology_id AS entity_type_ontology_id,
-                           entity_type_inherits_from.depth + 1 AS inheritance_depth
+                           MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth
                       FROM entity_is_of_type
                       JOIN entity_type_inherits_from
-                        ON entity_type_ontology_id = source_entity_type_ontology_id;
+                        ON entity_type_ontology_id = source_entity_type_ontology_id
+                     GROUP BY entity_edition_id, target_entity_type_ontology_id;
                 ",
             )
             .await
