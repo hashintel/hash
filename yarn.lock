@@ -5746,24 +5746,24 @@
     pump "^3.0.0"
     tar-fs "^2.1.1"
 
-"@nestjs/axios@3.0.3":
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/@nestjs/axios/-/axios-3.0.3.tgz#a663cb13cff07ea6b9a7107263de2ae472d41118"
-  integrity sha512-h6TCn3yJwD6OKqqqfmtRS5Zo4E46Ip2n+gK1sqwzNBC+qxQ9xpCu+ODVRFur6V3alHSCSBxb3nNtt73VEdluyA==
+"@nestjs/axios@3.1.0":
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/@nestjs/axios/-/axios-3.1.0.tgz#27568c56cd438d43dd8454f27ca1b2f3718859b0"
+  integrity sha512-CpeK2ickH//ml+H7kX+QPIpeTwER4yedVcw6GPe6Nv58cmKTa0sb+3A3It7ChKD4deW4UKNvZIpYkUk18q78YQ==
 
-"@nestjs/common@10.4.3":
-  version "10.4.3"
-  resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-10.4.3.tgz#b9059313d928aea335a4a185a621e32c1858c845"
-  integrity sha512-4hbLd3XIJubHSylYd/1WSi4VQvG68KM/ECYpMDqA3k3J1/T17SAg40sDoq3ZoO5OZgU0xuNyjuISdOTjs11qVg==
+"@nestjs/common@10.4.5":
+  version "10.4.5"
+  resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-10.4.5.tgz#00853da6ea7794743641aa0c098f23dc7480fc4f"
+  integrity sha512-N/yUyuYCBMb0+H6jHhntR7PURzji0usID/DByhOfooyk/aPGscI0aQKwOA6edlJlT92hHUvXYLJ5p3npj7KcjQ==
   dependencies:
     uid "2.0.2"
     iterare "1.2.1"
     tslib "2.7.0"
 
-"@nestjs/core@10.4.3":
-  version "10.4.3"
-  resolved "https://registry.yarnpkg.com/@nestjs/core/-/core-10.4.3.tgz#b2a3dcfc6a948a74618feeee8affc3186afe52da"
-  integrity sha512-6OQz+5C8mT8yRtfvE5pPCq+p6w5jDot+oQku1KzQ24ABn+lay1KGuJwcKZhdVNuselx+8xhdMxknZTA8wrGLIg==
+"@nestjs/core@10.4.5":
+  version "10.4.5"
+  resolved "https://registry.yarnpkg.com/@nestjs/core/-/core-10.4.5.tgz#448ebfb315363fadc920b111acd99c702768d344"
+  integrity sha512-wk0KJ+6tuidqAdeemsQ40BCp1BgMsSuSLG577aqXLxXYoa8FQYPrdxoSzd05znYLwJYM55fisZWb3FLF9HT2qw==
   dependencies:
     uid "2.0.2"
     "@nuxtjs/opencollective" "0.3.2"
@@ -6019,14 +6019,14 @@
     chalk "^4"
     fast-levenshtein "^3.0.0"
 
-"@openapitools/openapi-generator-cli@2.14.1":
-  version "2.14.1"
-  resolved "https://registry.yarnpkg.com/@openapitools/openapi-generator-cli/-/openapi-generator-cli-2.14.1.tgz#74babae6544497ce34d8bc59ee876e206a7f09de"
-  integrity sha512-AHh5hcM5HoyLCHYdJesIAa53RGrmoaKw/RnIHpFCdumHEUNzqVmi7rHj0pWs4to1v99vbHE6zWp69WGOaa8rOg==
+"@openapitools/openapi-generator-cli@2.15.0":
+  version "2.15.0"
+  resolved "https://registry.yarnpkg.com/@openapitools/openapi-generator-cli/-/openapi-generator-cli-2.15.0.tgz#d5c503ec0265da89fc63463d2310e5e2a4b59eb6"
+  integrity sha512-28SxjssgQaLLfVRooXTJMjT1MObdA8YjUFBmqk/KqKraVUeS3KUi5CKGPi8zzlJUoyLqF/KrFSvggzvLlx0XQw==
   dependencies:
-    "@nestjs/axios" "3.0.3"
-    "@nestjs/common" "10.4.3"
-    "@nestjs/core" "10.4.3"
+    "@nestjs/axios" "3.1.0"
+    "@nestjs/common" "10.4.5"
+    "@nestjs/core" "10.4.5"
     "@nuxtjs/opencollective" "0.3.2"
     axios "1.7.7"
     chalk "4.1.2"
