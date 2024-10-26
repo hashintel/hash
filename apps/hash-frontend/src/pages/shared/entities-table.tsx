@@ -3,6 +3,7 @@ import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
@@ -212,20 +213,25 @@ export const EntitiesTable: FunctionComponent<{
     [hadCachedContent, loading, lastLoadedEntities],
   );
 
-  const isViewingPages = useMemo(
-    () =>
-      !!entities?.length &&
-      entities.every(({ metadata }) =>
-        isPageEntityTypeId(metadata.entityTypeId),
-      ),
-    [entities],
-  );
+  const { isViewingOnlyPages, hasSomeLinks } = useMemo(() => {
+    let isViewingPages = true;
+    let hasLinks = false;
+    for (const entity of entities ?? []) {
+      if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
+        isViewingPages = false;
+      }
+      if (entity.linkData) {
+        hasLinks = true;
+      }
+    }
+    return { isViewingOnlyPages: isViewingPages, hasSomeLinks: hasLinks };
+  }, [entities]);
 
   useEffect(() => {
-    if (isViewingPages && filterState.includeArchived === undefined) {
+    if (isViewingOnlyPages && filterState.includeArchived === undefined) {
       setFilterState((prev) => ({ ...prev, includeArchived: false }));
     }
-  }, [isViewingPages, filterState]);
+  }, [isViewingOnlyPages, filterState]);
 
   const internalWebIds = useMemo(() => {
     return [
@@ -263,10 +269,11 @@ export const EntitiesTable: FunctionComponent<{
     entityTypes,
     propertyTypes,
     subgraph,
+    hasSomeLinks,
     hideColumns,
     hidePageArchivedColumn: !filterState.includeArchived,
     hidePropertiesColumns,
-    isViewingPages,
+    isViewingOnlyPages,
   });
 
   const [selectedRows, setSelectedRows] = useState<TypeEntitiesRow[]>([]);
@@ -297,6 +304,8 @@ export const EntitiesTable: FunctionComponent<{
     },
     [subgraph],
   );
+
+  const theme = useTheme();
 
   const createGetCellContent = useCallback(
     (entityRows: TypeEntitiesRow[]) =>
@@ -336,7 +345,7 @@ export const EntitiesTable: FunctionComponent<{
                 icon: "bpAsterisk",
                 value: row.entityLabel,
                 onClick: () => {
-                  if (isViewingPages) {
+                  if (isViewingOnlyPages) {
                     void router.push(
                       `/${row.web}/${extractEntityUuidFromEntityId(
                         row.entityId,
@@ -374,7 +383,45 @@ export const EntitiesTable: FunctionComponent<{
                 },
               },
             };
-          } else if (columnId === "archived") {
+          } else if (
+            columnId === "sourceEntity" ||
+            columnId === "targetEntity"
+          ) {
+            const entity = row[columnId] as TypeEntitiesRow["sourceEntity"];
+            if (!entity) {
+              const data = "Does not apply";
+              return {
+                kind: GridCellKind.Text,
+                allowOverlay: true,
+                readonly: true,
+                displayData: data,
+                data,
+                themeOverride: {
+                  bgCell: theme.palette.gray[5],
+                  textDark: theme.palette.gray[50],
+                },
+              };
+            }
+
+            console.log(entity);
+
+            return {
+              kind: GridCellKind.Custom,
+              allowOverlay: false,
+              readonly: true,
+              copyData: entity.label,
+              cursor: "pointer",
+              data: {
+                kind: "text-icon-cell",
+                icon: "bpAsterisk",
+                value: entity.label,
+                onClick: () => {
+                  handleEntityClick(entity.entityId);
+                },
+              },
+            };
+          }
+          if (columnId === "archived") {
             const value = row.archived ? "Yes" : "No";
             return {
               kind: GridCellKind.Text,
@@ -478,28 +525,41 @@ export const EntitiesTable: FunctionComponent<{
               data: propertyCellValue,
             };
           }
+
+          const appliesToEntity = row.applicableProperties.includes(
+            columnId as BaseUrl,
+          );
+
+          const data = appliesToEntity ? "–" : "Does not apply";
+
+          return {
+            kind: GridCellKind.Text,
+            allowOverlay: true,
+            readonly: true,
+            displayData: data,
+            data,
+            themeOverride: appliesToEntity
+              ? {
+                  textDark: theme.palette.gray[50],
+                }
+              : {
+                  bgCell: theme.palette.gray[5],
+                  textDark: theme.palette.gray[50],
+                },
+          };
         }
 
         return blankCell;
       },
-    [columns, disableTypeClick, handleEntityClick, router, isViewingPages],
+    [
+      columns,
+      disableTypeClick,
+      handleEntityClick,
+      router,
+      isViewingOnlyPages,
+      theme.palette,
+    ],
   );
-
-  const theme = useTheme();
-
-  const webs = useMemo(
-    () =>
-      rows
-        ?.map(({ web }) => web)
-        .filter((web, index, all) => all.indexOf(web) === index) ?? [],
-    [rows],
-  );
-
-  const [selectedWebs, setSelectedWebs] = useState<string[]>(webs);
-
-  useEffect(() => {
-    setSelectedWebs(webs);
-  }, [webs]);
 
   const sortRows = useCallback<
     NonNullable<GridProps<TypeEntitiesRow>["sortRows"]>
@@ -549,44 +609,46 @@ export const EntitiesTable: FunctionComponent<{
     });
   }, []);
 
-  const entityTypeVersions = useMemo(
-    () =>
-      rows
-        ?.map(({ entityTypeVersion }) => entityTypeVersion)
-        .filter(
-          (entityTypeVersion, index, all) =>
-            all.indexOf(entityTypeVersion) === index,
-        ) ?? [],
-    [rows],
-  );
-
-  const [selectedEntityTypeVersions, setSelectedEntityTypeVersions] =
-    useState<string[]>(entityTypeVersions);
-
-  useEffect(() => {
-    setSelectedEntityTypeVersions(entityTypeVersions);
-  }, [entityTypeVersions]);
-
   const [selectedArchivedStatus, setSelectedArchivedStatus] = useState<
     ("archived" | "not-archived")[]
   >(["archived", "not-archived"]);
 
-  const { createdByActors, lastEditedByActors } = useMemo(() => {
-    const lastEditedBySet = new Set<MinimalActor>();
-    const createdBySet = new Set<MinimalActor>();
-    for (const row of rows ?? []) {
-      if (row.lastEditedBy && row.lastEditedBy !== "loading") {
-        lastEditedBySet.add(row.lastEditedBy);
+  const { createdByActors, lastEditedByActors, entityTypeVersions, webs } =
+    useMemo(() => {
+      const lastEditedBySet = new Set<MinimalActor>();
+      const createdBySet = new Set<MinimalActor>();
+      const entityTypeVersionCount: {
+        [entityTypeVersion: string]: number;
+      } = {};
+
+      const webCountById: { [web: string]: number } = {};
+      for (const row of rows ?? []) {
+        if (row.lastEditedBy && row.lastEditedBy !== "loading") {
+          lastEditedBySet.add(row.lastEditedBy);
+        }
+        if (row.createdBy && row.createdBy !== "loading") {
+          createdBySet.add(row.createdBy);
+        }
+        entityTypeVersionCount[row.entityTypeVersion] ??= 0;
+        entityTypeVersionCount[row.entityTypeVersion]!++;
+        webCountById[row.web] ??= 0;
+        webCountById[row.web]!++;
       }
-      if (row.createdBy && row.createdBy !== "loading") {
-        createdBySet.add(row.createdBy);
-      }
-    }
-    return {
-      lastEditedByActors: [...lastEditedBySet],
-      createdByActors: [...createdBySet],
-    };
-  }, [rows]);
+      return {
+        lastEditedByActors: [...lastEditedBySet],
+        createdByActors: [...createdBySet],
+        entityTypeVersions: entityTypeVersionCount,
+        webs: webCountById,
+      };
+    }, [rows]);
+
+  const [selectedEntityTypeVersions, setSelectedEntityTypeVersions] = useState<
+    string[]
+  >(Object.keys(entityTypeVersions));
+
+  useEffect(() => {
+    setSelectedEntityTypeVersions(Object.keys(entityTypeVersions));
+  }, [entityTypeVersions]);
 
   const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
     useState<string[]>(lastEditedByActors.map(({ accountId }) => accountId));
@@ -606,13 +668,20 @@ export const EntitiesTable: FunctionComponent<{
     );
   }, [createdByActors]);
 
+  const [selectedWebs, setSelectedWebs] = useState<string[]>(Object.keys(webs));
+
+  useEffect(() => {
+    setSelectedWebs(Object.keys(webs));
+  }, [webs]);
+
   const columnFilters = useMemo<ColumnFilter<string, TypeEntitiesRow>[]>(
     () => [
       {
         columnKey: "web",
-        filterItems: webs.map((web) => ({
+        filterItems: Object.entries(webs).map(([web, count]) => ({
           id: web,
           label: web,
+          count,
         })),
         selectedFilterItemIds: selectedWebs,
         setSelectedFilterItemIds: setSelectedWebs,
@@ -620,10 +689,13 @@ export const EntitiesTable: FunctionComponent<{
       },
       {
         columnKey: "entityTypeVersion",
-        filterItems: entityTypeVersions.map((entityTypeVersion) => ({
-          id: entityTypeVersion,
-          label: entityTypeVersion,
-        })),
+        filterItems: Object.entries(entityTypeVersions).map(
+          ([entityTypeVersion, count]) => ({
+            id: entityTypeVersion,
+            label: entityTypeVersion,
+            count,
+          }),
+        ),
         selectedFilterItemIds: selectedEntityTypeVersions,
         setSelectedFilterItemIds: setSelectedEntityTypeVersions,
         isRowFiltered: (row) =>
@@ -765,7 +837,7 @@ export const EntitiesTable: FunctionComponent<{
         <TableHeader
           hideFilters={hideFilters}
           internalWebIds={internalWebIds}
-          itemLabelPlural={isViewingPages ? "pages" : "entities"}
+          itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
           items={entities}
           selectedItems={
             entities?.filter((entity) =>
@@ -778,8 +850,8 @@ export const EntitiesTable: FunctionComponent<{
           title="Entities"
           columns={columns}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
-          hideExportToCsv
+          // getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
+          hideExportToCsv={view !== "Table"}
           endAdornment={
             <TableHeaderToggle
               value={view}

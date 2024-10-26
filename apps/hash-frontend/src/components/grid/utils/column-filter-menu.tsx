@@ -18,6 +18,7 @@ import {
 import type { FunctionComponent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { MenuItem } from "../../../shared/ui";
 import type { ColumnFilter } from "./filtering";
 
@@ -140,8 +141,13 @@ export const ColumnFilterMenu: FunctionComponent<
                 </Stack>
                 {filterItems
                   ?.sort((a, b) => a.label.localeCompare(b.label))
-                  .map(({ id, label }) => {
+                  .map(({ id, label, count }) => {
                     const checked = selectedFilterItemIds?.includes(id);
+
+                    const text =
+                      count !== undefined
+                        ? `${label} (${formatNumber(count)})`
+                        : label;
 
                     return (
                       <MenuItem
@@ -174,7 +180,7 @@ export const ColumnFilterMenu: FunctionComponent<
                               checked={checked}
                             />
                           </ListItemIcon>
-                          <ListItemText primary={label} />
+                          <ListItemText primary={text} />
                         </Stack>
                         <Box
                           component="button"

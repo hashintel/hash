@@ -8,6 +8,7 @@ export type ColumnFilter<
   filterItems: {
     id: string;
     label: string;
+    count?: number;
   }[];
   selectedFilterItemIds: string[];
   setSelectedFilterItemIds: (selectedFilterItemIds: string[]) => void;

@@ -8,8 +8,10 @@ import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { OwnedById } from "@local/hash-graph-types/web";
+import type {
+  BaseUrl,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -17,6 +19,7 @@ import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-p
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
+  getEntityRevision,
   getEntityTypeById,
   getPropertyTypesForEntityType,
 } from "@local/hash-subgraph/stdlib";
@@ -25,7 +28,6 @@ import { format } from "date-fns";
 import { useCallback, useMemo } from "react";
 
 import { gridHeaderBaseFont } from "../../../components/grid/grid";
-import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import type { MinimalActor } from "../../../shared/use-actors";
 import { useActors } from "../../../shared/use-actors";
 
@@ -40,11 +42,21 @@ const columnDefinitionsByKey: Record<
   entityTypeVersion: {
     title: "Entity Type",
     id: "entityTypeVersion",
-    width: 230,
+    width: 200,
   },
   web: {
     title: "Web",
     id: "web",
+    width: 200,
+  },
+  sourceEntity: {
+    title: "Source",
+    id: "sourceEntity",
+    width: 200,
+  },
+  targetEntity: {
+    title: "Target",
+    id: "targetEntity",
     width: 200,
   },
   archived: {
@@ -86,10 +98,19 @@ export interface TypeEntitiesRow {
   lastEditedBy?: MinimalActor | "loading";
   created: string;
   createdBy?: MinimalActor | "loading";
+  sourceEntity?: {
+    entityId: EntityId;
+    label: string;
+  };
+  targetEntity?: {
+    entityId: EntityId;
+    label: string;
+  };
   web: string;
   properties?: {
     [k: string]: string;
   };
+  applicableProperties: BaseUrl[];
   /** @todo: get rid of this by typing `columnId` */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
@@ -113,10 +134,11 @@ export const useEntitiesTable = (params: {
   entityTypes?: EntityType[];
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
+  hasSomeLinks?: boolean;
   hideColumns?: (keyof TypeEntitiesRow)[];
   hidePageArchivedColumn?: boolean;
   hidePropertiesColumns: boolean;
-  isViewingPages?: boolean;
+  isViewingOnlyPages?: boolean;
 }) => {
   const {
     entities,
@@ -125,7 +147,7 @@ export const useEntitiesTable = (params: {
     hideColumns,
     hidePageArchivedColumn = false,
     hidePropertiesColumns,
-    isViewingPages = false,
+    isViewingOnlyPages = false,
   } = params;
 
   const editorActorIds = useMemo(
@@ -141,6 +163,9 @@ export const useEntitiesTable = (params: {
     accountIds: editorActorIds,
   });
 
+  /**
+   * @todo ******* RESTORE THIS *******
+   */
   const getOwnerForEntity = useCallback(
     (_args: { entityId: EntityId }) => ({
       ownedById: "",
@@ -160,33 +185,45 @@ export const useEntitiesTable = (params: {
     [entities],
   );
 
-  const usedPropertyTypes = useMemo(() => {
+  const usedPropertyTypesByEntityTypeId = useMemo<{
+    [entityTypeId: VersionedUrl]: PropertyTypeWithMetadata[];
+  }>(() => {
     if (!entities || !subgraph) {
-      return [];
+      return {};
     }
 
-    return entities.flatMap((entity) => {
-      const entityType = getEntityTypeById(
-        subgraph,
-        entity.metadata.entityTypeId,
-      );
-
-      if (!entityType) {
-        throw new Error(
-          `Could not find entityType with id ${entity.metadata.entityTypeId} in subgraph`,
+    return Object.fromEntries(
+      entities.map((entity) => {
+        const entityType = getEntityTypeById(
+          subgraph,
+          entity.metadata.entityTypeId,
         );
-      }
 
-      return [
-        ...getPropertyTypesForEntityType(entityType.schema, subgraph).values(),
-      ];
-    });
+        if (!entityType) {
+          throw new Error(
+            `Could not find entityType with id ${entity.metadata.entityTypeId} in subgraph`,
+          );
+        }
+
+        return [
+          entityType.schema.$id,
+          [
+            ...getPropertyTypesForEntityType(
+              entityType.schema,
+              subgraph,
+            ).values(),
+          ],
+        ];
+      }),
+    );
   }, [entities, subgraph]);
 
   return useMemo(() => {
     const propertyColumnsMap = new Map<string, SizedGridColumn>();
 
-    for (const propertyType of usedPropertyTypes) {
+    for (const propertyType of Object.values(
+      usedPropertyTypesByEntityTypeId,
+    ).flat()) {
       const propertyTypeBaseUrl = extractBaseUrl(propertyType.schema.$id);
 
       if (!propertyColumnsMap.has(propertyTypeBaseUrl)) {
@@ -213,7 +250,7 @@ export const useEntitiesTable = (params: {
     ];
 
     const columnsToHide = hideColumns ?? [];
-    if (!isViewingPages || hidePageArchivedColumn) {
+    if (!isViewingOnlyPages || hidePageArchivedColumn) {
       columnsToHide.push("archived");
     }
 
@@ -286,6 +323,36 @@ export const useEntitiesTable = (params: {
                     accountId === entity.metadata.provenance.createdById,
                 );
 
+            const applicableProperties = usedPropertyTypesByEntityTypeId[
+              entityType.$id
+            ]!.map((propertyType) => extractBaseUrl(propertyType.schema.$id));
+
+            let sourceEntity: TypeEntitiesRow["sourceEntity"];
+            let targetEntity: TypeEntitiesRow["targetEntity"];
+            if (entity.linkData) {
+              const source = getEntityRevision(
+                subgraph,
+                entity.linkData.leftEntityId,
+              );
+              const target = getEntityRevision(
+                subgraph,
+                entity.linkData.rightEntityId,
+              );
+
+              sourceEntity = {
+                entityId: entity.linkData.leftEntityId,
+                label: source
+                  ? generateEntityLabel(subgraph, source)
+                  : entity.linkData.leftEntityId,
+              };
+              targetEntity = {
+                entityId: entity.linkData.rightEntityId,
+                label: target
+                  ? generateEntityLabel(subgraph, target)
+                  : entity.linkData.rightEntityId,
+              };
+            }
+
             return {
               rowId: entityId,
               entityId,
@@ -304,6 +371,9 @@ export const useEntitiesTable = (params: {
               createdBy,
               /** @todo: uncomment this when we have additional types for entities */
               // additionalTypes: "",
+              sourceEntity,
+              targetEntity,
+              applicableProperties,
               ...propertyColumns.reduce((fields, column) => {
                 if (column.id) {
                   const propertyValue = entity.properties[column.id as BaseUrl];
@@ -330,11 +400,11 @@ export const useEntitiesTable = (params: {
     entities,
     entityTypes,
     getOwnerForEntity,
-    isViewingPages,
+    isViewingOnlyPages,
     hideColumns,
     hidePageArchivedColumn,
     hidePropertiesColumns,
     subgraph,
-    usedPropertyTypes,
+    usedPropertyTypesByEntityTypeId,
   ]);
 };
