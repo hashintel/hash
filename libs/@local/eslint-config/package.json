@@ -7,7 +7,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives ."
   },
   "dependencies": {
-    "@babel/core": "7.25.9",
+    "@babel/core": "7.26.0",
     "@babel/eslint-parser": "7.25.9",
     "@babel/preset-react": "7.25.9",
     "@typescript-eslint/eslint-plugin": "7.2.0",
