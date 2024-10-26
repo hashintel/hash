@@ -210,10 +210,13 @@ export const useEventHandlers = ({
       },
       enterEdge: (event) => {
         setGraphState("hoveredEdgeId", event.edge);
+        const source = sigma.getGraph().source(event.edge);
+        const target = sigma.getGraph().target(event.edge);
 
         sigma.refresh({
           partialGraph: {
             edges: [event.edge],
+            nodes: [source, target],
           },
           skipIndexation: true,
         });
@@ -221,9 +224,13 @@ export const useEventHandlers = ({
       leaveEdge: (event) => {
         setGraphState("hoveredEdgeId", null);
 
+        const source = sigma.getGraph().source(event.edge);
+        const target = sigma.getGraph().target(event.edge);
+
         sigma.refresh({
           partialGraph: {
             edges: [event.edge],
+            nodes: [source, target],
           },
           skipIndexation: true,
         });

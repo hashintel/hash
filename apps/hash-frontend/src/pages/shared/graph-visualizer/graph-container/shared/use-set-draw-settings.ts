@@ -17,6 +17,7 @@ export const labelRenderedSizeThreshold = {
 };
 
 const maxLabelWidth = 100;
+
 const getCanvasLines = (ctx: CanvasRenderingContext2D, text: string) => {
   const words = text.split(" ");
   const lines = [];
@@ -39,6 +40,55 @@ const getCanvasLines = (ctx: CanvasRenderingContext2D, text: string) => {
   lines.push(currentLine);
 
   return { lines, maxLineWidth };
+};
+
+const getRgb = (cssString: string): [number, number, number] | null => {
+  // Check if it's in the hex format (#RRGGBB or shorthand #RGB)
+  let hexMatch = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(cssString);
+  if (hexMatch) {
+    return [
+      parseInt(hexMatch[1]!, 16),
+      parseInt(hexMatch[2]!, 16),
+      parseInt(hexMatch[3]!, 16),
+    ];
+  }
+
+  // Check if it's in the shorthand hex format (#RGB)
+  hexMatch = /^#?([a-f\d])([a-f\d])([a-f\d])$/i.exec(cssString);
+  if (hexMatch) {
+    return [
+      parseInt(hexMatch[1]! + hexMatch[1]!, 16),
+      parseInt(hexMatch[2]! + hexMatch[2]!, 16),
+      parseInt(hexMatch[3]! + hexMatch[3]!, 16),
+    ];
+  }
+
+  // Check if it's in the rgb format (rgb(0, 0, 0))
+  const rgbMatch = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/;
+  const match = rgbMatch.exec(cssString);
+  if (match) {
+    return [
+      parseInt(match[1]!, 10),
+      parseInt(match[2]!, 10),
+      parseInt(match[3]!, 10),
+    ];
+  }
+
+  return null;
+};
+
+const lightenColor = (color: string) => {
+  const rgb = getRgb(color);
+
+  if (!rgb) {
+    return color;
+  }
+
+  const lightened = rgb.map((value) => Math.floor(value + (255 - value) * 0.6));
+
+  const lightenedColorString = `rgba(${lightened.join(", ")}, 1)`;
+
+  return lightenedColorString;
 };
 
 /**
@@ -133,6 +183,16 @@ export const useSetDrawSettings = <
         !graphState.hoveredNodeId &&
         !graphState.highlightedEdgePath
       ) {
+        if (graphState.hoveredEdgeId) {
+          const graph = sigma.getGraph();
+          const source = graph.source(graphState.hoveredEdgeId);
+          const target = graph.target(graphState.hoveredEdgeId);
+          if (source === node || target === node) {
+            nodeData.zIndex = 5;
+            nodeData.forceLabel = true;
+          }
+        }
+
         return nodeData;
       }
 
@@ -200,6 +260,16 @@ export const useSetDrawSettings = <
     sigma.setSetting("edgeReducer", (edge, data) => {
       const edgeData = { ...data };
 
+      const graph = sigma.getGraph();
+      const source = graph.source(edge);
+      const sourceData = graph.getNodeAttributes(source);
+
+      const sourceColor =
+        graphState.colorByNodeTypeId?.[sourceData.nodeTypeId] ??
+        sourceData.color;
+
+      edgeData.color = lightenColor(sourceColor);
+
       if (edge === graphState.hoveredEdgeId) {
         /**
          * Set a minimum size on hover so it's easier to distinguish and click on
@@ -230,20 +300,9 @@ export const useSetDrawSettings = <
           return edgeData;
         }
 
-        const graph = sigma.getGraph();
-        const source = graph.source(edge);
-
-        const sourceData = graph.getNodeAttributes(source);
-        edgeData.color =
-          graphState.colorByNodeTypeId?.[sourceData.nodeTypeId] ??
-          sourceData.color;
-
         return edgeData;
       }
 
-      const graph = sigma.getGraph();
-
-      const source = graph.source(edge);
       const target = graph.target(edge);
 
       let showEdge: boolean = false;
@@ -317,11 +376,6 @@ export const useSetDrawSettings = <
 
       if (showEdge) {
         edgeData.zIndex = Math.max(edgeData.size, 4);
-
-        const sourceData = graph.getNodeAttributes(source);
-        edgeData.color =
-          graphState.colorByNodeTypeId?.[sourceData.nodeTypeId] ??
-          sourceData.color;
       } else {
         edgeData.hidden = true;
       }
