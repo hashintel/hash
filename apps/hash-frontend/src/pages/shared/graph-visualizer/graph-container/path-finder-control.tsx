@@ -6,11 +6,18 @@ import {
 import { Box, Stack, Switch } from "@mui/material";
 import { useSigma } from "@react-sigma/core";
 import { dijkstra, edgePathFromNodePath } from "graphology-shortest-path";
-import { allSimplePaths } from "graphology-simple-path";
 import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { MenuItem } from "../../../../shared/ui/menu-item";
+import type {
+  GenerateSimplePathsRequestMessage,
+  GenerateSimplePathsResultMessage,
+  NodeData,
+  Path,
+  SimplePathSort,
+} from "./path-finder-control/types";
+import { simplePathSorts } from "./path-finder-control/types";
 import {
   controlButtonSx,
   ControlPanel,
@@ -22,6 +29,7 @@ import { IntegerInput } from "./shared/integer-input";
 import { SimpleAutocomplete } from "./shared/simple-autocomplete";
 import { selectSx } from "./shared/styles";
 import type { GraphVizNode } from "./shared/types";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 type TypeData = {
   label: string;
@@ -29,20 +37,8 @@ type TypeData = {
   valueForSelector: string;
 };
 
-type NodeData = GraphVizNode & {
-  disabled?: boolean;
-  nodePathToHighlight?: string[];
-  shortestPathTo?: string;
-  shortestPathVia?: string;
-  valueForSelector: string;
-};
-
 type TypesByTypeId = { [nodeTypeId: string]: TypeData };
 type NodesByTypeId = { [nodeTypeId: string]: NodeData[] };
-
-const simplePathSorts = ["Alphabetical", "Length", "Significance"] as const;
-
-type SimplePathSort = (typeof simplePathSorts)[number];
 
 const PathTerminusSelector = ({
   label,
@@ -88,13 +84,6 @@ const PathTerminusSelector = ({
       </Stack>
     </ControlSectionContainer>
   );
-};
-
-type Path = {
-  nodePath: string[];
-  label: string;
-  significance?: number;
-  valueForSelector: string;
 };
 
 const generatePathKey = ({
@@ -164,6 +153,90 @@ const PathFinderPanel: FunctionComponent<{
   const [allowRepeatedNodeTypes, setAllowRepeatedNodeTypes] = useState(false);
   const [simplePathSort, setSimplePathSort] =
     useState<SimplePathSort>("Significance");
+
+  const [simplePaths, setSimplePaths] = useState<Path[]>([]);
+  const [selectedSimplePath, _setSelectedSimplePath] = useState<Path | null>(
+    null,
+  );
+  const [waitingSimplePathResult, setWaitingSimplePathResult] = useState(false);
+
+  const highlightPath = useCallback(
+    (nodePath: string[] | null) => {
+      if (!nodePath || nodePath.length === 0) {
+        setGraphState("highlightedEdgePath", null);
+        sigma.refresh({ skipIndexation: true });
+        return;
+      }
+
+      const edgePath = edgePathFromNodePath(sigma.getGraph(), nodePath);
+
+      setGraphState("highlightedEdgePath", edgePath);
+      sigma.refresh({ skipIndexation: true });
+    },
+    [sigma, setGraphState],
+  );
+
+  const setSelectedSimplePath = useCallback(
+    (path: Path | null) => {
+      _setSelectedSimplePath(path);
+      if (path) {
+        highlightPath(path.nodePath);
+      }
+    },
+    [highlightPath],
+  );
+
+  const worker = useMemo(
+    () =>
+      new Worker(new URL("./path-finder-control/worker.ts", import.meta.url)),
+    [],
+  );
+
+  useEffect(() => {
+    worker.onmessage = ({ data }) => {
+      if (
+        "type" in data &&
+        data.type ===
+          ("generateSimplePathsResult" satisfies GenerateSimplePathsResultMessage["type"])
+      ) {
+        setSimplePaths((data as GenerateSimplePathsResultMessage).result);
+        setWaitingSimplePathResult(false);
+      }
+      return () => worker.terminate();
+    };
+  }, [worker]);
+
+  useEffect(() => {
+    if (!startNode || !endNode) {
+      setSimplePaths([]);
+      return;
+    }
+
+    setWaitingSimplePathResult(true);
+    const request: GenerateSimplePathsRequestMessage = {
+      type: "generateSimplePaths",
+      params: {
+        allowRepeatedNodeTypes,
+        endNode,
+        graph: sigma.getGraph().export(),
+        maxSimplePathDepth,
+        simplePathSort,
+        startNode,
+        viaNode,
+      },
+    };
+
+    worker.postMessage(request);
+  }, [
+    allowRepeatedNodeTypes,
+    endNode,
+    maxSimplePathDepth,
+    simplePathSort,
+    sigma,
+    startNode,
+    viaNode,
+    worker,
+  ]);
 
   const sortedTypes = useMemo(
     () =>
@@ -285,22 +358,6 @@ const PathFinderPanel: FunctionComponent<{
     visibleNodesByTypeId,
   ]);
 
-  const highlightPath = useCallback(
-    (nodePath: string[] | null) => {
-      if (!nodePath || nodePath.length === 0) {
-        setGraphState("highlightedEdgePath", null);
-        sigma.refresh({ skipIndexation: true });
-        return;
-      }
-
-      const edgePath = edgePathFromNodePath(sigma.getGraph(), nodePath);
-
-      setGraphState("highlightedEdgePath", edgePath);
-      sigma.refresh({ skipIndexation: true });
-    },
-    [sigma, setGraphState],
-  );
-
   const selectStartType = (type: TypeData | null) => {
     if (type !== startType) {
       setStartNode(null);
@@ -334,20 +391,6 @@ const PathFinderPanel: FunctionComponent<{
     setStartNode(newStartNode);
   };
 
-  const [selectedSimplePath, _setSelectedSimplePath] = useState<Path | null>(
-    null,
-  );
-
-  const setSelectedSimplePath = useCallback(
-    (path: Path | null) => {
-      _setSelectedSimplePath(path);
-      if (path) {
-        highlightPath(path.nodePath);
-      }
-    },
-    [highlightPath],
-  );
-
   const selectEndNode = (newEndNode: NodeData | null) => {
     highlightPath(newEndNode?.nodePathToHighlight ?? null);
     setSelectedSimplePath(null);
@@ -359,103 +402,6 @@ const PathFinderPanel: FunctionComponent<{
     setSelectedSimplePath(null);
     setViaNode(newViaNode);
   };
-
-  const simplePaths = useMemo(() => {
-    if (!startNode || !endNode) {
-      return [];
-    }
-
-    const graph = sigma.getGraph();
-
-    const unfilteredSimplePaths = allSimplePaths(
-      graph,
-      startNode.nodeId,
-      endNode.nodeId,
-      { maxDepth: maxSimplePathDepth },
-    );
-
-    const pathOptions: Path[] = [];
-
-    // eslint-disable-next-line no-labels
-    pathsLoop: for (const path of unfilteredSimplePaths) {
-      const seenTypes = new Set<string>();
-
-      const labelParts: string[] = [];
-
-      let hasGoneVia = !viaNode;
-
-      for (const nodeId of path) {
-        if (viaNode && nodeId === viaNode.nodeId) {
-          hasGoneVia = true;
-        }
-
-        const nodeData = graph.getNodeAttributes(nodeId);
-
-        if (!allowRepeatedNodeTypes && seenTypes.has(nodeData.nodeTypeId)) {
-          /**
-           * Excluding paths which travel through the same type of node twice is a simple way of path options down.
-           */
-          // eslint-disable-next-line no-labels
-          continue pathsLoop;
-        }
-
-        labelParts.push(nodeData.label);
-
-        seenTypes.add(nodeData.nodeTypeId);
-      }
-
-      if (hasGoneVia) {
-        let significance = 0;
-
-        if (simplePathSort === "Significance") {
-          const edges = edgePathFromNodePath(graph, path);
-          for (const edge of edges) {
-            const edgeData = graph.getEdgeAttributes(edge);
-            significance += edgeData.significance ?? 0;
-          }
-        }
-
-        let prefix = "";
-        if (simplePathSort === "Significance") {
-          prefix = `[${significance}] `;
-        } else if (simplePathSort === "Length") {
-          prefix = `(${path.length - 1}) `;
-        }
-
-        const label = `${prefix}${labelParts.join(" —> ")}`;
-
-        pathOptions.push({
-          label,
-          valueForSelector: label,
-          nodePath: path,
-          significance,
-        });
-      }
-    }
-
-    setSelectedSimplePath(null);
-
-    return pathOptions.sort((a, b) => {
-      switch (simplePathSort) {
-        case "Alphabetical":
-          return a.label.localeCompare(b.label);
-        case "Length":
-          return a.nodePath.length - b.nodePath.length;
-        case "Significance":
-          return (b.significance ?? 0) - (a.significance ?? 0);
-      }
-      throw new Error(`Unknown simple path sort: ${simplePathSort}`);
-    });
-  }, [
-    allowRepeatedNodeTypes,
-    endNode,
-    maxSimplePathDepth,
-    setSelectedSimplePath,
-    sigma,
-    simplePathSort,
-    startNode,
-    viaNode,
-  ]);
 
   return (
     <ControlPanel
@@ -498,12 +444,21 @@ const PathFinderPanel: FunctionComponent<{
         />
       </Stack>
       <ControlSectionContainer
-        label={`Simple paths${simplePaths.length ? ` (${simplePaths.length})` : ""}`}
+        label={`Simple paths${simplePaths.length ? ` (${formatNumber(simplePaths.length)})` : ""}`}
         tooltip={`These are paths in which no node is visited twice.${!endNode || !startNode ? " Select a start and end node to see paths." : ""}`}
       >
         <SimpleAutocomplete
+          disabled={waitingSimplePathResult}
           key={`${startNode?.nodeId}-${endNode?.nodeId}-${viaNode?.nodeId}-${maxSimplePathDepth}-${allowRepeatedNodeTypes}-${simplePathSort}`}
-          placeholder="Select path to highlight"
+          placeholder={
+            waitingSimplePathResult
+              ? "Finding simple paths..."
+              : simplePaths.length
+                ? "Select path to highlight"
+                : !(startNode && endNode)
+                  ? "Select a start and end node"
+                  : "No paths found"
+          }
           options={simplePaths}
           setValue={setSelectedSimplePath}
           sortAlphabetically={false}
