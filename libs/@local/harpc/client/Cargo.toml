@@ -11,20 +11,22 @@ publish.workspace = true
 [dependencies]
 # Public workspace dependencies
 harpc-tower = { workspace = true, public = true }
+
+# Public third-party dependencies
 tower = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack = { workspace = true }
+harpc-codec = { workspace = true }
 harpc-net = { workspace = true }
 
 # Private third-party dependencies
 bytes = { workspace = true }
+derive-where = { workspace = true }
 futures = { workspace = true }
 multiaddr = { workspace = true }
 thiserror = { workspace = true }
 tokio-util = { workspace = true }
-harpc-codec.workspace = true
-derive-where.workspace = true
 
 [lints]
 workspace = true
