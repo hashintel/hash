@@ -8867,19 +8867,19 @@
     "@smithy/types" "^3.5.0"
     tslib "^2.6.2"
 
-"@snowplow/node-tracker@3.24.4":
-  version "3.24.4"
-  resolved "https://registry.yarnpkg.com/@snowplow/node-tracker/-/node-tracker-3.24.4.tgz#89fc8d3b559c6de00affe246428da6db5dd5c45a"
-  integrity sha512-b3+DkVELY68Ri/58P5eeGR7fkWtpZx/L32V0cc44jCWR6e7wZ0D+9zJiG9Oaddq2WssdBsY1QwA7M+7eUbQXtw==
+"@snowplow/node-tracker@3.24.5":
+  version "3.24.5"
+  resolved "https://registry.yarnpkg.com/@snowplow/node-tracker/-/node-tracker-3.24.5.tgz#4402bb3b2ffa6b507bbcdd8ea83af625372138c3"
+  integrity sha512-5eNOSwVq2Ka/n5xHJxI9WgQSWoj+3NqH2iWH4RN/PPaNCdwxWoVG8fhoRheIu/VddbRE0Xj4P4ZEX2v1573FqQ==
   dependencies:
-    "@snowplow/tracker-core" "3.24.4"
+    "@snowplow/tracker-core" "3.24.5"
     got "^11.8.5"
     tslib "^2.3.1"
 
-"@snowplow/tracker-core@3.24.4":
-  version "3.24.4"
-  resolved "https://registry.yarnpkg.com/@snowplow/tracker-core/-/tracker-core-3.24.4.tgz#64a415bf61472d7f42106b5727538feb6fb54e1f"
-  integrity sha512-ltyGOTAOsjEyOIz3DqE+nIHXVlZThbokPeUIVYkPbuFpvfOga2GMFiYPwAH/rWKNIf8mW87oYSiGVJcc/E3J9A==
+"@snowplow/tracker-core@3.24.5":
+  version "3.24.5"
+  resolved "https://registry.yarnpkg.com/@snowplow/tracker-core/-/tracker-core-3.24.5.tgz#4b00319ae8ec2bf608f9cadf59d00ad1252ac4d4"
+  integrity sha512-ne0UA6yffY69XmsNsHs/FvsRu9mYZgSmiP3bgA1nMNRzYw52Ulz9p5R8/zshxfXaqcWpcMyt8Y8gslgE7sfe6g==
   dependencies:
     tslib "^2.3.1"
     uuid "^3.4.0"
