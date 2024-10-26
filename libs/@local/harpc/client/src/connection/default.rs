@@ -1,14 +1,8 @@
-use core::{
-    marker::PhantomData,
-    task::{Context, Poll},
-};
+use core::task::{Context, Poll};
 
 use bytes::Buf;
 use error_stack::Report;
-use futures::{
-    Stream, StreamExt, TryFutureExt, future,
-    stream::{self, BoxStream},
-};
+use futures::{Stream, StreamExt, TryFutureExt, future, stream};
 use harpc_net::session::error::ConnectionPartiallyClosedError;
 use harpc_tower::{
     body::{Frame, stream::StreamBody},
@@ -25,7 +19,7 @@ pub(crate) struct DefaultLayer {
 }
 
 impl DefaultLayer {
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self { _private: () }
     }
 }

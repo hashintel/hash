@@ -6,21 +6,18 @@ pub mod connection;
 
 use alloc::sync::Arc;
 
-use bytes::Buf;
 use error_stack::{Report, ResultExt};
-use futures::Stream;
 use harpc_net::{
     session::client::{SessionConfig, SessionLayer},
     transport::{TransportConfig, TransportLayer},
 };
-use harpc_tower::request::Request;
 use multiaddr::Multiaddr;
 use tokio_util::sync::{CancellationToken, DropGuard};
-use tower::{Layer, Service};
+use tower::Layer;
 
 use self::connection::{
     Connection,
-    default::{self, DefaultLayer, DefaultService},
+    default::{self, DefaultLayer},
     service::ConnectionService,
 };
 

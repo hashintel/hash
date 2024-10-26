@@ -9,16 +9,14 @@
 
 extern crate alloc;
 
+use alloc::vec;
 use core::{error::Error, fmt::Debug};
 use std::time::Instant;
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::Buf;
 use error_stack::{FutureExt as _, Report, ResultExt};
 use frunk::HList;
-use futures::{
-    Stream, StreamExt, TryFutureExt, TryStreamExt, pin_mut,
-    stream::{self, BoxStream},
-};
+use futures::{Stream, StreamExt, TryFutureExt, TryStreamExt, pin_mut, stream};
 use graph_types::account::AccountId;
 use harpc_client::{Client, ClientConfig, connection::Connection};
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
@@ -162,7 +160,7 @@ where
     // as a type parameter, therefore cannot parameterize over it, unless we box or duplicate the
     // trait requirement. both are not great solutions.
     Svc: tower::Service<
-            Request<BoxStream<'static, Bytes>>,
+            Request<stream::Iter<vec::IntoIter<C::Buf>>>,
             Response = Response<St>,
             Error = Report<ServiceError>,
             Future: Send,
@@ -188,7 +186,7 @@ where
         let codec = session.codec().clone();
         let connection = session.clone();
 
-        // in theory we could also skip the allocation here, but the problem is that in that case we
+        // In theory we could also skip the allocation here, but the problem is that in that case we
         // would send data that *might* be malformed, or is missing data. Instead of skipping said
         // data we allocate. In future we might want to instead have something like
         // tracing::error or a panic instead, but this is sufficient for now.
@@ -199,15 +197,18 @@ where
         // possible we would await yet another challenge, what happens if the transport layer
         // encounters an error? We can't very well send that error to the server just for us to
         // return it, the server might already be processing things and now suddenly needs to stop?
-        // So we'd need to panic or filter on the client and would have partially commited data on
+        // So we'd need to panic or filter on the client and would have partially committed data on
         // the server.
+        //
         // This circumvents the problem because we just return an error early, in the future - if
         // the need arises - we might want to investigate request cancellation (which should be
-        // possible in the protocol)
+        // possible in the protocol).
+        //
         // That'd allow us to cancel the request but would make response handling *a lot* more
         // complex.
+        //
         // This isn't a solved problem at all in e.g. rust in general, because there are some things
-        // you can't just cancel. How do you roll back a potentially already commited transaction?
+        // you can't just cancel. How do you roll back a potentially already committed transaction?
         // The current hypothesis is that the overhead required for one less allocation simply isn't
         // worth it, but in the future we might want to revisit this.
         codec
@@ -216,13 +217,6 @@ where
             .try_collect()
             .change_context(AccountError::Encode)
             .map_ok(|bytes: Vec<_>| {
-                let mut x = BytesMut::new();
-                for fragment in bytes {
-                    x.put(fragment);
-                }
-                x.freeze()
-            })
-            .map_ok(|bytes| {
                 Request::from_parts(
                     request::Parts {
                         service: ServiceDescriptor {
@@ -235,7 +229,7 @@ where
                         session: SessionId::CLIENT,
                         extensions: Extensions::new(),
                     },
-                    stream::iter([bytes]).boxed(),
+                    stream::iter(bytes),
                 )
             })
             .and_then(move |request| {

@@ -24,6 +24,10 @@ impl<S, C> Connection<S, C> {
     pub const fn codec(&self) -> &C {
         &self.codec
     }
+
+    pub fn into_parts(self) -> (S, C) {
+        (self.service, self.codec)
+    }
 }
 
 // We specifically restrict the implementation to just `Request<B>` to ensure that the `Connection`
