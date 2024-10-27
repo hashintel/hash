@@ -403,8 +403,6 @@ export const EntitiesTable: FunctionComponent<{
               };
             }
 
-            console.log(entity);
-
             return {
               kind: GridCellKind.Custom,
               allowOverlay: false,

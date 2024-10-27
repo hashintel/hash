@@ -5,7 +5,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { typedEntries } from "@local/advanced-types/typed-entries";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
@@ -218,6 +218,20 @@ export const useEntitiesTable = (params: {
     );
   }, [entities, subgraph]);
 
+  const entityTypesWithMultipleVersionsPresent = useMemo(() => {
+    const typesWithMultipleVersions: VersionedUrl[] = [];
+    const baseUrlsSeen = new Set<BaseUrl>();
+    for (const entityTypeId of typedKeys(usedPropertyTypesByEntityTypeId)) {
+      const baseUrl = extractBaseUrl(entityTypeId);
+      if (baseUrlsSeen.has(baseUrl)) {
+        typesWithMultipleVersions.push(entityTypeId);
+      } else {
+        baseUrlsSeen.add(baseUrl);
+      }
+    }
+    return typesWithMultipleVersions;
+  }, [usedPropertyTypesByEntityTypeId]);
+
   return useMemo(() => {
     const propertyColumnsMap = new Map<string, SizedGridColumn>();
 
@@ -353,13 +367,20 @@ export const useEntitiesTable = (params: {
               };
             }
 
+            let entityTypeVersion = entityType.title;
+            if (
+              entityTypesWithMultipleVersionsPresent.includes(entityType.$id)
+            ) {
+              entityTypeVersion += ` v${extractVersion(entityType.$id)}`;
+            }
+
             return {
               rowId: entityId,
               entityId,
               entity,
               entityLabel,
               entityTypeId: entityType.$id,
-              entityTypeVersion: `${entityType.title} v${extractVersion(entityType.$id)}`,
+              entityTypeVersion,
               web: `@${entityNamespace}`,
               archived: isPage
                 ? simplifyProperties(entity.properties as PageProperties)
@@ -399,6 +420,7 @@ export const useEntitiesTable = (params: {
     entitiesHaveSameType,
     entities,
     entityTypes,
+    entityTypesWithMultipleVersionsPresent,
     getOwnerForEntity,
     isViewingOnlyPages,
     hideColumns,

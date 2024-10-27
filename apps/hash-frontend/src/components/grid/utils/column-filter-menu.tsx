@@ -187,6 +187,7 @@ export const ColumnFilterMenu: FunctionComponent<
                           onClick={(event) => {
                             setSelectedFilterItemIds?.([id]);
                             event.stopPropagation();
+                            onClose();
                           }}
                           sx={[blueFilterButtonSx, { visibility: "hidden" }]}
                         >
