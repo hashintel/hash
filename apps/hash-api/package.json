@@ -97,7 +97,7 @@
     "nodemailer": "6.9.15",
     "oembed-providers": "1.0.20241022",
     "ts-json-schema-generator": "1.5.1",
-    "tsx": "4.19.1",
+    "tsx": "4.19.2",
     "typescript": "5.6.3",
     "ws": "8.18.0"
   },
