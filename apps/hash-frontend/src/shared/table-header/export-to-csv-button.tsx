@@ -44,8 +44,6 @@ export const ExportToCsvButton: FunctionComponent<{
   }, [generateCsvFile]);
 
   return (
-    <TableHeaderButton onClick={handleExportToCsv}>
-      Export to CSV
-    </TableHeaderButton>
+    <TableHeaderButton onClick={handleExportToCsv}>Export</TableHeaderButton>
   );
 };

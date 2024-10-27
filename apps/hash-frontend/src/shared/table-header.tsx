@@ -247,6 +247,8 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             return (row as TypeEntitiesRow).properties?.[key] ?? "";
           } else if (key === "archived") {
             return (row as TypesTableRow).archived ? "Yes" : "No";
+          } else if (key === "sourceEntity" || key === "targetEntity") {
+            return (row as TypeEntitiesRow).sourceEntity?.label ?? "";
           }
 
           return "";
@@ -364,12 +366,6 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             </NoMaxWidthTooltip>
           </>
         )}
-
-        {toggleSearch ? (
-          <IconButton onClick={toggleSearch}>
-            <MagnifyingGlassRegularIcon />
-          </IconButton>
-        ) : null}
       </Box>
       <Box display="flex" alignItems="center" columnGap={1}>
         {!hideFilters && (
@@ -434,9 +430,12 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             </Box>
           </Box>
         )}
-        {!hideExportToCsv && (
-          <ExportToCsvButton generateCsvFile={generateCsvFile} />
-        )}
+        <ExportToCsvButton generateCsvFile={generateCsvFile} />
+        {toggleSearch ? (
+          <IconButton onClick={toggleSearch}>
+            <MagnifyingGlassRegularIcon />
+          </IconButton>
+        ) : null}
         {endAdornment}
       </Box>
     </Box>

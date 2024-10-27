@@ -110,7 +110,7 @@ export const SearchControl = ({ nodes }: { nodes: GraphVizNode[] }) => {
       />
       <IconButton
         onClick={() => setSearchPanelOpen(true)}
-        sx={[controlButtonSx, { position: "absolute", top: 8, left: 46 }]}
+        sx={[controlButtonSx, { position: "absolute", top: 8, right: 80 }]}
       >
         <SearchIcon />
       </IconButton>
