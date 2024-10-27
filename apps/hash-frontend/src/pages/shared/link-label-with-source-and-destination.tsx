@@ -1,10 +1,6 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
 import { extractVersion } from "@blockprotocol/type-system";
-import {
-  AsteriskRegularIcon,
-  Chip,
-  EyeSlashIconRegular,
-} from "@hashintel/design-system";
+import { EyeSlashIconRegular } from "@hashintel/design-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
@@ -21,12 +17,12 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { BoxProps } from "@mui/material";
 import {
   Box,
-  chipClasses,
   Stack,
   styled,
   Tooltip,
   Typography,
   typographyClasses,
+  useTheme,
 } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 import { useMemo } from "react";
@@ -36,6 +32,8 @@ import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
 import { Link } from "../../shared/ui";
 import { useEntityEditor } from "../[shortname]/entities/[entity-uuid].page/entity-editor/entity-editor-context";
+import { TooltipChip } from "./tooltip-chip";
+import { TypeIcon } from "./type-icon";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({
   fontSize: 14,
@@ -57,21 +55,6 @@ const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
   } else {
     return String(value);
   }
-};
-
-const TypeIcon = ({ icon }: { icon?: string | null }) => {
-  if (!icon) {
-    return <AsteriskRegularIcon sx={{ fontSize: 16 }} />;
-  }
-  if (
-    icon.startsWith("http://") ||
-    icon.startsWith("https://") ||
-    icon.startsWith("/")
-  ) {
-    return <img alt="" src={icon} style={{ width: 16, height: 16 }} />;
-  }
-
-  return icon;
 };
 
 const LeftOrRightEntity: FunctionComponent<{
@@ -148,7 +131,7 @@ const LeftOrRightEntity: FunctionComponent<{
         }}
       >
         {entityType ? (
-          <TypeIcon icon={entityType.metadata.icon} />
+          <TypeIcon fontSize={16} icon={entityType.metadata.icon} />
         ) : (
           <EyeSlashIconRegular />
         )}
@@ -289,11 +272,13 @@ const LeftOrRightEntity: FunctionComponent<{
     return Object.values(outgoingLinksByLinkEntityType);
   }, [entity, subgraph]);
 
+  const theme = useTheme();
+
   const tooltipContent =
     (entityProperties && entityProperties.length > 0) ||
     (outgoingLinkTypesAndTargetEntities &&
       outgoingLinkTypesAndTargetEntities.length > 0) ? (
-      <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
+      <Box>
         {[
           ...(entityProperties ?? []),
           ...(outgoingLinkTypesAndTargetEntities ?? []),
@@ -320,19 +305,27 @@ const LeftOrRightEntity: FunctionComponent<{
                   : propertyOrOutgoingLink.linkEntityType.schema.$id
               }
               sx={{
-                color: ({ palette }) => palette.common.white,
                 marginBottom: 0.5,
+                py: 0.5,
               }}
-              variant="smallTextParagraphs"
             >
-              <strong>
+              <Typography
+                component="div"
+                sx={{
+                  color: ({ palette }) => palette.gray[30],
+                  letterSpacing: 0,
+                  mb: 0.5,
+                }}
+                variant="smallCaps"
+              >
                 {"propertyType" in propertyOrOutgoingLink
                   ? propertyOrOutgoingLink.propertyType.schema.title
-                  : propertyOrOutgoingLink.linkEntityType.schema.title}
-                :
-              </strong>{" "}
+                  : `${propertyOrOutgoingLink.linkEntityType.schema.title} ${propertyOrOutgoingLink.rightEntities.length}`}
+              </Typography>{" "}
               {"propertyType" in propertyOrOutgoingLink ? (
-                propertyOrOutgoingLink.stringifiedPropertyValue
+                <Typography sx={{ fontSize: 13, lineHeight: 1.3 }}>
+                  {propertyOrOutgoingLink.stringifiedPropertyValue}
+                </Typography>
               ) : (
                 <Stack
                   direction="row"
@@ -346,23 +339,27 @@ const LeftOrRightEntity: FunctionComponent<{
                       rightEntity,
                     );
 
+                    const rightEntityEntityType = getEntityTypeById(
+                      subgraph,
+                      rightEntity.metadata.entityTypeId,
+                    );
+
                     return (
-                      <Chip
+                      <TooltipChip
+                        label={rightEntityLabel}
+                        icon={
+                          <TypeIcon
+                            fill={theme.palette.gray[30]}
+                            fontSize={11}
+                            icon={rightEntityEntityType?.metadata.icon}
+                          />
+                        }
                         key={rightEntity.metadata.recordId.entityId}
                         onClick={() =>
                           onEntityClick?.(
                             rightEntity.metadata.recordId.entityId,
                           )
                         }
-                        label={rightEntityLabel}
-                        sx={{
-                          borderColor: ({ palette }) => palette.gray[30],
-                          cursor: onEntityClick ? "pointer" : "default",
-                          fontSize: 12,
-                          [`.${chipClasses.label}`]: {
-                            paddingY: 0.25,
-                          },
-                        }}
                       />
                     );
                   })}
@@ -374,7 +371,13 @@ const LeftOrRightEntity: FunctionComponent<{
     ) : null;
 
   const contentWithLinkAndTooltip = tooltipContent ? (
-    <Tooltip title={tooltipContent} placement="bottom-start" sx={{ p: 0 }}>
+    <Tooltip
+      title={tooltipContent}
+      slotProps={{
+        tooltip: { sx: { maxHeight: 300, overflowY: "auto" } },
+      }}
+      placement="bottom-start"
+    >
       {contentWithLink}
     </Tooltip>
   ) : (

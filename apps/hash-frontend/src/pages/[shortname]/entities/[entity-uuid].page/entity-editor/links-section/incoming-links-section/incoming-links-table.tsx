@@ -12,6 +12,7 @@ import {
 import { Box, Stack, TableCell, Typography } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { ClickableCellChip } from "../../../../../../shared/clickable-cell-chip";
 import { ValueChip } from "../../../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
@@ -91,29 +92,13 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
           entityType="source entity"
           properties={row.sourceEntityProperties}
         >
-          <Box
-            component="button"
+          <ClickableCellChip
             onClick={() =>
               row.onEntityClick(row.sourceEntity.metadata.recordId.entityId)
             }
-            sx={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              maxWidth: "100%",
-              p: 0,
-              textAlign: "left",
-            }}
-          >
-            <ValueChip
-              sx={{
-                color: ({ palette }) => palette.blue[70],
-                fontSize: linksTableFontSize,
-              }}
-            >
-              {row.sourceEntityLabel}
-            </ValueChip>
-          </Box>
+            fontSize={linksTableFontSize}
+            label={row.sourceEntityLabel}
+          />
         </PropertiesTooltip>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
@@ -158,27 +143,11 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
           entityType="link entity"
           properties={row.linkEntityProperties}
         >
-          <Box
-            component="button"
+          <ClickableCellChip
             onClick={() => row.onEntityClick(row.linkEntity.entityId)}
-            sx={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              maxWidth: "100%",
-              p: 0,
-              textAlign: "left",
-            }}
-          >
-            <ValueChip
-              sx={{
-                color: ({ palette }) => palette.blue[70],
-                fontSize: linksTableFontSize,
-              }}
-            >
-              {row.linkEntityLabel}
-            </ValueChip>
-          </Box>
+            fontSize={linksTableFontSize}
+            label={row.linkEntityLabel}
+          />
         </PropertiesTooltip>
       </TableCell>
     </>

@@ -19,6 +19,7 @@ import {
   useState,
 } from "react";
 
+import { ClickableCellChip } from "../../../../../../shared/clickable-cell-chip";
 import { ValueChip } from "../../../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
@@ -109,29 +110,13 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
           entityType="target entity"
           properties={row.targetEntityProperties}
         >
-          <Box
-            component="button"
+          <ClickableCellChip
             onClick={() =>
               row.onEntityClick(row.targetEntity.metadata.recordId.entityId)
             }
-            sx={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              maxWidth: "100%",
-              p: 0,
-              textAlign: "left",
-            }}
-          >
-            <ValueChip
-              sx={{
-                color: ({ palette }) => palette.blue[70],
-                fontSize: linksTableFontSize,
-              }}
-            >
-              {row.targetEntityLabel}
-            </ValueChip>
-          </Box>
+            fontSize={linksTableFontSize}
+            label={row.targetEntityLabel}
+          />
         </PropertiesTooltip>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
@@ -149,27 +134,13 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
           entityType="link entity"
           properties={row.linkEntityProperties}
         >
-          <Box
-            component="button"
-            onClick={() => row.onEntityClick(row.linkEntity.entityId)}
-            sx={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              maxWidth: "100%",
-              p: 0,
-              textAlign: "left",
-            }}
-          >
-            <ValueChip
-              sx={{
-                color: ({ palette }) => palette.blue[70],
-                fontSize: linksTableFontSize,
-              }}
-            >
-              {row.linkEntityLabel}
-            </ValueChip>
-          </Box>
+          <ClickableCellChip
+            onClick={() =>
+              row.onEntityClick(row.linkEntity.metadata.recordId.entityId)
+            }
+            fontSize={linksTableFontSize}
+            label={row.linkEntityLabel}
+          />
         </PropertiesTooltip>
       </TableCell>
     </>

@@ -1,5 +1,5 @@
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import type { ReactElement } from "react";
 
 import { useEntityEditor } from "../../entity-editor-context";
@@ -21,10 +21,13 @@ export const PropertiesTooltip = ({
         popper: {
           container: slideContainerRef?.current,
         },
+        tooltip: {
+          sx: { maxHeight: 300, overflowY: "auto" },
+        },
       }}
       title={
         Object.keys(properties).length > 0 ? (
-          <Stack gap={0.5} sx={{ maxHeight: 300, overflowY: "auto", p: 1 }}>
+          <Stack gap={0.5}>
             {Object.entries(properties)
               .sort((a, b) => a[0].localeCompare(b[0]))
               .map(([propertyTitle, propertyValue]) => (
@@ -47,7 +50,7 @@ export const PropertiesTooltip = ({
         )
       }
     >
-      {children}
+      <Box>{children}</Box>
     </Tooltip>
   );
 };
