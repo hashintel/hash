@@ -64,8 +64,7 @@ pub struct EntityTypeSchemaMetadata {
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: String,
     #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
     pub inverse: InverseEntityTypeMetadata,
 }
@@ -101,8 +100,7 @@ pub struct EntityType {
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: String,
     #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
     pub inverse: InverseEntityTypeMetadata,
     #[serde(flatten)]
@@ -499,6 +497,7 @@ mod tests {
                     "$id": "https://blockprotocol.org/@alice/types/entity-type/invalid/v/1",
                     "type": "object",
                     "title": "Invalid",
+                    "description": "An invalid entity type",
                     "properties": {
                         "https://example.com/property_type_a/": { "$ref": "https://example.com/property_type_b/v/1" }
                     }
