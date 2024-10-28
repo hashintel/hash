@@ -46,6 +46,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "$id": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
     "type": "object",
     "title": "Link",
+  "description": "The most generic connection between two entities, defining a relationship from a source to a target. It serves as a parent type for more specific link entity types, enabling consistent and interoperable data relationships.",
     "properties": {}
   },
   "relationships": [{

@@ -105,17 +105,9 @@ pub enum DataTypeSchemaTag {
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ValueSchemaMetadata {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: String,
     #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
     pub label: ValueLabel,
-}
-
-impl ValueSchemaMetadata {
-    #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        self.description.is_none() && self.label.is_empty()
-    }
 }
 
 mod raw {
@@ -453,8 +445,7 @@ pub struct DataType {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: String,
     #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
     pub label: ValueLabel,
     // Lexicographically ordered so we have a deterministic order for inheriting parent
