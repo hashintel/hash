@@ -108,7 +108,6 @@ self.onmessage = ({ data }) => {
   ) {
     const { params } = data as GenerateSimplePathsRequestMessage;
     const result = generateSimplePaths(params);
-    console.log({ params, result });
     // eslint-disable-next-line no-restricted-globals
     self.postMessage({
       type: "generateSimplePathsResult",
