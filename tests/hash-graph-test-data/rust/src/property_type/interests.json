@@ -3,6 +3,7 @@
   "kind": "propertyType",
   "$id": "https://blockprotocol.org/@alice/types/property-type/interests/v/1",
   "title": "Interests",
+  "description": "A collection of interests",
   "oneOf": [
     {
       "type": "object",
