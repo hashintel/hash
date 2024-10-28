@@ -16,7 +16,6 @@ use core::iter;
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 
 use crate::{
     schema::{
@@ -115,9 +114,6 @@ pub struct EntityType {
     pub label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[deprecated]
-    pub examples: Vec<HashMap<BaseUrl, JsonValue>>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

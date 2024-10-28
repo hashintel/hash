@@ -4459,7 +4459,6 @@
           "ownedById",
           "title",
           "description",
-          "examples",
           "properties",
           "required",
           "labelProperty",

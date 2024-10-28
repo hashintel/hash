@@ -40,6 +40,7 @@ let testUser2: User;
 
 const dataTypeSchema: ConstructDataTypeParams = {
   title: "Text",
+  description: "A string of text.",
   type: "string",
   allOf: [
     {
