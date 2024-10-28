@@ -10,4 +10,5 @@ export const selectSx: SxProps<Theme> = {
     boxShadow: "none",
   },
   width: "100%",
+  mt: 0.3,
 };

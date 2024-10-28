@@ -28,22 +28,25 @@ export const InfoIconTooltip = ({
 
 export const ItemLabel = ({
   children,
-  fontSize = 11,
+  fontSize = 13,
   tooltip,
+  uppercase = false,
 }: PropsWithChildren<{
   fontSize?: number;
   tooltip: string | ReactElement;
+  uppercase?: boolean;
 }>) => (
   <Stack alignItems="center" direction="row" gap={0.5}>
     <Typography
       component="div"
       sx={{
-        color: ({ palette }) => palette.gray[80],
+        color: ({ palette }) =>
+          uppercase ? palette.gray[70] : palette.common.black,
         fontSize,
-        fontWeight: 600,
-        letterSpacing: 0.2,
+        fontWeight: uppercase ? 600 : 400,
+        letterSpacing: uppercase ? 0.2 : 0,
+        textTransform: uppercase ? "uppercase" : "none",
       }}
-      variant="smallCaps"
     >
       {children}
     </Typography>
@@ -58,21 +61,20 @@ export const ControlSectionContainer = ({
 }: PropsWithChildren<{ label: string; tooltip: string }>) => {
   return (
     <Stack
-      gap={0.5}
+      gap={1}
       sx={{
         flex: 1,
         mx: 1,
         mt: 1.5,
-        border: ({ palette }) => `1px solid ${palette.gray[30]}`,
         borderRadius: 2,
-        px: 1.5,
+        px: 1,
         py: 1,
       }}
     >
-      <ItemLabel fontSize={12} tooltip={tooltip}>
+      <ItemLabel fontSize={12} tooltip={tooltip} uppercase>
         {label}
       </ItemLabel>
-      <Stack gap={1.2}>{children}</Stack>
+      <Stack gap={1.5}>{children}</Stack>
     </Stack>
   );
 };

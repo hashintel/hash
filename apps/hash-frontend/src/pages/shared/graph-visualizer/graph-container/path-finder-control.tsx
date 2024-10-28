@@ -410,7 +410,7 @@ const PathFinderPanel: FunctionComponent<{
       position="left"
       title="Path finder"
     >
-      <Stack direction="row" spacing={1} px={1.5} mt={1} sx={{ width: 700 }}>
+      <Stack direction="row" spacing={1} px={1} mt={1} sx={{ width: 700 }}>
         <PathTerminusSelector
           label="Start at"
           node={startNode}
@@ -457,7 +457,7 @@ const PathFinderPanel: FunctionComponent<{
                 ? "Select path to highlight"
                 : !(startNode && endNode)
                   ? "Select a start and end node"
-                  : "No paths found"
+                  : `No simple paths with max depth ${maxSimplePathDepth}${!allowRepeatedNodeTypes ? " and no repeated types " : ""} found`
           }
           options={simplePaths}
           setValue={setSelectedSimplePath}
@@ -466,7 +466,7 @@ const PathFinderPanel: FunctionComponent<{
         />
         <Stack direction="row" gap={2} mt={1}>
           <Box sx={{ width: 90 }}>
-            <ItemLabel tooltip="The maximum depth of paths to find. Highly connected graphs can result in a LOT of paths at higher depths.">
+            <ItemLabel tooltip="The maximum depth of paths to find. Highly connected graphs can result in a lot of paths at higher depths and may take several seconds to calculate.">
               Max depth
             </ItemLabel>
             <IntegerInput

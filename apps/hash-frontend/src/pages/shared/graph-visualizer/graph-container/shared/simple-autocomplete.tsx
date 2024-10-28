@@ -156,6 +156,26 @@ export const SimpleAutocomplete = <
           option.label +
           (suffixKey && option[suffixKey] ? ` ${option[suffixKey]}` : "");
 
+        const regex = /(\[[0-9]+]|\([0-9]+\)|[^[\]()]+)/g;
+
+        const parts = label.match(regex);
+
+        const structuredParts = (parts ?? [label]).map((part) => {
+          if (
+            (part.startsWith("[") && part.endsWith("]")) ||
+            (part.startsWith("(") && part.endsWith(")"))
+          ) {
+            return {
+              part,
+              isCount: true,
+            };
+          }
+          return {
+            part,
+            isCount: false,
+          };
+        });
+
         return (
           <Tooltip
             key={option.valueForSelector}
@@ -171,7 +191,21 @@ export const SimpleAutocomplete = <
               }}
               value={option.valueForSelector}
             >
-              {label}
+              {structuredParts.map(({ part, isCount }, index) => (
+                <Box
+                  component="span"
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={index}
+                  sx={{
+                    color: ({ palette }) =>
+                      isCount ? palette.gray[50] : palette.common.black,
+                    mr: isCount && index === 0 ? 0.5 : 0,
+                    ml: isCount ? 0.5 : 0,
+                  }}
+                >
+                  {part}
+                </Box>
+              ))}
             </MenuItem>
           </Tooltip>
         );

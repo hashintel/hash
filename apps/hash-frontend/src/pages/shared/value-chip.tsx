@@ -34,8 +34,10 @@ export const ValueChip = ({
           ...(showInFull
             ? {}
             : {
+                display: "block",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
+                width: "fit-content",
               }),
         }),
         ...(Array.isArray(sx) ? sx : [sx]),

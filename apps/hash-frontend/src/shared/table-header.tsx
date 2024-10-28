@@ -16,7 +16,7 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import {
   extractOwnedByIdFromEntityId,
   isExternalOntologyElementMetadata,
@@ -239,19 +239,13 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             const user = value as MinimalUser | undefined;
 
             return user?.displayName ?? "";
-          } else if (isBaseUrl(key)) {
-            /**
-             * If the key is a base URL, then the value needs to be obtained
-             * from the nested `properties` field on the row.
-             */
-            return (row as TypeEntitiesRow).properties?.[key] ?? "";
           } else if (key === "archived") {
             return (row as TypesTableRow).archived ? "Yes" : "No";
           } else if (key === "sourceEntity" || key === "targetEntity") {
             return (row as TypeEntitiesRow).sourceEntity?.label ?? "";
+          } else {
+            return stringifyPropertyValue(value);
           }
-
-          return "";
         });
 
         const prependedCells = prependedRows?.[i];
@@ -430,7 +424,9 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             </Box>
           </Box>
         )}
-        <ExportToCsvButton generateCsvFile={generateCsvFile} />
+        {!hideExportToCsv && (
+          <ExportToCsvButton generateCsvFile={generateCsvFile} />
+        )}
         {toggleSearch ? (
           <IconButton onClick={toggleSearch}>
             <MagnifyingGlassRegularIcon />

@@ -59,30 +59,29 @@ const generateSimplePaths = ({
     }
 
     if (hasGoneVia) {
-      let significance = 0;
+      let totalSignificance = 0;
 
+      let label: string;
       if (simplePathSort === "Significance") {
         const edges = edgePathFromNodePath(graph, path);
-        for (const edge of edges) {
+        for (const [index, edge] of edges.entries()) {
           const edgeData = graph.getEdgeAttributes(edge);
-          significance += edgeData.significance ?? 0;
+          totalSignificance += edgeData.significance ?? 0;
+          labelParts[index] =
+            `${labelParts[index]} [${edgeData.significance ?? 0}]—> `;
         }
-      }
-
-      let prefix = "";
-      if (simplePathSort === "Significance") {
-        prefix = `[${significance}] `;
+        label = `[${totalSignificance}] ${labelParts.join("")}`;
       } else if (simplePathSort === "Length") {
-        prefix = `(${path.length - 1}) `;
+        label = `(${path.length - 1}) ${labelParts.join(" —> ")}`;
+      } else {
+        label = labelParts.join(" —> ");
       }
-
-      const label = `${prefix}${labelParts.join(" —> ")}`;
 
       pathOptions.push({
         label,
         valueForSelector: label,
         nodePath: path,
-        significance,
+        significance: totalSignificance,
       });
     }
   }

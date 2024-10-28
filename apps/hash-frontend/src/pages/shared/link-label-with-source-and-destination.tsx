@@ -398,6 +398,7 @@ const LeftOrRightEntity: FunctionComponent<{
           borderTopLeftRadius: 0,
           borderBottomLeftRadius: 0,
         },
+        maxWidth: "60%",
       }}
     >
       {label ? (
@@ -513,6 +514,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
           display: "flex",
           width: "fit-content",
           alignItems: "flex-end",
+          maxWidth: "100%",
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
