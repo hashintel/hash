@@ -402,7 +402,9 @@ export const useEntitiesTable = (params: {
                   const value =
                     typeof propertyValue === "undefined"
                       ? ""
-                      : stringifyPropertyValue(propertyValue);
+                      : typeof propertyValue === "number"
+                        ? propertyValue
+                        : stringifyPropertyValue(propertyValue);
 
                   return { ...fields, [column.id]: value };
                 }

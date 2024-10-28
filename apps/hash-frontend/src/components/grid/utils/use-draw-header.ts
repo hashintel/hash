@@ -135,7 +135,7 @@ export const useDrawHeader = <T extends string>(props: {
             filterIconSize);
 
         const isFilterModified =
-          columnFilter.selectedFilterItemIds.length !==
+          columnFilter.selectedFilterItemIds.size !==
           columnFilter.filterItems.length;
 
         args.spriteManager.drawSprite(

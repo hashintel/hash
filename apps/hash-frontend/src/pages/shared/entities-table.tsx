@@ -1,5 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
+import type {
+  CustomCell,
+  Item,
+  NumberCell,
+  TextCell,
+} from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -8,6 +13,7 @@ import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
@@ -38,7 +44,10 @@ import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import type { MinimalActor } from "../../shared/use-actors";
 import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
-import type { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
+import type {
+  CustomColumn,
+  EntityEditorProps,
+} from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
 import { GridView } from "./entities-table/grid-view";
@@ -85,7 +94,10 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
   ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
 );
 
+const noneString = "none";
+
 export const EntitiesTable: FunctionComponent<{
+  customColumns?: CustomColumn[];
   defaultFilter?: FilterState;
   defaultGraphConfig: GraphVizConfig<DynamicNodeSizing>;
   defaultGraphFilters?: GraphVizFilters;
@@ -104,6 +116,7 @@ export const EntitiesTable: FunctionComponent<{
   maxHeight?: string | number;
   readonly?: boolean;
 }> = ({
+  customColumns,
   defaultFilter,
   defaultGraphConfig,
   defaultGraphFilters,
@@ -312,6 +325,7 @@ export const EntitiesTable: FunctionComponent<{
       ([colIndex, rowIndex]: Item):
         | TextIconCell
         | TextCell
+        | NumberCell
         | BlankCell
         | CustomCell => {
         const columnId = columns[colIndex]?.id;
@@ -515,12 +529,26 @@ export const EntitiesTable: FunctionComponent<{
               };
             }
 
+            const isNumber = typeof propertyCellValue === "number";
+
+            if (isNumber) {
+              return {
+                kind: GridCellKind.Number,
+                allowOverlay: true,
+                readonly: true,
+                displayData: propertyCellValue.toString(),
+                data: propertyCellValue,
+              };
+            }
+
+            const stringValue = stringifyPropertyValue(propertyCellValue);
+
             return {
               kind: GridCellKind.Text,
               allowOverlay: true,
               readonly: true,
-              displayData: String(propertyCellValue),
-              data: propertyCellValue,
+              displayData: stringValue,
+              data: stringValue,
             };
           }
 
@@ -563,39 +591,58 @@ export const EntitiesTable: FunctionComponent<{
     NonNullable<GridProps<TypeEntitiesRow>["sortRows"]>
   >((unsortedRows, sort, previousSort) => {
     return unsortedRows.toSorted((a, b) => {
+      const value1 = a[sort.columnKey];
+      const value2 = b[sort.columnKey];
+
+      if (typeof value1 === "number" && typeof value2 === "number") {
+        const difference =
+          (value1 - value2) * (sort.direction === "asc" ? 1 : -1);
+        return difference;
+      }
+
       const isActorSort = ["lastEditedBy", "createdBy"].includes(
         sort.columnKey,
       );
 
-      const value1: string = isActorSort
+      const isEntitySort = ["sourceEntity", "targetEntity"].includes(
+        sort.columnKey,
+      );
+
+      const stringValue1: string = isActorSort
         ? a[sort.columnKey].displayName
-        : String(a[sort.columnKey]);
+        : isEntitySort
+          ? (a[sort.columnKey]?.label ?? "")
+          : String(a[sort.columnKey]);
 
-      const value2: string = isActorSort
+      const stringValue2: string = isActorSort
         ? b[sort.columnKey].displayName
-        : String(b[sort.columnKey]);
+        : isEntitySort
+          ? (b[sort.columnKey]?.label ?? "")
+          : String(b[sort.columnKey]);
 
-      const previousSortWasActorSort =
-        previousSort &&
-        ["lastEditedBy", "createdBy"].includes(previousSort.columnKey);
+      let comparison = stringValue1.localeCompare(stringValue2);
 
-      const previousValue1: string = previousSort?.columnKey
-        ? previousSortWasActorSort
-          ? a[previousSort.columnKey].displayName
-          : String(a[previousSort.columnKey])
-        : undefined;
+      if (comparison === 0) {
+        const previousSortWasActorSort =
+          previousSort &&
+          ["lastEditedBy", "createdBy"].includes(previousSort.columnKey);
 
-      const previousValue2: string = previousSort?.columnKey
-        ? previousSortWasActorSort
-          ? b[previousSort.columnKey].displayName
-          : String(b[previousSort.columnKey])
-        : undefined;
+        const previousValue1: string = previousSort?.columnKey
+          ? previousSortWasActorSort
+            ? a[previousSort.columnKey].displayName
+            : String(a[previousSort.columnKey])
+          : undefined;
 
-      let comparison = value1.localeCompare(value2);
+        const previousValue2: string = previousSort?.columnKey
+          ? previousSortWasActorSort
+            ? b[previousSort.columnKey].displayName
+            : String(b[previousSort.columnKey])
+          : undefined;
 
-      if (comparison === 0 && previousValue1 && previousValue2) {
-        // if the two keys are equal, we sort by the previous sort
-        comparison = previousValue1.localeCompare(previousValue2);
+        if (previousValue1 && previousValue2) {
+          // if the two keys are equal, we sort by the previous sort
+          comparison = previousValue1.localeCompare(previousValue2);
+        }
       }
 
       if (sort.direction === "desc") {
@@ -608,69 +655,147 @@ export const EntitiesTable: FunctionComponent<{
   }, []);
 
   const [selectedArchivedStatus, setSelectedArchivedStatus] = useState<
-    ("archived" | "not-archived")[]
-  >(["archived", "not-archived"]);
+    Set<"archived" | "not-archived">
+  >(new Set(["archived", "not-archived"]));
 
-  const { createdByActors, lastEditedByActors, entityTypeVersions, webs } =
-    useMemo(() => {
-      const lastEditedBySet = new Set<MinimalActor>();
-      const createdBySet = new Set<MinimalActor>();
-      const entityTypeVersionCount: {
-        [entityTypeVersion: string]: number;
-      } = {};
+  const {
+    createdByActors,
+    lastEditedByActors,
+    entityTypeVersions,
+    sources,
+    targets,
+    webs,
+  } = useMemo(() => {
+    const lastEditedBySet = new Set<MinimalActor>();
+    const createdBySet = new Set<MinimalActor>();
+    const entityTypeVersionCount: {
+      [entityTypeVersion: string]: number;
+    } = {};
 
-      const webCountById: { [web: string]: number } = {};
-      for (const row of rows ?? []) {
-        if (row.lastEditedBy && row.lastEditedBy !== "loading") {
-          lastEditedBySet.add(row.lastEditedBy);
-        }
-        if (row.createdBy && row.createdBy !== "loading") {
-          createdBySet.add(row.createdBy);
-        }
-        entityTypeVersionCount[row.entityTypeVersion] ??= 0;
-        entityTypeVersionCount[row.entityTypeVersion]!++;
-        webCountById[row.web] ??= 0;
-        webCountById[row.web]!++;
-      }
-      return {
-        lastEditedByActors: [...lastEditedBySet],
-        createdByActors: [...createdBySet],
-        entityTypeVersions: entityTypeVersionCount,
-        webs: webCountById,
+    const sourcesByEntityId: {
+      [entityId: string]: {
+        count: number;
+        entityId: string;
+        label: string;
       };
-    }, [rows]);
+    } = {};
+    const targetsByEntityId: {
+      [entityId: string]: {
+        count: number;
+        entityId: string;
+        label: string;
+      };
+    } = {};
+
+    const webCountById: { [web: string]: number } = {};
+    for (const row of rows ?? []) {
+      if (row.lastEditedBy && row.lastEditedBy !== "loading") {
+        lastEditedBySet.add(row.lastEditedBy);
+      }
+      if (row.createdBy && row.createdBy !== "loading") {
+        createdBySet.add(row.createdBy);
+      }
+
+      if (row.sourceEntity) {
+        sourcesByEntityId[row.sourceEntity.entityId] ??= {
+          count: 0,
+          entityId: row.sourceEntity.entityId,
+          label: row.sourceEntity.label,
+        };
+        sourcesByEntityId[row.sourceEntity.entityId]!.count++;
+      } else {
+        sourcesByEntityId[noneString] ??= {
+          count: 0,
+          entityId: noneString,
+          label: "--- Does not apply ---",
+        };
+        sourcesByEntityId[noneString].count++;
+      }
+
+      if (row.targetEntity) {
+        targetsByEntityId[row.targetEntity.entityId] ??= {
+          count: 0,
+          entityId: row.targetEntity.entityId,
+          label: row.targetEntity.label,
+        };
+        targetsByEntityId[row.targetEntity.entityId]!.count++;
+      } else {
+        targetsByEntityId[noneString] ??= {
+          count: 0,
+          entityId: noneString,
+          label: "--- Does not apply ---",
+        };
+        targetsByEntityId[noneString].count++;
+      }
+
+      entityTypeVersionCount[row.entityTypeVersion] ??= 0;
+      entityTypeVersionCount[row.entityTypeVersion]!++;
+      webCountById[row.web] ??= 0;
+      webCountById[row.web]!++;
+    }
+    return {
+      lastEditedByActors: [...lastEditedBySet],
+      createdByActors: [...createdBySet],
+      entityTypeVersions: entityTypeVersionCount,
+      webs: webCountById,
+      sources: Object.values(sourcesByEntityId),
+      targets: Object.values(targetsByEntityId),
+    };
+  }, [rows]);
 
   const [selectedEntityTypeVersions, setSelectedEntityTypeVersions] = useState<
-    string[]
-  >(Object.keys(entityTypeVersions));
+    Set<string>
+  >(new Set(Object.keys(entityTypeVersions)));
 
   useEffect(() => {
-    setSelectedEntityTypeVersions(Object.keys(entityTypeVersions));
+    setSelectedEntityTypeVersions(new Set(Object.keys(entityTypeVersions)));
   }, [entityTypeVersions]);
 
   const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
-    useState<string[]>(lastEditedByActors.map(({ accountId }) => accountId));
+    useState<Set<string>>(
+      new Set(lastEditedByActors.map(({ accountId }) => accountId)),
+    );
 
   const [selectedCreatedByAccountIds, setSelectedCreatedByAccountIds] =
-    useState<string[]>(createdByActors.map(({ accountId }) => accountId));
+    useState<Set<string>>(
+      new Set(createdByActors.map(({ accountId }) => accountId)),
+    );
 
   useEffect(() => {
     setSelectedLastEditedByAccountIds(
-      lastEditedByActors.map(({ accountId }) => accountId),
+      new Set(lastEditedByActors.map(({ accountId }) => accountId)),
     );
   }, [lastEditedByActors]);
 
   useEffect(() => {
     setSelectedCreatedByAccountIds(
-      createdByActors.map(({ accountId }) => accountId),
+      new Set(createdByActors.map(({ accountId }) => accountId)),
     );
   }, [createdByActors]);
 
-  const [selectedWebs, setSelectedWebs] = useState<string[]>(Object.keys(webs));
+  const [selectedWebs, setSelectedWebs] = useState<Set<string>>(
+    new Set(Object.keys(webs)),
+  );
 
   useEffect(() => {
-    setSelectedWebs(Object.keys(webs));
+    setSelectedWebs(new Set(Object.keys(webs)));
   }, [webs]);
+
+  const [selectedSourceEntities, setSelectedSourceEntities] = useState(
+    new Set(sources.map(({ entityId }) => entityId)),
+  );
+
+  useEffect(() => {
+    setSelectedSourceEntities(new Set(sources.map(({ entityId }) => entityId)));
+  }, [sources]);
+
+  const [selectedTargetEntities, setSelectedTargetEntities] = useState(
+    new Set(targets.map(({ entityId }) => entityId)),
+  );
+
+  useEffect(() => {
+    setSelectedTargetEntities(new Set(targets.map(({ entityId }) => entityId)));
+  }, [targets]);
 
   const columnFilters = useMemo<ColumnFilter<string, TypeEntitiesRow>[]>(
     () => [
@@ -683,7 +808,7 @@ export const EntitiesTable: FunctionComponent<{
         })),
         selectedFilterItemIds: selectedWebs,
         setSelectedFilterItemIds: setSelectedWebs,
-        isRowFiltered: (row) => !selectedWebs.includes(row.web),
+        isRowFiltered: (row) => !selectedWebs.has(row.web),
       },
       {
         columnKey: "entityTypeVersion",
@@ -697,7 +822,7 @@ export const EntitiesTable: FunctionComponent<{
         selectedFilterItemIds: selectedEntityTypeVersions,
         setSelectedFilterItemIds: setSelectedEntityTypeVersions,
         isRowFiltered: (row) =>
-          !selectedEntityTypeVersions.includes(row.entityTypeVersion),
+          !selectedEntityTypeVersions.has(row.entityTypeVersion),
       },
       {
         columnKey: "archived",
@@ -714,12 +839,12 @@ export const EntitiesTable: FunctionComponent<{
         selectedFilterItemIds: selectedArchivedStatus,
         setSelectedFilterItemIds: (filterItemIds) =>
           setSelectedArchivedStatus(
-            filterItemIds as ("archived" | "not-archived")[],
+            new Set(filterItemIds as Set<"archived" | "not-archived">),
           ),
         isRowFiltered: (row) =>
           row.archived
-            ? !selectedArchivedStatus.includes("archived")
-            : !selectedArchivedStatus.includes("not-archived"),
+            ? !selectedArchivedStatus.has("archived")
+            : !selectedArchivedStatus.has("not-archived"),
       },
       {
         columnKey: "lastEditedBy",
@@ -731,9 +856,7 @@ export const EntitiesTable: FunctionComponent<{
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
         isRowFiltered: (row) =>
           row.lastEditedBy && row.lastEditedBy !== "loading"
-            ? !selectedLastEditedByAccountIds.includes(
-                row.lastEditedBy.accountId,
-              )
+            ? !selectedLastEditedByAccountIds.has(row.lastEditedBy.accountId)
             : false,
       },
       {
@@ -746,8 +869,34 @@ export const EntitiesTable: FunctionComponent<{
         setSelectedFilterItemIds: setSelectedCreatedByAccountIds,
         isRowFiltered: (row) =>
           row.createdBy && row.createdBy !== "loading"
-            ? !selectedCreatedByAccountIds.includes(row.createdBy.accountId)
+            ? !selectedCreatedByAccountIds.has(row.createdBy.accountId)
             : false,
+      },
+      {
+        columnKey: "sourceEntity",
+        filterItems: sources.map((source) => ({
+          id: source.entityId,
+          label: source.label,
+        })),
+        selectedFilterItemIds: selectedSourceEntities,
+        setSelectedFilterItemIds: setSelectedSourceEntities,
+        isRowFiltered: (row) =>
+          row.sourceEntity
+            ? !selectedSourceEntities.has(row.sourceEntity.entityId)
+            : !selectedSourceEntities.has(noneString),
+      },
+      {
+        columnKey: "targetEntity",
+        filterItems: targets.map((target) => ({
+          id: target.entityId,
+          label: target.label,
+        })),
+        selectedFilterItemIds: selectedTargetEntities,
+        setSelectedFilterItemIds: setSelectedTargetEntities,
+        isRowFiltered: (row) =>
+          row.targetEntity
+            ? !selectedTargetEntities.has(row.targetEntity.entityId)
+            : !selectedTargetEntities.has(noneString),
       },
     ],
     [
@@ -760,6 +909,10 @@ export const EntitiesTable: FunctionComponent<{
       selectedCreatedByAccountIds,
       selectedLastEditedByAccountIds,
       selectedArchivedStatus,
+      selectedSourceEntities,
+      selectedTargetEntities,
+      sources,
+      targets,
     ],
   );
 
@@ -803,6 +956,7 @@ export const EntitiesTable: FunctionComponent<{
       )}
       {selectedEntity ? (
         <EntityEditorSlideStack
+          customColumns={customColumns}
           /*
             The subgraphWithLinkedEntities can take a long time to load with many entities.
             We pass the subgraph without linked entities so that there is _some_ data to load into the editor,

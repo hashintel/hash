@@ -1,4 +1,7 @@
+import { TextField } from "@hashintel/design-system";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import {
+  outlinedInputClasses,
   type PopperProps,
   Stack,
   type SxProps,
@@ -15,10 +18,10 @@ import {
   Popper,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, FunctionComponent } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { FixedSizeList } from "react-window";
 
-import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { MenuItem } from "../../../shared/ui";
 import type { ColumnFilter } from "./filtering";
 
@@ -38,6 +41,113 @@ const blueFilterButtonSx: SxProps<Theme> = ({ palette, transitions }) => ({
   },
   transition: transitions.create("background"),
 });
+
+type FilterItemData = {
+  id: string;
+  label: string;
+  checked: boolean;
+};
+
+type FilterItemDataProp = {
+  closeMenu: () => void;
+  items: FilterItemData[];
+  selectedFilterItemIds: Set<string> | undefined;
+  setSelectedFilterItemIds:
+    | ((selectedFilterItemIds: Set<string>) => void)
+    | undefined;
+};
+
+const FilterItem = memo(
+  ({
+    data,
+    index,
+    style,
+  }: {
+    data: FilterItemDataProp;
+    index: number;
+    style: CSSProperties;
+  }) => {
+    const {
+      closeMenu,
+      items,
+      selectedFilterItemIds,
+      setSelectedFilterItemIds,
+    } = data;
+
+    const item = items[index]!;
+    const { id, label, checked } = item;
+
+    return (
+      <Box style={style}>
+        <MenuItem
+          key={id}
+          onClick={() =>
+            setSelectedFilterItemIds?.(
+              checked
+                ? new Set(
+                    [...(selectedFilterItemIds ?? [])].filter(
+                      (selectedId) => selectedId !== id,
+                    ),
+                  )
+                : new Set([...(selectedFilterItemIds ?? []), id]),
+            )
+          }
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            py: 0.6,
+            "&:hover > button": { visibility: "visible" },
+            "&:focus": { boxShadow: "none" },
+            "&:active": {
+              color: "inherit",
+            },
+            maxWidth: "100%",
+          }}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            sx={{ maxWidth: "calc(100% - 30px)" }}
+          >
+            <ListItemIcon>
+              <Checkbox
+                sx={{
+                  svg: {
+                    width: 18,
+                    height: 18,
+                  },
+                }}
+                checked={checked}
+              />
+            </ListItemIcon>
+            <ListItemText
+              primary={label}
+              sx={{
+                "& span": {
+                  display: "block",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                },
+              }}
+            />
+          </Stack>
+          <Box
+            component="button"
+            onClick={(event) => {
+              setSelectedFilterItemIds?.(new Set([id]));
+              event.stopPropagation();
+              closeMenu();
+            }}
+            sx={[blueFilterButtonSx, { visibility: "hidden" }]}
+          >
+            <Typography component="span">Only</Typography>
+          </Box>
+        </MenuItem>
+      </Box>
+    );
+  },
+);
 
 export const ColumnFilterMenu: FunctionComponent<
   {
@@ -79,10 +189,56 @@ export const ColumnFilterMenu: FunctionComponent<
     columnFilter ?? previousColumnFilter ?? {};
 
   const isFiltered = useMemo(
-    () =>
-      filterItems?.some((item) => !selectedFilterItemIds?.includes(item.id)),
+    () => filterItems?.some((item) => !selectedFilterItemIds?.has(item.id)),
     [filterItems, selectedFilterItemIds],
   );
+
+  const [searchText, setSearchText] = useState("");
+
+  const filterItemsData = useMemo<{
+    closeMenu: () => void;
+    items: FilterItemData[];
+    selectedFilterItemIds: Set<string> | undefined;
+    setSelectedFilterItemIds:
+      | ((selectedFilterItemIds: Set<string>) => void)
+      | undefined;
+  }>(() => {
+    const filteredItems: FilterItemData[] = [];
+    for (const item of filterItems ?? []) {
+      if (
+        searchText &&
+        !item.label.toLowerCase().includes(searchText.toLowerCase())
+      ) {
+        continue;
+      }
+
+      const { id, label, count } = item;
+
+      const checked = !!selectedFilterItemIds?.has(id);
+
+      const text =
+        count !== undefined ? `${label} (${formatNumber(count)})` : label;
+
+      filteredItems.push({
+        id,
+        label: text,
+        checked,
+      });
+    }
+
+    return {
+      closeMenu: onClose,
+      items: filteredItems.sort((a, b) => a.label.localeCompare(b.label)),
+      selectedFilterItemIds,
+      setSelectedFilterItemIds,
+    };
+  }, [
+    filterItems,
+    onClose,
+    searchText,
+    selectedFilterItemIds,
+    setSelectedFilterItemIds,
+  ]);
 
   return (
     <Popper open={open} {...popoverProps}>
@@ -101,10 +257,7 @@ export const ColumnFilterMenu: FunctionComponent<
                 }
               }}
             >
-              <Paper
-                ref={wrapperRef}
-                sx={{ padding: 0.25, maxHeight: 350, overflowY: "scroll" }}
-              >
+              <Paper ref={wrapperRef} sx={{ padding: 0.25 }}>
                 <Stack
                   direction="row"
                   alignItems="center"
@@ -129,7 +282,7 @@ export const ColumnFilterMenu: FunctionComponent<
                       component="button"
                       onClick={() => {
                         setSelectedFilterItemIds?.(
-                          filterItems?.map((item) => item.id) ?? [],
+                          new Set(filterItems?.map((item) => item.id) ?? []),
                         );
                         onClose();
                       }}
@@ -139,63 +292,38 @@ export const ColumnFilterMenu: FunctionComponent<
                     </Box>
                   )}
                 </Stack>
-                {filterItems
-                  ?.sort((a, b) => a.label.localeCompare(b.label))
-                  .map(({ id, label, count }) => {
-                    const checked = selectedFilterItemIds?.includes(id);
-
-                    const text =
-                      count !== undefined
-                        ? `${label} (${formatNumber(count)})`
-                        : label;
-
-                    return (
-                      <MenuItem
-                        key={id}
-                        onClick={() =>
-                          setSelectedFilterItemIds?.(
-                            checked
-                              ? (selectedFilterItemIds?.filter(
-                                  (selectedId) => selectedId !== id,
-                                ) ?? [])
-                              : [...(selectedFilterItemIds ?? []), id],
-                          )
-                        }
-                        sx={{
-                          justifyContent: "space-between",
-                          py: 0.6,
-                          "&:hover > button": { visibility: "visible" },
-                          "&:focus": { boxShadow: "none" },
-                        }}
-                      >
-                        <Stack direction="row" alignItems="center">
-                          <ListItemIcon>
-                            <Checkbox
-                              sx={{
-                                svg: {
-                                  width: 18,
-                                  height: 18,
-                                },
-                              }}
-                              checked={checked}
-                            />
-                          </ListItemIcon>
-                          <ListItemText primary={text} />
-                        </Stack>
-                        <Box
-                          component="button"
-                          onClick={(event) => {
-                            setSelectedFilterItemIds?.([id]);
-                            event.stopPropagation();
-                            onClose();
-                          }}
-                          sx={[blueFilterButtonSx, { visibility: "hidden" }]}
-                        >
-                          <Typography component="span">Only</Typography>
-                        </Box>
-                      </MenuItem>
-                    );
-                  })}
+                {(filterItems ?? []).length > 20 && (
+                  <TextField
+                    autoFocus
+                    value={searchText}
+                    onChange={(event) => setSearchText(event.target.value)}
+                    placeholder="Find items..."
+                    sx={{
+                      width: "80%",
+                      mx: 1.4,
+                      mb: 1,
+                      [`.${outlinedInputClasses.root} input`]: {
+                        fontSize: 13,
+                        py: 0.5,
+                        px: 1.5,
+                      },
+                    }}
+                  />
+                )}
+                <FixedSizeList
+                  height={
+                    (filterItems ?? []).length > 10
+                      ? 350
+                      : (filterItems ?? []).length * 35
+                  }
+                  itemCount={filterItemsData.items.length}
+                  itemData={filterItemsData}
+                  itemSize={35}
+                  overscanCount={10}
+                  width={380}
+                >
+                  {FilterItem}
+                </FixedSizeList>
               </Paper>
             </ClickAwayListener>
           </Box>
