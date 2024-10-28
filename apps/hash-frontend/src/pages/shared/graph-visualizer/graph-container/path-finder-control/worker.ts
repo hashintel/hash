@@ -1,6 +1,6 @@
+import { MultiDirectedGraph } from "graphology";
 import { edgePathFromNodePath } from "graphology-shortest-path";
 import { allSimplePaths } from "graphology-simple-path";
-import { MultiDirectedGraph } from "graphology";
 
 import type {
   GenerateSimplePathsParams,

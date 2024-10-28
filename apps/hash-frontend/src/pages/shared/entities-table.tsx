@@ -99,7 +99,7 @@ const noneString = "none";
 export const EntitiesTable: FunctionComponent<{
   customColumns?: CustomColumn[];
   defaultFilter?: FilterState;
-  defaultGraphConfig: GraphVizConfig<DynamicNodeSizing>;
+  defaultGraphConfig?: GraphVizConfig<DynamicNodeSizing>;
   defaultGraphFilters?: GraphVizFilters;
   defaultView?: TableView;
   disableEntityOpenInNew?: boolean;

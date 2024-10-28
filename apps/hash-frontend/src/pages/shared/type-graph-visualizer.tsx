@@ -31,6 +31,8 @@ const defaultConfig = {
   edgeSizing: {
     min: 3,
     max: 3,
+    nonHighlightedVisibleSizeThreshold: 3,
+    scale: "Linear",
   },
 } as const satisfies GraphVizConfig<StaticNodeSizing>;
 

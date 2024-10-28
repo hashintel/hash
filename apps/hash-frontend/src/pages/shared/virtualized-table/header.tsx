@@ -18,6 +18,7 @@ export const HeaderContent = <
   Sort extends VirtualizedTableSort,
   Id extends string,
   M extends ColumnMetadata,
+  FilteredIds extends Id,
 >({
   columns,
   fixedColumns,
@@ -30,7 +31,7 @@ export const HeaderContent = <
   columns: VirtualizedTableColumn<Id, M>[];
   fixedColumns?: number;
 } & TableSortProps<Sort> &
-  Partial<TableFilterProps<Id>>) => {
+  Partial<TableFilterProps<FilteredIds>>) => {
   return (
     <TableRow>
       {columns.map((column, index) => {

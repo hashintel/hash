@@ -2,14 +2,16 @@ import { Box, Stack, useTheme } from "@mui/material";
 import { SigmaContainer } from "@react-sigma/core";
 import { EdgeCurvedArrowProgram } from "@sigma/edge-curve";
 import { createNodeBorderProgram } from "@sigma/node-border";
+import { createNodeImageProgram } from "@sigma/node-image";
 import { MultiDirectedGraph } from "graphology";
 import { memo, useMemo, useRef } from "react";
 import { createNodeCompoundProgram, EdgeArrowProgram } from "sigma/rendering";
-import { createNodeImageProgram } from "@sigma/node-image";
 
+import { FullScreenButton } from "./graph-container/full-screen-button";
 import type { GraphLoaderProps } from "./graph-container/graph-data-loader";
 import { GraphDataLoader } from "./graph-container/graph-data-loader";
 import { PathFinderControl } from "./graph-container/path-finder-control";
+import { SearchControl } from "./graph-container/search-control";
 import type {
   DynamicNodeSizing,
   GraphVizConfig,
@@ -20,9 +22,7 @@ import type { GraphVizFilters } from "./graph-container/shared/filter-control";
 import { FilterControl } from "./graph-container/shared/filter-control";
 import { FullScreenContextProvider } from "./graph-container/shared/full-screen-context";
 import { GraphContextProvider } from "./graph-container/shared/graph-context";
-import { SearchControl } from "./graph-container/search-control";
 import { ZoomControl } from "./graph-container/zoom-control";
-import { FullScreenButton } from "./graph-container/full-screen-button";
 
 export type GraphContainerProps<
   NodeSizing extends DynamicNodeSizing | StaticNodeSizing,

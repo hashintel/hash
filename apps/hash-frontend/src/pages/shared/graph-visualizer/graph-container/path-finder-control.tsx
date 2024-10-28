@@ -3,6 +3,7 @@ import {
   IconDiagramNestedLight,
   Select,
 } from "@hashintel/design-system";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { Box, Stack, Switch } from "@mui/material";
 import { useSigma } from "@react-sigma/core";
 import { dijkstra, edgePathFromNodePath } from "graphology-shortest-path";
@@ -29,7 +30,6 @@ import { IntegerInput } from "./shared/integer-input";
 import { SimpleAutocomplete } from "./shared/simple-autocomplete";
 import { selectSx } from "./shared/styles";
 import type { GraphVizNode } from "./shared/types";
-import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 type TypeData = {
   label: string;

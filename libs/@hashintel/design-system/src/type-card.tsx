@@ -1,13 +1,13 @@
-import { faArrowsRotate, faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import type { ElementType } from "react";
 import { useState } from "react";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
+import { AsteriskRegularIcon } from "./icon-asterisk-regular";
 import { IconButton } from "./icon-button";
 import { CloseIcon } from "./icon-close";
 import { WhiteCard } from "./white-card";
-import { AsteriskRegularIcon } from "./icon-asterisk-regular";
 
 interface TypeCardProps {
   disableClick?: boolean;

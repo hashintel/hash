@@ -119,6 +119,7 @@ type VirtualizedTableProps<
   S extends VirtualizedTableSort,
   Id extends FieldId,
   M extends ColumnMetadata,
+  FilteredIds extends FieldId,
 > = {
   /**
    * This function will be called many times when scrolling, ensure repeated calls do as little as possible
@@ -130,15 +131,16 @@ type VirtualizedTableProps<
   EmptyPlaceholder?: () => ReactElement;
   rows: VirtualizedTableRow<D>[];
 } & TableSortProps<S> &
-  Partial<TableFilterProps<Id>>;
+  Partial<TableFilterProps<FilteredIds>>;
 
 const heightStyle = { height: "100%" };
 
 export const VirtualizedTable = <
   D extends Data,
-  S extends VirtualizedTableSort,
+  Sort extends VirtualizedTableSort,
   Id extends FieldId,
-  M extends ColumnMetadata,
+  Metadata extends ColumnMetadata,
+  FilteredIds extends Id,
 >({
   createRowContent,
   columns,
@@ -150,7 +152,7 @@ export const VirtualizedTable = <
   setFilterValues,
   sort,
   setSort,
-}: VirtualizedTableProps<D, S, Id, M>) => {
+}: VirtualizedTableProps<D, Sort, Id, Metadata, FilteredIds>) => {
   const fixedHeaderContent = useCallback(
     () =>
       columns
