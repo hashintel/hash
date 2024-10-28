@@ -12,7 +12,10 @@ import type {
   BaseUrl,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import {
+  generateEntityLabel,
+  generateLinkEntityLabel,
+} from "@local/hash-isomorphic-utils/generate-entity-label";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
@@ -353,17 +356,26 @@ export const useEntitiesTable = (params: {
                 entity.linkData.rightEntityId,
               );
 
+              const sourceEntityLabel = !source
+                ? entity.linkData.leftEntityId
+                : source.linkData
+                  ? generateLinkEntityLabel(subgraph, source)
+                  : generateEntityLabel(subgraph, source);
+
               sourceEntity = {
                 entityId: entity.linkData.leftEntityId,
-                label: source
-                  ? generateEntityLabel(subgraph, source)
-                  : entity.linkData.leftEntityId,
+                label: sourceEntityLabel,
               };
+
+              const targetEntityLabel = !target
+                ? entity.linkData.leftEntityId
+                : target.linkData
+                  ? generateLinkEntityLabel(subgraph, target)
+                  : generateEntityLabel(subgraph, target);
+
               targetEntity = {
                 entityId: entity.linkData.rightEntityId,
-                label: target
-                  ? generateEntityLabel(subgraph, target)
-                  : entity.linkData.rightEntityId,
+                label: targetEntityLabel,
               };
             }
 

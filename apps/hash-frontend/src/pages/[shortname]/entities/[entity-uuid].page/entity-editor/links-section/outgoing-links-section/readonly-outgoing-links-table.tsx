@@ -2,7 +2,10 @@ import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import {
+  generateEntityLabel,
+  generateLinkEntityLabel,
+} from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { LinkEntityAndRightEntity } from "@local/hash-subgraph";
 import {
@@ -66,7 +69,7 @@ const staticColumns: VirtualizedTableColumn<OutgoingLinksFieldId>[] = [
     label: "Linked to",
     id: "linkedTo",
     sortable: true,
-    width: 120,
+    width: 200,
   },
   {
     label: "Linked to type",
@@ -78,7 +81,7 @@ const staticColumns: VirtualizedTableColumn<OutgoingLinksFieldId>[] = [
     label: "Link",
     id: "link",
     sortable: true,
-    width: 120,
+    width: 180,
   },
 ];
 
@@ -301,13 +304,13 @@ export const OutgoingLinksTable = memo(
 
         const rightEntity = rightEntityRevisions[0];
         if (!rightEntity) {
-          throw new Error("Expected at least one left entity revision");
+          throw new Error("Expected at least one right entity revision");
         }
 
-        const rightEntityLabel = generateEntityLabel(
-          entitySubgraph,
-          rightEntity,
-        );
+        const rightEntityLabel = rightEntity.linkData
+          ? generateLinkEntityLabel(entitySubgraph, rightEntity)
+          : generateEntityLabel(entitySubgraph, rightEntity);
+
         filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId] ??=
           {
             label: rightEntityLabel,

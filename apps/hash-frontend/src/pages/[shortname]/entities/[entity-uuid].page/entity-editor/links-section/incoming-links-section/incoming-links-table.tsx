@@ -2,7 +2,10 @@ import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import {
+  generateEntityLabel,
+  generateLinkEntityLabel,
+} from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { LinkEntityAndLeftEntity } from "@local/hash-subgraph";
 import {
@@ -56,7 +59,7 @@ const staticColumns: VirtualizedTableColumn<FieldId>[] = [
     label: "Linked from",
     id: "linkedFrom",
     sortable: true,
-    width: 100,
+    width: 180,
   },
   {
     label: "Link type",
@@ -309,7 +312,10 @@ export const IncomingLinksTable = memo(
           throw new Error("Expected at least one left entity revision");
         }
 
-        const leftEntityLabel = generateEntityLabel(entitySubgraph, leftEntity);
+        const leftEntityLabel = leftEntity.linkData
+          ? generateLinkEntityLabel(entitySubgraph, leftEntity)
+          : generateEntityLabel(entitySubgraph, leftEntity);
+
         filterDefs.linkedFrom.options[leftEntity.metadata.recordId.entityId] ??=
           {
             label: leftEntityLabel,
@@ -509,8 +515,20 @@ export const IncomingLinksTable = memo(
                   direction
                 );
               }
-              default:
-                throw new Error(`Unexpected fieldId: ${field}`);
+              default: {
+                const customFieldA = a.data.customFields[field];
+                const customFieldB = b.data.customFields[field];
+                if (
+                  typeof customFieldA === "number" &&
+                  typeof customFieldB === "number"
+                ) {
+                  return (customFieldA - customFieldB) * direction;
+                }
+                return (
+                  String(customFieldA).localeCompare(String(customFieldB)) *
+                  direction
+                );
+              }
             }
           }),
       [filterValues, sort, unsortedRows],

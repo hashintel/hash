@@ -50,7 +50,7 @@ export const PropertiesTooltip = ({
         )
       }
     >
-      <Box>{children}</Box>
+      <Box sx={{ display: "inline-block", maxWidth: "100%" }}>{children}</Box>
     </Tooltip>
   );
 };
