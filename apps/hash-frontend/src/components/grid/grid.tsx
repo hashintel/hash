@@ -490,6 +490,7 @@ export const Grid = <T extends GridRow>({
         open={!!openFilterColumn}
         columnFilter={openFilterColumn}
         onClose={() => setOpenFilterColumnKey(undefined)}
+        key={openFilterColumnKey}
         anchorEl={filterIconVirtualElement}
         popperRef={popperRef}
         transition
