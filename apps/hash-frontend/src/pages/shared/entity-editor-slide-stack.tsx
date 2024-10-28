@@ -10,6 +10,7 @@ import type { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].pa
 import { generateEntityRootedSubgraph } from "./subgraphs";
 
 interface EntityEditorSlideStackProps {
+  customColumns?: EntityEditorProps["customColumns"];
   disableTypeClick?: boolean;
   /**
    * If you already have a subgraph with the entity, its types and incoming/outgoing links to a depth of 1, provide it.
@@ -55,6 +56,7 @@ const Slide = (allProps: EditEntitySlideOverProps) => {
 export const EntityEditorSlideStack: FunctionComponent<
   EntityEditorSlideStackProps
 > = ({
+  customColumns,
   disableTypeClick,
   entitySubgraph,
   hideOpenInNew,
@@ -109,6 +111,7 @@ export const EntityEditorSlideStack: FunctionComponent<
       {items.slice(0, currentIndex + 1).map((entityId, index) => {
         return (
           <Slide
+            customColumns={customColumns}
             disableTypeClick={disableTypeClick}
             entitySubgraph={entitySubgraph}
             entityId={entityId}

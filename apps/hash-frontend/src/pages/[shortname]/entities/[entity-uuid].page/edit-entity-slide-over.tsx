@@ -42,6 +42,7 @@ import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-en
 import { useDraftLinkState } from "./shared/use-draft-link-state";
 
 export interface EditEntitySlideOverProps {
+  customColumns?: EntityEditorProps["customColumns"];
   defaultOutgoingLinkFilters?: EntityEditorProps["defaultOutgoingLinkFilters"];
   /**
    * Whether to stop clicking on types taking any action
@@ -92,6 +93,7 @@ export interface EditEntitySlideOverProps {
  */
 const EditEntitySlideOver = memo(
   ({
+    customColumns,
     defaultOutgoingLinkFilters,
     disableTypeClick,
     hideOpenInNew,
@@ -422,6 +424,7 @@ const EditEntitySlideOver = memo(
               </Stack>
 
               <EntityEditor
+                customColumns={customColumns}
                 defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
                 disableTypeClick={disableTypeClick}
                 readonly={readonly}

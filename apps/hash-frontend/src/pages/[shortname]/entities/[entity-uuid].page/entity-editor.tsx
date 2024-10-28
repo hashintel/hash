@@ -11,13 +11,17 @@ import { FilePreviewSection } from "./entity-editor/file-preview-section";
 import { HistorySection } from "./entity-editor/history-section";
 import { LinkSection } from "./entity-editor/link-section";
 import { LinksSection } from "./entity-editor/links-section";
+import type { OutgoingLinksFilterValues } from "./entity-editor/links-section/outgoing-links-section/readonly-outgoing-links-table";
 import { PropertiesSection } from "./entity-editor/properties-section";
+import type { CustomColumn } from "./entity-editor/shared/types";
 import { TypesSection } from "./entity-editor/types-section";
 import { useEntityEditorTab } from "./shared/entity-editor-tabs";
 import type { DraftLinkState } from "./shared/use-draft-link-state";
-import type { OutgoingLinksFilterValues } from "./entity-editor/links-section/outgoing-links-section/readonly-outgoing-links-table";
+
+export type { CustomColumn };
 
 export interface EntityEditorProps extends DraftLinkState {
+  customColumns?: CustomColumn[];
   defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
   disableTypeClick?: boolean;
   isDirty: boolean;
@@ -44,7 +48,8 @@ export const EntityEditor = (props: EntityEditorProps) => {
       /**
        * If this is thrown then the entitySubgraph is probably the result of a query for an entityId without a draftId,
        * where there is a live entity and one or more draft updates in the database.
-       * Any query without an entityId should EXCLUDE entities with a draftId to ensure only the live version is returned.
+       * Any query without an entityId should EXCLUDE entities with a draftId to ensure only the live version is
+       * returned.
        */
       throw new Error(
         `More than one root entity passed to entity editor, with ids: ${roots
