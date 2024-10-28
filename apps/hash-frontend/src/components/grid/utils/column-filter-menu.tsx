@@ -204,10 +204,13 @@ export const ColumnFilterMenu: FunctionComponent<
       | undefined;
   }>(() => {
     const filteredItems: FilterItemData[] = [];
+
+    const lowerCasedSearchText = searchText.toLowerCase().trim();
+
     for (const item of filterItems ?? []) {
       if (
         searchText &&
-        !item.label.toLowerCase().includes(searchText.toLowerCase())
+        !item.label.toLowerCase().includes(lowerCasedSearchText)
       ) {
         continue;
       }
@@ -226,9 +229,28 @@ export const ColumnFilterMenu: FunctionComponent<
       });
     }
 
+    const sortedItems = filteredItems.sort((a, b) => {
+      if (
+        searchText &&
+        a.label.toLowerCase().startsWith(lowerCasedSearchText) &&
+        !b.label.toLowerCase().startsWith(lowerCasedSearchText)
+      ) {
+        return -1;
+      }
+      if (
+        searchText &&
+        !a.label.toLowerCase().startsWith(lowerCasedSearchText) &&
+        b.label.toLowerCase().startsWith(lowerCasedSearchText)
+      ) {
+        return 1;
+      }
+
+      return a.label.localeCompare(b.label);
+    });
+
     return {
       closeMenu: onClose,
-      items: filteredItems.sort((a, b) => a.label.localeCompare(b.label)),
+      items: sortedItems,
       selectedFilterItemIds,
       setSelectedFilterItemIds,
     };
@@ -310,20 +332,33 @@ export const ColumnFilterMenu: FunctionComponent<
                     }}
                   />
                 )}
-                <FixedSizeList
-                  height={
-                    (filterItems ?? []).length > 10
-                      ? 350
-                      : (filterItems ?? []).length * 35
-                  }
-                  itemCount={filterItemsData.items.length}
-                  itemData={filterItemsData}
-                  itemSize={35}
-                  overscanCount={10}
-                  width={380}
-                >
-                  {FilterItem}
-                </FixedSizeList>
+                {filterItemsData.items.length ? (
+                  <FixedSizeList
+                    height={
+                      filterItemsData.items.length > 10
+                        ? 350
+                        : filterItemsData.items.length * 35 + 10
+                    }
+                    itemCount={filterItemsData.items.length}
+                    itemData={filterItemsData}
+                    itemSize={35}
+                    overscanCount={10}
+                    width={380}
+                  >
+                    {FilterItem}
+                  </FixedSizeList>
+                ) : (
+                  <Typography
+                    sx={{
+                      color: ({ palette }) => palette.gray[70],
+                      fontSize: 12,
+                      px: 1.5,
+                      pb: 1,
+                    }}
+                  >
+                    No options found{searchText ? " for your search" : ""}
+                  </Typography>
+                )}
               </Paper>
             </ClickAwayListener>
           </Box>
