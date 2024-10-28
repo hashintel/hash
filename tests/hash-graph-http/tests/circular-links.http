@@ -77,6 +77,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "$id": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
     "type": "object",
     "title": "Object",
+    "description": "A link entity type",
     "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" }],
     "properties": {}
   },
@@ -130,6 +131,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "$id": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
     "type": "object",
     "title": "Object",
+    "description": "An object",
     "properties": {},
     "links": {
       "http://localhost:3000/@snapshot/types/entity-type/link/v/1": {
