@@ -74,4 +74,11 @@ impl<B> Request<B> {
     pub fn extensions_mut(&mut self) -> &mut Extensions {
         &mut self.head.extensions
     }
+
+    pub fn map_body<B2>(self, closure: impl FnOnce(B) -> B2) -> Request<B2> {
+        Request {
+            head: self.head,
+            body: closure(self.body),
+        }
+    }
 }
