@@ -55,7 +55,6 @@ import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
-import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
 import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
@@ -917,17 +916,6 @@ export const EntitiesTable: FunctionComponent<{
   );
 
   const currentlyDisplayedRowsRef = useRef<TypeEntitiesRow[] | null>(null);
-
-  const { getEntitiesTableAdditionalCsvData } =
-    useGetEntitiesTableAdditionalCsvData({
-      currentlyDisplayedRowsRef,
-      propertyTypes,
-      /**
-       * If the properties columns are hidden, we want to add
-       * them to the CSV file.
-       */
-      addPropertiesColumns: hidePropertiesColumns,
-    });
 
   const maximumTableHeight =
     maxHeight ??

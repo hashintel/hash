@@ -349,7 +349,7 @@ export const FilterButton = <
       <FilterPopover
         buttonRef={buttonRef}
         filterDefinition={filterDefinition}
-        filterValue={filterValue}
+        filterValue={filterValue as (typeof filterDefinition)["initialValue"]}
         isFiltered={isFiltered}
         setFilter={(newFilter) =>
           setFilterValues({ ...filterValues, [columnId]: newFilter })

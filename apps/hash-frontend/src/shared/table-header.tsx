@@ -112,11 +112,6 @@ export type FilterState = {
   limitToWebs: string[] | false;
 };
 
-export type GetAdditionalCsvDataFunction = () => Promise<{
-  prependedData: string[][];
-  appendedData: string[][];
-} | null>;
-
 type TableHeaderProps = {
   hideExportToCsv?: boolean;
   hideFilters?: boolean;
@@ -139,7 +134,6 @@ type TableHeaderProps = {
   title: string;
   columns: SizedGridColumn[];
   currentlyDisplayedRowsRef: MutableRefObject<Row[] | null>;
-  getAdditionalCsvData?: GetAdditionalCsvDataFunction;
   setFilterState: Dispatch<SetStateAction<FilterState>>;
   toggleSearch?: () => void;
   onBulkActionCompleted?: () => void;
@@ -156,7 +150,6 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   currentlyDisplayedRowsRef,
   endAdornment,
   filterState,
-  getAdditionalCsvData,
   hideExportToCsv,
   hideFilters,
   internalWebIds,
@@ -191,23 +184,11 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
       ? items.length - numberOfUserWebItems
       : undefined;
 
-  const generateCsvFile = useCallback<GenerateCsvFileFunction>(async () => {
+  const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
     const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
     if (!currentlyDisplayedRows) {
       return null;
     }
-
-    const additionalCsvData = getAdditionalCsvData
-      ? await getAdditionalCsvData()
-      : undefined;
-
-    const { prependedData, appendedData } = additionalCsvData ?? {};
-
-    const prependedColumnTitles = prependedData?.[0];
-    const prependedRows = prependedData?.splice(1);
-
-    const appendedColumnTitles = appendedData?.[0];
-    const appendedRows = appendedData?.splice(1);
 
     // Entity metadata columns (i.e. what's already being displayed in the entities table)
 
@@ -224,12 +205,8 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
 
     // Collate the contents of the CSV file row by row (including the header)
     const content: string[][] = [
-      [
-        ...(prependedColumnTitles ?? []),
-        ...tableContentColumnTitles,
-        ...(appendedColumnTitles ?? []),
-      ],
-      ...currentlyDisplayedRows.map((row, i) => {
+      tableContentColumnTitles,
+      ...currentlyDisplayedRows.map((row) => {
         const tableCells = columnRowKeys.map((key) => {
           const value = row[key];
 
@@ -247,20 +224,12 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             return stringifyPropertyValue(value);
           }
         });
-
-        const prependedCells = prependedRows?.[i];
-        const appendedCells = appendedRows?.[i];
-
-        return [
-          ...(prependedCells ?? []),
-          ...tableCells,
-          ...(appendedCells ?? []),
-        ];
+        return tableCells;
       }),
     ];
 
     return { title, content };
-  }, [title, columns, currentlyDisplayedRowsRef, getAdditionalCsvData]);
+  }, [title, columns, currentlyDisplayedRowsRef]);
 
   return (
     <Box
