@@ -2,6 +2,7 @@ use core::{
     pin::Pin,
     task::{Context, Poll, ready},
 };
+use std::collections::{HashMap, HashSet};
 
 use authorization::schema::EntityTypeRelationAndSubject;
 use error_stack::{Report, ResultExt};
@@ -12,7 +13,8 @@ use futures::{
 };
 use type_system::{
     Valid,
-    schema::{ClosedEntityType, EntityTypeUuid},
+    schema::{ClosedEntityType, EntityConstraints, EntityTypeUuid, InverseEntityTypeMetadata},
+    url::{OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::{
@@ -75,14 +77,32 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         self.schema
             .start_send_unpin(EntityTypeRow {
                 ontology_id,
-                // TODO: Validate ontology types in snapshots
-                //   see https://linear.app/hash/issue/H-3038
-                schema: Valid::new_unchecked(entity_type.schema.clone()),
                 // An empty schema is inserted initially. This will be replaced later by the closed
                 // schema.
                 // TODO: Validate ontology types in snapshots
                 //   see https://linear.app/hash/issue/H-3038
-                closed_schema: Valid::new_unchecked(ClosedEntityType::default()),
+                closed_schema: Valid::new_unchecked(ClosedEntityType {
+                    id: VersionedUrl {
+                        base_url: entity_type.schema.id.base_url.clone(),
+                        version: OntologyTypeVersion::new(0),
+                    },
+                    title: String::new(),
+                    title_plural: None,
+                    description: None,
+                    inverse: InverseEntityTypeMetadata {
+                        title: None,
+                        title_plural: None,
+                    },
+                    constraints: EntityConstraints {
+                        properties: HashMap::new(),
+                        required: HashSet::new(),
+                        links: HashMap::new(),
+                    },
+                    all_of: Vec::new(),
+                }),
+                // TODO: Validate ontology types in snapshots
+                //   see https://linear.app/hash/issue/H-3038
+                schema: Valid::new_unchecked(entity_type.schema),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

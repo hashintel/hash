@@ -10,7 +10,7 @@ use graph_types::{
 };
 use hash_graph_store::filter::Filter;
 use tokio_postgres::GenericClient;
-use type_system::schema::ClosedEntityType;
+use type_system::schema::{ClosedEntityType, ClosedMultiEntityType};
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
 use crate::{
@@ -311,7 +311,7 @@ where
                 )
                 .change_context(InsertionError)?;
 
-                let entity_type = ClosedEntityType::from_multi_type_closed_schema(
+                let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
                     stream::iter(&entity.metadata.entity_type_ids)
                         .then(|entity_type_url| async {
                             OntologyTypeProvider::<ClosedEntityType>::provide_type(
