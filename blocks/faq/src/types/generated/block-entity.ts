@@ -42,6 +42,9 @@ export type FAQBlockOutgoingLinksByLinkEntityTypeId = {
   "https://blockprotocol.org/@hash/types/entity-type/has-frequently-asked-question/v/1": FAQBlockHasFrequentlyAskedQuestionLink;
 };
 
+/**
+ * A block to display Frequently Asked Questions (FAQ).
+ */
 export type FAQBlockProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
@@ -55,6 +58,9 @@ export type FrequentlyAskedQuestionOutgoingLinkAndTarget = never;
 
 export type FrequentlyAskedQuestionOutgoingLinksByLinkEntityTypeId = {};
 
+/**
+ * A question frequently asked about something – or, often, a question that someone anticipates will be asked about something.
+ */
 export type FrequentlyAskedQuestionProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/question/"?: QuestionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/answer/"?: AnswerPropertyValue;
