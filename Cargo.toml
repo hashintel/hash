@@ -107,7 +107,7 @@ hashbrown = { version = "=0.15.0", default-features = false, features = ["nightl
 http = { version = "=1.1.0", default-features = false }
 inferno = { version = "=0.11.21", default-features = false }
 iso8601-duration = { version = "=0.2.0", default-features = false }
-json-number = { version = "=0.4.8", default-features = false }
+json-number = { version = "=0.4.9", default-features = false }
 jsonptr = { version = "=0.6.3", default-features = false }
 multiaddr = { version = "=0.18.2", default-features = false }
 multistream-select = { version = "=0.13.0", default-features = false }
@@ -119,7 +119,7 @@ libp2p-yamux = { version = "=0.46.0", default-features = false }
 prometheus-client = { version = "=0.22.3", default-features = false }
 postgres-types = { version = "=0.2.8", default-features = false }
 reqwest = { version = "=0.12.8", default-features = false, features = ["rustls-tls"] }
-regex = { version = "=1.11.0", default-features = false, features = ["perf", "unicode"] }
+regex = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 semver = { version = "=1.0.23", default-features = false }
 sentry-types = { version = "=0.34.0", default-features = false }
 serde = { version = "=1.0.213", default-features = false }
@@ -141,17 +141,17 @@ tower-http = { version = "=0.6.1", features = ["trace"] }
 
 # Shared third-party dependencies
 ansi-to-html = { version = "=0.2.1", default-features = false }
-anstyle = { version = "=1.0.8", default-features = false }
-anstyle-yansi = { version = "=2.0.1", default-features = false }
+anstyle = { version = "=1.0.9", default-features = false }
+anstyle-yansi = { version = "=2.0.2", default-features = false }
 approx = { version = "=0.5.1", default-features = false }
 async-scoped = { version = "=0.9.0", default-features = false }
 async-trait = { version = "=0.1.83", default-features = false }
-aws-config = { version = "=1.5.8" }
-aws-sdk-s3 = { version = "=1.57.0", default-features = false }
+aws-config = { version = "=1.5.9" }
+aws-sdk-s3 = { version = "=1.58.0", default-features = false }
 bitvec = { version = "=1.0.1", default-features = false }
 bytes-utils = { version = "=0.1.4", default-features = false }
 clap = { version = "=4.5.20", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
-clap_complete = { version = "=4.5.33", default-features = false }
+clap_complete = { version = "=4.5.35", default-features = false }
 coverage-helper = { version = "=0.2.2", default-features = false }
 criterion-macro = { version = "=0.4.0", default-features = false }
 derive-where = { version = "=1.2.7", default-features = false, features = ["nightly"] }
@@ -181,15 +181,15 @@ opentelemetry_sdk = { version = "=0.26.0", default-features = false }
 orx-concurrent-vec = { version = "=3.0.2", default-features = false }
 owo-colors = { version = "=4.1.0", default-features = false }
 paste = { version = "=1.0.15", default-features = false }
-pin-project = { version = "=1.1.6", default-features = false }
-pin-project-lite = { version = "=0.2.14", default-features = false }
+pin-project = { version = "=1.1.7", default-features = false }
+pin-project-lite = { version = "=0.2.15", default-features = false }
 postgres-protocol = { version = "=0.6.7", default-features = false }
 pretty_assertions = { version = "=1.4.1", default-features = false, features = ["alloc"] }
 proptest = { version = "=1.5.0", default-features = false, features = ["alloc"] }
 rand = { version = "=0.8.5", default-features = false }
 refinery = { version = "=0.8.14", default-features = false }
 rustc_version = { version = "=0.4.1", default-features = false }
-scc = { version = "=2.2.2", default-features = false }
+scc = { version = "=2.2.4", default-features = false }
 sentry = { version = "=0.34.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tracing", "tower-http"] }
 seq-macro = { version = "=0.3.5", default-features = false }
 serde_plain = { version = "=1.0.2", default-features = false }

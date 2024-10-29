@@ -84,7 +84,7 @@
     "material-ui-popup-state": "4.1.0",
     "millify": "6.1.0",
     "next": "13.5.5",
-    "next-seo": "6.1.0",
+    "next-seo": "6.6.0",
     "nextjs-progressbar": "0.0.16",
     "notistack": "2.0.8",
     "papaparse": "5.4.1",
@@ -146,7 +146,7 @@
     "eslint": "8.57.0",
     "graphology-types": "0.24.7",
     "rimraf": "6.0.1",
-    "sass": "1.80.3",
+    "sass": "1.80.4",
     "typescript": "5.6.3",
     "webpack": "5.95.0"
   },

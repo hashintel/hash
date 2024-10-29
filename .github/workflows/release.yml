@@ -12,7 +12,7 @@ jobs:
     if: github.repository == 'hashintel/hash'
 
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           token: ${{ secrets.MACHINE_USER_TOKEN }}
 
@@ -27,7 +27,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@3154c16259190ff5eb4675d8f012f8dc6ffbd77f
+        uses: rtCamp/action-slack-notify@c33737706dea87cd7784c687dadc9adf1be59990
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true
