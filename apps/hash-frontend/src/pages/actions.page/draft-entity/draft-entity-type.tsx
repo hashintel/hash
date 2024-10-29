@@ -79,7 +79,7 @@ export const DraftEntityType: FunctionComponent<{
         }}
       >
         <Typography sx={{ fontWeight: 500, fontSize: 12 }}>
-          {entityType.metadata.icon ?? (
+          {entityType.schema.icon ?? (
             <AsteriskRegularIcon
               sx={{
                 fontSize: 12,

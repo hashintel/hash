@@ -112,14 +112,20 @@ define_error_code_consts! {
     ],
     /// Errors that occur due to malformed payloads in the tower layer.
     0xFF_10 => [
-        /// Encoded error encountered an invalid error tag.
+        /// Encoded transaction error encountered is partially encoded or has too many bytes.
         ///
-        /// The returned payload for an encoded error does not have a valid error tag to distinguish
-        /// between the different error encodings and could therefore not be properly encoded.
+        /// The returned payload for an encoded error does not have the correct length.
         ///
         /// This is a fault in the implementation of the server, either in the `codec` or
         /// the `tower` layer.
-        PACK_INVALID_ERROR_TAG
+        PARTIAL_TRANSACTION_ERROR,
+        /// Encoded network error encountered is partially encoded or has too many bytes.
+        ///
+        /// The returned payload for an encoded error does not have the correct length.
+        ///
+        /// This is a fault in the implementation of the server, either in the `codec` or
+        /// the `tower` layer.
+        PARTIAL_NETWORK_ERROR
     ],
     /// Generic server errors.
     0xFF_F0 => [

@@ -2,7 +2,11 @@
 #![expect(unsafe_code)]
 #![cfg_attr(
     target_arch = "wasm32",
-    expect(unreachable_pub, reason = "Used in the generated TypeScript types")
+    expect(
+        unreachable_pub,
+        non_local_definitions,
+        reason = "Used in the generated TypeScript types"
+    )
 )]
 
 extern crate alloc;

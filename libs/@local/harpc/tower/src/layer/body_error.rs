@@ -4,7 +4,6 @@ use core::{
 };
 
 use futures::TryFutureExt;
-use harpc_codec::encode::ErrorEncoder;
 use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service};
 
@@ -15,48 +14,44 @@ use crate::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct HandleBodyErrorLayer<E> {
-    encoder: E,
+pub struct HandleBodyErrorLayer {
+    _private: (),
 }
 
-impl<E> HandleBodyErrorLayer<E> {
-    pub const fn new(encoder: E) -> Self {
-        Self { encoder }
+impl HandleBodyErrorLayer {
+    #[expect(
+        clippy::new_without_default,
+        reason = "layer construction should be explicit and we might add fields in the future"
+    )]
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { _private: () }
     }
 }
 
-impl<E, S> Layer<S> for HandleBodyErrorLayer<E>
-where
-    E: Clone,
-{
-    type Service = HandleBodyErrorService<S, E>;
+impl<S> Layer<S> for HandleBodyErrorLayer {
+    type Service = HandleBodyErrorService<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        HandleBodyErrorService {
-            inner,
-            encoder: self.encoder.clone(),
-        }
+        HandleBodyErrorService { inner }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct HandleBodyErrorService<S, E> {
+pub struct HandleBodyErrorService<S> {
     inner: S,
-
-    encoder: E,
 }
 
-impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleBodyErrorService<S, E>
+impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for HandleBodyErrorService<S>
 where
     S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
-    E: ErrorEncoder + Clone,
     ReqBody: Body<Control = !>,
     // the extra bounds here are not strictly required, but they help to make the error messages
     // more expressive during compilation
     ResBody: Body<Control: AsRef<ResponseKind>, Error: Error + serde::Serialize>,
 {
     type Error = S::Error;
-    type Response = Response<EncodeError<ResBody, E>>;
+    type Response = Response<EncodeError<ResBody>>;
 
     type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
 
@@ -65,10 +60,8 @@ where
     }
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        let encoder = self.encoder.clone();
-
         self.inner
             .call(req)
-            .map_ok(|res| res.map_body(|body| EncodeError::new(body, encoder)))
+            .map_ok(|res| res.map_body(|body| EncodeError::new(body)))
     }
 }

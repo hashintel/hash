@@ -404,9 +404,9 @@ export const DraftEntitiesFilters: FunctionComponent<{
             const entityTypeBaseUrl = extractBaseUrl(entityType.schema.$id);
 
             return {
-              icon: entityType.metadata.icon ? (
+              icon: entityType.schema.icon ? (
                 <Box marginRight={1.25} maxWidth={14} component="span">
-                  {entityType.metadata.icon}
+                  {entityType.schema.icon}
                 </Box>
               ) : isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isLink ? (
                 <LinkRegularIcon />

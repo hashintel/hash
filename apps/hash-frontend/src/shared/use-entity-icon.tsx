@@ -61,7 +61,7 @@ export const useEntityIcon = (params: {
         isPageEntityTypeId(entity.metadata.entityTypeId)
         ? pageIcon
         : (entityTypeIcons[entity.metadata.entityTypeId] ??
-            entityType?.metadata.icon ?? (
+            entityType?.schema.icon ?? (
               <AsteriskRegularIcon sx={{ fontSize: 12 }} />
             ));
     }

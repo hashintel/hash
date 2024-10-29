@@ -124,7 +124,7 @@ export const findExistingEntity = async ({
   /**
    * First find suitable specific properties to match on
    */
-  const labelProperty = entityType.labelProperty;
+  const labelProperty = entityType.labelProperty as BaseUrl | undefined;
 
   const propertyBaseUrlsToMatchOn: BaseUrl[] =
     labelProperty &&

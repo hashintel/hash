@@ -31,7 +31,7 @@ impl Validator<EntityType> for EntityTypeValidator {
     ) -> Result<&'v Valid<EntityType>, Self::Error> {
         ObjectSchemaValidator.validate_ref(value).await?;
 
-        for (property, value) in &value.properties {
+        for (property, value) in &value.constraints.properties {
             let reference = match value {
                 ValueOrArray::Value(value) => value,
                 ValueOrArray::Array(array) => &array.items,
@@ -59,7 +59,7 @@ impl Validator<ClosedEntityType> for EntityTypeValidator {
     ) -> Result<&'v Valid<ClosedEntityType>, Self::Error> {
         ObjectSchemaValidator.validate_ref(value).await?;
 
-        for (property, value) in &value.properties {
+        for (property, value) in &value.constraints.properties {
             let reference = match value {
                 ValueOrArray::Value(value) => value,
                 ValueOrArray::Array(array) => &array.items,

@@ -167,10 +167,6 @@ struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
-    #[serde(default)]
-    label_property: Option<BaseUrl>,
-    #[serde(default)]
-    icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
     #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
@@ -416,8 +412,6 @@ where
     let Json(CreateEntityTypeRequest {
         schema,
         owned_by_id,
-        label_property,
-        icon,
         relationships,
         provenance,
     }) = body;
@@ -453,8 +447,6 @@ where
                     schema,
                     classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                     relationships: relationships.clone(),
-                    icon: icon.clone(),
-                    label_property: label_property.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: provenance.clone(),
                 })
@@ -538,10 +530,7 @@ enum LoadExternalEntityTypeRequest {
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
         schema: Box<EntityType>,
-        #[serde(default)]
-        label_property: Option<BaseUrl>,
-        #[serde(default)]
-        icon: Option<String>,
+
         relationships: Vec<EntityTypeRelationAndSubject>,
         #[serde(default)]
         provenance: Box<ProvidedOntologyEditionProvenance>,
@@ -640,8 +629,6 @@ where
         }
         LoadExternalEntityTypeRequest::Create {
             schema,
-            label_property,
-            icon,
             relationships,
             provenance,
         } => {
@@ -659,8 +646,6 @@ where
                 store
                     .create_entity_type(actor_id, CreateEntityTypeParams {
                         schema: *schema,
-                        label_property,
-                        icon,
                         classification: OntologyTypeClassificationMetadata::External {
                             fetched_at: OffsetDateTime::now_utc(),
                         },
@@ -818,10 +803,7 @@ struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
-    #[serde(default)]
-    label_property: Option<BaseUrl>,
-    #[serde(default)]
-    icon: Option<String>,
+
     relationships: Vec<EntityTypeRelationAndSubject>,
     #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
@@ -863,8 +845,6 @@ where
     let Json(UpdateEntityTypeRequest {
         schema,
         mut type_to_update,
-        label_property,
-        icon,
         relationships,
         provenance,
     }) = body;
@@ -886,8 +866,6 @@ where
     store
         .update_entity_type(actor_id, UpdateEntityTypesParams {
             schema: entity_type,
-            label_property,
-            icon,
             relationships,
             provenance,
         })

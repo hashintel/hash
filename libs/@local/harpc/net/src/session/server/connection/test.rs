@@ -3,9 +3,8 @@ use alloc::sync::Arc;
 use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
 use std::io;
 
-use bytes::{Buf, Bytes};
+use bytes::Bytes;
 use futures::{StreamExt, prelude::sink::SinkExt};
-use harpc_codec::json::JsonCodec;
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
@@ -101,7 +100,7 @@ impl Setup {
             output: output_tx,
             events: events_tx,
             config,
-            encoder: JsonCodec,
+
             _permit: permit,
         };
 
@@ -488,12 +487,8 @@ async fn transaction_limit_reached_connection() {
     assert_eq!(response.header.request_id, mock_request_id(0x02));
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
 
-    let mut bytes = response.body.payload().as_bytes().clone();
-    assert_eq!(*bytes.first().expect("should have a byte"), 0x01);
-    bytes.advance(1);
-
-    let error = String::from_utf8(bytes.to_vec()).expect("should be utf8");
-    insta::assert_snapshot!(error, @r###"{"message":"transaction limit per connection has been reached, the transaction has been dropped. The limit is 1","details":{"limit":1}}"###);
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0ctransaction limit per connection has been reached, the transaction has been dropped. The limit is 1""###);
 }
 
 #[tokio::test]
@@ -530,12 +525,8 @@ async fn transaction_limit_reached_instance() {
     );
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
 
-    let mut bytes = response.body.payload().as_bytes().clone();
-    assert_eq!(*bytes.first().expect("should have a byte"), 0x01);
-    bytes.advance(1);
-
-    let error = String::from_utf8(bytes.to_vec()).expect("should be utf8");
-    insta::assert_snapshot!(error, @r###"{"message":"transaction has been dropped, because the server is unable to process more transactions","details":null}"###);
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0Wtransaction has been dropped, because the server is unable to process more transactions""###);
 }
 
 #[tokio::test]
@@ -880,12 +871,8 @@ async fn transaction_request_buffer_limit_reached() {
     let response = responses.pop().expect("should have a response");
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
 
-    let mut bytes = response.body.payload().as_bytes().clone();
-    assert_eq!(*bytes.first().expect("should have a byte"), 0x01);
-    bytes.advance(1);
-
-    let error = String::from_utf8(bytes.to_vec()).expect("should be utf8");
-    insta::assert_snapshot!(error, @r###"{"message":"transaction has been dropped, because it is unable to receive more request packets","details":null}"###);
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0Rtransaction has been dropped, because it is unable to receive more request packets""###);
 
     assert_matches!(
         response.body,
@@ -983,12 +970,8 @@ async fn transaction_send_output_closed() {
         })
     );
 
-    let mut bytes = response.body.payload().as_bytes().clone();
-    assert_eq!(*bytes.first().expect("should have a byte"), 0x01);
-    bytes.advance(1);
-
-    let error = String::from_utf8(bytes.to_vec()).expect("should be utf8");
-    insta::assert_snapshot!(error, @r###"{"message":"The connection is in the graceful shutdown state and no longer accepts any new transactions","details":null}"###);
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0[The connection is in the graceful shutdown state and no longer accepts any new transactions""###);
 
     stream
         .send(Ok(make_request_frame(RequestFlag::EndOfRequest, "hello")))

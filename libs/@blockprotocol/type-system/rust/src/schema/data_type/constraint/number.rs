@@ -1,9 +1,15 @@
-use error_stack::{Report, ReportSink, ResultExt, bail};
+use error_stack::{Report, ReportSink, ResultExt, TryReportIteratorExt, bail, ensure};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue, json};
 use thiserror::Error;
 
-use crate::schema::{ConstraintError, JsonSchemaValueType, data_type::constraint::Constraint};
+use crate::schema::{
+    ConstraintError, JsonSchemaValueType, SingleValueConstraints,
+    data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{Constraint, ConstraintValidator, ValueConstraints},
+    },
+};
 
 #[expect(
     clippy::trivially_copy_pass_by_ref,
@@ -108,7 +114,121 @@ fn float_multiple_of(lhs: f64, rhs: f64) -> bool {
     (quotient - quotient.round()).abs() < f64::EPSILON
 }
 
-impl Constraint<JsonValue> for NumberSchema {
+impl Constraint for NumberSchema {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Constrained(lhs), Self::Constrained(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::Constrained(lhs), rhs.map(Self::Constrained)))?,
+            (Self::Const { r#const }, Self::Constrained(constraints))
+            | (Self::Constrained(constraints), Self::Const { r#const }) => {
+                constraints.validate_value(&r#const).change_context(
+                    ResolveClosedDataTypeError::UnsatisfiedConstraint(
+                        json!(r#const),
+                        ValueConstraints::Typed(SingleValueConstraints::Number(Self::Constrained(
+                            constraints,
+                        ))),
+                    ),
+                )?;
+
+                (Self::Const { r#const }, None)
+            }
+            (Self::Enum { r#enum }, Self::Constrained(constraints))
+            | (Self::Constrained(constraints), Self::Enum { r#enum }) => {
+                // We use the fast way to filter the values that pass the constraints and collect
+                // them. In most cases this will result in at least one value
+                // passing the constraints.
+                let passed = r#enum
+                    .iter()
+                    .filter(|&value| constraints.is_valid(value))
+                    .copied()
+                    .collect::<Vec<_>>();
+
+                match passed[..] {
+                    [] => {
+                        // We now properly capture errors to return it to the caller.
+                        let () = r#enum
+                            .iter()
+                            .map(|value| {
+                                constraints.validate_value(value).change_context(
+                                    ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
+                                        json!(*value),
+                                    ),
+                                )
+                            })
+                            .try_collect_reports()
+                            .change_context(
+                                ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
+                                    ValueConstraints::Typed(SingleValueConstraints::Number(
+                                        Self::Constrained(constraints.clone()),
+                                    )),
+                                ),
+                            )?;
+
+                        // This should only happen if `enum` is malformed and has no values. This
+                        // should be caught by the schema validation, however, if this still happens
+                        // we return an error as validating empty enum will always fail.
+                        bail!(ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
+                            ValueConstraints::Typed(SingleValueConstraints::Number(
+                                Self::Constrained(constraints),
+                            )),
+                        ))
+                    }
+                    [r#const] => (Self::Const { r#const }, None),
+                    [..] => (Self::Enum { r#enum: passed }, None),
+                }
+            }
+            (Self::Const { r#const: lhs }, Self::Const { r#const: rhs }) => {
+                if float_eq(lhs, rhs) {
+                    (Self::Const { r#const: lhs }, None)
+                } else {
+                    bail!(ResolveClosedDataTypeError::ConflictingConstValues(
+                        json!(lhs),
+                        json!(rhs),
+                    ))
+                }
+            }
+            (Self::Enum { r#enum: lhs }, Self::Enum { r#enum: rhs }) => {
+                let intersection = lhs
+                    .iter()
+                    .filter(|value| rhs.iter().any(|other| float_eq(**value, *other)))
+                    .copied()
+                    .collect::<Vec<_>>();
+
+                match intersection[..] {
+                    [] => bail!(ResolveClosedDataTypeError::ConflictingEnumValues(
+                        lhs.iter().map(|val| json!(*val)).collect(),
+                        rhs.iter().map(|val| json!(*val)).collect(),
+                    )),
+                    [r#const] => (Self::Const { r#const }, None),
+                    [..] => (
+                        Self::Enum {
+                            r#enum: intersection,
+                        },
+                        None,
+                    ),
+                }
+            }
+            (Self::Const { r#const }, Self::Enum { r#enum })
+            | (Self::Enum { r#enum }, Self::Const { r#const }) => {
+                ensure!(
+                    r#enum.iter().any(|value| float_eq(*value, r#const)),
+                    ResolveClosedDataTypeError::ConflictingConstEnumValue(
+                        json!(r#const),
+                        r#enum.iter().map(|val| json!(*val)).collect(),
+                    )
+                );
+
+                (Self::Const { r#const }, None)
+            }
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for NumberSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -131,7 +251,7 @@ impl Constraint<JsonValue> for NumberSchema {
     }
 }
 
-impl Constraint<JsonNumber> for NumberSchema {
+impl ConstraintValidator<JsonNumber> for NumberSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonNumber) -> bool {
@@ -153,7 +273,7 @@ impl Constraint<JsonNumber> for NumberSchema {
     }
 }
 
-impl Constraint<f64> for NumberSchema {
+impl ConstraintValidator<f64> for NumberSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &f64) -> bool {
@@ -178,19 +298,20 @@ impl Constraint<f64> for NumberSchema {
                 }
             }
             Self::Enum { r#enum } => {
-                if !r#enum.iter().any(|expected| float_eq(*value, *expected)) {
-                    bail!(ConstraintError::InvalidEnumValue {
+                ensure!(
+                    r#enum.iter().any(|expected| float_eq(*value, *expected)),
+                    ConstraintError::InvalidEnumValue {
                         actual: json!(*value),
                         expected: r#enum.iter().map(|value| json!(*value)).collect(),
-                    });
-                }
+                    }
+                );
             }
         }
         Ok(())
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NumberConstraints {
@@ -206,7 +327,51 @@ pub struct NumberConstraints {
     pub multiple_of: Option<f64>,
 }
 
-impl Constraint<f64> for NumberConstraints {
+impl Constraint for NumberConstraints {
+    fn intersection(
+        mut self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        let mut remainder = None::<Self>;
+
+        self.minimum = match self.minimum.zip(other.minimum) {
+            Some((lhs, rhs)) => Some(if float_less_eq(lhs, rhs) { rhs } else { lhs }),
+            None => self.minimum.or(other.minimum),
+        };
+        self.exclusive_minimum = self.exclusive_minimum || other.exclusive_minimum;
+        self.maximum = match self.maximum.zip(other.maximum) {
+            Some((lhs, rhs)) => Some(if float_less_eq(lhs, rhs) { lhs } else { rhs }),
+            None => self.maximum.or(other.maximum),
+        };
+        self.exclusive_maximum = self.exclusive_maximum || other.exclusive_maximum;
+        self.multiple_of = match self.multiple_of.zip(other.multiple_of) {
+            Some((lhs, rhs)) if float_multiple_of(lhs, rhs) => Some(lhs),
+            Some((lhs, rhs)) if float_multiple_of(rhs, lhs) => Some(rhs),
+            Some((lhs, rhs)) => {
+                remainder.get_or_insert_default().multiple_of = Some(rhs);
+                Some(lhs)
+            }
+            None => self.multiple_of.or(other.multiple_of),
+        };
+
+        if let Some((minimum, maximum)) = self.minimum.zip(self.maximum) {
+            ensure!(
+                float_less_eq(minimum, maximum),
+                ResolveClosedDataTypeError::UnsatisfiableConstraint(ValueConstraints::Typed(
+                    SingleValueConstraints::Number(NumberSchema::Constrained(Self {
+                        minimum: Some(minimum),
+                        maximum: Some(maximum),
+                        ..Self::default()
+                    }),)
+                ),)
+            );
+        }
+
+        Ok((self, remainder))
+    }
+}
+
+impl ConstraintValidator<f64> for NumberConstraints {
     type Error = [NumberValidationError];
 
     fn is_valid(&self, value: &f64) -> bool {
@@ -289,10 +454,16 @@ mod tests {
 
     use super::*;
     use crate::schema::{
-        JsonSchemaValueType, NumberValidationError,
-        data_type::constraint::{
-            ValueConstraints,
-            tests::{check_constraints, check_constraints_error, read_schema},
+        JsonSchemaValueType, NumberValidationError, SingleValueConstraints,
+        data_type::{
+            closed::ResolveClosedDataTypeError,
+            constraint::{
+                ValueConstraints,
+                tests::{
+                    check_constraints, check_constraints_error, check_schema_intersection,
+                    check_schema_intersection_error, intersect_schemas, read_schema,
+                },
+            },
         },
     };
 
@@ -339,6 +510,103 @@ mod tests {
         assert!(!float_multiple_of(10.0, 0.0));
         assert!(float_multiple_of(0.0, 5.0));
         assert!(!float_multiple_of(0.1, 0.03));
+        assert!(float_multiple_of(5.0, 5.0));
+    }
+
+    #[test]
+    fn combine_with_non_conflicting_constraints() {
+        let constraints1 = NumberConstraints {
+            minimum: Some(1.0),
+            exclusive_minimum: false,
+            maximum: Some(10.0),
+            exclusive_maximum: false,
+            multiple_of: Some(2.0),
+        };
+        let constraints2 = NumberConstraints {
+            minimum: Some(5.0),
+            exclusive_minimum: true,
+            maximum: Some(15.0),
+            exclusive_maximum: true,
+            multiple_of: Some(4.0),
+        };
+
+        let (combined, None) = constraints1
+            .intersection(constraints2)
+            .expect("Expected combined constraints")
+        else {
+            panic!("Expected no remainder")
+        };
+        assert_eq!(combined.minimum, Some(5.0));
+        assert!(combined.exclusive_minimum);
+        assert_eq!(combined.maximum, Some(10.0));
+        assert!(combined.exclusive_maximum);
+        assert_eq!(combined.multiple_of, Some(4.0));
+    }
+
+    #[test]
+    fn combine_with_conflicting_constraints() {
+        let constraints1 = NumberConstraints {
+            minimum: Some(6.0),
+            exclusive_minimum: false,
+            maximum: None,
+            exclusive_maximum: false,
+            multiple_of: None,
+        };
+        let constraints2 = NumberConstraints {
+            minimum: None,
+            exclusive_minimum: false,
+            maximum: Some(5.0),
+            exclusive_maximum: false,
+            multiple_of: None,
+        };
+
+        let _: Report<_> = constraints1
+            .intersection(constraints2)
+            .expect_err("Expected conflicting constraints");
+    }
+
+    #[test]
+    fn combine_with_no_constraints() {
+        let constraints1 = NumberConstraints::default();
+        let constraints2 = NumberConstraints::default();
+
+        let (combined, None) = constraints1
+            .intersection(constraints2)
+            .expect("Could not combine constraints")
+        else {
+            panic!("Expected combined constraints");
+        };
+        assert_eq!(combined.minimum, None);
+        assert!(!combined.exclusive_minimum);
+        assert_eq!(combined.maximum, None);
+        assert!(!combined.exclusive_maximum);
+        assert_eq!(combined.multiple_of, None);
+    }
+
+    #[test]
+    fn combine_with_remainder() {
+        let constraints1 = NumberConstraints {
+            minimum: Some(1.0),
+            exclusive_minimum: false,
+            maximum: Some(10.0),
+            exclusive_maximum: false,
+            multiple_of: Some(2.0),
+        };
+        let constraints2 = NumberConstraints {
+            minimum: Some(5.0),
+            exclusive_minimum: true,
+            maximum: Some(15.0),
+            exclusive_maximum: true,
+            multiple_of: Some(3.0),
+        };
+
+        let (_, Some(remainder)) = constraints1
+            .intersection(constraints2)
+            .expect("Expected combined constraints")
+        else {
+            panic!("Expected remainder");
+        };
+        assert_eq!(remainder.multiple_of, Some(3.0));
     }
 
     #[test]
@@ -510,5 +778,652 @@ mod tests {
             "enum": [50],
         }))
         .expect_err("Deserialized number schema with mixed properties");
+    }
+
+    #[test]
+    fn intersect_default() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                }),
+                json!({
+                    "type": "number",
+                }),
+            ],
+            [json!({
+                "type": "number",
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_min_max_one() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 5.0,
+                    "maximum": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "minimum": 5.0,
+                "maximum": 10.0,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_min_max_both() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 5.0,
+                    "maximum": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "minimum": 7.0,
+                    "maximum": 12.0,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "minimum": 7.0,
+                "maximum": 10.0,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_min_max_invalid() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 5.0,
+                    "maximum": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "minimum": 12.0,
+                    "maximum": 15.0,
+                }),
+            ],
+            [ResolveClosedDataTypeError::UnsatisfiableConstraint(
+                from_value(json!(
+                    {
+                        "type": "number",
+                        "minimum": 12.0,
+                        "maximum": 10.0,
+                    }
+                ))
+                .expect("Failed to parse schema"),
+            )],
+        );
+    }
+
+    #[test]
+    fn intersect_exclusive_min_max_one() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 5.0,
+                    "exclusiveMinimum": true,
+                    "maximum": 10.0,
+                    "exclusiveMaximum": true,
+                }),
+                json!({
+                    "type": "number",
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "minimum": 5.0,
+                "exclusiveMinimum": true,
+                "maximum": 10.0,
+                "exclusiveMaximum": true,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_exclusive_min_max_both() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 5.0,
+                    "exclusiveMinimum": true,
+                    "maximum": 10.0,
+                    "exclusiveMaximum": true,
+                }),
+                json!({
+                    "type": "number",
+                    "minimum": 7.0,
+                    "exclusiveMinimum": true,
+                    "maximum": 12.0,
+                    "exclusiveMaximum": true,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "minimum": 7.0,
+                "exclusiveMinimum": true,
+                "maximum": 10.0,
+                "exclusiveMaximum": true,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_multiple_of_one() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "multipleOf": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "multipleOf": 5.0,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_multiple_of_both_different() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "multipleOf": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "multipleOf": 3.0,
+                }),
+            ],
+            [
+                json!({
+                    "type": "number",
+                    "multipleOf": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "multipleOf": 3.0,
+                }),
+            ],
+        );
+    }
+
+    #[test]
+    fn intersect_multiple_of_both_different_multiple() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "multipleOf": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "multipleOf": 10.0,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "multipleOf": 10.0,
+            })],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "multipleOf": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "multipleOf": 5.0,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "multipleOf": 10.0,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_const_const_same() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "const": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "const": 5.0,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "const": 5.0,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_const_const_different() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "number",
+                    "const": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "const": 10.0,
+                }),
+            ],
+            [ResolveClosedDataTypeError::ConflictingConstValues(
+                json!(5.0),
+                json!(10.0),
+            )],
+        );
+    }
+
+    #[test]
+    fn intersect_const_enum_compatible() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "const": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "enum": [5.0, 10.0],
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "const": 5.0,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_const_enum_incompatible() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "number",
+                    "const": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "enum": [10.0, 15.0],
+                }),
+            ],
+            [ResolveClosedDataTypeError::ConflictingConstEnumValue(
+                json!(5.0),
+                vec![json!(10.0), json!(15.0)],
+            )],
+        );
+    }
+
+    #[test]
+    fn intersect_enum_enum_compatible_multi() {
+        let intersection = intersect_schemas([
+            json!({
+                "type": "number",
+                "enum": [5.0, 10.0, 15.0],
+            }),
+            json!({
+                "type": "number",
+                "enum": [5.0, 15.0, 20.0],
+            }),
+            json!({
+                "type": "number",
+                "enum": [0.0, 5.0, 15.0],
+            }),
+        ])
+        .expect("Intersected invalid constraints")
+        .into_iter()
+        .map(|schema| {
+            from_value::<SingleValueConstraints>(schema).expect("Failed to deserialize schema")
+        })
+        .collect::<Vec<_>>();
+
+        // We need to manually check the intersection because the order of the enum values is not
+        // guaranteed.
+        assert_eq!(intersection.len(), 1);
+        let SingleValueConstraints::Number(NumberSchema::Enum { r#enum }) = &intersection[0] else {
+            panic!("Expected string enum schema");
+        };
+        assert_eq!(r#enum.len(), 2);
+        assert!(r#enum.contains(&5.0));
+        assert!(r#enum.contains(&15.0));
+    }
+
+    #[test]
+    fn intersect_enum_enum_compatible_single() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "enum": [5.0, 10.0, 15.0],
+                }),
+                json!({
+                    "type": "number",
+                    "enum": [5.0, 15.0, 20.0],
+                }),
+                json!({
+                    "type": "number",
+                    "enum": [5.0, 20.0],
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "const": 5.0,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_enum_enum_incompatible() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "number",
+                    "enum": [5.0, 10.0, 15.0],
+                }),
+                json!({
+                    "type": "number",
+                    "enum": [20.0, 25.0, 30.0],
+                }),
+            ],
+            [ResolveClosedDataTypeError::ConflictingEnumValues(
+                vec![json!(5.0), json!(10.0), json!(15.0)],
+                vec![json!(20.0), json!(25.0), json!(30.0)],
+            )],
+        );
+    }
+
+    #[test]
+    fn intersect_const_constraint_compatible() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "const": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 10.0,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "const": 5.0,
+            })],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "const": 5.0,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "const": 5.0,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_const_constraint_incompatible() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "number",
+                    "const": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "minimum": 10.0,
+                    "maximum": 15.0,
+                }),
+            ],
+            [ResolveClosedDataTypeError::UnsatisfiedConstraint(
+                json!(5.0),
+                from_value(json!({
+                    "type": "number",
+                    "minimum": 10.0,
+                    "maximum": 15.0,
+                }))
+                .expect("Failed to parse schema"),
+            )],
+        );
+
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 10.0,
+                    "maximum": 15.0,
+                }),
+                json!({
+                    "type": "number",
+                    "const": 5.0,
+                }),
+            ],
+            [ResolveClosedDataTypeError::UnsatisfiedConstraint(
+                json!(5.0),
+                from_value(json!({
+                    "type": "number",
+                    "minimum": 10.0,
+                    "maximum": 15.0,
+                }))
+                .expect("Failed to parse schema"),
+            )],
+        );
+    }
+
+    #[test]
+    fn intersect_enum_constraint_compatible_single() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "enum": [5.0, 10.0, 15.0],
+                }),
+                json!({
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 10.0,
+                    "exclusiveMaximum": true,
+                }),
+                json!({
+                    "type": "number",
+                    "minimum": 5.0,
+                    "maximum": 15.0,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "const": 5.0,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_enum_constraint_compatible_multi() {
+        let intersection = intersect_schemas([
+            json!({
+                "type": "number",
+                "enum": [5.0, 10.0, 15.0],
+            }),
+            json!({
+                "type": "number",
+                "minimum": 10.0,
+            }),
+        ])
+        .expect("Intersected invalid constraints")
+        .into_iter()
+        .map(|schema| {
+            from_value::<SingleValueConstraints>(schema).expect("Failed to deserialize schema")
+        })
+        .collect::<Vec<_>>();
+
+        // We need to manually check the intersection because the order of the enum values is not
+        // guaranteed.
+        assert_eq!(intersection.len(), 1);
+        let SingleValueConstraints::Number(NumberSchema::Enum { r#enum }) = &intersection[0] else {
+            panic!("Expected string enum schema");
+        };
+        assert_eq!(r#enum.len(), 2);
+        assert!(r#enum.contains(&10.0));
+        assert!(r#enum.contains(&15.0));
+    }
+
+    #[test]
+    fn intersect_enum_constraint_incompatible() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "number",
+                    "enum": [5.0, 10.0, 15.0],
+                }),
+                json!({
+                    "type": "number",
+                    "minimum": 20.0,
+                }),
+            ],
+            [
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
+                    from_value(json!({
+                        "type": "number",
+                        "minimum": 20.0,
+                    }))
+                    .expect("Failed to parse schema"),
+                ),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(json!(5.0)),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(json!(10.0)),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(json!(15.0)),
+            ],
+        );
+    }
+
+    #[test]
+    fn intersect_mixed() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "multipleOf": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "maximum": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "multipleOf": 3.0,
+                }),
+                json!({
+                    "type": "number",
+                    "maximum": 15.0,
+                }),
+                json!({
+                    "type": "number",
+                    "multipleOf": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "minimum": 7.0,
+                    "maximum": 20.0,
+                }),
+            ],
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 7.0,
+                    "maximum": 10.0,
+                    "multipleOf": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "multipleOf": 3.0,
+                }),
+            ],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "minimum": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "multipleOf": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "maximum": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "maximum": 15.0,
+                }),
+                json!({
+                    "type": "number",
+                    "const": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "multipleOf": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "minimum": 10.0,
+                    "maximum": 10.0,
+                }),
+                json!({
+                    "type": "number",
+                    "multipleOf": 2.0,
+                }),
+            ],
+            [json!({
+                "type": "number",
+                "const": 10.0,
+            })],
+        );
     }
 }

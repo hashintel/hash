@@ -410,10 +410,10 @@ type LinkDestinationConstraint =
 export type EntityTypeDefinition = {
   allOf?: VersionedUrl[];
   entityTypeId: VersionedUrl;
-  icon?: string;
   title: string;
   description?: string;
   labelProperty?: BaseUrl;
+  icon?: string;
   properties?: {
     propertyType: PropertyTypeWithMetadata | VersionedUrl;
     required?: boolean;
@@ -519,6 +519,8 @@ export const generateSystemEntityTypeSchema = (
     properties,
     required: requiredProperties ? atLeastOne(requiredProperties) : undefined,
     links,
+    labelProperty: params.labelProperty,
+    icon: params.icon,
   };
 };
 
@@ -600,7 +602,6 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: entityTypeSchema,
       relationships,
-      labelProperty: entityTypeDefinition.labelProperty,
     });
 
     return await getEntityTypeById(context, authentication, {
@@ -616,8 +617,6 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
         schema: entityTypeSchema,
         webShortname,
         relationships,
-        icon: entityTypeDefinition.icon,
-        labelProperty: entityTypeDefinition.labelProperty,
       },
     ).catch((createError) => {
       // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);

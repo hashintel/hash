@@ -43,7 +43,7 @@ export type FAQBlockOutgoingLinksByLinkEntityTypeId = {
 };
 
 /**
- * A block to display Frequently Asked Questions (FAQ)
+ * A block to display Frequently Asked Questions (FAQ).
  */
 export type FAQBlockProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;

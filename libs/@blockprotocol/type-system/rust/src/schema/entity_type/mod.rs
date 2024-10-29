@@ -1,20 +1,27 @@
 pub use self::{
-    closed::{ClosedEntityType, ClosedEntityTypeSchemaData},
+    closed::{
+        ClosedEntityType, ClosedEntityTypeMetadata, ClosedMultiEntityType, EntityTypeResolveData,
+    },
+    constraints::EntityConstraints,
     reference::EntityTypeReference,
     validation::{EntityTypeValidationError, EntityTypeValidator},
 };
 
 mod closed;
-mod raw;
+mod constraints;
 mod reference;
 mod validation;
 
+use core::iter;
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 
 use crate::{
-    schema::{PropertyTypeReference, PropertyValueArray, ValueOrArray, one_of::OneOfSchema},
+    schema::{
+        ObjectTypeTag, PropertyTypeReference, PropertyValueArray, ValueOrArray, one_of::OneOfSchema,
+    },
     url::{BaseUrl, VersionedUrl},
 };
 
@@ -35,48 +42,140 @@ impl InverseEntityTypeMetadata {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(from = "raw::EntityType")]
-pub struct EntityType {
-    pub id: VersionedUrl,
-    pub title: String,
-    pub title_plural: Option<String>,
-    pub description: Option<String>,
-    pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
-    pub required: HashSet<BaseUrl>,
-    pub all_of: HashSet<EntityTypeReference>,
-    pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
-    pub inverse: InverseEntityTypeMetadata,
-    #[deprecated]
-    pub examples: Vec<HashMap<BaseUrl, serde_json::Value>>,
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
+enum EntityTypeKindTag {
+    EntityType,
 }
 
-impl Serialize for EntityType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        raw::EntityType::from(self).serialize(serializer)
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
+enum EntityTypeSchemaTag {
+    #[serde(rename = "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type")]
+    V3,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityTypeSchemaMetadata {
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityTypeDisplayMetadata {
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+impl EntityTypeDisplayMetadata {
+    pub const fn is_empty(&self) -> bool {
+        self.label_property.is_none() && self.icon.is_none()
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityType {
+    #[serde(rename = "$schema")]
+    schema: EntityTypeSchemaTag,
+    kind: EntityTypeKindTag,
+    r#type: ObjectTypeTag,
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
+    #[serde(flatten)]
+    pub constraints: EntityConstraints,
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[EntityTypeReference, ...EntityTypeReference[]]")
+    )]
+    pub all_of: HashSet<EntityTypeReference>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[deprecated]
+    pub examples: Vec<HashMap<BaseUrl, JsonValue>>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum EntityTypeToEntityTypeEdge {
+    Inheritance,
+    Link,
+    LinkDestination,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum EntityTypeToPropertyTypeEdge {
+    Property,
 }
 
 impl EntityType {
-    #[must_use]
-    pub fn property_type_references(&self) -> HashSet<&PropertyTypeReference> {
-        self.properties
-            .values()
-            .map(|property_def| match property_def {
-                ValueOrArray::Value(url) => url,
-                ValueOrArray::Array(array) => &array.items,
-            })
-            .collect()
+    pub fn entity_type_references(
+        &self,
+    ) -> impl Iterator<Item = (&EntityTypeReference, EntityTypeToEntityTypeEdge)> {
+        self.all_of
+            .iter()
+            .map(|reference| (reference, EntityTypeToEntityTypeEdge::Inheritance))
+            .chain(self.constraints.links.iter().flat_map(
+                |(link_entity_type, destination_constraint_entity_types)| {
+                    iter::once((link_entity_type.into(), EntityTypeToEntityTypeEdge::Link)).chain(
+                        destination_constraint_entity_types
+                            .items
+                            .iter()
+                            .flat_map(|items| {
+                                items.possibilities.iter().map(|reference| {
+                                    (reference, EntityTypeToEntityTypeEdge::LinkDestination)
+                                })
+                            }),
+                    )
+                },
+            ))
     }
 
-    #[must_use]
-    pub fn link_mappings(&self) -> HashMap<&EntityTypeReference, Option<&[EntityTypeReference]>> {
-        self.links
-            .iter()
-            .map(|(link_entity_type, destination_constraint_entity_types)| {
+    pub fn property_type_references(
+        &self,
+    ) -> impl Iterator<Item = (&PropertyTypeReference, EntityTypeToPropertyTypeEdge)> {
+        self.constraints.properties.values().map(|property_def| {
+            (
+                match property_def {
+                    ValueOrArray::Value(url) => url,
+                    ValueOrArray::Array(array) => &array.items,
+                },
+                EntityTypeToPropertyTypeEdge::Property,
+            )
+        })
+    }
+
+    pub fn link_mappings(
+        &self,
+    ) -> impl Iterator<Item = (&EntityTypeReference, Option<&[EntityTypeReference]>)> {
+        self.constraints.links.iter().map(
+            |(link_entity_type, destination_constraint_entity_types)| {
                 (
                     <&EntityTypeReference>::from(link_entity_type),
                     destination_constraint_entity_types
@@ -84,8 +183,8 @@ impl EntityType {
                         .as_ref()
                         .map(|one_of| one_of.possibilities.as_slice()),
                 )
-            })
-            .collect()
+            },
+        )
     }
 }
 
@@ -173,8 +272,11 @@ mod tests {
 
         let property_type_references = entity_type
             .property_type_references()
-            .into_iter()
-            .map(|property_type_ref| property_type_ref.url.clone())
+            .map(
+                |(property_type_ref, EntityTypeToPropertyTypeEdge::Property)| {
+                    property_type_ref.url.clone()
+                },
+            )
             .collect::<HashSet<_>>();
 
         assert_eq!(property_type_references, expected_property_type_references);
@@ -201,7 +303,6 @@ mod tests {
 
         let link_entity_type_references = entity_type
             .link_mappings()
-            .into_iter()
             .map(|(link_entity_type_url, entity_type_ref)| {
                 (
                     link_entity_type_url.url.clone(),

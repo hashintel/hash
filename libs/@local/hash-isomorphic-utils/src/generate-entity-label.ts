@@ -1,6 +1,10 @@
+import type { EntityType } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityMetadata, Property } from "@local/hash-graph-types/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
@@ -16,10 +20,10 @@ const getLabelPropertyValue = (
     properties: Entity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
   },
-  entityType: EntityTypeWithMetadata,
+  entityType: EntityType,
 ) => {
-  if (entityType.metadata.labelProperty) {
-    const label = entityToLabel.properties[entityType.metadata.labelProperty];
+  if (entityType.labelProperty) {
+    const label = entityToLabel.properties[entityType.labelProperty as BaseUrl];
 
     if (label) {
       return label && typeof label === "object"
@@ -34,7 +38,7 @@ const getFallbackLabel = ({
   entity,
   includeHexChars,
 }: {
-  entityType?: EntityTypeWithMetadata;
+  entityType?: EntityType;
   entity: {
     properties: Entity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
@@ -44,7 +48,7 @@ const getFallbackLabel = ({
   // fallback to the entity type and a few characters of the entityUuid
   const entityId = entity.metadata.recordId.entityId;
 
-  const entityTypeName = entityType?.schema.title ?? "Entity";
+  const entityTypeName = entityType?.title ?? "Entity";
 
   return `${entityTypeName}${
     includeHexChars
@@ -122,7 +126,7 @@ export function generateEntityLabel(
      * or any of its ancestors, using a breadth-first search in the inheritance tree starting from the entity's own type.
      */
     for (let i = 0; i < entityTypesToCheck.length; i++) {
-      const typeToCheck = entityTypesToCheck[i]!;
+      const typeToCheck = entityTypesToCheck[i]!.schema;
 
       const label = getLabelPropertyValue(entityToLabel, typeToCheck);
 
@@ -132,9 +136,7 @@ export function generateEntityLabel(
 
       entityTypesToCheck.push(
         ...(entityTypeAndAncestors ?? []).filter((type) =>
-          typeToCheck.schema.allOf?.find(
-            ({ $ref }) => $ref === type.schema.$id,
-          ),
+          typeToCheck.allOf?.find(({ $ref }) => $ref === type.schema.$id),
         ),
       );
     }
@@ -189,7 +191,7 @@ export function generateEntityLabel(
   }
 
   return getFallbackLabel({
-    entityType,
+    entityType: entityType?.schema,
     entity: entityToLabel,
     includeHexChars,
   });

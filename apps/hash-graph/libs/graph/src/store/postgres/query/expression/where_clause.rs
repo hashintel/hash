@@ -181,7 +181,7 @@ mod tests {
         where_clause.add_condition(compiler.compile_filter(&filter_b));
 
         assert_eq!(
-            trim_whitespace(where_clause.transpile_to_string()),
+            trim_whitespace(&where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
                 WHERE "ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version"
@@ -198,7 +198,7 @@ mod tests {
         where_clause.add_condition(compiler.compile_filter(&filter_c));
 
         assert_eq!(
-            trim_whitespace(where_clause.transpile_to_string()),
+            trim_whitespace(&where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
                 WHERE "ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version"
@@ -230,7 +230,7 @@ mod tests {
         where_clause.add_condition(compiler.compile_filter(&filter_d));
 
         assert_eq!(
-            trim_whitespace(where_clause.transpile_to_string()),
+            trim_whitespace(&where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
                 WHERE "ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version"

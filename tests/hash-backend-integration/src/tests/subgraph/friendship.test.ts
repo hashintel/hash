@@ -448,7 +448,7 @@ describe("Ontology queries", () => {
         ({ schema }) =>
           schema.$id ===
           "http://localhost:3000/@alice/types/entity-type/person/v/1",
-      )!.metadata.labelProperty,
+      )!.schema.labelProperty,
     ).toBeUndefined();
 
     expect(
@@ -456,7 +456,7 @@ describe("Ontology queries", () => {
         ({ schema }) =>
           schema.$id ===
           "http://localhost:3000/@alice/types/entity-type/person/v/2",
-      )!.metadata.labelProperty,
+      )!.schema.labelProperty,
     ).toStrictEqual("http://localhost:3000/@alice/types/property-type/name/");
   });
 });

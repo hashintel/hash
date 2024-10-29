@@ -1,21 +1,17 @@
 use alloc::sync::Arc;
-#[cfg(feature = "postgres")]
-use core::error::Error;
 use core::{cmp, iter};
 use std::collections::{HashMap, hash_map::Entry};
 
-#[cfg(feature = "postgres")]
-use bytes::BytesMut;
-use itertools::Itertools;
-#[cfg(feature = "postgres")]
-use postgres_types::{FromSql, IsNull, ToSql, Type};
+use error_stack::{Report, bail};
+use itertools::Itertools as _;
 use serde::{Deserialize, Serialize};
+use serde_json::{Value as JsonValue, json};
 use thiserror::Error;
 
 use crate::{
     Valid,
     schema::{
-        DataType, DataTypeUuid, ValueLabel,
+        DataType, DataTypeUuid, InheritanceDepth, ValueLabel,
         data_type::{DataTypeEdge, constraint::ValueConstraints},
     },
     url::VersionedUrl,
@@ -60,6 +56,24 @@ pub enum ResolveClosedDataTypeError {
     AmbiguousMetadata,
     #[error("No description was found for the schema.")]
     MissingDescription,
+    #[error("The data type constraints intersected to different types.")]
+    IntersectedDifferentTypes,
+    #[error("The value {} does not satisfy the constraint: {}", .0, json!(.1))]
+    UnsatisfiedConstraint(JsonValue, ValueConstraints),
+    #[error("The value {0} does not satisfy the constraint")]
+    UnsatisfiedEnumConstraintVariant(JsonValue),
+    #[error("No value satisfy the constraint: {}", json!(.0))]
+    UnsatisfiedEnumConstraint(ValueConstraints),
+    #[error("Conflicting const values: {0} and {1}")]
+    ConflictingConstValues(JsonValue, JsonValue),
+    #[error("Conflicting enum values, no common values found: {} and {}", json!(.0), json!(.1))]
+    ConflictingEnumValues(Vec<JsonValue>, Vec<JsonValue>),
+    #[error("The const value is not in the enum values: {} and {}", .0, json!(.1))]
+    ConflictingConstEnumValue(JsonValue, Vec<JsonValue>),
+    #[error("The constraint is unsatisfiable: {}", json!(.0))]
+    UnsatisfiableConstraint(ValueConstraints),
+    #[error("The combined constraints results in an empty `anyOf`")]
+    EmptyAnyOf,
 }
 
 impl ClosedDataType {
@@ -74,7 +88,7 @@ impl ClosedDataType {
     pub fn from_resolve_data(
         data_type: DataType,
         resolve_data: &DataTypeResolveData,
-    ) -> Result<Self, ResolveClosedDataTypeError> {
+    ) -> Result<Self, Report<ResolveClosedDataTypeError>> {
         let (description, label) = if data_type.description.is_some() || !data_type.label.is_empty()
         {
             (data_type.description, data_type.label)
@@ -91,10 +105,9 @@ impl ClosedDataType {
             title_plural: data_type.title_plural.clone(),
             description: description.ok_or(ResolveClosedDataTypeError::MissingDescription)?,
             label,
-            all_of: iter::once(&data_type.constraints)
-                .chain(resolve_data.constraints())
-                .cloned()
-                .collect(),
+            all_of: ValueConstraints::fold_intersections(
+                iter::once(data_type.constraints).chain(resolve_data.constraints().cloned()),
+            )?,
             r#abstract: data_type.r#abstract,
         })
     }
@@ -105,46 +118,6 @@ impl ResolvedDataType {
     pub fn data_type(&self) -> &Valid<DataType> {
         // Valid closed schemas imply that the schema is valid
         Valid::new_ref_unchecked(&self.schema)
-    }
-}
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[repr(transparent)]
-pub struct InheritanceDepth(u16);
-
-impl InheritanceDepth {
-    #[must_use]
-    pub const fn new(inner: u16) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub const fn inner(self) -> u16 {
-        self.0
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl ToSql for InheritanceDepth {
-    postgres_types::accepts!(INT4);
-
-    postgres_types::to_sql_checked!();
-
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        i32::from(self.0).to_sql(ty, out)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for InheritanceDepth {
-    postgres_types::accepts!(INT4);
-
-    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        Ok(Self::new(i32::from_sql(ty, raw)?.try_into()?))
     }
 }
 
@@ -209,7 +182,9 @@ impl DataTypeResolveData {
     ///
     /// Returns an error if the metadata is ambiguous. This is the case if two schemas at the same
     /// inheritance depth specify different metadata.
-    pub fn find_metadata_schema(&self) -> Result<Option<&DataType>, ResolveClosedDataTypeError> {
+    pub fn find_metadata_schema(
+        &self,
+    ) -> Result<Option<&DataType>, Report<ResolveClosedDataTypeError>> {
         let mut found_schema_data = None::<(InheritanceDepth, &DataType)>;
         for (depth, stored_schema) in self.ordered_schemas() {
             if stored_schema.description.is_some() || !stored_schema.label.is_empty() {
@@ -222,7 +197,7 @@ impl DataTypeResolveData {
                             if stored_schema.description != found_schema.description
                                 || stored_schema.label != found_schema.label
                             {
-                                return Err(ResolveClosedDataTypeError::AmbiguousMetadata);
+                                bail!(ResolveClosedDataTypeError::AmbiguousMetadata);
                             }
                         }
                         cmp::Ordering::Greater => {
@@ -412,10 +387,7 @@ mod tests {
         );
         assert_eq!(number.label, defs.number.label);
         assert_eq!(number.r#abstract, defs.number.r#abstract);
-        assert_eq!(
-            json!(number.all_of),
-            json!([defs.number.constraints, defs.value.constraints])
-        );
+        assert_eq!(json!(number.all_of), json!([defs.number.constraints]));
     }
 
     fn check_closed_integer(integer: &ClosedDataType, defs: &DataTypeDefinitions) {
@@ -431,14 +403,7 @@ mod tests {
         );
         assert_eq!(integer.label, defs.number.label);
         assert_eq!(integer.r#abstract, defs.integer.r#abstract);
-        assert_eq!(
-            json!(integer.all_of),
-            json!([
-                defs.integer.constraints,
-                defs.number.constraints,
-                defs.value.constraints
-            ])
-        );
+        assert_eq!(json!(integer.all_of), json!([defs.integer.constraints]));
     }
 
     fn check_closed_unsigned(unsigned: &ClosedDataType, defs: &DataTypeDefinitions) {
@@ -454,14 +419,7 @@ mod tests {
         );
         assert_eq!(unsigned.label, defs.number.label);
         assert_eq!(unsigned.r#abstract, defs.unsigned.r#abstract);
-        assert_eq!(
-            json!(unsigned.all_of),
-            json!([
-                defs.unsigned.constraints,
-                defs.number.constraints,
-                defs.value.constraints
-            ])
-        );
+        assert_eq!(json!(unsigned.all_of), json!([defs.unsigned.constraints]));
     }
 
     fn check_closed_unsigned_int(unsigned_int: &ClosedDataType, defs: &DataTypeDefinitions) {
@@ -480,11 +438,12 @@ mod tests {
         assert_eq!(
             json!(unsigned_int.all_of),
             json!([
-                defs.unsigned_int.constraints,
-                defs.unsigned.constraints,
-                defs.integer.constraints,
-                defs.number.constraints,
-                defs.value.constraints
+                {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 4_294_967_295.0,
+                    "multipleOf": 1.0,
+                }
             ])
         );
     }
@@ -502,14 +461,7 @@ mod tests {
         );
         assert_eq!(small.label, defs.small.label);
         assert_eq!(small.r#abstract, defs.small.r#abstract);
-        assert_eq!(
-            json!(small.all_of),
-            json!([
-                defs.small.constraints,
-                defs.number.constraints,
-                defs.value.constraints
-            ])
-        );
+        assert_eq!(json!(small.all_of), json!([defs.small.constraints]));
     }
 
     fn check_closed_unsigned_small_int(
@@ -537,13 +489,12 @@ mod tests {
         assert_eq!(
             json!(unsigned_small_int.all_of),
             json!([
-                defs.unsigned_small_int.constraints,
-                defs.small.constraints,
-                defs.unsigned_int.constraints,
-                defs.unsigned.constraints,
-                defs.integer.constraints,
-                defs.number.constraints,
-                defs.value.constraints
+                {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 100.0,
+                    "multipleOf": 1.0,
+                }
             ])
         );
     }
@@ -571,7 +522,7 @@ mod tests {
         for definitions in permutations.iter().permutations(permutations.len()) {
             let mut resolver = OntologyTypeResolver::default();
             for definition in &definitions {
-                resolver.add_unresolved(
+                resolver.add_unresolved_data_type(
                     DataTypeUuid::from_url(&definition.0.id),
                     Arc::new(definition.0.clone()),
                 );

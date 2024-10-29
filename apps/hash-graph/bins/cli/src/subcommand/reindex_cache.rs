@@ -2,7 +2,8 @@ use authorization::NoAuthorization;
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt, ensure};
 use graph::store::{
-    DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool,
+    DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig, EntityStore, EntityTypeStore,
+    PostgresStorePool, StorePool,
 };
 use tokio_postgres::NoTls;
 
@@ -27,6 +28,12 @@ pub struct ReindexOperations {
     /// Reindex data types cache
     #[clap(long)]
     pub data_types: bool,
+    /// Reindex entity types cache
+    #[clap(long)]
+    pub entity_types: bool,
+    /// Reindex entities cache
+    #[clap(long)]
+    pub entities: bool,
 }
 
 pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), GraphError> {
@@ -51,11 +58,33 @@ pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), GraphError> {
 
     if args.operations.data_types {
         did_something = true;
-        DataTypeStore::reindex_cache(&mut store)
+        DataTypeStore::reindex_data_type_cache(&mut store)
             .await
             .change_context(GraphError)
             .map_err(|report| {
                 tracing::error!(error = ?report, "Failed to reindex data type cache");
+                report
+            })?;
+    }
+
+    if args.operations.entity_types {
+        did_something = true;
+        EntityTypeStore::reindex_entity_type_cache(&mut store)
+            .await
+            .change_context(GraphError)
+            .map_err(|report| {
+                tracing::error!(error = ?report, "Failed to reindex entity type cache");
+                report
+            })?;
+    }
+
+    if args.operations.entities {
+        did_something = true;
+        EntityStore::reindex_entity_cache(&mut store)
+            .await
+            .change_context(GraphError)
+            .map_err(|report| {
+                tracing::error!(error = ?report, "Failed to reindex entities cache");
                 report
             })?;
     }

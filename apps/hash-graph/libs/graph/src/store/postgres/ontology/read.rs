@@ -131,7 +131,7 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
             .as_client()
             .query(
                 &format!(
-                    r#"
+                    "
                         SELECT
                             filter.idx         AS idx,
                             source.base_url    AS source_base_url,
@@ -152,7 +152,7 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
                           ON {target} = target.ontology_id
 
                         {where_statement};
-                    "#
+                    "
                 ),
                 &[&record_ids.ontology_ids],
             )

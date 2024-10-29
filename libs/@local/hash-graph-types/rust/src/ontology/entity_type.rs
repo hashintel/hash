@@ -1,14 +1,9 @@
-use core::iter::once;
-
 use serde::{Deserialize, Serialize};
-use type_system::{
-    schema::EntityType,
-    url::{BaseUrl, VersionedUrl},
-};
+use type_system::{schema::EntityType, url::VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     ToSchema,
-    openapi::{Ref, RefOr, Schema, SchemaType, schema},
+    openapi::{Ref, RefOr, Schema, schema},
 };
 
 use crate::{
@@ -25,8 +20,6 @@ use crate::{
 pub struct PartialEntityTypeMetadata {
     pub record_id: OntologyTypeRecordId,
     pub classification: OntologyTypeClassificationMetadata,
-    pub label_property: Option<BaseUrl>,
-    pub icon: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -37,10 +30,6 @@ pub struct EntityTypeMetadata {
     pub classification: OntologyTypeClassificationMetadata,
     pub temporal_versioning: OntologyTemporalMetadata,
     pub provenance: OntologyProvenance,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub label_property: Option<BaseUrl>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub icon: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -72,13 +61,6 @@ impl ToSchema<'static> for EntityTypeMetadata {
                             .required("temporalVersioning")
                             .property("provenance", Ref::from_schema_name("OntologyProvenance"))
                             .required("provenance")
-                            .property("labelProperty", Ref::from_schema_name("BaseUrl"))
-                            .property(
-                                "icon",
-                                schema::ObjectBuilder::new()
-                                    .schema_type(SchemaType::String)
-                                    .build(),
-                            )
                             .build(),
                     )
                     .item(
@@ -95,13 +77,6 @@ impl ToSchema<'static> for EntityTypeMetadata {
                             .required("temporalVersioning")
                             .property("provenance", Ref::from_schema_name("OntologyProvenance"))
                             .required("provenance")
-                            .property("labelProperty", Ref::from_schema_name("BaseUrl"))
-                            .property(
-                                "icon",
-                                schema::ObjectBuilder::new()
-                                    .schema_type(SchemaType::String)
-                                    .build(),
-                            )
                             .build(),
                     )
                     .build(),
@@ -119,23 +94,12 @@ impl OntologyType for EntityType {
     }
 
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        self.property_type_references()
-            .into_iter()
-            .map(OntologyTypeReference::PropertyTypeReference)
+        self.entity_type_references()
+            .map(|(reference, _)| OntologyTypeReference::EntityTypeReference(reference))
             .chain(
-                self.all_of
-                    .iter()
-                    .map(OntologyTypeReference::EntityTypeReference),
+                self.property_type_references()
+                    .map(|(reference, _)| OntologyTypeReference::PropertyTypeReference(reference)),
             )
-            .chain(self.link_mappings().into_iter().flat_map(
-                |(link_entity_type, destination_entity_type_constraint)| {
-                    {
-                        once(link_entity_type)
-                            .chain(destination_entity_type_constraint.unwrap_or_default())
-                    }
-                    .map(OntologyTypeReference::EntityTypeReference)
-                },
-            ))
             .collect()
     }
 }

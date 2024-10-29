@@ -6,26 +6,25 @@ members = [
     "apps/hash-graph/libs/*",
     "libs/@blockprotocol/type-system/rust",
     "libs/@local/codec",
-    "libs/@local/tracing",
-    "libs/@local/status/rust",
+    "libs/@local/harpc/client",
+    "libs/@local/harpc/codec",
+    "libs/@local/harpc/net",
+    "libs/@local/harpc/server",
+    "libs/@local/harpc/service",
+    "libs/@local/harpc/tower",
+    "libs/@local/harpc/types",
+    "libs/@local/harpc/wire-protocol",
     "libs/@local/hash-authorization",
     "libs/@local/hash-graph-types/rust",
     "libs/@local/hash-validation",
+    "libs/@local/hql/*",
     "libs/@local/repo-chores/rust",
+    "libs/@local/status/rust",
     "libs/@local/temporal-client",
     "libs/@local/temporal-versioning",
-    "tests/hash-graph-benches",
-    "tests/hash-graph-integration",
-    "tests/hash-graph-test-data/rust",
-    "libs/@local/harpc/wire-protocol",
-    "libs/@local/harpc/types",
-    "libs/@local/harpc/net",
-    "libs/@local/harpc/tower",
-    "libs/@local/harpc/service",
-    "libs/@local/harpc/server",
-    "libs/@local/harpc/codec",
-    "libs/@local/hql/*",
+    "libs/@local/tracing",
     "libs/antsi",
+    "libs/chonky",
     "libs/deer",
     "libs/deer/desert",
     "libs/deer/json",
@@ -33,6 +32,9 @@ members = [
     "libs/error-stack",
     "libs/error-stack/macros",
     "libs/sarif",
+    "tests/hash-graph-benches",
+    "tests/hash-graph-integration",
+    "tests/hash-graph-test-data/rust",
 ]
 default-members = [
     "apps/hash-graph/bins/*",
@@ -61,6 +63,8 @@ harpc-wire-protocol.path = "libs/@local/harpc/wire-protocol"
 harpc-tower.path = "libs/@local/harpc/tower"
 harpc-service.path = "libs/@local/harpc/service"
 harpc-codec.path = "libs/@local/harpc/codec"
+harpc-server.path = "libs/@local/harpc/server"
+harpc-client.path = "libs/@local/harpc/client"
 hash-graph-store.path = "apps/hash-graph/libs/store"
 hash-status.path = "libs/@local/status/rust"
 hash-tracing.path = "libs/@local/tracing"
@@ -103,7 +107,7 @@ hashbrown = { version = "=0.15.0", default-features = false, features = ["nightl
 http = { version = "=1.1.0", default-features = false }
 inferno = { version = "=0.11.21", default-features = false }
 iso8601-duration = { version = "=0.2.0", default-features = false }
-json-number = { version = "=0.4.8", default-features = false }
+json-number = { version = "=0.4.9", default-features = false }
 jsonptr = { version = "=0.6.3", default-features = false }
 multiaddr = { version = "=0.18.2", default-features = false }
 multistream-select = { version = "=0.13.0", default-features = false }
@@ -115,13 +119,13 @@ libp2p-yamux = { version = "=0.46.0", default-features = false }
 prometheus-client = { version = "=0.22.3", default-features = false }
 postgres-types = { version = "=0.2.8", default-features = false }
 reqwest = { version = "=0.12.8", default-features = false, features = ["rustls-tls"] }
-regex = { version = "=1.11.0", default-features = false, features = ["perf", "unicode"] }
+regex = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 semver = { version = "=1.0.23", default-features = false }
 sentry-types = { version = "=0.34.0", default-features = false }
-serde = { version = "=1.0.210", default-features = false }
-serde_json = { version = "=1.0.128" }
+serde = { version = "=1.0.213", default-features = false }
+serde_json = { version = "=1.0.132" }
 text-size = { version = "=1.1.1", default-features = false }
-tokio = { version = "=1.40.0", default-features = false }
+tokio = { version = "=1.41.0", default-features = false }
 tokio-util = { version = "=0.7.12", default-features = false }
 tower-layer = { version = "=0.3.3", default-features = false }
 tower-service = { version = "=0.3.3", default-features = false }
@@ -130,24 +134,24 @@ tracing-core = { version = "=0.1.32", default-features = false }
 tracing-subscriber = { version = "=0.3.18", default-features = false }
 url = { version = "=2.5.2", default-features = false }
 utoipa = { version = "=4.2.3", default-features = false }
-uuid = { version = "=1.10.0", default-features = false }
+uuid = { version = "=1.11.0", default-features = false }
 time = { version = "=0.3.36", default-features = false }
 tokio-postgres = { version = "=0.7.12", default-features = false }
 tower-http = { version = "=0.6.1", features = ["trace"] }
 
 # Shared third-party dependencies
 ansi-to-html = { version = "=0.2.1", default-features = false }
-anstyle = { version = "=1.0.8", default-features = false }
-anstyle-yansi = { version = "=2.0.1", default-features = false }
+anstyle = { version = "=1.0.9", default-features = false }
+anstyle-yansi = { version = "=2.0.2", default-features = false }
 approx = { version = "=0.5.1", default-features = false }
 async-scoped = { version = "=0.9.0", default-features = false }
 async-trait = { version = "=0.1.83", default-features = false }
-aws-config = { version = "=1.5.8" }
-aws-sdk-s3 = { version = "=1.56.0", default-features = false }
+aws-config = { version = "=1.5.9" }
+aws-sdk-s3 = { version = "=1.58.0", default-features = false }
 bitvec = { version = "=1.0.1", default-features = false }
 bytes-utils = { version = "=0.1.4", default-features = false }
 clap = { version = "=4.5.20", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
-clap_complete = { version = "=4.5.33", default-features = false }
+clap_complete = { version = "=4.5.35", default-features = false }
 coverage-helper = { version = "=0.2.2", default-features = false }
 criterion-macro = { version = "=0.4.0", default-features = false }
 derive-where = { version = "=1.2.7", default-features = false, features = ["nightly"] }
@@ -156,11 +160,11 @@ expect-test = { version = "=1.5.0", default-features = false }
 futures = { version = "=0.3.31", default-features = false }
 hifijson = { version = "=0.2.2", default-features = false }
 humansize = { version = "=2.1.3", default-features = false }
-hyper = { version = "=1.4.1", default-features = false }
+hyper = { version = "=1.5.0", default-features = false }
 include_dir = { version = "=0.7.4", default-features = false }
 insta = { version = "=1.40.0", default-features = false }
 itertools = { version = "0.13.0", default-features = false }
-jsonschema = { version = "=0.23.0", default-features = false }
+jsonschema = { version = "=0.24.1", default-features = false }
 justjson = { version = "=0.3.0", default-features = false }
 lexical = { version = "=7.0.2", default-features = false }
 libp2p = { version = "=0.54.1", default-features = false }
@@ -177,15 +181,15 @@ opentelemetry_sdk = { version = "=0.26.0", default-features = false }
 orx-concurrent-vec = { version = "=3.0.2", default-features = false }
 owo-colors = { version = "=4.1.0", default-features = false }
 paste = { version = "=1.0.15", default-features = false }
-pin-project = { version = "=1.1.6", default-features = false }
-pin-project-lite = { version = "=0.2.14", default-features = false }
+pin-project = { version = "=1.1.7", default-features = false }
+pin-project-lite = { version = "=0.2.15", default-features = false }
 postgres-protocol = { version = "=0.6.7", default-features = false }
 pretty_assertions = { version = "=1.4.1", default-features = false, features = ["alloc"] }
 proptest = { version = "=1.5.0", default-features = false, features = ["alloc"] }
 rand = { version = "=0.8.5", default-features = false }
 refinery = { version = "=0.8.14", default-features = false }
 rustc_version = { version = "=0.4.1", default-features = false }
-scc = { version = "=2.2.2", default-features = false }
+scc = { version = "=2.2.4", default-features = false }
 sentry = { version = "=0.34.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tracing", "tower-http"] }
 seq-macro = { version = "=0.3.5", default-features = false }
 serde_plain = { version = "=1.0.2", default-features = false }
@@ -200,7 +204,7 @@ temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "htt
 test-fuzz = { version = "=6.0.0", default-features = false }
 test-log = { version = "=0.2.16", default-features = false }
 test-strategy = { version = "=0.4.0", default-features = false }
-thiserror = { version = "=1.0.64", default-features = false }
+thiserror = { version = "=1.0.65", default-features = false }
 tokio-stream = { version = "=0.1.16", default-features = false }
 tokio-test = { version = "=0.4.4", default-features = false }
 tower = { version = "=0.5.1", default-features = false }
@@ -209,7 +213,7 @@ tracing = { version = "=0.1.40", default-features = false }
 tracing-error = { version = "=0.2.0", default-features = false }
 tracing-flame = { version = "=0.2.0", default-features = false }
 tracing-opentelemetry = { version = "=0.27.0", default-features = false }
-trybuild = { version = "=1.0.99", default-features = false }
+trybuild = { version = "=1.0.101", default-features = false }
 tsify = { version = "=0.4.5", default-features = false }
 unicode-ident = { version = "=1.0.13", default-features = false }
 virtue = { version = "=0.0.17", default-features = false }

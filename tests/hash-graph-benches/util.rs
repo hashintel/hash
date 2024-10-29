@@ -172,10 +172,10 @@ where
                 client
                     .execute(
                         &format!(
-                            r#"
+                            "
                             /* CLONE DATABASE TO NEW ONE */
                             CREATE DATABASE {bench_db_name} WITH TEMPLATE {} OWNER {};
-                            "#,
+                            ",
                             source_db_connection_info.database(),
                             bench_db_connection_info.user()
                         ),
@@ -263,9 +263,9 @@ where
                 .as_client()
                 .execute(
                     &format!(
-                        r#"
+                        "
                         DROP DATABASE IF EXISTS {};
-                        "#,
+                        ",
                         self.bench_db_name
                     ),
                     &[],
@@ -382,8 +382,6 @@ pub async fn seed<D, P, E, C, A>(
                 classification: OntologyTypeClassificationMetadata::Owned {
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
-                icon: None,
-                label_property: None,
                 relationships: [EntityTypeRelationAndSubject::Viewer {
                     subject: EntityTypeViewerSubject::Public,
                     level: 0,
@@ -399,8 +397,6 @@ pub async fn seed<D, P, E, C, A>(
                     store
                         .update_entity_type(account_id, UpdateEntityTypesParams {
                             schema: entity_type,
-                            icon: None,
-                            label_property: None,
                             relationships: [
                                 EntityTypeRelationAndSubject::Viewer {
                                     subject: EntityTypeViewerSubject::Public,

@@ -848,7 +848,7 @@ async fn send_drop_receiver_delay() {
         .expect("able to send bytes");
     tokio::task::yield_now().await; // the other task needs to react to our message, so we need to yield control
     // force a flush
-    tx.send(Bytes::from_static(&[0; Payload::MAX_SIZE]))
+    tx.send(Bytes::from(vec![0; Payload::MAX_SIZE]))
         .await
         .expect_err("should not be able to send bytes");
 
@@ -948,7 +948,7 @@ async fn send_delay() {
         descriptor,
     );
 
-    tx.send(Bytes::from_static(&[0; Payload::MAX_SIZE - 8]))
+    tx.send(Bytes::from(vec![0; Payload::MAX_SIZE - 8]))
         .await
         .expect("able to send bytes");
 
@@ -1004,7 +1004,7 @@ async fn send_delay_flush_partial() {
         descriptor,
     );
 
-    tx.send(Bytes::from_static(&[0; Payload::MAX_SIZE]))
+    tx.send(Bytes::from(vec![0; Payload::MAX_SIZE]))
         .await
         .expect("able to send bytes");
 

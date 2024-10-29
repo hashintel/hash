@@ -378,7 +378,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`label_property`]: graph_types::ontology::EntityTypeMetadata::label_property
+    /// [`label_property`]: type_system::schema::EntityType::label_property
     Label { inheritance_depth: Option<u32> },
     /// Corresponds to the provenance data of the [`Entity`].
     ///

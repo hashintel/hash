@@ -6,7 +6,6 @@ mod provenance;
 use core::{borrow::Borrow, fmt};
 
 use error_stack::{Context, Report};
-use futures::{StreamExt, TryStreamExt, stream};
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
@@ -192,27 +191,21 @@ pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
 
 pub trait PropertyTypeProvider: OntologyTypeProvider<PropertyType> {}
 
+pub enum EntityTypeVariance {
+    Covariant,
+    Contravariant,
+    Invariant,
+}
+
 pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
-    fn is_parent_of(
+    fn is_super_type_of(
         &self,
+        parent: &VersionedUrl,
         child: &VersionedUrl,
-        parent: &BaseUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
 
-    fn provide_closed_type<'a, I>(
+    fn find_parents(
         &self,
-        type_ids: I,
-    ) -> impl Future<Output = Result<ClosedEntityType, Report<impl Context>>> + Send
-    where
-        Self: Sync,
-        I: IntoIterator<Item = &'a VersionedUrl, IntoIter: Send> + Send,
-    {
-        stream::iter(type_ids)
-            .then(|entity_type_url| async {
-                self.provide_type(entity_type_url)
-                    .await
-                    .map(|entity_type| entity_type.borrow().clone())
-            })
-            .try_collect::<ClosedEntityType>()
-    }
+        entity_types: &[VersionedUrl],
+    ) -> impl Future<Output = Result<Vec<VersionedUrl>, Report<impl Context>>> + Send;
 }

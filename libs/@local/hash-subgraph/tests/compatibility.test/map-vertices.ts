@@ -222,7 +222,6 @@ const mapEntityTypeMetadata = (
 ): EntityTypeMetadata => {
   return {
     recordId: mapOntologyTypeRecordId(metadata.recordId),
-    labelProperty: metadata.labelProperty as BaseUrl,
     provenance: mapOntologyProvenance(metadata.provenance),
     ...("fetchedAt" in metadata
       ? { fetchedAt: metadata.fetchedAt as Timestamp }
