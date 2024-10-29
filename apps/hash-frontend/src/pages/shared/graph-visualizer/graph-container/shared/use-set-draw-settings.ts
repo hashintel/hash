@@ -16,7 +16,7 @@ export const labelRenderedSizeThreshold = {
   normal: 14,
 };
 
-const maxLabelWidth = 100;
+const maxLabelWidth = 150;
 
 const getCanvasLines = (ctx: CanvasRenderingContext2D, text: string) => {
   const words = text.split(" ");
@@ -124,29 +124,47 @@ export const useSetDrawSettings = <
           return;
         }
 
-        const size = settings.labelSize;
+        if (
+          graphState.selectedNodeId === data.nodeId ||
+          graphState.hoveredNodeId === data.nodeId
+        ) {
+          return;
+        }
+
+        const labelFontSize = settings.labelSize;
         const font = settings.labelFont;
         const weight = settings.labelWeight;
 
-        context.font = `${weight} ${size}px ${font}`;
+        context.font = `${weight} ${labelFontSize}px ${font}`;
 
-        /**
-         * @todo draw the label in multiple lines if it's too long, using the getCanvasLines function above
-         */
+        const nodeSize = data.size;
 
-        const width = context.measureText(data.label).width + 8;
+        const paddingX = 6;
+        const paddingY = 4;
+        const labelBottomPadding = 4;
+
+        const { maxLineWidth, lines } = getCanvasLines(context, data.label);
+        const width = maxLineWidth + paddingX * 2;
+
+        const backgroundHeight =
+          labelFontSize * lines.length +
+          labelBottomPadding * lines.length -
+          1 +
+          paddingY * 2;
+
+        const backgroundStartY = data.y - backgroundHeight / 2;
 
         const xYWidthHeight = [
-          data.x + data.size,
-          data.y + size / 3 - 15,
+          data.x + nodeSize,
+          backgroundStartY,
           width,
-          20,
+          backgroundHeight,
         ] as const;
 
         /**
          * Draw the background for the label
          */
-        context.fillStyle = "#ffffffaa";
+        context.fillStyle = "#ffffffcc";
         context.beginPath();
         drawRoundRect(context, ...xYWidthHeight, 5);
         context.fill();
@@ -160,11 +178,20 @@ export const useSetDrawSettings = <
         context.lineWidth = 1;
         context.stroke();
 
-        /**
-         * Draw the label text
-         */
-        context.fillStyle = palette.gray[80];
-        context.fillText(data.label, data.x + data.size + 3, data.y + size / 3);
+        context.fillStyle = palette.gray[90];
+        for (let i = 0; i < lines.length; i++) {
+          /**
+           * Draw the label text
+           */
+          context.fillText(
+            lines[i]!,
+            data.x + nodeSize + paddingX,
+            backgroundStartY +
+              paddingY +
+              labelFontSize +
+              (labelFontSize + labelBottomPadding) * i,
+          );
+        }
       },
     );
 
@@ -209,7 +236,8 @@ export const useSetDrawSettings = <
           );
         } catch {
           /**
-           * Setting the edge size/scale while there's a highlightedEdgePath causes a crash due to source/target of edges not being found
+           * Setting the edge size/scale while there's a highlightedEdgePath causes a crash due to source/target of
+           * edges not being found
            * @todo fix it so that this doesn't happen
            */
           // eslint-disable-next-line no-param-reassign
