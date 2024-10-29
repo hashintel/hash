@@ -64,6 +64,9 @@ export type QueryOutgoingLinkAndTarget = never;
 
 export type QueryOutgoingLinksByLinkEntityTypeId = {};
 
+/**
+ * A structured query for data, including e.g. the types of filters to be applied in order to produce the data.
+ */
 export type QueryProperties = {
   "https://blockprotocol.org/@hash/types/property-type/query/": QueryPropertyValue;
 };
