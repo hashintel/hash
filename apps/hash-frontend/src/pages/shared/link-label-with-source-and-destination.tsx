@@ -351,7 +351,7 @@ const LeftOrRightEntity: FunctionComponent<{
                           <TypeIcon
                             fill={theme.palette.gray[30]}
                             fontSize={11}
-                            icon={rightEntityEntityType?.metadata.icon}
+                            icon={rightEntityEntityType?.schema.icon}
                           />
                         }
                         key={rightEntity.metadata.recordId.entityId}

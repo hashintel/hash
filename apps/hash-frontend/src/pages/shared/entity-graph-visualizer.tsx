@@ -173,7 +173,7 @@ export const EntityGraphVisualizer = memo(
         entityTypesById[entity.metadata.entityTypeId] ??= entityType;
 
         nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
-          icon: entityType.metadata.icon ?? undefined,
+          icon: entityType.schema.icon ?? undefined,
           label: generateEntityLabel(subgraphWithTypes, entity),
           nodeId: entity.metadata.recordId.entityId,
           nodeTypeId: entity.metadata.entityTypeId,
