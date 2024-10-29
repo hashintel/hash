@@ -33,7 +33,8 @@
       "@local/status": ["../status/typescript/pkg/src/main.ts"],
       "@local/hash-subgraph": ["../hash-subgraph/src/main.ts"],
       "@local/hash-subgraph/*": ["../hash-subgraph/src/*.ts"]
-    }
+    },
+    "outDir": "./dist"
   },
   "ts-node": {
     "transpileOnly": true
