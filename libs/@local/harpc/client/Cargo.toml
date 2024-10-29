@@ -17,10 +17,12 @@ tower = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack = { workspace = true }
+harpc-codec = { workspace = true }
 harpc-net = { workspace = true }
 
 # Private third-party dependencies
 bytes = { workspace = true }
+derive-where = { workspace = true }
 futures = { workspace = true }
 multiaddr = { workspace = true }
 thiserror = { workspace = true }
