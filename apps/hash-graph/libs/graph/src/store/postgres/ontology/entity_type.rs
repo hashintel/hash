@@ -353,6 +353,7 @@ where
                     None
                 },
                 entity_types,
+                closed_entity_types: None,
                 count,
                 web_ids,
                 edition_created_by_ids,
@@ -671,6 +672,7 @@ where
                 include_drafts: false,
                 after: None,
                 limit: None,
+                include_closed: false,
                 include_count: false,
                 include_web_ids: false,
                 include_edition_created_by_ids: false,
@@ -824,6 +826,7 @@ where
         actor_id: AccountId,
         mut params: GetEntityTypesParams<'_>,
     ) -> Result<GetEntityTypesResponse, QueryError> {
+        let include_closed = params.include_closed;
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -835,9 +838,37 @@ where
             .change_context(QueryError)?;
 
         let temporal_axes = params.temporal_axes.clone().resolve();
-        self.get_entity_types_impl(actor_id, params, &temporal_axes)
-            .await
-            .map(|(response, _)| response)
+        let (mut response, _) = self
+            .get_entity_types_impl(actor_id, params, &temporal_axes)
+            .await?;
+
+        if include_closed {
+            let ids = response
+                .entity_types
+                .iter()
+                .map(|entity_type| EntityTypeUuid::from_url(&entity_type.schema.id))
+                .collect::<Vec<_>>();
+            response.closed_entity_types = Some(
+                self.as_client()
+                    .query_raw(
+                        "
+                            SELECT closed_schema FROM entity_types
+                            JOIN unnest($1::uuid[])
+                            WITH ORDINALITY AS filter(id, idx)
+                              ON filter.id = entity_types.ontology_id
+                            ORDER BY filter.idx
+                        ",
+                        &[&ids],
+                    )
+                    .await
+                    .change_context(QueryError)?
+                    .map_ok(|row| row.get::<_, Valid<ClosedEntityType>>(0).into_inner())
+                    .try_collect()
+                    .await
+                    .change_context(QueryError)?,
+            );
+        };
+        Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -862,6 +893,7 @@ where
         let (
             GetEntityTypesResponse {
                 entity_types,
+                closed_entity_types: _,
                 cursor,
                 count,
                 web_ids,
@@ -877,6 +909,7 @@ where
                     after: params.after,
                     limit: params.limit,
                     include_drafts: params.include_drafts,
+                    include_closed: false,
                     include_count: params.include_count,
                     include_web_ids: params.include_web_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
@@ -1025,6 +1058,7 @@ where
                 include_drafts: false,
                 after: None,
                 limit: None,
+                include_closed: false,
                 include_count: false,
                 include_web_ids: false,
                 include_edition_created_by_ids: false,

@@ -16,6 +16,7 @@ import type {
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import type {
+  ClosedEntityTypeWithMetadata,
   EntityTypeMetadata,
   EntityTypeWithMetadata,
   OntologyTypeRecordId,
@@ -24,6 +25,7 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  mapGraphApiClosedEntityTypeToClosedEntityType,
   mapGraphApiEntityTypeToEntityType,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
@@ -200,7 +202,7 @@ export const getEntityTypeSubgraph: ImpureGraphFunction<
 };
 
 export const getEntityTypes: ImpureGraphFunction<
-  Omit<GetEntityTypesParams, "includeDrafts"> & {
+  Omit<GetEntityTypesParams, "includeDrafts" | "includeClosed"> & {
     temporalClient?: TemporalClient;
   },
   Promise<EntityTypeWithMetadata[]>
@@ -208,10 +210,37 @@ export const getEntityTypes: ImpureGraphFunction<
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   return await graphApi
-    .getEntityTypes(actorId, { includeDrafts: false, ...request })
+    .getEntityTypes(actorId, {
+      includeDrafts: false,
+      includeClosed: true,
+      ...request,
+    })
     .then(({ data: response }) =>
       mapGraphApiEntityTypeToEntityType(response.entityTypes),
     );
+};
+
+export const getClosedEntityTypes: ImpureGraphFunction<
+  Omit<GetEntityTypesParams, "includeDrafts" | "includeClosed"> & {
+    temporalClient?: TemporalClient;
+  },
+  Promise<ClosedEntityTypeWithMetadata[]>
+> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+  await rewriteSemanticFilter(request.filter, temporalClient);
+
+  const { data: response } = await graphApi.getEntityTypes(actorId, {
+    includeDrafts: false,
+    includeClosed: true,
+    ...request,
+  });
+  const entityTypes = mapGraphApiEntityTypeToEntityType(response.entityTypes);
+  const closedEntityTypes = mapGraphApiClosedEntityTypeToClosedEntityType(
+    response.closedEntityTypes!,
+  );
+  return closedEntityTypes.map((schema, idx) => ({
+    schema,
+    metadata: entityTypes[idx]!.metadata,
+  }));
 };
 
 /**

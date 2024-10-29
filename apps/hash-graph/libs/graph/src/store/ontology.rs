@@ -24,7 +24,7 @@ use hash_graph_store::{
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
-    schema::{Conversions, DataType, EntityType, PropertyType},
+    schema::{ClosedEntityType, Conversions, DataType, EntityType, PropertyType},
     url::{BaseUrl, VersionedUrl},
 };
 
@@ -590,6 +590,8 @@ pub struct GetEntityTypesParams<'p> {
     #[serde(default)]
     pub include_count: bool,
     #[serde(default)]
+    pub include_closed: bool,
+    #[serde(default)]
     pub include_web_ids: bool,
     #[serde(default)]
     pub include_edition_created_by_ids: bool,
@@ -600,6 +602,12 @@ pub struct GetEntityTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "utoipa",
+        schema(nullable = false, value_type = [VAR_CLOSED_ENTITY_TYPE])
+    )]
+    pub closed_entity_types: Option<Vec<ClosedEntityType>>,
     pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
