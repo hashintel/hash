@@ -6,7 +6,6 @@
   "type": "object",
   "allOf": [],
   "description": "",
-  "examples": [],
   "links": {},
   "properties": {
     "https://blockprotocol.org/@hash/types/property-type/query/": {

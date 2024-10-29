@@ -199,6 +199,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
           entityType: {
             title,
             type: "object",
+            description: "",
             properties: {},
           },
         },

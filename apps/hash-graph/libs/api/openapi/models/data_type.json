@@ -37,6 +37,6 @@
       ]
     }
   },
-  "required": ["$schema", "kind", "$id", "title"],
+  "required": ["$schema", "kind", "$id", "title", "description"],
   "additionalProperties": true
 }

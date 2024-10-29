@@ -4,6 +4,7 @@
   "$id": "https://blockprotocol.org/@alice/types/entity-type/page/v/2",
   "type": "object",
   "title": "Page",
+  "description": "A page is a single page of content.",
   "properties": {
     "https://blockprotocol.org/@alice/types/property-type/text/": {
       "$ref": "https://blockprotocol.org/@alice/types/property-type/text/v/1"

@@ -48,6 +48,7 @@ async fn integer() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/integer/v/1",
         "title": "Integer",
+        "description": "An integral value",
         "type": "number",
         "multipleOf": 1,
     }))
@@ -154,6 +155,7 @@ async fn temperature_unit() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/temperature-unit/v/1",
         "title": "Temperature Unit",
+        "description": "A unit of temperature",
         "type": "string",
         "enum": ["Celsius", "Fahrenheit", "Kelvin"]
     }))
@@ -194,6 +196,7 @@ async fn meter() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/meter/v/1",
         "title": "Meter",
+        "description": "The base unit of length in the International System of Units (SI).",
         "type": "number",
         "minimum": 0,
     }))
@@ -234,6 +237,7 @@ async fn uri() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/url/v/1",
         "title": "Url",
+        "description": "A unique identifier for a resource (e.g. a URL, or URN).",
         "type": "string",
         "format": "uri",
     }))
@@ -274,6 +278,7 @@ async fn uuid() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/uuid/v/1",
         "title": "UUID",
+        "description": "Universally Unique Identifier (UUID)",
         "type": "string",
         "format": "uuid",
     }))
@@ -341,6 +346,7 @@ async fn email() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/email/v/1",
         "title": "E-Mail",
+        "description": "An identifier for an email box to which messages are delivered.",
         "type": "string",
         "format": "email",
     }))
@@ -381,6 +387,7 @@ async fn zip_code_us() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/zip-code-us/v/1",
         "title": "Zip code (US)",
+        "description": "A zip code in the United States",
         "type": "string",
         "pattern": "^[0-9]{5}(?:-[0-9]{4})?$",
     }))
@@ -421,6 +428,7 @@ async fn ipv4() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/ipv4/v/1",
         "title": "IPv4",
+        "description": "An IPv4 address",
         "type": "string",
         "format": "ipv4",
     }))
@@ -479,6 +487,7 @@ async fn ipv6() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/ipv6/v/1",
         "title": "IPv6",
+        "description": "An IPv6 address",
         "type": "string",
         "format": "ipv6",
     }))
@@ -537,6 +546,7 @@ async fn hostname() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/hostname/v/1",
         "title": "Hostname",
+        "description": "A hostname",
         "type": "string",
         "format": "hostname",
     }))
@@ -622,6 +632,7 @@ async fn regex() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/regex/v/1",
         "title": "Regex",
+        "description": "A regular expression",
         "type": "string",
         "format": "regex",
     }))
@@ -662,6 +673,7 @@ async fn short_string() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/short-string/v/1",
         "title": "Short string",
+        "description": "A short string",
         "type": "string",
         "minLength": 1,
         "maxLength": 10,
@@ -1075,6 +1087,7 @@ async fn date_time() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/date-time/v/1",
         "title": "Date Time",
+        "description": "A reference to a particular date and time, formatted according to RFC-3339, ISO-8601, and HTML.",
         "type": "string",
         "format": "date-time",
     }))
@@ -1155,6 +1168,7 @@ async fn date() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/date/v/1",
         "title": "Date",
+        "description": "A reference to a particular date, formatted according to RFC-3339, ISO-8601, and HTML.",
         "type": "string",
         "format": "date",
     }))
@@ -1420,6 +1434,7 @@ async fn time() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/time/v/1",
         "title": "Time",
+        "description": "A reference to a particular clockk time, formatted according to RFC-3339, ISO-8601, and HTML.",
         "type": "string",
         "format": "time",
     }))
@@ -1519,6 +1534,7 @@ async fn duration() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/duration/v/1",
         "title": "Duration",
+        "description": "A reference to a particular duration, formatted according to ISO-8601.",
         "type": "string",
         "format": "duration",
     }))

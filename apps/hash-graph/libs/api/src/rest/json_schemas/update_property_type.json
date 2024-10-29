@@ -24,6 +24,13 @@
       }
     }
   },
-  "required": ["$schema", "kind", "title", "oneOf"],
+  "required": [
+    "$schema",
+    "kind",
+    "title",
+    "description",
+    "description",
+    "oneOf"
+  ],
   "additionalProperties": false
 }

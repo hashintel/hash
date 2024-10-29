@@ -24,7 +24,7 @@ pub struct PropertyType {
     pub id: VersionedUrl,
     pub title: String,
     pub title_plural: Option<String>,
-    pub description: Option<String>,
+    pub description: String,
     pub one_of: Vec<PropertyValues>,
 }
 
@@ -299,6 +299,7 @@ mod tests {
                   "kind": "propertyType",
                   "$id": "https://blockprotocol.org/@alice/types/property-type/age/v/",
                   "title": "Age",
+                  "description": "The age of a person.",
                   "oneOf": [
                     {
                       "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
@@ -320,6 +321,7 @@ mod tests {
                   "kind": "propertyType",
                   "$id": "https://blockprotocol.org/@alice/types/property-type/age/v/1",
                   "title": "Age",
+                  "description": "The age of a person.",
                   "oneOf": [
                     {
                       "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
@@ -340,6 +342,7 @@ mod tests {
                   "kind": "propertyType",
                   "$id": "https://blockprotocol.org/@alice/types/property-type/age/v/1",
                   "title": "Age",
+                  "description": "The age of a person.",
                   "oneOf": [
                     {
                       "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number"
@@ -361,6 +364,7 @@ mod tests {
                   "kind": "propertyType",
                   "$id": "https://blockprotocol.org/@alice/types/property-type/age/v/1",
                   "title": "Age",
+                  "description": "The age of a person.",
                   "oneOf": []
                 }),
                 PropertyTypeValidator,
@@ -389,6 +393,7 @@ mod tests {
                   "kind": "propertyType",
                   "$id": "https://blockprotocol.org/@alice/types/property-type/contact-information/v/1",
                   "title": "Contact Information",
+                  "description": "A contact information property type that can be either an email or a phone number.",
                   "oneOf": [
                     {
                       "type": "object",

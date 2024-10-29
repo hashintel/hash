@@ -4,6 +4,7 @@
   "$id": "https://blockprotocol.org/@alice/types/entity-type/building/v/1",
   "type": "object",
   "title": "Building",
+  "description": "A building",
   "properties": {
     "https://blockprotocol.org/@alice/types/property-type/built-at/": {
       "$ref": "https://blockprotocol.org/@alice/types/property-type/built-at/v/1"
