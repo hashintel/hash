@@ -10,12 +10,8 @@ inputs:
     required: false
     default: .
   command:
-    type: choice
     description: Terraform command to run
     required: true
-    options:
-      - plan
-      - apply
   env:
     description: Environment to run the command within
     required: true
@@ -95,14 +91,14 @@ runs:
           await core.summary
             .addHeading(heading)
             .addDetails(
-              "Output of Terraform initialization ⚙️ (${{ steps.init.outcome }})", 
+              "Output of Terraform initialization ⚙️ (${{ steps.init.outcome }})",
               `<pre><code>${init}</code></pre>`
             )
             .addDetails(
               "Output of validation 🤖 (${{ steps.validate.outcome }})",
               `<pre><code>${validate}</code></pre>`
             )
-            .addDetails("Output of ${{ inputs.command }} 📖 (${{ steps.cmd.outcome }})", 
+            .addDetails("Output of ${{ inputs.command }} 📖 (${{ steps.cmd.outcome }})",
               `<pre><code lang="diff">${cmd}</code></pre>`
             )
             .write();
