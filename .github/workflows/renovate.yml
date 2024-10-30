@@ -117,7 +117,7 @@ jobs:
           # TODO: Consider using S3 by setting `RENOVATE_REPOSITORY_CACHE_TYPE`
           # see: https://linear.app/hash/issue/H-3315/use-s3-to-store-renovate-cache
           RENOVATE_REPOSITORY_CACHE: ${{ github.event.inputs.repoCache || 'enabled' }}
-          RENOVATE_SKIP_INSTALLS: enabled
+          RENOVATE_SKIP_INSTALLS: true
         run: renovate --token ${{ steps.app-token.outputs.token }}
 
       - name: Compress renovate cache
