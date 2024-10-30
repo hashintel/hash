@@ -44,9 +44,9 @@ use tokio_postgres::{GenericClient, error::SqlState};
 use type_system::{
     Valid,
     schema::{
-        ClosedEntityType, Conversions, DataType, DataTypeReference, DataTypeResolveData,
-        DataTypeUuid, EntityType, EntityTypeReference, EntityTypeResolveData, EntityTypeUuid,
-        OntologyTypeUuid, PropertyType, PropertyTypeReference,
+        ClosedDataType, ClosedEntityType, Conversions, DataType, DataTypeReference,
+        DataTypeResolveData, DataTypeUuid, EntityType, EntityTypeReference, EntityTypeResolveData,
+        EntityTypeUuid, OntologyTypeUuid, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -434,6 +434,7 @@ where
         &self,
         ontology_id: DataTypeUuid,
         data_type: &Valid<DataType>,
+        closed_data_type: &Valid<ClosedDataType>,
     ) -> Result<Option<OntologyTypeUuid>, InsertionError> {
         let ontology_id = self
             .as_client()
@@ -441,12 +442,13 @@ where
                 "
                     INSERT INTO data_types (
                         ontology_id,
-                        schema
-                    ) VALUES ($1, $2)
+                        schema,
+                        closed_schema
+                    ) VALUES ($1, $2, $3)
                     ON CONFLICT DO NOTHING
                     RETURNING ontology_id;
                 ",
-                &[&ontology_id, data_type],
+                &[&ontology_id, data_type, closed_data_type],
             )
             .await
             .change_context(InsertionError)?
