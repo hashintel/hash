@@ -27,6 +27,7 @@ pub enum ValidateDataTypeError {
     NonPrimitiveValueInheritance,
 }
 
+#[derive(Debug)]
 pub struct DataTypeValidator;
 
 static VALUE_DATA_TYPE_ID: LazyLock<DataTypeReference> = LazyLock::new(|| DataTypeReference {
@@ -62,10 +63,7 @@ static PRIMITIVE_DATA_TYPE_IDS: LazyLock<HashSet<VersionedUrl>> = LazyLock::new(
 impl Validator<DataType> for DataTypeValidator {
     type Error = ValidateDataTypeError;
 
-    async fn validate_ref<'v>(
-        &self,
-        value: &'v DataType,
-    ) -> Result<&'v Valid<DataType>, Self::Error> {
+    fn validate_ref<'v>(&self, value: &'v DataType) -> Result<&'v Valid<DataType>, Self::Error> {
         if value.all_of.is_empty() && value.id != VALUE_DATA_TYPE_ID.url {
             return Err(ValidateDataTypeError::MissingParent);
         } else if value.all_of.contains(&*VALUE_DATA_TYPE_ID)
@@ -83,7 +81,7 @@ impl Validator<DataType> for DataTypeValidator {
 impl Validator<ResolvedDataType> for DataTypeValidator {
     type Error = ValidateDataTypeError;
 
-    async fn validate_ref<'v>(
+    fn validate_ref<'v>(
         &self,
         value: &'v ResolvedDataType,
     ) -> Result<&'v Valid<ResolvedDataType>, Self::Error> {
@@ -119,7 +117,7 @@ impl Validator<ResolvedDataType> for DataTypeValidator {
 impl Validator<ClosedDataType> for DataTypeValidator {
     type Error = ValidateDataTypeError;
 
-    async fn validate_ref<'v>(
+    fn validate_ref<'v>(
         &self,
         value: &'v ClosedDataType,
     ) -> Result<&'v Valid<ClosedDataType>, Self::Error> {

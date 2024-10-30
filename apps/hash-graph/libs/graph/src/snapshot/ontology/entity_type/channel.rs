@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::{
     pin::Pin,
     task::{Context, Poll, ready},
@@ -12,8 +13,11 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use type_system::{
-    Valid,
-    schema::{ClosedEntityType, EntityConstraints, EntityTypeUuid, InverseEntityTypeMetadata},
+    Valid, Validator as _,
+    schema::{
+        ClosedEntityType, EntityConstraints, EntityTypeUuid, EntityTypeValidator,
+        InverseEntityTypeMetadata,
+    },
     url::{OntologyTypeVersion, VersionedUrl},
 };
 
@@ -34,6 +38,7 @@ use crate::{
 /// [`entity_type_channel`] function.
 #[derive(Debug, Clone)]
 pub struct EntityTypeSender {
+    validator: Arc<EntityTypeValidator>,
     metadata: OntologyTypeMetadataSender,
     schema: Sender<EntityTypeRow>,
     relations: Sender<(EntityTypeUuid, Vec<EntityTypeRelationAndSubject>)>,
@@ -62,7 +67,10 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         mut self: Pin<&mut Self>,
         entity_type: EntityTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let ontology_id = EntityTypeUuid::from_url(&entity_type.schema.id);
+        let schema = (*self.validator)
+            .validate(entity_type.schema)
+            .change_context(SnapshotRestoreError::Validation)?;
+        let ontology_id = EntityTypeUuid::from_url(&schema.id);
 
         self.metadata
             .start_send_unpin(OntologyTypeMetadata {
@@ -79,11 +87,9 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 ontology_id,
                 // An empty schema is inserted initially. This will be replaced later by the closed
                 // schema.
-                // TODO: Validate ontology types in snapshots
-                //   see https://linear.app/hash/issue/H-3038
                 closed_schema: Valid::new_unchecked(ClosedEntityType {
                     id: VersionedUrl {
-                        base_url: entity_type.schema.id.base_url.clone(),
+                        base_url: schema.id.base_url.clone(),
                         version: OntologyTypeVersion::new(0),
                     },
                     title: String::new(),
@@ -100,9 +106,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                     },
                     all_of: Vec::new(),
                 }),
-                // TODO: Validate ontology types in snapshots
-                //   see https://linear.app/hash/issue/H-3038
-                schema: Valid::new_unchecked(entity_type.schema),
+                schema,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
@@ -173,6 +177,7 @@ pub(crate) fn entity_type_channel(
 
     (
         EntityTypeSender {
+            validator: Arc::new(EntityTypeValidator),
             metadata: metadata_sender,
             schema: schema_tx,
             relations: relations_tx,

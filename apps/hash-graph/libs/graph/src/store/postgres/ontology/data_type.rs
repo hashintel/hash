@@ -546,7 +546,6 @@ where
         for (data_type_id, data_type) in &inserted_data_types {
             let schema = data_type_validator
                 .validate_ref(&**data_type)
-                .await
                 .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
             transaction
@@ -558,7 +557,6 @@ where
         {
             data_type_validator
                 .validate_ref(closed_schema)
-                .await
                 .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
 
@@ -834,7 +832,6 @@ where
 
         let schema = data_type_validator
             .validate(params.schema)
-            .await
             .change_context(UpdateError)?;
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
@@ -901,7 +898,6 @@ where
                 ClosedDataType::from_resolve_data(schema.clone().into_inner(), &resolve_data)
                     .change_context(UpdateError)?,
             )
-            .await
             .change_context(UpdateError)?;
         let (_ontology_id, owned_by_id, temporal_versioning) = transaction
             .update_owned_ontology_id(&schema.id, &provenance.edition)

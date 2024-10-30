@@ -720,11 +720,9 @@ where
                     *entity_type_id,
                     entity_type_validator
                         .validate_ref(&**entity_type)
-                        .await
                         .change_context(InsertionError)?,
                     entity_type_validator
                         .validate_ref(closed_schema)
-                        .await
                         .change_context(InsertionError)?,
                 )
                 .await?;
@@ -1066,7 +1064,6 @@ where
 
         let schema = entity_type_validator
             .validate(params.schema)
-            .await
             .change_context(UpdateError)?;
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
@@ -1134,7 +1131,6 @@ where
                 ClosedEntityType::from_resolve_data(schema.clone().into_inner(), &resolve_data)
                     .change_context(UpdateError)?,
             )
-            .await
             .change_context(UpdateError)?;
 
         let (_ontology_id, owned_by_id, temporal_versioning) = transaction

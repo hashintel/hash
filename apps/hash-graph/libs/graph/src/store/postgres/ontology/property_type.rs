@@ -431,7 +431,6 @@ where
                         ontology_id,
                         property_type_validator
                             .validate_ref(&parameters.schema)
-                            .await
                             .change_context(InsertionError)?,
                     )
                     .await?;
@@ -713,7 +712,6 @@ where
 
         let schema = property_type_validator
             .validate_ref(&params.schema)
-            .await
             .change_context(UpdateError)?;
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
             .update_owned_ontology_id(&schema.id, &provenance.edition)

@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::{
     pin::Pin,
     task::{Context, Poll, ready},
@@ -10,7 +11,10 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use type_system::{Valid, schema::DataTypeUuid};
+use type_system::{
+    Validator as _,
+    schema::{DataTypeUuid, DataTypeValidator},
+};
 
 use crate::{
     snapshot::{
@@ -29,6 +33,7 @@ use crate::{
 /// [`data_type_channel`] function.
 #[derive(Debug, Clone)]
 pub struct DataTypeSender {
+    validator: Arc<DataTypeValidator>,
     metadata: OntologyTypeMetadataSender,
     schema: Sender<DataTypeRow>,
     conversions: Sender<Vec<DataTypeConversionsRow>>,
@@ -60,7 +65,10 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         mut self: Pin<&mut Self>,
         data_type: DataTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let ontology_id = DataTypeUuid::from_url(&data_type.schema.id);
+        let schema = (*self.validator)
+            .validate(data_type.schema)
+            .change_context(SnapshotRestoreError::Validation)?;
+        let ontology_id = DataTypeUuid::from_url(&schema.id);
 
         self.metadata
             .start_send_unpin(OntologyTypeMetadata {
@@ -74,9 +82,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         self.schema
             .start_send_unpin(DataTypeRow {
                 ontology_id,
-                // TODO: Validate ontology types in snapshots
-                //   see https://linear.app/hash/issue/H-3038
-                schema: Valid::new_unchecked(data_type.schema.clone()),
+                schema,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
@@ -170,6 +176,7 @@ pub(crate) fn data_type_channel(
 
     (
         DataTypeSender {
+            validator: Arc::new(DataTypeValidator),
             metadata: metadata_sender,
             schema: schema_tx,
             conversions: conversions_tx,

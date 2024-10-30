@@ -31,21 +31,25 @@ use serde::{Deserialize, Serialize};
 pub trait Validator<V>: Sync {
     type Error;
 
-    fn validate_ref<'v>(
-        &self,
-        value: &'v V,
-    ) -> impl Future<Output = Result<&'v Valid<V>, Self::Error>> + Send
-    where
-        V: Sync;
+    /// Validates a reference and return [`&Valid<V>`] if it is valid.
+    ///
+    /// [`&Valid<V>`]: Valid
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the value is invalid.
+    fn validate_ref<'v>(&self, value: &'v V) -> Result<&'v Valid<V>, Self::Error>;
 
-    fn validate(&self, value: V) -> impl Future<Output = Result<Valid<V>, Self::Error>> + Send
-    where
-        V: Send + Sync,
-    {
-        async move {
-            self.validate_ref(&value).await?;
-            Ok(Valid { value })
-        }
+    /// Validates a value and return [`Valid<V>`] if it is valid.
+    ///
+    /// [`Valid<V>`]: Valid
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the value is invalid.
+    fn validate(&self, value: V) -> Result<Valid<V>, Self::Error> {
+        self.validate_ref(&value)?;
+        Ok(Valid { value })
     }
 }
 
@@ -56,11 +60,11 @@ where
 {
     type Error = T::Error;
 
-    async fn validate_ref<'v>(&self, value: &'v Arc<V>) -> Result<&'v Valid<Arc<V>>, Self::Error>
+    fn validate_ref<'v>(&self, value: &'v Arc<V>) -> Result<&'v Valid<Arc<V>>, Self::Error>
     where
         V: Sync,
     {
-        self.validate_ref(value.as_ref()).await?;
+        self.validate_ref(value.as_ref())?;
         Ok(Valid::new_ref_unchecked(value))
     }
 }
