@@ -1,4 +1,7 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ClosedMultiEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
@@ -9,6 +12,7 @@ import type {
   EntityTypePermission,
   GetEntityTypesParams,
   GetEntityTypeSubgraphParams,
+  GetMultiEntityTypeParams,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
   ProvidedOntologyEditionProvenance,
@@ -25,8 +29,9 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  mapGraphApiClosedEntityTypeToClosedEntityType,
-  mapGraphApiEntityTypeToEntityType,
+  mapGraphApiClosedEntityTypesToClosedEntityTypes,
+  mapGraphApiEntityTypesToEntityTypes,
+  mapGraphApiMultiEntityTypeToMultiEntityType,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
@@ -212,11 +217,11 @@ export const getEntityTypes: ImpureGraphFunction<
   return await graphApi
     .getEntityTypes(actorId, {
       includeDrafts: false,
-      includeClosed: true,
+      includeClosed: false,
       ...request,
     })
     .then(({ data: response }) =>
-      mapGraphApiEntityTypeToEntityType(response.entityTypes),
+      mapGraphApiEntityTypesToEntityTypes(response.entityTypes),
     );
 };
 
@@ -233,8 +238,8 @@ export const getClosedEntityTypes: ImpureGraphFunction<
     includeClosed: true,
     ...request,
   });
-  const entityTypes = mapGraphApiEntityTypeToEntityType(response.entityTypes);
-  const closedEntityTypes = mapGraphApiClosedEntityTypeToClosedEntityType(
+  const entityTypes = mapGraphApiEntityTypesToEntityTypes(response.entityTypes);
+  const closedEntityTypes = mapGraphApiClosedEntityTypesToClosedEntityTypes(
     response.closedEntityTypes!,
   );
   return closedEntityTypes.map((schema, idx) => ({
@@ -242,6 +247,18 @@ export const getClosedEntityTypes: ImpureGraphFunction<
     metadata: entityTypes[idx]!.metadata,
   }));
 };
+
+export const getClosedMultiEntityType: ImpureGraphFunction<
+  GetMultiEntityTypeParams & {
+    temporalClient?: TemporalClient;
+  },
+  Promise<ClosedMultiEntityType>
+> = async ({ graphApi }, { actorId }, { temporalClient: _, ...request }) =>
+  graphApi
+    .getMultiEntityTypes(actorId, request)
+    .then(({ data: response }) =>
+      mapGraphApiMultiEntityTypeToMultiEntityType(response.entityType),
+    );
 
 /**
  * Get an entity type by its versioned URL.
