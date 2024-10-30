@@ -62,7 +62,6 @@ impl FetchServer {
     }
 }
 
-#[tarpc::server]
 impl Fetcher for FetchServer {
     async fn fetch_ontology_types(
         self,

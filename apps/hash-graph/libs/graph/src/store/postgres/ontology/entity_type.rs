@@ -42,7 +42,7 @@ use tracing::instrument;
 use type_system::{
     Valid, Validator,
     schema::{
-        ClosedEntityType, DataTypeUuid, EntityType, EntityTypeResolveData,
+        ClosedEntityType, ClosedMultiEntityType, DataTypeUuid, EntityType, EntityTypeResolveData,
         EntityTypeToPropertyTypeEdge, EntityTypeUuid, EntityTypeValidator, InheritanceDepth,
         OntologyTypeResolver, OntologyTypeUuid, PropertyTypeUuid,
     },
@@ -56,6 +56,7 @@ use crate::store::{
     error::DeletionError,
     ontology::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
+        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
         GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
         GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
         UpdateEntityTypesParams,
@@ -353,6 +354,7 @@ where
                     None
                 },
                 entity_types,
+                closed_entity_types: None,
                 count,
                 web_ids,
                 edition_created_by_ids,
@@ -671,6 +673,7 @@ where
                 include_drafts: false,
                 after: None,
                 limit: None,
+                include_closed: false,
                 include_count: false,
                 include_web_ids: false,
                 include_edition_created_by_ids: false,
@@ -824,6 +827,7 @@ where
         actor_id: AccountId,
         mut params: GetEntityTypesParams<'_>,
     ) -> Result<GetEntityTypesResponse, QueryError> {
+        let include_closed = params.include_closed;
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -835,9 +839,77 @@ where
             .change_context(QueryError)?;
 
         let temporal_axes = params.temporal_axes.clone().resolve();
-        self.get_entity_types_impl(actor_id, params, &temporal_axes)
+        let (mut response, _) = self
+            .get_entity_types_impl(actor_id, params, &temporal_axes)
+            .await?;
+
+        if include_closed {
+            let ids = response
+                .entity_types
+                .iter()
+                .map(|entity_type| EntityTypeUuid::from_url(&entity_type.schema.id))
+                .collect::<Vec<_>>();
+            response.closed_entity_types = Some(
+                self.as_client()
+                    .query_raw(
+                        "
+                            SELECT closed_schema FROM entity_types
+                            JOIN unnest($1::uuid[])
+                            WITH ORDINALITY AS filter(id, idx)
+                              ON filter.id = entity_types.ontology_id
+                            ORDER BY filter.idx
+                        ",
+                        &[&ids],
+                    )
+                    .await
+                    .change_context(QueryError)?
+                    .map_ok(|row| row.get::<_, Valid<ClosedEntityType>>(0).into_inner())
+                    .try_collect()
+                    .await
+                    .change_context(QueryError)?,
+            );
+        };
+        Ok(response)
+    }
+
+    async fn get_closed_multi_entity_types(
+        &self,
+        actor_id: AccountId,
+        params: GetClosedMultiEntityTypeParams,
+    ) -> Result<GetClosedMultiEntityTypeResponse, QueryError> {
+        let entity_type_ids = params
+            .entity_type_ids
+            .iter()
+            .map(EntityTypeUuid::from_url)
+            .collect::<Vec<_>>();
+        let response = self
+            .get_entity_types(actor_id, GetEntityTypesParams {
+                filter: Filter::In(
+                    FilterExpression::Path {
+                        path: EntityTypeQueryPath::OntologyId,
+                    },
+                    ParameterList::EntityTypeIds(&entity_type_ids),
+                ),
+                temporal_axes: params.temporal_axes,
+                include_drafts: params.include_drafts,
+                after: None,
+                limit: None,
+                include_count: false,
+                include_closed: true,
+                include_web_ids: false,
+                include_edition_created_by_ids: false,
+            })
             .await
-            .map(|(response, _)| response)
+            .change_context(QueryError)?;
+
+        Ok(GetClosedMultiEntityTypeResponse {
+            entity_type: ClosedMultiEntityType::from_multi_type_closed_schema(
+                response
+                    .closed_entity_types
+                    .expect("Response should include closed entity types"),
+            )
+            .change_context(QueryError)?,
+        })
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -862,6 +934,7 @@ where
         let (
             GetEntityTypesResponse {
                 entity_types,
+                closed_entity_types: _,
                 cursor,
                 count,
                 web_ids,
@@ -877,6 +950,7 @@ where
                     after: params.after,
                     limit: params.limit,
                     include_drafts: params.include_drafts,
+                    include_closed: false,
                     include_count: params.include_count,
                     include_web_ids: params.include_web_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
@@ -1025,6 +1099,7 @@ where
                 include_drafts: false,
                 after: None,
                 limit: None,
+                include_closed: false,
                 include_count: false,
                 include_web_ids: false,
                 include_edition_created_by_ids: false,
@@ -1260,7 +1335,7 @@ where
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
-        let entity_type_ids = Read::<EntityTypeWithMetadata>::read_vec(
+        let entity_types = Read::<EntityTypeWithMetadata>::read_vec(
             &transaction,
             &Filter::All(Vec::new()),
             None,
@@ -1277,7 +1352,8 @@ where
         })
         .collect::<Vec<_>>();
 
-        for (entity_type_id, schema) in entity_type_ids {
+        let entity_type_validator = EntityTypeValidator;
+        for (entity_type_id, schema) in entity_types {
             let schema_metadata = ontology_type_resolver
                 .resolve_entity_type_metadata(entity_type_id)
                 .change_context(UpdateError)?;
@@ -1287,12 +1363,13 @@ where
                 .await
                 .change_context(UpdateError)?;
 
-            let closed_schema =
-                ClosedEntityType::from_resolve_data((*schema).clone(), &schema_metadata)
-                    .change_context(UpdateError)?;
-            // TODO: Validate ontology types in snapshots
-            //   see https://linear.app/hash/issue/H-3038
-            let closed_schema = Valid::new_unchecked(closed_schema);
+            let closed_schema = entity_type_validator
+                .validate(
+                    ClosedEntityType::from_resolve_data((*schema).clone(), &schema_metadata)
+                        .change_context(UpdateError)?,
+                )
+                .await
+                .change_context(UpdateError)?;
 
             transaction
                 .as_client()

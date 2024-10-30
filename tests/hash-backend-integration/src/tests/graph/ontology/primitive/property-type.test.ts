@@ -62,6 +62,7 @@ beforeAll(async () => {
 
   propertyTypeSchema = {
     title: "A property type",
+    description: "A property type for testing",
     oneOf: [
       {
         $ref: textDataTypeId,

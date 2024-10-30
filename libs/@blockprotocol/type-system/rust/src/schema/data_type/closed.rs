@@ -89,21 +89,20 @@ impl ClosedDataType {
         data_type: DataType,
         resolve_data: &DataTypeResolveData,
     ) -> Result<Self, Report<ResolveClosedDataTypeError>> {
-        let (description, label) = if data_type.description.is_some() || !data_type.label.is_empty()
-        {
-            (data_type.description, data_type.label)
-        } else {
+        let label = if data_type.label.is_empty() {
             resolve_data
                 .find_metadata_schema()?
-                .map(|schema| (schema.description.clone(), schema.label.clone()))
+                .map(|schema| schema.label.clone())
                 .unwrap_or_default()
+        } else {
+            data_type.label
         };
 
         Ok(Self {
             id: data_type.id.clone(),
             title: data_type.title.clone(),
             title_plural: data_type.title_plural.clone(),
-            description: description.ok_or(ResolveClosedDataTypeError::MissingDescription)?,
+            description: data_type.description.clone(),
             label,
             all_of: ValueConstraints::fold_intersections(
                 iter::once(data_type.constraints).chain(resolve_data.constraints().cloned()),
@@ -187,7 +186,7 @@ impl DataTypeResolveData {
     ) -> Result<Option<&DataType>, Report<ResolveClosedDataTypeError>> {
         let mut found_schema_data = None::<(InheritanceDepth, &DataType)>;
         for (depth, stored_schema) in self.ordered_schemas() {
-            if stored_schema.description.is_some() || !stored_schema.label.is_empty() {
+            if !stored_schema.label.is_empty() {
                 if let Some((found_depth, found_schema)) = found_schema_data {
                     match depth.cmp(&found_depth) {
                         cmp::Ordering::Less => {
@@ -253,13 +252,14 @@ mod tests {
         .await
         .into_inner();
 
-        let number = ensure_validation_from_str::<DataType, _>(
+        let mut number = ensure_validation_from_str::<DataType, _>(
             graph_test_data::data_type::NUMBER_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await
         .into_inner();
+        number.label.right = Some("f64".to_owned());
 
         let integer = ensure_validation::<DataType, _>(
             json!({
@@ -267,6 +267,7 @@ mod tests {
               "kind": "dataType",
               "$id": "https://example.com/data-type/integer/v/1",
               "title": "Integer",
+              "description": "A signed integer.",
               "allOf": [{ "$ref": number.id }],
               "type": "number",
               "abstract": false,
@@ -284,6 +285,7 @@ mod tests {
               "kind": "dataType",
               "$id": "https://example.com/data-type/unsigned/v/1",
               "title": "Unsigned",
+              "description": "An unsigned number.",
               "allOf": [{ "$ref": number.id }],
               "type": "number",
               "abstract": false,
@@ -301,6 +303,7 @@ mod tests {
               "kind": "dataType",
               "$id": "https://example.com/data-type/unsigned-int/v/1",
               "title": "Unsigned Integer",
+              "description": "An unsigned integer.",
               "allOf": [{ "$ref": integer.id }, { "$ref": unsigned.id }],
               "type": "number",
               "maximum": 4_294_967_295.0,
@@ -319,6 +322,7 @@ mod tests {
               "$id": "https://example.com/data-type/very-small/v/1",
               "title": "Small number",
               "description": "A small number",
+              "label": { "right": "i8" },
               "allOf": [{ "$ref": number.id }],
               "type": "number",
               "maximum": 255.0,
@@ -336,6 +340,7 @@ mod tests {
               "kind": "dataType",
               "$id": "https://example.com/data-type/unsigned-small-int/v/1",
               "title": "Unsigned Integer",
+              "description": "An unsigned integer.",
               "allOf": [{ "$ref": unsigned_int.id }, { "$ref": small.id }],
               "type": "number",
               "maximum": 100.0,
@@ -362,13 +367,7 @@ mod tests {
         assert_eq!(value.id, defs.value.id);
         assert_eq!(value.title, defs.value.title);
         assert_eq!(value.title_plural, defs.value.title_plural);
-        assert_eq!(
-            value.description,
-            defs.value
-                .description
-                .as_deref()
-                .expect("Missing description")
-        );
+        assert_eq!(value.description, defs.value.description);
         assert_eq!(value.label, defs.value.label);
         assert_eq!(value.r#abstract, defs.value.r#abstract);
         assert_eq!(json!(value.all_of), json!([defs.value.constraints]));
@@ -378,13 +377,7 @@ mod tests {
         assert_eq!(number.id, defs.number.id);
         assert_eq!(number.title, defs.number.title);
         assert_eq!(number.title_plural, defs.number.title_plural);
-        assert_eq!(
-            number.description,
-            defs.number
-                .description
-                .as_deref()
-                .expect("Missing description")
-        );
+        assert_eq!(number.description, defs.number.description);
         assert_eq!(number.label, defs.number.label);
         assert_eq!(number.r#abstract, defs.number.r#abstract);
         assert_eq!(json!(number.all_of), json!([defs.number.constraints]));
@@ -394,13 +387,7 @@ mod tests {
         assert_eq!(integer.id, defs.integer.id);
         assert_eq!(integer.title, defs.integer.title);
         assert_eq!(integer.title_plural, defs.integer.title_plural);
-        assert_eq!(
-            integer.description,
-            defs.number
-                .description
-                .as_deref()
-                .expect("Missing description")
-        );
+        assert_eq!(integer.description, defs.integer.description);
         assert_eq!(integer.label, defs.number.label);
         assert_eq!(integer.r#abstract, defs.integer.r#abstract);
         assert_eq!(json!(integer.all_of), json!([defs.integer.constraints]));
@@ -410,13 +397,7 @@ mod tests {
         assert_eq!(unsigned.id, defs.unsigned.id);
         assert_eq!(unsigned.title, defs.unsigned.title);
         assert_eq!(unsigned.title_plural, defs.unsigned.title_plural);
-        assert_eq!(
-            unsigned.description,
-            defs.number
-                .description
-                .as_deref()
-                .expect("Missing description")
-        );
+        assert_eq!(unsigned.description, defs.unsigned.description);
         assert_eq!(unsigned.label, defs.number.label);
         assert_eq!(unsigned.r#abstract, defs.unsigned.r#abstract);
         assert_eq!(json!(unsigned.all_of), json!([defs.unsigned.constraints]));
@@ -426,13 +407,7 @@ mod tests {
         assert_eq!(unsigned_int.id, defs.unsigned_int.id);
         assert_eq!(unsigned_int.title, defs.unsigned_int.title);
         assert_eq!(unsigned_int.title_plural, defs.unsigned_int.title_plural);
-        assert_eq!(
-            unsigned_int.description,
-            defs.number
-                .description
-                .as_deref()
-                .expect("Missing description")
-        );
+        assert_eq!(unsigned_int.description, defs.unsigned_int.description);
         assert_eq!(unsigned_int.label, defs.number.label);
         assert_eq!(unsigned_int.r#abstract, defs.unsigned_int.r#abstract);
         assert_eq!(
@@ -452,13 +427,7 @@ mod tests {
         assert_eq!(small.id, defs.small.id);
         assert_eq!(small.title, defs.small.title);
         assert_eq!(small.title_plural, defs.small.title_plural);
-        assert_eq!(
-            small.description,
-            defs.small
-                .description
-                .as_deref()
-                .expect("Missing description")
-        );
+        assert_eq!(small.description, defs.small.description);
         assert_eq!(small.label, defs.small.label);
         assert_eq!(small.r#abstract, defs.small.r#abstract);
         assert_eq!(json!(small.all_of), json!([defs.small.constraints]));
@@ -476,10 +445,7 @@ mod tests {
         );
         assert_eq!(
             unsigned_small_int.description,
-            defs.small
-                .description
-                .as_deref()
-                .expect("Missing description")
+            defs.unsigned_small_int.description
         );
         assert_eq!(unsigned_small_int.label, defs.small.label);
         assert_eq!(

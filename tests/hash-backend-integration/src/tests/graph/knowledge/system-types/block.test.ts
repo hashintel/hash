@@ -60,6 +60,7 @@ describe("Block", () => {
           webShortname: testUser.shortname!,
         }),
         title: "Dummy",
+        description: "A dummy entity type for testing purposes.",
         properties: [],
         outgoingLinks: [],
       }),

@@ -28,6 +28,6 @@
       ]
     }
   },
-  "required": ["$schema", "kind", "title"],
+  "required": ["$schema", "kind", "title", "description"],
   "additionalProperties": true
 }

@@ -17,8 +17,8 @@ use time::OffsetDateTime;
 use type_system::{
     Valid,
     schema::{
-        ClosedEntityType, ConversionDefinition, DataType, DataTypeUuid, EntityType, EntityTypeUuid,
-        InheritanceDepth, OntologyTypeUuid, PropertyType, PropertyTypeUuid,
+        ClosedDataType, ClosedEntityType, ConversionDefinition, DataType, DataTypeUuid, EntityType,
+        EntityTypeUuid, InheritanceDepth, OntologyTypeUuid, PropertyType, PropertyTypeUuid,
     },
     url::{BaseUrl, OntologyTypeVersion},
 };
@@ -69,6 +69,7 @@ pub struct DataTypeConversionsRow {
 pub struct DataTypeRow {
     pub ontology_id: DataTypeUuid,
     pub schema: Valid<DataType>,
+    pub closed_schema: Valid<ClosedDataType>,
 }
 
 #[derive(Debug, ToSql)]

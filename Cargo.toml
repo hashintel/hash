@@ -164,7 +164,7 @@ hyper = { version = "=1.5.0", default-features = false }
 include_dir = { version = "=0.7.4", default-features = false }
 insta = { version = "=1.40.0", default-features = false }
 itertools = { version = "0.13.0", default-features = false }
-jsonschema = { version = "=0.24.1", default-features = false }
+jsonschema = { version = "=0.26.0", default-features = false }
 justjson = { version = "=0.3.0", default-features = false }
 lexical = { version = "=7.0.2", default-features = false }
 libp2p = { version = "=0.54.1", default-features = false }
@@ -198,7 +198,7 @@ similar-asserts = { version = "=1.6.0", default-features = false }
 supports-color = { version = "=3.0.1", default-features = false }
 supports-unicode = { version = "=3.0.0", default-features = false }
 tachyonix = { version = "=0.3.1", default-features = false }
-tarpc = { version = "=0.33", default-features = false }
+tarpc = { version = "=0.35.0", default-features = false }
 temporal-io-client = { package = "temporal-client", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
 temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
 test-fuzz = { version = "=6.0.0", default-features = false }

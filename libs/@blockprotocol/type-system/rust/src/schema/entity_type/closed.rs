@@ -25,8 +25,7 @@ pub struct ClosedEntityTypeMetadata {
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: String,
     #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
     pub inverse: InverseEntityTypeMetadata,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -46,8 +45,7 @@ pub struct ClosedEntityType {
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: String,
     #[serde(flatten)]
     pub constraints: EntityConstraints,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

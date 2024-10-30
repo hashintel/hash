@@ -16,7 +16,6 @@ use core::iter;
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 
 use crate::{
     schema::{
@@ -64,8 +63,7 @@ pub struct EntityTypeSchemaMetadata {
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: String,
     #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
     pub inverse: InverseEntityTypeMetadata,
 }
@@ -101,8 +99,7 @@ pub struct EntityType {
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: String,
     #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
     pub inverse: InverseEntityTypeMetadata,
     #[serde(flatten)]
@@ -117,9 +114,6 @@ pub struct EntityType {
     pub label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[deprecated]
-    pub examples: Vec<HashMap<BaseUrl, JsonValue>>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -499,6 +493,7 @@ mod tests {
                     "$id": "https://blockprotocol.org/@alice/types/entity-type/invalid/v/1",
                     "type": "object",
                     "title": "Invalid",
+                    "description": "An invalid entity type",
                     "properties": {
                         "https://example.com/property_type_a/": { "$ref": "https://example.com/property_type_b/v/1" }
                     }
