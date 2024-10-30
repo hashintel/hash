@@ -346,6 +346,7 @@ const ConfigPanel: FunctionComponent<{
                 Min
               </ItemLabel>
               <IntegerInput
+                max={config.edgeSizing.max}
                 value={config.edgeSizing.min}
                 setValue={(newMin) =>
                   setConfig({
@@ -361,6 +362,7 @@ const ConfigPanel: FunctionComponent<{
             <Box>
               <ItemLabel tooltip="The maximum size.">Max</ItemLabel>
               <IntegerInput
+                min={config.edgeSizing.min}
                 value={config.edgeSizing.max}
                 setValue={(newMax) =>
                   setConfig({

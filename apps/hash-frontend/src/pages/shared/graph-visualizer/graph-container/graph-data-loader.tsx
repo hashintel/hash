@@ -108,11 +108,11 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
 
     /**
      * We aggregate edges of the same type between the same nodes into a single drawn edge.
-     * This record keeps track of the aggregateEdgeId for each individual edge
+     * This record keeps track of the edges aggregated under each aggregateEdgeId
      * – we need this to assign additional significance to edges that have more edges pointing to them.
      * We could alternatively offer the option to show them in parallel, which would work for a small number.
      */
-    const edgeIdToAggregateEdgeId: Record<string, string> = {};
+    const aggregateEdgeToIndividualEdgeIds: Record<string, string[]> = {};
 
     for (const edge of edges) {
       const { source, target } = edge;
@@ -146,10 +146,12 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
       }
 
       const aggregateEdgeId = `${source}-${target}`;
-      edgeIdToAggregateEdgeId[edge.edgeId] = aggregateEdgeId;
+      aggregateEdgeToIndividualEdgeIds[aggregateEdgeId] ??= [];
+      aggregateEdgeToIndividualEdgeIds[aggregateEdgeId].push(edge.edgeId);
 
       if (aggregateEdgesById[aggregateEdgeId]) {
         aggregateEdgesById[aggregateEdgeId].aggregatedEdgeCount++;
+        aggregateEdgesById[aggregateEdgeId].significance++;
 
         /**
          * Don't draw another edge, it'll be overlapped by the previous one
@@ -162,17 +164,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
           aggregatedEdgeCount: 1,
           aggregatedIncomingEdgeCount: 0,
           color: "rgba(180, 180, 180, 0.8)",
-          /**
-           * We'll start the significance at 0:
-           * - we want to count the number of edges this edge aggregates, plus the number of edges that point to each of those
-           * - if we start the count at 1, an individual edge with one incoming edge would have a significance of 2,
-           *   and each further edge pointing to it would only increase the significance by 1.
-           * - this overcounts the significance of the first edge pointing to that edge.
-           *
-           * It doesn't matter what the absolute number is, only the relative significance of each edge,
-           * because we're going to size edges by significance relative to each other (if they all have 0, that's fine).
-           */
-          significance: 0,
+          significance: 1,
           type: "curved",
         };
       }
@@ -186,39 +178,43 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
     let lowestSignificance = Infinity;
 
     /**
-     * Now we've gone through all the edges, we can update the significance of the aggregated edges,
+     * Now we've created all the edges, we can update the significance of the aggregated edges,
      * based on how many edges point to them.
      */
-    for (const [maybeEdgeId, incomingEdges] of Object.entries(
-      maybeEdgeIdToNumberOfIncomingEdges,
-    )) {
-      const aggregateEdgeId = edgeIdToAggregateEdgeId[maybeEdgeId];
-      if (!aggregateEdgeId) {
-        /**
-         * This wasn't an edge, it was a node that was filtered out.
-         */
-        continue;
+    for (const aggregatedEdge of Object.values(aggregateEdgesById)) {
+      const individualEdges =
+        aggregateEdgeToIndividualEdgeIds[aggregatedEdge.edgeId];
+
+      for (const individualEdgeId of individualEdges ?? []) {
+        const incomingEdges =
+          maybeEdgeIdToNumberOfIncomingEdges[individualEdgeId];
+
+        let significance = aggregatedEdge.significance;
+        if (incomingEdges) {
+          /**
+           * We -1 to discount the first of the incoming edges pointing to this edge (which is one member of the aggregateEdge):
+           * - we want to count the number of edges aggregated, plus the number of edges that point to each of those
+           * - we already added 1 significance for each of the edges aggregated
+           * - if we add 1 for each edge pointing to the edge, an individual edge with one incoming edge would have a significance of 2,
+           *   and each further edge pointing to it would only increase the significance by 1.
+           * - this overcounts the significance of the first edge pointing to that edge.
+           */
+          significance =
+            aggregatedEdge.significance +
+            (incomingEdges > 0 ? incomingEdges - 1 : 0);
+
+          aggregatedEdge.significance = significance;
+        }
+
+        if (highestSignificance < significance) {
+          highestSignificance = significance;
+        }
+        if (lowestSignificance > significance) {
+          lowestSignificance = significance;
+        }
+
+        aggregatedEdge.aggregatedIncomingEdgeCount += incomingEdges ?? 0;
       }
-
-      const aggregateEdge = aggregateEdgesById[aggregateEdgeId];
-      if (!aggregateEdge) {
-        throw new Error(
-          `Expected to find an aggregate edge for ${aggregateEdgeId}`,
-        );
-      }
-
-      const newSignificance = aggregateEdge.significance + incomingEdges;
-
-      aggregateEdge.significance = newSignificance;
-
-      if (highestSignificance < newSignificance) {
-        highestSignificance = newSignificance;
-      }
-      if (lowestSignificance > newSignificance) {
-        lowestSignificance = newSignificance;
-      }
-
-      aggregateEdge.aggregatedIncomingEdgeCount = newSignificance;
     }
 
     /**
@@ -243,7 +239,13 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
     }
 
     for (const aggregateEdge of Object.values(aggregateEdgesById)) {
-      const { significance, source, target } = aggregateEdge;
+      const { source, target } = aggregateEdge;
+
+      /**
+       * We started the significance at 0, so that the first incoming
+       */
+      const significance = Math.min(1, aggregateEdge.significance);
+      aggregateEdge.significance = significance;
 
       let size: number | undefined;
       if (config.edgeSizing.scale === "Linear") {
@@ -257,9 +259,12 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
           throw new Error("Expected edgeGeometricSizeFactor to be defined");
         }
         const normalizedSignificance = significance / lowestSignificance;
-        size = Math.floor(
-          minEdgeSize *
-            edgeGeometricSizeFactor ** Math.log(normalizedSignificance),
+        size = Math.max(
+          minEdgeSize,
+          Math.floor(
+            minEdgeSize *
+              edgeGeometricSizeFactor ** Math.log(normalizedSignificance),
+          ),
         );
       }
 

@@ -279,7 +279,9 @@ export const useSetDrawSettings = <
         graphState.hoveredNodeId === node
       ) {
         nodeData.zIndex = 3;
-        nodeData.label = `${nodeData.label} (${nodeData.significance})`;
+        if (config.nodeSizing.mode !== "static") {
+          nodeData.label = `${nodeData.label} (${nodeData.significance})`;
+        }
       }
 
       return nodeData;
@@ -411,6 +413,7 @@ export const useSetDrawSettings = <
       return edgeData;
     });
   }, [
+    config.nodeSizing.mode,
     config.nodeHighlighting,
     config.edgeSizing.nonHighlightedVisibleSizeThreshold,
     isFullScreen,
