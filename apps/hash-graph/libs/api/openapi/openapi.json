@@ -5472,6 +5472,9 @@
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
+          "includeClosed": {
+            "type": "boolean"
+          },
           "includeCount": {
             "type": "boolean"
           },
@@ -5501,6 +5504,12 @@
           "entityTypes"
         ],
         "properties": {
+          "closedEntityTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "./models/closed_entity_type.json"
+            }
+          },
           "count": {
             "type": "integer",
             "nullable": true,

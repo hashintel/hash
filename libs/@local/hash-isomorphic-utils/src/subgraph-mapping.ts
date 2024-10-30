@@ -1,5 +1,7 @@
+import type { ClosedEntityType } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
+  ClosedEntityType as GraphApiClosedEntityType,
   DataTypeWithMetadata as GraphApiDataTypeWithMetadata,
   Entity as GraphApiEntity,
   EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
@@ -209,6 +211,10 @@ export const deserializeSubgraph = <RootType extends SubgraphRootType>(
 export const mapGraphApiEntityTypeToEntityType = (
   entityTypes: GraphApiEntityTypeWithMetadata[],
 ) => entityTypes as EntityTypeWithMetadata[];
+
+export const mapGraphApiClosedEntityTypeToClosedEntityType = (
+  entityTypes: GraphApiClosedEntityType[],
+) => entityTypes as ClosedEntityType[];
 
 export const mapGraphApiPropertyTypeToPropertyType = (
   entityTypes: GraphApiPropertyTypeWithMetadata[],

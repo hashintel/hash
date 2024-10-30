@@ -16,6 +16,7 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ActorType,
+  ClosedEntityType,
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
 } from "@local/hash-graph-client";
@@ -116,3 +117,8 @@ export type EntityTypeWithMetadata = Subtype<
     metadata: EntityTypeMetadata;
   }
 >;
+
+export type ClosedEntityTypeWithMetadata = {
+  schema: ClosedEntityType;
+  metadata: EntityTypeMetadata;
+};
