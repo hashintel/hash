@@ -10,7 +10,11 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use type_system::{Valid, schema::DataTypeUuid};
+use type_system::{
+    Valid,
+    schema::{ClosedDataType, DataTypeUuid, ValueLabel},
+    url::{OntologyTypeVersion, VersionedUrl},
+};
 
 use crate::{
     snapshot::{
@@ -77,6 +81,20 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                 // TODO: Validate ontology types in snapshots
                 //   see https://linear.app/hash/issue/H-3038
                 schema: Valid::new_unchecked(data_type.schema.clone()),
+                // An empty schema is inserted initially. This will be replaced later by the closed
+                // schema.
+                closed_schema: Valid::new_unchecked(ClosedDataType {
+                    id: VersionedUrl {
+                        base_url: data_type.schema.id.base_url.clone(),
+                        version: OntologyTypeVersion::new(0),
+                    },
+                    title: String::new(),
+                    title_plural: None,
+                    description: String::new(),
+                    label: ValueLabel::default(),
+                    all_of: Vec::new(),
+                    r#abstract: true,
+                }),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
