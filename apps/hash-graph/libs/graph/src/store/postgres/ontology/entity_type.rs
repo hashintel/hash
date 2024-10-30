@@ -1331,7 +1331,7 @@ where
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
-        let entity_type_ids = Read::<EntityTypeWithMetadata>::read_vec(
+        let entity_types = Read::<EntityTypeWithMetadata>::read_vec(
             &transaction,
             &Filter::All(Vec::new()),
             None,
@@ -1348,7 +1348,8 @@ where
         })
         .collect::<Vec<_>>();
 
-        for (entity_type_id, schema) in entity_type_ids {
+        let entity_type_validator = EntityTypeValidator;
+        for (entity_type_id, schema) in entity_types {
             let schema_metadata = ontology_type_resolver
                 .resolve_entity_type_metadata(entity_type_id)
                 .change_context(UpdateError)?;
@@ -1358,12 +1359,12 @@ where
                 .await
                 .change_context(UpdateError)?;
 
-            let closed_schema =
-                ClosedEntityType::from_resolve_data((*schema).clone(), &schema_metadata)
-                    .change_context(UpdateError)?;
-            // TODO: Validate ontology types in snapshots
-            //   see https://linear.app/hash/issue/H-3038
-            let closed_schema = Valid::new_unchecked(closed_schema);
+            let closed_schema = entity_type_validator
+                .validate(
+                    ClosedEntityType::from_resolve_data((*schema).clone(), &schema_metadata)
+                        .change_context(UpdateError)?,
+                )
+                .change_context(UpdateError)?;
 
             transaction
                 .as_client()

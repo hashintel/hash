@@ -543,23 +543,25 @@ where
             .collect::<Result<Vec<_>, _>>()?;
 
         let data_type_validator = DataTypeValidator;
-        for (data_type_id, data_type) in &inserted_data_types {
+        for ((closed_schema, _), (data_type_id, data_type)) in
+            closed_schemas.iter().zip(&inserted_data_types)
+        {
             let schema = data_type_validator
                 .validate_ref(&**data_type)
                 .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
-            transaction
-                .insert_data_type_with_id(*data_type_id, schema)
-                .await?;
-        }
-        for ((closed_schema, closed_metadata), (data_type_id, _)) in
-            closed_schemas.iter().zip(&inserted_data_types)
-        {
-            data_type_validator
+            let closed_schema = data_type_validator
                 .validate_ref(closed_schema)
                 .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
 
+            transaction
+                .insert_data_type_with_id(*data_type_id, schema, closed_schema)
+                .await?;
+        }
+        for ((_, closed_metadata), (data_type_id, _)) in
+            closed_schemas.iter().zip(&inserted_data_types)
+        {
             transaction
                 .insert_data_type_references(*data_type_id, closed_metadata)
                 .await?;
@@ -904,7 +906,7 @@ where
             .await?;
 
         transaction
-            .insert_data_type_with_id(new_ontology_id, &schema)
+            .insert_data_type_with_id(new_ontology_id, &schema, &closed_schema)
             .await
             .change_context(UpdateError)?;
         transaction
@@ -1112,7 +1114,7 @@ where
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
-        let data_type_ids = Read::<DataTypeWithMetadata>::read_vec(
+        let data_types = Read::<DataTypeWithMetadata>::read_vec(
             &transaction,
             &Filter::All(Vec::new()),
             None,
@@ -1124,18 +1126,39 @@ where
         .map(|data_type| {
             let schema = Arc::new(data_type.schema);
             let data_type_id = DataTypeUuid::from_url(&schema.id);
-            ontology_type_resolver.add_unresolved_data_type(data_type_id, schema);
-            data_type_id
+            ontology_type_resolver.add_unresolved_data_type(data_type_id, Arc::clone(&schema));
+            (data_type_id, schema)
         })
         .collect::<Vec<_>>();
 
-        for data_type_id in data_type_ids {
+        let data_type_validator = DataTypeValidator;
+        for (data_type_id, schema) in data_types {
             let schema_metadata = ontology_type_resolver
                 .resolve_data_type_metadata(data_type_id)
                 .change_context(UpdateError)?;
 
             transaction
                 .insert_data_type_references(data_type_id, &schema_metadata)
+                .await
+                .change_context(UpdateError)?;
+
+            let closed_schema = data_type_validator
+                .validate(
+                    ClosedDataType::from_resolve_data((*schema).clone(), &schema_metadata)
+                        .change_context(UpdateError)?,
+                )
+                .change_context(UpdateError)?;
+
+            transaction
+                .as_client()
+                .query(
+                    "
+                        UPDATE data_types
+                        SET closed_schema = $2
+                        WHERE ontology_id = $1;
+                    ",
+                    &[&data_type_id, &closed_schema],
+                )
                 .await
                 .change_context(UpdateError)?;
         }

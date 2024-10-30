@@ -12,8 +12,9 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use type_system::{
-    Validator as _,
-    schema::{DataTypeUuid, DataTypeValidator},
+    Valid, Validator as _,
+    schema::{ClosedDataType, DataTypeUuid, DataTypeValidator, ValueLabel},
+    url::{OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::{
@@ -82,6 +83,20 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         self.schema
             .start_send_unpin(DataTypeRow {
                 ontology_id,
+                // An empty schema is inserted initially. This will be replaced later by the closed
+                // schema.
+                closed_schema: Valid::new_unchecked(ClosedDataType {
+                    id: VersionedUrl {
+                        base_url: schema.id.base_url.clone(),
+                        version: OntologyTypeVersion::new(0),
+                    },
+                    title: String::new(),
+                    title_plural: None,
+                    description: String::new(),
+                    label: ValueLabel::default(),
+                    all_of: Vec::new(),
+                    r#abstract: true,
+                }),
                 schema,
             })
             .change_context(SnapshotRestoreError::Read)
