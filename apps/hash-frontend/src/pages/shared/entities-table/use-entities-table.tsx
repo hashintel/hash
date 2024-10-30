@@ -28,9 +28,10 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { format } from "date-fns";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 
 import { gridHeaderBaseFont } from "../../../components/grid/grid";
+import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import type { MinimalActor } from "../../../shared/use-actors";
 import { useActors } from "../../../shared/use-actors";
 
@@ -166,17 +167,7 @@ export const useEntitiesTable = (params: {
     accountIds: editorActorIds,
   });
 
-  /**
-   * @todo ******* RESTORE THIS *******
-   */
-  const getOwnerForEntity = useCallback(
-    (_args: { entityId: EntityId }) => ({
-      ownedById: "",
-      shortname: "",
-    }),
-    [],
-  );
-  // const getOwnerForEntity = useGetOwnerForEntity();
+  const getOwnerForEntity = useGetOwnerForEntity();
 
   const entitiesHaveSameType = useMemo(
     () =>
