@@ -43,7 +43,7 @@ impl SchemaVersion {
 #[cfg(test)]
 #[cfg(feature = "serde")]
 pub(crate) mod tests {
-    use std::{eprintln, fs};
+    use std::fs;
 
     use coverage_helper::test;
 
@@ -68,12 +68,8 @@ pub(crate) mod tests {
             .expect("could not compile JSON schema");
 
         let validation = json_schema.validate(&log_value);
-        if let Err(errors) = validation {
-            eprintln!("JSON schema validation failed:");
-            for error in errors {
-                eprintln!("{}: {error}", error.instance_path);
-            }
-            panic!("JSON schema validation failed");
+        if let Err(error) = validation {
+            panic!("JSON schema validation failed: {error}");
         }
     }
 
