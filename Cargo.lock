@@ -1154,6 +1154,7 @@ dependencies = [
  "error-stack",
  "image",
  "pdfium-render",
+ "thiserror",
 ]
 
 [[package]]

@@ -1,34 +1,50 @@
 #![doc = include_str!("../README.md")]
 
+use error_stack::Report;
 use image::DynamicImage;
 use pdfium_render::prelude::*;
+use thiserror::Error;
 
-use error_stack::Report;
+#[derive(Error, Debug)]
+pub enum ChonkyError {
+    #[error("parsing error in pdf")]
+    ReadPdf,
+    #[error("pdfium error")]
+    Pdfium,
+    #[error("write error to system")]
+    Write,
+    #[error("Issues with CLI input")]
+    Arguments,
+}
 
-
-pub fn load_pdf<'a>(pdfium: &'a Pdfium, file_path: &str)-> Result<PdfDocument<'a>, Report<PdfiumError>>{
-    let pdf = pdfium
-        .load_pdf_from_file(file_path, None)?;
+/// Function to read the pdf
+///
+/// # Errors
+/// Will return `Err` if `filename` does not exist or the user does not have
+/// permission to read it.
+pub fn load_pdf<'a>(
+    pdfium: &'a Pdfium,
+    file_path: &str,
+) -> Result<PdfDocument<'a>, Report<PdfiumError>> {
+    let pdf = pdfium.load_pdf_from_file(file_path, None)?;
     Ok(pdf)
 }
 
 /// Takes in a pdf document and returns a vector list where each page
 /// is processed into a raw image that can be later converted to any image format
 ///
-#[must_use]
-pub fn pdf_to_images(pdf: &PdfDocument) -> Result<Vec<DynamicImage>,Report<PdfiumError>>{
+/// # Errors
+/// Return an `PdfiumError::ImageError` if there was a problem with the image processing operation,
+/// occurs when image cannot be encoded into specific image format
+pub fn pdf_to_images(pdf: &PdfDocument) -> Result<Vec<DynamicImage>, Report<PdfiumError>> {
     let mut images: Vec<DynamicImage> = Vec::new();
 
     for page in pdf.pages().iter() {
-
         let resolution_width = 1000; //may adjust resolution depending on need
 
         // Render the entire page to an image
-        let rendered_page = page
-            .render_with_config(
-                &PdfRenderConfig::new()
-                    .set_target_width(resolution_width),
-                )?; // Renders the page to a PdfBitmap
+        let rendered_page =
+            page.render_with_config(&PdfRenderConfig::new().set_target_width(resolution_width))?; // Renders the page to a PdfBitmap
 
         // Convert PdfBitmap to DynamicImage
         let dynamic_image = rendered_page.as_image();
@@ -38,7 +54,6 @@ pub fn pdf_to_images(pdf: &PdfDocument) -> Result<Vec<DynamicImage>,Report<Pdfiu
     Ok(images)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -46,36 +61,39 @@ mod tests {
     #[test]
     fn pdf_load_success() {
         let pdfium = Pdfium::new(
-            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/")).unwrap()
+            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
+                .unwrap(),
         ); // creates instance so must be global
 
         let test_pdf_string = "tests/docs/test-doc.pdf";
 
         let pdf = load_pdf(&pdfium, test_pdf_string);
-    
+
         assert!(pdf.is_ok());
     }
 
     #[test]
     fn pdf_load_failure() {
         let pdfium = Pdfium::new(
-            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/")).unwrap()
+            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
+                .unwrap(),
         ); // creates instance so must be global
 
         let test_pdf_string = "tests/docs/invalid.pdf";
 
         let pdf = load_pdf(&pdfium, test_pdf_string);
-    
+
         assert!(pdf.is_err());
     }
 
     #[test]
     fn pdf_image_conversion() {
         let pdfium = Pdfium::new(
-            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/")).unwrap()
+            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
+                .unwrap(),
         ); // creates instance so must be global
 
-        let test_pdf_string =  "tests/docs/test-doc.pdf";
+        let test_pdf_string = "tests/docs/test-doc.pdf";
 
         let pdf = load_pdf(&pdfium, test_pdf_string).unwrap();
 
@@ -84,7 +102,5 @@ mod tests {
         let num_pages = 38; //number of pages of pdf
 
         assert_eq!(preprocessed_pdf.len(), num_pages) //length of vector should be number of pages
-        
     }
-
 }
