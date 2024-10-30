@@ -113,6 +113,7 @@ describe("Entity CRU", () => {
         ownedById: testUser.accountId as OwnedById,
         schema: {
           title: "Favorite Book",
+          description: "The favorite book of a person",
           oneOf: [{ $ref: textDataTypeId }],
         },
         relationships: [
@@ -135,6 +136,7 @@ describe("Entity CRU", () => {
         ownedById: testUser.accountId as OwnedById,
         schema: {
           title: "Name",
+          description: "The name of a person",
           oneOf: [{ $ref: textDataTypeId }],
         },
         relationships: [
@@ -164,6 +166,7 @@ describe("Entity CRU", () => {
           title: "Person",
         }),
         title: "Person",
+        description: "A person",
         properties: [
           { propertyType: favoriteBookPropertyType },
           { propertyType: namePropertyType },

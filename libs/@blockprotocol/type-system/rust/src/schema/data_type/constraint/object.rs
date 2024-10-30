@@ -13,7 +13,7 @@ use crate::schema::{
 #[derive(Debug, Error)]
 pub enum ObjectValidationError {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum ObjectTypeTag {

@@ -1,21 +1,26 @@
 pub use self::{
-    closed::{ClosedEntityType, ClosedEntityTypeSchemaData, EntityTypeResolveData},
+    closed::{
+        ClosedEntityType, ClosedEntityTypeMetadata, ClosedMultiEntityType, EntityTypeResolveData,
+    },
+    constraints::EntityConstraints,
     reference::EntityTypeReference,
     validation::{EntityTypeValidationError, EntityTypeValidator},
 };
 
 mod closed;
-mod raw;
+mod constraints;
 mod reference;
 mod validation;
 
 use core::iter;
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    schema::{PropertyTypeReference, PropertyValueArray, ValueOrArray, one_of::OneOfSchema},
+    schema::{
+        ObjectTypeTag, PropertyTypeReference, PropertyValueArray, ValueOrArray, one_of::OneOfSchema,
+    },
     url::{BaseUrl, VersionedUrl},
 };
 
@@ -36,33 +41,79 @@ impl InverseEntityTypeMetadata {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(from = "raw::EntityType")]
-pub struct EntityType {
-    pub id: VersionedUrl,
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
+enum EntityTypeKindTag {
+    EntityType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
+enum EntityTypeSchemaTag {
+    #[serde(rename = "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type")]
+    V3,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityTypeSchemaMetadata {
     pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
-    pub description: Option<String>,
-    pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
-    pub required: HashSet<BaseUrl>,
-    pub all_of: HashSet<EntityTypeReference>,
-    pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
+    pub description: String,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
     pub inverse: InverseEntityTypeMetadata,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityTypeDisplayMetadata {
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
-    #[deprecated]
-    pub examples: Vec<HashMap<BaseUrl, serde_json::Value>>,
 }
 
-impl Serialize for EntityType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        raw::EntityType::from(self).serialize(serializer)
+impl EntityTypeDisplayMetadata {
+    pub const fn is_empty(&self) -> bool {
+        self.label_property.is_none() && self.icon.is_none()
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityType {
+    #[serde(rename = "$schema")]
+    schema: EntityTypeSchemaTag,
+    kind: EntityTypeKindTag,
+    r#type: ObjectTypeTag,
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    pub description: String,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
+    #[serde(flatten)]
+    pub constraints: EntityConstraints,
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[EntityTypeReference, ...EntityTypeReference[]]")
+    )]
+    pub all_of: HashSet<EntityTypeReference>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -84,7 +135,7 @@ impl EntityType {
         self.all_of
             .iter()
             .map(|reference| (reference, EntityTypeToEntityTypeEdge::Inheritance))
-            .chain(self.links.iter().flat_map(
+            .chain(self.constraints.links.iter().flat_map(
                 |(link_entity_type, destination_constraint_entity_types)| {
                     iter::once((link_entity_type.into(), EntityTypeToEntityTypeEdge::Link)).chain(
                         destination_constraint_entity_types
@@ -103,7 +154,7 @@ impl EntityType {
     pub fn property_type_references(
         &self,
     ) -> impl Iterator<Item = (&PropertyTypeReference, EntityTypeToPropertyTypeEdge)> {
-        self.properties.values().map(|property_def| {
+        self.constraints.properties.values().map(|property_def| {
             (
                 match property_def {
                     ValueOrArray::Value(url) => url,
@@ -117,9 +168,8 @@ impl EntityType {
     pub fn link_mappings(
         &self,
     ) -> impl Iterator<Item = (&EntityTypeReference, Option<&[EntityTypeReference]>)> {
-        self.links
-            .iter()
-            .map(|(link_entity_type, destination_constraint_entity_types)| {
+        self.constraints.links.iter().map(
+            |(link_entity_type, destination_constraint_entity_types)| {
                 (
                     <&EntityTypeReference>::from(link_entity_type),
                     destination_constraint_entity_types
@@ -127,7 +177,8 @@ impl EntityType {
                         .as_ref()
                         .map(|one_of| one_of.possibilities.as_slice()),
                 )
-            })
+            },
+        )
     }
 }
 
@@ -442,6 +493,7 @@ mod tests {
                     "$id": "https://blockprotocol.org/@alice/types/entity-type/invalid/v/1",
                     "type": "object",
                     "title": "Invalid",
+                    "description": "An invalid entity type",
                     "properties": {
                         "https://example.com/property_type_a/": { "$ref": "https://example.com/property_type_b/v/1" }
                     }

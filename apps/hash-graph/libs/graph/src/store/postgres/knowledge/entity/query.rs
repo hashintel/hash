@@ -2,6 +2,7 @@ use graph_types::{
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityProvenance, EntityRecordId, EntityUuid},
         link::LinkData,
+        property::PropertyMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -9,6 +10,7 @@ use hash_graph_store::{
     entity::EntityQueryPath,
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
 };
+use serde::Deserialize;
 use tokio_postgres::Row;
 use tracing::instrument;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
@@ -140,7 +142,11 @@ impl QueryRecordDecode for Entity {
         }
 
         let property_metadata = row
-            .get::<_, Option<_>>(indices.property_metadata)
+            .get::<_, Option<serde_json::Value>>(indices.property_metadata)
+            .map(|value| {
+                PropertyMetadataObject::deserialize(value)
+                    .expect("Failed to deserialize property metadata")
+            })
             .unwrap_or_default();
 
         Self {

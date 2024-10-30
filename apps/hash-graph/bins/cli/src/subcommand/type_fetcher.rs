@@ -91,7 +91,11 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
             server
                 .load_predefined_types()
                 .expect("should be able to load predefined types");
-            channel.execute(server.serve())
+            channel
+                .execute(server.serve())
+                .for_each(|response| async move {
+                    tokio::spawn(response);
+                })
         })
         .buffer_unordered(255)
         .for_each(|()| async {})

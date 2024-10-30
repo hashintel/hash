@@ -4,35 +4,58 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use error_stack::{Report, ensure};
 use itertools::Itertools as _;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use thiserror::Error;
 
 use crate::{
     schema::{
         EntityType, EntityTypeReference, EntityTypeToPropertyTypeEdge, EntityTypeUuid,
-        InheritanceDepth, PropertyTypeReference, PropertyTypeUuid, PropertyValueArray,
-        ValueOrArray, entity_type::extend_links, one_of::OneOfSchema,
+        InheritanceDepth, InverseEntityTypeMetadata, PropertyTypeUuid,
+        entity_type::{EntityConstraints, EntityTypeDisplayMetadata, extend_links},
     },
     url::{BaseUrl, VersionedUrl},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ClosedEntityTypeSchemaData {
+pub struct ClosedEntityTypeMetadata {
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
     pub title: String,
-    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    pub description: String,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]]")
+    )]
+    pub all_of: Vec<EntityTypeDisplayMetadata>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedEntityType {
-    pub schemas: HashMap<VersionedUrl, (InheritanceDepth, ClosedEntityTypeSchemaData)>,
-    pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
-    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
-    pub required: HashSet<BaseUrl>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    pub description: String,
+    #[serde(flatten)]
+    pub constraints: EntityConstraints,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]]")
+    )]
+    pub all_of: Vec<EntityTypeDisplayMetadata>,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
 }
 
 #[derive(Debug, Error)]
@@ -44,9 +67,76 @@ pub enum ResolveClosedEntityTypeError {
     UnknownSchemas(HashSet<EntityTypeReference>),
     #[error("Resolving the entity type encountered incompatible property: {0}.")]
     IncompatibleProperty(BaseUrl),
+    #[error("The entity type has an empty schema")]
+    EmptySchema,
 }
 
 impl ClosedEntityType {
+    /// Create a closed entity type from an entity type and its resolve data.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the entity type references unknown schema in `allOf`.
+    pub fn from_resolve_data(
+        mut schema: EntityType,
+        resolve_data: &EntityTypeResolveData,
+    ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
+        let mut closed_schema = Self {
+            id: schema.id,
+            constraints: schema.constraints,
+            title: schema.title,
+            title_plural: schema.title_plural,
+            description: schema.description,
+            inverse: schema.inverse,
+            all_of: Vec::new(),
+        };
+
+        for (_depth, entity_type) in resolve_data.ordered_schemas() {
+            schema.all_of.remove((&entity_type.id).into());
+            closed_schema
+                .constraints
+                .properties
+                .extend(entity_type.constraints.properties.clone());
+            closed_schema
+                .constraints
+                .required
+                .extend(entity_type.constraints.required.clone());
+            extend_links(
+                &mut closed_schema.constraints.links,
+                entity_type.constraints.links.clone(),
+            );
+            if entity_type.icon.is_some() || entity_type.label_property.is_some() {
+                closed_schema.all_of.push(EntityTypeDisplayMetadata {
+                    id: entity_type.id.clone(),
+                    label_property: entity_type.label_property.clone(),
+                    icon: entity_type.icon.clone(),
+                });
+            }
+        }
+
+        ensure!(
+            schema.all_of.is_empty(),
+            ResolveClosedEntityTypeError::UnknownSchemas(schema.all_of)
+        );
+
+        Ok(closed_schema)
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ClosedMultiEntityType {
+    #[serde(flatten)]
+    pub constraints: EntityConstraints,
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[ClosedEntityTypeMetadata, ...ClosedEntityTypeMetadata[]]")
+    )]
+    pub all_of: Vec<ClosedEntityTypeMetadata>,
+}
+
+impl ClosedMultiEntityType {
     /// Creates a closed entity type from multiple closed entity types.
     ///
     /// This results in a closed entity type which is used for entities with multiple types.
@@ -55,16 +145,20 @@ impl ClosedEntityType {
     ///
     /// Returns an error if the entity types have incompatible properties.
     pub fn from_multi_type_closed_schema(
-        closed_schemas: impl IntoIterator<Item = Self>,
+        closed_schemas: impl IntoIterator<Item = ClosedEntityType>,
     ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
-        let mut properties = HashMap::new();
-        let mut required = HashSet::new();
-        let mut links = HashMap::new();
-        let mut schemas = HashMap::new();
+        let mut this = Self {
+            constraints: EntityConstraints {
+                properties: HashMap::new(),
+                required: HashSet::new(),
+                links: HashMap::new(),
+            },
+            all_of: Vec::new(),
+        };
 
         for schema in closed_schemas {
-            for (base_url, property) in schema.properties {
-                match properties.entry(base_url) {
+            for (base_url, property) in schema.constraints.properties {
+                match this.constraints.properties.entry(base_url) {
                     Entry::Occupied(entry) => {
                         ensure!(
                             property == *entry.get(),
@@ -76,80 +170,26 @@ impl ClosedEntityType {
                     }
                 }
             }
-            required.extend(schema.required);
-            extend_links(&mut links, schema.links);
-
-            for (url, (depth, schema_data)) in schema.schemas {
-                match schemas.entry(url) {
-                    Entry::Occupied(mut entry) => {
-                        let (existing_depth, _) = entry.get_mut();
-                        *existing_depth = cmp::min(*existing_depth, depth);
-                    }
-                    Entry::Vacant(entry) => {
-                        entry.insert((depth, schema_data));
-                    }
-                }
-            }
-        }
-
-        Ok(Self {
-            schemas,
-            properties,
-            required,
-            links,
-        })
-    }
-
-    /// Create a closed entity type from an entity type and its resolve data.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the entity type references unknown schemas in `allOf`.
-    pub fn from_resolve_data(
-        entity_type: EntityType,
-        resolve_data: &EntityTypeResolveData,
-    ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
-        let mut all_of = entity_type.all_of;
-
-        let mut closed_schema = Self {
-            schemas: HashMap::from([(
-                entity_type.id,
-                (InheritanceDepth::new(0), ClosedEntityTypeSchemaData {
-                    title: entity_type.title,
-                    description: entity_type.description,
-                }),
-            )]),
-            properties: entity_type.properties,
-            required: entity_type.required,
-            links: entity_type.links,
-        };
-
-        for (depth, entity_type) in resolve_data.ordered_schemas() {
-            all_of.extend(entity_type.all_of.clone());
-            closed_schema.schemas.insert(
-                entity_type.id.clone(),
-                (
-                    InheritanceDepth::new(depth.inner() + 1),
-                    ClosedEntityTypeSchemaData {
-                        title: entity_type.title.clone(),
-                        description: entity_type.description.clone(),
-                    },
-                ),
-            );
-            closed_schema
-                .properties
-                .extend(entity_type.properties.clone());
-            closed_schema.required.extend(entity_type.required.clone());
-            extend_links(&mut closed_schema.links, entity_type.links.clone());
-            all_of.remove((&entity_type.id).into());
+            this.constraints
+                .required
+                .extend(schema.constraints.required);
+            extend_links(&mut this.constraints.links, schema.constraints.links);
+            this.all_of.push(ClosedEntityTypeMetadata {
+                id: schema.id,
+                title: schema.title,
+                title_plural: schema.title_plural,
+                description: schema.description,
+                inverse: schema.inverse,
+                all_of: schema.all_of,
+            });
         }
 
         ensure!(
-            all_of.is_empty(),
-            ResolveClosedEntityTypeError::UnknownSchemas(all_of)
+            !this.all_of.is_empty(),
+            ResolveClosedEntityTypeError::EmptySchema
         );
 
-        Ok(closed_schema)
+        Ok(this)
     }
 }
 
@@ -306,7 +346,7 @@ mod tests {
     use alloc::sync::Arc;
 
     use crate::{
-        schema::{ClosedEntityType, EntityType, EntityTypeUuid, OntologyTypeResolver},
+        schema::{EntityType, EntityTypeUuid, OntologyTypeResolver, entity_type::ClosedEntityType},
         url::BaseUrl,
         utils::tests::{JsonEqualityCheck, ensure_serialization_from_str},
     };
@@ -336,7 +376,7 @@ mod tests {
             .expect("Could not close church");
 
         assert!(
-            closed_church.properties.contains_key(
+            closed_church.constraints.properties.contains_key(
                 &BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/property-type/built-at/".to_owned()
                 )
@@ -344,7 +384,7 @@ mod tests {
             )
         );
         assert!(
-            closed_church.properties.contains_key(
+            closed_church.constraints.properties.contains_key(
                 &BaseUrl::new(
                     "https://blockprotocol.org/@alice/types/property-type/number-bells/".to_owned()
                 )

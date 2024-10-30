@@ -113,7 +113,7 @@ export const generateSystemTypeBaseUrl = ({
 export type PropertyTypeDefinition = {
   propertyTypeId: VersionedUrl;
   title: string;
-  description?: string;
+  description: string;
   possibleValues: {
     dataTypeId?: VersionedUrl;
     primitiveDataType?: PrimitiveDataTypeKey;
@@ -411,7 +411,7 @@ export type EntityTypeDefinition = {
   allOf?: VersionedUrl[];
   entityTypeId: VersionedUrl;
   title: string;
-  description?: string;
+  description: string;
   labelProperty?: BaseUrl;
   icon?: string;
   properties?: {

@@ -32,9 +32,10 @@ pub use self::{
         ValueSchemaMetadata, Variable,
     },
     entity_type::{
-        ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
-        EntityTypeResolveData, EntityTypeToEntityTypeEdge, EntityTypeToPropertyTypeEdge,
-        EntityTypeValidationError, EntityTypeValidator,
+        ClosedEntityType, ClosedEntityTypeMetadata, ClosedMultiEntityType, EntityConstraints,
+        EntityType, EntityTypeReference, EntityTypeResolveData, EntityTypeSchemaMetadata,
+        EntityTypeToEntityTypeEdge, EntityTypeToPropertyTypeEdge, EntityTypeValidationError,
+        EntityTypeValidator, InverseEntityTypeMetadata,
     },
     identifier::{DataTypeUuid, EntityTypeUuid, OntologyTypeUuid, PropertyTypeUuid},
     object::{

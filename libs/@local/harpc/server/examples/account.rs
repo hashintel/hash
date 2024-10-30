@@ -1,4 +1,4 @@
-#![feature(never_type, impl_trait_in_assoc_type)]
+#![feature(never_type, impl_trait_in_assoc_type, result_flattening)]
 #![expect(
     clippy::unwrap_used,
     clippy::print_stdout,
@@ -10,18 +10,15 @@
 extern crate alloc;
 
 use alloc::vec;
-use core::{error::Error, fmt::Debug, future::ready};
+use core::{error::Error, fmt::Debug};
 use std::time::Instant;
 
 use bytes::Buf;
-use error_stack::{Report, ResultExt};
+use error_stack::{FutureExt as _, Report, ResultExt};
 use frunk::HList;
-use futures::{
-    Stream, StreamExt, TryStreamExt, pin_mut,
-    stream::{self},
-};
+use futures::{Stream, StreamExt, TryFutureExt, TryStreamExt, pin_mut, stream};
 use graph_types::account::AccountId;
-use harpc_client::{Client, ClientConfig};
+use harpc_client::{Client, ClientConfig, connection::Connection};
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
 use harpc_net::session::server::SessionId;
 use harpc_server::{Server, ServerConfig, router::RouterBuilder, serve::serve};
@@ -34,14 +31,10 @@ use harpc_service::{
 };
 use harpc_tower::{
     Extensions,
-    body::{Body, BodyExt, Frame, stream::StreamBody},
+    body::{Body, BodyExt},
     layer::{
-        body_report::HandleBodyReportLayer,
-        boxed::BoxedResponseLayer,
-        map_body::{MapRequestBodyLayer, MapResponseBodyLayer},
-        report::HandleReportLayer,
+        body_report::HandleBodyReportLayer, boxed::BoxedResponseLayer, report::HandleReportLayer,
     },
-    net::pack_error::PackError,
     request::{self, Request},
     response::{Parts, Response},
 };
@@ -52,7 +45,7 @@ use harpc_types::{
     version::Version,
 };
 use multiaddr::multiaddr;
-use tower::{ServiceBuilder, ServiceExt as _};
+use tower::ServiceExt as _;
 use uuid::Uuid;
 
 enum AccountProcedureId {
@@ -160,39 +153,40 @@ where
 #[derive(Debug, Clone)]
 struct AccountServiceClient;
 
-impl<S, E, St, ServiceError, DecoderError, EncoderError, ResData, ResError>
-    AccountService<role::Client<(S, E)>> for AccountServiceClient
+impl<Svc, St, C, DecoderError, EncoderError, ServiceError, ResData, ResError>
+    AccountService<role::Client<Connection<Svc, C>>> for AccountServiceClient
 where
     // TODO: I want to get rid of the boxed stream here, the problem is just that `Output` has `<Input>`
-    // as a type parameter, therefore cannot parametrize over it, unless we box or duplicate the
+    // as a type parameter, therefore cannot parameterize over it, unless we box or duplicate the
     // trait requirement. both are not great solutions.
-    S: tower::Service<
-            Request<stream::Iter<vec::IntoIter<Result<Frame<<E as Encoder>::Buf, !>, !>>>>,
+    Svc: tower::Service<
+            Request<stream::Iter<vec::IntoIter<C::Buf>>>,
             Response = Response<St>,
-            Future: Send,
             Error = Report<ServiceError>,
+            Future: Send,
         > + Clone
-        + Send
-        + Sync,
-    E: Encoder<Error = Report<EncoderError>, Buf: Send + 'static>
-        + Decoder<Error = Report<DecoderError>>
-        + Clone
         + Send
         + Sync,
     St: Stream<Item = Result<ResData, ResError>> + Send + Sync,
     ResData: Buf,
-    ServiceError: Error + Send + Sync + 'static,
+    C: Encoder<Error = Report<EncoderError>, Buf: Send + 'static>
+        + Decoder<Error = Report<DecoderError>>
+        + Clone
+        + Send
+        + Sync,
     DecoderError: Error + Send + Sync + 'static,
     EncoderError: Error + Send + Sync + 'static,
+    ServiceError: Error + Send + Sync + 'static,
 {
-    async fn create_account(
+    fn create_account(
         &self,
-        session: &(S, E),
+        session: &Connection<Svc, C>,
         payload: CreateAccount,
-    ) -> Result<AccountId, Report<AccountError>> {
-        let (service, codec) = session.clone();
+    ) -> impl Future<Output = Result<AccountId, Report<AccountError>>> {
+        let codec = session.codec().clone();
+        let connection = session.clone();
 
-        // in theory we could also skip the allocation here, but the problem is that in that case we
+        // In theory we could also skip the allocation here, but the problem is that in that case we
         // would send data that *might* be malformed, or is missing data. Instead of skipping said
         // data we allocate. In future we might want to instead have something like
         // tracing::error or a panic instead, but this is sufficient for now.
@@ -203,57 +197,63 @@ where
         // possible we would await yet another challenge, what happens if the transport layer
         // encounters an error? We can't very well send that error to the server just for us to
         // return it, the server might already be processing things and now suddenly needs to stop?
-        // So we'd need to panic or filter on the client and would have partially commited data on
+        // So we'd need to panic or filter on the client and would have partially committed data on
         // the server.
+        //
         // This circumvents the problem because we just return an error early, in the future - if
         // the need arises - we might want to investigate request cancellation (which should be
-        // possible in the protocol)
+        // possible in the protocol).
+        //
         // That'd allow us to cancel the request but would make response handling *a lot* more
         // complex.
+        //
         // This isn't a solved problem at all in e.g. rust in general, because there are some things
-        // you can't just cancel. How do you roll back a potentially already commited transaction?
+        // you can't just cancel. How do you roll back a potentially already committed transaction?
         // The current hypothesis is that the overhead required for one less allocation simply isn't
         // worth it, but in the future we might want to revisit this.
-        let body: Vec<_> = codec
+        codec
             .clone()
             .encode(stream::iter([payload]))
-            .map(|item| item.map(Frame::Data).map(Ok))
             .try_collect()
-            .await
-            .change_context(AccountError::Encode)?;
+            .change_context(AccountError::Encode)
+            .map_ok(|bytes: Vec<_>| {
+                Request::from_parts(
+                    request::Parts {
+                        service: ServiceDescriptor {
+                            id: Account::ID,
+                            version: Account::VERSION,
+                        },
+                        procedure: ProcedureDescriptor {
+                            id: CreateAccount::ID.into_id(),
+                        },
+                        session: SessionId::CLIENT,
+                        extensions: Extensions::new(),
+                    },
+                    stream::iter(bytes),
+                )
+            })
+            .and_then(move |request| {
+                connection
+                    .oneshot(request)
+                    .change_context(AccountError::Connection)
+            })
+            .and_then(move |response| {
+                let (parts, body) = response.into_parts();
 
-        let request = Request::from_parts(
-            request::Parts {
-                service: ServiceDescriptor {
-                    id: Account::ID,
-                    version: Account::VERSION,
-                },
-                procedure: ProcedureDescriptor {
-                    id: CreateAccount::ID.into_id(),
-                },
-                session: SessionId::CLIENT,
-                extensions: Extensions::new(),
-            },
-            stream::iter(body),
-        );
+                let data = codec.decode(body);
 
-        let response = service
-            .oneshot(request)
-            .await
-            .change_context(AccountError::Connection)?;
+                async move {
+                    tokio::pin!(data);
 
-        let (parts, body) = response.into_parts();
+                    let data = data
+                        .next()
+                        .await
+                        .ok_or_else(|| Report::new(AccountError::ExpectedResponse))?
+                        .change_context(AccountError::Decode)?;
 
-        let data = codec.decode(body);
-        tokio::pin!(data);
-
-        let item = data
-            .next()
-            .await
-            .ok_or_else(|| Report::new(AccountError::ExpectedResponse))?
-            .change_context(AccountError::Decode)?;
-
-        Ok(item)
+                    Ok(data)
+                }
+            })
     }
 }
 
@@ -338,7 +338,8 @@ async fn server() {
 }
 
 async fn client() {
-    let client = Client::new(ClientConfig::default()).expect("should be able to start service");
+    let client =
+        Client::new(ClientConfig::default(), JsonCodec).expect("should be able to start service");
 
     let service = AccountServiceClient;
 
@@ -347,15 +348,10 @@ async fn client() {
         .await
         .expect("should be able to connect");
 
-    let connection = ServiceBuilder::new()
-        .layer(MapRequestBodyLayer::new(|req| ready(StreamBody::new(req))))
-        .layer(MapResponseBodyLayer::new(|res| ready(PackError::new(res))))
-        .service(connection);
-
     for _ in 0..16 {
         let now = Instant::now();
         let account_id = service
-            .create_account(&(connection.clone(), JsonCodec), CreateAccount { id: None })
+            .create_account(&connection, CreateAccount { id: None })
             .await
             .expect("should be able to create account");
 

@@ -67,7 +67,6 @@
       "entryPoint": "react"
     },
     "displayName": "Address",
-    "examples": [],
     "icon": "public/address.svg",
     "image": "public/block-preview.png",
     "name": "@hash/address",

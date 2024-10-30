@@ -14,6 +14,34 @@
       "format": "uri",
       "maxLength": 2048
     },
+    "EntityTypeDisplayMetadata": {
+      "type": "object",
+      "properties": {
+        "$id": {
+          "$ref": "./shared.json#/definitions/VersionedUrl"
+        },
+        "labelProperty": {
+          "$ref": "./shared.json#/definitions/BaseUrl"
+        },
+        "icon": {
+          "type": "string"
+        }
+      },
+      "required": ["$id"],
+      "additionalProperties": false
+    },
+    "InverseEntityTypeMetadata": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "titlePlural": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
     "EntityTypeReference": {
       "type": "object",
       "properties": {

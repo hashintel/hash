@@ -3,6 +3,7 @@
   "kind": "propertyType",
   "$id": "https://blockprotocol.org/@alice/types/property-type/contact-information/v/1",
   "title": "Contact Information",
+  "description": "A contact information property type that can be either an email or a phone number.",
   "oneOf": [
     {
       "type": "object",

@@ -1,4 +1,4 @@
-#![feature(never_type, impl_trait_in_assoc_type)]
+#![feature(never_type, impl_trait_in_assoc_type, type_alias_impl_trait)]
 
 extern crate alloc;
 
@@ -13,8 +13,13 @@ use harpc_net::{
 };
 use multiaddr::Multiaddr;
 use tokio_util::sync::{CancellationToken, DropGuard};
+use tower::Layer;
 
-use self::connection::Connection;
+use self::connection::{
+    Connection,
+    default::{self, DefaultLayer},
+    service::ConnectionService,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct ClientConfig {
@@ -41,19 +46,20 @@ pub(crate) struct TransportLayerGuard(
 );
 
 #[derive(Debug, Clone)]
-pub struct Client {
+pub struct Client<C> {
     session: Arc<SessionLayer>,
+    codec: C,
 
     guard: TransportLayerGuard,
 }
 
-impl Client {
+impl<C> Client<C> {
     /// Creates a new `Client` with the given configuration.
     ///
     /// # Errors
     ///
     /// Returns a `ClientError::StartTransportLayer` if unable to start the transport layer.
-    pub fn new(config: ClientConfig) -> Result<Self, Report<ClientError>> {
+    pub fn new(config: ClientConfig, codec: C) -> Result<Self, Report<ClientError>> {
         let token = CancellationToken::new();
 
         let transport = TransportLayer::tcp(config.transport, token.clone())
@@ -65,6 +71,7 @@ impl Client {
 
         Ok(Self {
             session: Arc::new(session),
+            codec,
             guard: TransportLayerGuard(guard),
         })
     }
@@ -74,13 +81,56 @@ impl Client {
     /// # Errors
     ///
     /// Returns a `ClientError::Connect` if unable to establish a connection to the server.
-    pub async fn connect(&self, target: Multiaddr) -> Result<Connection, Report<ClientError>> {
+    pub async fn connect(
+        &self,
+        target: Multiaddr,
+    ) -> Result<Connection<default::Default, C>, Report<ClientError>>
+    where
+        C: Clone + Sync,
+    {
+        let connection = self
+            .connect_with_service(DefaultLayer::new(), target)
+            .await?;
+
+        Ok(Connection::new(
+            default::Default::new(connection),
+            self.codec.clone(),
+        ))
+    }
+
+    pub async fn connect_with<L>(
+        &self,
+        layer: L,
+        target: Multiaddr,
+    ) -> Result<Connection<L::Service, C>, Report<ClientError>>
+    where
+        L: Layer<ConnectionService> + Send,
+        C: Clone + Sync,
+    {
+        let connection = self.connect_with_service(layer, target).await?;
+
+        Ok(Connection::new(connection, self.codec.clone()))
+    }
+
+    async fn connect_with_service<L>(
+        &self,
+
+        layer: L,
+        target: Multiaddr,
+    ) -> Result<<L as Layer<ConnectionService>>::Service, Report<ClientError>>
+    where
+        L: Layer<ConnectionService> + Send,
+        C: Sync,
+    {
         let connection = self
             .session
             .dial(target)
             .await
             .change_context(ClientError::Connect)?;
 
-        Ok(Connection::new(connection, self.guard.clone()))
+        let inner = ConnectionService::new(connection, self.guard.clone());
+        let connection = layer.layer(inner);
+
+        Ok(connection)
     }
 }

@@ -24,7 +24,7 @@ use hash_graph_store::{
 };
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use type_system::{schema::ClosedEntityType, url::VersionedUrl};
+use type_system::{schema::ClosedMultiEntityType, url::VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     ToSchema,
@@ -42,7 +42,7 @@ use crate::store::{
 pub enum EntityValidationType<'a> {
     Id(Cow<'a, HashSet<VersionedUrl>>),
     #[serde(skip)]
-    ClosedSchema(Cow<'a, ClosedEntityType>),
+    ClosedSchema(Cow<'a, ClosedMultiEntityType>),
 }
 
 #[cfg(feature = "utoipa")]
