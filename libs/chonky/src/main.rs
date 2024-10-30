@@ -1,24 +1,26 @@
 use std::env;
 
-use chonky::{ChonkyError, load_pdf, pdf_to_images};
-use error_stack::{Report, ResultExt};
+use chonky::{ChonkyError, pdf_segmentation};
+use error_stack::{Report, ResultExt, ensure};
 use pdfium_render::prelude::*;
 
 fn main() -> Result<(), Report<ChonkyError>> {
-    let args: Vec<String> = env::args().collect(); // read file path arguments
+    // read file path arguments
+    // TODO: implement with clap
+    let args: Vec<String> = env::args().collect();
 
-    if args.len() < 2 {
-        return Err(Report::new(ChonkyError::Arguments));
-    }
+    ensure!(args.len() > 1, ChonkyError::Arguments);
 
+    // creates instance so must be global
     let pdfium = Pdfium::new(
         Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
             .change_context(ChonkyError::Pdfium)?,
-    ); // creates instance so must be global
+    );
 
-    let pdf = load_pdf(&pdfium, &args[1]).change_context(ChonkyError::Pdfium)?;
+    let pdf = pdf_segmentation::load_pdf(&pdfium, &args[1]).change_context(ChonkyError::Pdfium)?;
 
-    let preprocessed_pdf = pdf_to_images(&pdf).change_context(ChonkyError::Pdfium)?;
+    let preprocessed_pdf =
+        pdf_segmentation::pdf_to_images(&pdf).change_context(ChonkyError::Pdfium)?;
     //for now we will print all these images to a folder
     // this will be a seperate function in the future once knowledge about error-stack increases
 

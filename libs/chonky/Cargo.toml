@@ -17,9 +17,9 @@ edition.workspace = true
 error-stack = { workspace = true, public = true }
 
 # Public third-party dependencies
-pdfium-render = { version = "0.8.25", public = true }
-image = { version = "0.24.9", public = true }
-thiserror = { version = "1.0.65", default-features = false }
+pdfium-render = { workspace = true, public = true }
+image = { workspace = true, public = true }
+thiserror = { workspace = true }
 
 # Private workspace dependencies
 

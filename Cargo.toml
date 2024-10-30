@@ -105,6 +105,7 @@ futures-sink = { version = "=0.3.31", default-features = false }
 futures-util = { version = "=0.3.31", default-features = false }
 hashbrown = { version = "=0.15.0", default-features = false, features = ["nightly", "inline-more"] }
 http = { version = "=1.1.0", default-features = false }
+image = { version = "0.24.9", default-features = true }
 inferno = { version = "=0.11.21", default-features = false }
 iso8601-duration = { version = "=0.2.0", default-features = false }
 json-number = { version = "=0.4.9", default-features = false }
@@ -116,6 +117,7 @@ libp2p-identity = { version = "=0.2.9", default-features = false }
 libp2p-ping = { version = "=0.45.0", default-features = false }
 libp2p-swarm = { version = "=0.45.1", default-features = false }
 libp2p-yamux = { version = "=0.46.0", default-features = false }
+pdfium-render = { version = "0.8.25", default-features = true }
 prometheus-client = { version = "=0.22.3", default-features = false }
 postgres-types = { version = "=0.2.8", default-features = false }
 reqwest = { version = "=0.12.8", default-features = false, features = ["rustls-tls"] }

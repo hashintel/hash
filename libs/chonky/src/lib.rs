@@ -1,8 +1,5 @@
 #![doc = include_str!("../README.md")]
 
-use error_stack::Report;
-use image::DynamicImage;
-use pdfium_render::prelude::*;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -17,90 +14,121 @@ pub enum ChonkyError {
     Arguments,
 }
 
-/// Function to read the pdf
-///
-/// # Errors
-/// Will return `Err` if `filename` does not exist or the user does not have
-/// permission to read it.
-pub fn load_pdf<'a>(
-    pdfium: &'a Pdfium,
-    file_path: &str,
-) -> Result<PdfDocument<'a>, Report<PdfiumError>> {
-    let pdf = pdfium.load_pdf_from_file(file_path, None)?;
-    Ok(pdf)
-}
+pub mod pdf_segmentation {
+    use error_stack::{Report, ResultExt};
+    use image::DynamicImage;
+    use pdfium_render::prelude::*;
 
-/// Takes in a pdf document and returns a vector list where each page
-/// is processed into a raw image that can be later converted to any image format
-///
-/// # Errors
-/// Return an `PdfiumError::ImageError` if there was a problem with the image processing operation,
-/// occurs when image cannot be encoded into specific image format
-pub fn pdf_to_images(pdf: &PdfDocument) -> Result<Vec<DynamicImage>, Report<PdfiumError>> {
-    let mut images: Vec<DynamicImage> = Vec::new();
+    use crate::ChonkyError;
 
-    for page in pdf.pages().iter() {
-        let resolution_width = 1000; //may adjust resolution depending on need
-
-        // Render the entire page to an image
-        let rendered_page =
-            page.render_with_config(&PdfRenderConfig::new().set_target_width(resolution_width))?; // Renders the page to a PdfBitmap
-
-        // Convert PdfBitmap to DynamicImage
-        let dynamic_image = rendered_page.as_image();
-        images.push(dynamic_image);
+    /// Function to read the pdf
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if `filename` does not exist or the user does not have
+    /// permission to read it.
+    pub fn load_pdf<'a>(
+        pdfium: &'a Pdfium,
+        file_path: &str,
+    ) -> Result<PdfDocument<'a>, Report<ChonkyError>> {
+        pdfium
+            .load_pdf_from_file(file_path, None)
+            .map_err(|err| Report::new(err).change_context(ChonkyError::Pdfium))
     }
 
-    Ok(images)
+    /// Takes in a pdf document and returns a vector list where each page
+    /// is processed into a raw image that can be later converted to any image format
+    ///
+    /// # Errors
+    /// Return an `PdfiumError::ImageError` if there was a problem with the image processing
+    /// operation, occurs when image cannot be encoded into specific image format
+    pub fn pdf_to_images(pdf: &PdfDocument) -> Result<Vec<DynamicImage>, Report<ChonkyError>> {
+        let mut images: Vec<DynamicImage> = Vec::new();
+
+        for page in pdf.pages().iter() {
+            //may adjust resolution depending on need
+            let resolution_width = 1000;
+
+            // Render the entire page to an image
+            let rendered_page = page
+                .render_with_config(&PdfRenderConfig::new().set_target_width(resolution_width))
+                .change_context(ChonkyError::Pdfium)?; // Renders the page to a PdfBitmap
+
+            // Convert PdfBitmap to DynamicImage
+            let dynamic_image = rendered_page.as_image();
+            images.push(dynamic_image);
+        }
+
+        Ok(images)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use error_stack::{Report, ResultExt};
+    use pdfium_render::prelude::*;
+
     use super::*;
 
     #[test]
-    fn pdf_load_success() {
+    fn pdf_load_success() -> Result<(), Report<ChonkyError>> {
         let pdfium = Pdfium::new(
             Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
-                .unwrap(),
-        ); // creates instance so must be global
+                .change_context(ChonkyError::Pdfium)?,
+        );
 
         let test_pdf_string = "tests/docs/test-doc.pdf";
 
-        let pdf = load_pdf(&pdfium, test_pdf_string);
+        let _pdf = pdf_segmentation::load_pdf(&pdfium, test_pdf_string)
+            .change_context(ChonkyError::Pdfium)?;
 
-        assert!(pdf.is_ok());
+        Ok(())
     }
 
     #[test]
-    fn pdf_load_failure() {
+    fn pdf_load_failure() -> Result<(), Report<ChonkyError>> {
         let pdfium = Pdfium::new(
             Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
-                .unwrap(),
-        ); // creates instance so must be global
+                .change_context(ChonkyError::Pdfium)?,
+        );
 
         let test_pdf_string = "tests/docs/invalid.pdf";
 
-        let pdf = load_pdf(&pdfium, test_pdf_string);
+        // Should return an error when loading an invalid PDF
+        let result = pdf_segmentation::load_pdf(&pdfium, test_pdf_string)
+            .change_context(ChonkyError::Pdfium);
 
-        assert!(pdf.is_err());
+        if result.is_err() {
+            // Expected failure, return Ok
+            Ok(())
+        } else {
+            // Unexpected success, return an error
+            Err(Report::new(ChonkyError::Pdfium).attach_printable("Expected load_pdf to fail"))
+        }
     }
 
     #[test]
-    fn pdf_image_conversion() {
+    fn pdf_image_conversion() -> Result<(), Report<ChonkyError>> {
+        //create the pdfium instance and bind to library
         let pdfium = Pdfium::new(
             Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
-                .unwrap(),
-        ); // creates instance so must be global
+                .change_context(ChonkyError::Pdfium)?,
+        );
 
         let test_pdf_string = "tests/docs/test-doc.pdf";
 
-        let pdf = load_pdf(&pdfium, test_pdf_string).unwrap();
+        let pdf = pdf_segmentation::load_pdf(&pdfium, test_pdf_string)
+            .change_context(ChonkyError::Pdfium)?;
 
-        let preprocessed_pdf = pdf_to_images(&pdf).unwrap();
+        let preprocessed_pdf =
+            pdf_segmentation::pdf_to_images(&pdf).change_context(ChonkyError::Pdfium)?;
 
-        let num_pages = 38; //number of pages of pdf
+        let num_pages: usize = pdf.pages().len().into(); //number of pages of pdf
 
-        assert_eq!(preprocessed_pdf.len(), num_pages) //length of vector should be number of pages
+        match preprocessed_pdf.len() {
+            x if x == num_pages => Ok(()),
+            _ => Err(Report::new(ChonkyError::Pdfium)
+                .attach_printable("The length of vector should be number of pages")),
+        }
     }
 }
