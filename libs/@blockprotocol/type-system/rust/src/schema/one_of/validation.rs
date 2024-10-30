@@ -8,7 +8,7 @@ pub enum OneOfSchemaValidationError {
     Empty,
 }
 
-pub struct OneOfSchemaValidator; 
+pub struct OneOfSchemaValidator;
 
 impl<T: Sync> Validator<Vec<T>> for OneOfSchemaValidator {
     type Error = OneOfSchemaValidationError;
