@@ -88,7 +88,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                     },
                     title: String::new(),
                     title_plural: None,
-                    description: None,
+                    description: String::new(),
                     inverse: InverseEntityTypeMetadata {
                         title: None,
                         title_plural: None,

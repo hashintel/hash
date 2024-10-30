@@ -14,6 +14,7 @@ description = "RPC service definition to fetch external BP types"
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
+tarpc = { workspace = true, public = true, features = ["tokio1"] }
 time = { workspace = true, public = true, features = ["serde", "std"] }
 serde_json = { workspace = true, public = true }
 
@@ -25,7 +26,6 @@ futures = { workspace = true }
 include_dir = { workspace = true, features = ["glob"] }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
-tarpc = { workspace = true, features = ["tokio1"] }
 tracing = { workspace = true }
 
 [lints]

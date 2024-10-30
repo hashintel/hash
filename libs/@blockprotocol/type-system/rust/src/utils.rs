@@ -46,6 +46,7 @@ mod wasm {
 pub(crate) mod tests {
     use core::fmt::Debug;
 
+    use error_stack::ResultExt;
     use serde::{Deserialize, Serialize};
 
     use crate::{Valid, Validator};
@@ -77,7 +78,9 @@ pub(crate) mod tests {
     where
         for<'de> T: Serialize + Deserialize<'de>,
     {
-        let deserialized: T = serde_json::from_value(value.clone()).expect("failed to deserialize");
+        let deserialized: T = serde_json::from_value(value.clone())
+            .attach_printable_lazy(|| value.clone())
+            .expect("failed to deserialize");
         let re_serialized = serde_json::to_value(deserialized).expect("failed to serialize");
 
         if equality == JsonEqualityCheck::Yes {

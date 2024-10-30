@@ -96,6 +96,7 @@ mod tests {
     use core::iter;
     use std::collections::HashMap;
 
+    use error_stack::ResultExt;
     use graph_types::{
         account::{AccountId, EditionCreatedById},
         knowledge::property::{
@@ -451,12 +452,16 @@ mod tests {
             [],
             [],
             data_types.into_iter().map(|data_type| {
-                serde_json::from_str(data_type).expect("failed to parse data type")
+                serde_json::from_str(data_type)
+                    .attach_printable(data_type)
+                    .expect("failed to parse data type")
             }),
         );
 
         let data_type = generate_data_type_metadata(
-            serde_json::from_str(data_type).expect("failed to parse data type"),
+            serde_json::from_str(data_type)
+                .attach_printable_lazy(|| data_type.to_owned())
+                .expect("failed to parse data type"),
         );
 
         let mut metadata = ValueMetadata {

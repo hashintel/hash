@@ -1,26 +1,15 @@
 {
-  "title": "Entity Type",
-  "description": "Specifies the structure of a Block Protocol entity type",
+  "title": "Closed Entity Type",
+  "description": "Specifies the closed structure of a Block Protocol entity type",
   "type": "object",
   "properties": {
-    "$schema": {
-      "type": "string",
-      "enum": [
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
-      ]
-    },
-    "kind": {
-      "type": "string",
-      "enum": ["entityType"]
-    },
     "$id": {
       "$ref": "./shared.json#/definitions/VersionedUrl"
     },
-    "type": {
-      "type": "string",
-      "enum": ["object"]
-    },
     "title": {
+      "type": "string"
+    },
+    "titlePlural": {
       "type": "string"
     },
     "description": {
@@ -29,8 +18,9 @@
     "allOf": {
       "type": "array",
       "items": {
-        "$ref": "./shared.json#/definitions/EntityTypeReference"
-      }
+        "$ref": "./shared.json#/definitions/EntityTypeDisplayMetadata"
+      },
+      "minItems": 1
     },
     "properties": {
       "$ref": "./shared.json#/definitions/PropertyTypeObject"
@@ -46,13 +36,5 @@
     }
   },
   "additionalProperties": false,
-  "required": [
-    "$schema",
-    "kind",
-    "type",
-    "$id",
-    "title",
-    "description",
-    "properties"
-  ]
+  "required": ["$id", "title", "description", "properties"]
 }

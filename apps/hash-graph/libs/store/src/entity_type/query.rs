@@ -134,19 +134,6 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType::description()`]: type_system::schema::EntityType::description
     Description,
-    /// Corresponds to [`EntityType::examples()`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["examples"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::Examples);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`EntityType::examples()`]: type_system::schema::EntityType::examples
-    Examples,
     /// Corresponds to [`EntityConstraints::required`].
     ///
     /// ```rust
@@ -476,7 +463,7 @@ impl QueryPath for EntityTypeQueryPath<'_> {
             Self::Schema(_) | Self::ClosedSchema(_) | Self::AdditionalMetadata => {
                 ParameterType::Object
             }
-            Self::Examples | Self::Required | Self::EditionProvenance(_) => ParameterType::Any,
+            Self::Required | Self::EditionProvenance(_) => ParameterType::Any,
             Self::BaseUrl | Self::LabelProperty => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
             Self::Version => ParameterType::OntologyTypeVersion,
@@ -505,7 +492,6 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::ClosedSchema(None) => fmt.write_str("closedSchema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
-            Self::Examples => fmt.write_str("examples"),
             Self::Required => fmt.write_str("required"),
             Self::LabelProperty => fmt.write_str("labelProperty"),
             Self::Icon => fmt.write_str("icon"),
@@ -598,7 +584,6 @@ pub enum EntityTypeQueryToken {
     OwnedById,
     Title,
     Description,
-    Examples,
     Properties,
     Required,
     LabelProperty,
@@ -623,8 +608,8 @@ pub(crate) struct EntityTypeQueryPathVisitor {
 impl EntityTypeQueryPathVisitor {
     pub(crate) const EXPECTING: &'static str =
         "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `title`, `description`, \
-         `examples`, `properties`, `required`, `labelProperty`, `icon`, `editionProvenance`, \
-         `links`, `inheritsFrom`, `children`, `embedding`";
+         `properties`, `required`, `labelProperty`, `icon`, `editionProvenance`, `links`, \
+         `inheritsFrom`, `children`, `embedding`";
 
     #[must_use]
     pub(crate) const fn new(position: usize) -> Self {
@@ -657,7 +642,6 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
             EntityTypeQueryToken::Version => EntityTypeQueryPath::Version,
             EntityTypeQueryToken::Title => EntityTypeQueryPath::Title,
             EntityTypeQueryToken::Description => EntityTypeQueryPath::Description,
-            EntityTypeQueryToken::Examples => EntityTypeQueryPath::Examples,
             EntityTypeQueryToken::Properties => {
                 seq.next_element::<Selector>()?
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
@@ -799,7 +783,6 @@ impl EntityTypeQueryPath<'_> {
             Self::OwnedById => EntityTypeQueryPath::OwnedById,
             Self::Title => EntityTypeQueryPath::Title,
             Self::Description => EntityTypeQueryPath::Description,
-            Self::Examples => EntityTypeQueryPath::Examples,
             Self::Required => EntityTypeQueryPath::Required,
             Self::LabelProperty => EntityTypeQueryPath::LabelProperty,
             Self::Icon => EntityTypeQueryPath::Icon,
@@ -873,7 +856,6 @@ mod tests {
             deserialize(["description"]),
             EntityTypeQueryPath::Description
         );
-        assert_eq!(deserialize(["examples"]), EntityTypeQueryPath::Examples);
         assert_eq!(
             deserialize(["properties", "*", "version"]),
             EntityTypeQueryPath::PropertyTypeEdge {

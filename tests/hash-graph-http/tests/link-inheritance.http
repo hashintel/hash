@@ -33,7 +33,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
 %}
 
-### Insert link entity type
+### Insert entity types
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
@@ -46,7 +46,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "kind": "entityType",
     "$id": "http://localhost:3000/@snapshot/types/entity-type/left1/v/1",
     "type": "object",
-    "title": "Object",
+    "title": "Left1",
+    "description": "The first left entity type",
     "properties": {},
     "links": {
       "http://localhost:3000/@snapshot/types/entity-type/link1/v/1": {
@@ -65,7 +66,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "kind": "entityType",
     "$id": "http://localhost:3000/@snapshot/types/entity-type/left2/v/1",
     "type": "object",
-    "title": "Object",
+    "title": "Left2",
+    "description": "The second left entity type",
     "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/left1/v/1" }],
     "properties": {},
     "links": {
@@ -85,7 +87,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "kind": "entityType",
     "$id": "http://localhost:3000/@snapshot/types/entity-type/left3/v/1",
     "type": "object",
-    "title": "Object",
+    "title": "Left3",
+    "description": "The third left entity type",
     "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/left2/v/1" }],
     "properties": {},
     "links": {
@@ -106,7 +109,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "kind": "entityType",
     "$id": "http://localhost:3000/@snapshot/types/entity-type/link1/v/1",
     "type": "object",
-    "title": "Object",
+    "title": "Link1",
+    "description": "A link between `Left1` and `Right1`",
     "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" }],
     "properties": {}
   }, {
@@ -114,7 +118,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "kind": "entityType",
     "$id": "http://localhost:3000/@snapshot/types/entity-type/link2/v/1",
     "type": "object",
-    "title": "Object",
+    "title": "Link2",
+    "description": "A link between `Left2` and `Right2`",
     "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/link1/v/1" }],
     "properties": {}
   }, {
@@ -122,7 +127,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "kind": "entityType",
     "$id": "http://localhost:3000/@snapshot/types/entity-type/link3/v/1",
     "type": "object",
-    "title": "Object",
+    "title": "Link3",
+    "description": "A link between `Left3` and `Right3`",
     "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/link2/v/1" }],
     "properties": {}
   },
@@ -131,14 +137,16 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "kind": "entityType",
     "$id": "http://localhost:3000/@snapshot/types/entity-type/right1/v/1",
     "type": "object",
-    "title": "Object",
+    "title": "Right1",
+    "description": "The first right entity type",
     "properties": {}
   }, {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
     "$id": "http://localhost:3000/@snapshot/types/entity-type/right2/v/1",
     "type": "object",
-    "title": "Object",
+    "title": "Right2",
+    "description": "The second right entity type",
     "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/right1/v/1" }],
     "properties": {}
   }, {
@@ -146,7 +154,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "kind": "entityType",
     "$id": "http://localhost:3000/@snapshot/types/entity-type/right3/v/1",
     "type": "object",
-    "title": "Object",
+    "title": "Right3",
+    "description": "The third right entity type",
     "allOf": [{ "$ref": "http://localhost:3000/@snapshot/types/entity-type/right2/v/1" }],
     "properties": {}
   }],

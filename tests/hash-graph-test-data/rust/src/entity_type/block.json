@@ -4,6 +4,7 @@
   "$id": "https://blockprotocol.org/@alice/types/entity-type/block/v/1",
   "title": "Block",
   "type": "object",
+  "description": "A block as defined by the Block Protocol.",
   "properties": {
     "https://blockprotocol.org/@alice/types/property-type/name/": {
       "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/1"

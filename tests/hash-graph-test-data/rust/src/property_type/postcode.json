@@ -3,6 +3,7 @@
   "kind": "propertyType",
   "$id": "https://blockprotocol.org/@alice/types/property-type/postcode/v/1",
   "title": "Postcode",
+  "description": "A postcode",
   "oneOf": [
     {
       "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"

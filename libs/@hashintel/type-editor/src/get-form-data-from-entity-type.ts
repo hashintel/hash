@@ -10,7 +10,7 @@ export const getFormDataFromEntityType = (
   schema: EntityType,
 ): EntityTypeEditorFormData => ({
   allOf: schema.allOf?.map((ref) => ref.$ref) ?? [],
-  description: schema.description ?? "",
+  description: schema.description,
   labelProperty: schema.labelProperty,
   icon: schema.icon,
   properties: Object.entries(schema.properties).map(([propertyId, ref]) => {

@@ -3,6 +3,7 @@
   "kind": "entityType",
   "$id": "https://blockprotocol.org/@alice/types/entity-type/book/v/1",
   "title": "Book",
+  "description": "A book is a written work that is published in print or electronic form.",
   "type": "object",
   "properties": {
     "https://blockprotocol.org/@alice/types/property-type/name/": {
