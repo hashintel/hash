@@ -30,9 +30,9 @@ use graph::{
         EntityTypeStore, StorePool,
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
-            ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypeSubgraphParams,
-            GetEntityTypesParams, GetEntityTypesResponse, GetMultiEntityTypeParams,
-            GetMultiEntityTypeResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+            ArchiveEntityTypeParams, CreateEntityTypeParams, GetClosedMultiEntityTypeParams,
+            GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams, GetEntityTypesParams,
+            GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
             UpdateEntityTypesParams,
         },
     },
@@ -76,8 +76,8 @@ use crate::rest::{
         create_entity_type,
         load_external_entity_type,
         get_entity_types,
-        get_multi_entity_types,
         get_entity_type_subgraph,
+        get_closed_multi_entity_types,
         update_entity_type,
         update_entity_type_embeddings,
         archive_entity_type,
@@ -105,8 +105,8 @@ use crate::rest::{
             EntityTypeQueryToken,
             GetEntityTypesParams,
             GetEntityTypesResponse,
-            GetMultiEntityTypeParams,
-            GetMultiEntityTypeResponse,
+            GetClosedMultiEntityTypeParams,
+            GetClosedMultiEntityTypeResponse,
             GetEntityTypeSubgraphParams,
             GetEntityTypeSubgraphResponse,
             ArchiveEntityTypeParams,
@@ -155,7 +155,7 @@ impl RoutedResource for EntityTypeResource {
                     "/query",
                     Router::new()
                         .route("/", post(get_entity_types::<S, A>))
-                        .route("/multi", post(get_multi_entity_types::<S, A>))
+                        .route("/multi", post(get_closed_multi_entity_types::<S, A>))
                         .route("/subgraph", post(get_entity_type_subgraph::<S, A>)),
                 )
                 .route("/load", post(load_external_entity_type::<S, A>))
@@ -727,7 +727,7 @@ where
 #[utoipa::path(
     post,
     path = "/entity-types/multi",
-    request_body = GetMultiEntityTypeParams,
+    request_body = GetClosedMultiEntityTypeParams,
     tag = "EntityType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -736,8 +736,8 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = GetMultiEntityTypeResponse,
-            description = "Gets a a list of multi entity types that satisfy the given query.",
+            body = GetClosedMultiEntityTypeResponse,
+            description = "Gets a list of multi-entity types that satisfy the given query. A multi-entity type is the combination of multiple entity types.",
         ),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
@@ -748,13 +748,13 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client, request)
 )]
-async fn get_multi_entity_types<S, A>(
+async fn get_closed_multi_entity_types<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetMultiEntityTypeResponse>, Response>
+) -> Result<Json<GetClosedMultiEntityTypeResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -774,7 +774,7 @@ where
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
-            GetMultiEntityTypeParams::deserialize(&request)
+            GetClosedMultiEntityTypeParams::deserialize(&request)
                 .map_err(Report::from)
                 .map_err(report_to_response)?,
         )

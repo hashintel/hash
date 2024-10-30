@@ -56,9 +56,10 @@ use crate::store::{
     error::DeletionError,
     ontology::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
+        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
         GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-        GetEntityTypesResponse, GetMultiEntityTypeParams, GetMultiEntityTypeResponse,
-        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
     },
     postgres::{
         ResponseCountMap, TraversalContext,
@@ -874,8 +875,8 @@ where
     async fn get_multi_entity_types(
         &self,
         actor_id: AccountId,
-        params: GetMultiEntityTypeParams,
-    ) -> Result<GetMultiEntityTypeResponse, QueryError> {
+        params: GetClosedMultiEntityTypeParams,
+    ) -> Result<GetClosedMultiEntityTypeResponse, QueryError> {
         let entity_type_ids = params
             .entity_type_ids
             .iter()
@@ -901,7 +902,7 @@ where
             .await
             .change_context(QueryError)?;
 
-        Ok(GetMultiEntityTypeResponse {
+        Ok(GetClosedMultiEntityTypeResponse {
             entity_type: ClosedMultiEntityType::from_multi_type_closed_schema(
                 response
                     .closed_entity_types

@@ -53,10 +53,10 @@ use graph::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
             CountDataTypesParams, CountEntityTypesParams, CountPropertyTypesParams,
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
             GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
             GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
-            GetEntityTypesParams, GetEntityTypesResponse, GetMultiEntityTypeParams,
-            GetMultiEntityTypeResponse, GetPropertyTypeSubgraphParams,
+            GetEntityTypesParams, GetEntityTypesResponse, GetPropertyTypeSubgraphParams,
             GetPropertyTypeSubgraphResponse, GetPropertyTypesParams, GetPropertyTypesResponse,
             UnarchiveDataTypeParams, UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
@@ -592,8 +592,8 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
     async fn get_multi_entity_types(
         &self,
         actor_id: AccountId,
-        params: GetMultiEntityTypeParams,
-    ) -> Result<GetMultiEntityTypeResponse, QueryError> {
+        params: GetClosedMultiEntityTypeParams,
+    ) -> Result<GetClosedMultiEntityTypeResponse, QueryError> {
         self.store.get_multi_entity_types(actor_id, params).await
     }
 

@@ -220,11 +220,11 @@ export const mapGraphApiClosedEntityTypesToClosedEntityTypes = (
   entityTypes: GraphApiClosedEntityType[],
 ) => entityTypes as ClosedEntityType[];
 
-export const mapGraphApiMultiEntityTypeToMultiEntityType = (
+export const mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType = (
   entityType: GraphApiClosedMultiEntityType,
 ) => entityType as ClosedMultiEntityType;
 
-export const mapGraphApiMultiEntityTypesToMultiEntityTypes = (
+export const mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes = (
   entityTypes: GraphApiClosedMultiEntityType[],
 ) => entityTypes as ClosedMultiEntityType[];
 

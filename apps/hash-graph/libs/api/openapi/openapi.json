@@ -1928,7 +1928,7 @@
           "Graph",
           "EntityType"
         ],
-        "operationId": "get_multi_entity_types",
+        "operationId": "get_closed_multi_entity_types",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -1944,7 +1944,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetMultiEntityTypeParams"
+                "$ref": "#/components/schemas/GetClosedMultiEntityTypeParams"
               }
             }
           },
@@ -1952,11 +1952,11 @@
         },
         "responses": {
           "200": {
-            "description": "Gets a a list of multi entity types that satisfy the given query.",
+            "description": "Gets a list of multi-entity types that satisfy the given query. A multi-entity type is the combination of multiple entity types.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetMultiEntityTypeResponse"
+                  "$ref": "#/components/schemas/GetClosedMultiEntityTypeResponse"
                 }
               }
             }
@@ -5062,6 +5062,40 @@
           }
         ]
       },
+      "GetClosedMultiEntityTypeParams": {
+        "type": "object",
+        "required": [
+          "entityTypeIds",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetClosedMultiEntityTypeResponse": {
+        "type": "object",
+        "required": [
+          "entityType"
+        ],
+        "properties": {
+          "entityType": {
+            "$ref": "./models/closed_multi_entity_type.json"
+          }
+        }
+      },
       "GetDataTypeSubgraphParams": {
         "type": "object",
         "required": [
@@ -5590,40 +5624,6 @@
               "type": "integer",
               "minimum": 0
             }
-          }
-        }
-      },
-      "GetMultiEntityTypeParams": {
-        "type": "object",
-        "required": [
-          "entityTypeIds",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "entityTypeIds": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            }
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetMultiEntityTypeResponse": {
-        "type": "object",
-        "required": [
-          "entityType"
-        ],
-        "properties": {
-          "entityType": {
-            "$ref": "./models/closed_multi_entity_type.json"
           }
         }
       },

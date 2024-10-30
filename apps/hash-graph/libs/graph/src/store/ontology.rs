@@ -623,7 +623,7 @@ pub struct GetEntityTypesResponse {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetMultiEntityTypeParams {
+pub struct GetClosedMultiEntityTypeParams {
     pub entity_type_ids: Vec<VersionedUrl>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
@@ -632,7 +632,7 @@ pub struct GetMultiEntityTypeParams {
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct GetMultiEntityTypeResponse {
+pub struct GetClosedMultiEntityTypeResponse {
     #[cfg_attr(feature = "utoipa", schema(value_type = VAR_CLOSED_MULTI_ENTITY_TYPE))]
     pub entity_type: ClosedMultiEntityType,
 }
@@ -762,8 +762,8 @@ pub trait EntityTypeStore {
     fn get_multi_entity_types(
         &self,
         actor_id: AccountId,
-        params: GetMultiEntityTypeParams,
-    ) -> impl Future<Output = Result<GetMultiEntityTypeResponse, QueryError>> + Send;
+        params: GetClosedMultiEntityTypeParams,
+    ) -> impl Future<Output = Result<GetClosedMultiEntityTypeResponse, QueryError>> + Send;
 
     /// Update the definition of an existing [`EntityType`].
     ///

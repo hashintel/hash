@@ -12,7 +12,7 @@ import type {
   EntityTypePermission,
   GetEntityTypesParams,
   GetEntityTypeSubgraphParams,
-  GetMultiEntityTypeParams,
+  GetClosedMultiEntityTypeParams,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
   ProvidedOntologyEditionProvenance,
@@ -31,7 +31,7 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   mapGraphApiClosedEntityTypesToClosedEntityTypes,
   mapGraphApiEntityTypesToEntityTypes,
-  mapGraphApiMultiEntityTypeToMultiEntityType,
+  mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
@@ -249,15 +249,17 @@ export const getClosedEntityTypes: ImpureGraphFunction<
 };
 
 export const getClosedMultiEntityType: ImpureGraphFunction<
-  GetMultiEntityTypeParams & {
+  GetClosedMultiEntityTypeParams & {
     temporalClient?: TemporalClient;
   },
   Promise<ClosedMultiEntityType>
 > = async ({ graphApi }, { actorId }, { temporalClient: _, ...request }) =>
   graphApi
-    .getMultiEntityTypes(actorId, request)
+    .getClosedMultiEntityTypes(actorId, request)
     .then(({ data: response }) =>
-      mapGraphApiMultiEntityTypeToMultiEntityType(response.entityType),
+      mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType(
+        response.entityType,
+      ),
     );
 
 /**

@@ -1,6 +1,6 @@
 {
-  "title": "Closed Entity Type",
-  "description": "Specifies the closed structure of a Block Protocol entity type",
+  "title": "Closed Multi-Entity Type",
+  "description": "Specifies the closed structure which combines multiple entity types",
   "type": "object",
   "properties": {
     "allOf": {
