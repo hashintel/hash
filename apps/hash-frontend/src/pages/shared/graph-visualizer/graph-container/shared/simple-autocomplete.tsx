@@ -27,7 +27,7 @@ const OuterElementType = forwardRef<HTMLDivElement>((props, ref) => {
 
 export const VirtualizedList = forwardRef<
   HTMLDivElement,
-  { children: ReactElement[]; rowHeight: number }
+  { children: ReactElement[]; rowheight: number }
 >((props, ref) => {
   const itemCount = props.children.length;
 
@@ -44,7 +44,7 @@ export const VirtualizedList = forwardRef<
           className="List"
           height={400}
           itemCount={itemCount}
-          itemSize={() => props.rowHeight}
+          itemSize={() => props.rowheight}
           overscanCount={5}
           itemData={{ ...props.children }}
           width={800}
@@ -60,7 +60,7 @@ const VirtualizedListComp = forwardRef<
   HTMLDivElement,
   { children: ReactElement[] }
 >((defaultProps, ref) => {
-  return <VirtualizedList ref={ref} {...defaultProps} rowHeight={36} />;
+  return <VirtualizedList ref={ref} {...defaultProps} rowheight={36} />;
 });
 
 export const SimpleAutocomplete = <
@@ -108,7 +108,7 @@ export const SimpleAutocomplete = <
         },
         popper: {
           sx: {
-            "& > div:first-child": {
+            "& > div:first-of-type": {
               boxShadow: "none",
             },
           },
