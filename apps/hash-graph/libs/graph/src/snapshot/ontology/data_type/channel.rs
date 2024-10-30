@@ -66,6 +66,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         mut self: Pin<&mut Self>,
         data_type: DataTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
+        println!("start_send {:#?}", serde_json::json!(data_type.schema));
         let schema = (*self.validator)
             .validate(data_type.schema)
             .change_context(SnapshotRestoreError::Validation)?;
