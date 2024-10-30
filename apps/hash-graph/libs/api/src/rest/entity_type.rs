@@ -770,7 +770,7 @@ where
         .map_err(report_to_response)?;
 
     store
-        .get_multi_entity_types(
+        .get_closed_multi_entity_types(
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.

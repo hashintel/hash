@@ -10,9 +10,9 @@ import type {
   ArchiveEntityTypeParams,
   EntityType,
   EntityTypePermission,
+  GetClosedMultiEntityTypeParams,
   GetEntityTypesParams,
   GetEntityTypeSubgraphParams,
-  GetClosedMultiEntityTypeParams,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
   ProvidedOntologyEditionProvenance,
@@ -30,8 +30,8 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   mapGraphApiClosedEntityTypesToClosedEntityTypes,
-  mapGraphApiEntityTypesToEntityTypes,
   mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType,
+  mapGraphApiEntityTypesToEntityTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {

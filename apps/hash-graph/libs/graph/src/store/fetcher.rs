@@ -1092,12 +1092,14 @@ where
         self.store.get_entity_types(actor_id, params).await
     }
 
-    async fn get_multi_entity_types(
+    async fn get_closed_multi_entity_types(
         &self,
         actor_id: AccountId,
         params: GetClosedMultiEntityTypeParams,
     ) -> Result<GetClosedMultiEntityTypeResponse, QueryError> {
-        self.store.get_multi_entity_types(actor_id, params).await
+        self.store
+            .get_closed_multi_entity_types(actor_id, params)
+            .await
     }
 
     async fn get_entity_type_subgraph(

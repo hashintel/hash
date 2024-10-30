@@ -754,12 +754,12 @@ pub trait EntityTypeStore {
         params: GetEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<GetEntityTypesResponse, QueryError>> + Send;
 
-    /// Get the [`ClosedMultiEntityType`] specified by the [`GetMultiEntityTypeParams`].
+    /// Get the [`ClosedMultiEntityType`] specified by the [`GetClosedMultiEntityTypeParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    fn get_multi_entity_types(
+    fn get_closed_multi_entity_types(
         &self,
         actor_id: AccountId,
         params: GetClosedMultiEntityTypeParams,

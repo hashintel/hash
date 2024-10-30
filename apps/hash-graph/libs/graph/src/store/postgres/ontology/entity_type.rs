@@ -872,7 +872,7 @@ where
         Ok(response)
     }
 
-    async fn get_multi_entity_types(
+    async fn get_closed_multi_entity_types(
         &self,
         actor_id: AccountId,
         params: GetClosedMultiEntityTypeParams,
