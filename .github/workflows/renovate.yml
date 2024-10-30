@@ -41,7 +41,7 @@ env:
   cache_archive: renovate_cache.tar.gz
   cache_dir: /tmp/renovate/cache/renovate/repository
   cache_key: renovate-cache
-  dry_run: ${{ github.event.inputs.dryRun || 'disabled' }}
+  dry_run: ${{ github.event.inputs.dryRun || 'full' }}
 
 concurrency:
   cancel-in-progress: false
