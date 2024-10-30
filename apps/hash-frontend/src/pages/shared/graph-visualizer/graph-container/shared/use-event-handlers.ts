@@ -186,24 +186,22 @@ export const useEventHandlers = ({
         setSearchPanelOpen(false);
       },
       enterNode: (event) => {
-        if (graphState.selectedNodeId) {
-          /**
-           * If a user has clicked on a node, don't do anything when hovering other over nodes,
-           * because it makes it harder to click to highlight neighbors and then browse the highlighted graph.
-           * They can click on the background or another node to deselect this one.
-           */
-          return;
-        }
-
         setGraphState("hoveredNodeId", event.node);
         refreshGraphHighlights();
       },
-      leaveNode: () => {
+      leaveNode: (event) => {
         if (graphState.selectedNodeId) {
           /**
-           * If there's a selected node (has been clicked on), we don't want to remove highlights.
+           * If there's a selected node (has been clicked on), we don't want to remove all highlights when leaving a node.
            * The user can click the background or another node to deselect it.
+           * We do still need to set the hoveredNodeId to null and rerender the node that the mouse has left,
+           * because node labels change when hovered even if another node is selected.
            */
+          setGraphState("hoveredNodeId", null);
+          sigma.refresh({
+            skipIndexation: true,
+            partialGraph: { nodes: [event.node] },
+          });
           return;
         }
         removeHighlights();
