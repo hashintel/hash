@@ -179,20 +179,22 @@ export const useEntitiesTable = (params: {
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
-  const entitiesHaveSameType = useMemo(
-    () =>
-      !!entities &&
-      !!entities.length &&
-      entities
-        .map(({ metadata: { entityTypeIds } }) =>
-          entityTypeIds
-            .toSorted()
-            .map((entityTypeId) => extractBaseUrl(entityTypeId))
-            .join(","),
-        )
-        .every((value, _i, all) => value === all[0]),
-    [entities],
-  );
+  const entitiesHaveSameType = useMemo(() => {
+    if (!entities?.length) {
+      return false;
+    }
+    const seenBaseUrls = new Set<BaseUrl>();
+    for (const entity of entities) {
+      for (const entityTypeId of entity.metadata.entityTypeIds) {
+        const baseUrl = extractBaseUrl(entityTypeId);
+        if (seenBaseUrls.size > 0 && !seenBaseUrls.has(baseUrl)) {
+          return false;
+        }
+        seenBaseUrls.add(baseUrl);
+      }
+    }
+    return true;
+  }, [entities]);
 
   const usedPropertyTypesByEntityTypeId = useMemo<{
     [entityTypeId: VersionedUrl]: PropertyTypeWithMetadata[];
@@ -243,6 +245,8 @@ export const useEntitiesTable = (params: {
   }, [usedPropertyTypesByEntityTypeId]);
 
   return useMemo(() => {
+    console.log("Calculating stuff");
+
     const propertyColumnsMap = new Map<string, SizedGridColumn>();
 
     for (const propertyType of Object.values(
