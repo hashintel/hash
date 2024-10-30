@@ -61,6 +61,7 @@ use crate::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
             CountDataTypesParams, CountEntityTypesParams, CountPropertyTypesParams,
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
             GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
             GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
             GetEntityTypesParams, GetEntityTypesResponse, GetPropertyTypeSubgraphParams,
@@ -1089,6 +1090,16 @@ where
         params: GetEntityTypesParams<'_>,
     ) -> Result<GetEntityTypesResponse, QueryError> {
         self.store.get_entity_types(actor_id, params).await
+    }
+
+    async fn get_closed_multi_entity_types(
+        &self,
+        actor_id: AccountId,
+        params: GetClosedMultiEntityTypeParams,
+    ) -> Result<GetClosedMultiEntityTypeResponse, QueryError> {
+        self.store
+            .get_closed_multi_entity_types(actor_id, params)
+            .await
     }
 
     async fn get_entity_type_subgraph(

@@ -42,7 +42,7 @@ use tracing::instrument;
 use type_system::{
     Valid, Validator,
     schema::{
-        ClosedEntityType, DataTypeUuid, EntityType, EntityTypeResolveData,
+        ClosedEntityType, ClosedMultiEntityType, DataTypeUuid, EntityType, EntityTypeResolveData,
         EntityTypeToPropertyTypeEdge, EntityTypeUuid, EntityTypeValidator, InheritanceDepth,
         OntologyTypeResolver, OntologyTypeUuid, PropertyTypeUuid,
     },
@@ -56,6 +56,7 @@ use crate::store::{
     error::DeletionError,
     ontology::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
+        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
         GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
         GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
         UpdateEntityTypesParams,
@@ -869,6 +870,46 @@ where
             );
         };
         Ok(response)
+    }
+
+    async fn get_closed_multi_entity_types(
+        &self,
+        actor_id: AccountId,
+        params: GetClosedMultiEntityTypeParams,
+    ) -> Result<GetClosedMultiEntityTypeResponse, QueryError> {
+        let entity_type_ids = params
+            .entity_type_ids
+            .iter()
+            .map(EntityTypeUuid::from_url)
+            .collect::<Vec<_>>();
+        let response = self
+            .get_entity_types(actor_id, GetEntityTypesParams {
+                filter: Filter::In(
+                    FilterExpression::Path {
+                        path: EntityTypeQueryPath::OntologyId,
+                    },
+                    ParameterList::EntityTypeIds(&entity_type_ids),
+                ),
+                temporal_axes: params.temporal_axes,
+                include_drafts: params.include_drafts,
+                after: None,
+                limit: None,
+                include_count: false,
+                include_closed: true,
+                include_web_ids: false,
+                include_edition_created_by_ids: false,
+            })
+            .await
+            .change_context(QueryError)?;
+
+        Ok(GetClosedMultiEntityTypeResponse {
+            entity_type: ClosedMultiEntityType::from_multi_type_closed_schema(
+                response
+                    .closed_entity_types
+                    .expect("Response should include closed entity types"),
+            )
+            .change_context(QueryError)?,
+        })
     }
 
     #[tracing::instrument(level = "info", skip(self))]

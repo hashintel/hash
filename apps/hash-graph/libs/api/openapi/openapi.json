@@ -1922,6 +1922,54 @@
         }
       }
     },
+    "/entity-types/multi": {
+      "post": {
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
+        "operationId": "get_closed_multi_entity_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetClosedMultiEntityTypeParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Gets a list of multi-entity types that satisfy the given query. A multi-entity type is the combination of multiple entity types.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetClosedMultiEntityTypeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entity-types/query": {
       "post": {
         "tags": [
@@ -5013,6 +5061,40 @@
             }
           }
         ]
+      },
+      "GetClosedMultiEntityTypeParams": {
+        "type": "object",
+        "required": [
+          "entityTypeIds",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetClosedMultiEntityTypeResponse": {
+        "type": "object",
+        "required": [
+          "entityType"
+        ],
+        "properties": {
+          "entityType": {
+            "$ref": "./models/closed_multi_entity_type.json"
+          }
+        }
       },
       "GetDataTypeSubgraphParams": {
         "type": "object",
