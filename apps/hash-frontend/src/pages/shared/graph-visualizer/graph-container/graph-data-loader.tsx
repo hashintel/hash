@@ -152,11 +152,6 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
       if (aggregateEdgesById[aggregateEdgeId]) {
         aggregateEdgesById[aggregateEdgeId].aggregatedEdgeCount++;
         aggregateEdgesById[aggregateEdgeId].significance++;
-
-        /**
-         * Don't draw another edge, it'll be overlapped by the previous one
-         * @todo aggregate number of edges to weight the single edge
-         */
       } else {
         aggregateEdgesById[aggregateEdgeId] = {
           ...edge,
@@ -239,13 +234,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
     }
 
     for (const aggregateEdge of Object.values(aggregateEdgesById)) {
-      const { source, target } = aggregateEdge;
-
-      /**
-       * We started the significance at 0, so that the first incoming
-       */
-      const significance = Math.min(1, aggregateEdge.significance);
-      aggregateEdge.significance = significance;
+      const { significance, source, target } = aggregateEdge;
 
       let size: number | undefined;
       if (config.edgeSizing.scale === "Linear") {
