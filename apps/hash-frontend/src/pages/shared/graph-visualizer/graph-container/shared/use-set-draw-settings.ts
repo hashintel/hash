@@ -139,16 +139,17 @@ export const useSetDrawSettings = <
 
         const nodeSize = data.size;
 
-        const paddingX = 6;
-        const paddingY = 4;
-        const labelBottomPadding = 4;
+        const paddingX = 4;
+        const paddingY = 2;
+
+        const labelBottomPadding = 3;
 
         const { maxLineWidth, lines } = getCanvasLines(context, data.label);
         const width = maxLineWidth + paddingX * 2;
 
         const backgroundHeight =
           labelFontSize * lines.length +
-          labelBottomPadding * lines.length -
+          labelBottomPadding * lines.length +
           1 +
           paddingY * 2;
 
