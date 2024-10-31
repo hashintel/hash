@@ -1,15 +1,11 @@
 use bytes::{Buf, BufMut};
 use error_stack::Result;
-use harpc_types::{service::ServiceId, version::Version};
+use harpc_types::{
+    service::{ServiceDescriptor, ServiceId},
+    version::Version,
+};
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(test, derive(test_strategy::Arbitrary))]
-pub struct ServiceDescriptor {
-    pub id: ServiceId,
-    pub version: Version,
-}
 
 impl Encode for ServiceDescriptor {
     type Error = BufferError;

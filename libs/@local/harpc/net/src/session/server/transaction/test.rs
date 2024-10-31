@@ -1,8 +1,20 @@
-use alloc::sync::Arc;
-use core::{num::NonZero, time::Duration};
+use alloc::{borrow::Cow, sync::Arc};
+use core::{
+    error::Error,
+    fmt::{self, Display},
+    num::NonZero,
+    time::Duration,
+};
 
 use bytes::Bytes;
-use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+use harpc_codec::error::NetworkError;
+use harpc_types::{
+    error_code::ErrorCode,
+    procedure::{ProcedureDescriptor, ProcedureId},
+    response_kind::ResponseKind,
+    service::{ServiceDescriptor, ServiceId},
+    version::Version,
+};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
@@ -15,8 +27,6 @@ use harpc_wire_protocol::{
         frame::RequestFrame,
         header::RequestHeader,
         id::RequestId,
-        procedure::ProcedureDescriptor,
-        service::ServiceDescriptor,
     },
     response::{
         Response,
@@ -24,7 +34,6 @@ use harpc_wire_protocol::{
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
-        kind::{ErrorCode, ResponseKind},
     },
     test_utils::mock_request_id,
 };
@@ -33,12 +42,9 @@ use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
 use super::{ServerTransactionPermit, TransactionStream};
-use crate::session::{
-    error::TransactionError,
-    server::{
-        SessionConfig, connection::test::make_transaction_permit,
-        transaction::TransactionSendDelegateTask,
-    },
+use crate::session::server::{
+    SessionConfig, connection::test::make_transaction_permit,
+    transaction::TransactionSendDelegateTask,
 };
 
 fn config_delay() -> SessionConfig {
@@ -73,7 +79,7 @@ impl ServerTransactionPermit for StaticTransactionPermit {
 fn setup_send(
     no_delay: bool,
 ) -> (
-    mpsc::Sender<Result<Bytes, TransactionError>>,
+    mpsc::Sender<Result<Bytes, NetworkError>>,
     mpsc::Receiver<Response>,
     JoinHandle<()>,
 ) {
@@ -150,7 +156,7 @@ async fn send_delay_perfect_buffer() {
 
     // send a message that fits perfectly into the buffer
     // this should not trigger any splitting
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -181,7 +187,7 @@ async fn send_delay_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a large message that needs to be split into multiple parts
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -217,7 +223,7 @@ async fn send_delay_split_large_multiple() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a large message that needs to be split into multiple parts
-    let payload = Bytes::from_static(&[0; (Payload::MAX_SIZE * 2) + 8]);
+    let payload = Bytes::from(vec![0; (Payload::MAX_SIZE * 2) + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -292,7 +298,7 @@ async fn send_delay_flush_remaining() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a packet that is to be split into multiple frames
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -430,19 +436,40 @@ async fn send_delay_empty_bytes() {
     });
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ExampleError {
+    code: ErrorCode,
+    message: Cow<'static, str>,
+}
+
+impl Display for ExampleError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.message, fmt)
+    }
+}
+
+impl Error for ExampleError {
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_value(self.code);
+    }
+}
+
 #[tokio::test]
 async fn send_delay_error_immediate() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
-    // send an error message
-    let payload = Bytes::from_static(&[0, 1, 2, 3, 4, 5, 6, 7]);
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("immediate delay"),
+        code,
+    });
+
+    // send an error message
+    let payload = error.bytes().clone();
+
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload.clone(),
-        }))
+        .send(Err(error))
         .await
         .expect("should not be closed");
 
@@ -470,22 +497,25 @@ async fn send_delay_error_delayed() {
 
     // if we send a packet that is too large, we'll split, but when we encounter an error we
     // will discard the remaining messages
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
         .await
         .expect("should not be closed");
 
-    // send an error message
-    let payload_err = Bytes::from_static(&[0, 1, 2, 3, 4, 5, 6, 7]);
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("delayed error"),
+        code,
+    });
+
+    // send an error message
+    let payload_err = error.bytes().clone();
+
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload_err.clone(),
-        }))
+        .send(Err(error))
         .await
         .expect("should not be closed");
 
@@ -521,16 +551,18 @@ async fn send_delay_error_multiple() {
     // errors behave the same as normal messages in their flushing behaviour, which means that
     // only that you are unable to have a stream or error bytes and their values need to be
     // fully buffered.
-
-    let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
         bytes_tx
-            .send(Err(TransactionError {
-                code,
-                bytes: payload_err.clone(),
-            }))
+            .send(Err(error.clone()))
             .await
             .expect("should not be closed");
     }
@@ -567,9 +599,16 @@ async fn send_delay_error_interspersed() {
     // once we have an error message, we no longer send any more messages
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
-    let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
+
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
         bytes_tx
@@ -578,10 +617,7 @@ async fn send_delay_error_interspersed() {
             .expect("should not be closed");
 
         bytes_tx
-            .send(Err(TransactionError {
-                code,
-                bytes: payload_err.clone(),
-            }))
+            .send(Err(error.clone()))
             .await
             .expect("should not be closed");
     }
@@ -624,8 +660,15 @@ async fn send_delay_error_interspersed_small() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     let payload_ok = Bytes::from_static(&[0; 8]);
-    let payload_err = Bytes::from_static(&[0; 8]);
+
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("interspersed delayed errors"),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
         bytes_tx
@@ -634,10 +677,7 @@ async fn send_delay_error_interspersed_small() {
             .expect("should not be closed");
 
         bytes_tx
-            .send(Err(TransactionError {
-                code,
-                bytes: payload_err.clone(),
-            }))
+            .send(Err(error.clone()))
             .await
             .expect("should not be closed");
     }
@@ -657,7 +697,7 @@ async fn send_delay_error_interspersed_small() {
     assert_begin(&responses[0], ExpectedBegin {
         flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
         kind: ResponseKind::Err(code),
-        payload: &payload_ok,
+        payload: &payload_err,
     });
 }
 
@@ -666,14 +706,17 @@ async fn send_delay_error_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // if we have a large payload we split it into multiple frames
-    let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
+
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload_err.clone(),
-        }))
+        .send(Err(error.clone()))
         .await
         .expect("should not be closed");
 
@@ -705,7 +748,7 @@ async fn send_delay_error_split_large() {
 async fn send_no_delay_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -754,7 +797,7 @@ async fn send_no_delay_split_large() {
 async fn send_no_delay_split_large_multiple() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_ok = Bytes::from_static(&[0; (Payload::MAX_SIZE * 2) + 8]);
+    let payload_ok = Bytes::from(vec![0; (Payload::MAX_SIZE * 2) + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -957,14 +1000,17 @@ async fn send_no_delay_skip_empty() {
 async fn send_no_delay_error_immediate() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_err = Bytes::from_static(b"error");
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
+
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload_err.clone(),
-        }))
+        .send(Err(error))
         .await
         .expect("should not be closed");
 
@@ -996,8 +1042,15 @@ async fn send_no_delay_error_delayed() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
     let payload_ok = Bytes::from_static(b"ok");
-    let payload_err = Bytes::from_static(b"error");
+
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -1005,10 +1058,7 @@ async fn send_no_delay_error_delayed() {
         .expect("should not be closed");
 
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload_err.clone(),
-        }))
+        .send(Err(error))
         .await
         .expect("should not be closed");
 
@@ -1046,8 +1096,15 @@ async fn send_no_delay_error_multiple() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
     let payload_ok = Bytes::from_static(b"ok");
-    let payload_err = Bytes::from_static(b"error");
+
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -1056,10 +1113,7 @@ async fn send_no_delay_error_multiple() {
 
     for _ in 0..3 {
         bytes_tx
-            .send(Err(TransactionError {
-                code,
-                bytes: payload_err.clone(),
-            }))
+            .send(Err(error.clone()))
             .await
             .expect("should not be closed");
     }
@@ -1100,8 +1154,14 @@ async fn send_no_delay_error_interspersed() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
     let payload_ok = Bytes::from_static(b"ok");
-    let payload_err = Bytes::from_static(b"error");
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     for _ in 0..3 {
         bytes_tx
@@ -1110,10 +1170,7 @@ async fn send_no_delay_error_interspersed() {
             .expect("should not be closed");
 
         bytes_tx
-            .send(Err(TransactionError {
-                code,
-                bytes: payload_err.clone(),
-            }))
+            .send(Err(error.clone()))
             .await
             .expect("should not be closed");
     }
@@ -1153,14 +1210,17 @@ async fn send_no_delay_error_interspersed() {
 async fn send_no_delay_error_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("0".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
+
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload_err.clone(),
-        }))
+        .send(Err(error))
         .await
         .expect("should not be closed");
 

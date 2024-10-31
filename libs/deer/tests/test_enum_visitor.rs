@@ -16,7 +16,7 @@ use serde_json::json;
 
 struct DiscriminantVisitor;
 
-impl<'de> Visitor<'de> for DiscriminantVisitor {
+impl Visitor<'_> for DiscriminantVisitor {
     type Value = Discriminant;
 
     fn expecting(&self) -> Document {
@@ -295,7 +295,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                     Id(u8),
                 }
 
-                impl<'de> Visitor<'de> for VariantFieldVisitor {
+                impl Visitor<'_> for VariantFieldVisitor {
                     type Value = VariantFieldIdent;
 
                     fn expecting(&self) -> Document {

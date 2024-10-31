@@ -1,10 +1,15 @@
+import type { EntityType } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityMetadata, Property } from "@local/hash-graph-types/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getBreadthFirstEntityTypesAndParents,
+  getEntityRevision,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 
@@ -14,10 +19,10 @@ const getLabelPropertyValue = (
   entityToLabel: {
     properties: Entity["properties"];
   },
-  entityType: EntityTypeWithMetadata,
+  entityType: EntityType,
 ) => {
-  if (entityType.metadata.labelProperty) {
-    const label = entityToLabel.properties[entityType.metadata.labelProperty];
+  if (entityType.labelProperty) {
+    const label = entityToLabel.properties[entityType.labelProperty as BaseUrl];
 
     if (label) {
       return label && typeof label === "object"
@@ -30,22 +35,25 @@ const getLabelPropertyValue = (
 const getFallbackLabel = ({
   entityType,
   entity,
+  includeHexChars,
 }: {
-  entityType?: EntityTypeWithMetadata;
+  entityType?: EntityType;
   entity: {
     properties: Entity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   };
+  includeHexChars: boolean;
 }) => {
   // fallback to the entity type and a few characters of the entityUuid
   const entityId = entity.metadata.recordId.entityId;
 
-  const entityTypeName = entityType?.schema.title ?? "Entity";
+  const entityTypeName = entityType?.title ?? "Entity";
 
-  return `${entityTypeName}-${extractEntityUuidFromEntityId(entityId).slice(
-    0,
-    5,
-  )}`;
+  return `${entityTypeName}${
+    includeHexChars
+      ? `-${extractEntityUuidFromEntityId(entityId).slice(0, 3)}`
+      : ""
+  }`;
 };
 
 export function generateEntityLabel(
@@ -54,6 +62,7 @@ export function generateEntityLabel(
     properties: Entity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
+  includeHexChars?: boolean,
 ): string;
 export function generateEntityLabel(
   entitySubgraph: Subgraph | null,
@@ -61,6 +70,7 @@ export function generateEntityLabel(
     properties: Entity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
+  includeHexChars?: boolean,
 ): string;
 /**
  * Generate a display label for an entity
@@ -76,6 +86,7 @@ export function generateEntityLabel(
     properties: Entity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
+  includeHexChars: boolean = true,
 ): string {
   if (!entitySubgraph && !entity) {
     throw new Error(`One of entitySubgraph or entity must be provided`);
@@ -108,7 +119,7 @@ export function generateEntityLabel(
     }
 
     for (const typeToCheck of entityTypesAndAncestors ?? []) {
-      const label = getLabelPropertyValue(entityToLabel, typeToCheck);
+      const label = getLabelPropertyValue(entityToLabel, typeToCheck.schema);
 
       if (label) {
         return label;
@@ -164,5 +175,45 @@ export function generateEntityLabel(
     return lastName;
   }
 
-  return getFallbackLabel({ entityType, entity: entityToLabel });
+  return getFallbackLabel({
+    entityType: entityType?.schema,
+    entity: entityToLabel,
+    includeHexChars,
+  });
 }
+
+export const generateLinkEntityLabel = (
+  entitySubgraph: Subgraph,
+  entity: {
+    linkData: Entity["linkData"];
+    properties: Entity["properties"];
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
+  },
+) => {
+  const entityLabel = generateEntityLabel(entitySubgraph, entity, false);
+
+  if (!entity.linkData) {
+    return entityLabel;
+  }
+
+  const leftEntity = getEntityRevision(
+    entitySubgraph,
+    entity.linkData.leftEntityId,
+  );
+  if (!leftEntity) {
+    return entityLabel;
+  }
+
+  const rightEntity = getEntityRevision(
+    entitySubgraph,
+    entity.linkData.rightEntityId,
+  );
+  if (!rightEntity) {
+    return entityLabel;
+  }
+
+  const leftLabel = generateEntityLabel(entitySubgraph, leftEntity);
+  const rightLabel = generateEntityLabel(entitySubgraph, rightEntity);
+
+  return `${leftLabel} - ${entityLabel} - ${rightLabel}`;
+};

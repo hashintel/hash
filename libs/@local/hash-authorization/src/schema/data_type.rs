@@ -1,7 +1,8 @@
 use core::error::Error;
 
-use graph_types::{ontology::DataTypeId, owned_by_id::OwnedById};
+use graph_types::owned_by_id::OwnedById;
 use serde::{Deserialize, Serialize};
+use type_system::schema::DataTypeUuid;
 use uuid::Uuid;
 
 use crate::{
@@ -21,7 +22,7 @@ pub enum DataTypeNamespace {
     DataType,
 }
 
-impl Resource for DataTypeId {
+impl Resource for DataTypeUuid {
     type Id = Self;
     type Kind = DataTypeNamespace;
 
@@ -48,7 +49,7 @@ pub enum DataTypeResourceRelation {
     Viewer,
 }
 
-impl Relation<DataTypeId> for DataTypeResourceRelation {}
+impl Relation<DataTypeUuid> for DataTypeResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -58,7 +59,7 @@ pub enum DataTypePermission {
     View,
 }
 
-impl Permission<DataTypeId> for DataTypePermission {}
+impl Permission<DataTypeUuid> for DataTypePermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
@@ -152,9 +153,9 @@ pub enum DataTypeRelationAndSubject {
     },
 }
 
-impl Relationship for (DataTypeId, DataTypeRelationAndSubject) {
+impl Relationship for (DataTypeUuid, DataTypeRelationAndSubject) {
     type Relation = DataTypeResourceRelation;
-    type Resource = DataTypeId;
+    type Resource = DataTypeUuid;
     type Subject = DataTypeSubject;
     type SubjectSet = !;
 

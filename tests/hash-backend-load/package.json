@@ -37,10 +37,10 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@opentelemetry/api": "1.9.0",
-    "@opentelemetry/exporter-trace-otlp-grpc": "0.53.0",
-    "@opentelemetry/resources": "1.26.0",
-    "@opentelemetry/sdk-node": "0.53.0",
-    "@opentelemetry/sdk-trace-node": "1.26.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "0.54.0",
+    "@opentelemetry/resources": "1.27.0",
+    "@opentelemetry/sdk-node": "0.54.0",
+    "@opentelemetry/sdk-trace-node": "1.27.0",
     "@opentelemetry/semantic-conventions": "1.27.0",
     "@ory/client": "1.1.41",
     "artillery": "2.0.20",
@@ -51,14 +51,14 @@
     "@apps/hash-api": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@rollup/plugin-commonjs": "28.0.0",
+    "@rollup/plugin-commonjs": "28.0.1",
     "@rollup/plugin-node-resolve": "15.3.0",
-    "@rollup/plugin-typescript": "12.1.0",
+    "@rollup/plugin-typescript": "12.1.1",
     "@types/dotenv-flow": "3.3.3",
     "@types/uuid": "8.3.4",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
     "rollup": "4.24.0",
-    "typescript": "5.6.2"
+    "typescript": "5.6.3"
   }
 }

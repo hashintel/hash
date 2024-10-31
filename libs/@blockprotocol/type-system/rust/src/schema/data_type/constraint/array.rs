@@ -6,9 +6,9 @@ use thiserror::Error;
 
 use crate::schema::{
     ConstraintError, JsonSchemaValueType, NumberSchema, StringSchema, ValueLabel,
-    data_type::constraint::{
-        boolean::validate_boolean_value, number::validate_number_value,
-        string::validate_string_value,
+    data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{Constraint, ConstraintValidator, boolean::BooleanSchema},
     },
 };
 
@@ -41,17 +41,47 @@ pub enum ArrayTypeTag {
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum ArrayItemConstraints {
-    Boolean,
+    Boolean(BooleanSchema),
     Number(NumberSchema),
     String(StringSchema),
 }
 
-impl ArrayItemConstraints {
-    pub fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+impl Constraint for ArrayItemConstraints {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        match (self, other) {
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::Boolean(lhs), rhs.map(Self::Boolean))),
+            (Self::Number(lhs), Self::Number(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::Number(lhs), rhs.map(Self::Number))),
+            (Self::String(lhs), Self::String(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::String(lhs), rhs.map(Self::String))),
+            _ => bail!(ResolveClosedDataTypeError::IntersectedDifferentTypes),
+        }
+    }
+}
+
+impl ConstraintValidator<JsonValue> for ArrayItemConstraints {
+    type Error = ConstraintError;
+
+    fn is_valid(&self, value: &JsonValue) -> bool {
         match self {
-            Self::Boolean => validate_boolean_value(value),
-            Self::Number(schema) => validate_number_value(value, schema),
-            Self::String(schema) => validate_string_value(value, schema),
+            Self::Boolean(schema) => schema.is_valid(value),
+            Self::Number(schema) => schema.is_valid(value),
+            Self::String(schema) => schema.is_valid(value),
+        }
+    }
+
+    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+        match self {
+            Self::Boolean(schema) => schema.validate_value(value),
+            Self::Number(schema) => schema.validate_value(value),
+            Self::String(schema) => schema.validate_value(value),
         }
     }
 }
@@ -97,21 +127,77 @@ pub enum ArraySchema {
     Tuple(TupleConstraints),
 }
 
-impl ArraySchema {
-    /// Validates the provided value against the number schema.
-    ///
-    /// # Errors
-    ///
-    /// - [`ValueConstraint`] if the value does not match the expected constraints.
-    ///
-    /// [`ValueConstraint`]: ConstraintError::ValueConstraint
-    pub fn validate_value(&self, array: &[JsonValue]) -> Result<(), Report<ConstraintError>> {
+impl Constraint for ArraySchema {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Constrained(lhs), Self::Constrained(rhs)) => {
+                let (combined, remainder) = lhs.intersection(rhs)?;
+                (
+                    Self::Constrained(combined),
+                    remainder.map(Self::Constrained),
+                )
+            }
+            (Self::Tuple(lhs), Self::Constrained(rhs)) => {
+                // TODO: Implement folding for array constraints
+                //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
+                (Self::Tuple(lhs), Some(Self::Constrained(rhs)))
+            }
+            (Self::Constrained(lhs), Self::Tuple(rhs)) => {
+                // TODO: Implement folding for array constraints
+                //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
+                (Self::Constrained(lhs), Some(Self::Tuple(rhs)))
+            }
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => {
+                let (combined, remainder) = lhs.intersection(rhs)?;
+                (Self::Tuple(combined), remainder.map(Self::Tuple))
+            }
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for ArraySchema {
+    type Error = ConstraintError;
+
+    fn is_valid(&self, value: &JsonValue) -> bool {
+        if let JsonValue::Array(array) = value {
+            self.is_valid(array.as_slice())
+        } else {
+            false
+        }
+    }
+
+    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+        if let JsonValue::Array(array) = value {
+            self.validate_value(array.as_slice())
+        } else {
+            bail!(ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::from(value),
+                expected: JsonSchemaValueType::Array,
+            });
+        }
+    }
+}
+
+impl ConstraintValidator<[JsonValue]> for ArraySchema {
+    type Error = ConstraintError;
+
+    fn is_valid(&self, value: &[JsonValue]) -> bool {
+        match self {
+            Self::Constrained(constraints) => constraints.is_valid(value),
+            Self::Tuple(constraints) => constraints.is_valid(value),
+        }
+    }
+
+    fn validate_value(&self, value: &[JsonValue]) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Constrained(constraints) => constraints
-                .validate_value(array)
+                .validate_value(value)
                 .change_context(ConstraintError::ValueConstraint)?,
             Self::Tuple(constraints) => constraints
-                .validate_value(array)
+                .validate_value(value)
                 .change_context(ConstraintError::ValueConstraint)?,
         }
         Ok(())
@@ -126,23 +212,32 @@ pub struct ArrayConstraints {
     pub items: Option<ArrayItemsSchema>,
 }
 
-impl ArrayConstraints {
-    /// Validates the provided value against the array constraints.
-    ///
-    /// # Errors
-    ///
-    /// - [`Items`] if the value does not match the expected item constraints.
-    ///
-    /// [`Items`]: ArrayValidationError::Items
-    pub fn validate_value(
-        &self,
-        values: &[JsonValue],
-    ) -> Result<(), Report<[ArrayValidationError]>> {
+impl Constraint for ArrayConstraints {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        // TODO: Implement folding for array constraints
+        //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
+        Ok((self, Some(other)))
+    }
+}
+
+impl ConstraintValidator<[JsonValue]> for ArrayConstraints {
+    type Error = [ArrayValidationError];
+
+    fn is_valid(&self, value: &[JsonValue]) -> bool {
+        self.items.as_ref().map_or(true, |items| {
+            value.iter().all(|value| items.constraints.is_valid(value))
+        })
+    }
+
+    fn validate_value(&self, value: &[JsonValue]) -> Result<(), Report<[ArrayValidationError]>> {
         let mut status = ReportSink::new();
 
         if let Some(items) = &self.items {
             status.attempt(
-                values
+                value
                     .iter()
                     .map(|value| items.constraints.validate_value(value))
                     .try_collect_reports::<Vec<()>>()
@@ -168,25 +263,37 @@ pub struct TupleConstraints {
     pub prefix_items: Vec<ArrayItemsSchema>,
 }
 
-impl TupleConstraints {
-    /// Validates the provided value against the tuple constraints.
-    ///
-    /// # Errors
-    ///
-    /// - [`MinItems`] if the value has too few items.
-    /// - [`MaxItems`] if the value has too many items.
-    /// - [`PrefixItems`] if the value does not match the expected item constraints.
-    ///
-    /// [`MinItems`]: ArrayValidationError::MinItems
-    /// [`MaxItems`]: ArrayValidationError::MaxItems
-    /// [`PrefixItems`]: ArrayValidationError::PrefixItems
-    pub fn validate_value(
-        &self,
-        values: &[JsonValue],
-    ) -> Result<(), Report<[ArrayValidationError]>> {
+impl Constraint for TupleConstraints {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        // TODO: Implement folding for array constraints
+        //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
+        Ok((self, Some(other)))
+    }
+}
+
+impl ConstraintValidator<[JsonValue]> for TupleConstraints {
+    type Error = [ArrayValidationError];
+
+    fn is_valid(&self, value: &[JsonValue]) -> bool {
+        let num_values = value.len();
+        let num_prefix_items = self.prefix_items.len();
+        if num_values != num_prefix_items {
+            return false;
+        }
+
+        self.prefix_items
+            .iter()
+            .zip(value)
+            .all(|(schema, value)| schema.constraints.is_valid(value))
+    }
+
+    fn validate_value(&self, value: &[JsonValue]) -> Result<(), Report<[ArrayValidationError]>> {
         let mut status = ReportSink::new();
 
-        let num_values = values.len();
+        let num_values = value.len();
         let num_prefix_items = self.prefix_items.len();
         if num_values != num_prefix_items {
             status.capture(if num_values < num_prefix_items {
@@ -205,27 +312,13 @@ impl TupleConstraints {
         status.attempt(
             self.prefix_items
                 .iter()
-                .zip(values)
+                .zip(value)
                 .map(|(schema, value)| schema.constraints.validate_value(value))
                 .try_collect_reports::<Vec<()>>()
                 .change_context(ArrayValidationError::PrefixItems),
         );
 
         status.finish()
-    }
-}
-
-pub(crate) fn validate_array_value(
-    value: &JsonValue,
-    schema: &ArraySchema,
-) -> Result<(), Report<ConstraintError>> {
-    if let JsonValue::Array(string) = value {
-        schema.validate_value(string)
-    } else {
-        bail!(ConstraintError::InvalidType {
-            actual: JsonSchemaValueType::from(value),
-            expected: JsonSchemaValueType::Array,
-        });
     }
 }
 

@@ -96,15 +96,12 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
           const { title, description } = option.schema;
           const lowercaseInput = inputValue.toLowerCase();
           return (
-            !!description?.toLowerCase().includes(lowercaseInput) ||
+            !!description.toLowerCase().includes(lowercaseInput) ||
             title.toLowerCase().includes(lowercaseInput)
           );
         });
       }}
-      optionToRenderData={({
-        schema: { $id, title, description },
-        metadata: { icon },
-      }) => ({
+      optionToRenderData={({ schema: { $id, title, description, icon } }) => ({
         uniqueId: $id,
         icon:
           icon ??

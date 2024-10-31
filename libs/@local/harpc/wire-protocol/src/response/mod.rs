@@ -140,6 +140,7 @@ impl Decode for Response {
 mod test {
     #![expect(clippy::needless_raw_strings)]
     use expect_test::expect;
+    use harpc_types::response_kind::ResponseKind;
 
     use super::{flags::ResponseFlags, header::ResponseHeader};
     use crate::{
@@ -150,7 +151,7 @@ mod test {
         request::id::test_utils::mock_request_id,
         response::{
             Response, begin::ResponseBegin, body::ResponseBody, flags::ResponseFlag,
-            frame::ResponseFrame, kind::ResponseKind,
+            frame::ResponseFrame,
         },
     };
 

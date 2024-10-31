@@ -557,6 +557,10 @@ export const ClaimsTable = memo(
             for (const [fieldId, currentFilterValue] of typedEntries(
               filterValues,
             )) {
+              if (!currentFilterValue) {
+                return true;
+              }
+
               let rowValue: string | EntityId | null = null;
               if (fieldId === "status") {
                 rowValue = row.data.status;

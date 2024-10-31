@@ -38,7 +38,7 @@ use graph::{
 use graph_types::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
-        OntologyTypeReference, PropertyTypeEmbedding, PropertyTypeId, PropertyTypeMetadata,
+        OntologyTypeReference, PropertyTypeEmbedding, PropertyTypeMetadata,
         PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
@@ -49,7 +49,7 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
-    schema::PropertyType,
+    schema::{PropertyType, PropertyTypeUuid},
     url::{OntologyTypeVersion, VersionedUrl},
 };
 use utoipa::{OpenApi, ToSchema};
@@ -792,7 +792,7 @@ where
         .0
         .into_iter()
         .map(|request| {
-            let resource = PropertyTypeId::from_url(&request.resource);
+            let resource = PropertyTypeUuid::from_url(&request.resource);
             (
                 resource,
                 (request.operation, resource, request.relation_and_subject),
@@ -865,7 +865,7 @@ where
     Ok(Json(
         authorization_api
             .get_property_type_relations(
-                PropertyTypeId::from_url(&property_type_id),
+                PropertyTypeUuid::from_url(&property_type_id),
                 Consistency::FullyConsistent,
             )
             .await
@@ -905,7 +905,7 @@ where
             .check_property_type_permission(
                 actor_id,
                 permission,
-                PropertyTypeId::from_url(&property_type_id),
+                PropertyTypeUuid::from_url(&property_type_id),
                 Consistency::FullyConsistent,
             )
             .await

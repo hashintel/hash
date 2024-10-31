@@ -1,7 +1,7 @@
 use bytes::{Buf, BufMut};
 use error_stack::{Result, ResultExt};
+use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 
-use super::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},
     payload::Payload,
@@ -73,14 +73,16 @@ impl Decode for RequestBegin {
 #[cfg(test)]
 mod test {
     use expect_test::expect;
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+    use harpc_types::{
+        procedure::{ProcedureDescriptor, ProcedureId},
+        service::{ServiceDescriptor, ServiceId},
+        version::Version,
+    };
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
         payload::Payload,
-        request::{
-            begin::RequestBegin, procedure::ProcedureDescriptor, service::ServiceDescriptor,
-        },
+        request::begin::RequestBegin,
     };
 
     static EXAMPLE_REQUEST: RequestBegin = RequestBegin {

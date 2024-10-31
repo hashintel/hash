@@ -9,7 +9,7 @@ use crate::{
 
 struct PhantomDataVisitor<T: ?Sized>(PhantomData<T>);
 
-impl<'de, T: ?Sized> Visitor<'de> for PhantomDataVisitor<T> {
+impl<T: ?Sized> Visitor<'_> for PhantomDataVisitor<T> {
     type Value = PhantomData<T>;
 
     fn expecting(&self) -> Document {

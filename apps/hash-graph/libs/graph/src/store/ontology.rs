@@ -24,7 +24,9 @@ use hash_graph_store::{
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
-    schema::{Conversions, DataType, EntityType, PropertyType},
+    schema::{
+        ClosedEntityType, ClosedMultiEntityType, Conversions, DataType, EntityType, PropertyType,
+    },
     url::{BaseUrl, VersionedUrl},
 };
 
@@ -204,13 +206,11 @@ pub trait DataTypeStore {
         params: CountDataTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, QueryError>> + Send;
 
-    /// Get the [`DataTypes`] specified by the [`GetDataTypesParams`].
+    /// Get the [`DataType`]s specified by the [`GetDataTypesParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    ///
-    /// [`DataTypes`]: DataType
     fn get_data_types(
         &self,
         actor_id: AccountId,
@@ -279,7 +279,7 @@ pub trait DataTypeStore {
     /// # Errors
     ///
     /// - if re-indexing the cache fails.
-    fn reindex_cache(&mut self) -> impl Future<Output = Result<(), UpdateError>> + Send;
+    fn reindex_data_type_cache(&mut self) -> impl Future<Output = Result<(), UpdateError>> + Send;
 }
 
 #[derive(Debug, Deserialize)]
@@ -531,8 +531,6 @@ pub trait PropertyTypeStore {
 pub struct CreateEntityTypeParams<R> {
     pub schema: EntityType,
     pub classification: OntologyTypeClassificationMetadata,
-    pub label_property: Option<BaseUrl>,
-    pub icon: Option<String>,
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
@@ -594,6 +592,8 @@ pub struct GetEntityTypesParams<'p> {
     #[serde(default)]
     pub include_count: bool,
     #[serde(default)]
+    pub include_closed: bool,
+    #[serde(default)]
     pub include_web_ids: bool,
     #[serde(default)]
     pub include_edition_created_by_ids: bool,
@@ -604,6 +604,12 @@ pub struct GetEntityTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "utoipa",
+        schema(nullable = false, value_type = [VAR_CLOSED_ENTITY_TYPE])
+    )]
+    pub closed_entity_types: Option<Vec<ClosedEntityType>>,
     pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -617,10 +623,25 @@ pub struct GetEntityTypesResponse {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetClosedMultiEntityTypeParams {
+    pub entity_type_ids: Vec<VersionedUrl>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct GetClosedMultiEntityTypeResponse {
+    #[cfg_attr(feature = "utoipa", schema(value_type = VAR_CLOSED_MULTI_ENTITY_TYPE))]
+    pub entity_type: ClosedMultiEntityType,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateEntityTypesParams<R> {
     pub schema: EntityType,
-    pub label_property: Option<BaseUrl>,
-    pub icon: Option<String>,
     pub relationships: R,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
@@ -722,18 +743,27 @@ pub trait EntityTypeStore {
         params: GetEntityTypeSubgraphParams<'_>,
     ) -> impl Future<Output = Result<GetEntityTypeSubgraphResponse, QueryError>> + Send;
 
-    /// Get the [`EntityTypes`] specified by the [`GetEntityTypesParams`].
+    /// Get the [`EntityType`]s specified by the [`GetEntityTypesParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    ///
-    /// [`EntityTypes`]: EntityType
     fn get_entity_types(
         &self,
         actor_id: AccountId,
         params: GetEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<GetEntityTypesResponse, QueryError>> + Send;
+
+    /// Get the [`ClosedMultiEntityType`] specified by the [`GetClosedMultiEntityTypeParams`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`EntityType`] doesn't exist.
+    fn get_closed_multi_entity_types(
+        &self,
+        actor_id: AccountId,
+        params: GetClosedMultiEntityTypeParams,
+    ) -> impl Future<Output = Result<GetClosedMultiEntityTypeResponse, QueryError>> + Send;
 
     /// Update the definition of an existing [`EntityType`].
     ///
@@ -778,4 +808,15 @@ pub trait EntityTypeStore {
 
         params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), UpdateError>> + Send;
+
+    /// Re-indexes the cache for entity types.
+    ///
+    /// This is only needed if the schema of a entity type has changed in place without bumping
+    /// the version. This is a rare operation and should be avoided if possible.
+    ///
+    /// # Errors
+    ///
+    /// - if re-indexing the cache fails.
+    fn reindex_entity_type_cache(&mut self)
+    -> impl Future<Output = Result<(), UpdateError>> + Send;
 }

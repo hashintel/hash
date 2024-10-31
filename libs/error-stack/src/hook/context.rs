@@ -1,6 +1,4 @@
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
+use alloc::{boxed::Box, collections::BTreeMap};
 use core::any::{Any, TypeId};
 
 pub(crate) type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
@@ -168,7 +166,7 @@ impl<T> HookContext<T> {
     pub fn cast<U>(&mut self) -> &mut HookContext<U> {
         // SAFETY: `HookContext` is marked as repr(transparent) and the changed generic is only used
         // inside of the `PhantomData`
-        unsafe { &mut *(self as *mut Self).cast::<HookContext<U>>() }
+        unsafe { &mut *core::ptr::from_mut(self).cast::<HookContext<U>>() }
     }
 }
 

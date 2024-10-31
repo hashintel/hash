@@ -8,7 +8,7 @@ import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
 
 export const LinkSection: FunctionComponent = () => {
-  const { entitySubgraph } = useEntityEditor();
+  const { entitySubgraph, onEntityClick } = useEntityEditor();
 
   const linkEntity = useMemo(() => {
     const [rootEntity] = getRoots(entitySubgraph);
@@ -24,6 +24,7 @@ export const LinkSection: FunctionComponent = () => {
     <SectionWrapper title="Link">
       <LinkLabelWithSourceAndDestination
         linkEntity={linkEntity}
+        onEntityClick={onEntityClick}
         subgraph={entitySubgraph}
       />
     </SectionWrapper>

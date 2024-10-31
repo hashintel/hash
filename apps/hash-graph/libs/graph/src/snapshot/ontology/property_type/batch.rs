@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::PropertyTypeRelationAndSubject};
 use error_stack::{Result, ResultExt};
-use graph_types::ontology::PropertyTypeId;
 use tokio_postgres::GenericClient;
+use type_system::schema::PropertyTypeUuid;
 
 use crate::{
     snapshot::WriteBatch,
@@ -21,11 +20,10 @@ pub enum PropertyTypeRowBatch {
     Schema(Vec<PropertyTypeRow>),
     ConstrainsValues(Vec<PropertyTypeConstrainsValuesOnRow>),
     ConstrainsProperties(Vec<PropertyTypeConstrainsPropertiesOnRow>),
-    Relations(HashMap<PropertyTypeId, Vec<PropertyTypeRelationAndSubject>>),
+    Relations(HashMap<PropertyTypeUuid, Vec<PropertyTypeRelationAndSubject>>),
     Embeddings(Vec<PropertyTypeEmbeddingRow<'static>>),
 }
 
-#[async_trait]
 impl<C, A> WriteBatch<C, A> for PropertyTypeRowBatch
 where
     C: AsClient,

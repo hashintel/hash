@@ -2,10 +2,10 @@ use core::error::Error;
 
 use graph_types::{
     account::{AccountGroupId, AccountId},
-    ontology::PropertyTypeId,
     owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize};
+use type_system::schema::PropertyTypeUuid;
 use uuid::Uuid;
 
 use crate::{
@@ -25,7 +25,7 @@ pub enum PropertyTypeNamespace {
     PropertyType,
 }
 
-impl Resource for PropertyTypeId {
+impl Resource for PropertyTypeUuid {
     type Id = Self;
     type Kind = PropertyTypeNamespace;
 
@@ -54,7 +54,7 @@ pub enum PropertyTypeResourceRelation {
     Viewer,
 }
 
-impl Relation<PropertyTypeId> for PropertyTypeResourceRelation {}
+impl Relation<PropertyTypeUuid> for PropertyTypeResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -64,7 +64,7 @@ pub enum PropertyTypePermission {
     View,
 }
 
-impl Permission<PropertyTypeId> for PropertyTypePermission {}
+impl Permission<PropertyTypeUuid> for PropertyTypePermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -245,9 +245,9 @@ pub enum PropertyTypeRelationAndSubject {
     },
 }
 
-impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
+impl Relationship for (PropertyTypeUuid, PropertyTypeRelationAndSubject) {
     type Relation = PropertyTypeResourceRelation;
-    type Resource = PropertyTypeId;
+    type Resource = PropertyTypeUuid;
     type Subject = PropertyTypeSubject;
     type SubjectSet = PropertyTypeSubjectSet;
 

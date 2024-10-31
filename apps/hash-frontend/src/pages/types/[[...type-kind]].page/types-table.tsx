@@ -15,7 +15,7 @@ import { isExternalOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import {
@@ -125,8 +125,10 @@ export const TypesTable: FunctionComponent<{
     limitToWebs: false,
   });
 
-  const [selectedEntityTypeId, setSelectedEntityTypeId] =
-    useState<VersionedUrl | null>(null);
+  const [selectedEntityType, setSelectedEntityType] = useState<{
+    entityTypeId: VersionedUrl;
+    slideContainerRef?: RefObject<HTMLDivElement>;
+  } | null>(null);
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -355,7 +357,7 @@ export const TypesTable: FunctionComponent<{
                 value: row.title,
                 onClick: () => {
                   if (row.kind === "entity-type") {
-                    setSelectedEntityTypeId(row.typeId);
+                    setSelectedEntityType({ entityTypeId: row.typeId });
                   } else {
                     void router.push(generateLinkParameters(row.typeId).href);
                   }
@@ -456,12 +458,22 @@ export const TypesTable: FunctionComponent<{
 
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
+  const onTypeClick = useCallback(
+    (typeId: VersionedUrl, slideContainerRef?: RefObject<HTMLDivElement>) =>
+      setSelectedEntityType({
+        entityTypeId: typeId,
+        slideContainerRef,
+      }),
+    [],
+  );
+
   return (
     <>
-      {selectedEntityTypeId && (
+      {selectedEntityType && (
         <TypeSlideOverStack
-          rootTypeId={selectedEntityTypeId}
-          onClose={() => setSelectedEntityTypeId(null)}
+          rootTypeId={selectedEntityType.entityTypeId}
+          onClose={() => setSelectedEntityType(null)}
+          slideContainerRef={selectedEntityType.slideContainerRef}
         />
       )}
       <Box>
@@ -530,7 +542,7 @@ export const TypesTable: FunctionComponent<{
         ) : (
           <Box height={maxTableHeight}>
             <TypeGraphVisualizer
-              onTypeClick={setSelectedEntityTypeId}
+              onTypeClick={onTypeClick}
               types={filteredTypes}
             />
           </Box>

@@ -7,7 +7,7 @@ use crate::{
 
 struct BoolVisitor;
 
-impl<'de> Visitor<'de> for BoolVisitor {
+impl Visitor<'_> for BoolVisitor {
     type Value = bool;
 
     fn expecting(&self) -> Document {

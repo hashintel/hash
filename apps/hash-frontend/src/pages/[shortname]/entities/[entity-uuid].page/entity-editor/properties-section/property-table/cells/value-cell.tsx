@@ -12,11 +12,13 @@ import {
 } from "../../../../../../../../components/grid/utils";
 import { drawChipWithText } from "../../../../../../../../components/grid/utils/draw-chip-with-text";
 import { drawTextWithIcon } from "../../../../../../../../components/grid/utils/draw-text-with-icon";
+import { drawUrlAsLink } from "../../../../../../../../components/grid/utils/draw-url-as-link";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
 import { drawInteractableTooltipIcons } from "../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import { isValueEmpty } from "../../is-value-empty";
 import { ArrayEditor } from "./value-cell/array-editor";
 import { getEditorSpecs } from "./value-cell/editor-specs";
+import { ReadonlyPopup } from "./value-cell/readonly-popup";
 import { SingleValueEditor } from "./value-cell/single-value-editor";
 import type { ValueCell } from "./value-cell/types";
 import { guessEditorTypeFromValue } from "./value-cell/utils";
@@ -31,7 +33,8 @@ const guessDataTypeFromValue = (
     "type" in type
       ? type.type === editorType
       : /**
-         * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId from property metadata
+         * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId
+         *   from property metadata
          */
         type.anyOf.some((subType) => subType.type === editorType),
   );
@@ -53,7 +56,11 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     (cell.data as any).kind === "value-cell",
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
-    const { value, expectedTypes, isArray } = cell.data.propertyRow;
+
+    const { readonly } = cell.data;
+
+    const { value, expectedTypes, isArray, isSingleUrl } =
+      cell.data.propertyRow;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
@@ -66,7 +73,8 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       "type" in type
         ? type.type === editorType
         : /**
-           * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId from property metadata
+           * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId
+           *   from property metadata
            */
           type.anyOf.some((subType) => subType.type === editorType),
     );
@@ -109,6 +117,8 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
         iconColor: customColors.gray[50],
         iconSize: 16,
       });
+    } else if (readonly && isSingleUrl) {
+      drawUrlAsLink({ args, url: value as string, left });
     } else {
       const valueParts: FormattedValuePart[] = [];
       if (Array.isArray(value)) {
@@ -154,7 +164,21 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const tooltipInteractables = drawInteractableTooltipIcons(args);
     InteractableManager.setInteractablesForCell(args, tooltipInteractables);
   },
+  onClick: (args) => {
+    if (args.cell.data.readonly && args.cell.data.propertyRow.isSingleUrl) {
+      window.open(args.cell.data.propertyRow.value as string, "_blank");
+    }
+    return undefined;
+  },
   provideEditor: ({ data }) => {
+    if (data.readonly) {
+      return {
+        disableStyling: true,
+        disablePadding: true,
+        editor: ReadonlyPopup,
+      };
+    }
+
     return {
       disableStyling: true,
       disablePadding: true,

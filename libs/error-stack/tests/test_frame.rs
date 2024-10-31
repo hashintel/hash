@@ -4,7 +4,6 @@ mod common;
 
 use core::{any::TypeId, iter::zip, panic::Location};
 
-#[allow(clippy::wildcard_imports)]
 use common::*;
 
 #[test]

@@ -1,0 +1,40 @@
+{
+  "title": "Closed Entity Type",
+  "description": "Specifies the closed structure of a Block Protocol entity type",
+  "type": "object",
+  "properties": {
+    "$id": {
+      "$ref": "./shared.json#/definitions/VersionedUrl"
+    },
+    "title": {
+      "type": "string"
+    },
+    "titlePlural": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "allOf": {
+      "type": "array",
+      "items": {
+        "$ref": "./shared.json#/definitions/EntityTypeDisplayMetadata"
+      },
+      "minItems": 1
+    },
+    "properties": {
+      "$ref": "./shared.json#/definitions/PropertyTypeObject"
+    },
+    "required": {
+      "type": "array",
+      "items": {
+        "$ref": "./shared.json#/definitions/BaseUrl"
+      }
+    },
+    "links": {
+      "$ref": "./shared.json#/definitions/LinkTypeObject"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["$id", "title", "description", "properties"]
+}

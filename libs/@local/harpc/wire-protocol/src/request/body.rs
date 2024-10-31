@@ -104,16 +104,17 @@ impl Decode for RequestBody {
 mod test {
     #![expect(clippy::needless_raw_strings)]
     use expect_test::expect;
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+    use harpc_types::{
+        procedure::{ProcedureDescriptor, ProcedureId},
+        service::{ServiceDescriptor, ServiceId},
+        version::Version,
+    };
 
     use super::{RequestBody, RequestBodyContext};
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode, encode_value},
         payload::Payload,
-        request::{
-            begin::RequestBegin, body::RequestVariant, frame::RequestFrame,
-            procedure::ProcedureDescriptor, service::ServiceDescriptor,
-        },
+        request::{begin::RequestBegin, body::RequestVariant, frame::RequestFrame},
     };
 
     static EXAMPLE_BEGIN: RequestBegin = RequestBegin {

@@ -1,3 +1,8 @@
+#![expect(
+    clippy::ref_option,
+    reason = "serde requires &Option<_> not Option<&_>"
+)]
+
 pub mod constant;
 pub mod string_hash_map;
 

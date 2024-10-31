@@ -147,6 +147,7 @@ describe("Link entity", () => {
 
     testEntityType = await createTestEntityType({
       title: "Person",
+      description: "A person",
       properties: [],
       outgoingLinks: [
         {

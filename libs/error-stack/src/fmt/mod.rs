@@ -299,10 +299,9 @@ mod hook;
 mod location;
 mod r#override;
 
-use alloc::collections::VecDeque;
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{
     borrow::ToOwned,
+    collections::VecDeque,
     format,
     string::{String, ToString},
     vec,
@@ -584,9 +583,11 @@ enum PreparedInstruction<'a> {
 }
 
 impl Instruction {
-    // Reason: the match arms are the same intentionally, this makes it more clean which variant
-    //  emits which and also keeps it nicely formatted.
-    #[allow(clippy::match_same_arms)]
+    #[expect(
+        clippy::match_same_arms,
+        reason = "the match arms are the same intentionally, this makes it more clean which \
+                  variant emits which and also keeps it nicely formatted."
+    )]
     fn prepare(&self) -> PreparedInstruction {
         match self {
             Self::Value { value, style } => PreparedInstruction::Content(value, style),
@@ -691,7 +692,7 @@ impl Display for LineDisplay<'_> {
 struct Lines(VecDeque<Line>);
 
 impl Lines {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self(VecDeque::new())
     }
 
@@ -825,7 +826,10 @@ impl Opaque {
     }
 }
 
-#[allow(clippy::needless_pass_by_ref_mut)]
+#[cfg_attr(
+    not(any(feature = "std", feature = "hooks")),
+    expect(clippy::needless_pass_by_ref_mut)
+)]
 fn debug_attachments_invoke<'a>(
     frames: impl IntoIterator<Item = &'a Frame>,
     config: &mut Config,
@@ -1090,7 +1094,7 @@ impl<C: ?Sized> Debug for Report<C> {
         let color = config.color_mode();
         let charset = config.charset();
 
-        #[cfg_attr(not(any(feature = "std", feature = "hooks")), allow(unused_mut))]
+        #[cfg_attr(not(any(feature = "std", feature = "hooks")), expect(unused_mut))]
         let mut lines = self
             .current_frames_unchecked()
             .iter()

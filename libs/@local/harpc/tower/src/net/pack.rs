@@ -1,27 +1,46 @@
 use core::{
+    error::Error,
     ops::ControlFlow,
     pin::Pin,
     task::{Context, Poll},
 };
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use futures::Stream;
-use harpc_net::session::error::TransactionError;
-use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
+use futures::{FutureExt, Stream};
+use harpc_codec::error::NetworkError;
+use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
+use tower::{Layer, Service};
 
-use crate::body::{Body, Frame};
+use crate::{
+    body::{Body, Frame},
+    request::Request,
+    response::Response,
+};
+
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+#[display("incomplete transaction error returned, message: {bytes:?}")]
+struct DecodeTransactionError {
+    bytes: Bytes,
+}
+
+impl Error for DecodeTransactionError {
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_value(ErrorCode::PARTIAL_TRANSACTION_ERROR);
+    }
+}
 
 struct PartialTransactionError {
     code: ErrorCode,
     bytes: BytesMut,
 }
 
-impl From<PartialTransactionError> for TransactionError {
-    fn from(error: PartialTransactionError) -> Self {
-        Self {
-            code: error.code,
-            bytes: error.bytes.freeze(),
-        }
+impl PartialTransactionError {
+    fn finish(self) -> NetworkError {
+        NetworkError::try_from_parts(self.code, self.bytes.freeze()).unwrap_or_else(|error| {
+            let error = DecodeTransactionError { bytes: error };
+
+            NetworkError::capture_error(&error)
+        })
     }
 }
 
@@ -34,10 +53,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<B> Pack<B>
-where
-    B: Body<Control: AsRef<ResponseKind>, Error = !>,
-{
+impl<B> Pack<B> {
     pub const fn new(inner: B) -> Self {
         Self {
             inner,
@@ -58,7 +74,7 @@ where
     fn poll(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-    ) -> ControlFlow<Poll<Option<Result<Bytes, TransactionError>>>> {
+    ) -> ControlFlow<Poll<Option<Result<Bytes, NetworkError>>>> {
         let this = self.project();
         let Poll::Ready(next) = this.inner.poll_frame(cx) else {
             // simple propagation
@@ -70,7 +86,9 @@ where
                 let error = this.error.take();
                 *this.exhausted = true;
 
-                ControlFlow::Break(Poll::Ready(error.map(TransactionError::from).map(Err)))
+                ControlFlow::Break(Poll::Ready(
+                    error.map(PartialTransactionError::finish).map(Err),
+                ))
             }
             Some(Ok(Frame::Data(data))) => {
                 if let Some(error) = this.error.as_mut() {
@@ -100,7 +118,9 @@ where
                             })
                             .map_or_else(
                                 || ControlFlow::Continue(()),
-                                |active| ControlFlow::Break(Poll::Ready(Some(Err(active.into())))),
+                                |active| {
+                                    ControlFlow::Break(Poll::Ready(Some(Err(active.finish()))))
+                                },
                             )
                     }
                     ResponseKind::Ok => {
@@ -108,7 +128,7 @@ where
                         // if we wouldn't do that we would concatenate valid values to the error
                         this.error.take().map_or_else(
                             || ControlFlow::Continue(()),
-                            |error| ControlFlow::Break(Poll::Ready(Some(Err(error.into())))),
+                            |error| ControlFlow::Break(Poll::Ready(Some(Err(error.finish())))),
                         )
                     }
                 }
@@ -121,7 +141,7 @@ impl<B> Stream for Pack<B>
 where
     B: Body<Control: AsRef<ResponseKind>, Error = !>,
 {
-    type Item = Result<Bytes, TransactionError>;
+    type Item = Result<Bytes, NetworkError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if self.exhausted {
@@ -136,17 +156,81 @@ where
     }
 }
 
+pub struct PackLayer {
+    _private: (),
+}
+
+impl PackLayer {
+    #[expect(
+        clippy::new_without_default,
+        reason = "layer construction should be explicit and we might add fields in the future"
+    )]
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { _private: () }
+    }
+}
+
+impl<S> Layer<S> for PackLayer {
+    type Service = PackService<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        PackService { inner }
+    }
+}
+
+pub struct PackService<S> {
+    inner: S,
+}
+
+impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for PackService<S>
+where
+    S: Service<Request<ReqBody>, Response = Response<ResBody>>,
+{
+    type Error = S::Error;
+    type Response = Pack<ResBody>;
+
+    type Future = impl Future<Output = Result<Self::Response, S::Error>>;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
+        self.inner
+            .call(req)
+            .map(|result| result.map(|response| Pack::new(response.into_body())))
+    }
+}
+
 #[cfg(test)]
 mod test {
+    use alloc::borrow::Cow;
+    use core::error::Error;
+
     use bytes::Bytes;
     use futures::{StreamExt, stream};
-    use harpc_net::session::error::TransactionError;
-    use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
+    use harpc_codec::error::NetworkError;
+    use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 
+    use super::DecodeTransactionError;
     use crate::{
         body::{Frame, stream::StreamBody},
         net::pack::Pack,
     };
+
+    #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+    #[display("{message}")]
+    struct ExampleError {
+        message: Cow<'static, str>,
+        code: ErrorCode,
+    }
+
+    impl Error for ExampleError {
+        fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+            request.provide_value(self.code);
+        }
+    }
 
     #[tokio::test]
     async fn trailing_error() {
@@ -156,19 +240,67 @@ mod test {
             Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x05world" as &[_],
+            ))),
+        ]);
+
+        let pack = Pack::new(StreamBody::new(iter));
+        let values = pack.collect::<Vec<_>>().await;
+
+        let error = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed("world"),
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        });
+
+        assert_eq!(values, [
+            Ok(Bytes::from_static(b"hello" as &[_])),
+            Err(error),
+        ]);
+    }
+
+    #[tokio::test]
+    async fn invalid_error_too_short() {
+        let iter = stream::iter([
+            Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
+                ErrorCode::INTERNAL_SERVER_ERROR,
+            ))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\xFFhello " as &[_],
+            ))),
             Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
         ]);
 
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(values, [
-            Ok(Bytes::from_static(b"hello" as &[_])),
-            Err(TransactionError {
-                code: ErrorCode::INTERNAL_SERVER_ERROR,
-                bytes: Bytes::from_static(b"world" as &[_]),
-            }),
+        let error = NetworkError::capture_error(&DecodeTransactionError {
+            bytes: Bytes::from_static(b"\x00\x00\x00\xFFhello world" as &[_]),
+        });
+
+        assert_eq!(values, [Err(error)]);
+    }
+
+    #[tokio::test]
+    async fn invalid_error_too_long() {
+        let iter = stream::iter([
+            Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
+                ErrorCode::INTERNAL_SERVER_ERROR,
+            ))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x05hello " as &[_],
+            ))),
+            Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
         ]);
+
+        let pack = Pack::new(StreamBody::new(iter));
+        let values = pack.collect::<Vec<_>>().await;
+
+        let error = NetworkError::capture_error(&DecodeTransactionError {
+            bytes: Bytes::from_static(b"\x00\x00\x00\x05hello world" as &[_]),
+        });
+
+        assert_eq!(values, [Err(error)]);
     }
 
     #[tokio::test]
@@ -177,17 +309,21 @@ mod test {
             Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"hello " as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x0Bhello " as &[_],
+            ))),
             Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
         ]);
 
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(values, [Err(TransactionError {
+        let error = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed("hello world"),
             code: ErrorCode::INTERNAL_SERVER_ERROR,
-            bytes: Bytes::from_static(b"hello world" as &[_]),
-        })]);
+        });
+
+        assert_eq!(values, [Err(error)]);
     }
 
     #[tokio::test]
@@ -225,27 +361,32 @@ mod test {
             Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"hello " as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x0Bhello " as &[_],
+            ))),
             Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
             Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"steven" as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x06steven" as &[_],
+            ))),
         ]);
 
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(values, [
-            Err(TransactionError {
-                code: ErrorCode::INTERNAL_SERVER_ERROR,
-                bytes: Bytes::from_static(b"hello world" as &[_]),
-            }),
-            Err(TransactionError {
-                code: ErrorCode::INTERNAL_SERVER_ERROR,
-                bytes: Bytes::from_static(b"steven" as &[_]),
-            }),
-        ]);
+        let error1 = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed("hello world"),
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        });
+
+        let error2 = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed("steven"),
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        });
+
+        assert_eq!(values, [Err(error1), Err(error2)]);
     }
 
     #[tokio::test]
@@ -277,19 +418,23 @@ mod test {
             Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"steven" as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x06steven" as &[_],
+            ))),
         ]);
 
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
+        let error = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed("steven"),
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        });
+
         assert_eq!(values, [
             Ok(Bytes::from_static(b"hello " as &[_])),
             Ok(Bytes::from_static(b"world" as &[_])),
-            Err(TransactionError {
-                code: ErrorCode::INTERNAL_SERVER_ERROR,
-                bytes: Bytes::from_static(b"steven" as &[_]),
-            }),
+            Err(error),
         ]);
     }
 
@@ -299,7 +444,9 @@ mod test {
             Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"hello " as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x0Bhello " as &[_],
+            ))),
             Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
             Ok(Frame::Control(ResponseKind::Ok)),
             Ok(Frame::Data(Bytes::from_static(b"steven" as &[_]))),
@@ -308,11 +455,13 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
+        let error = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed("hello world"),
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        });
+
         assert_eq!(values, [
-            Err(TransactionError {
-                code: ErrorCode::INTERNAL_SERVER_ERROR,
-                bytes: Bytes::from_static(b"hello world" as &[_]),
-            }),
+            Err(error),
             Ok(Bytes::from_static(b"steven" as &[_])),
         ]);
     }
@@ -326,9 +475,10 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(values, [Err(TransactionError {
-            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        let error = NetworkError::capture_error(&DecodeTransactionError {
             bytes: Bytes::new(),
-        })]);
+        });
+
+        assert_eq!(values, [Err(error)]);
     }
 }

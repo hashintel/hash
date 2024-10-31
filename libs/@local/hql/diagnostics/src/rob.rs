@@ -13,7 +13,7 @@ pub enum RefOrBox<'a, T: ?Sized> {
     Box(Box<T>),
 }
 
-impl<'a, T: ?Sized> RefOrBox<'a, T> {
+impl<T: ?Sized> RefOrBox<'_, T> {
     #[must_use]
     pub fn into_owned(self) -> T
     where
@@ -26,7 +26,7 @@ impl<'a, T: ?Sized> RefOrBox<'a, T> {
     }
 }
 
-impl<'a, T> AsRef<T> for RefOrBox<'a, T> {
+impl<T> AsRef<T> for RefOrBox<'_, T> {
     fn as_ref(&self) -> &T {
         match self {
             Self::Ref(reference) => reference,
@@ -35,7 +35,7 @@ impl<'a, T> AsRef<T> for RefOrBox<'a, T> {
     }
 }
 
-impl<'a, T> Clone for RefOrBox<'a, T>
+impl<T> Clone for RefOrBox<'_, T>
 where
     T: Clone,
 {
@@ -55,7 +55,7 @@ where
     }
 }
 
-impl<'a, T: Display + ?Sized> Display for RefOrBox<'a, T> {
+impl<T: Display + ?Sized> Display for RefOrBox<'_, T> {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Ref(reference) => reference.fmt(fmt),
@@ -77,7 +77,7 @@ impl<T> From<T> for RefOrBox<'_, T> {
 }
 
 #[cfg(feature = "serde")]
-impl<'a, T> serde::Serialize for RefOrBox<'a, T>
+impl<T> serde::Serialize for RefOrBox<'_, T>
 where
     T: serde::Serialize,
 {
@@ -93,7 +93,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'a, 'de, T> serde::Deserialize<'de> for RefOrBox<'a, T>
+impl<'de, T> serde::Deserialize<'de> for RefOrBox<'_, T>
 where
     T: serde::Deserialize<'de>,
 {

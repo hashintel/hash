@@ -30,9 +30,10 @@ use graph::{
         EntityTypeStore, StorePool,
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
-            ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypeSubgraphParams,
-            GetEntityTypesParams, GetEntityTypesResponse, UnarchiveEntityTypeParams,
-            UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+            ArchiveEntityTypeParams, CreateEntityTypeParams, GetClosedMultiEntityTypeParams,
+            GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams, GetEntityTypesParams,
+            GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+            UpdateEntityTypesParams,
         },
     },
 };
@@ -40,9 +41,9 @@ use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use graph_types::{
     account::EditionCreatedById,
     ontology::{
-        EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
-        OntologyTypeReference, ProvidedOntologyEditionProvenance,
+        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -52,7 +53,7 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
-    schema::EntityType,
+    schema::{EntityType, EntityTypeUuid},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 use utoipa::{OpenApi, ToSchema};
@@ -76,6 +77,7 @@ use crate::rest::{
         load_external_entity_type,
         get_entity_types,
         get_entity_type_subgraph,
+        get_closed_multi_entity_types,
         update_entity_type,
         update_entity_type_embeddings,
         archive_entity_type,
@@ -103,6 +105,8 @@ use crate::rest::{
             EntityTypeQueryToken,
             GetEntityTypesParams,
             GetEntityTypesResponse,
+            GetClosedMultiEntityTypeParams,
+            GetClosedMultiEntityTypeResponse,
             GetEntityTypeSubgraphParams,
             GetEntityTypeSubgraphResponse,
             ArchiveEntityTypeParams,
@@ -151,6 +155,7 @@ impl RoutedResource for EntityTypeResource {
                     "/query",
                     Router::new()
                         .route("/", post(get_entity_types::<S, A>))
+                        .route("/multi", post(get_closed_multi_entity_types::<S, A>))
                         .route("/subgraph", post(get_entity_type_subgraph::<S, A>)),
                 )
                 .route("/load", post(load_external_entity_type::<S, A>))
@@ -167,10 +172,6 @@ struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
-    #[serde(default)]
-    label_property: Option<BaseUrl>,
-    #[serde(default)]
-    icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
     #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
@@ -216,7 +217,7 @@ where
         .0
         .into_iter()
         .map(|request| {
-            let resource = EntityTypeId::from_url(&request.resource);
+            let resource = EntityTypeUuid::from_url(&request.resource);
             (
                 resource,
                 (request.operation, resource, request.relation_and_subject),
@@ -289,7 +290,7 @@ where
     Ok(Json(
         authorization_api
             .get_entity_type_relations(
-                EntityTypeId::from_url(&entity_type_id),
+                EntityTypeUuid::from_url(&entity_type_id),
                 Consistency::FullyConsistent,
             )
             .await
@@ -329,7 +330,7 @@ where
             .check_entity_type_permission(
                 actor_id,
                 permission,
-                EntityTypeId::from_url(&entity_type_id),
+                EntityTypeUuid::from_url(&entity_type_id),
                 Consistency::FullyConsistent,
             )
             .await
@@ -416,8 +417,6 @@ where
     let Json(CreateEntityTypeRequest {
         schema,
         owned_by_id,
-        label_property,
-        icon,
         relationships,
         provenance,
     }) = body;
@@ -453,8 +452,6 @@ where
                     schema,
                     classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                     relationships: relationships.clone(),
-                    icon: icon.clone(),
-                    label_property: label_property.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: provenance.clone(),
                 })
@@ -538,10 +535,7 @@ enum LoadExternalEntityTypeRequest {
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
         schema: Box<EntityType>,
-        #[serde(default)]
-        label_property: Option<BaseUrl>,
-        #[serde(default)]
-        icon: Option<String>,
+
         relationships: Vec<EntityTypeRelationAndSubject>,
         #[serde(default)]
         provenance: Box<ProvidedOntologyEditionProvenance>,
@@ -640,8 +634,6 @@ where
         }
         LoadExternalEntityTypeRequest::Create {
             schema,
-            label_property,
-            icon,
             relationships,
             provenance,
         } => {
@@ -659,8 +651,6 @@ where
                 store
                     .create_entity_type(actor_id, CreateEntityTypeParams {
                         schema: *schema,
-                        label_property,
-                        icon,
                         classification: OntologyTypeClassificationMetadata::External {
                             fetched_at: OffsetDateTime::now_utc(),
                         },
@@ -726,6 +716,65 @@ where
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
             GetEntityTypesParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
+        )
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entity-types/multi",
+    request_body = GetClosedMultiEntityTypeParams,
+    tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = GetClosedMultiEntityTypeResponse,
+            description = "Gets a list of multi-entity types that satisfy the given query. A multi-entity type is the combination of multiple entity types.",
+        ),
+
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn get_closed_multi_entity_types<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<GetClosedMultiEntityTypeResponse>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .get_closed_multi_entity_types(
+            actor_id,
+            // Manually deserialize the query from a JSON value to allow borrowed deserialization
+            // and better error reporting.
+            GetClosedMultiEntityTypeParams::deserialize(&request)
                 .map_err(Report::from)
                 .map_err(report_to_response)?,
         )
@@ -818,10 +867,7 @@ struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
-    #[serde(default)]
-    label_property: Option<BaseUrl>,
-    #[serde(default)]
-    icon: Option<String>,
+
     relationships: Vec<EntityTypeRelationAndSubject>,
     #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
@@ -863,8 +909,6 @@ where
     let Json(UpdateEntityTypeRequest {
         schema,
         mut type_to_update,
-        label_property,
-        icon,
         relationships,
         provenance,
     }) = body;
@@ -886,8 +930,6 @@ where
     store
         .update_entity_type(actor_id, UpdateEntityTypesParams {
             schema: entity_type,
-            label_property,
-            icon,
             relationships,
             provenance,
         })

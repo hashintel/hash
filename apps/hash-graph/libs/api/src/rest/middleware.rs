@@ -19,6 +19,10 @@ use tower_http::{
 };
 use tracing::field::Empty;
 
+#[expect(
+    clippy::type_complexity,
+    reason = "factoring out the types would make the code less readable"
+)]
 pub fn span_trace_layer() -> TraceLayer<
     SharedClassifier<ServerErrorsAsFailures>,
     impl Fn(&Request<Body>) -> tracing::Span + Clone,
@@ -37,7 +41,7 @@ pub fn span_trace_layer() -> TraceLayer<
 struct HeaderExtractor<'a>(&'a http::HeaderMap);
 // Let OpenTelemetry pick the field names to make our headers "standardized".
 // We would have to set `traceparent` in a header to correlate spans.
-impl<'a> Extractor for HeaderExtractor<'a> {
+impl Extractor for HeaderExtractor<'_> {
     fn get(&self, key: &str) -> Option<&str> {
         self.0.get(key).and_then(|value| value.to_str().ok())
     }

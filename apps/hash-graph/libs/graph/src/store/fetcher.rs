@@ -2,7 +2,6 @@ use alloc::sync::Arc;
 use core::mem;
 use std::collections::{HashMap, HashSet};
 
-use async_trait::async_trait;
 use authorization::{
     AuthorizationApi,
     schema::{
@@ -62,6 +61,7 @@ use crate::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
             CountDataTypesParams, CountEntityTypesParams, CountPropertyTypesParams,
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
             GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
             GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
             GetEntityTypesParams, GetEntityTypesResponse, GetPropertyTypeSubgraphParams,
@@ -73,14 +73,13 @@ use crate::{
     },
 };
 
-#[async_trait]
 pub trait TypeFetcher {
     /// Fetches the provided type reference and inserts it to the Graph.
-    async fn insert_external_ontology_type(
+    fn insert_external_ontology_type(
         &mut self,
         actor_id: AccountId,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyTypeMetadata, InsertionError>;
+    ) -> impl Future<Output = Result<OntologyTypeMetadata, InsertionError>> + Send;
 }
 
 #[derive(Clone)]
@@ -297,9 +296,10 @@ where
                         pinned: PinnedTemporalAxisUnresolved::new(None),
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
+                    include_drafts: true,
                     after: None,
                     limit: None,
-                    include_drafts: true,
+                    include_closed: false,
                     include_count: false,
                     include_web_ids: false,
                     include_edition_created_by_ids: false,
@@ -442,8 +442,6 @@ where
                             classification: OntologyTypeClassificationMetadata::External {
                                 fetched_at,
                             },
-                            icon: None,
-                            label_property: None,
                         };
 
                         for referenced_ontology_type in self
@@ -556,8 +554,6 @@ where
                         .map(|(schema, metadata)| CreateEntityTypeParams {
                             schema,
                             classification: metadata.classification,
-                            icon: metadata.icon,
-                            label_property: metadata.label_property,
                             relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance::default(),
@@ -644,8 +640,6 @@ where
                             |(schema, metadata)| CreateEntityTypeParams {
                                 schema,
                                 classification: metadata.classification,
-                                icon: metadata.icon,
-                                label_property: metadata.label_property,
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance::default(),
@@ -675,7 +669,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> TypeFetcher for FetchingStore<S, A>
 where
     A: ToSocketAddrs + Send + Sync,
@@ -740,7 +733,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A, R> Read<R> for FetchingStore<S, A>
 where
     A: Send + Sync,
@@ -921,8 +913,8 @@ where
             .await
     }
 
-    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
-        self.store.reindex_cache().await
+    async fn reindex_data_type_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_data_type_cache().await
     }
 }
 
@@ -1100,6 +1092,16 @@ where
         self.store.get_entity_types(actor_id, params).await
     }
 
+    async fn get_closed_multi_entity_types(
+        &self,
+        actor_id: AccountId,
+        params: GetClosedMultiEntityTypeParams,
+    ) -> Result<GetClosedMultiEntityTypeResponse, QueryError> {
+        self.store
+            .get_closed_multi_entity_types(actor_id, params)
+            .await
+    }
+
     async fn get_entity_type_subgraph(
         &self,
         actor_id: AccountId,
@@ -1155,6 +1157,10 @@ where
         self.store
             .update_entity_type_embeddings(actor_id, params)
             .await
+    }
+
+    async fn reindex_entity_type_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_type_cache().await
     }
 }
 
@@ -1268,5 +1274,9 @@ where
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), UpdateError> {
         self.store.update_entity_embeddings(actor_id, params).await
+    }
+
+    async fn reindex_entity_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_cache().await
     }
 }

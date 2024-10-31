@@ -40,7 +40,6 @@ impl Context for Char {}
 /// G
 /// ╰─▶ H
 /// ```
-#[allow(clippy::many_single_char_names)]
 fn build() -> Report<[Char]> {
     let mut report_c = report!(Char('C')).expand();
     let report_d = report!(Char('D'));

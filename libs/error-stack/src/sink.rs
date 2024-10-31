@@ -72,7 +72,7 @@ impl Drop for Bomb {
 
         match self.0 {
             BombState::Panic => panic!("ReportSink was dropped without being consumed"),
-            #[allow(clippy::print_stderr)]
+            #[cfg_attr(not(feature = "tracing"), expect(clippy::print_stderr))]
             #[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
             BombState::Warn(location) => {
                 #[cfg(feature = "tracing")]
@@ -548,7 +548,7 @@ mod test {
     #[test]
     #[should_panic(expected = "without being consumed")]
     fn panic_on_unused() {
-        #[allow(clippy::unnecessary_wraps)]
+        #[expect(clippy::unnecessary_wraps)]
         fn sink() -> Result<(), Report<[TestError]>> {
             let mut sink = ReportSink::new_armed();
 
@@ -562,7 +562,6 @@ mod test {
 
     #[test]
     fn panic_on_unused_with_defuse() {
-        #[allow(clippy::unnecessary_wraps)]
         fn sink() -> Result<(), Report<[TestError]>> {
             let mut sink = ReportSink::new_armed();
 

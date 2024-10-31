@@ -10,8 +10,11 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::ontology::DataTypeId;
-use type_system::Valid;
+use type_system::{
+    Valid,
+    schema::{ClosedDataType, DataTypeUuid, ValueLabel},
+    url::{OntologyTypeVersion, VersionedUrl},
+};
 
 use crate::{
     snapshot::{
@@ -33,7 +36,7 @@ pub struct DataTypeSender {
     metadata: OntologyTypeMetadataSender,
     schema: Sender<DataTypeRow>,
     conversions: Sender<Vec<DataTypeConversionsRow>>,
-    relations: Sender<(DataTypeId, Vec<DataTypeRelationAndSubject>)>,
+    relations: Sender<(DataTypeUuid, Vec<DataTypeRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around `Sink<mpsc::Sender<DataTypeRow>>` with and
@@ -61,7 +64,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         mut self: Pin<&mut Self>,
         data_type: DataTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let ontology_id = DataTypeId::from_record_id(&data_type.metadata.record_id);
+        let ontology_id = DataTypeUuid::from_url(&data_type.schema.id);
 
         self.metadata
             .start_send_unpin(OntologyTypeMetadata {
@@ -78,6 +81,20 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                 // TODO: Validate ontology types in snapshots
                 //   see https://linear.app/hash/issue/H-3038
                 schema: Valid::new_unchecked(data_type.schema.clone()),
+                // An empty schema is inserted initially. This will be replaced later by the closed
+                // schema.
+                closed_schema: Valid::new_unchecked(ClosedDataType {
+                    id: VersionedUrl {
+                        base_url: data_type.schema.id.base_url.clone(),
+                        version: OntologyTypeVersion::new(0),
+                    },
+                    title: String::new(),
+                    title_plural: None,
+                    description: String::new(),
+                    label: ValueLabel::default(),
+                    all_of: Vec::new(),
+                    r#abstract: true,
+                }),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

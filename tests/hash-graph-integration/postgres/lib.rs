@@ -53,6 +53,7 @@ use graph::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
             CountDataTypesParams, CountEntityTypesParams, CountPropertyTypesParams,
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
             GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
             GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
             GetEntityTypesParams, GetEntityTypesResponse, GetPropertyTypeSubgraphParams,
@@ -267,8 +268,6 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         classification: OntologyTypeClassificationMetadata::Owned {
                             owned_by_id: OwnedById::new(account_id.into_uuid()),
                         },
-                        label_property: None,
-                        icon: None,
                         relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
                         provenance: ProvidedOntologyEditionProvenance::default(),
@@ -403,8 +402,8 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
             .await
     }
 
-    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
-        self.store.reindex_cache().await
+    async fn reindex_data_type_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_type_cache().await
     }
 }
 
@@ -590,6 +589,16 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         Ok(response)
     }
 
+    async fn get_closed_multi_entity_types(
+        &self,
+        actor_id: AccountId,
+        params: GetClosedMultiEntityTypeParams,
+    ) -> Result<GetClosedMultiEntityTypeResponse, QueryError> {
+        self.store
+            .get_closed_multi_entity_types(actor_id, params)
+            .await
+    }
+
     async fn get_entity_type_subgraph(
         &self,
         actor_id: AccountId,
@@ -661,6 +670,10 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         self.store
             .update_entity_type_embeddings(actor_id, params)
             .await
+    }
+
+    async fn reindex_entity_type_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_type_cache().await
     }
 }
 
@@ -787,6 +800,10 @@ where
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), UpdateError> {
         self.store.update_entity_embeddings(actor_id, params).await
+    }
+
+    async fn reindex_entity_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_cache().await
     }
 }
 

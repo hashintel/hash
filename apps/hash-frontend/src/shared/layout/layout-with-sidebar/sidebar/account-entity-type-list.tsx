@@ -161,7 +161,7 @@ export const AccountEntityTypeList: FunctionComponent<
               {filteredEntityTypes.map((root) => (
                 <Collapse key={root.schema.$id}>
                   <EntityOrTypeSidebarItem
-                    entityType={root}
+                    entityType={root.schema}
                     variant="entity-type"
                   />
                 </Collapse>

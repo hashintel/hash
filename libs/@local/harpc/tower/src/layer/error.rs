@@ -1,12 +1,11 @@
 use core::{
     error::Error,
-    fmt::{self, Debug, Display, Formatter},
     task::{Context, Poll},
 };
 
 use bytes::Bytes;
-use harpc_net::codec::{ErrorEncoder, WireError};
-use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
+use harpc_codec::error::NetworkError;
+use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service, ServiceExt};
 
 use crate::{
@@ -17,86 +16,38 @@ use crate::{
     response::{Parts, Response},
 };
 
-pub struct BoxedError(Box<dyn Error + Send + Sync + 'static>);
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct HandleErrorLayer {
+    _private: (),
+}
 
-impl BoxedError {
+impl HandleErrorLayer {
+    #[expect(
+        clippy::new_without_default,
+        reason = "layer construction should be explicit and we might add fields in the future"
+    )]
     #[must_use]
-    pub fn into_inner(self) -> Box<dyn Error + Send + Sync + 'static> {
-        self.0
+    pub const fn new() -> Self {
+        Self { _private: () }
     }
 }
 
-impl Debug for BoxedError {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.0, fmt)
-    }
-}
-
-impl Display for BoxedError {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, fmt)
-    }
-}
-
-impl Error for BoxedError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(&*self.0)
-    }
-
-    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
-        self.0.provide(request);
-    }
-}
-
-impl WireError for BoxedError {
-    fn code(&self) -> ErrorCode {
-        core::error::request_value::<ErrorCode>(self)
-            .or_else(|| core::error::request_ref::<ErrorCode>(self).copied())
-            .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR)
-    }
-}
-
-impl From<Box<dyn Error + Send + Sync + 'static>> for BoxedError {
-    fn from(error: Box<dyn Error + Send + Sync + 'static>) -> Self {
-        Self(error)
-    }
-}
-
-pub struct HandleErrorLayer<E> {
-    encoder: E,
-}
-
-impl<E> HandleErrorLayer<E> {
-    pub const fn new(encoder: E) -> Self {
-        Self { encoder }
-    }
-}
-
-impl<E, S> Layer<S> for HandleErrorLayer<E>
-where
-    E: Clone,
-{
-    type Service = HandleError<S, E>;
+impl<S> Layer<S> for HandleErrorLayer {
+    type Service = HandleErrorService<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        HandleError {
-            inner,
-            encoder: self.encoder.clone(),
-        }
+        HandleErrorService { inner }
     }
 }
 
-pub struct HandleError<S, E> {
+pub struct HandleErrorService<S> {
     inner: S,
-
-    encoder: E,
 }
 
-impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleError<S, E>
+impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for HandleErrorService<S>
 where
     S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
-    S::Error: Into<Box<dyn Error + Send + Sync + 'static>>,
-    E: ErrorEncoder + Clone,
+    S::Error: Error,
     ReqBody: Body<Control = !>,
     ResBody: Body<Control: AsRef<ResponseKind>>,
 {
@@ -113,8 +64,6 @@ where
     }
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        let encoder = self.encoder.clone();
-
         let clone = self.inner.clone();
         let inner = core::mem::replace(&mut self.inner, clone);
 
@@ -124,11 +73,7 @@ where
             match inner.oneshot(req).await {
                 Ok(response) => Ok(response.map_body(Either::Left)),
                 Err(error) => {
-                    // this is not ideal, because we lose the error during conversion and need to
-                    // use dynamic dispatch, but there is no other easy way to do this in tower
-                    let error = BoxedError::from(error.into());
-
-                    let error = encoder.encode_error(error).await;
+                    let error = NetworkError::capture_error(&error);
 
                     Ok(Response::from_error(
                         Parts {
@@ -146,22 +91,23 @@ where
 
 #[cfg(test)]
 pub(crate) mod test {
-    use core::{error::Error, fmt::Display};
-
-    use bytes::{Bytes, BytesMut};
-    use error_stack::Report;
-    use harpc_net::{
-        codec::{ErrorEncoder, WireError},
-        session::error::TransactionError,
-        test_utils::mock_session_id,
+    use core::{
+        error::Error,
+        fmt::{self, Debug, Display},
     };
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
-    use harpc_wire_protocol::{
-        request::{procedure::ProcedureDescriptor, service::ServiceDescriptor},
-        response::kind::{ErrorCode, ResponseKind},
+
+    use bytes::Bytes;
+    use harpc_net::test_utils::mock_session_id;
+    use harpc_types::{
+        error_code::ErrorCode,
+        procedure::{ProcedureDescriptor, ProcedureId},
+        response_kind::ResponseKind,
+        service::{ServiceDescriptor, ServiceId},
+        version::Version,
     };
     use tokio_test::{assert_pending, assert_ready};
-    use tower_test::mock::spawn_layer;
+    use tower::{Layer, ServiceExt};
+    use tower_test::mock::spawn_with;
 
     use crate::{
         Extensions,
@@ -172,49 +118,57 @@ pub(crate) mod test {
         response::{self, Response},
     };
 
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub(crate) struct PlainErrorEncoder;
+    pub(crate) struct BoxedError(Box<dyn Error + Send + Sync + 'static>);
 
-    impl ErrorEncoder for PlainErrorEncoder {
-        async fn encode_report<C>(&self, report: Report<C>) -> TransactionError {
-            let code = report
-                .request_ref::<ErrorCode>()
-                .next()
-                .copied()
-                .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR);
-
-            let mut bytes = BytesMut::new();
-
-            let display = report.to_string();
-            bytes.extend_from_slice(b"report|");
-            bytes.extend_from_slice(display.as_bytes());
-
-            TransactionError {
-                code,
-                bytes: bytes.freeze(),
-            }
-        }
-
-        async fn encode_error<E>(&self, error: E) -> TransactionError
+    impl serde::Serialize for BoxedError {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
-            E: WireError + Send,
+            S: serde::Serializer,
         {
-            let code = error.code();
-
-            let mut bytes = BytesMut::new();
-
-            let display = error.to_string();
-            bytes.extend_from_slice(b"plain|");
-            bytes.extend_from_slice(display.as_bytes());
-
-            TransactionError {
-                code,
-                bytes: bytes.freeze(),
-            }
+            serializer.collect_str(&self)
         }
     }
 
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    impl Debug for BoxedError {
+        fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+            Debug::fmt(&self.0, fmt)
+        }
+    }
+
+    impl Display for BoxedError {
+        fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+            Display::fmt(&self.0, fmt)
+        }
+    }
+
+    impl Error for BoxedError {
+        fn source(&self) -> Option<&(dyn Error + 'static)> {
+            Some(&*self.0)
+        }
+
+        fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+            self.0.provide(request);
+        }
+    }
+
+    impl From<Box<dyn Error + Send + Sync + 'static>> for BoxedError {
+        fn from(error: Box<dyn Error + Send + Sync + 'static>) -> Self {
+            Self(error)
+        }
+    }
+
+    #[derive(
+        Debug,
+        Copy,
+        Clone,
+        PartialEq,
+        Eq,
+        PartialOrd,
+        Ord,
+        Hash,
+        serde::Serialize,
+        serde::Deserialize,
+    )]
     pub(crate) struct GenericError(ErrorCode);
 
     impl GenericError {
@@ -259,7 +213,11 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn handle_error() {
-        let (mut service, mut handle) = spawn_layer(HandleErrorLayer::new(PlainErrorEncoder));
+        let (mut service, mut handle) = spawn_with(|mock| {
+            let mock = mock.map_err(BoxedError::from);
+
+            HandleErrorLayer::new().layer(mock)
+        });
 
         assert_pending!(handle.poll_request());
         assert_ready!(service.poll_ready()).expect("should be ready");
@@ -296,12 +254,17 @@ pub(crate) mod test {
             .into_data()
             .expect("should be data frame")
             .into_inner();
-        assert_eq!(data, Bytes::from_static(b"plain|generic error" as &[_]));
+
+        insta::assert_debug_snapshot!(data, @r###"b"\0\0\0\rgeneric error""###);
     }
 
     #[tokio::test]
     async fn passthrough() {
-        let (mut service, mut handle) = spawn_layer(HandleErrorLayer::new(PlainErrorEncoder));
+        let (mut service, mut handle) = spawn_with(|mock| {
+            let mock = mock.map_err(BoxedError::from);
+
+            HandleErrorLayer::new().layer(mock)
+        });
 
         assert_pending!(handle.poll_request());
         assert_ready!(service.poll_ready()).expect("should be ready");

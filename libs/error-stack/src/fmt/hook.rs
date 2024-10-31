@@ -3,7 +3,6 @@
 // implementation: `pub(crate)` and `pub`.
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, string::String, vec::Vec};
 use core::{any::TypeId, mem};
 
@@ -421,7 +420,7 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
 /// [`.insert()`]: Hooks::insert
-#[allow(clippy::field_scoped_visibility_modifiers)]
+#[expect(clippy::field_scoped_visibility_modifiers)]
 pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
@@ -455,7 +454,6 @@ impl Hooks {
 mod default {
     #[cfg(any(feature = "backtrace", feature = "spantrace"))]
     use alloc::format;
-    #[cfg_attr(feature = "std", allow(unused_imports))]
     use alloc::string::ToString;
     use core::{
         panic::Location,

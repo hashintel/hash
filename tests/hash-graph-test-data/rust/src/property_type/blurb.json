@@ -3,6 +3,7 @@
   "kind": "propertyType",
   "$id": "https://blockprotocol.org/@alice/types/property-type/blurb/v/1",
   "title": "Blurb",
+  "description": "A short description of a property.",
   "oneOf": [
     {
       "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"

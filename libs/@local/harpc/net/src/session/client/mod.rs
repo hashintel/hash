@@ -15,6 +15,7 @@ pub use self::{
 use super::error::SessionError;
 use crate::transport::{TransportLayer, connection::OutgoingConnection};
 
+#[derive(Debug)]
 pub struct SessionLayer {
     config: SessionConfig,
 

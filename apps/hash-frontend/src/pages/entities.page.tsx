@@ -361,10 +361,12 @@ const EntitiesPage: NextPageWithLayout = () => {
           </Box>
         </Container>
       </Box>
-      <Container sx={{ maxWidth: { lg: contentMaxWidth }, py: 5 }}>
+      <Container
+        sx={{ maxWidth: { lg: `max(${contentMaxWidth}, "70%")` }, py: 5 }}
+      >
         <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
           <EntitiesTable
-            hideEntityTypeVersionColumn={!!entityTypeId}
+            hideColumns={entityTypeId ? ["entityTypeVersion"] : []}
             hidePropertiesColumns
           />
         </EntityTypeEntitiesContext.Provider>

@@ -5,16 +5,22 @@ use core::{
 use std::{collections::HashSet, sync::OnceLock};
 
 use email_address::EmailAddress;
-use error_stack::{Report, ReportSink, ResultExt, bail};
+use error_stack::{Report, ReportSink, ResultExt, TryReportIteratorExt as _, bail, ensure};
 use iso8601_duration::{Duration, ParseDurationError};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
+use serde_json::{Value as JsonValue, json};
 use thiserror::Error;
 use url::{Host, Url};
 use uuid::Uuid;
 
-use crate::schema::{ConstraintError, JsonSchemaValueType};
+use crate::schema::{
+    ConstraintError, JsonSchemaValueType, SingleValueConstraints,
+    data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{Constraint, ConstraintValidator, ValueConstraints},
+    },
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -221,35 +227,187 @@ pub enum StringSchema {
     },
 }
 
-impl StringSchema {
-    /// Validates the provided value against the string schema.
-    ///
-    /// # Errors
-    ///
-    /// - [`InvalidConstValue`] if the value is not equal to the expected value.
-    /// - [`InvalidEnumValue`] if the value is not one of the expected values.
-    /// - [`ValueConstraint`] if the value does not match the expected constraints.
-    ///
-    /// [`InvalidConstValue`]: ConstraintError::InvalidConstValue
-    /// [`InvalidEnumValue`]: ConstraintError::InvalidEnumValue
-    /// [`ValueConstraint`]: ConstraintError::ValueConstraint
-    pub fn validate_value(&self, string: &str) -> Result<(), Report<ConstraintError>> {
+impl Constraint for StringSchema {
+    #[expect(clippy::too_many_lines)]
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Constrained(lhs), Self::Constrained(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::Constrained(lhs), rhs.map(Self::Constrained)))?,
+            (Self::Const { r#const }, Self::Constrained(constraints))
+            | (Self::Constrained(constraints), Self::Const { r#const }) => {
+                constraints.validate_value(&r#const).change_context(
+                    ResolveClosedDataTypeError::UnsatisfiedConstraint(
+                        json!(r#const),
+                        ValueConstraints::Typed(SingleValueConstraints::String(Self::Constrained(
+                            constraints,
+                        ))),
+                    ),
+                )?;
+
+                (Self::Const { r#const }, None)
+            }
+            (Self::Enum { r#enum }, Self::Constrained(constraints))
+            | (Self::Constrained(constraints), Self::Enum { r#enum }) => {
+                // We use the fast way to filter the values that pass the constraints and collect
+                // them. In most cases this will result in at least one value
+                // passing the constraints.
+                let passed = r#enum
+                    .iter()
+                    .filter(|&value| constraints.is_valid(value))
+                    .cloned()
+                    .collect::<HashSet<_>>();
+
+                match passed.len() {
+                    0 => {
+                        // We now properly capture errors to return it to the caller.
+                        let () = r#enum
+                            .iter()
+                            .map(|value| {
+                                constraints.validate_value(value).change_context(
+                                    ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
+                                        json!(*value),
+                                    ),
+                                )
+                            })
+                            .try_collect_reports()
+                            .change_context(
+                                ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
+                                    ValueConstraints::Typed(SingleValueConstraints::String(
+                                        Self::Constrained(constraints.clone()),
+                                    )),
+                                ),
+                            )?;
+
+                        // This should only happen if `enum` is malformed and has no values. This
+                        // should be caught by the schema validation, however, if this still happens
+                        // we return an error as validating empty enum will always fail.
+                        bail!(ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
+                            ValueConstraints::Typed(SingleValueConstraints::String(
+                                Self::Constrained(constraints),
+                            )),
+                        ))
+                    }
+                    1 => (
+                        Self::Const {
+                            r#const: passed.into_iter().next().unwrap_or_else(|| {
+                                unreachable!(
+                                    "we have exactly one value in the enum that passed the \
+                                     constraints"
+                                )
+                            }),
+                        },
+                        None,
+                    ),
+                    _ => (Self::Enum { r#enum: passed }, None),
+                }
+            }
+            (Self::Const { r#const: lhs }, Self::Const { r#const: rhs }) => {
+                if lhs == rhs {
+                    (Self::Const { r#const: lhs }, None)
+                } else {
+                    bail!(ResolveClosedDataTypeError::ConflictingConstValues(
+                        json!(lhs),
+                        json!(rhs),
+                    ))
+                }
+            }
+            (Self::Enum { r#enum: lhs }, Self::Enum { r#enum: rhs }) => {
+                let intersection = lhs.intersection(&rhs).cloned().collect::<HashSet<_>>();
+
+                match intersection.len() {
+                    0 => bail!(ResolveClosedDataTypeError::ConflictingEnumValues(
+                        lhs.iter().map(|val| json!(*val)).collect(),
+                        rhs.iter().map(|val| json!(*val)).collect(),
+                    )),
+                    1 => (
+                        Self::Const {
+                            r#const: intersection.into_iter().next().unwrap_or_else(|| {
+                                unreachable!(
+                                    "we have exactly least one value in the enum intersection"
+                                )
+                            }),
+                        },
+                        None,
+                    ),
+                    _ => (
+                        Self::Enum {
+                            r#enum: intersection,
+                        },
+                        None,
+                    ),
+                }
+            }
+            (Self::Const { r#const }, Self::Enum { r#enum })
+            | (Self::Enum { r#enum }, Self::Const { r#const }) => {
+                ensure!(
+                    r#enum.contains(&r#const),
+                    ResolveClosedDataTypeError::ConflictingConstEnumValue(
+                        json!(r#const),
+                        r#enum.iter().map(|val| json!(*val)).collect(),
+                    )
+                );
+
+                (Self::Const { r#const }, None)
+            }
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for StringSchema {
+    type Error = ConstraintError;
+
+    fn is_valid(&self, value: &JsonValue) -> bool {
+        if let JsonValue::String(string) = value {
+            self.is_valid(string.as_str())
+        } else {
+            false
+        }
+    }
+
+    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+        if let JsonValue::String(string) = value {
+            self.validate_value(string.as_str())
+        } else {
+            bail!(ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::from(value),
+                expected: JsonSchemaValueType::String,
+            });
+        }
+    }
+}
+
+impl ConstraintValidator<str> for StringSchema {
+    type Error = ConstraintError;
+
+    fn is_valid(&self, value: &str) -> bool {
+        match self {
+            Self::Constrained(constraints) => constraints.is_valid(value),
+            Self::Const { r#const } => value == r#const,
+            Self::Enum { r#enum } => r#enum.contains(value),
+        }
+    }
+
+    fn validate_value(&self, value: &str) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Constrained(constraints) => constraints
-                .validate_value(string)
+                .validate_value(value)
                 .change_context(ConstraintError::ValueConstraint)?,
             Self::Const { r#const } => {
-                if string != *r#const {
+                if value != *r#const {
                     bail!(ConstraintError::InvalidConstValue {
-                        actual: JsonValue::String(string.to_owned()),
+                        actual: JsonValue::String(value.to_owned()),
                         expected: JsonValue::String(r#const.clone()),
                     });
                 }
             }
             Self::Enum { r#enum } => {
-                if !r#enum.contains(string) {
+                if !r#enum.contains(value) {
                     bail!(ConstraintError::InvalidEnumValue {
-                        actual: JsonValue::String(string.to_owned()),
+                        actual: JsonValue::String(value.to_owned()),
                         expected: r#enum.iter().cloned().map(JsonValue::String).collect(),
                     });
                 }
@@ -259,7 +417,7 @@ impl StringSchema {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StringConstraints {
@@ -278,51 +436,112 @@ pub struct StringConstraints {
     pub format: Option<StringFormat>,
 }
 
-impl StringConstraints {
-    /// Validates the provided value against the string constraints.
-    ///
-    /// # Errors
-    ///
-    /// - [`MinLength`] if the value is shorter than the minimum length.
-    /// - [`MaxLength`] if the value is longer than the maximum length.
-    /// - [`Pattern`] if the value does not match the expected [`Regex`].
-    /// - [`Format`] if the value does not match the expected [`StringFormat`].
-    ///
-    /// [`MinLength`]: StringValidationError::MinLength
-    /// [`MaxLength`]: StringValidationError::MaxLength
-    /// [`Pattern`]: StringValidationError::Pattern
-    /// [`Format`]: StringValidationError::Format
-    pub fn validate_value(&self, string: &str) -> Result<(), Report<[StringValidationError]>> {
+impl Constraint for StringConstraints {
+    fn intersection(
+        mut self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        let mut remainder = None::<Self>;
+
+        self.min_length = match self.min_length.zip(other.min_length) {
+            Some((lhs, rhs)) => Some(lhs.max(rhs)),
+            None => self.min_length.or(other.min_length),
+        };
+        self.max_length = match self.max_length.zip(other.max_length) {
+            Some((lhs, rhs)) => Some(lhs.min(rhs)),
+            None => self.max_length.or(other.max_length),
+        };
+        match self.format.zip(other.format) {
+            Some((lhs, rhs)) if lhs == rhs => {}
+            Some((_, rhs)) => {
+                remainder.get_or_insert_default().format = Some(rhs);
+            }
+            None => self.format = self.format.or(other.format),
+        };
+        match self.pattern.as_ref().zip(other.pattern.as_ref()) {
+            Some((lhs, rhs)) if lhs.as_str() == rhs.as_str() => {}
+            Some((_, _)) => {
+                remainder.get_or_insert_default().pattern = other.pattern;
+            }
+            None => self.pattern = self.pattern.or(other.pattern),
+        };
+
+        if let Some((min_length, max_length)) = self.min_length.zip(self.max_length) {
+            ensure!(
+                min_length <= max_length,
+                ResolveClosedDataTypeError::UnsatisfiableConstraint(ValueConstraints::Typed(
+                    SingleValueConstraints::String(StringSchema::Constrained(Self {
+                        min_length: Some(min_length),
+                        max_length: Some(max_length),
+                        ..Self::default()
+                    }),)
+                ),)
+            );
+        }
+
+        Ok((self, remainder))
+    }
+}
+
+impl ConstraintValidator<str> for StringConstraints {
+    type Error = [StringValidationError];
+
+    fn is_valid(&self, value: &str) -> bool {
+        if let Some(expected) = self.min_length {
+            if value.len() < expected {
+                return false;
+            }
+        }
+        if let Some(expected) = self.max_length {
+            if value.len() > expected {
+                return false;
+            }
+        }
+        if let Some(expected) = &self.pattern {
+            if !expected.is_match(value) {
+                return false;
+            }
+        }
+        if let Some(expected) = self.format {
+            if expected.validate(value).is_err() {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn validate_value(&self, value: &str) -> Result<(), Report<[StringValidationError]>> {
         let mut status = ReportSink::new();
 
         if let Some(expected) = self.min_length {
-            if string.len() < expected {
+            if value.len() < expected {
                 status.capture(StringValidationError::MinLength {
-                    actual: string.to_owned(),
+                    actual: value.to_owned(),
                     expected,
                 });
             }
         }
         if let Some(expected) = self.max_length {
-            if string.len() > expected {
+            if value.len() > expected {
                 status.capture(StringValidationError::MaxLength {
-                    actual: string.to_owned(),
+                    actual: value.to_owned(),
                     expected,
                 });
             }
         }
         if let Some(expected) = &self.pattern {
-            if !expected.is_match(string) {
+            if !expected.is_match(value) {
                 status.capture(StringValidationError::Pattern {
-                    actual: string.to_owned(),
+                    actual: value.to_owned(),
                     expected: expected.clone(),
                 });
             }
         }
         if let Some(expected) = self.format {
-            if let Err(error) = expected.validate(string) {
+            if let Err(error) = expected.validate(value) {
                 status.append(error.change_context(StringValidationError::Format {
-                    actual: string.to_owned(),
+                    actual: value.to_owned(),
                     expected,
                 }));
             }
@@ -332,32 +551,22 @@ impl StringConstraints {
     }
 }
 
-pub(crate) fn validate_string_value(
-    value: &JsonValue,
-    schema: &StringSchema,
-) -> Result<(), Report<ConstraintError>> {
-    if let JsonValue::String(string) = value {
-        schema.validate_value(string)
-    } else {
-        bail!(ConstraintError::InvalidType {
-            actual: JsonSchemaValueType::from(value),
-            expected: JsonSchemaValueType::String,
-        });
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use serde_json::{from_value, json};
 
     use super::*;
     use crate::schema::{
-        JsonSchemaValueType,
+        JsonSchemaValueType, SingleValueConstraints,
         data_type::constraint::{
             ValueConstraints,
-            tests::{check_constraints, check_constraints_error, read_schema},
+            tests::{
+                check_constraints, check_constraints_error, check_schema_intersection,
+                check_schema_intersection_error, intersect_schemas, read_schema,
+            },
         },
     };
+
     #[test]
     fn unconstrained() {
         let string_schema = read_schema(&json!({
@@ -468,5 +677,595 @@ mod tests {
             "enum": ["foo", "bar"],
         }))
         .expect_err("Deserialized string schema with mixed properties");
+    }
+
+    #[test]
+    fn intersect_default() {
+        check_schema_intersection(
+            [
+                json!({
+                        "type": "string",
+                }),
+                json!({
+                        "type": "string",
+                }),
+            ],
+            [json!({
+                    "type": "string",
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_length_one() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 10,
+                }),
+                json!({
+                    "type": "string",
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 10,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_length_both() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 10,
+                }),
+                json!({
+                    "type": "string",
+                    "minLength": 7,
+                    "maxLength": 12,
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "minLength": 7,
+                "maxLength": 10,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_length_invalid() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 10,
+                }),
+                json!({
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 15,
+                }),
+            ],
+            [ResolveClosedDataTypeError::UnsatisfiableConstraint(
+                from_value(json!(
+                    {
+                        "type": "string",
+                        "minLength": 12,
+                        "maxLength": 10,
+                    }
+                ))
+                .expect("Failed to parse schema"),
+            )],
+        );
+    }
+
+    #[test]
+    fn intersect_pattern_one() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "pattern": "^[0-9]{5}$",
+                }),
+                json!({
+                    "type": "string",
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "pattern": "^[0-9]{5}$",
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_pattern_both_different() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "pattern": r"^\d{5}$",
+                }),
+                json!({
+                    "type": "string",
+                    "pattern": "^[0-9]{5}$",
+                }),
+            ],
+            [
+                json!({
+                    "type": "string",
+                    "pattern": r"^\d{5}$",
+                }),
+                json!({
+                    "type": "string",
+                    "pattern": "^[0-9]{5}$",
+                }),
+            ],
+        );
+    }
+
+    #[test]
+    fn intersect_pattern_both_same() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "pattern": r"^\d{5}$",
+                }),
+                json!({
+                    "type": "string",
+                    "pattern": r"^\d{5}$",
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "pattern": r"^\d{5}$",
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_format_one() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "format": "uri",
+                }),
+                json!({
+                    "type": "string",
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "format": "uri",
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_format_both_different() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "format": "uri",
+                }),
+                json!({
+                    "type": "string",
+                    "format": "hostname",
+                }),
+            ],
+            [
+                json!({
+                    "type": "string",
+                    "format": "uri",
+                }),
+                json!({
+                    "type": "string",
+                    "format": "hostname",
+                }),
+            ],
+        );
+    }
+
+    #[test]
+    fn intersect_format_both_same() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "format": "uri",
+                }),
+                json!({
+                    "type": "string",
+                    "format": "uri",
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "format": "uri",
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_const_const_same() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "const": "foo",
+                }),
+                json!({
+                    "type": "string",
+                    "const": "foo",
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "const": "foo",
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_const_const_different() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "string",
+                    "const": "foo",
+                }),
+                json!({
+                    "type": "string",
+                    "const": "bar",
+                }),
+            ],
+            [ResolveClosedDataTypeError::ConflictingConstValues(
+                json!("foo"),
+                json!("bar"),
+            )],
+        );
+    }
+
+    #[test]
+    fn intersect_const_enum_compatible() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "const": "foo",
+                }),
+                json!({
+                    "type": "string",
+                    "enum": ["foo", "bar"],
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "const": "foo",
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_const_enum_incompatible() {
+        let report = intersect_schemas([
+            json!({
+                "type": "string",
+                "const": "foo",
+            }),
+            json!({
+                "type": "string",
+                "enum": ["bar", "baz"],
+            }),
+        ])
+        .expect_err("Intersected invalid schemas");
+
+        let Some(ResolveClosedDataTypeError::ConflictingConstEnumValue(lhs, rhs)) =
+            report.downcast_ref::<ResolveClosedDataTypeError>()
+        else {
+            panic!("Expected conflicting const-enum values error");
+        };
+        assert_eq!(lhs, &json!("foo"));
+
+        assert_eq!(rhs.len(), 2);
+        assert!(rhs.contains(&json!("bar")));
+        assert!(rhs.contains(&json!("baz")));
+    }
+
+    #[test]
+    fn intersect_enum_enum_compatible_multi() {
+        let intersection = intersect_schemas([
+            json!({
+                "type": "string",
+                "enum": ["foo", "bar", "baz"],
+            }),
+            json!({
+                "type": "string",
+                "enum": ["foo", "baz", "qux"],
+            }),
+            json!({
+                "type": "string",
+                "enum": ["foo", "bar", "qux", "baz"],
+            }),
+        ])
+        .expect("Intersected invalid constraints")
+        .into_iter()
+        .map(|schema| {
+            from_value::<SingleValueConstraints>(schema).expect("Failed to deserialize schema")
+        })
+        .collect::<Vec<_>>();
+
+        // We need to manually check the intersection because the order of the enum values is not
+        // guaranteed.
+        assert_eq!(intersection.len(), 1);
+        let SingleValueConstraints::String(StringSchema::Enum { r#enum }) = &intersection[0] else {
+            panic!("Expected string enum schema");
+        };
+        assert_eq!(r#enum.len(), 2);
+        assert!(r#enum.contains("foo"));
+        assert!(r#enum.contains("baz"));
+    }
+
+    #[test]
+    fn intersect_enum_enum_compatible_single() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "enum": ["foo", "bar"],
+                }),
+                json!({
+                    "type": "string",
+                    "enum": ["foo", "baz"],
+                }),
+                json!({
+                    "type": "string",
+                    "enum": ["foo", "qux"],
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "const": "foo",
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_enum_enum_incompatible() {
+        let report = intersect_schemas([
+            json!({
+                "type": "string",
+                "enum": ["foo", "bar"],
+            }),
+            json!({
+                "type": "string",
+                "enum": ["baz", "qux"],
+            }),
+        ])
+        .expect_err("Intersected invalid schemas");
+
+        let Some(ResolveClosedDataTypeError::ConflictingEnumValues(lhs, rhs)) =
+            report.downcast_ref::<ResolveClosedDataTypeError>()
+        else {
+            panic!("Expected conflicting enum values error");
+        };
+        assert_eq!(lhs.len(), 2);
+        assert!(lhs.contains(&json!("foo")));
+        assert!(lhs.contains(&json!("bar")));
+
+        assert_eq!(rhs.len(), 2);
+        assert!(rhs.contains(&json!("baz")));
+        assert!(rhs.contains(&json!("qux")));
+    }
+
+    #[test]
+    fn intersect_const_constraint_compatible() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "const": "foo",
+                }),
+                json!({
+                    "type": "string",
+                    "minLength": 3,
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "const": "foo",
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_const_constraint_incompatible() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "string",
+                    "const": "foo",
+                }),
+                json!({
+                    "type": "string",
+                    "minLength": 5,
+                }),
+            ],
+            [ResolveClosedDataTypeError::UnsatisfiedConstraint(
+                json!("foo"),
+                from_value(json!({
+                    "type": "string",
+                    "minLength": 5,
+                }))
+                .expect("Failed to parse schema"),
+            )],
+        );
+    }
+
+    #[test]
+    fn intersect_enum_constraint_compatible_single() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "enum": ["foo", "foobar"],
+                }),
+                json!({
+                    "type": "string",
+                    "minLength": 5,
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "const": "foobar",
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_enum_constraint_compatible_multi() {
+        let intersection = intersect_schemas([
+            json!({
+                "type": "string",
+                "enum": ["foo", "foobar", "bar"],
+            }),
+            json!({
+                "type": "string",
+                "maxLength": 3,
+            }),
+        ])
+        .expect("Intersected invalid constraints")
+        .into_iter()
+        .map(|schema| {
+            from_value::<SingleValueConstraints>(schema).expect("Failed to deserialize schema")
+        })
+        .collect::<Vec<_>>();
+
+        // We need to manually check the intersection because the order of the enum values is not
+        // guaranteed.
+        assert_eq!(intersection.len(), 1);
+        let SingleValueConstraints::String(StringSchema::Enum { r#enum }) = &intersection[0] else {
+            panic!("Expected string enum schema");
+        };
+        assert_eq!(r#enum.len(), 2);
+        assert!(r#enum.contains("foo"));
+        assert!(r#enum.contains("bar"));
+    }
+
+    #[test]
+    fn intersect_enum_constraint_incompatible() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "string",
+                    "enum": ["foo", "bar"],
+                }),
+                json!({
+                    "type": "string",
+                    "minLength": 5,
+                }),
+            ],
+            [
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
+                    from_value(json!({
+                        "type": "string",
+                        "minLength": 5,
+                    }))
+                    .expect("Failed to parse schema"),
+                ),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(json!("foo")),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(json!("bar")),
+            ],
+        );
+    }
+
+    #[test]
+    fn intersect_mixed() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "minLength": 5,
+                }),
+                json!({
+                    "type": "string",
+                    "pattern": "^[0-9]{5}$",
+                }),
+                json!({
+                    "type": "string",
+                    "minLength": 8,
+                }),
+                json!({
+                    "type": "string",
+                    "format": "uri",
+                }),
+                json!({
+                    "type": "string",
+                    "maxLength": 10,
+                }),
+                json!({
+                    "type": "string",
+                    "pattern": r"^\d{5}$",
+                }),
+            ],
+            [
+                json!({
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 10,
+                    "pattern": "^[0-9]{5}$",
+                    "format": "uri",
+                }),
+                json!({
+                    "type": "string",
+                    "pattern": r"^\d{5}$",
+                }),
+            ],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "minLength": 2,
+                }),
+                json!({
+                    "type": "string",
+                    "maxLength": 8,
+                }),
+                json!({
+                    "type": "string",
+                    "format": "hostname",
+                }),
+                json!({
+                    "type": "string",
+                    "maxLength": 10,
+                }),
+                json!({
+                    "type": "string",
+                    "pattern": "^[a-z]{3}$",
+                }),
+                json!({
+                    "type": "string",
+                    "enum": ["foo", "foobar"],
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "const": "foo",
+            })],
+        );
     }
 }

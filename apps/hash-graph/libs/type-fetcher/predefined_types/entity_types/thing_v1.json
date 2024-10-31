@@ -1,7 +1,6 @@
 {
   "allOf": [],
   "description": "A generic thing",
-  "examples": [],
   "$id": "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1",
   "kind": "entityType",
   "links": {},

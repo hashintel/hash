@@ -242,7 +242,7 @@ impl Transpile for Expression {
 }
 
 pub struct Transpiler<'t, T>(pub &'t T);
-impl<'t, T> Display for Transpiler<'t, T>
+impl<T> Display for Transpiler<'_, T>
 where
     T: Transpile,
 {

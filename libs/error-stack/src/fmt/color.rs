@@ -297,7 +297,7 @@ pub(crate) struct StyleDisplay<'a, T: Display> {
     value: &'a T,
 }
 
-impl<'a, T: Display> Display for StyleDisplay<'a, T> {
+impl<T: Display> Display for StyleDisplay<'_, T> {
     fn fmt(&self, mut fmt: &mut Formatter<'_>) -> fmt::Result {
         let mut sequence = ControlSequence::new(fmt);
 

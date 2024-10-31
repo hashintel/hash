@@ -20,6 +20,6 @@
     "@rust/validation": "0.0.0-private"
   },
   "devDependencies": {
-    "tsx": "4.19.1"
+    "tsx": "4.19.2"
   }
 }

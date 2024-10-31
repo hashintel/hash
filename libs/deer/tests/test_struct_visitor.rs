@@ -51,7 +51,7 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
     {
         struct IdentVisitor;
 
-        impl<'de> Visitor<'de> for IdentVisitor {
+        impl Visitor<'_> for IdentVisitor {
             type Value = ExampleFieldDiscriminator;
 
             fn expecting(&self) -> Document {

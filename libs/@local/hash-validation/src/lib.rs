@@ -93,8 +93,10 @@ pub trait EntityProvider {
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
+    use core::iter;
     use std::collections::HashMap;
 
+    use error_stack::ResultExt;
     use graph_types::{
         account::{AccountId, EditionCreatedById},
         knowledge::property::{
@@ -115,7 +117,10 @@ mod tests {
     use temporal_versioning::{ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp};
     use thiserror::Error;
     use type_system::{
-        schema::{ClosedEntityType, ConversionExpression, DataType, EntityType, PropertyType},
+        schema::{
+            ClosedEntityType, ClosedMultiEntityType, ConversionExpression, DataType, EntityType,
+            EntityTypeUuid, OntologyTypeResolver, PropertyType,
+        },
         url::{BaseUrl, VersionedUrl},
     };
     use uuid::Uuid;
@@ -158,7 +163,7 @@ mod tests {
     impl Provider {
         fn new(
             entities: impl IntoIterator<Item = Entity>,
-            entity_types: impl IntoIterator<Item = (VersionedUrl, ClosedEntityType)>,
+            entity_types: impl IntoIterator<Item = ClosedEntityType>,
             property_types: impl IntoIterator<Item = PropertyType>,
             data_types: impl IntoIterator<Item = DataType>,
         ) -> Self {
@@ -169,7 +174,7 @@ mod tests {
                     .collect(),
                 entity_types: entity_types
                     .into_iter()
-                    .map(|(url, schema)| (url, Arc::new(schema)))
+                    .map(|schema| (schema.id.clone(), Arc::new(schema)))
                     .collect(),
                 property_types: property_types
                     .into_iter()
@@ -225,18 +230,22 @@ mod tests {
 
     impl EntityTypeProvider for Provider {
         #[expect(refining_impl_trait)]
-        async fn is_parent_of(
+        async fn is_super_type_of(
             &self,
-            child: &VersionedUrl,
-            parent: &BaseUrl,
+            _: &VersionedUrl,
+            _: &VersionedUrl,
         ) -> Result<bool, Report<InvalidEntityType>> {
-            Ok(
-                OntologyTypeProvider::<ClosedEntityType>::provide_type(self, child)
-                    .await?
-                    .all_of
-                    .iter()
-                    .any(|id| id.url.base_url == *parent),
-            )
+            // Not used in tests
+            Ok(false)
+        }
+
+        #[expect(refining_impl_trait)]
+        async fn find_parents(
+            &self,
+            _: &[VersionedUrl],
+        ) -> Result<Vec<VersionedUrl>, Report<InvalidEntityType>> {
+            // Not used in tests
+            Ok(Vec::new())
         }
     }
 
@@ -334,21 +343,54 @@ mod tests {
     ) -> Result<PropertyWithMetadataObject, Report<[TraversalError]>> {
         install_error_stack_hooks();
 
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+        let entity_types = entity_types
+            .into_iter()
+            .map(|entity_type| {
+                let entity_type = serde_json::from_str::<EntityType>(entity_type)
+                    .expect("failed to parse entity type");
+                let entity_type_id = EntityTypeUuid::from_url(&entity_type.id);
+                ontology_type_resolver
+                    .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.clone()));
+                (entity_type_id, entity_type)
+            })
+            .collect::<Vec<_>>();
+
+        let entity_type =
+            serde_json::from_str::<EntityType>(entity_type).expect("failed to parse entity type");
+        let entity_type_uuid = EntityTypeUuid::from_url(&entity_type.id);
+        ontology_type_resolver
+            .add_unresolved_entity_type(entity_type_uuid, Arc::new(entity_type.clone()));
+
+        let resolved_data = ontology_type_resolver
+            .resolve_entity_type_metadata(entity_type_uuid)
+            .expect("entity type not resolved");
+        let closed_entity_type = ClosedEntityType::from_resolve_data(entity_type, &resolved_data)
+            .expect("Could not close entity type");
+        let closed_multi_entity_type =
+            ClosedMultiEntityType::from_multi_type_closed_schema(iter::once(closed_entity_type))
+                .expect("Could not close multi entity type");
+
+        let entity_types = entity_types
+            .into_iter()
+            .map(|(entity_type_uuid, entity_type)| {
+                let resolved_data = ontology_type_resolver
+                    .resolve_entity_type_metadata(entity_type_uuid)
+                    .expect("entity type not resolved");
+                ClosedEntityType::from_resolve_data(entity_type, &resolved_data)
+                    .expect("Could not close entity type")
+            })
+            .collect::<Vec<_>>();
+
         let provider = Provider::new(
             entities,
-            entity_types.into_iter().map(|entity_type| {
-                serde_json::from_str(entity_type).expect("failed to parse entity type")
-            }),
+            entity_types,
             property_types.into_iter().map(|property_type| {
                 serde_json::from_str(property_type).expect("failed to parse property type")
             }),
             data_types.into_iter().map(|data_type| {
                 serde_json::from_str(data_type).expect("failed to parse data type")
             }),
-        );
-
-        let entity_type = ClosedEntityType::from(
-            serde_json::from_str::<EntityType>(entity_type).expect("failed to parse entity type"),
         );
 
         let mut properties = PropertyWithMetadataObject::from_parts(
@@ -358,7 +400,7 @@ mod tests {
         .expect("failed to create property with metadata");
 
         EntityPreprocessor { components }
-            .visit_object(&entity_type, &mut properties, &provider)
+            .visit_object(&closed_multi_entity_type, &mut properties, &provider)
             .await?;
 
         Ok(properties)
@@ -410,12 +452,16 @@ mod tests {
             [],
             [],
             data_types.into_iter().map(|data_type| {
-                serde_json::from_str(data_type).expect("failed to parse data type")
+                serde_json::from_str(data_type)
+                    .attach_printable(data_type)
+                    .expect("failed to parse data type")
             }),
         );
 
         let data_type = generate_data_type_metadata(
-            serde_json::from_str(data_type).expect("failed to parse data type"),
+            serde_json::from_str(data_type)
+                .attach_printable_lazy(|| data_type.to_owned())
+                .expect("failed to parse data type"),
         );
 
         let mut metadata = ValueMetadata {

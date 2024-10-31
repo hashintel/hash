@@ -1,7 +1,7 @@
-use harpc_net::session::server::SessionId;
-use harpc_wire_protocol::request::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use harpc_net::session::server::{SessionId, transaction::TransactionContext};
+use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 
-use crate::{body::Body, extensions::Extensions};
+use crate::extensions::Extensions;
 
 /// Component parts of a harpc `Request`.
 #[derive(Debug, Clone)]
@@ -14,18 +14,33 @@ pub struct Parts {
     pub extensions: Extensions,
 }
 
+impl Parts {
+    #[must_use]
+    pub fn from_transaction(context: &TransactionContext) -> Self {
+        Self {
+            service: context.service(),
+            procedure: context.procedure(),
+            session: context.session(),
+            extensions: Extensions::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Request<B> {
     head: Parts,
     body: B,
 }
 
-impl<B> Request<B>
-where
-    B: Body<Control = !>,
-{
+// we specifically don't have a `B: Body<Control = !>` bound here, to allow for requests to carry
+// streams
+impl<B> Request<B> {
     pub const fn from_parts(parts: Parts, body: B) -> Self {
         Self { head: parts, body }
+    }
+
+    pub fn into_parts(self) -> (Parts, B) {
+        (self.head, self.body)
     }
 
     pub const fn service(&self) -> ServiceDescriptor {
@@ -58,5 +73,12 @@ where
 
     pub fn extensions_mut(&mut self) -> &mut Extensions {
         &mut self.head.extensions
+    }
+
+    pub fn map_body<B2>(self, closure: impl FnOnce(B) -> B2) -> Request<B2> {
+        Request {
+            head: self.head,
+            body: closure(self.body),
+        }
     }
 }

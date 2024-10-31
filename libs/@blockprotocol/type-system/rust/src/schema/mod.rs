@@ -5,6 +5,7 @@
 //! specification, and are used to validate instances of types using [`serde`]. To aid with the
 //! de/serialization, intermediary structs and helpers are defined across various submodules.
 
+mod closed_resolver;
 mod data_type;
 mod entity_type;
 mod property_type;
@@ -13,22 +14,30 @@ mod array;
 mod object;
 mod one_of;
 
+mod identifier;
+
 pub use self::{
     array::{PropertyArraySchema, PropertyValueArray, ValueOrArray},
+    closed_resolver::{InheritanceDepth, OntologyTypeResolver},
     data_type::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
-        BooleanTypeTag, ClosedDataType, ClosedDataTypeMetadata, ConstraintError,
+        BooleanSchema, BooleanTypeTag, ClosedDataType, ConstraintError, ConstraintValidator,
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeReference, DataTypeValidator, JsonSchemaValueType, NullTypeTag, NumberConstraints,
-        NumberSchema, NumberTypeTag, NumberValidationError, ObjectTypeTag, OntologyTypeResolver,
-        Operator, SingleValueConstraints, SingleValueSchema, StringConstraints, StringFormat,
-        StringFormatError, StringSchema, StringTypeTag, StringValidationError, TupleConstraints,
-        ValidateDataTypeError, ValueLabel, Variable,
+        DataTypeEdge, DataTypeReference, DataTypeResolveData, DataTypeValidator,
+        JsonSchemaValueType, NullSchema, NullTypeTag, NumberConstraints, NumberSchema,
+        NumberTypeTag, NumberValidationError, ObjectConstraints, ObjectSchema, ObjectTypeTag,
+        ObjectValidationError, Operator, ResolvedDataType, SingleValueConstraints,
+        SingleValueSchema, StringConstraints, StringFormat, StringFormatError, StringSchema,
+        StringTypeTag, StringValidationError, TupleConstraints, ValidateDataTypeError, ValueLabel,
+        ValueSchemaMetadata, Variable,
     },
     entity_type::{
-        ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
-        EntityTypeValidationError, EntityTypeValidator,
+        ClosedEntityType, ClosedEntityTypeMetadata, ClosedMultiEntityType, EntityConstraints,
+        EntityType, EntityTypeReference, EntityTypeResolveData, EntityTypeSchemaMetadata,
+        EntityTypeToEntityTypeEdge, EntityTypeToPropertyTypeEdge, EntityTypeValidationError,
+        EntityTypeValidator, InverseEntityTypeMetadata,
     },
+    identifier::{DataTypeUuid, EntityTypeUuid, OntologyTypeUuid, PropertyTypeUuid},
     object::{
         ObjectSchemaValidationError, ObjectSchemaValidator, PropertyObjectSchema,
         PropertyValueObject,

@@ -19,6 +19,7 @@ export {
 } from "./stdlib/interval.js";
 export { getPropertyTypesReferencedByEntityType } from "./stdlib/subgraph/edge/entity-type.js";
 export {
+  getIncomingLinkAndSourceEntities,
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinkAndTargetEntities,

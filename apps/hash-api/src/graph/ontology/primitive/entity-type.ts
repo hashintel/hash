@@ -1,4 +1,7 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ClosedMultiEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
@@ -7,6 +10,7 @@ import type {
   ArchiveEntityTypeParams,
   EntityType,
   EntityTypePermission,
+  GetClosedMultiEntityTypeParams,
   GetEntityTypesParams,
   GetEntityTypeSubgraphParams,
   ModifyRelationshipOperation,
@@ -16,7 +20,7 @@ import type {
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import type {
-  BaseUrl,
+  ClosedEntityTypeWithMetadata,
   EntityTypeMetadata,
   EntityTypeWithMetadata,
   OntologyTypeRecordId,
@@ -25,7 +29,9 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  mapGraphApiEntityTypeToEntityType,
+  mapGraphApiClosedEntityTypesToClosedEntityTypes,
+  mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType,
+  mapGraphApiEntityTypesToEntityTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
@@ -133,15 +139,13 @@ export const createEntityType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     schema: ConstructEntityTypeParams;
-    labelProperty?: BaseUrl;
-    icon?: string | null;
     webShortname?: string;
     relationships: EntityTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, labelProperty, icon, webShortname, provenance } = params;
+  const { ownedById, webShortname, provenance } = params;
 
   const shortname =
     webShortname ??
@@ -169,8 +173,6 @@ export const createEntityType: ImpureGraphFunction<
     {
       ownedById,
       schema,
-      labelProperty,
-      icon,
       relationships: params.relationships,
       provenance,
     },
@@ -205,7 +207,7 @@ export const getEntityTypeSubgraph: ImpureGraphFunction<
 };
 
 export const getEntityTypes: ImpureGraphFunction<
-  Omit<GetEntityTypesParams, "includeDrafts"> & {
+  Omit<GetEntityTypesParams, "includeDrafts" | "includeClosed"> & {
     temporalClient?: TemporalClient;
   },
   Promise<EntityTypeWithMetadata[]>
@@ -213,11 +215,52 @@ export const getEntityTypes: ImpureGraphFunction<
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   return await graphApi
-    .getEntityTypes(actorId, { includeDrafts: false, ...request })
+    .getEntityTypes(actorId, {
+      includeDrafts: false,
+      includeClosed: false,
+      ...request,
+    })
     .then(({ data: response }) =>
-      mapGraphApiEntityTypeToEntityType(response.entityTypes),
+      mapGraphApiEntityTypesToEntityTypes(response.entityTypes),
     );
 };
+
+export const getClosedEntityTypes: ImpureGraphFunction<
+  Omit<GetEntityTypesParams, "includeDrafts" | "includeClosed"> & {
+    temporalClient?: TemporalClient;
+  },
+  Promise<ClosedEntityTypeWithMetadata[]>
+> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+  await rewriteSemanticFilter(request.filter, temporalClient);
+
+  const { data: response } = await graphApi.getEntityTypes(actorId, {
+    includeDrafts: false,
+    includeClosed: true,
+    ...request,
+  });
+  const entityTypes = mapGraphApiEntityTypesToEntityTypes(response.entityTypes);
+  const closedEntityTypes = mapGraphApiClosedEntityTypesToClosedEntityTypes(
+    response.closedEntityTypes!,
+  );
+  return closedEntityTypes.map((schema, idx) => ({
+    schema,
+    metadata: entityTypes[idx]!.metadata,
+  }));
+};
+
+export const getClosedMultiEntityType: ImpureGraphFunction<
+  GetClosedMultiEntityTypeParams & {
+    temporalClient?: TemporalClient;
+  },
+  Promise<ClosedMultiEntityType>
+> = async ({ graphApi }, { actorId }, { temporalClient: _, ...request }) =>
+  graphApi
+    .getClosedMultiEntityTypes(actorId, request)
+    .then(({ data: response }) =>
+      mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType(
+        response.entityType,
+      ),
+    );
 
 /**
  * Get an entity type by its versioned URL.
@@ -294,14 +337,12 @@ export const updateEntityType: ImpureGraphFunction<
   {
     entityTypeId: VersionedUrl;
     schema: ConstructEntityTypeParams;
-    labelProperty?: BaseUrl;
-    icon?: string | null;
     relationships: EntityTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { entityTypeId, schema, labelProperty, icon, provenance } = params;
+  const { entityTypeId, schema, provenance } = params;
   const updateArguments: UpdateEntityTypeRequest = {
     typeToUpdate: entityTypeId,
     schema: {
@@ -309,8 +350,6 @@ export const updateEntityType: ImpureGraphFunction<
       $schema: ENTITY_TYPE_META_SCHEMA,
       ...schema,
     },
-    labelProperty,
-    icon,
     relationships: params.relationships,
     provenance,
   };

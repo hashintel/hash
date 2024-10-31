@@ -30,7 +30,7 @@ thiserror = { workspace = true }
 time = { workspace = true, default-features = false, features = ["serde", "parsing", "formatting", "macros"] }
 url = { workspace = true, features = ["serde"] }
 utoipa = { workspace = true, optional = true }
-uuid = { workspace = true, default-features = false, features = ["serde", "v5"] }
+uuid = { workspace = true, default-features = false, features = ["serde"] }
 
 [dev-dependencies]
 graph-test-data = { workspace = true }

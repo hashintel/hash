@@ -14,6 +14,13 @@ pub struct RequestBody {
     inner: TransactionStream,
 }
 
+impl RequestBody {
+    #[must_use]
+    pub const fn new(inner: TransactionStream) -> Self {
+        Self { inner }
+    }
+}
+
 impl Body for RequestBody {
     type Control = !;
     type Data = Bytes;

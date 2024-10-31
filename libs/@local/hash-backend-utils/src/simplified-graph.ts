@@ -66,8 +66,7 @@ export const getSimpleEntityType = (
       throw new Error("Property type not found in subgraph");
     }
 
-    properties[propertyType.schema.title] =
-      propertyType.schema.description ?? "";
+    properties[propertyType.schema.title] = propertyType.schema.description;
   }
 
   const links: SimpleEntityType["links"] = {};
@@ -77,12 +76,12 @@ export const getSimpleEntityType = (
       throw new Error("Link type not found in subgraph");
     }
 
-    links[linkType.schema.title] = linkType.schema.description ?? "";
+    links[linkType.schema.title] = linkType.schema.description;
   }
 
   return {
     title: typeSchema.title,
-    description: typeSchema.description ?? "",
+    description: typeSchema.description,
     entityTypeId,
     properties,
     links,

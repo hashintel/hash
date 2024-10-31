@@ -53,7 +53,7 @@
     "prettier": "3.3.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "typescript": "5.6.2"
+    "typescript": "5.6.3"
   },
   "peerDependencies": {
     "react": "^18.0.0",
@@ -67,7 +67,6 @@
       "entryPoint": "react"
     },
     "displayName": "Address",
-    "examples": [],
     "icon": "public/address.svg",
     "image": "public/block-preview.png",
     "name": "@hash/address",

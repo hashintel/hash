@@ -11,10 +11,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type {
-  BaseUrl,
-  EntityTypeMetadata,
-} from "@local/hash-graph-types/ontology";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Subgraph } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
@@ -54,13 +51,16 @@ export type DereferencedPropertyType = Pick<
  */
 export type DereferencedEntityType<
   PropertyTypeKey extends string | BaseUrl = BaseUrl,
-> = Pick<EntityType, "$id" | "description" | "links" | "required" | "title"> & {
+> = Pick<
+  EntityType,
+  "$id" | "description" | "links" | "required" | "title" | "labelProperty"
+> & {
   properties: Record<
     PropertyTypeKey,
     DereferencedPropertyType | PropertyValueArray<DereferencedPropertyType>
   >;
   additionalProperties: false;
-} & Pick<EntityTypeMetadata, "labelProperty">;
+};
 
 export type DereferencedEntityTypeWithSimplifiedKeys = {
   isLink: boolean;
@@ -317,8 +317,8 @@ export const dereferenceEntityType = <
      * Take the label property from the first entity type in the inheritance chain which has one.
      * The first item in the array is the entity type itself.
      */
-    if (!labelProperty && entityType.metadata.labelProperty) {
-      labelProperty = entityType.metadata.labelProperty;
+    if (!labelProperty && entityType.schema.labelProperty) {
+      labelProperty = entityType.schema.labelProperty as BaseUrl;
     }
 
     for (const propertyRefSchema of Object.values(

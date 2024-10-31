@@ -1,10 +1,11 @@
 use bytes::Bytes;
 use futures::{Stream, TryStreamExt, stream::MapOk};
-use harpc_net::session::{error::TransactionError, server::SessionId};
-use harpc_wire_protocol::response::kind::ResponseKind;
+use harpc_codec::error::NetworkError;
+use harpc_net::session::server::SessionId;
+use harpc_types::response_kind::ResponseKind;
 
 use crate::{
-    body::{Body, Frame, controlled::Controlled, full::Full, stream::StreamBody},
+    body::{Frame, boxed::BoxBody, controlled::Controlled, full::Full, stream::StreamBody},
     extensions::Extensions,
 };
 
@@ -31,14 +32,19 @@ pub struct Response<B> {
     body: B,
 }
 
-impl<B> Response<B>
-where
-    B: Body<Control: AsRef<ResponseKind>>,
-{
+// we specifically don't have a `B: Body<Control: AsRef<ResponseKind>>` bound here, to allow for
+// requests to carry streams
+impl<B> Response<B> {
     pub const fn from_parts(parts: Parts, body: B) -> Self {
         Self { head: parts, body }
     }
 
+    pub fn into_parts(self) -> (Parts, B) {
+        (self.head, self.body)
+    }
+}
+
+impl<B> Response<B> {
     pub const fn session(&self) -> SessionId {
         self.head.session
     }
@@ -72,17 +78,19 @@ where
 }
 
 impl Response<Controlled<ResponseKind, Full<Bytes>>> {
-    pub fn from_error(parts: Parts, error: TransactionError) -> Self {
+    pub fn from_error(parts: Parts, error: NetworkError) -> Self {
+        let (code, bytes) = error.into_parts();
+
         Self {
             head: parts,
-            body: Controlled::new(ResponseKind::Err(error.code), Full::new(error.bytes)),
+            body: Controlled::new(ResponseKind::Err(code), Full::new(bytes)),
         }
     }
 }
 
-impl<S, E> Response<Controlled<ResponseKind, StreamBody<MapOk<S, fn(Bytes) -> Frame<Bytes, !>>>>>
+impl<S, B, E> Response<Controlled<ResponseKind, StreamBody<MapOk<S, fn(B) -> Frame<B, !>>>>>
 where
-    S: Stream<Item = Result<Bytes, E>>,
+    S: Stream<Item = Result<B, E>>,
 {
     pub fn from_ok(parts: Parts, stream: S) -> Self {
         Self {
@@ -94,3 +102,5 @@ where
         }
     }
 }
+
+pub type BoxedResponse<E> = Response<BoxBody<Bytes, ResponseKind, E>>;

@@ -5,16 +5,22 @@ import type {
   LinkData,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { Subgraph } from "@local/hash-subgraph";
 import { isEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
-import { useTheme } from "@mui/material";
-import { useCallback, useMemo } from "react";
+import { Box, Stack, useTheme } from "@mui/material";
+import type { ReactElement, RefObject } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 
+import type { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 import type {
+  DynamicNodeSizing,
   GraphVisualizerProps,
+  GraphVizConfig,
   GraphVizEdge,
+  GraphVizFilters,
   GraphVizNode,
 } from "./graph-visualizer";
 import { GraphVisualizer } from "./graph-visualizer";
@@ -26,227 +32,255 @@ export type EntityForGraph = {
   properties: PropertyObject;
 };
 
-const maxNodeSize = 32;
-const minNodeSize = 10;
+const fallbackDefaultConfig = {
+  graphKey: "entity-graph",
+  edgeSizing: {
+    min: 2,
+    max: 5,
+    nonHighlightedVisibleSizeThreshold: 2,
+    scale: "Linear",
+  },
+  nodeHighlighting: {
+    depth: 1,
+    direction: "All",
+  },
+  nodeSizing: {
+    mode: "byEdgeCount",
+    min: 10,
+    max: 32,
+    countEdges: "All",
+    scale: "Linear",
+  },
+} as const satisfies GraphVizConfig<DynamicNodeSizing>;
 
-export const EntityGraphVisualizer = <T extends EntityForGraph>({
-  entities,
-  filterEntity,
-  isPrimaryEntity,
-  subgraphWithTypes,
-  onEntityClick,
-  onEntityTypeClick,
-}: {
-  entities?: T[];
-  /**
-   * A function to filter out entities from display. If the function returns false, the entity will not be displayed.
-   */
-  filterEntity?: (entity: T) => boolean;
-  onEntityClick?: (entityId: EntityId) => void;
-  onEntityTypeClick?: (entityTypeId: VersionedUrl) => void;
-  /**
-   * Whether this entity should receive a special highlight.
-   */
-  isPrimaryEntity?: (entity: T) => boolean;
-  subgraphWithTypes: Subgraph;
-}) => {
-  const { palette } = useTheme();
-
-  const nodeColors = useMemo(() => {
-    return [
-      {
-        color: palette.blue[30],
-        borderColor: palette.blue[40],
-      },
-      {
-        color: palette.purple[30],
-        borderColor: palette.purple[40],
-      },
-      {
-        color: palette.green[50],
-        borderColor: palette.green[60],
-      },
-    ] as const;
-  }, [palette]);
-
-  const { nodes, edges } = useMemo<{
-    nodes: GraphVizNode[];
-    edges: GraphVizEdge[];
-  }>(() => {
-    const nodesToAddByNodeId: Record<string, GraphVizNode> = {};
-    const edgesToAdd: GraphVizEdge[] = [];
-
-    const nonLinkEntitiesIncluded = new Set<EntityId>();
-    const linkEntitiesToAdd: (T & {
-      linkData: NonNullable<T["linkData"]>;
-    })[] = [];
-
-    const entityTypeIdToColor = new Map<string, number>();
-
-    const nodeIdToIncomingEdges = new Map<string, number>();
-
-    for (const entity of entities ?? []) {
-      /**
-       * If we have been provided a filter function, check it doesn't filter out the entity
-       */
-      if (filterEntity) {
-        if (!filterEntity(entity)) {
-          continue;
-        }
-      }
-
-      if (entity.linkData) {
-        /**
-         * We process links afterwards, because we only want to add them if both source and target are in the graph.
-         */
-        linkEntitiesToAdd.push(
-          entity as T & {
-            linkData: NonNullable<T["linkData"]>;
-          },
-        );
-        continue;
-      }
-
-      nonLinkEntitiesIncluded.add(entity.metadata.recordId.entityId);
-
-      const specialHighlight = isPrimaryEntity?.(entity) ?? false;
-
-      if (!entityTypeIdToColor.has(entity.metadata.entityTypeIds[0])) {
-        entityTypeIdToColor.set(
-          entity.metadata.entityTypeIds[0],
-          entityTypeIdToColor.size % nodeColors.length,
-        );
-      }
-
-      const { color, borderColor } = specialHighlight
-        ? { color: palette.blue[50], borderColor: palette.blue[60] }
-        : nodeColors[
-            entityTypeIdToColor.get(entity.metadata.entityTypeIds[0])!
-          ]!;
-
-      nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
-        label: generateEntityLabel(subgraphWithTypes, entity),
-        nodeId: entity.metadata.recordId.entityId,
-        color,
-        borderColor,
-        size: minNodeSize,
-      };
-
-      nodeIdToIncomingEdges.set(entity.metadata.recordId.entityId, 0);
-    }
-
-    for (const linkEntity of linkEntitiesToAdd) {
-      if (
-        !nonLinkEntitiesIncluded.has(linkEntity.linkData.leftEntityId) ||
-        !nonLinkEntitiesIncluded.has(linkEntity.linkData.rightEntityId)
-      ) {
-        /**
-         * We don't have both sides of this link in the graph.
-         */
-        continue;
-      }
-
-      const linkEntityType = getEntityTypeById(
-        subgraphWithTypes,
-        linkEntity.metadata.entityTypeIds[0],
-      );
-
-      edgesToAdd.push({
-        source: linkEntity.linkData.leftEntityId,
-        target: linkEntity.linkData.rightEntityId,
-        edgeId: linkEntity.metadata.recordId.entityId,
-        label: linkEntityType?.schema.title ?? "Unknown",
-        size: 1,
-      });
-
-      nodeIdToIncomingEdges.set(
-        linkEntity.linkData.rightEntityId,
-        (nodeIdToIncomingEdges.get(linkEntity.linkData.rightEntityId) ?? 0) + 1,
-      );
-    }
-
-    const fewestIncomingEdges = Math.min(...nodeIdToIncomingEdges.values());
-    const mostIncomingEdges = Math.max(...nodeIdToIncomingEdges.values());
-
-    const incomingEdgeRange = mostIncomingEdges - fewestIncomingEdges;
-
-    /**
-     * If incomingEdgeRange is 0, all nodes have the same number of incoming edges
-     */
-    if (incomingEdgeRange > 0) {
-      for (const [nodeId, incomingEdges] of nodeIdToIncomingEdges) {
-        if (!nodesToAddByNodeId[nodeId]) {
-          continue;
-        }
-
-        const relativeEdgeCount = incomingEdges / incomingEdgeRange;
-
-        const maxSizeIncrease = maxNodeSize - minNodeSize;
-
-        /**
-         * Scale the size of the node based on the number of incoming edges within the range of incoming edges
-         */
-        nodesToAddByNodeId[nodeId].size = Math.min(
-          maxNodeSize,
-          Math.max(
-            minNodeSize,
-            relativeEdgeCount * maxSizeIncrease + minNodeSize,
-          ),
-        );
-      }
-    }
-
-    return {
-      nodes: Object.values(nodesToAddByNodeId),
-      edges: edgesToAdd,
-    };
-  }, [
+export const EntityGraphVisualizer = memo(
+  <T extends EntityForGraph>({
+    defaultConfig: defaultConfigFromProps,
+    defaultFilters,
     entities,
-    filterEntity,
+    fullScreenMode,
     isPrimaryEntity,
-    nodeColors,
-    palette,
+    loadingComponent,
     subgraphWithTypes,
-  ]);
+    onEntityClick,
+    onEntityTypeClick,
+  }: {
+    defaultConfig?: GraphVizConfig<DynamicNodeSizing>;
+    defaultFilters?: GraphVizFilters;
+    fullScreenMode?: "document" | "element";
+    entities?: T[];
+    onEntityClick?: (
+      entityId: EntityId,
+      containerRef?: RefObject<HTMLDivElement>,
+      options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">,
+    ) => void;
+    onEntityTypeClick?: (entityTypeId: VersionedUrl) => void;
+    /**
+     * Whether this entity should receive a special highlight.
+     */
+    isPrimaryEntity?: (entity: T) => boolean;
+    loadingComponent?: ReactElement;
+    subgraphWithTypes: Subgraph;
+  }) => {
+    const { palette } = useTheme();
 
-  const onNodeClick = useCallback<
-    NonNullable<GraphVisualizerProps["onNodeClick"]>
-  >(
-    ({ nodeId, isFullScreen }) => {
-      if (isFullScreen) {
-        return;
+    const [loading, setLoading] = useState(true);
+
+    const nodeColors = useMemo(() => {
+      return [
+        {
+          color: palette.blue[30],
+          borderColor: palette.gray[50],
+        },
+        {
+          color: palette.purple[30],
+          borderColor: palette.gray[50],
+        },
+        {
+          color: palette.green[50],
+          borderColor: palette.gray[50],
+        },
+        {
+          color: palette.red[20],
+          borderColor: palette.gray[50],
+        },
+        {
+          color: palette.yellow[30],
+          borderColor: palette.gray[50],
+        },
+      ] as const;
+    }, [palette]);
+
+    const defaultConfig = defaultConfigFromProps ?? fallbackDefaultConfig;
+
+    const { nodes, edges } = useMemo<{
+      nodes: GraphVizNode[];
+      edges: GraphVizEdge[];
+    }>(() => {
+      const nodesToAddByNodeId: Record<string, GraphVizNode> = {};
+      const edgesToAdd: GraphVizEdge[] = [];
+
+      const nonLinkEntitiesIncluded = new Set<EntityId>();
+      const linkEntitiesToAdd: (T & {
+        linkData: NonNullable<T["linkData"]>;
+      })[] = [];
+
+      const entityTypesById: Record<string, EntityTypeWithMetadata> = {};
+
+      const entityTypeIdToColor = new Map<string, number>();
+
+      const linkEntityIdsSeen = new Set<EntityId>();
+
+      for (const entity of entities ?? []) {
+        if (entity.linkData) {
+          /**
+           * We process links afterwards, because we only want to add them if both source and target are in the graph.
+           */
+          linkEntitiesToAdd.push(
+            entity as T & {
+              linkData: NonNullable<T["linkData"]>;
+            },
+          );
+          linkEntityIdsSeen.add(entity.metadata.recordId.entityId);
+          continue;
+        }
+
+        nonLinkEntitiesIncluded.add(entity.metadata.recordId.entityId);
+
+        const specialHighlight = isPrimaryEntity?.(entity) ?? false;
+
+        /**
+         * @todo H-3539: take account of additional types an entity might have
+         */
+        if (!entityTypeIdToColor.has(entity.metadata.entityTypeIds[0])) {
+          entityTypeIdToColor.set(
+            entity.metadata.entityTypeIds[0],
+            entityTypeIdToColor.size % nodeColors.length,
+          );
+        }
+
+        const { color, borderColor } = specialHighlight
+          ? { color: palette.blue[50], borderColor: palette.blue[60] }
+          : nodeColors[
+              entityTypeIdToColor.get(entity.metadata.entityTypeIds[0])!
+            ]!;
+
+        const entityType =
+          entityTypesById[entity.metadata.entityTypeIds[0]] ??
+          getEntityTypeById(
+            subgraphWithTypes,
+            entity.metadata.entityTypeIds[0],
+          );
+
+        if (!entityType) {
+          throw new Error(
+            `Could not find entity type for ${entity.metadata.entityTypeIds[0]}`,
+          );
+        }
+
+        entityTypesById[entity.metadata.entityTypeIds[0]] ??= entityType;
+
+        nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
+          icon: entityType.schema.icon ?? undefined,
+          label: generateEntityLabel(subgraphWithTypes, entity),
+          nodeId: entity.metadata.recordId.entityId,
+          nodeTypeId: entity.metadata.entityTypeIds[0],
+          nodeTypeLabel: entityType.schema.title,
+          color,
+          borderColor,
+          size: defaultConfig.nodeSizing.min,
+        };
       }
 
-      if (isEntityId(nodeId)) {
-        onEntityClick?.(nodeId);
-      } else {
-        onEntityTypeClick?.(nodeId as VersionedUrl);
-      }
-    },
-    [onEntityClick, onEntityTypeClick],
-  );
+      for (const linkEntity of linkEntitiesToAdd) {
+        if (
+          !nonLinkEntitiesIncluded.has(linkEntity.linkData.leftEntityId) ||
+          /**
+           * The target may be a link entity or a regular entity.
+           * If we haven't seen either as a target, we don't want to add this link.
+           */
+          (!linkEntityIdsSeen.has(linkEntity.linkData.rightEntityId) &&
+            !nonLinkEntitiesIncluded.has(linkEntity.linkData.rightEntityId))
+        ) {
+          /**
+           * We don't have both sides of this link in the graph.
+           */
+          continue;
+        }
 
-  const onEdgeClick = useCallback<
-    NonNullable<GraphVisualizerProps["onEdgeClick"]>
-  >(
-    ({ edgeId, isFullScreen }) => {
-      if (isFullScreen) {
-        return;
+        edgesToAdd.push({
+          source: linkEntity.linkData.leftEntityId,
+          target: linkEntity.linkData.rightEntityId,
+          edgeId: linkEntity.metadata.recordId.entityId,
+          edgeTypeId: linkEntity.metadata.entityTypeIds[0],
+          size: 1,
+        });
       }
 
-      if (isEntityId(edgeId)) {
-        onEntityClick?.(edgeId);
-      }
-    },
-    [onEntityClick],
-  );
+      return {
+        nodes: Object.values(nodesToAddByNodeId),
+        edges: edgesToAdd,
+      };
+    }, [
+      defaultConfig.nodeSizing,
+      entities,
+      isPrimaryEntity,
+      nodeColors,
+      palette,
+      subgraphWithTypes,
+    ]);
 
-  return (
-    <GraphVisualizer
-      nodes={nodes}
-      edges={edges}
-      onNodeClick={onNodeClick}
-      onEdgeClick={onEdgeClick}
-    />
-  );
-};
+    const onNodeClick = useCallback<
+      NonNullable<GraphVisualizerProps<DynamicNodeSizing>["onNodeSecondClick"]>
+    >(
+      ({ nodeId, screenContainerRef }) => {
+        if (isEntityId(nodeId)) {
+          onEntityClick?.(nodeId, screenContainerRef);
+        } else {
+          onEntityTypeClick?.(nodeId as VersionedUrl);
+        }
+      },
+      [onEntityClick, onEntityTypeClick],
+    );
+
+    const onEdgeClick = useCallback<
+      NonNullable<GraphVisualizerProps<DynamicNodeSizing>["onEdgeClick"]>
+    >(
+      ({ edgeData, screenContainerRef }) => {
+        onEntityClick?.(edgeData.source as EntityId, screenContainerRef, {
+          defaultOutgoingLinkFilters: {
+            linkedTo: new Set([edgeData.target]),
+            linkType: new Set([edgeData.edgeTypeId!]),
+          },
+        });
+      },
+      [onEntityClick],
+    );
+
+    const onRender = useCallback(() => setLoading(false), []);
+
+    return (
+      <Box sx={{ height: "100%" }}>
+        {loading && loadingComponent && (
+          <Stack
+            alignItems="center"
+            justifyContent="center"
+            sx={{ height: "100%", width: "100%" }}
+          >
+            <Box>{loadingComponent}</Box>
+          </Stack>
+        )}
+        <GraphVisualizer
+          defaultConfig={defaultConfig}
+          defaultFilters={defaultFilters}
+          fullScreenMode={fullScreenMode}
+          nodes={nodes}
+          edges={edges}
+          onNodeSecondClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
+          onRender={onRender}
+        />
+      </Box>
+    );
+  },
+);

@@ -142,12 +142,23 @@ export const generatePropertyRowRecursively = ({
     }
   }
 
+  let isSingleUrl = false;
+  if (!isArray && typeof value === "string") {
+    try {
+      const url = new URL(value);
+      isSingleUrl = url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      // not parseable as URL
+    }
+  }
+
   return {
     rowId,
     title: propertyType.title,
     value,
     expectedTypes,
     isArray,
+    isSingleUrl,
     ...minMaxConfig,
     required,
     depth,

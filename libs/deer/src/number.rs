@@ -386,7 +386,7 @@ impl<'de> Deserialize<'de> for Number {
     ) -> error_stack::Result<Self, DeserializeError> {
         struct Visitor;
 
-        impl<'de> crate::Visitor<'de> for Visitor {
+        impl crate::Visitor<'_> for Visitor {
             type Value = Number;
 
             fn expecting(&self) -> Document {

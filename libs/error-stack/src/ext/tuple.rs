@@ -101,7 +101,7 @@ macro_rules! impl_ext {
         {
             type Output = ($($output),*, T);
 
-            #[allow(non_snake_case, clippy::min_ident_chars)]
+            #[expect(non_snake_case, clippy::min_ident_chars)]
             fn try_collect(self) -> Result<Self::Output, [Context]> {
                 let ($($type),*, result) = self;
                 let prefix = ($($type,)*).try_collect();

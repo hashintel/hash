@@ -23,6 +23,7 @@ export const useLayout = () => {
         ...settings,
         outboundAttractionDistribution: true,
         gravity: 2.5,
+        scalingRatio: 10,
       },
     });
 
@@ -34,7 +35,7 @@ export const useLayout = () => {
        * A few seconds seems sufficient for graphs of ~10k items (nodes and edges).
        */
       forceAtlasLayout.stop();
-    }, 4_000);
+    }, 2_000);
 
     return () => {
       forceAtlasLayout.kill();

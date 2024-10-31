@@ -6,7 +6,7 @@ mod core;
 
 pub(crate) struct UnitVariantVisitor;
 
-impl<'de> OptionalVisitor<'de> for UnitVariantVisitor {
+impl OptionalVisitor<'_> for UnitVariantVisitor {
     type Value = ();
 
     fn expecting(&self) -> Document {

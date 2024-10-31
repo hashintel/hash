@@ -76,6 +76,10 @@ area/libs > antsi:
   - changed-files:
       - any-glob-to-any-file: libs/antsi/**
 
+area/libs > chonky:
+  - changed-files:
+      - any-glob-to-any-file: libs/chonky/**
+
 area/libs > deer:
   - changed-files:
       - any-glob-to-any-file: libs/deer/**

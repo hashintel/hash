@@ -9,7 +9,6 @@ mod common;
 
 use std::backtrace::Backtrace;
 
-#[allow(clippy::wildcard_imports)]
 use common::*;
 #[cfg(nightly)]
 use error_stack::Report;

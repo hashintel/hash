@@ -44,7 +44,7 @@ pub(crate) enum TokenKind<'source> {
     String(Cow<'source, str>),
 }
 
-impl<'source> TokenKind<'source> {
+impl TokenKind<'_> {
     pub(crate) fn syntax(&self) -> SyntaxKind {
         SyntaxKind::from(self)
     }

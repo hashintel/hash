@@ -5,6 +5,7 @@ use std::io;
 
 use bytes::Bytes;
 use futures::{StreamExt, prelude::sink::SinkExt};
+use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
@@ -21,7 +22,6 @@ use harpc_wire_protocol::{
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
-        kind::{ErrorCode, ResponseKind},
     },
     test_utils::mock_request_id,
 };
@@ -40,19 +40,12 @@ use super::{
     ConnectionTask,
     collection::{TransactionPermit, TransactionStorage},
 };
-use crate::session::{
-    error::{
-        ConnectionGracefulShutdownError, ConnectionTransactionLimitReachedError,
-        InstanceTransactionLimitReachedError, TransactionLaggingError,
-    },
-    server::{
-        SessionConfig, SessionEvent, SessionId, Transaction,
-        connection::{ConnectionDelegateTask, TransactionCollection},
-        session_id::test_utils::mock_session_id,
-        test::{make_request_begin, make_request_frame},
-        transaction::ServerTransactionPermit,
-    },
-    test::StringEncoder,
+use crate::session::server::{
+    SessionConfig, SessionEvent, SessionId, Transaction,
+    connection::{ConnectionDelegateTask, TransactionCollection},
+    session_id::test_utils::mock_session_id,
+    test::{make_request_begin, make_request_frame},
+    transaction::ServerTransactionPermit,
 };
 
 pub(crate) async fn make_transaction_permit(
@@ -107,7 +100,7 @@ impl Setup {
             output: output_tx,
             events: events_tx,
             config,
-            encoder: StringEncoder,
+
             _permit: permit,
         };
 
@@ -493,12 +486,9 @@ async fn transaction_limit_reached_connection() {
     let response = responses.pop().expect("infallible");
     assert_eq!(response.header.request_id, mock_request_id(0x02));
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
-    assert_eq!(
-        response.body.payload().as_bytes().as_ref(),
-        ConnectionTransactionLimitReachedError { limit: 1 }
-            .to_string()
-            .into_bytes()
-    );
+
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0ctransaction limit per connection has been reached, the transaction has been dropped. The limit is 1""###);
 }
 
 #[tokio::test]
@@ -534,12 +524,9 @@ async fn transaction_limit_reached_instance() {
         mock_request_id(Setup::OUTPUT_BUFFER_SIZE as u32)
     );
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
-    assert_eq!(
-        response.body.payload().as_bytes().as_ref(),
-        InstanceTransactionLimitReachedError
-            .to_string()
-            .into_bytes()
-    );
+
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0Wtransaction has been dropped, because the server is unable to process more transactions""###);
 }
 
 #[tokio::test]
@@ -883,10 +870,10 @@ async fn transaction_request_buffer_limit_reached() {
 
     let response = responses.pop().expect("should have a response");
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
-    assert_eq!(
-        response.body.payload().as_bytes().as_ref(),
-        TransactionLaggingError.to_string().as_bytes()
-    );
+
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0Rtransaction has been dropped, because it is unable to receive more request packets""###);
+
     assert_matches!(
         response.body,
         ResponseBody::Begin(ResponseBegin {
@@ -982,10 +969,9 @@ async fn transaction_send_output_closed() {
             ..
         })
     );
-    assert_eq!(
-        response.body.payload().as_bytes().as_ref(),
-        ConnectionGracefulShutdownError.to_string().into_bytes()
-    );
+
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0[The connection is in the graceful shutdown state and no longer accepts any new transactions""###);
 
     stream
         .send(Ok(make_request_frame(RequestFlag::EndOfRequest, "hello")))

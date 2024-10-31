@@ -137,7 +137,7 @@ export const findExistingEntity = async ({
     /**
      * @todo H-3363 account for inherited label properties
      */
-    const labelProperty = type.labelProperty;
+    const labelProperty = type.labelProperty as BaseUrl | undefined;
 
     return labelProperty && proposedEntity.properties[labelProperty]
       ? [labelProperty]

@@ -38,7 +38,7 @@ export const TypeButton = ({
   currentEntityType: EntityTypeWithMetadata;
   newerEntityType?: EntityTypeWithMetadata;
 }) => {
-  const { onEntityUpdated, readonly } = useEntityEditor();
+  const { disableTypeClick, onEntityUpdated, readonly } = useEntityEditor();
 
   const newVersion = newerEntityType?.metadata.recordId.version;
 
@@ -142,7 +142,10 @@ export const TypeButton = ({
   return (
     <>
       <TypeCard
+        disableClick={disableTypeClick}
         LinkComponent={Link}
+        {/* @todo H-3363 take account of inherited icons */}
+        icon={currentEntityType.schema.icon}
         onDelete={canChangeTypes ? onDeleteClicked : undefined}
         url={entityTypeId}
         title={entityTypeTitle}

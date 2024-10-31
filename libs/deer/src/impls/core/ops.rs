@@ -115,7 +115,7 @@ struct RangeFieldVisitor<'a, T, U> {
     end: &'a mut Option<U>,
 }
 
-impl<'a, 'de, T, U> FieldVisitor<'de> for RangeFieldVisitor<'a, T, U>
+impl<'de, T, U> FieldVisitor<'de> for RangeFieldVisitor<'_, T, U>
 where
     T: Deserialize<'de>,
     U: Deserialize<'de>,

@@ -16,14 +16,11 @@ use temporal_versioning::{
 };
 use tokio_postgres::GenericClient;
 use tracing::Instrument;
-use type_system::url::BaseUrl;
+use type_system::{schema::OntologyTypeUuid, url::BaseUrl};
 
 use crate::store::{
     AsClient, PostgresStore, QueryError,
-    postgres::{
-        ontology::OntologyId,
-        query::{ForeignKeyReference, ReferenceTable, Table, Transpile},
-    },
+    postgres::query::{ForeignKeyReference, ReferenceTable, Table, Transpile},
 };
 
 #[derive(Debug)]
@@ -68,7 +65,7 @@ impl EntityEdgeTraversalData {
 pub struct SharedEdgeTraversal {
     pub left_endpoint: EntityVertexId,
     pub right_endpoint: EntityTypeVertexId,
-    pub right_endpoint_ontology_id: OntologyId,
+    pub right_endpoint_ontology_id: OntologyTypeUuid,
     pub resolve_depths: GraphResolveDepths,
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
@@ -92,31 +89,25 @@ where
         &self,
         traversal_data: &'t EntityEdgeTraversalData,
         depth: Option<u32>,
-    ) -> Result<impl Iterator<Item = (OntologyId, SharedEdgeTraversal)> + 't, QueryError> {
+    ) -> Result<impl Iterator<Item = (OntologyTypeUuid, SharedEdgeTraversal)> + 't, QueryError>
+    {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
         };
 
-        let table = if depth == Some(0) {
-            "entity_is_of_type"
-        } else {
-            "closed_entity_is_of_type"
-        };
-
-        let where_statement = match depth {
-            Some(depth) if depth != 0 => Cow::Owned(format!(
-                "WHERE closed_entity_is_of_type.inheritance_depth <= {depth}"
-            )),
-            _ => Cow::Borrowed(""),
-        };
+        let where_statement = depth.map_or(Cow::Borrowed(""), |depth| {
+            Cow::Owned(format!(
+                "WHERE entity_is_of_type.inheritance_depth <= {depth}"
+            ))
+        });
 
         Ok(self
             .client
             .as_client()
             .query(
                 &format!(
-                    r#"
+                    "
                         SELECT
                              filter.idx,
                              ontology_ids.base_url,
@@ -133,14 +124,14 @@ where
                          AND source.web_id = filter.web_id
                          AND source.entity_uuid = filter.entity_uuid
 
-                        JOIN {table}
-                          ON source.entity_edition_id = {table}.entity_edition_id
+                        JOIN entity_is_of_type
+                          ON source.entity_edition_id = entity_is_of_type.entity_edition_id
 
                         JOIN ontology_ids
-                          ON {table}.entity_type_ontology_id = ontology_ids.ontology_id
+                          ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
 
                         {where_statement};
-                    "#
+                    "
                 ),
                 &[
                     &traversal_data.owned_by_ids,
@@ -219,7 +210,7 @@ where
             .as_client()
             .query(
                 &format!(
-                    r#"
+                    "
                         SELECT
                              filter.idx,
                              target.web_id,
@@ -248,7 +239,7 @@ where
                          AND target.{variable_axis} && filter.interval
                          AND target.web_id = {target_1}
                          AND target.entity_uuid = {target_2}
-                    "#
+                    "
                 ),
                 &[
                     &traversal_data.owned_by_ids,

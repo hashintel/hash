@@ -16,6 +16,7 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ActorType,
+  ClosedEntityType,
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
 } from "@local/hash-graph-client";
@@ -90,17 +91,8 @@ export type ConstructDataTypeParams = DistributiveOmit<
 >;
 
 export type DataTypeMetadata = OntologyElementMetadata;
-
 export type PropertyTypeMetadata = OntologyElementMetadata;
-
-export type EditableOntologyElementMetadata = Pick<
-  EntityTypeWithMetadataBp["metadata"],
-  "icon"
-> & {
-  labelProperty?: BaseUrl | null;
-};
-export type EntityTypeMetadata = EditableOntologyElementMetadata &
-  OntologyElementMetadata;
+export type EntityTypeMetadata = OntologyElementMetadata;
 
 export type DataTypeWithMetadata = Subtype<
   DataTypeWithMetadataBp,
@@ -125,3 +117,8 @@ export type EntityTypeWithMetadata = Subtype<
     metadata: EntityTypeMetadata;
   }
 >;
+
+export type ClosedEntityTypeWithMetadata = {
+  schema: ClosedEntityType;
+  metadata: EntityTypeMetadata;
+};

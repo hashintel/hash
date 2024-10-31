@@ -8,7 +8,6 @@ mod common;
 #[cfg(nightly)]
 use core::error;
 
-#[allow(clippy::wildcard_imports)]
 use common::*;
 use error_stack::IntoReportCompat;
 #[cfg(all(nightly, feature = "backtrace"))]
@@ -46,14 +45,13 @@ fn anyhow() {
         .attach_printable(PrintableA(0))
         .attach_printable(PrintableB(0));
 
-    #[allow(unused_mut)]
+    #[expect(unused_mut)]
     let mut report_messages = messages(&report);
 
     let anyhow_report = anyhow
         .into_report()
         .expect_err("should have returned error");
-    #[allow(unused_mut)]
-    let mut anyhow_messages = messages(&anyhow_report);
+    let anyhow_messages = messages(&anyhow_report);
 
     assert_eq!(
         remove_builtin_messages(anyhow_messages.into_iter().rev()),
@@ -157,13 +155,10 @@ fn eyre() {
     let report = create_report()
         .attach_printable(PrintableA(0))
         .attach_printable(PrintableB(0));
-
-    #[allow(unused_mut)]
-    let mut report_messages = messages(&report);
+    let report_messages = messages(&report);
 
     let eyre_report = eyre.into_report().expect_err("should have returned error");
-    #[allow(unused_mut)]
-    let mut eyre_messages = messages(&eyre_report);
+    let eyre_messages = messages(&eyre_report);
 
     assert_eq!(
         remove_builtin_messages(eyre_messages.into_iter().rev()),

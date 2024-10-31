@@ -22,8 +22,10 @@ use harpc_wire_protocol::{
 };
 use libp2p::{
     Multiaddr, TransportError, core::transport::MemoryTransport, multiaddr, swarm::DialError,
+    tcp::tokio::Transport,
 };
 use libp2p_stream::OpenStreamError;
+use multiaddr::multiaddr;
 use tokio_util::sync::CancellationToken;
 
 use super::{TransportConfig, TransportLayer};
@@ -71,6 +73,17 @@ pub(crate) fn memory_address() -> libp2p::Multiaddr {
 
 pub(crate) fn layer() -> (TransportLayer, impl Drop) {
     let transport = MemoryTransport::default();
+    let config = TransportConfig::default();
+    let cancel = CancellationToken::new();
+
+    let layer = TransportLayer::start(config, transport, cancel.clone())
+        .expect("should be able to create swarm");
+
+    (layer, cancel.drop_guard())
+}
+
+pub(crate) fn layer_tcp() -> (TransportLayer, impl Drop) {
+    let transport = Transport::default();
     let config = TransportConfig::default();
     let cancel = CancellationToken::new();
 
@@ -478,4 +491,37 @@ async fn listen_on() {
         .listen_on(memory_address())
         .await
         .expect("memory transport should be able to listen on memory address");
+}
+
+#[tokio::test]
+async fn listen_on_duplicate_address() {
+    let (layer, _guard) = layer();
+
+    let address = memory_address();
+
+    layer
+        .listen_on(address.clone())
+        .await
+        .expect("memory transport should be able to listen on memory address");
+
+    let _error = layer
+        .listen_on(address)
+        .await
+        .expect_err("should not be able to listen on the same address twice");
+}
+
+#[tokio::test]
+async fn listen_on_tcp_unspecified() {
+    let (layer, _guard) = layer_tcp();
+
+    let address = multiaddr![Ip4(Ipv4Addr::UNSPECIFIED), Tcp(0_u16)];
+
+    let chosen = layer
+        .listen_on(address)
+        .await
+        .expect("memory transport should be able to listen on memory address");
+
+    let protocol: Vec<_> = chosen.iter().collect();
+    assert_matches!(protocol[0], multiaddr::Protocol::Ip4(addr) if addr != Ipv4Addr::UNSPECIFIED);
+    assert_matches!(protocol[1], multiaddr::Protocol::Tcp(port) if port != 0);
 }

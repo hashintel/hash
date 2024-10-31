@@ -14,9 +14,8 @@ use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
     ontology::{
-        DataTypeId, DataTypeProvider, DataTypeWithMetadata, EntityTypeId, EntityTypeProvider,
-        EntityTypeWithMetadata, OntologyTypeProvider, PropertyTypeId, PropertyTypeProvider,
-        PropertyTypeWithMetadata,
+        DataTypeProvider, DataTypeWithMetadata, EntityTypeProvider, EntityTypeWithMetadata,
+        OntologyTypeProvider, PropertyTypeProvider, PropertyTypeWithMetadata,
     },
 };
 use hash_graph_store::{
@@ -28,7 +27,10 @@ use hash_graph_store::{
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
 use type_system::{
-    schema::{ClosedEntityType, ConversionDefinition, ConversionExpression, PropertyType},
+    schema::{
+        ClosedEntityType, ConversionDefinition, ConversionExpression, DataTypeUuid, EntityTypeUuid,
+        PropertyType, PropertyTypeUuid,
+    },
     url::{BaseUrl, VersionedUrl},
 };
 use validation::EntityProvider;
@@ -116,11 +118,11 @@ where
 
 #[derive(Debug, Default)]
 pub struct StoreCache {
-    data_types: CacheHashMap<DataTypeId, DataTypeWithMetadata>,
-    property_types: CacheHashMap<PropertyTypeId, PropertyType>,
-    entity_types: CacheHashMap<EntityTypeId, ClosedEntityType>,
+    data_types: CacheHashMap<DataTypeUuid, DataTypeWithMetadata>,
+    property_types: CacheHashMap<PropertyTypeUuid, PropertyType>,
+    entity_types: CacheHashMap<EntityTypeUuid, ClosedEntityType>,
     entities: CacheHashMap<EntityId, Entity>,
-    conversions: CacheHashMap<(DataTypeId, DataTypeId), Vec<ConversionExpression>>,
+    conversions: CacheHashMap<(DataTypeUuid, DataTypeUuid), Vec<ConversionExpression>>,
 }
 
 #[derive(Debug)]
@@ -135,7 +137,7 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
-    async fn authorize_data_type(&self, type_id: DataTypeId) -> Result<(), Report<QueryError>> {
+    async fn authorize_data_type(&self, type_id: DataTypeUuid) -> Result<(), Report<QueryError>> {
         if let Some((actor_id, consistency)) = self.authorization {
             self.store
                 .authorization_api
@@ -167,7 +169,7 @@ where
         &self,
         type_id: &VersionedUrl,
     ) -> Result<Arc<DataTypeWithMetadata>, Report<QueryError>> {
-        let data_type_id = DataTypeId::from_url(type_id);
+        let data_type_id = DataTypeUuid::from_url(type_id);
 
         if let Some(cached) = self.cache.data_types.get(&data_type_id).await {
             return cached;
@@ -211,7 +213,7 @@ where
         parent: &BaseUrl,
     ) -> Result<bool, Report<QueryError>> {
         let client = self.store.as_client().client();
-        let child = DataTypeId::from_url(child);
+        let child = DataTypeUuid::from_url(child);
 
         Ok(client
             .query_one(
@@ -237,8 +239,8 @@ where
         source_data_type_id: &VersionedUrl,
         target_data_type_id: &VersionedUrl,
     ) -> Result<impl Borrow<Vec<ConversionExpression>>, Report<QueryError>> {
-        let source = DataTypeId::from_url(source_data_type_id);
-        let target = DataTypeId::from_url(target_data_type_id);
+        let source = DataTypeUuid::from_url(source_data_type_id);
+        let target = DataTypeUuid::from_url(target_data_type_id);
 
         if let Some(cached) = self.cache.conversions.get(&(source, target)).await {
             return cached;
@@ -302,7 +304,7 @@ where
 {
     async fn authorize_property_type(
         &self,
-        type_id: PropertyTypeId,
+        type_id: PropertyTypeUuid,
     ) -> Result<(), Report<QueryError>> {
         if let Some((actor_id, consistency)) = self.authorization {
             self.store
@@ -335,7 +337,7 @@ where
         &self,
         type_id: &VersionedUrl,
     ) -> Result<Arc<PropertyType>, Report<QueryError>> {
-        let property_type_id = PropertyTypeId::from_url(type_id);
+        let property_type_id = PropertyTypeUuid::from_url(type_id);
 
         if let Some(cached) = self.cache.property_types.get(&property_type_id).await {
             return cached;
@@ -384,7 +386,10 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
-    async fn authorize_entity_type(&self, type_id: EntityTypeId) -> Result<(), Report<QueryError>> {
+    async fn authorize_entity_type(
+        &self,
+        type_id: EntityTypeUuid,
+    ) -> Result<(), Report<QueryError>> {
         if let Some((actor_id, consistency)) = self.authorization {
             self.store
                 .authorization_api
@@ -456,7 +461,7 @@ where
         &self,
         type_id: &VersionedUrl,
     ) -> Result<Arc<ClosedEntityType>, Report<QueryError>> {
-        let entity_type_id = EntityTypeId::from_url(type_id);
+        let entity_type_id = EntityTypeUuid::from_url(type_id);
 
         if let Some(cached) = self.cache.entity_types.get(&entity_type_id).await {
             return cached;
@@ -486,30 +491,62 @@ where
     A: AuthorizationApi,
 {
     #[expect(refining_impl_trait)]
-    async fn is_parent_of(
+    async fn is_super_type_of(
         &self,
+        parent: &VersionedUrl,
         child: &VersionedUrl,
-        parent: &BaseUrl,
     ) -> Result<bool, Report<QueryError>> {
         let client = self.store.as_client().client();
-        let child_id = EntityTypeId::from_url(child);
+        let child_id = EntityTypeUuid::from_url(child);
+        let parent_id = EntityTypeUuid::from_url(parent);
 
         Ok(client
             .query_one(
                 "
                     SELECT EXISTS (
-                        SELECT 1 FROM closed_entity_type_inherits_from
-                         JOIN ontology_ids
-                           ON ontology_ids.ontology_id = target_entity_type_ontology_id
+                        SELECT 1 FROM entity_type_inherits_from
                         WHERE source_entity_type_ontology_id = $1
-                          AND ontology_ids.base_url = $2
+                          AND target_entity_type_ontology_id = $2
                     );
                 ",
-                &[child_id.as_uuid(), &parent.as_str()],
+                &[&child_id, &parent_id],
             )
             .await
             .change_context(QueryError)?
             .get(0))
+    }
+
+    #[expect(refining_impl_trait)]
+    async fn find_parents(
+        &self,
+        entity_types: &[VersionedUrl],
+    ) -> Result<Vec<VersionedUrl>, Report<QueryError>> {
+        let entity_type_ids = entity_types
+            .iter()
+            .map(EntityTypeUuid::from_url)
+            .collect::<Vec<_>>();
+
+        Ok(self
+            .store
+            .as_client()
+            .query(
+                "
+                    SELECT base_url, version
+                    FROM entity_type_inherits_from
+                    JOIN ontology_ids ON target_entity_type_ontology_id = ontology_id
+                    WHERE source_entity_type_ontology_id = ANY($1)
+                    ORDER BY depth ASC;
+                ",
+                &[&entity_type_ids],
+            )
+            .await
+            .change_context(QueryError)?
+            .into_iter()
+            .map(|row| VersionedUrl {
+                base_url: row.get(0),
+                version: row.get(1),
+            })
+            .collect())
     }
 }
 

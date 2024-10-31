@@ -1,7 +1,7 @@
 use bytes::{Buf, BufMut};
 use error_stack::{Result, ResultExt};
+use harpc_types::response_kind::ResponseKind;
 
-use super::kind::ResponseKind;
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},
     payload::Payload,
@@ -64,11 +64,12 @@ impl Decode for ResponseBegin {
 mod test {
     #![expect(clippy::needless_raw_strings)]
     use expect_test::expect;
+    use harpc_types::response_kind::ResponseKind;
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
         payload::Payload,
-        response::{begin::ResponseBegin, kind::ResponseKind},
+        response::begin::ResponseBegin,
     };
 
     #[test]

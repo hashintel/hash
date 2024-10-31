@@ -6,7 +6,7 @@ use thiserror::Error;
 
 use crate::{
     Valid, Validator,
-    schema::{ClosedDataType, DataType, DataTypeReference},
+    schema::{ClosedDataType, DataType, DataTypeReference, ResolvedDataType},
     url::VersionedUrl,
 };
 
@@ -80,13 +80,13 @@ impl Validator<DataType> for DataTypeValidator {
     }
 }
 
-impl Validator<ClosedDataType> for DataTypeValidator {
+impl Validator<ResolvedDataType> for DataTypeValidator {
     type Error = ValidateDataTypeError;
 
     async fn validate_ref<'v>(
         &self,
-        value: &'v ClosedDataType,
-    ) -> Result<&'v Valid<ClosedDataType>, Self::Error> {
+        value: &'v ResolvedDataType,
+    ) -> Result<&'v Valid<ResolvedDataType>, Self::Error> {
         let mut checked_types = HashSet::new();
         let mut types_to_check = value
             .schema
@@ -111,6 +111,19 @@ impl Validator<ClosedDataType> for DataTypeValidator {
         }
 
         // TODO: Implement validation for data types
+        //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
+        Ok(Valid::new_ref_unchecked(value))
+    }
+}
+
+impl Validator<ClosedDataType> for DataTypeValidator {
+    type Error = ValidateDataTypeError;
+
+    async fn validate_ref<'v>(
+        &self,
+        value: &'v ClosedDataType,
+    ) -> Result<&'v Valid<ClosedDataType>, Self::Error> {
+        // TODO: Validate ontology types on creation
         //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
         Ok(Valid::new_ref_unchecked(value))
     }

@@ -18,7 +18,7 @@ enum ResultDiscriminant {
 
 struct ResultDiscriminantVisitor;
 
-impl<'de> Visitor<'de> for ResultDiscriminantVisitor {
+impl Visitor<'_> for ResultDiscriminantVisitor {
     type Value = ResultDiscriminant;
 
     fn expecting(&self) -> Document {

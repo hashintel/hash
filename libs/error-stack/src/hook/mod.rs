@@ -1,6 +1,5 @@
 pub(crate) mod context;
 
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::vec::Vec;
 
 use crate::{

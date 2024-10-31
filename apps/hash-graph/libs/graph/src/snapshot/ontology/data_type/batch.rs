@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
-use async_trait::async_trait;
 use authorization::{
     AuthorizationApi, backend::ZanzibarBackend, schema::DataTypeRelationAndSubject,
 };
 use error_stack::{Result, ResultExt};
-use graph_types::ontology::DataTypeId;
 use tokio_postgres::GenericClient;
+use type_system::schema::DataTypeUuid;
 
 use crate::{
     snapshot::WriteBatch,
@@ -19,11 +18,10 @@ use crate::{
 pub enum DataTypeRowBatch {
     Schema(Vec<DataTypeRow>),
     Conversions(Vec<DataTypeConversionsRow>),
-    Relations(HashMap<DataTypeId, Vec<DataTypeRelationAndSubject>>),
+    Relations(HashMap<DataTypeUuid, Vec<DataTypeRelationAndSubject>>),
     Embeddings(Vec<DataTypeEmbeddingRow<'static>>),
 }
 
-#[async_trait]
 impl<C, A> WriteBatch<C, A> for DataTypeRowBatch
 where
     C: AsClient,
@@ -149,7 +147,8 @@ where
             .await
             .change_context(InsertionError)?;
 
-        <PostgresStore<C, A> as DataTypeStore>::reindex_cache(postgres_client)
+        postgres_client
+            .reindex_data_type_cache()
             .await
             .change_context(InsertionError)?;
 

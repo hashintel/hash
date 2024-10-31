@@ -1,11 +1,9 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
-import {
-  AsteriskRegularIcon,
-  Chip,
-  EyeSlashIconRegular,
-} from "@hashintel/design-system";
+import { extractVersion } from "@blockprotocol/type-system";
+import { EyeSlashIconRegular } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -19,12 +17,12 @@ import {
 import type { BoxProps } from "@mui/material";
 import {
   Box,
-  chipClasses,
   Stack,
   styled,
   Tooltip,
   Typography,
   typographyClasses,
+  useTheme,
 } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 import { forwardRef, Fragment, useMemo, useRef } from "react";
@@ -33,6 +31,9 @@ import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-e
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
 import { Link } from "../../shared/ui";
+import { useEntityEditor } from "../[shortname]/entities/[entity-uuid].page/entity-editor/entity-editor-context";
+import { TooltipChip } from "./tooltip-chip";
+import { TypeIcon } from "./type-icon";
 import { useEntityIcon } from "../../shared/use-entity-icon";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({
@@ -57,17 +58,23 @@ const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
   }
 };
 
-const LeftOrRightEntity = forwardRef<
-  HTMLDivElement,
-  {
-    entity?: Entity;
-    subgraph: Subgraph<EntityRootType>;
-    openInNew?: boolean;
-    endAdornment?: ReactNode;
-    label?: ReactNode;
-    sx?: BoxProps["sx"];
-  }
->(({ subgraph, entity, endAdornment, sx, label, openInNew }, ref) => {
+const LeftOrRightEntity: FunctionComponent<{
+  entity?: Entity;
+  onEntityClick?: (entityId: EntityId) => void;
+  subgraph: Subgraph<EntityRootType>;
+  openInNew?: boolean;
+  endAdornment?: ReactNode;
+  label?: ReactNode;
+  sx?: BoxProps["sx"];
+}> = ({
+  subgraph,
+  entity,
+  endAdornment,
+  onEntityClick,
+  sx,
+  label,
+  openInNew,
+}) => {
   const entityLabel = useMemo(
     () => (entity ? generateEntityLabel(subgraph, entity) : "Hidden entity"),
     [subgraph, entity],
@@ -112,7 +119,6 @@ const LeftOrRightEntity = forwardRef<
       columnGap={1}
       paddingX={1.5}
       paddingY={0.75}
-      ref={ref}
       sx={[
         {
           borderRadius: "6px",
@@ -133,7 +139,11 @@ const LeftOrRightEntity = forwardRef<
           },
         }}
       >
-        {entity ? (icon ?? <AsteriskRegularIcon />) : <EyeSlashIconRegular />}
+        {icon ? (
+          <TypeIcon fontSize={16} icon={icon} />
+        ) : (
+          <EyeSlashIconRegular />
+        )}
       </Box>
       <ContentTypography>{entityLabel}</ContentTypography>
       {endAdornment}
@@ -142,6 +152,12 @@ const LeftOrRightEntity = forwardRef<
 
   const contentWithLink = href ? (
     <Link
+      onClick={(event) => {
+        if (onEntityClick && entity) {
+          event.preventDefault();
+          onEntityClick(entity.metadata.recordId.entityId);
+        }
+      }}
       openInNew={openInNew}
       href={href}
       noLinkStyle
@@ -183,28 +199,24 @@ const LeftOrRightEntity = forwardRef<
       .flat();
   }, [entity, subgraph]);
 
-  const outgoingLinksByLinkEntityType = useMemo(() => {
+  const outgoingLinkTypesAndTargetEntities = useMemo(() => {
     if (!entity) {
       return undefined;
     }
 
-    return getOutgoingLinkAndTargetEntities(
+    const outgoingLinksByLinkEntityType = getOutgoingLinkAndTargetEntities(
       subgraph,
       entity.metadata.recordId.entityId,
-    ).reduce<
-      {
+    ).reduce<{
+      [linkEntityTypeId: string]: {
         linkEntityType: EntityTypeWithMetadata;
         rightEntities: Entity[];
-      }[]
-    >(
+      };
+    }>(
       (
         prev,
         {
           linkEntity: linkEntityRevisions,
-          /**
-           * @todo: figure out why this is typed as non-nullable when
-           * it can be nullable.
-           */
           rightEntity: rightEntityRevisions = [],
         },
       ) => {
@@ -222,41 +234,56 @@ const LeftOrRightEntity = forwardRef<
           return prev;
         }
 
-        const linkEntityTypeIndex = prev.findIndex(
-          (grouping) =>
-            grouping.linkEntityType.schema.$id === linkEntityType.schema.$id,
-        );
+        if (prev[linkEntityTypeId]) {
+          const targetAlreadyPresent = prev[
+            linkEntityTypeId
+          ].rightEntities.some(
+            (existingRightEntity) =>
+              existingRightEntity.metadata.recordId.entityId ===
+              rightEntity.metadata.recordId.entityId,
+          );
 
-        return linkEntityTypeIndex < 0
-          ? [
-              ...prev,
-              {
-                linkEntityType,
-                rightEntities: [rightEntity],
-              },
-            ]
-          : [
-              ...prev.slice(0, linkEntityTypeIndex),
-              {
-                linkEntityType,
-                rightEntities: [
-                  ...prev[linkEntityTypeIndex]!.rightEntities,
-                  rightEntity,
-                ],
-              },
-              ...prev.slice(linkEntityTypeIndex + 1),
-            ];
+          if (targetAlreadyPresent) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            [linkEntityTypeId]: {
+              linkEntityType,
+              rightEntities: [
+                ...prev[linkEntityTypeId].rightEntities,
+                rightEntity,
+              ],
+            },
+          };
+        }
+
+        return {
+          ...prev,
+          [linkEntityTypeId]: {
+            linkEntityType,
+            rightEntities: [rightEntity],
+          },
+        };
       },
-      [],
+      {},
     );
+
+    return Object.values(outgoingLinksByLinkEntityType);
   }, [entity, subgraph]);
+
+  const theme = useTheme();
 
   const tooltipContent =
     (entityProperties && entityProperties.length > 0) ||
-    (outgoingLinksByLinkEntityType &&
-      outgoingLinksByLinkEntityType.length > 0) ? (
+    (outgoingLinkTypesAndTargetEntities &&
+      outgoingLinkTypesAndTargetEntities.length > 0) ? (
       <Box>
-        {[...(entityProperties ?? []), ...(outgoingLinksByLinkEntityType ?? [])]
+        {[
+          ...(entityProperties ?? []),
+          ...(outgoingLinkTypesAndTargetEntities ?? []),
+        ]
           .sort((a, b) => {
             const aTitle =
               "propertyType" in a
@@ -272,53 +299,89 @@ const LeftOrRightEntity = forwardRef<
           })
           .map((propertyOrOutgoingLink) => (
             <Typography
+              component="div"
               key={
                 "propertyType" in propertyOrOutgoingLink
                   ? propertyOrOutgoingLink.propertyType.$id
                   : propertyOrOutgoingLink.linkEntityType.schema.$id
               }
               sx={{
-                color: ({ palette }) => palette.common.white,
                 marginBottom: 0.5,
+                py: 0.5,
               }}
             >
-              <strong>
+              <Typography
+                component="div"
+                sx={{
+                  color: ({ palette }) => palette.gray[30],
+                  letterSpacing: 0,
+                  mb: 0.5,
+                }}
+                variant="smallCaps"
+              >
                 {"propertyType" in propertyOrOutgoingLink
                   ? propertyOrOutgoingLink.propertyType.title
-                  : propertyOrOutgoingLink.linkEntityType.schema.title}
-                :
-              </strong>{" "}
-              {"propertyType" in propertyOrOutgoingLink
-                ? propertyOrOutgoingLink.stringifiedPropertyValue
-                : propertyOrOutgoingLink.rightEntities.map((rightEntity) => {
+                  : `${propertyOrOutgoingLink.linkEntityType.schema.title} ${propertyOrOutgoingLink.rightEntities.length}`}
+              </Typography>{" "}
+              {"propertyType" in propertyOrOutgoingLink ? (
+                <Typography sx={{ fontSize: 13, lineHeight: 1.3 }}>
+                  {propertyOrOutgoingLink.stringifiedPropertyValue}
+                </Typography>
+              ) : (
+                <Stack
+                  direction="row"
+                  columnGap={0.5}
+                  rowGap={0.5}
+                  flexWrap="wrap"
+                >
+                  {propertyOrOutgoingLink.rightEntities.map((rightEntity) => {
                     const rightEntityLabel = generateEntityLabel(
                       subgraph,
                       rightEntity,
                     );
 
+                    /**
+                     * @todo H-3363 account for inheritance here (query for closed schema)
+                     */
+                    const rightEntityEntityType = getEntityTypeById(
+                      subgraph,
+                      rightEntity.metadata.entityTypeIds[0],
+                    );
+
                     return (
-                      <Chip
-                        key={rightEntity.metadata.recordId.entityId}
+                      <TooltipChip
                         label={rightEntityLabel}
-                        sx={{
-                          borderColor: ({ palette }) => palette.gray[30],
-                          [`.${chipClasses.label}`]: {
-                            paddingY: 0.25,
-                          },
-                          "&:not(:last-of-type)": {
-                            marginRight: 1,
-                          },
-                        }}
+                        icon={
+                          <TypeIcon
+                            fill={theme.palette.gray[30]}
+                            fontSize={11}
+                            icon={rightEntityEntityType?.schema.icon}
+                          />
+                        }
+                        key={rightEntity.metadata.recordId.entityId}
+                        onClick={() =>
+                          onEntityClick?.(
+                            rightEntity.metadata.recordId.entityId,
+                          )
+                        }
                       />
                     );
                   })}
+                </Stack>
+              )}
             </Typography>
           ))}
       </Box>
     ) : null;
 
   const contentWithLinkAndTooltip = tooltipContent ? (
-    <Tooltip title={tooltipContent} placement="bottom-start">
+    <Tooltip
+      title={tooltipContent}
+      slotProps={{
+        tooltip: { sx: { maxHeight: 300, overflowY: "auto" } },
+      }}
+      placement="bottom-start"
+    >
       {contentWithLink}
     </Tooltip>
   ) : (
@@ -339,6 +402,7 @@ const LeftOrRightEntity = forwardRef<
           borderTopLeftRadius: 0,
           borderBottomLeftRadius: 0,
         },
+        maxWidth: "60%",
       }}
     >
       {label ? (
@@ -368,6 +432,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   leftEntitySx?: BoxProps["sx"];
   rightEntitySx?: BoxProps["sx"];
   displayLabels?: boolean;
+  onEntityClick?: (entityId: EntityId) => void;
   openInNew?: boolean;
 }> = ({
   linkEntity,
@@ -378,8 +443,11 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   leftEntitySx,
   rightEntitySx,
   displayLabels = false,
+  onEntityClick,
   openInNew = false,
 }) => {
+  const { disableTypeClick } = useEntityEditor();
+
   const { leftEntity, rightEntity, linkEntityTypes } = useMemo(() => {
     return {
       linkEntityTypes: linkEntity.metadata.entityTypeIds.map((entityTypeId) => {
@@ -427,6 +495,64 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   const leftEntityRef = useRef<HTMLDivElement>(null);
   const rightEntityRef = useRef<HTMLDivElement>(null);
 
+  const LinkTypeInner = ({ linkEntityType, ref }: { linkEntityType: EntityTypeWithMetadata; ref: RefObject<HTMLDivElement}) => (
+    <Box
+      ref={(el) => {
+        ref = el as HTMLDivElement;
+      }}
+      sx={{
+        "&:hover": {
+          [`.${typographyClasses.root}, svg`]: {
+            color: ({ palette }) => palette.blue[70],
+          },
+        },
+        background: ({ palette }) =>
+          linkEntityTypes.length > 1
+            ? palette.common.white
+            : palette.gray[5],
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 1,
+        paddingX: 1.5,
+        paddingY: 0.75,
+        borderColor: ({ palette }) => palette.gray[30],
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderLeftWidth: linkEntityTypes.length > 1 ? 1 : 0,
+        borderRightWidth: linkEntityTypes.length > 1 ? 1 : 0,
+      }}
+    >
+      <Box display="flex">
+        {/* @todo H-3363 account for inherited icons, and SVG URL icons */}
+        {linkEntityType.schema.icon ?? (
+          <LinkRegularIcon
+            sx={{
+              color: ({ palette }) => palette.common.black,
+              fontSize: 16,
+              transition: ({ transitions }) =>
+                transitions.create("color"),
+            }}
+          />
+        )}
+      </Box>
+      <ContentTypography>
+        {linkEntityType.schema.title}
+        <Box
+          component="span"
+          sx={{
+            color: ({ palette }) => palette.gray[50],
+            fontSize: 11,
+            fontWeight: 400,
+            ml: 0.5,
+          }}
+        >
+          v{linkEntityType.metadata.recordId.version}
+        </Box>
+      </ContentTypography>
+    </Box>
+  )
+
   return (
     <Stack
       alignItems="center"
@@ -442,9 +568,9 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
         entity={leftEntity}
         subgraph={subgraph}
         endAdornment={leftEntityEndAdornment}
+        onEntityClick={onEntityClick}
         openInNew={openInNew}
         label={displayLabels ? "Source entity" : undefined}
-        ref={leftEntityRef}
         sx={leftEntitySx}
       />
       <Stack
@@ -456,66 +582,15 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
       >
         {linkEntityTypes.map((linkEntityType, index) => (
           <Fragment key={linkEntityType.schema.$id}>
+            {disableTypeClick ? <Box><LinkTypeInner linkEntityType={linkEntityType} ref={linkTypeRefs.current[index]} /></Box> :
             <Link
               openInNew={openInNew}
               href={generateLinkParameters(linkEntityType.schema.$id).href}
               noLinkStyle
             >
-              <Box
-                ref={(el) => {
-                  linkTypeRefs.current[index] = el as HTMLDivElement;
-                }}
-                sx={{
-                  "&:hover": {
-                    [`.${typographyClasses.root}, svg`]: {
-                      color: ({ palette }) => palette.blue[70],
-                    },
-                  },
-                  background: ({ palette }) =>
-                    linkEntityTypes.length > 1
-                      ? palette.common.white
-                      : palette.gray[5],
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 1,
-                  paddingX: 1.5,
-                  paddingY: 0.75,
-                  borderColor: ({ palette }) => palette.gray[30],
-                  borderWidth: 1,
-                  borderStyle: "solid",
-                  borderLeftWidth: linkEntityTypes.length > 1 ? 1 : 0,
-                  borderRightWidth: linkEntityTypes.length > 1 ? 1 : 0,
-                }}
-              >
-                <Box display="flex">
-                  {linkEntityType.metadata.icon ?? (
-                    <LinkRegularIcon
-                      sx={{
-                        color: ({ palette }) => palette.common.black,
-                        fontSize: 16,
-                        transition: ({ transitions }) =>
-                          transitions.create("color"),
-                      }}
-                    />
-                  )}
-                </Box>
-                <ContentTypography>
-                  {linkEntityType.schema.title}
-                  <Box
-                    component="span"
-                    sx={{
-                      color: ({ palette }) => palette.gray[50],
-                      fontSize: 11,
-                      fontWeight: 400,
-                      ml: 0.5,
-                    }}
-                  >
-                    v{linkEntityType.metadata.recordId.version}
-                  </Box>
-                </ContentTypography>
-              </Box>
+              <LinkTypeInner linkEntityType={linkEntityType} ref={linkTypeRefs.current[index]} />
             </Link>
+            }
             {linkEntityTypes.length > 0 && linkTypeRefs.current[index] && (
               /**
                * In cases where we have multiple link entity types, draw a line from:
@@ -615,11 +690,11 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
       </Stack>
       <LeftOrRightEntity
         entity={rightEntity}
+        onEntityClick={onEntityClick}
         subgraph={subgraph}
         endAdornment={rightEntityEndAdornment}
         sx={rightEntitySx}
         openInNew={openInNew}
-        ref={rightEntityRef}
         label={displayLabels ? "Target entity" : undefined}
       />
     </Stack>

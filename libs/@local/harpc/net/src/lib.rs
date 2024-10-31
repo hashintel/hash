@@ -10,7 +10,6 @@
 
 extern crate alloc;
 
-pub mod codec;
 pub mod session;
 pub mod transport;
 

@@ -1,7 +1,6 @@
 mod frame_impl;
 mod kind;
 
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::error::{self, Error};

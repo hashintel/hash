@@ -9,6 +9,7 @@ export type PropertyRow = {
   value: unknown;
   expectedTypes: DataTypeWithMetadata["schema"][];
   isArray: boolean;
+  isSingleUrl: boolean;
   required: boolean;
   children: PropertyRow[];
   depth: number;

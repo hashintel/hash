@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
 use tokio_postgres::Client;
 
@@ -31,7 +30,6 @@ impl Migration {
     }
 }
 
-#[async_trait]
 impl<C, A> StoreMigration for PostgresStore<C, A>
 where
     C: AsClient<Client = Client>,

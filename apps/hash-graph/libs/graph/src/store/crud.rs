@@ -6,9 +6,8 @@
 //!
 //! [`Store`]: crate::store::Store
 
-use async_trait::async_trait;
 use error_stack::Result;
-use futures::{Stream, TryStreamExt};
+use futures::{Stream, TryFutureExt, TryStreamExt};
 use hash_graph_store::{
     filter::{Filter, QueryRecord},
     subgraph::{SubgraphRecord, temporal_axes::QueryTemporalAxes},
@@ -57,7 +56,7 @@ pub struct ReadParameter<'f, R: QueryRecord, S> {
     limit: Option<usize>,
 }
 
-impl<'f, R: QueryRecord> Default for ReadParameter<'f, R, ()> {
+impl<R: QueryRecord> Default for ReadParameter<'_, R, ()> {
     fn default() -> Self {
         Self {
             filters: None,
@@ -127,7 +126,7 @@ impl<'f, R: QueryRecord> ReadParameter<'f, R, ()> {
     }
 }
 
-impl<'f, R: QueryRecord, S: Sorting> ReadParameter<'f, R, S> {
+impl<R: QueryRecord, S: Sorting> ReadParameter<'_, R, S> {
     #[must_use]
     pub const fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
@@ -156,6 +155,10 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
 
     type ReadPaginatedStream: Stream<Item = Result<Self::QueryResult, QueryError>> + Send + Sync;
 
+    #[expect(
+        clippy::type_complexity,
+        reason = "simplification of type would lead to more unreadable code"
+    )]
     fn read_paginated(
         &self,
         filter: &Filter<'_, R>,
@@ -173,6 +176,10 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
         >,
     > + Send;
 
+    #[expect(
+        clippy::type_complexity,
+        reason = "simplification of type would lead to more unreadable code"
+    )]
     #[instrument(level = "info", skip(self, filter, sorting))]
     fn read_paginated_vec(
         &self,
@@ -202,36 +209,33 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
 /// Read access to a [`Store`].
 ///
 /// [`Store`]: crate::store::Store
-#[async_trait]
 pub trait Read<R: QueryRecord>: Sync {
     type ReadStream: Stream<Item = Result<R, QueryError>> + Send + Sync;
 
-    async fn read(
+    fn read(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> Result<Self::ReadStream, QueryError>;
+    ) -> impl Future<Output = Result<Self::ReadStream, QueryError>> + Send;
 
     #[instrument(level = "info", skip(self, filter))]
-    async fn read_vec(
+    fn read_vec(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> Result<Vec<R>, QueryError> {
+    ) -> impl Future<Output = Result<Vec<R>, QueryError>> + Send {
         self.read(filter, temporal_axes, include_drafts)
-            .await?
-            .try_collect()
-            .await
+            .and_then(TryStreamExt::try_collect)
     }
 
-    async fn read_one(
+    fn read_one(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> Result<R, QueryError>;
+    ) -> impl Future<Output = Result<R, QueryError>> + Send;
 }
 
 // TODO: Add remaining CRUD traits

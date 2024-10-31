@@ -9,22 +9,22 @@
     "storybook": "storybook dev -p 6006"
   },
   "devDependencies": {
-    "@babel/preset-env": "7.25.4",
-    "@babel/preset-typescript": "7.24.7",
+    "@babel/preset-env": "7.26.0",
+    "@babel/preset-typescript": "7.26.0",
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@storybook/addon-essentials": "7.0.5",
-    "@storybook/addon-interactions": "7.0.5",
-    "@storybook/addon-links": "7.0.5",
-    "@storybook/blocks": "7.0.5",
-    "@storybook/react": "7.0.5",
-    "@storybook/react-webpack5": "7.0.5",
-    "@storybook/testing-library": "0.1.0",
+    "@storybook/addon-essentials": "7.6.20",
+    "@storybook/addon-interactions": "7.6.20",
+    "@storybook/addon-links": "7.6.20",
+    "@storybook/blocks": "7.6.20",
+    "@storybook/react": "7.6.20",
+    "@storybook/react-webpack5": "7.6.20",
+    "@storybook/testing-library": "0.2.2",
     "@types/react": "18.2.68",
     "@types/react-dom": "18.2.25",
-    "storybook": "7.0.5"
+    "storybook": "7.6.20"
   },
   "peerDependencies": {
     "@emotion/cache": "11.13.1",

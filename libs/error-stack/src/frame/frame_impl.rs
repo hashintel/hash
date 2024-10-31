@@ -1,4 +1,3 @@
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::error::{Error, Request};

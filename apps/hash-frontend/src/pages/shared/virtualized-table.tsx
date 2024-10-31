@@ -13,11 +13,11 @@ import type { TableComponents } from "react-virtuoso";
 import { TableVirtuoso } from "react-virtuoso";
 
 import type { ColumnMetadata } from "./virtualized-table/header";
-import { HeaderContent, headerHeight } from "./virtualized-table/header";
-import type {
-  TableFilterProps,
-  VirtualizedTableFilterDefinitionsByFieldId,
-} from "./virtualized-table/header/filter";
+import {
+  HeaderContent,
+  virtualizedTableHeaderHeight,
+} from "./virtualized-table/header";
+import type { TableFilterProps } from "./virtualized-table/header/filter";
 import type {
   TableSortProps,
   VirtualizedTableSort,
@@ -88,7 +88,7 @@ const VirtuosoTableComponents: TableComponents<
         borderSpacing: 0,
         th: {
           ...defaultCellSx,
-          height: headerHeight,
+          height: virtualizedTableHeaderHeight,
         },
       }}
     />
@@ -117,9 +117,9 @@ export type CreateVirtualizedRowContentFn<
 type VirtualizedTableProps<
   D extends Data,
   S extends VirtualizedTableSort,
-  F extends VirtualizedTableFilterDefinitionsByFieldId,
   Id extends FieldId,
   M extends ColumnMetadata,
+  FilteredIds extends FieldId,
 > = {
   /**
    * This function will be called many times when scrolling, ensure repeated calls do as little as possible
@@ -131,16 +131,16 @@ type VirtualizedTableProps<
   EmptyPlaceholder?: () => ReactElement;
   rows: VirtualizedTableRow<D>[];
 } & TableSortProps<S> &
-  Partial<TableFilterProps<F>>;
+  Partial<TableFilterProps<FilteredIds>>;
 
 const heightStyle = { height: "100%" };
 
 export const VirtualizedTable = <
   D extends Data,
-  S extends VirtualizedTableSort,
-  F extends VirtualizedTableFilterDefinitionsByFieldId,
+  Sort extends VirtualizedTableSort,
   Id extends FieldId,
-  M extends ColumnMetadata,
+  Metadata extends ColumnMetadata,
+  FilteredIds extends Id,
 >({
   createRowContent,
   columns,
@@ -152,7 +152,7 @@ export const VirtualizedTable = <
   setFilterValues,
   sort,
   setSort,
-}: VirtualizedTableProps<D, S, F, Id, M>) => {
+}: VirtualizedTableProps<D, Sort, Id, Metadata, FilteredIds>) => {
   const fixedHeaderContent = useCallback(
     () =>
       columns
@@ -197,7 +197,7 @@ export const VirtualizedTable = <
         followOutput="smooth"
         increaseViewportBy={50}
         itemContent={createRowContent}
-        overscan={{ main: 100, reverse: 100 }}
+        overscan={{ main: 200, reverse: 200 }}
         style={heightStyle}
       />
     </Box>

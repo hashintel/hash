@@ -1,9 +1,12 @@
-use core::task::{Context, Poll};
+use core::{
+    error::Error,
+    task::{Context, Poll},
+};
 
 use bytes::Bytes;
 use error_stack::Report;
-use harpc_net::codec::ErrorEncoder;
-use harpc_wire_protocol::response::kind::ResponseKind;
+use harpc_codec::error::NetworkError;
+use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service, ServiceExt};
 
 use crate::{
@@ -14,41 +17,39 @@ use crate::{
     response::{Parts, Response},
 };
 
-pub struct HandleReportLayer<E> {
-    encoder: E,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct HandleReportLayer {
+    _private: (),
 }
 
-impl<E> HandleReportLayer<E> {
-    pub const fn new(encoder: E) -> Self {
-        Self { encoder }
+impl HandleReportLayer {
+    #[expect(
+        clippy::new_without_default,
+        reason = "layer construction should be explicit and we might add fields in the future"
+    )]
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { _private: () }
     }
 }
 
-impl<S, E> Layer<S> for HandleReportLayer<E>
-where
-    E: Clone,
-{
-    type Service = HandleReport<S, E>;
+impl<S> Layer<S> for HandleReportLayer {
+    type Service = HandleReportService<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        HandleReport {
-            inner,
-            encoder: self.encoder.clone(),
-        }
+        HandleReportService { inner }
     }
 }
 
-pub struct HandleReport<S, E> {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct HandleReportService<S> {
     inner: S,
-
-    encoder: E,
 }
 
-impl<S, E, C, ReqBody, ResBody> Service<Request<ReqBody>> for HandleReport<S, E>
+impl<S, C, ReqBody, ResBody> Service<Request<ReqBody>> for HandleReportService<S>
 where
     S: Service<Request<ReqBody>, Error = Report<C>, Response = Response<ResBody>> + Clone + Send,
-    E: ErrorEncoder + Clone,
-    C: error_stack::Context,
+    C: Error + Send + Sync + 'static,
     ReqBody: Body<Control = !>,
     ResBody: Body<Control: AsRef<ResponseKind>>,
 {
@@ -65,8 +66,6 @@ where
     }
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        let encoder = self.encoder.clone();
-
         let clone = self.inner.clone();
         let inner = core::mem::replace(&mut self.inner, clone);
 
@@ -76,7 +75,7 @@ where
             match inner.oneshot(req).await {
                 Ok(response) => Ok(response.map_body(Either::Left)),
                 Err(report) => {
-                    let error = encoder.encode_report(report).await;
+                    let error = NetworkError::capture_report(&report);
 
                     Ok(Response::from_error(
                         Parts {
@@ -96,7 +95,7 @@ where
 mod test {
     use bytes::Bytes;
     use error_stack::Report;
-    use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
+    use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
     use tokio_test::{assert_pending, assert_ready};
     use tower::{Layer, Service, ServiceExt};
     use tower_test::mock::{self, spawn_with};
@@ -106,10 +105,7 @@ mod test {
         body::{BodyExt, Frame, controlled::Controlled, full::Full},
         either::Either,
         layer::{
-            error::{
-                BoxedError,
-                test::{BODY, GenericError, PlainErrorEncoder, request},
-            },
+            error::test::{BODY, BoxedError, GenericError, request},
             report::HandleReportLayer,
         },
         request::Request,
@@ -138,7 +134,7 @@ mod test {
         spawn_with(|service| {
             let service = service.map_err(|error| Report::from(BoxedError::from(error)));
 
-            HandleReportLayer::new(PlainErrorEncoder).layer(service)
+            HandleReportLayer::new().layer(service)
         })
     }
 
@@ -175,14 +171,18 @@ mod test {
             .into_control()
             .expect("should be data frame")
             .into_inner();
-        assert_eq!(control, ResponseKind::Err(ErrorCode::INTERNAL_SERVER_ERROR));
+        assert_eq!(
+            control,
+            ResponseKind::Err(ErrorCode::INSTANCE_TRANSACTION_LIMIT_REACHED)
+        );
 
         let Ok(frame) = body.frame().await.expect("frame should be present");
         let data = frame
             .into_data()
             .expect("should be data frame")
             .into_inner();
-        assert_eq!(data, Bytes::from_static(b"report|generic error" as &[_]));
+
+        insta::assert_debug_snapshot!(data, @r###"b"\0\0\0\rgeneric error""###);
     }
 
     #[tokio::test]

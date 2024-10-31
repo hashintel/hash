@@ -1,13 +1,13 @@
 use alloc::sync::Arc;
-use core::{future::ready, iter, net::Ipv4Addr, time::Duration};
+use core::{iter, net::Ipv4Addr, time::Duration};
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt};
 use futures::{prelude::stream, sink::SinkExt, stream::StreamExt};
-use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
-use harpc_wire_protocol::{
-    request::{procedure::ProcedureDescriptor, service::ServiceDescriptor},
-    response::kind::ErrorCode,
+use harpc_types::{
+    procedure::{ProcedureDescriptor, ProcedureId},
+    service::{ServiceDescriptor, ServiceId},
+    version::Version,
 };
 use humansize::ISizeFormatter;
 use libp2p::{Multiaddr, multiaddr};
@@ -16,16 +16,12 @@ use tokio_util::sync::CancellationToken;
 
 use super::{
     client::{self, Connection},
-    error::TransactionError,
     server::{
         self, ListenStream,
         transaction::{TransactionSink, TransactionStream},
     },
 };
-use crate::{
-    codec::{ErrorEncoder, WireError},
-    transport::{Transport, TransportConfig, TransportLayer, test::memory_address},
-};
+use crate::transport::{Transport, TransportConfig, TransportLayer, test::memory_address};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct Descriptor {
@@ -44,37 +40,6 @@ impl Default for Descriptor {
                 id: ProcedureId::new(0x00),
             },
         }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct StringEncoder;
-
-impl ErrorEncoder for StringEncoder {
-    fn encode_error<E>(&self, error: E) -> impl Future<Output = TransactionError> + Send
-    where
-        E: WireError,
-    {
-        ready(TransactionError {
-            code: error.code(),
-            bytes: error.to_string().into_bytes().into(),
-        })
-    }
-
-    fn encode_report<C>(
-        &self,
-        report: error_stack::Report<C>,
-    ) -> impl Future<Output = TransactionError> + Send {
-        let code = report
-            .request_ref::<ErrorCode>()
-            .next()
-            .copied()
-            .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR);
-
-        ready(TransactionError {
-            code,
-            bytes: report.to_string().into_bytes().into(),
-        })
     }
 }
 
@@ -137,13 +102,13 @@ fn server(
     transport_config: TransportConfig,
     session_config: server::SessionConfig,
     transport: impl Transport,
-) -> (server::SessionLayer<StringEncoder>, impl Drop) {
+) -> (server::SessionLayer, impl Drop) {
     let cancel = CancellationToken::new();
 
     let transport_layer = TransportLayer::start(transport_config, transport, cancel.clone())
         .expect("failed to start transport layer");
 
-    let session_layer = server::SessionLayer::new(session_config, transport_layer, StringEncoder);
+    let session_layer = server::SessionLayer::new(session_config, transport_layer);
 
     (session_layer, cancel.drop_guard())
 }
@@ -179,12 +144,6 @@ where
             .listen(address)
             .await
             .expect("should be able to listen on TCP");
-
-        // Give the swarm some time to acquire the external address
-        // This is necessary for CI, as otherwise the tests are a bit flaky.
-        // TODO: Implement waiting for server to be ready
-        //   see https://linear.app/hash/issue/H-2837
-        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
         let address = server_ipc
             .external_addresses()
@@ -343,10 +302,6 @@ async fn echo_concurrent<T>(
             .await
             .expect("should be able to listen on TCP");
 
-        // Give the swarm some time to acquire the external address
-        // This is necessary for CI, as otherwise the tests are a bit flaky.
-        // TODO: `listen_on` should wait until the transport layer has acquired said address.
-        //   see https://linear.app/hash/issue/H-2837
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
         let address = server_ipc

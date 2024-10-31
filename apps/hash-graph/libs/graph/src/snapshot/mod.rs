@@ -20,7 +20,6 @@ mod web;
 use core::future::ready;
 
 use async_scoped::TokioScope;
-use async_trait::async_trait;
 use authorization::{
     AuthorizationApi, NoAuthorization,
     backend::ZanzibarBackend,
@@ -41,10 +40,7 @@ use futures::{
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityId, EntityUuid},
-    ontology::{
-        DataTypeId, DataTypeWithMetadata, EntityTypeId, EntityTypeWithMetadata, PropertyTypeId,
-        PropertyTypeWithMetadata,
-    },
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     owned_by_id::OwnedById,
 };
 use hash_graph_store::filter::{Filter, QueryRecord};
@@ -52,7 +48,10 @@ use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
-use type_system::url::VersionedUrl;
+use type_system::{
+    schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
+    url::VersionedUrl,
+};
 
 use crate::{
     snapshot::{
@@ -229,14 +228,18 @@ impl SnapshotEntry {
     }
 }
 
-#[async_trait]
 trait WriteBatch<C, A> {
-    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError>;
-    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError>;
-    async fn commit(
+    fn begin(
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
+    fn write(
+        self,
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
+    fn commit(
         postgres_client: &mut PostgresStore<C, A>,
         validation: bool,
-    ) -> Result<(), InsertionError>;
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
 }
 
 pub struct SnapshotStore<C, A>(PostgresStore<C, A>);
@@ -585,8 +588,8 @@ impl PostgresStorePool {
                             Ok(SnapshotEntry::DataType(Box::new(DataTypeSnapshotRecord {
                                 schema: record.schema,
                                 relations: authorization_api
-                                    .read_relations::<(DataTypeId, DataTypeRelationAndSubject)>(
-                                        RelationshipFilter::from_resource(DataTypeId::from_url(
+                                    .read_relations::<(DataTypeUuid, DataTypeRelationAndSubject)>(
+                                        RelationshipFilter::from_resource(DataTypeUuid::from_url(
                                             &VersionedUrl::from(record.metadata.record_id.clone()),
                                         )),
                                         Consistency::FullyConsistent,
@@ -606,29 +609,46 @@ impl PostgresStorePool {
 
             if settings.dump_property_types {
                 scope.spawn(
-                        self.create_dump_stream::<PropertyTypeWithMetadata>()
-                            .try_flatten_stream()
-                            .and_then(move |record| async move {
-                                Ok(SnapshotEntry::PropertyType(Box::new(PropertyTypeSnapshotRecord {
-                                    schema: record.schema,
-                                    relations: authorization_api
-                                        .read_relations::<(PropertyTypeId, PropertyTypeRelationAndSubject)>(
-                                            RelationshipFilter::from_resource(PropertyTypeId::from_url(
-                                                &VersionedUrl::from(record.metadata.record_id.clone()),
-                                            )),
-                                            Consistency::FullyConsistent,
-                                        )
-                                        .await
-                                        .change_context(SnapshotDumpError::Query)?
-                                        .map_ok(|(_, relation)| relation)
-                                        .try_collect()
-                                        .await
-                                        .change_context(SnapshotDumpError::Query)?,
-                                    metadata: record.metadata,
-                                })))
-                            })
-                            .forward(snapshot_record_tx.clone()),
-                    );
+                    self.create_dump_stream::<PropertyTypeWithMetadata>()
+                        .try_flatten_stream()
+                        .and_then(move |record| async move {
+                            Ok(
+                                SnapshotEntry::PropertyType(
+                                    Box::new(
+                                        PropertyTypeSnapshotRecord {
+                                            schema: record.schema,
+                                            relations:
+                                                authorization_api
+                                                    .read_relations::<(
+                                                        PropertyTypeUuid,
+                                                        PropertyTypeRelationAndSubject,
+                                                    )>(
+                                                        RelationshipFilter::from_resource(
+                                                            PropertyTypeUuid::from_url(
+                                                                &VersionedUrl::from(
+                                                                    record
+                                                                        .metadata
+                                                                        .record_id
+                                                                        .clone(),
+                                                                ),
+                                                            ),
+                                                        ),
+                                                        Consistency::FullyConsistent,
+                                                    )
+                                                    .await
+                                                    .change_context(SnapshotDumpError::Query)?
+                                                    .map_ok(|(_, relation)| relation)
+                                                    .try_collect()
+                                                    .await
+                                                    .change_context(SnapshotDumpError::Query)?,
+                                            metadata: record.metadata,
+                                        },
+                                    ),
+                                ),
+                            )
+                        })
+                        .forward(snapshot_record_tx.clone()),
+                );
             }
 
             if settings.dump_entity_types {
@@ -639,8 +659,8 @@ impl PostgresStorePool {
                                 Ok(SnapshotEntry::EntityType(Box::new(EntityTypeSnapshotRecord {
                                     schema: record.schema,
                                     relations: authorization_api
-                                        .read_relations::<(EntityTypeId, EntityTypeRelationAndSubject)>(
-                                            RelationshipFilter::from_resource(EntityTypeId::from_url(
+                                        .read_relations::<(EntityTypeUuid, EntityTypeRelationAndSubject)>(
+                                            RelationshipFilter::from_resource(EntityTypeUuid::from_url(
                                                 &VersionedUrl::from(record.metadata.record_id.clone()),
                                             )),
                                             Consistency::FullyConsistent,

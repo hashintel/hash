@@ -1922,6 +1922,54 @@
         }
       }
     },
+    "/entity-types/multi": {
+      "post": {
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
+        "operationId": "get_closed_multi_entity_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetClosedMultiEntityTypeParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Gets a list of multi-entity types that satisfy the given query. A multi-entity type is the combination of multiple entity types.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetClosedMultiEntityTypeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entity-types/query": {
       "post": {
         "tags": [
@@ -3280,18 +3328,6 @@
           "relationships"
         ],
         "properties": {
-          "icon": {
-            "type": "string",
-            "nullable": true
-          },
-          "labelProperty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BaseUrl"
-              }
-            ],
-            "nullable": true
-          },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
@@ -4388,12 +4424,6 @@
               "provenance"
             ],
             "properties": {
-              "icon": {
-                "type": "string"
-              },
-              "labelProperty": {
-                "$ref": "#/components/schemas/BaseUrl"
-              },
               "ownedById": {
                 "$ref": "#/components/schemas/OwnedById"
               },
@@ -4420,12 +4450,6 @@
             "properties": {
               "fetchedAt": {
                 "$ref": "#/components/schemas/Timestamp"
-              },
-              "icon": {
-                "type": "string"
-              },
-              "labelProperty": {
-                "$ref": "#/components/schemas/BaseUrl"
               },
               "provenance": {
                 "$ref": "#/components/schemas/OntologyProvenance"
@@ -4483,7 +4507,6 @@
           "ownedById",
           "title",
           "description",
-          "examples",
           "properties",
           "required",
           "labelProperty",
@@ -4676,20 +4699,10 @@
         "format": "uuid"
       },
       "EntityValidationType": {
-        "oneOf": [
-          {
-            "type": "array",
-            "items": {
-              "$ref": "./models/entity_type.json"
-            }
-          },
-          {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            }
-          }
-        ]
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/VersionedUrl"
+        }
       },
       "EntityVertexId": {
         "type": "object",
@@ -5048,6 +5061,40 @@
             }
           }
         ]
+      },
+      "GetClosedMultiEntityTypeParams": {
+        "type": "object",
+        "required": [
+          "entityTypeIds",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetClosedMultiEntityTypeResponse": {
+        "type": "object",
+        "required": [
+          "entityType"
+        ],
+        "properties": {
+          "entityType": {
+            "$ref": "./models/closed_multi_entity_type.json"
+          }
+        }
       },
       "GetDataTypeSubgraphParams": {
         "type": "object",
@@ -5507,6 +5554,9 @@
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
+          "includeClosed": {
+            "type": "boolean"
+          },
           "includeCount": {
             "type": "boolean"
           },
@@ -5536,6 +5586,12 @@
           "entityTypes"
         ],
         "properties": {
+          "closedEntityTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "./models/closed_entity_type.json"
+            }
+          },
           "count": {
             "type": "integer",
             "nullable": true,
@@ -6063,18 +6119,6 @@
               "relationships"
             ],
             "properties": {
-              "icon": {
-                "type": "string",
-                "nullable": true
-              },
-              "labelProperty": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BaseUrl"
-                  }
-                ],
-                "nullable": true
-              },
               "provenance": {
                 "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
               },
@@ -8179,18 +8223,6 @@
           "relationships"
         ],
         "properties": {
-          "icon": {
-            "type": "string",
-            "nullable": true
-          },
-          "labelProperty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BaseUrl"
-              }
-            ],
-            "nullable": true
-          },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },

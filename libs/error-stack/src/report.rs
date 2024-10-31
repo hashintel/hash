@@ -1,24 +1,18 @@
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, vec, vec::Vec};
-#[cfg(rust_1_81)]
-use core::error::Error;
-use core::{fmt, marker::PhantomData, mem, panic::Location};
+use core::{error::Error, fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
-#[cfg(all(feature = "std", not(rust_1_81)))]
-use std::error::Error;
 #[cfg(feature = "std")]
 use std::process::ExitCode;
 
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
-#[cfg(any(feature = "std", rust_1_81))]
-use crate::context::SourceContext;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
     Context, Frame,
+    context::SourceContext,
     iter::{Frames, FramesMut},
 };
 
@@ -246,14 +240,14 @@ use crate::{
 /// # }
 /// ```
 #[must_use]
-#[allow(clippy::field_scoped_visibility_modifiers)]
+#[expect(clippy::field_scoped_visibility_modifiers)]
 pub struct Report<C: ?Sized> {
     // The vector is boxed as this implies a memory footprint equal to a single pointer size
     // instead of three pointer sizes. Even for small `Result::Ok` variants, the `Result` would
     // still have at least the size of `Report`, even at the happy path. It's unexpected, that
     // creating or traversing a report will happen in the hot path, so a double indirection is
     // a good trade-off.
-    #[allow(clippy::box_collection)]
+    #[expect(clippy::box_collection)]
     pub(super) frames: Box<Vec<Frame>>,
     _context: PhantomData<fn() -> *const C>,
 }
@@ -268,12 +262,11 @@ impl<C> Report<C> {
     /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
     #[inline]
     #[track_caller]
-    #[allow(clippy::missing_panics_doc)] // Reason: No panic possible
+    #[expect(clippy::missing_panics_doc, reason = "No panic possible")]
     pub fn new(context: C) -> Self
     where
         C: Context,
     {
-        #[cfg(any(feature = "std", rust_1_81))]
         if let Some(mut current_source) = context.__source() {
             // The sources needs to be applied in reversed order, so we buffer them in a vector
             let mut sources = vec![SourceContext::from_error(current_source)];
@@ -327,7 +320,6 @@ impl<C> Report<C> {
         #[cfg(all(not(nightly), feature = "spantrace"))]
         let span_trace = Some(SpanTrace::capture());
 
-        #[allow(unused_mut)]
         let mut report = Self {
             frames: Box::new(vec![frame]),
             _context: PhantomData,
@@ -460,7 +452,6 @@ impl<C> Report<C> {
 
     /// Converts this `Report` to an [`Error`].
     #[must_use]
-    #[cfg(any(feature = "std", rust_1_81))]
     pub fn into_error(self) -> impl Error + Send + Sync + 'static
     where
         C: 'static,
@@ -470,7 +461,6 @@ impl<C> Report<C> {
 
     /// Returns this `Report` as an [`Error`].
     #[must_use]
-    #[cfg(any(feature = "std", rust_1_81))]
     pub fn as_error(&self) -> &(impl Error + Send + Sync + 'static)
     where
         C: 'static,
@@ -744,7 +734,6 @@ impl<C> Report<[C]> {
     /// error1.push(error2);
     /// error1.push(error3);
     /// ```
-    #[allow(clippy::same_name_method)]
     pub fn push(&mut self, mut report: Report<C>) {
         self.frames.append(&mut report.frames);
     }
@@ -868,28 +857,24 @@ impl<C> Report<[C]> {
     }
 }
 
-#[cfg(any(feature = "std", rust_1_81))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(feature = "std", rust_1_81))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Send> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(feature = "std", rust_1_81))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Sync> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(feature = "std", rust_1_81))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Send + Sync> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())

@@ -81,6 +81,7 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Worker",
+        description: "A worker",
         type: "object",
         properties: {},
       },
@@ -99,6 +100,7 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Address",
+        description: "An address",
         type: "object",
         properties: {},
       },
@@ -117,6 +119,7 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Favorite Book",
+        description: "Favorite book of the user",
         oneOf: [{ $ref: textDataTypeId }],
       },
       relationships: [
@@ -134,6 +137,7 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Name",
+        description: "The name of the user",
         oneOf: [{ $ref: textDataTypeId }],
       },
       relationships: [
@@ -192,6 +196,7 @@ beforeAll(async () => {
 
   entityTypeSchema = {
     title: "Some",
+    description: "An object",
     type: "object",
     properties: {
       [favoriteBookPropertyType.metadata.recordId.baseUrl]: {

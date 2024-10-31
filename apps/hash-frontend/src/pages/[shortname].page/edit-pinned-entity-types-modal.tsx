@@ -199,6 +199,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
           entityType: {
             title,
             type: "object",
+            description: "",
             properties: {},
           },
         },
@@ -322,7 +323,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                                   justifyContent: "center",
                                 }}
                               >
-                                {field.metadata.icon ??
+                                {field.schema.icon ??
                                   (isSpecialEntityTypeLookup?.[field.schema.$id]
                                     ?.isLink ? (
                                     <CustomLinkIcon

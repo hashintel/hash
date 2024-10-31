@@ -51,9 +51,12 @@ export const useEntityIcon = (params: {
         return pageIcon;
       }
 
+      /**
+       * @todo H-739 account for 'icon' property being a URL to an image
+       */
       for (const entityType of entityTypes ?? []) {
-        if (entityType.metadata.icon) {
-          return entityType.metadata.icon;
+        if (entityType.schema.icon) {
+          return entityType.schema.icon;
         }
 
         if (entityTypeIcons[entityType.schema.$id]) {
