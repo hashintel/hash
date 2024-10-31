@@ -1,6 +1,5 @@
-use graph::store::{
-    EntityTypeStore,
-    ontology::{CreateEntityTypeParams, GetEntityTypesParams, UpdateEntityTypesParams},
+use graph::store::ontology::{
+    CreateEntityTypeParams, EntityTypeStore as _, GetEntityTypesParams, UpdateEntityTypesParams,
 };
 use graph_test_data::{data_type, entity_type, property_type};
 use graph_types::{

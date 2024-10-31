@@ -22,6 +22,7 @@ use graph_types::{
     },
 };
 use hash_graph_store::{
+    error::{InsertionError, QueryError, UpdateError},
     property_type::PropertyTypeQueryPath,
     subgraph::{
         Subgraph, SubgraphRecord,
@@ -41,8 +42,7 @@ use type_system::{
 };
 
 use crate::store::{
-    AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, StoreCache,
-    StoreProvider, UpdateError,
+    PropertyTypeStore,
     crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
@@ -52,11 +52,12 @@ use crate::store::{
         UpdatePropertyTypesParams,
     },
     postgres::{
-        TraversalContext,
+        AsClient, PostgresStore, TraversalContext,
         crud::QueryRecordDecode,
         ontology::{PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData},
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
     },
+    validation::{StoreCache, StoreProvider},
 };
 
 impl<C, A> PostgresStore<C, A>

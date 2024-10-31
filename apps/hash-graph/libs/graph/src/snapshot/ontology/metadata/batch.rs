@@ -1,10 +1,11 @@
 use error_stack::{Result, ResultExt};
+use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient;
 
 use crate::{
     snapshot::WriteBatch,
     store::{
-        AsClient, InsertionError, PostgresStore,
+        AsClient, PostgresStore,
         postgres::query::rows::{
             OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
             OntologyTemporalMetadataRow,

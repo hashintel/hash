@@ -36,6 +36,7 @@ use graph_types::{
 };
 use hash_graph_store::{
     entity::EntityQueryPath,
+    error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, Parameter},
     subgraph::{
         Subgraph, SubgraphRecord,
@@ -67,14 +68,14 @@ use uuid::Uuid;
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
 use crate::store::{
-    AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache, UpdateError,
+    AsClient, PostgresStore, StoreCache,
     crud::{QueryResult, Read, ReadPaginated, Sorting},
     error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
     knowledge::{
-        CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityValidationType,
-        GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-        PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityError,
-        ValidateEntityParams,
+        CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore,
+        EntityValidationType, GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams,
+        GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
+        UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
     },
     postgres::{
         ResponseCountMap, TraversalContext,

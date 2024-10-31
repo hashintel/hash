@@ -1,37 +1,32 @@
 pub mod crud;
 pub mod error;
+pub mod knowledge;
+pub mod ontology;
 
 mod config;
-pub mod knowledge;
 mod migration;
-pub mod ontology;
 mod pool;
 mod validation;
 
 mod fetcher;
 pub(crate) mod postgres;
 
-use hash_graph_store::account::AccountStore;
+use hash_graph_store::{account::AccountStore, data_type::DataTypeStore};
 use serde::Deserialize;
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 pub use self::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
-    error::{
-        BaseUrlAlreadyExists, InsertionError, OntologyVersionDoesNotExist, QueryError, StoreError,
-        UpdateError,
-    },
     fetcher::{FetchingPool, FetchingStore, TypeFetcher},
-    knowledge::{
-        EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
-        EntityValidationType,
-    },
     migration::{Migration, MigrationState, StoreMigration},
-    ontology::{DataTypeStore, EntityTypeStore, PropertyTypeStore},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
     validation::{StoreCache, StoreProvider},
+};
+use crate::store::{
+    knowledge::EntityStore,
+    ontology::{EntityTypeStore, PropertyTypeStore},
 };
 
 /// Describes the API of a store implementation.

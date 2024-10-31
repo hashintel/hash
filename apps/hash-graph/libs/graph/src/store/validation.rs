@@ -19,6 +19,7 @@ use graph_types::{
     },
 };
 use hash_graph_store::{
+    error::QueryError,
     filter::Filter,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
@@ -35,7 +36,10 @@ use type_system::{
 };
 use validation::EntityProvider;
 
-use crate::store::{AsClient, PostgresStore, QueryError, crud::Read};
+use crate::store::{
+    crud::Read,
+    postgres::{AsClient, PostgresStore},
+};
 
 #[derive(Debug, Clone)]
 enum Access<T> {

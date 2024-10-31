@@ -35,6 +35,7 @@ use hash_graph_store::{
         InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
         WebInsertionError,
     },
+    error::{InsertionError, QueryError, UpdateError},
 };
 use postgres_types::Json;
 use temporal_client::TemporalClient;
@@ -56,12 +57,9 @@ pub use self::{
     query::CursorField,
     traversal_context::TraversalContext,
 };
-use crate::store::{
-    BaseUrlAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
-    error::{
-        DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
-        VersionedUrlAlreadyExists,
-    },
+use crate::store::error::{
+    BaseUrlAlreadyExists, DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
+    StoreError, VersionedUrlAlreadyExists,
 };
 
 /// A Postgres-backed store

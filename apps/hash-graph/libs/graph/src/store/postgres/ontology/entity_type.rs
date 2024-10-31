@@ -22,6 +22,7 @@ use graph_types::{
 };
 use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
+    error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
         Subgraph, SubgraphRecord,
@@ -50,8 +51,7 @@ use type_system::{
 };
 
 use crate::store::{
-    AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, StoreCache,
-    StoreProvider, UpdateError,
+    EntityTypeStore,
     crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
@@ -62,11 +62,12 @@ use crate::store::{
         UpdateEntityTypesParams,
     },
     postgres::{
-        ResponseCountMap, TraversalContext,
+        AsClient, PostgresStore, ResponseCountMap, TraversalContext,
         crud::QueryRecordDecode,
         ontology::{PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData},
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
     },
+    validation::{StoreCache, StoreProvider},
 };
 
 impl<C, A> PostgresStore<C, A>

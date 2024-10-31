@@ -1,6 +1,6 @@
 use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
-use graph::store::{EntityTypeStore, ontology::GetEntityTypesParams};
+use graph::store::ontology::{EntityTypeStore as _, GetEntityTypesParams};
 use graph_types::account::AccountId;
 use hash_graph_store::{
     filter::Filter,

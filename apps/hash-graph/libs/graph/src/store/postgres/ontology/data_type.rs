@@ -19,7 +19,13 @@ use graph_types::{
     },
 };
 use hash_graph_store::{
-    data_type::DataTypeQueryPath,
+    data_type::{
+        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeQueryPath,
+        DataTypeStore, GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
+        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        UpdateDataTypesParams,
+    },
+    error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
         Subgraph, SubgraphRecord,
@@ -47,18 +53,10 @@ use type_system::{
 };
 
 use crate::store::{
-    AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, StoreCache, StoreProvider,
-    UpdateError,
     crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
-    ontology::{
-        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,
-        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
-        UpdateDataTypesParams,
-    },
     postgres::{
-        TraversalContext,
+        AsClient, PostgresStore, TraversalContext,
         crud::QueryRecordDecode,
         ontology::{PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData},
         query::{
@@ -66,6 +64,7 @@ use crate::store::{
             Table, rows::DataTypeConversionsRow,
         },
     },
+    validation::{StoreCache, StoreProvider},
 };
 
 impl<C, A> PostgresStore<C, A>

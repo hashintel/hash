@@ -2,9 +2,8 @@ use alloc::borrow::Cow;
 
 use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
-use graph::store::{
-    EntityQuerySorting, EntityStore,
-    knowledge::{GetEntitiesParams, GetEntitySubgraphParams},
+use graph::store::knowledge::{
+    EntityQuerySorting, EntityStore as _, GetEntitiesParams, GetEntitySubgraphParams,
 };
 use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
 use hash_graph_store::{

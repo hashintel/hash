@@ -4,9 +4,8 @@ use std::collections::HashSet;
 use authorization::{AuthorizationApi, NoAuthorization, schema::WebOwnerSubject};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
-use graph::store::{
-    EntityQuerySorting, EntityStore,
-    knowledge::{CreateEntityParams, GetEntitySubgraphParams},
+use graph::store::knowledge::{
+    CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitySubgraphParams,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{

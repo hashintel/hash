@@ -27,10 +27,11 @@ use type_system::{
 };
 
 use crate::store::{
-    AsClient, Ordering, PostgresStore,
+    Ordering,
     crud::{Sorting, VersionedUrlSorting},
     error::DeletionError,
     postgres::{
+        AsClient as _, PostgresStore,
         crud::QueryRecordDecode,
         query::{Distinctness, PostgresSorting, SelectCompiler},
     },

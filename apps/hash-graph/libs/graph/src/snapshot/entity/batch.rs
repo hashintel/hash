@@ -8,7 +8,7 @@ use graph_types::{
     },
     ontology::OntologyTypeProvider,
 };
-use hash_graph_store::filter::Filter;
+use hash_graph_store::{error::InsertionError, filter::Filter};
 use tokio_postgres::GenericClient;
 use type_system::schema::{ClosedEntityType, ClosedMultiEntityType};
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
@@ -16,11 +16,15 @@ use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 use crate::{
     snapshot::WriteBatch,
     store::{
-        AsClient, EntityStore, InsertionError, PostgresStore, StoreCache, StoreProvider,
+        StoreCache, StoreProvider,
         crud::Read,
-        postgres::query::rows::{
-            EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
-            EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
+        knowledge::EntityStore as _,
+        postgres::{
+            AsClient, PostgresStore,
+            query::rows::{
+                EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
+                EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
+            },
         },
     },
 };

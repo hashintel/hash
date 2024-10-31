@@ -12,7 +12,10 @@ use tokio_postgres::{
 };
 
 use crate::store::{
-    DatabaseConnectionInfo, PostgresStore, StoreError, StorePool, config::DatabasePoolConfig,
+    config::{DatabaseConnectionInfo, DatabasePoolConfig},
+    error::StoreError,
+    pool::StorePool,
+    postgres::PostgresStore,
 };
 
 pub struct PostgresStorePool {
