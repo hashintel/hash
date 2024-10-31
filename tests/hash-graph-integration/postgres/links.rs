@@ -1,9 +1,9 @@
 use alloc::borrow::Cow;
 use std::collections::HashSet;
 
-use graph::store::{
-    EntityQuerySorting, EntityStore,
-    knowledge::{CountEntitiesParams, CreateEntityParams, GetEntitiesParams, PatchEntityParams},
+use graph::store::knowledge::{
+    CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore as _,
+    GetEntitiesParams, PatchEntityParams,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{

@@ -2810,6 +2810,7 @@ dependencies = [
  "graph",
  "graph-api",
  "graph-types",
+ "hash-graph-store",
  "hash-tracing",
  "mimalloc",
  "regex",

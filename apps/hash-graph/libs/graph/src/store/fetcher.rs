@@ -30,6 +30,13 @@ use hash_graph_store::{
         InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
         WebInsertionError,
     },
+    data_type::{
+        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
+        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
+        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        UpdateDataTypesParams,
+    },
+    error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -49,26 +56,23 @@ use type_system::{
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
-        DataTypeStore, EntityStore, EntityTypeStore, InsertionError, PropertyTypeStore, QueryError,
-        StoreError, StorePool, UpdateError,
+        EntityStore, EntityTypeStore, PropertyTypeStore, StorePool,
         crud::{QueryResult, Read, ReadPaginated, Sorting},
+        error::StoreError,
         knowledge::{
             CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
             GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
             UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
-            ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
-            CountDataTypesParams, CountEntityTypesParams, CountPropertyTypesParams,
-            CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            ArchiveEntityTypeParams, ArchivePropertyTypeParams, CountEntityTypesParams,
+            CountPropertyTypesParams, CreateEntityTypeParams, CreatePropertyTypeParams,
             GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
-            GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-            GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
-            GetEntityTypesParams, GetEntityTypesResponse, GetPropertyTypeSubgraphParams,
-            GetPropertyTypeSubgraphResponse, GetPropertyTypesParams, GetPropertyTypesResponse,
-            UnarchiveDataTypeParams, UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
-            UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
-            UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+            GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
+            GetEntityTypesResponse, GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse,
+            GetPropertyTypesParams, GetPropertyTypesResponse, UnarchiveEntityTypeParams,
+            UnarchivePropertyTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
     },
 };
@@ -887,7 +891,6 @@ where
     async fn archive_data_type(
         &mut self,
         actor_id: AccountId,
-
         params: ArchiveDataTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store.archive_data_type(actor_id, params).await
@@ -896,7 +899,6 @@ where
     async fn unarchive_data_type(
         &mut self,
         actor_id: AccountId,
-
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store.unarchive_data_type(actor_id, params).await
@@ -905,7 +907,6 @@ where
     async fn update_data_type_embeddings(
         &mut self,
         actor_id: AccountId,
-
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> Result<(), UpdateError> {
         self.store

@@ -43,7 +43,10 @@ use graph_types::{
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     owned_by_id::OwnedById,
 };
-use hash_graph_store::filter::{Filter, QueryRecord};
+use hash_graph_store::{
+    error::InsertionError,
+    filter::{Filter, QueryRecord},
+};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
@@ -61,7 +64,11 @@ use crate::{
         },
         restore::SnapshotRecordBatch,
     },
-    store::{AsClient, InsertionError, PostgresStore, PostgresStorePool, StorePool, crud::Read},
+    store::{
+        StorePool,
+        crud::Read,
+        postgres::{AsClient, PostgresStore, PostgresStorePool},
+    },
 };
 
 #[derive(Debug, Serialize, Deserialize)]

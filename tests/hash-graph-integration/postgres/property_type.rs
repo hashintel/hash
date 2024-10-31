@@ -1,6 +1,6 @@
-use graph::store::{
-    PropertyTypeStore,
-    ontology::{CreatePropertyTypeParams, GetPropertyTypesParams, UpdatePropertyTypesParams},
+use graph::store::ontology::{
+    CreatePropertyTypeParams, GetPropertyTypesParams, PropertyTypeStore as _,
+    UpdatePropertyTypesParams,
 };
 use graph_test_data::{data_type, property_type};
 use graph_types::{

@@ -27,13 +27,13 @@ use graph::{
         patch_id_and_parse,
     },
     store::{
-        EntityTypeStore, StorePool,
+        StorePool,
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
-            ArchiveEntityTypeParams, CreateEntityTypeParams, GetClosedMultiEntityTypeParams,
-            GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams, GetEntityTypesParams,
-            GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-            UpdateEntityTypesParams,
+            ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeStore as _,
+            GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
+            GetEntityTypeSubgraphParams, GetEntityTypesParams, GetEntityTypesResponse,
+            UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
         },
     },
 };

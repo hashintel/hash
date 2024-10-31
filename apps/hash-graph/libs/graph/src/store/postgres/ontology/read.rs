@@ -5,6 +5,7 @@ use futures::{Stream, StreamExt};
 use graph_types::ontology::EntityTypeWithMetadata;
 use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
+    error::QueryError,
     filter::Filter,
     subgraph::{
         edges::GraphResolveDepths,
@@ -19,9 +20,9 @@ use type_system::{
     url::VersionedUrl,
 };
 
-use crate::store::{
-    AsClient, PostgresStore, QueryError,
-    postgres::query::{
+use crate::store::postgres::{
+    AsClient, PostgresStore,
+    query::{
         Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile,
         table::DatabaseColumn,
     },

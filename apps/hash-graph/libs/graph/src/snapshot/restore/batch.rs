@@ -1,5 +1,6 @@
 use authorization::{AuthorizationApi, backend::ZanzibarBackend};
 use error_stack::Result;
+use hash_graph_store::error::InsertionError;
 
 use crate::{
     snapshot::{
@@ -12,7 +13,7 @@ use crate::{
         owner::AccountRowBatch,
         web::WebBatch,
     },
-    store::{AsClient, InsertionError, PostgresStore},
+    store::{AsClient, PostgresStore},
 };
 
 pub enum SnapshotRecordBatch {
