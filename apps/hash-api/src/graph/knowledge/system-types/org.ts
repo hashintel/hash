@@ -18,7 +18,10 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { AccountGroupEntityId } from "@local/hash-subgraph";
 import { extractAccountGroupId } from "@local/hash-subgraph";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  versionedUrlFromComponents,
+} from "@local/hash-subgraph/type-system-patch";
 
 import {
   createAccountGroup,
@@ -48,10 +51,14 @@ export type Org = {
 
 function assertOrganizationEntity(
   entity: Entity,
+  permitOlderVersions: boolean = false,
 ): asserts entity is Entity<Organization> {
   if (
-    !entity.metadata.entityTypeIds.includes(
-      systemEntityTypes.organization.entityTypeId,
+    !entity.metadata.entityTypeIds.find((entityTypeId) =>
+      permitOlderVersions
+        ? extractBaseUrl(entityTypeId) ===
+          systemEntityTypes.organization.entityTypeBaseUrl
+        : entityTypeId === systemEntityTypes.organization.entityTypeId,
     )
   ) {
     throw new EntityTypeMismatchError(
@@ -62,10 +69,11 @@ function assertOrganizationEntity(
   }
 }
 
-export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
-  entity,
-}) => {
-  assertOrganizationEntity(entity);
+export const getOrgFromEntity: PureGraphFunction<
+  { entity: Entity; permitOlderVersions?: boolean },
+  Org
+> = ({ entity, permitOlderVersions }) => {
+  assertOrganizationEntity(entity, permitOlderVersions);
 
   const { organizationName: orgName, shortname } = simplifyProperties(
     entity.properties,
@@ -190,7 +198,10 @@ export const createOrg: ImpureGraphFunction<
     ],
   });
 
-  return getOrgFromEntity({ entity });
+  return getOrgFromEntity({
+    entity,
+    permitOlderVersions: entityTypeVersion !== undefined,
+  });
 };
 
 /**
@@ -215,7 +226,7 @@ export const getOrgById: ImpureGraphFunction<
  * @param params.shortname - the shortname of the organization
  */
 export const getOrgByShortname: ImpureGraphFunction<
-  { shortname: string },
+  { permitOlderVersions?: boolean; shortname: string },
   Promise<Org | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [orgEntity, ...unexpectedEntities] = await graphApi
@@ -260,7 +271,12 @@ export const getOrgByShortname: ImpureGraphFunction<
     );
   }
 
-  return orgEntity ? getOrgFromEntity({ entity: orgEntity }) : null;
+  return orgEntity
+    ? getOrgFromEntity({
+        entity: orgEntity,
+        permitOlderVersions: params.permitOlderVersions,
+      })
+    : null;
 };
 
 /**

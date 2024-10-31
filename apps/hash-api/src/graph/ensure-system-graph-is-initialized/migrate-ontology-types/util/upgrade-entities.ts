@@ -22,7 +22,10 @@ import {
   getBreadthFirstEntityTypesAndParents,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
+import {
+  componentsFromVersionedUrl,
+  versionedUrlFromComponents,
+} from "@local/hash-subgraph/type-system-patch";
 import isEqual from "lodash/isEqual";
 
 import type { ImpureGraphContext } from "../../../context-types";
@@ -231,15 +234,15 @@ export const upgradeWebEntities = async ({
           await updateEntity(context, updateAuthentication, {
             entity,
             entityTypeIds: mustHaveAtLeastOne(
-              allTypeRecordIdsForEntity.map((recordId) => {
-                if (recordId.baseUrl === baseUrlBeingUpgraded) {
+              entity.metadata.entityTypeIds.map((entityTypeId) => {
+                const { baseUrl, version } =
+                  componentsFromVersionedUrl(entityTypeId);
+
+                if (baseUrl === baseUrlBeingUpgraded) {
                   return newEntityTypeId;
                 }
 
-                return versionedUrlFromComponents(
-                  recordId.baseUrl,
-                  recordId.version,
-                );
+                return versionedUrlFromComponents(baseUrl, version);
               }),
             ),
             propertyPatches: migratePropertiesFunction
