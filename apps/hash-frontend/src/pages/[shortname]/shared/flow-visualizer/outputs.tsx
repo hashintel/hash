@@ -54,6 +54,7 @@ import { EntityResultTable } from "./outputs/entity-result-table";
 import { outputIcons } from "./outputs/shared/icons";
 import { flowSectionBorderRadius } from "./shared/styles";
 import type { ProposedEntityOutput } from "./shared/types";
+import { EntityEditorSlideStack } from "../../../shared/entity-editor-slide-stack";
 
 export const getDeliverables = (
   outputs?: FlowRun["outputs"],
@@ -573,15 +574,14 @@ export const Outputs = ({
           onClose={() => setSlideOver(null)}
         />
       )}
-      {selectedEntitySubgraph && (
-        <EditEntitySlideOver
+      {selectedEntitySubgraph && slideOver?.type === "entity" && (
+        <EntityEditorSlideStack
           entitySubgraph={selectedEntitySubgraph}
           hideOpenInNew={persistedEntities.length === 0}
-          onEntityClick={onEntityClick}
-          open={slideOver?.type === "entity"}
+          rootEntityId={slideOver.entityId}
           onClose={() => setSlideOver(null)}
           onSubmit={() => {
-            throw new Error("Editing not permitted in this context");
+            throw new Error(`Editing not yet supported from this screen`);
           }}
           readonly
         />

@@ -252,6 +252,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         />
       ) : null}
       {blockSubgraph && (
+        // @todo replace this with EntityEditorSlideStack
         <EditEntitySlideOver
           open={entityEditorOpen}
           onClose={() => setEntityEditorOpen(false)}
