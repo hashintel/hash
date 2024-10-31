@@ -8,6 +8,7 @@ import type {
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
+  getEntityRevision,
   getEntityTypeAndParentsById,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
@@ -35,22 +36,25 @@ const getLabelPropertyValue = (
 const getFallbackLabel = ({
   entityType,
   entity,
+  includeHexChars,
 }: {
   entityType?: EntityType;
   entity: {
     properties: Entity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
   };
+  includeHexChars: boolean;
 }) => {
   // fallback to the entity type and a few characters of the entityUuid
   const entityId = entity.metadata.recordId.entityId;
 
   const entityTypeName = entityType?.title ?? "Entity";
 
-  return `${entityTypeName}-${extractEntityUuidFromEntityId(entityId).slice(
-    0,
-    5,
-  )}`;
+  return `${entityTypeName}${
+    includeHexChars
+      ? `-${extractEntityUuidFromEntityId(entityId).slice(0, 3)}`
+      : ""
+  }`;
 };
 
 export function generateEntityLabel(
@@ -59,6 +63,7 @@ export function generateEntityLabel(
     properties: Entity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
   },
+  includeHexChars?: boolean,
 ): string;
 export function generateEntityLabel(
   entitySubgraph: Subgraph | null,
@@ -66,6 +71,7 @@ export function generateEntityLabel(
     properties: Entity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
   },
+  includeHexChars?: boolean,
 ): string;
 /**
  * Generate a display label for an entity
@@ -81,6 +87,7 @@ export function generateEntityLabel(
     properties: Entity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
   },
+  includeHexChars: boolean = true,
 ): string {
   if (!entitySubgraph && !entity) {
     throw new Error(`One of entitySubgraph or entity must be provided`);
@@ -186,5 +193,42 @@ export function generateEntityLabel(
   return getFallbackLabel({
     entityType: entityType?.schema,
     entity: entityToLabel,
+    includeHexChars,
   });
 }
+
+export const generateLinkEntityLabel = (
+  entitySubgraph: Subgraph,
+  entity: {
+    linkData: Entity["linkData"];
+    properties: Entity["properties"];
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
+  },
+) => {
+  const entityLabel = generateEntityLabel(entitySubgraph, entity, false);
+
+  if (!entity.linkData) {
+    return entityLabel;
+  }
+
+  const leftEntity = getEntityRevision(
+    entitySubgraph,
+    entity.linkData.leftEntityId,
+  );
+  if (!leftEntity) {
+    return entityLabel;
+  }
+
+  const rightEntity = getEntityRevision(
+    entitySubgraph,
+    entity.linkData.rightEntityId,
+  );
+  if (!rightEntity) {
+    return entityLabel;
+  }
+
+  const leftLabel = generateEntityLabel(entitySubgraph, leftEntity);
+  const rightLabel = generateEntityLabel(entitySubgraph, rightEntity);
+
+  return `${leftLabel} - ${entityLabel} - ${rightLabel}`;
+};

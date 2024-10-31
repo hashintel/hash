@@ -1,22 +1,43 @@
-import { Box, useTheme } from "@mui/material";
+import { Box, Stack, useTheme } from "@mui/material";
 import { SigmaContainer } from "@react-sigma/core";
 import { EdgeCurvedArrowProgram } from "@sigma/edge-curve";
 import { createNodeBorderProgram } from "@sigma/node-border";
+import { createNodeImageProgram } from "@sigma/node-image";
 import { MultiDirectedGraph } from "graphology";
 import { memo, useMemo, useRef } from "react";
-import { EdgeArrowProgram } from "sigma/rendering";
+import { createNodeCompoundProgram, EdgeArrowProgram } from "sigma/rendering";
 
 import { FullScreenButton } from "./graph-container/full-screen-button";
 import type { GraphLoaderProps } from "./graph-container/graph-data-loader";
 import { GraphDataLoader } from "./graph-container/graph-data-loader";
-import type { GraphVizConfig } from "./graph-container/shared/config-control";
+import { PathFinderControl } from "./graph-container/path-finder-control";
+import { SearchControl } from "./graph-container/search-control";
+import type {
+  DynamicNodeSizing,
+  GraphVizConfig,
+  StaticNodeSizing,
+} from "./graph-container/shared/config-control";
 import { ConfigControl } from "./graph-container/shared/config-control";
+import type { GraphVizFilters } from "./graph-container/shared/filter-control";
 import { FilterControl } from "./graph-container/shared/filter-control";
 import { FullScreenContextProvider } from "./graph-container/shared/full-screen-context";
 import { GraphContextProvider } from "./graph-container/shared/graph-context";
+import { ZoomControl } from "./graph-container/zoom-control";
 
-export type GraphContainerProps = Omit<GraphLoaderProps, "config"> & {
-  defaultConfig: GraphVizConfig;
+export type GraphContainerProps<
+  NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
+> = Omit<GraphLoaderProps, "config"> & {
+  defaultConfig: GraphVizConfig<NodeSizing>;
+  defaultFilters?: GraphVizFilters;
+  /**
+   * When toggling fullscreen, whether:
+   * 1. the whole document will be sent into fullscreen, or
+   * 2. only the graph container will be sent into fullscreen
+   *
+   * The latter may be suitable when the graph is part of a larger layout.
+   */
+  fullScreenMode?: "document" | "element";
+  onRender?: () => void;
 };
 
 const borderRadii = {
@@ -24,14 +45,36 @@ const borderRadii = {
   borderBottomRightRadius: "8px",
 };
 
+const bordered = createNodeBorderProgram({
+  borders: [
+    {
+      size: { value: 2, mode: "pixels" },
+      color: { attribute: "borderColor" },
+    },
+    { size: { fill: true }, color: { attribute: "color" } },
+  ],
+});
+
+const NodePictogramCustomProgram = createNodeImageProgram({
+  padding: 0.35,
+  drawingMode: "color",
+  colorAttribute: "iconColor",
+  objectFit: "contain",
+});
+
+const icon = createNodeCompoundProgram([bordered, NodePictogramCustomProgram]);
+
 export const GraphContainer = memo(
-  ({
+  <NodeSizing extends DynamicNodeSizing | StaticNodeSizing>({
     defaultConfig,
+    defaultFilters,
     edges,
+    fullScreenMode,
     nodes,
     onEdgeClick,
     onNodeSecondClick,
-  }: GraphContainerProps) => {
+    onRender,
+  }: GraphContainerProps<NodeSizing>) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
     const { palette } = useTheme();
@@ -42,22 +85,18 @@ export const GraphContainer = memo(
          * These are the settings that won't change in the lifetime of the graph
          * (unless code is changed to make onEdgeClick or palette dynamic).
          *
-         * the nodeProgramClasses setting in particular must not be recreated rapidly,
-         * as it can cause a crash due to the program being absent,
-         * Probably because it needs to call createNodeBorderProgram each time it's recreated
-         * and recreating rapidly it might cause the program to be absent.
-         *
          * If you need to make some settings dependent on potentially fast-changing state (e.g. viz config),
-         * put them in {@link useSetDrawSettings} and {@link useEventHandlers}, or at least memoize nodeProgramClasses separately.
+         * put them in {@link useSetDrawSettings} and {@link useEventHandlers}.
          */
         defaultNodeType: "bordered",
         enableEdgeEvents: !!onEdgeClick,
         /**
          * Edge labels are only shown on hover, controlled in the event handlers.
          */
-        edgeLabelColor: { color: "rgba(80, 80, 80, 0.6)" },
+        edgeLabelColor: { color: "rgba(80, 80, 80, 1)" },
         edgeLabelFont: `"Inter", "Helvetica", "sans-serif"`,
-        edgeLabelSize: 10,
+        edgeLabelSize: 11,
+        edgeLabelWeight: "600",
         edgeProgramClasses: {
           arrow: EdgeArrowProgram,
           curved: EdgeCurvedArrowProgram,
@@ -73,23 +112,19 @@ export const GraphContainer = memo(
          */
         labelDensity: 1,
         nodeProgramClasses: {
-          bordered: createNodeBorderProgram({
-            borders: [
-              {
-                size: { value: 2, mode: "pixels" },
-                color: { attribute: "borderColor" },
-              },
-              { size: { fill: true }, color: { attribute: "color" } },
-            ],
-          }),
+          bordered,
+          icon,
         },
+        renderEdgeLabels: true,
+        zoomDuration: 0.05,
+        zoomingRatio: 1.25,
         zIndex: true,
       }),
       [onEdgeClick, palette],
     );
 
     return (
-      <FullScreenContextProvider>
+      <FullScreenContextProvider fullScreenMode={fullScreenMode}>
         <Box
           ref={containerRef}
           sx={{
@@ -111,12 +146,23 @@ export const GraphContainer = memo(
             <GraphContextProvider
               graphContainerRef={containerRef}
               defaultConfig={defaultConfig}
+              defaultFilters={defaultFilters}
               onEdgeClick={onEdgeClick}
               onNodeSecondClick={onNodeSecondClick}
+              onRender={onRender}
             >
-              <FullScreenButton />
+              <PathFinderControl nodes={nodes} />
+              <SearchControl nodes={nodes} />
               <ConfigControl />
               <FilterControl nodes={nodes} />
+              <Stack
+                direction="row"
+                gap={1}
+                sx={{ position: "absolute", bottom: 8, right: 8 }}
+              >
+                <FullScreenButton />
+                <ZoomControl />
+              </Stack>
               <GraphDataLoader
                 nodes={nodes}
                 edges={edges}

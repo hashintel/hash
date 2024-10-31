@@ -2,16 +2,28 @@ import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import {
+  generateEntityLabel,
+  generateLinkEntityLabel,
+} from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { LinkEntityAndRightEntity } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
-import { Box, TableCell } from "@mui/material";
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Box, TableCell, Typography } from "@mui/material";
+import type { ReactElement } from "react";
+import {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
+import { ClickableCellChip } from "../../../../../../shared/clickable-cell-chip";
 import { ValueChip } from "../../../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
@@ -30,6 +42,7 @@ import { isValueIncludedInFilter } from "../../../../../../shared/virtualized-ta
 import type { VirtualizedTableSort } from "../../../../../../shared/virtualized-table/header/sort";
 import { useVirtualizedTableFilterState } from "../../../../../../shared/virtualized-table/use-filter-state";
 import { useEntityEditor } from "../../entity-editor-context";
+import type { CustomColumn } from "../../shared/types";
 import { PropertiesTooltip } from "../shared/properties-tooltip";
 import {
   linksTableCellSx,
@@ -40,9 +53,12 @@ import {
 
 const fieldIds = ["linkType", "linkedTo", "linkedToType", "link"] as const;
 
-type FieldId = (typeof fieldIds)[number];
+type OutgoingLinksFieldId = (typeof fieldIds)[number];
 
-const columns: VirtualizedTableColumn<FieldId>[] = [
+export type OutgoingLinksFilterValues =
+  VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
+
+const staticColumns: VirtualizedTableColumn<OutgoingLinksFieldId>[] = [
   {
     label: "Link type",
     id: "linkType",
@@ -53,7 +69,7 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     label: "Linked to",
     id: "linkedTo",
     sortable: true,
-    width: 120,
+    width: 200,
   },
   {
     label: "Linked to type",
@@ -65,9 +81,24 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     label: "Link",
     id: "link",
     sortable: true,
-    width: 120,
+    width: 180,
   },
 ];
+
+const createColumns = (customColumns: CustomColumn[]) => {
+  const columns = [...staticColumns];
+
+  for (const customColumn of customColumns) {
+    columns.push({
+      label: customColumn.label,
+      id: customColumn.id as OutgoingLinksFieldId,
+      sortable: customColumn.sortable,
+      width: customColumn.width,
+    });
+  }
+
+  return columns;
+};
 
 type OutgoingLinkRow = {
   targetEntity: Entity;
@@ -79,9 +110,19 @@ type OutgoingLinkRow = {
   linkEntityProperties: { [propertyTitle: string]: string };
   linkEntityType: EntityType;
   onEntityClick: (entityId: EntityId) => void;
+  customFields: { [fieldId: string]: string | number };
 };
 
 const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
+  const customCells: ReactElement[] = [];
+  for (const [fieldId, value] of typedEntries(row.customFields)) {
+    customCells.push(
+      <TableCell key={fieldId} sx={linksTableCellSx}>
+        <Typography sx={{ fontSize: linksTableFontSize }}>{value}</Typography>
+      </TableCell>,
+    );
+  }
+
   return (
     <>
       <TableCell sx={linksTableCellSx}>
@@ -99,29 +140,13 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
           entityType="target entity"
           properties={row.targetEntityProperties}
         >
-          <Box
-            component="button"
+          <ClickableCellChip
             onClick={() =>
               row.onEntityClick(row.targetEntity.metadata.recordId.entityId)
             }
-            sx={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              maxWidth: "100%",
-              p: 0,
-              textAlign: "left",
-            }}
-          >
-            <ValueChip
-              sx={{
-                color: ({ palette }) => palette.blue[70],
-                fontSize: linksTableFontSize,
-              }}
-            >
-              {row.targetEntityLabel}
-            </ValueChip>
-          </Box>
+            fontSize={linksTableFontSize}
+            label={row.targetEntityLabel}
+          />
         </PropertiesTooltip>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
@@ -139,36 +164,23 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
           entityType="link entity"
           properties={row.linkEntityProperties}
         >
-          <Box
-            component="button"
-            onClick={() => row.onEntityClick(row.linkEntity.entityId)}
-            sx={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              maxWidth: "100%",
-              p: 0,
-              textAlign: "left",
-            }}
-          >
-            <ValueChip
-              sx={{
-                color: ({ palette }) => palette.blue[70],
-                fontSize: linksTableFontSize,
-              }}
-            >
-              {row.linkEntityLabel}
-            </ValueChip>
-          </Box>
+          <ClickableCellChip
+            onClick={() =>
+              row.onEntityClick(row.linkEntity.metadata.recordId.entityId)
+            }
+            fontSize={linksTableFontSize}
+            label={row.linkEntityLabel}
+          />
         </PropertiesTooltip>
       </TableCell>
+      {customCells.map((customCell) => customCell)}
     </>
   );
 });
 
 const createRowContent: CreateVirtualizedRowContentFn<
   OutgoingLinkRow,
-  FieldId
+  OutgoingLinksFieldId
 > = (_index, row) => <TableRow row={row.data} />;
 
 type OutgoingLinksTableProps = {
@@ -177,12 +189,19 @@ type OutgoingLinksTableProps = {
 
 export const OutgoingLinksTable = memo(
   ({ outgoingLinksAndTargets }: OutgoingLinksTableProps) => {
-    const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
+    const [sort, setSort] = useState<
+      VirtualizedTableSort<OutgoingLinksFieldId>
+    >({
       fieldId: "linkedTo",
       direction: "asc",
     });
 
-    const { entitySubgraph, onEntityClick } = useEntityEditor();
+    const {
+      customColumns,
+      defaultOutgoingLinkFilters,
+      entitySubgraph,
+      onEntityClick,
+    } = useEntityEditor();
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
     const [outputContainerHeight, setOutputContainerHeight] = useState(400);
@@ -200,8 +219,8 @@ export const OutgoingLinksTable = memo(
       initialFilterValues,
       unsortedRows,
     }: {
-      filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<FieldId>;
-      initialFilterValues: VirtualizedTableFilterValuesByFieldId<FieldId>;
+      filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
+      initialFilterValues: VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
       unsortedRows: VirtualizedTableRow<OutgoingLinkRow>[];
     } = useMemo(() => {
       const rowData: VirtualizedTableRow<OutgoingLinkRow>[] = [];
@@ -231,7 +250,7 @@ export const OutgoingLinksTable = memo(
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
-      } as const satisfies VirtualizedTableFilterDefinitionsByFieldId<FieldId>;
+      } as const satisfies VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
 
       const entityTypesByVersionedUrl: Record<VersionedUrl, EntityType> = {};
 
@@ -240,8 +259,22 @@ export const OutgoingLinksTable = memo(
         linkEntity: linkEntityRevisions,
       } of outgoingLinksAndTargets) {
         const linkEntity = linkEntityRevisions[0];
+
         if (!linkEntity) {
           throw new Error("Expected at least one link revision");
+        }
+
+        const customFields: OutgoingLinkRow["customFields"] = {};
+        for (const customColumn of customColumns ?? []) {
+          if (
+            linkEntity.metadata.entityTypeId ===
+            customColumn.appliesToEntityTypeId
+          ) {
+            customFields[customColumn.id] = customColumn.calculateValue(
+              linkEntity,
+              entitySubgraph,
+            );
+          }
         }
 
         const linkEntityTypeId = linkEntity.metadata.entityTypeId;
@@ -271,13 +304,13 @@ export const OutgoingLinksTable = memo(
 
         const rightEntity = rightEntityRevisions[0];
         if (!rightEntity) {
-          throw new Error("Expected at least one left entity revision");
+          throw new Error("Expected at least one right entity revision");
         }
 
-        const rightEntityLabel = generateEntityLabel(
-          entitySubgraph,
-          rightEntity,
-        );
+        const rightEntityLabel = rightEntity.linkData
+          ? generateLinkEntityLabel(entitySubgraph, rightEntity)
+          : generateEntityLabel(entitySubgraph, rightEntity);
+
         filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId] ??=
           {
             label: rightEntityLabel,
@@ -357,6 +390,7 @@ export const OutgoingLinksTable = memo(
         rowData.push({
           id: linkEntity.metadata.recordId.entityId,
           data: {
+            customFields,
             linkEntityType,
             linkEntity,
             linkEntityLabel,
@@ -376,17 +410,28 @@ export const OutgoingLinksTable = memo(
           typedEntries(filterDefs).map(
             ([columnId, filterDef]) =>
               [columnId, filterDef.initialValue] satisfies [
-                FieldId,
+                OutgoingLinksFieldId,
                 VirtualizedTableFilterValue,
               ],
           ),
-        ) as VirtualizedTableFilterValuesByFieldId<FieldId>,
+        ) as OutgoingLinksFilterValues,
         unsortedRows: rowData,
       };
-    }, [entitySubgraph, outgoingLinksAndTargets, onEntityClick]);
+    }, [customColumns, entitySubgraph, outgoingLinksAndTargets, onEntityClick]);
+
+    const [highlightOutgoingLinks, setHighlightOutgoingLinks] = useState(
+      !!defaultOutgoingLinkFilters,
+    );
+
+    useEffect(() => {
+      setTimeout(() => setHighlightOutgoingLinks(false), 5_000);
+    }, []);
 
     const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
-      defaultFilterValues: initialFilterValues,
+      defaultFilterValues: {
+        ...initialFilterValues,
+        ...(defaultOutgoingLinkFilters ?? {}),
+      },
       filterDefinitions,
     });
 
@@ -479,12 +524,34 @@ export const OutgoingLinksTable = memo(
                   direction
                 );
               }
-              default:
-                throw new Error(`Unexpected fieldId: ${field}`);
+              default: {
+                const customFieldA = a.data.customFields[field];
+                const customFieldB = b.data.customFields[field];
+                if (
+                  typeof customFieldA === "number" &&
+                  typeof customFieldB === "number"
+                ) {
+                  return (customFieldA - customFieldB) * direction;
+                }
+                return (
+                  String(customFieldA).localeCompare(String(customFieldB)) *
+                  direction
+                );
+              }
             }
           }),
       [filterValues, sort, unsortedRows],
     );
+
+    const columns = useMemo(() => {
+      const applicableCustomColumns = customColumns?.filter(
+        (column) =>
+          typeof filterValues.linkType === "object" &&
+          filterValues.linkType.has(column.appliesToEntityTypeId),
+      );
+
+      return createColumns(applicableCustomColumns ?? []);
+    }, [filterValues, customColumns]);
 
     const height = Math.min(
       maxLinksTableHeight,
@@ -492,7 +559,20 @@ export const OutgoingLinksTable = memo(
     );
 
     return (
-      <Box sx={{ height }}>
+      <Box
+        sx={({ palette, transitions }) => ({
+          borderRadius: 2,
+          height,
+          outlineOffset: 3,
+          outline: "2px solid transparent",
+          transition: transitions.create("outline-color", { duration: 500 }),
+          ...(highlightOutgoingLinks
+            ? {
+                outline: `2px solid ${palette.blue[70]}`,
+              }
+            : {}),
+        })}
+      >
         <VirtualizedTable
           columns={columns}
           createRowContent={createRowContent}

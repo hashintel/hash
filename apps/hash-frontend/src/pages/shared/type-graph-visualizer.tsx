@@ -10,12 +10,14 @@ import type { RefObject } from "react";
 import { useCallback, useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import type { GraphVisualizerProps } from "./graph-visualizer";
-import { GraphVisualizer } from "./graph-visualizer";
 import type {
+  GraphVisualizerProps,
+  GraphVizConfig,
   GraphVizEdge,
   GraphVizNode,
-} from "./graph-visualizer/graph-container/graph-data-loader";
+  StaticNodeSizing,
+} from "./graph-visualizer";
+import { GraphVisualizer } from "./graph-visualizer";
 
 const anythingNodeId = "anything";
 
@@ -26,7 +28,13 @@ const defaultConfig = {
     depth: 1,
   },
   nodeSizing: { mode: "static" },
-} as const;
+  edgeSizing: {
+    min: 3,
+    max: 3,
+    nonHighlightedVisibleSizeThreshold: 3,
+    scale: "Linear",
+  },
+} as const satisfies GraphVizConfig<StaticNodeSizing>;
 
 export const TypeGraphVisualizer = ({
   onTypeClick,
@@ -240,7 +248,7 @@ export const TypeGraphVisualizer = ({
   }, [isSpecialEntityTypeLookup, palette, types]);
 
   const onNodeClick = useCallback<
-    NonNullable<GraphVisualizerProps["onNodeSecondClick"]>
+    NonNullable<GraphVisualizerProps<StaticNodeSizing>["onNodeSecondClick"]>
   >(
     ({ nodeId, screenContainerRef }) => {
       if (nodeId === anythingNodeId) {

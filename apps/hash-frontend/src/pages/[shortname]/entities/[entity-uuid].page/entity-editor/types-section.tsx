@@ -22,7 +22,8 @@ import { useEntityEditor } from "./entity-editor-context";
 import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
 
 export const TypesSection = () => {
-  const { entitySubgraph, onEntityUpdated, readonly } = useEntityEditor();
+  const { entitySubgraph, disableTypeClick, onEntityUpdated, readonly } =
+    useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
 
@@ -124,7 +125,9 @@ export const TypesSection = () => {
     >
       <Box display="flex" gap={2}>
         <TypeCard
+          disableClick={disableTypeClick}
           LinkComponent={Link}
+          icon={entityType?.schema.icon}
           url={entityTypeId}
           title={entityTypeTitle}
           version={currentVersion}

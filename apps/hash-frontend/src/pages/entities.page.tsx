@@ -366,7 +366,7 @@ const EntitiesPage: NextPageWithLayout = () => {
       >
         <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
           <EntitiesTable
-            hideEntityTypeVersionColumn={!!entityTypeId}
+            hideColumns={entityTypeId ? ["entityTypeVersion"] : []}
             hidePropertiesColumns
           />
         </EntityTypeEntitiesContext.Provider>

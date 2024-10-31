@@ -6,18 +6,24 @@ import { Box } from "@mui/material";
 import type { RefObject } from "react";
 import { useMemo } from "react";
 
-import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { FilePreviewSection } from "./entity-editor/file-preview-section";
 import { HistorySection } from "./entity-editor/history-section";
 import { LinkSection } from "./entity-editor/link-section";
 import { LinksSection } from "./entity-editor/links-section";
+import type { OutgoingLinksFilterValues } from "./entity-editor/links-section/outgoing-links-section/readonly-outgoing-links-table";
 import { PropertiesSection } from "./entity-editor/properties-section";
+import type { CustomColumn } from "./entity-editor/shared/types";
 import { TypesSection } from "./entity-editor/types-section";
 import { useEntityEditorTab } from "./shared/entity-editor-tabs";
 import type { DraftLinkState } from "./shared/use-draft-link-state";
 
+export type { CustomColumn };
+
 export interface EntityEditorProps extends DraftLinkState {
+  customColumns?: CustomColumn[];
+  defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
+  disableTypeClick?: boolean;
   isDirty: boolean;
   entityLabel: string;
   entitySubgraph: Subgraph<EntityRootType>;
@@ -35,8 +41,6 @@ export interface EntityEditorProps extends DraftLinkState {
 export const EntityEditor = (props: EntityEditorProps) => {
   const { entitySubgraph } = props;
 
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
-
   const entity = useMemo(() => {
     const roots = getRoots(entitySubgraph);
 
@@ -44,7 +48,8 @@ export const EntityEditor = (props: EntityEditorProps) => {
       /**
        * If this is thrown then the entitySubgraph is probably the result of a query for an entityId without a draftId,
        * where there is a live entity and one or more draft updates in the database.
-       * Any query without an entityId should EXCLUDE entities with a draftId to ensure only the live version is returned.
+       * Any query without an entityId should EXCLUDE entities with a draftId to ensure only the live version is
+       * returned.
        */
       throw new Error(
         `More than one root entity passed to entity editor, with ids: ${roots
@@ -62,10 +67,11 @@ export const EntityEditor = (props: EntityEditorProps) => {
     return rootEntity;
   }, [entitySubgraph]);
 
-  const isLinkEntity = useMemo(
-    () => isSpecialEntityTypeLookup?.[entity.metadata.entityTypeId]?.isLink,
-    [entity, isSpecialEntityTypeLookup],
-  );
+  /**
+   * @todo when we allow starting an empty link entity and choosing the type later, this will need to be updated
+   *    to use isSpecialEntityTypeLookup instead
+   */
+  const isLinkEntity = !!entity.linkData;
 
   const tab = useEntityEditorTab();
 
@@ -81,7 +87,7 @@ export const EntityEditor = (props: EntityEditorProps) => {
 
           <PropertiesSection />
 
-          <LinksSection isLinkEntity={!!isLinkEntity} />
+          <LinksSection isLinkEntity={isLinkEntity} />
 
           {/* <PeersSection /> */}
         </Box>

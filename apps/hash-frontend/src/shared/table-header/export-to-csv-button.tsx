@@ -9,13 +9,13 @@ type CsvFile = {
   content: string[][];
 };
 
-export type GenerateCsvFileFunction = () => Promise<CsvFile | null>;
+export type GenerateCsvFileFunction = () => CsvFile | null;
 
 export const ExportToCsvButton: FunctionComponent<{
   generateCsvFile: GenerateCsvFileFunction;
 }> = ({ generateCsvFile }) => {
-  const handleExportToCsv = useCallback(async () => {
-    const generatedCsvFile = await generateCsvFile();
+  const handleExportToCsv = useCallback(() => {
+    const generatedCsvFile = generateCsvFile();
 
     if (!generatedCsvFile) {
       return;
@@ -44,8 +44,6 @@ export const ExportToCsvButton: FunctionComponent<{
   }, [generateCsvFile]);
 
   return (
-    <TableHeaderButton onClick={handleExportToCsv}>
-      Export to CSV
-    </TableHeaderButton>
+    <TableHeaderButton onClick={handleExportToCsv}>Export</TableHeaderButton>
   );
 };

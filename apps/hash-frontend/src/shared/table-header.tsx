@@ -16,7 +16,7 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import {
   extractOwnedByIdFromEntityId,
   isExternalOntologyElementMetadata,
@@ -112,12 +112,9 @@ export type FilterState = {
   limitToWebs: string[] | false;
 };
 
-export type GetAdditionalCsvDataFunction = () => Promise<{
-  prependedData: string[][];
-  appendedData: string[][];
-} | null>;
-
 type TableHeaderProps = {
+  hideExportToCsv?: boolean;
+  hideFilters?: boolean;
   internalWebIds: (AccountId | AccountGroupId)[];
   itemLabelPlural: "entities" | "pages" | "types";
   items?: (
@@ -137,7 +134,6 @@ type TableHeaderProps = {
   title: string;
   columns: SizedGridColumn[];
   currentlyDisplayedRowsRef: MutableRefObject<Row[] | null>;
-  getAdditionalCsvData?: GetAdditionalCsvDataFunction;
   setFilterState: Dispatch<SetStateAction<FilterState>>;
   toggleSearch?: () => void;
   onBulkActionCompleted?: () => void;
@@ -150,19 +146,20 @@ const commonChipSx = {
 } as const satisfies SxProps<Theme>;
 
 export const TableHeader: FunctionComponent<TableHeaderProps> = ({
+  columns,
+  currentlyDisplayedRowsRef,
+  endAdornment,
+  filterState,
+  hideExportToCsv,
+  hideFilters,
   internalWebIds,
   itemLabelPlural,
   items,
-  selectedItems,
-  filterState,
-  endAdornment,
-  title,
-  columns,
-  currentlyDisplayedRowsRef,
-  getAdditionalCsvData,
-  setFilterState,
-  toggleSearch,
   onBulkActionCompleted,
+  selectedItems,
+  setFilterState,
+  title,
+  toggleSearch,
 }) => {
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
   const [publicFilterHovered, setPublicFilterHovered] =
@@ -187,23 +184,11 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
       ? items.length - numberOfUserWebItems
       : undefined;
 
-  const generateCsvFile = useCallback<GenerateCsvFileFunction>(async () => {
+  const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
     const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
     if (!currentlyDisplayedRows) {
       return null;
     }
-
-    const additionalCsvData = getAdditionalCsvData
-      ? await getAdditionalCsvData()
-      : undefined;
-
-    const { prependedData, appendedData } = additionalCsvData ?? {};
-
-    const prependedColumnTitles = prependedData?.[0];
-    const prependedRows = prependedData?.splice(1);
-
-    const appendedColumnTitles = appendedData?.[0];
-    const appendedRows = appendedData?.splice(1);
 
     // Entity metadata columns (i.e. what's already being displayed in the entities table)
 
@@ -220,12 +205,8 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
 
     // Collate the contents of the CSV file row by row (including the header)
     const content: string[][] = [
-      [
-        ...(prependedColumnTitles ?? []),
-        ...tableContentColumnTitles,
-        ...(appendedColumnTitles ?? []),
-      ],
-      ...currentlyDisplayedRows.map((row, i) => {
+      tableContentColumnTitles,
+      ...currentlyDisplayedRows.map((row) => {
         const tableCells = columnRowKeys.map((key) => {
           const value = row[key];
 
@@ -235,32 +216,20 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             const user = value as MinimalUser | undefined;
 
             return user?.displayName ?? "";
-          } else if (isBaseUrl(key)) {
-            /**
-             * If the key is a base URL, then the value needs to be obtained
-             * from the nested `properties` field on the row.
-             */
-            return (row as TypeEntitiesRow).properties?.[key] ?? "";
           } else if (key === "archived") {
             return (row as TypesTableRow).archived ? "Yes" : "No";
+          } else if (key === "sourceEntity" || key === "targetEntity") {
+            return (row as TypeEntitiesRow).sourceEntity?.label ?? "";
+          } else {
+            return stringifyPropertyValue(value);
           }
-
-          return "";
         });
-
-        const prependedCells = prependedRows?.[i];
-        const appendedCells = appendedRows?.[i];
-
-        return [
-          ...(prependedCells ?? []),
-          ...tableCells,
-          ...(appendedCells ?? []),
-        ];
+        return tableCells;
       }),
     ];
 
     return { title, content };
-  }, [title, columns, currentlyDisplayedRowsRef, getAdditionalCsvData]);
+  }, [title, columns, currentlyDisplayedRowsRef]);
 
   return (
     <Box
@@ -285,7 +254,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             selectedItems={selectedItems}
             onBulkActionCompleted={onBulkActionCompleted}
           />
-        ) : (
+        ) : hideFilters ? null : (
           <>
             <NoMaxWidthTooltip
               title="Visible to you inside your personal web and organizations you belong to"
@@ -360,74 +329,78 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             </NoMaxWidthTooltip>
           </>
         )}
-
+      </Box>
+      <Box display="flex" alignItems="center" columnGap={1}>
+        {!hideFilters && (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              background: ({ palette }) =>
+                displayFilters ||
+                Object.values(filterState).some((value) => value)
+                  ? palette.common.white
+                  : "transparent",
+              transition: ({ transitions }) => transitions.create("background"),
+              borderRadius: 15,
+            }}
+          >
+            <TableHeaderButton
+              variant="tertiary_quiet"
+              onClick={() => setDisplayFilters(!displayFilters)}
+              startIcon={<FilterListIcon />}
+            >
+              Filter
+            </TableHeaderButton>
+            <Box
+              sx={{
+                transition: ({ transitions }) =>
+                  transitions.create("max-width"),
+                maxWidth: displayFilters ? 500 : 0,
+                overflow: "hidden",
+              }}
+            >
+              <Box
+                display="flex"
+                flexWrap="nowrap"
+                alignItems="center"
+                height="100%"
+                paddingRight={2}
+              >
+                {filterState.includeArchived !== undefined ? (
+                  <CheckboxFilter
+                    label="Include archived"
+                    checked={filterState.includeArchived}
+                    onChange={(checked) =>
+                      setFilterState((prev) => ({
+                        ...prev,
+                        includeArchived: checked,
+                      }))
+                    }
+                  />
+                ) : null}
+                <CheckboxFilter
+                  label="Include external"
+                  checked={filterState.includeGlobal}
+                  onChange={(checked) =>
+                    setFilterState((prev) => ({
+                      ...prev,
+                      includeGlobal: checked,
+                    }))
+                  }
+                />
+              </Box>
+            </Box>
+          </Box>
+        )}
+        {!hideExportToCsv && (
+          <ExportToCsvButton generateCsvFile={generateCsvFile} />
+        )}
         {toggleSearch ? (
           <IconButton onClick={toggleSearch}>
             <MagnifyingGlassRegularIcon />
           </IconButton>
         ) : null}
-      </Box>
-      <Box display="flex" alignItems="center" columnGap={1}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            background: ({ palette }) =>
-              displayFilters ||
-              Object.values(filterState).some((value) => value)
-                ? palette.common.white
-                : "transparent",
-            transition: ({ transitions }) => transitions.create("background"),
-            borderRadius: 15,
-          }}
-        >
-          <TableHeaderButton
-            variant="tertiary_quiet"
-            onClick={() => setDisplayFilters(!displayFilters)}
-            startIcon={<FilterListIcon />}
-          >
-            Filter
-          </TableHeaderButton>
-          <Box
-            sx={{
-              transition: ({ transitions }) => transitions.create("max-width"),
-              maxWidth: displayFilters ? 500 : 0,
-              overflow: "hidden",
-            }}
-          >
-            <Box
-              display="flex"
-              flexWrap="nowrap"
-              alignItems="center"
-              height="100%"
-              paddingRight={2}
-            >
-              {filterState.includeArchived !== undefined ? (
-                <CheckboxFilter
-                  label="Include archived"
-                  checked={filterState.includeArchived}
-                  onChange={(checked) =>
-                    setFilterState((prev) => ({
-                      ...prev,
-                      includeArchived: checked,
-                    }))
-                  }
-                />
-              ) : null}
-              <CheckboxFilter
-                label="Include external"
-                checked={filterState.includeGlobal}
-                onChange={(checked) =>
-                  setFilterState((prev) => ({
-                    ...prev,
-                    includeGlobal: checked,
-                  }))
-                }
-              />
-            </Box>
-          </Box>
-        </Box>
-        <ExportToCsvButton generateCsvFile={generateCsvFile} />
         {endAdornment}
       </Box>
     </Box>

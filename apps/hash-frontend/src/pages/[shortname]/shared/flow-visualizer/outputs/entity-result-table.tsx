@@ -27,6 +27,7 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, TableCell } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { ClickableCellChip } from "../../../../shared/clickable-cell-chip";
 import { ValueChip } from "../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
@@ -301,8 +302,7 @@ const TableRow = memo(
             zIndex: 1,
           }}
         >
-          <Box
-            component="button"
+          <ClickableCellChip
             onClick={() =>
               row.onEntityClick(
                 row.persistedEntity
@@ -310,23 +310,9 @@ const TableRow = memo(
                   : row.proposedEntityId!,
               )
             }
-            sx={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              p: 0,
-              textAlign: "left",
-            }}
-          >
-            <ValueChip
-              sx={{
-                ...typographySx,
-                color: ({ palette }) => palette.blue[70],
-              }}
-            >
-              {row.entityLabel}
-            </ValueChip>
-          </Box>
+            fontSize={typographySx.fontSize}
+            label={row.entityLabel}
+          />
         </TableCell>
         {columns
           .slice(

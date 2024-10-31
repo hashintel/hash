@@ -1,10 +1,6 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
 import { extractVersion } from "@blockprotocol/type-system";
-import {
-  AsteriskRegularIcon,
-  Chip,
-  EyeSlashIconRegular,
-} from "@hashintel/design-system";
+import { EyeSlashIconRegular } from "@hashintel/design-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
@@ -21,12 +17,12 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { BoxProps } from "@mui/material";
 import {
   Box,
-  chipClasses,
   Stack,
   styled,
   Tooltip,
   Typography,
   typographyClasses,
+  useTheme,
 } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 import { useMemo } from "react";
@@ -35,6 +31,9 @@ import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-e
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
 import { Link } from "../../shared/ui";
+import { useEntityEditor } from "../[shortname]/entities/[entity-uuid].page/entity-editor/entity-editor-context";
+import { TooltipChip } from "./tooltip-chip";
+import { TypeIcon } from "./type-icon";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({
   fontSize: 14,
@@ -132,7 +131,7 @@ const LeftOrRightEntity: FunctionComponent<{
         }}
       >
         {entityType ? (
-          (entityType.schema.icon ?? <AsteriskRegularIcon />)
+          <TypeIcon fontSize={16} icon={entityType.schema.icon} />
         ) : (
           <EyeSlashIconRegular />
         )}
@@ -273,11 +272,13 @@ const LeftOrRightEntity: FunctionComponent<{
     return Object.values(outgoingLinksByLinkEntityType);
   }, [entity, subgraph]);
 
+  const theme = useTheme();
+
   const tooltipContent =
     (entityProperties && entityProperties.length > 0) ||
     (outgoingLinkTypesAndTargetEntities &&
       outgoingLinkTypesAndTargetEntities.length > 0) ? (
-      <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
+      <Box>
         {[
           ...(entityProperties ?? []),
           ...(outgoingLinkTypesAndTargetEntities ?? []),
@@ -304,19 +305,27 @@ const LeftOrRightEntity: FunctionComponent<{
                   : propertyOrOutgoingLink.linkEntityType.schema.$id
               }
               sx={{
-                color: ({ palette }) => palette.common.white,
                 marginBottom: 0.5,
+                py: 0.5,
               }}
-              variant="smallTextParagraphs"
             >
-              <strong>
+              <Typography
+                component="div"
+                sx={{
+                  color: ({ palette }) => palette.gray[30],
+                  letterSpacing: 0,
+                  mb: 0.5,
+                }}
+                variant="smallCaps"
+              >
                 {"propertyType" in propertyOrOutgoingLink
                   ? propertyOrOutgoingLink.propertyType.schema.title
-                  : propertyOrOutgoingLink.linkEntityType.schema.title}
-                :
-              </strong>{" "}
+                  : `${propertyOrOutgoingLink.linkEntityType.schema.title} ${propertyOrOutgoingLink.rightEntities.length}`}
+              </Typography>{" "}
               {"propertyType" in propertyOrOutgoingLink ? (
-                propertyOrOutgoingLink.stringifiedPropertyValue
+                <Typography sx={{ fontSize: 13, lineHeight: 1.3 }}>
+                  {propertyOrOutgoingLink.stringifiedPropertyValue}
+                </Typography>
               ) : (
                 <Stack
                   direction="row"
@@ -330,23 +339,27 @@ const LeftOrRightEntity: FunctionComponent<{
                       rightEntity,
                     );
 
+                    const rightEntityEntityType = getEntityTypeById(
+                      subgraph,
+                      rightEntity.metadata.entityTypeId,
+                    );
+
                     return (
-                      <Chip
+                      <TooltipChip
+                        label={rightEntityLabel}
+                        icon={
+                          <TypeIcon
+                            fill={theme.palette.gray[30]}
+                            fontSize={11}
+                            icon={rightEntityEntityType?.schema.icon}
+                          />
+                        }
                         key={rightEntity.metadata.recordId.entityId}
                         onClick={() =>
                           onEntityClick?.(
                             rightEntity.metadata.recordId.entityId,
                           )
                         }
-                        label={rightEntityLabel}
-                        sx={{
-                          borderColor: ({ palette }) => palette.gray[30],
-                          cursor: onEntityClick ? "pointer" : "default",
-                          fontSize: 12,
-                          [`.${chipClasses.label}`]: {
-                            paddingY: 0.25,
-                          },
-                        }}
                       />
                     );
                   })}
@@ -358,7 +371,13 @@ const LeftOrRightEntity: FunctionComponent<{
     ) : null;
 
   const contentWithLinkAndTooltip = tooltipContent ? (
-    <Tooltip title={tooltipContent} placement="bottom-start" sx={{ p: 0 }}>
+    <Tooltip
+      title={tooltipContent}
+      slotProps={{
+        tooltip: { sx: { maxHeight: 300, overflowY: "auto" } },
+      }}
+      placement="bottom-start"
+    >
       {contentWithLink}
     </Tooltip>
   ) : (
@@ -379,6 +398,7 @@ const LeftOrRightEntity: FunctionComponent<{
           borderTopLeftRadius: 0,
           borderBottomLeftRadius: 0,
         },
+        maxWidth: "60%",
       }}
     >
       {label ? (
@@ -422,6 +442,8 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   onEntityClick,
   openInNew = false,
 }) => {
+  const { disableTypeClick } = useEntityEditor();
+
   const { leftEntity, rightEntity, linkEntityType } = useMemo(() => {
     return {
       linkEntityType: getEntityTypeById(
@@ -441,6 +463,50 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
     [linkEntityType],
   );
 
+  const linkTypeInner = (
+    <Box
+      sx={{
+        background: ({ palette }) => palette.gray[5],
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 1,
+        paddingX: 1.5,
+        paddingY: 0.75,
+        borderColor: ({ palette }) => palette.gray[30],
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderLeftWidth: 0,
+        borderRightWidth: 0,
+      }}
+    >
+      <Box display="flex">
+        {linkEntityType.schema.icon ?? (
+          <LinkRegularIcon
+            sx={{
+              color: ({ palette }) => palette.common.black,
+              fontSize: 16,
+              transition: ({ transitions }) => transitions.create("color"),
+            }}
+          />
+        )}
+      </Box>
+      <ContentTypography>
+        {linkEntityType.schema.title}{" "}
+        <Box
+          component="span"
+          sx={{
+            color: ({ palette }) => palette.gray[50],
+            fontSize: 11,
+            fontWeight: 400,
+          }}
+        >
+          v{linkEntityTypeVersion}
+        </Box>
+      </ContentTypography>
+    </Box>
+  );
+
   return (
     <Box
       sx={[
@@ -448,6 +514,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
           display: "flex",
           width: "fit-content",
           alignItems: "flex-end",
+          maxWidth: "100%",
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
@@ -461,60 +528,24 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
         label={displayLabels ? "Source entity" : undefined}
         sx={leftEntitySx}
       />
-      <Link
-        openInNew={openInNew}
-        href={generateLinkParameters(linkEntityType.schema.$id).href}
-        noLinkStyle
-        sx={{
-          "&:hover": {
-            [`.${typographyClasses.root}, svg`]: {
-              color: ({ palette }) => palette.blue[70],
-            },
-          },
-        }}
-      >
-        <Box
+      {disableTypeClick ? (
+        <Box>{linkTypeInner}</Box>
+      ) : (
+        <Link
+          openInNew={openInNew}
+          href={generateLinkParameters(linkEntityType.schema.$id).href}
+          noLinkStyle
           sx={{
-            background: ({ palette }) => palette.gray[5],
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 1,
-            paddingX: 1.5,
-            paddingY: 0.75,
-            borderColor: ({ palette }) => palette.gray[30],
-            borderWidth: 1,
-            borderStyle: "solid",
-            borderLeftWidth: 0,
-            borderRightWidth: 0,
+            "&:hover": {
+              [`.${typographyClasses.root}, svg`]: {
+                color: ({ palette }) => palette.blue[70],
+              },
+            },
           }}
         >
-          <Box display="flex">
-            {linkEntityType.schema.icon ?? (
-              <LinkRegularIcon
-                sx={{
-                  color: ({ palette }) => palette.common.black,
-                  fontSize: 16,
-                  transition: ({ transitions }) => transitions.create("color"),
-                }}
-              />
-            )}
-          </Box>
-          <ContentTypography>
-            {linkEntityType.schema.title}{" "}
-            <Box
-              component="span"
-              sx={{
-                color: ({ palette }) => palette.gray[50],
-                fontSize: 11,
-                fontWeight: 400,
-              }}
-            >
-              v{linkEntityTypeVersion}
-            </Box>
-          </ContentTypography>
-        </Box>
-      </Link>
+          {linkTypeInner}
+        </Link>
+      )}
       <LeftOrRightEntity
         entity={rightEntity}
         onEntityClick={onEntityClick}

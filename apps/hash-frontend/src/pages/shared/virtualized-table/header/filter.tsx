@@ -189,7 +189,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
                   key={value}
                   direction="row"
                   alignItems="center"
-                  sx={{ "&:hover > button": { visibility: "visible " } }}
+                  sx={{ "&:hover > button": { visibility: "visible" } }}
                 >
                   <FormControlLabel
                     control={
@@ -256,20 +256,17 @@ const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
 
 export type VirtualizedTableFilterDefinitionsByFieldId<
   Id extends string = string,
-> = Record<Id, VirtualizedTableFilterDefinition | undefined>;
+> = Record<Id, VirtualizedTableFilterDefinition>;
 
 export type VirtualizedTableFilterValuesByFieldId<Id extends string = string> =
   Record<Id, VirtualizedTableFilterValue>;
 
-export type TableFilterProps<
-  FilterDefinitions extends
-    VirtualizedTableFilterDefinitionsByFieldId = VirtualizedTableFilterDefinitionsByFieldId,
-  FilterValues extends
-    VirtualizedTableFilterValuesByFieldId = VirtualizedTableFilterValuesByFieldId,
-> = {
-  filterDefinitions: FilterDefinitions;
-  filterValues: FilterValues;
-  setFilterValues: (filters: FilterValues) => void;
+export type TableFilterProps<FieldId extends string> = {
+  filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<FieldId>;
+  filterValues: VirtualizedTableFilterValuesByFieldId<FieldId>;
+  setFilterValues: (
+    filters: VirtualizedTableFilterValuesByFieldId<FieldId>,
+  ) => void;
 };
 
 export const isValueIncludedInFilter = ({
@@ -288,9 +285,7 @@ export const isValueIncludedInFilter = ({
 
 export const FilterButton = <
   ColumnId extends string,
-  FilterDefinitions extends
-    VirtualizedTableFilterDefinitionsByFieldId<ColumnId>,
-  FilterValues extends VirtualizedTableFilterValuesByFieldId<ColumnId>,
+  FilteredId extends ColumnId,
 >({
   columnId,
   filterDefinitions,
@@ -298,13 +293,14 @@ export const FilterButton = <
   setFilterValues,
 }: {
   columnId: ColumnId;
-} & TableFilterProps<FilterDefinitions, FilterValues>) => {
-  const filterDefinition = filterDefinitions[columnId];
+} & TableFilterProps<FilteredId>) => {
+  const filterDefinition = filterDefinitions[columnId as FilteredId];
 
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const [showFilterPopover, setShowFilterPopover] = useState(false);
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- only some ColumnId may have filter definitions
   if (!filterDefinition) {
     return null;
   }
@@ -313,7 +309,11 @@ export const FilterButton = <
 
   const { type, initialValue } = filterDefinition;
 
-  const filterValue = filterValues[columnId];
+  const filterValue = filterValues[columnId as FilteredId];
+
+  if (!filterValue) {
+    throw new Error(`No filter value for column ${columnId}`);
+  }
 
   let isFiltered;
   if (type === "radio-group") {
@@ -349,7 +349,7 @@ export const FilterButton = <
       <FilterPopover
         buttonRef={buttonRef}
         filterDefinition={filterDefinition}
-        filterValue={filterValue}
+        filterValue={filterValue as (typeof filterDefinition)["initialValue"]}
         isFiltered={isFiltered}
         setFilter={(newFilter) =>
           setFilterValues({ ...filterValues, [columnId]: newFilter })
