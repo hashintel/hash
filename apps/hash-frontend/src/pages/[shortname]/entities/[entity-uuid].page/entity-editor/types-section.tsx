@@ -272,7 +272,7 @@ export const TypesSection = () => {
 
   return (
     <SectionWrapper
-      title="Types"
+      title={readonly && entityTypes.length === 1 ? "Type" : "Types"}
       titleTooltip="Types describe what an entity is, allowing information to be associated with it. Entities can have an unlimited number of types."
     >
       <Stack alignItems="center" direction="row" gap={1.5}>
