@@ -10,6 +10,7 @@ use hash_graph_store::{
     data_type::DataTypeQueryPath,
     entity::EntityQueryPath,
     entity_type::EntityTypeQueryPath,
+    error::QueryError,
     filter::{Filter, FilterExpression, ParameterList},
     property_type::PropertyTypeQueryPath,
     subgraph::{Subgraph, SubgraphRecord, edges::GraphResolveDepths, temporal_axes::VariableAxis},
@@ -17,7 +18,10 @@ use hash_graph_store::{
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
 
-use crate::store::{AsClient, PostgresStore, QueryError, crud::Read};
+use crate::store::{
+    crud::Read,
+    postgres::{AsClient, PostgresStore},
+};
 
 impl<C, A> PostgresStore<C, A>
 where

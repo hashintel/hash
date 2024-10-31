@@ -25,13 +25,8 @@ use graph::{
         patch_id_and_parse,
     },
     store::{
-        DataTypeStore, OntologyVersionDoesNotExist, StorePool,
-        error::VersionedUrlAlreadyExists,
-        ontology::{
-            ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypeSubgraphParams,
-            GetDataTypesParams, GetDataTypesResponse, UnarchiveDataTypeParams,
-            UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
-        },
+        StorePool,
+        error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
     },
 };
 use graph_types::{
@@ -42,7 +37,14 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{ConflictBehavior, data_type::DataTypeQueryToken};
+use hash_graph_store::{
+    ConflictBehavior,
+    data_type::{
+        ArchiveDataTypeParams, CreateDataTypeParams, DataTypeQueryToken, DataTypeStore as _,
+        GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
+        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+    },
+};
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;

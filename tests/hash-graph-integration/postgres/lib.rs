@@ -41,26 +41,24 @@ use error_stack::Result;
 use graph::{
     Environment, load_env,
     store::{
-        DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, EntityStore,
-        EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        QueryError, StorePool, UpdateError,
+        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
+        StorePool,
         knowledge::{
-            CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
-            GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
-            UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
+            CountEntitiesParams, CreateEntityParams, EntityStore, GetEntitiesParams,
+            GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
+            PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityError,
+            ValidateEntityParams,
         },
         ontology::{
-            ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
-            CountDataTypesParams, CountEntityTypesParams, CountPropertyTypesParams,
-            CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
-            GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
-            GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-            GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
-            GetEntityTypesParams, GetEntityTypesResponse, GetPropertyTypeSubgraphParams,
-            GetPropertyTypeSubgraphResponse, GetPropertyTypesParams, GetPropertyTypesResponse,
-            UnarchiveDataTypeParams, UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
-            UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
-            UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+            ArchiveEntityTypeParams, ArchivePropertyTypeParams, CountEntityTypesParams,
+            CountPropertyTypesParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            EntityTypeStore, GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
+            GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
+            GetEntityTypesResponse, GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse,
+            GetPropertyTypesParams, GetPropertyTypesResponse, PropertyTypeStore,
+            UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
+            UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
     },
 };
@@ -77,6 +75,13 @@ use graph_types::{
 use hash_graph_store::{
     ConflictBehavior,
     account::{AccountStore, InsertAccountIdParams, InsertWebIdParams},
+    data_type::{
+        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
+        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
+        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        UpdateDataTypesParams,
+    },
+    error::{InsertionError, QueryError, UpdateError},
 };
 use hash_tracing::logging::env_filter;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};

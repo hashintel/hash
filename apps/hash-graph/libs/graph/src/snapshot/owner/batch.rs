@@ -1,6 +1,7 @@
 use authorization::{backend::ZanzibarBackend, schema::AccountGroupRelationAndSubject};
 use error_stack::{Result, ResultExt};
 use graph_types::account::AccountGroupId;
+use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
         WriteBatch,
         owner::{AccountGroupRow, AccountRow},
     },
-    store::{AsClient, InsertionError, PostgresStore},
+    store::{AsClient, PostgresStore},
 };
 
 pub enum AccountRowBatch {

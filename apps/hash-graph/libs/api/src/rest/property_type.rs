@@ -26,12 +26,13 @@ use graph::{
         patch_id_and_parse,
     },
     store::{
-        OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
-        error::VersionedUrlAlreadyExists,
+        StorePool,
+        error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
             ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,
-            GetPropertyTypesParams, GetPropertyTypesResponse, UnarchivePropertyTypeParams,
-            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+            GetPropertyTypesParams, GetPropertyTypesResponse, PropertyTypeStore as _,
+            UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
+            UpdatePropertyTypesParams,
         },
     },
 };

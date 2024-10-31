@@ -2,7 +2,10 @@ use core::{iter::repeat, str::FromStr};
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use authorization::{AuthorizationApi, schema::WebOwnerSubject};
-use graph::store::{AsClient, EntityStore, knowledge::CreateEntityParams};
+use graph::store::{
+    AsClient,
+    knowledge::{CreateEntityParams, EntityStore as _},
+};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,

@@ -6,7 +6,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use error_stack::{Context, Report};
-use graph::store::BaseUrlAlreadyExists;
+use graph::store::error::BaseUrlAlreadyExists;
 use hash_status::{Status, StatusCode};
 use serde::Serialize;
 

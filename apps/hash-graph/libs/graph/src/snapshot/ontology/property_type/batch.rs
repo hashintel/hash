@@ -2,13 +2,14 @@ use std::collections::HashMap;
 
 use authorization::{backend::ZanzibarBackend, schema::PropertyTypeRelationAndSubject};
 use error_stack::{Result, ResultExt};
+use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient;
 use type_system::schema::PropertyTypeUuid;
 
 use crate::{
     snapshot::WriteBatch,
     store::{
-        AsClient, InsertionError, PostgresStore,
+        AsClient, PostgresStore,
         postgres::query::rows::{
             PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
             PropertyTypeEmbeddingRow, PropertyTypeRow,

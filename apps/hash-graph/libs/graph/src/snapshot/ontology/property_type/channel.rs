@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::{
     pin::Pin,
     task::{Context, Poll, ready},
@@ -11,8 +12,8 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use type_system::{
-    Valid,
-    schema::{DataTypeUuid, PropertyTypeUuid},
+    Validator as _,
+    schema::{DataTypeUuid, PropertyTypeUuid, PropertyTypeValidator},
 };
 
 use crate::{
@@ -35,6 +36,7 @@ use crate::{
 /// [`property_type_channel`] function.
 #[derive(Debug, Clone)]
 pub struct PropertyTypeSender {
+    validator: Arc<PropertyTypeValidator>,
     metadata: OntologyTypeMetadataSender,
     schema: Sender<PropertyTypeRow>,
     constrains_values: Sender<Vec<PropertyTypeConstrainsValuesOnRow>>,
@@ -71,7 +73,10 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
         mut self: Pin<&mut Self>,
         property_type: PropertyTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let ontology_id = PropertyTypeUuid::from_url(&property_type.schema.id);
+        let schema = (*self.validator)
+            .validate(property_type.schema)
+            .change_context(SnapshotRestoreError::Validation)?;
+        let ontology_id = PropertyTypeUuid::from_url(&schema.id);
 
         self.metadata
             .start_send_unpin(OntologyTypeMetadata {
@@ -83,8 +88,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
             })
             .attach_printable("could not send metadata")?;
 
-        let values: Vec<_> = property_type
-            .schema
+        let values: Vec<_> = schema
             .data_type_references()
             .into_iter()
             .map(|data_type_ref| PropertyTypeConstrainsValuesOnRow {
@@ -99,8 +103,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
                 .attach_printable("could not send constrains values edge")?;
         }
 
-        let properties: Vec<_> = property_type
-            .schema
+        let properties: Vec<_> = schema
             .property_type_references()
             .into_iter()
             .map(|property_type_ref| PropertyTypeConstrainsPropertiesOnRow {
@@ -120,9 +123,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
         self.schema
             .start_send_unpin(PropertyTypeRow {
                 ontology_id,
-                // TODO: Validate ontology types in snapshots
-                //   see https://linear.app/hash/issue/H-3038
-                schema: Valid::new_unchecked(property_type.schema),
+                schema,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
@@ -207,6 +208,7 @@ pub(crate) fn property_type_channel(
 
     (
         PropertyTypeSender {
+            validator: Arc::new(PropertyTypeValidator),
             metadata: metadata_sender,
             schema: schema_tx,
             constrains_values: constrains_values_tx,

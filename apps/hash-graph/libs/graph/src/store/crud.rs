@@ -9,13 +9,12 @@
 use error_stack::Result;
 use futures::{Stream, TryFutureExt, TryStreamExt};
 use hash_graph_store::{
+    error::QueryError,
     filter::{Filter, QueryRecord},
     subgraph::{SubgraphRecord, temporal_axes::QueryTemporalAxes},
 };
 use tracing::instrument;
 use type_system::url::VersionedUrl;
-
-use crate::store::QueryError;
 
 pub trait QueryResult<R, S: Sorting> {
     type Indices: Send;

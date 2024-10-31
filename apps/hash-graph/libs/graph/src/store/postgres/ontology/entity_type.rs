@@ -22,6 +22,7 @@ use graph_types::{
 };
 use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
+    error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
         Subgraph, SubgraphRecord,
@@ -50,8 +51,7 @@ use type_system::{
 };
 
 use crate::store::{
-    AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, StoreCache,
-    StoreProvider, UpdateError,
+    EntityTypeStore,
     crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
@@ -62,11 +62,12 @@ use crate::store::{
         UpdateEntityTypesParams,
     },
     postgres::{
-        ResponseCountMap, TraversalContext,
+        AsClient, PostgresStore, ResponseCountMap, TraversalContext,
         crud::QueryRecordDecode,
         ontology::{PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData},
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
     },
+    validation::{StoreCache, StoreProvider},
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -720,11 +721,9 @@ where
                     *entity_type_id,
                     entity_type_validator
                         .validate_ref(&**entity_type)
-                        .await
                         .change_context(InsertionError)?,
                     entity_type_validator
                         .validate_ref(closed_schema)
-                        .await
                         .change_context(InsertionError)?,
                 )
                 .await?;
@@ -1066,7 +1065,6 @@ where
 
         let schema = entity_type_validator
             .validate(params.schema)
-            .await
             .change_context(UpdateError)?;
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
@@ -1134,7 +1132,6 @@ where
                 ClosedEntityType::from_resolve_data(schema.clone().into_inner(), &resolve_data)
                     .change_context(UpdateError)?,
             )
-            .await
             .change_context(UpdateError)?;
 
         let (_ontology_id, owned_by_id, temporal_versioning) = transaction
@@ -1368,7 +1365,6 @@ where
                     ClosedEntityType::from_resolve_data((*schema).clone(), &schema_metadata)
                         .change_context(UpdateError)?,
                 )
-                .await
                 .change_context(UpdateError)?;
 
             transaction

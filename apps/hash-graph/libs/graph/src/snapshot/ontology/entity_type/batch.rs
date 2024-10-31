@@ -4,13 +4,15 @@ use authorization::{
     AuthorizationApi, backend::ZanzibarBackend, schema::EntityTypeRelationAndSubject,
 };
 use error_stack::{Result, ResultExt};
+use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient;
 use type_system::schema::EntityTypeUuid;
 
 use crate::{
     snapshot::WriteBatch,
     store::{
-        AsClient, EntityTypeStore as _, InsertionError, PostgresStore,
+        AsClient, PostgresStore,
+        ontology::EntityTypeStore as _,
         postgres::query::rows::{EntityTypeEmbeddingRow, EntityTypeRow},
     },
 };

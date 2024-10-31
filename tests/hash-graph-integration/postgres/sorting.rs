@@ -3,8 +3,11 @@ use std::collections::HashSet;
 
 use authorization::AuthorizationApi;
 use graph::store::{
-    EntityQuerySorting, EntityQuerySortingRecord, EntityStore, NullOrdering, Ordering,
-    knowledge::{CreateEntityParams, GetEntitiesParams, GetEntitiesResponse},
+    NullOrdering, Ordering,
+    knowledge::{
+        CreateEntityParams, EntityQuerySorting, EntityQuerySortingRecord, EntityStore as _,
+        GetEntitiesParams, GetEntitiesResponse,
+    },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
