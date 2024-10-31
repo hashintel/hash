@@ -53,6 +53,12 @@ export const queryEntityTypesQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
+export const getClosedMultiEntityTypeQuery = gql`
+  query getClosedMultiEntityType($request: GetClosedMultiEntityTypeParams!) {
+    getClosedMultiEntityType(request: $request)
+  }
+`;
+
 export const createEntityTypeMutation = gql`
   mutation createEntityType(
     $ownedById: OwnedById!

@@ -207,7 +207,7 @@ export const getEntityTypeSubgraph: ImpureGraphFunction<
 };
 
 export const getEntityTypes: ImpureGraphFunction<
-  Omit<GetEntityTypesParams, "includeDrafts" | "includeClosed"> & {
+  Omit<GetEntityTypesParams, "includeDrafts"> & {
     temporalClient?: TemporalClient;
   },
   Promise<EntityTypeWithMetadata[]>

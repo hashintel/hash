@@ -1,3 +1,6 @@
+import { useQuery } from "@apollo/client";
+import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { PropsWithChildren } from "react";
 import {
@@ -8,11 +11,17 @@ import {
   useState,
 } from "react";
 
+import type {
+  GetClosedMultiEntityTypeQuery,
+  GetClosedMultiEntityTypeQueryVariables,
+} from "../../../../../graphql/api-types.gen";
+import { getClosedMultiEntityTypeQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import type { EntityEditorProps } from "../entity-editor";
 
 export type TableExpandStatus = Record<string, boolean>;
 
 interface Props extends EntityEditorProps {
+  closedMultiEntityType: ClosedMultiEntityType | null;
   propertyExpandStatus: TableExpandStatus;
   togglePropertyExpand: (id: string) => void;
 }
@@ -46,7 +55,7 @@ export const EntityEditorContextProvider = ({
     });
   }, []);
 
-  useMemo(() => {
+  const entity = useMemo(() => {
     const roots = getRoots(entitySubgraph);
 
     if (roots.length > 1) {
@@ -65,10 +74,41 @@ export const EntityEditorContextProvider = ({
           .join(", ")}`,
       );
     }
+
+    if (!roots[0]) {
+      throw new Error("No root entity found in entity editor subgraph");
+    }
+
+    return roots[0];
   }, [entitySubgraph]);
+
+  /**
+   * The 'closed' schema which combines the schemas of all the types the entity has,
+   * and resolves references to property and data types and injects their schemas inline.
+   */
+  const [closedMultiEntityType, setClosedMultiEntityType] =
+    useState<ClosedMultiEntityType | null>(null);
+
+  useQuery<
+    GetClosedMultiEntityTypeQuery,
+    GetClosedMultiEntityTypeQueryVariables
+  >(getClosedMultiEntityTypeQuery, {
+    onCompleted: (data) =>
+      setClosedMultiEntityType(data.getClosedMultiEntityType),
+    variables: {
+      request: {
+        entityTypeIds: entity.metadata.entityTypeIds,
+        includeDrafts: true,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    },
+  });
+
+  console.log({ closedMultiEntityType });
 
   const state = useMemo(
     () => ({
+      closedMultiEntityType,
       customColumns,
       defaultOutgoingLinkFilters,
       disableTypeClick,
@@ -88,6 +128,7 @@ export const EntityEditorContextProvider = ({
       togglePropertyExpand,
     }),
     [
+      closedMultiEntityType,
       customColumns,
       defaultOutgoingLinkFilters,
       disableTypeClick,

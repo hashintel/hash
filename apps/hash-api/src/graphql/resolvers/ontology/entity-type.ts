@@ -1,3 +1,4 @@
+import { ClosedMultiEntityType } from "@blockprotocol/type-system";
 import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -15,6 +16,7 @@ import {
   archiveEntityType,
   checkPermissionsOnEntityType,
   createEntityType,
+  getClosedMultiEntityType,
   getEntityTypeSubgraph,
   getEntityTypeSubgraphById,
   unarchiveEntityType,
@@ -26,6 +28,7 @@ import type {
   MutationUnarchiveEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
   QueryCheckUserPermissionsOnEntityTypeArgs,
+  QueryGetClosedMultiEntityTypeArgs,
   QueryGetEntityTypeArgs,
   QueryQueryEntityTypesArgs,
   ResolverFn,
@@ -140,6 +143,18 @@ export const getEntityTypeResolver: ResolverFn<
           : currentTimeInstantTemporalAxes,
       },
     ),
+  );
+
+export const getClosedMultiEntityTypeResolver: ResolverFn<
+  ClosedMultiEntityType,
+  Record<string, never>,
+  GraphQLContext,
+  QueryGetClosedMultiEntityTypeArgs
+> = async (_, params, graphQLContext) =>
+  getClosedMultiEntityType(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    params.request,
   );
 
 export const updateEntityTypeResolver: ResolverFn<

@@ -6,6 +6,8 @@ export const entityTypeTypedef = gql`
   scalar BaseUrl
   scalar Filter
   scalar UserPermissionsOnEntityType
+  scalar GetClosedMultiEntityTypeParams
+  scalar ClosedMultiEntityType
 
   extend type Query {
     """
@@ -34,6 +36,10 @@ export const entityTypeTypedef = gql`
       inheritsFrom: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
     ): Subgraph!
+
+    getClosedMultiEntityType(
+      request: GetClosedMultiEntityTypeParams!
+    ): ClosedMultiEntityType!
 
     """
     Check the requesting user's permissions on an entity type

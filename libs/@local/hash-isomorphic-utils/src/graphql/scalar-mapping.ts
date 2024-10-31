@@ -22,6 +22,9 @@ export const scalars = {
     "@local/hash-graph-types/ontology#EntityTypeWithMetadata",
   ConstructEntityTypeParams:
     "@local/hash-isomorphic-utils/types#ConstructEntityTypeParams",
+  ClosedMultiEntityType: "@blockprotocol/type-system#ClosedMultiEntityType",
+  GetClosedMultiEntityTypeParams:
+    "@local/hash-graph-client#GetClosedMultiEntityTypeParams",
 
   PropertyTypeWithMetadata:
     "@local/hash-graph-types/ontology#PropertyTypeWithMetadata",
