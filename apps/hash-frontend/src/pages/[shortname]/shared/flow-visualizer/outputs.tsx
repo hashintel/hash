@@ -41,11 +41,11 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
+import { EntityEditorSlideStack } from "../../../shared/entity-editor-slide-stack";
 import { TypeSlideOverStack } from "../../../shared/entity-type-page/type-slide-over-stack";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../shared/get-file-properties";
 import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
-import { EditEntitySlideOver } from "../../entities/[entity-uuid].page/edit-entity-slide-over";
 import { ClaimsTable } from "./outputs/claims-table";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
@@ -54,7 +54,6 @@ import { EntityResultTable } from "./outputs/entity-result-table";
 import { outputIcons } from "./outputs/shared/icons";
 import { flowSectionBorderRadius } from "./shared/styles";
 import type { ProposedEntityOutput } from "./shared/types";
-import { EntityEditorSlideStack } from "../../../shared/entity-editor-slide-stack";
 
 export const getDeliverables = (
   outputs?: FlowRun["outputs"],
