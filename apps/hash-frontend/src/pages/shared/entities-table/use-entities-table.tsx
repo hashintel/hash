@@ -43,7 +43,7 @@ const columnDefinitionsByKey: Record<
     width: number;
   }
 > = {
-  entityTypeVersion: {
+  entityTypes: {
     title: "Entity Type",
     id: "entityTypes",
     width: 200,

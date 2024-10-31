@@ -50,7 +50,12 @@ import {
   maxLinksTableHeight,
 } from "../shared/table-styling";
 
-const fieldIds = ["linkedFrom", "linkType", "linkedFromType", "link"] as const;
+const fieldIds = [
+  "linkedFrom",
+  "linkTypes",
+  "linkedFromTypes",
+  "link",
+] as const;
 
 type FieldId = (typeof fieldIds)[number];
 
@@ -63,13 +68,13 @@ const staticColumns: VirtualizedTableColumn<FieldId>[] = [
   },
   {
     label: "Link type",
-    id: "linkType",
+    id: "linkTypes",
     sortable: true,
     width: 160,
   },
   {
     label: "Linked from type",
-    id: "linkedFromType",
+    id: "linkedFromTypes",
     sortable: true,
     width: 120,
   },
@@ -100,11 +105,11 @@ type IncomingLinkRow = {
   sourceEntity: Entity;
   sourceEntityLabel: string;
   sourceEntityProperties: { [propertyTitle: string]: string };
-  sourceEntityType: EntityType;
+  sourceEntityTypes: EntityType[];
   linkEntity: Entity;
   linkEntityLabel: string;
   linkEntityProperties: { [propertyTitle: string]: string };
-  linkEntityType: EntityType;
+  linkEntityTypes: EntityType[];
   onEntityClick: (entityId: EntityId) => void;
   customFields: { [fieldId: string]: string | number };
 };
@@ -139,15 +144,19 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
       </TableCell>
       <TableCell sx={linksTableCellSx}>
         <Stack direction="row" alignItems="center">
-          <ValueChip
-            showInFull
-            type
-            sx={{
-              fontSize: linksTableFontSize,
-            }}
-          >
-            {row.linkEntityType.title}
-          </ValueChip>
+          {row.linkEntityTypes.map((linkEntityType) => (
+            <ValueChip
+              key={linkEntityType.$id}
+              showInFull
+              type
+              sx={{
+                fontSize: linksTableFontSize,
+                mr: 1,
+              }}
+            >
+              {linkEntityType.title}
+            </ValueChip>
+          ))}
           <Typography
             sx={{
               display: "block",
@@ -157,7 +166,6 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
               fontSize: linksTableFontSize,
               color: ({ palette }) => palette.gray[50],
               maxWidth: "100%",
-              ml: 1,
             }}
           >
             {entityLabel}
@@ -165,14 +173,19 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
         </Stack>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
-        <ValueChip
-          type
-          sx={{
-            fontSize: linksTableFontSize,
-          }}
-        >
-          {row.sourceEntityType.title}
-        </ValueChip>
+        <Stack direction="row" gap={1}>
+          {row.sourceEntityTypes.map((sourceEntityType) => (
+            <ValueChip
+              key={sourceEntityType.$id}
+              type
+              sx={{
+                fontSize: linksTableFontSize,
+              }}
+            >
+              {sourceEntityType.title}
+            </ValueChip>
+          ))}
+        </Stack>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
         <PropertiesTooltip
@@ -232,7 +245,7 @@ export const IncomingLinksTable = memo(
       const rowData: VirtualizedTableRow<IncomingLinkRow>[] = [];
 
       const filterDefs = {
-        linkType: {
+        linkTypes: {
           header: "Type",
           initialValue: new Set<string>(),
           options: {} as VirtualizedTableFilterDefinition["options"],
@@ -244,7 +257,7 @@ export const IncomingLinksTable = memo(
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
-        linkedFromType: {
+        linkedFromTypes: {
           header: "Type",
           initialValue: new Set<string>(),
           options: {} as VirtualizedTableFilterDefinition["options"],
@@ -269,14 +282,11 @@ export const IncomingLinksTable = memo(
           throw new Error("Expected at least one link revision");
         }
 
-        const linkEntityTypeId = linkEntity.metadata.entityTypeId;
+        const linkEntityTypeIds = linkEntity.metadata.entityTypeIds;
 
         const customFields: IncomingLinkRow["customFields"] = {};
         for (const customColumn of customColumns ?? []) {
-          if (
-            linkEntity.metadata.entityTypeId ===
-            customColumn.appliesToEntityTypeId
-          ) {
+          if (linkEntityTypeIds.includes(customColumn.appliesToEntityTypeId)) {
             customFields[customColumn.id] = customColumn.calculateValue(
               linkEntity,
               entitySubgraph,
@@ -284,28 +294,35 @@ export const IncomingLinksTable = memo(
           }
         }
 
-        let linkEntityType = entityTypesByVersionedUrl[linkEntityTypeId];
+        const linkEntityTypes: EntityType[] = [];
+        for (const linkEntityTypeId of linkEntityTypeIds) {
+          let linkEntityType = entityTypesByVersionedUrl[linkEntityTypeId];
 
-        if (!linkEntityType) {
-          const foundType = getEntityTypeById(entitySubgraph, linkEntityTypeId);
-
-          if (!foundType) {
-            throw new Error(
-              `Could not find linkEntityType with id ${linkEntityTypeId} in subgraph`,
+          if (!linkEntityType) {
+            const foundType = getEntityTypeById(
+              entitySubgraph,
+              linkEntityTypeId,
             );
+
+            if (!foundType) {
+              throw new Error(
+                `Could not find linkEntityType with id ${linkEntityTypeId} in subgraph`,
+              );
+            }
+
+            linkEntityType = foundType.schema;
+            linkEntityTypes.push(linkEntityType);
+
+            filterDefs.linkTypes.options[linkEntityTypeId] ??= {
+              label: linkEntityType.title,
+              count: 0,
+              value: linkEntityTypeId,
+            };
           }
 
-          linkEntityType = foundType.schema;
-
-          filterDefs.linkType.options[linkEntityTypeId] ??= {
-            label: linkEntityType.title,
-            count: 0,
-            value: linkEntityTypeId,
-          };
+          filterDefs.linkTypes.options[linkEntityTypeId]!.count++;
+          filterDefs.linkTypes.initialValue.add(linkEntityTypeId);
         }
-
-        filterDefs.linkType.options[linkEntityTypeId]!.count++;
-        filterDefs.linkType.initialValue.add(linkEntityTypeId);
 
         const leftEntity = leftEntityRevisions[0];
         if (!leftEntity) {
@@ -328,29 +345,36 @@ export const IncomingLinksTable = memo(
           leftEntity.metadata.recordId.entityId,
         );
 
-        const leftEntityTypeId = leftEntity.metadata.entityTypeId;
-        let leftEntityType = entityTypesByVersionedUrl[leftEntityTypeId];
+        const leftEntityTypeIds = leftEntity.metadata.entityTypeIds;
+        const leftEntityTypes: EntityType[] = [];
+        for (const leftEntityTypeId of leftEntityTypeIds) {
+          let leftEntityType = entityTypesByVersionedUrl[leftEntityTypeId];
 
-        if (!leftEntityType) {
-          const foundType = getEntityTypeById(entitySubgraph, leftEntityTypeId);
-
-          if (!foundType) {
-            throw new Error(
-              `Could not find leftEntityType with id ${leftEntityTypeId} in subgraph`,
+          if (!leftEntityType) {
+            const foundType = getEntityTypeById(
+              entitySubgraph,
+              leftEntityTypeId,
             );
+
+            if (!foundType) {
+              throw new Error(
+                `Could not find leftEntityType with id ${leftEntityTypeId} in subgraph`,
+              );
+            }
+
+            leftEntityType = foundType.schema;
+            leftEntityTypes.push(leftEntityType);
+
+            filterDefs.linkedFromTypes.options[leftEntityTypeId] ??= {
+              label: leftEntityType.title,
+              count: 0,
+              value: leftEntityTypeId,
+            };
           }
 
-          leftEntityType = foundType.schema;
-
-          filterDefs.linkedFromType.options[leftEntityTypeId] ??= {
-            label: leftEntityType.title,
-            count: 0,
-            value: leftEntityTypeId,
-          };
+          filterDefs.linkedFromTypes.options[leftEntityTypeId]!.count++;
+          filterDefs.linkedFromTypes.initialValue.add(leftEntityTypeId);
         }
-
-        filterDefs.linkedFromType.options[leftEntityTypeId]!.count++;
-        filterDefs.linkedFromType.initialValue.add(leftEntityTypeId);
 
         const linkEntityLabel = generateEntityLabel(entitySubgraph, linkEntity);
         filterDefs.link.options[linkEntity.metadata.recordId.entityId] ??= {
@@ -368,7 +392,7 @@ export const IncomingLinksTable = memo(
         )) {
           const { propertyType } = getPropertyTypeForEntity(
             entitySubgraph,
-            linkEntityTypeId,
+            linkEntityTypeIds,
             propertyBaseUrl,
           );
           linkEntityProperties[propertyType.title] =
@@ -382,7 +406,7 @@ export const IncomingLinksTable = memo(
         )) {
           const { propertyType } = getPropertyTypeForEntity(
             entitySubgraph,
-            leftEntityTypeId,
+            leftEntityTypeIds,
             propertyBaseUrl,
           );
           sourceEntityProperties[propertyType.title] =
@@ -393,7 +417,7 @@ export const IncomingLinksTable = memo(
           id: linkEntity.metadata.recordId.entityId,
           data: {
             customFields,
-            linkEntityType,
+            linkEntityTypes,
             linkEntity,
             linkEntityLabel,
             linkEntityProperties,
@@ -401,7 +425,7 @@ export const IncomingLinksTable = memo(
             sourceEntity: leftEntity,
             sourceEntityLabel: leftEntityLabel,
             sourceEntityProperties,
-            sourceEntityType: leftEntityType,
+            sourceEntityTypes: leftEntityTypes,
           },
         });
       }
@@ -432,11 +456,11 @@ export const IncomingLinksTable = memo(
           .filter((row) => {
             for (const [fieldId, currentValue] of typedEntries(filterValues)) {
               switch (fieldId) {
-                case "linkType": {
+                case "linkTypes": {
                   if (
                     !isValueIncludedInFilter({
                       currentValue,
-                      valueToCheck: row.data.linkEntity.metadata.entityTypeId,
+                      valueToCheck: row.data.linkEntity.metadata.entityTypeIds,
                     })
                   ) {
                     return false;
@@ -455,11 +479,12 @@ export const IncomingLinksTable = memo(
                   }
                   break;
                 }
-                case "linkedFromType": {
+                case "linkedFromTypes": {
                   if (
                     !isValueIncludedInFilter({
                       currentValue,
-                      valueToCheck: row.data.sourceEntity.metadata.entityTypeId,
+                      valueToCheck:
+                        row.data.sourceEntity.metadata.entityTypeIds,
                     })
                   ) {
                     return false;
@@ -488,17 +513,17 @@ export const IncomingLinksTable = memo(
             const direction = sort.direction === "asc" ? 1 : -1;
 
             switch (field) {
-              case "linkType": {
+              case "linkTypes": {
                 return (
-                  a.data.linkEntityType.title.localeCompare(
-                    b.data.linkEntityType.title,
+                  a.data.linkEntityTypes[0]!.title.localeCompare(
+                    b.data.linkEntityTypes[0]!.title,
                   ) * direction
                 );
               }
-              case "linkedFromType": {
+              case "linkedFromTypes": {
                 return (
-                  a.data.sourceEntityType.title.localeCompare(
-                    b.data.sourceEntityType.title,
+                  a.data.sourceEntityTypes[0]!.title.localeCompare(
+                    b.data.sourceEntityTypes[0]!.title,
                   ) * direction
                 );
               }
@@ -542,8 +567,8 @@ export const IncomingLinksTable = memo(
     const columns = useMemo(() => {
       const applicableCustomColumns = customColumns?.filter(
         (column) =>
-          typeof filterValues.linkType === "object" &&
-          filterValues.linkType.has(column.appliesToEntityTypeId),
+          typeof filterValues.linkTypes === "object" &&
+          filterValues.linkTypes.has(column.appliesToEntityTypeId),
       );
 
       return createColumns(applicableCustomColumns ?? []);

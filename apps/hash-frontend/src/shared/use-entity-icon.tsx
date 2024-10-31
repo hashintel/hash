@@ -10,7 +10,8 @@ import { Box } from "@mui/material";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 
-import { FileRegularIcon } from "./icons/file-regular-icon";
+import { CanvasIcon } from "./icons/canvas-icon";
+import { PageLightIcon } from "./icons/page-light-icon";
 import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
 
@@ -23,8 +24,9 @@ export const entityTypeIcons: Record<VersionedUrl, ReactNode> = {
     <UsersRegularIcon sx={{ fontSize: 14, position: "relative", top: 1 }} />
   ),
   [systemEntityTypes.document.entityTypeId]: (
-    <FileRegularIcon sx={{ fontSize: 12 }} />
+    <PageLightIcon sx={{ fontSize: 13 }} />
   ),
+  [systemEntityTypes.canvas.entityTypeId]: <CanvasIcon sx={{ fontSize: 12 }} />,
 };
 
 export const useEntityIcon = (params: {
@@ -48,11 +50,13 @@ export const useEntityIcon = (params: {
           );
         }
 
-        return pageIcon;
+        if (pageIcon) {
+          return pageIcon;
+        }
       }
 
       /**
-       * @todo H-739 account for 'icon' property being a URL to an image
+       * @todo H-739 account for 'icon' property being a URL to an image. Combine with TypeIcon
        */
       for (const entityType of entityTypes ?? []) {
         if (entityType.schema.icon) {

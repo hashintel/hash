@@ -684,15 +684,15 @@ export const EntitiesTable: FunctionComponent<{
   const {
     createdByActors,
     lastEditedByActors,
-    entityTypeVersions,
+    entityTypeTitles,
     sources,
     targets,
     webs,
   } = useMemo(() => {
     const lastEditedBySet = new Set<MinimalActor>();
     const createdBySet = new Set<MinimalActor>();
-    const entityTypeVersionCount: {
-      [entityTypeVersion: string]: number;
+    const entityTypeTitleCount: {
+      [entityTypeTitle: string]: number | undefined;
     } = {};
 
     const sourcesByEntityId: {
@@ -751,28 +751,31 @@ export const EntitiesTable: FunctionComponent<{
         targetsByEntityId[noneString].count++;
       }
 
-      entityTypeVersionCount[row.entityTypeVersion] ??= 0;
-      entityTypeVersionCount[row.entityTypeVersion]!++;
+      for (const entityType of row.entityTypes) {
+        entityTypeTitleCount[entityType.title] ??= 0;
+        entityTypeTitleCount[entityType.title]!++;
+      }
+
       webCountById[row.web] ??= 0;
       webCountById[row.web]!++;
     }
     return {
       lastEditedByActors: [...lastEditedBySet],
       createdByActors: [...createdBySet],
-      entityTypeVersions: entityTypeVersionCount,
+      entityTypeTitles: entityTypeTitleCount,
       webs: webCountById,
       sources: Object.values(sourcesByEntityId),
       targets: Object.values(targetsByEntityId),
     };
   }, [rows]);
 
-  const [selectedEntityTypeVersions, setSelectedEntityTypeVersions] = useState<
+  const [selectedEntityTypeTitles, setSelectedEntityTypeTitles] = useState<
     Set<string>
-  >(new Set(Object.keys(entityTypeVersions)));
+  >(new Set(Object.keys(entityTypeTitles)));
 
   useEffect(() => {
-    setSelectedEntityTypeVersions(new Set(Object.keys(entityTypeVersions)));
-  }, [entityTypeVersions]);
+    setSelectedEntityTypeTitles(new Set(Object.keys(entityTypeTitles)));
+  }, [entityTypeTitles]);
 
   const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
     useState<Set<string>>(
@@ -834,18 +837,21 @@ export const EntitiesTable: FunctionComponent<{
         isRowFiltered: (row) => !selectedWebs.has(row.web),
       },
       {
-        columnKey: "entityTypeVersion",
-        filterItems: Object.entries(entityTypeVersions).map(
-          ([entityTypeVersion, count]) => ({
-            id: entityTypeVersion,
-            label: entityTypeVersion,
+        columnKey: "entityTypes",
+        filterItems: Object.entries(entityTypeTitles).map(
+          ([entityTypeTitle, count]) => ({
+            id: entityTypeTitle,
+            label: entityTypeTitle,
             count,
           }),
         ),
-        selectedFilterItemIds: selectedEntityTypeVersions,
-        setSelectedFilterItemIds: setSelectedEntityTypeVersions,
-        isRowFiltered: (row) =>
-          !selectedEntityTypeVersions.has(row.entityTypeVersion),
+        selectedFilterItemIds: selectedEntityTypeTitles,
+        setSelectedFilterItemIds: setSelectedEntityTypeTitles,
+        isRowFiltered: (row) => {
+          return !row.entityTypes.some(({ title }) =>
+            selectedEntityTypeTitles.has(title),
+          );
+        },
       },
       {
         columnKey: "archived",
@@ -926,8 +932,8 @@ export const EntitiesTable: FunctionComponent<{
       createdByActors,
       webs,
       selectedWebs,
-      entityTypeVersions,
-      selectedEntityTypeVersions,
+      entityTypeTitles,
+      selectedEntityTypeTitles,
       lastEditedByActors,
       selectedCreatedByAccountIds,
       selectedLastEditedByAccountIds,
@@ -948,7 +954,7 @@ export const EntitiesTable: FunctionComponent<{
     }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
 
   const isPrimaryEntity = useCallback(
-    (entity: { metadata: Pick<Entity["metadata"], "entityTypeId"> }) =>
+    (entity: { metadata: Pick<Entity["metadata"], "entityTypeIds"> }) =>
       entityTypeBaseUrl
         ? entity.metadata.entityTypeIds.some(
             (typeId) => extractBaseUrl(typeId) === entityTypeBaseUrl,

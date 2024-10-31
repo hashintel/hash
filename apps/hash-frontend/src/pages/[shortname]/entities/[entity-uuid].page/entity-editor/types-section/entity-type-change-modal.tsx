@@ -64,6 +64,8 @@ const generateCountString = (count: number, type: "property" | "link") =>
     ? `${count} ${type === "property" ? "properties" : "links"}`
     : `${count} ${type}`;
 
+// @todo H-3408 – use this when changes are calculated by the parent component
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const CalloutMessage = ({
   changeSummary: {
     blockCount,

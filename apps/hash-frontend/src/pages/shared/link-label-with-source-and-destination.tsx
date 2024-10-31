@@ -1,5 +1,4 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
-import { extractVersion } from "@blockprotocol/type-system";
 import { EyeSlashIconRegular } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
@@ -25,16 +24,16 @@ import {
   useTheme,
 } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
-import { forwardRef, Fragment, useMemo, useRef } from "react";
+import { Fragment, useMemo, useRef } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
 import { Link } from "../../shared/ui";
+import { useEntityIcon } from "../../shared/use-entity-icon";
 import { useEntityEditor } from "../[shortname]/entities/[entity-uuid].page/entity-editor/entity-editor-context";
 import { TooltipChip } from "./tooltip-chip";
 import { TypeIcon } from "./type-icon";
-import { useEntityIcon } from "../../shared/use-entity-icon";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({
   fontSize: 14,
@@ -134,15 +133,18 @@ const LeftOrRightEntity: FunctionComponent<{
           display: "flex",
           svg: {
             color: ({ palette }) => palette.gray[50],
-            fontSize: 16,
             transition: ({ transitions }) => transitions.create("color"),
           },
         }}
       >
         {icon ? (
-          <TypeIcon fontSize={16} icon={icon} />
+          typeof icon === "string" ? (
+            <TypeIcon fontSize={12} icon={icon} />
+          ) : (
+            icon
+          )
         ) : (
-          <EyeSlashIconRegular />
+          <EyeSlashIconRegular sx={{ fontSize: 14 }} />
         )}
       </Box>
       <ContentTypography>{entityLabel}</ContentTypography>
@@ -315,6 +317,7 @@ const LeftOrRightEntity: FunctionComponent<{
                 sx={{
                   color: ({ palette }) => palette.gray[30],
                   letterSpacing: 0,
+                  fontSize: 11,
                   mb: 0.5,
                 }}
                 variant="smallCaps"
@@ -324,7 +327,13 @@ const LeftOrRightEntity: FunctionComponent<{
                   : `${propertyOrOutgoingLink.linkEntityType.schema.title} ${propertyOrOutgoingLink.rightEntities.length}`}
               </Typography>{" "}
               {"propertyType" in propertyOrOutgoingLink ? (
-                <Typography sx={{ fontSize: 13, lineHeight: 1.3 }}>
+                <Typography
+                  sx={{
+                    color: ({ palette }) => palette.common.white,
+                    fontSize: 12,
+                    lineHeight: 1.3,
+                  }}
+                >
                   {propertyOrOutgoingLink.stringifiedPropertyValue}
                 </Typography>
               ) : (
@@ -421,7 +430,72 @@ const LeftOrRightEntity: FunctionComponent<{
       {contentWithLinkAndTooltip}
     </Box>
   );
-});
+};
+
+const LinkTypeInner = ({
+  amongMultipleTypes,
+  linkEntityType,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  elementRef,
+}: {
+  amongMultipleTypes: boolean;
+  linkEntityType: EntityTypeWithMetadata;
+  elementRef: HTMLDivElement;
+}) => (
+  <Box
+    ref={(el) => {
+      // eslint-disable-next-line no-param-reassign
+      elementRef = el as HTMLDivElement;
+    }}
+    sx={{
+      "&:hover": {
+        [`.${typographyClasses.root}, svg`]: {
+          color: ({ palette }) => palette.blue[70],
+        },
+      },
+      background: ({ palette }) =>
+        amongMultipleTypes ? palette.common.white : palette.gray[5],
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 1,
+      paddingX: 1.5,
+      paddingY: 0.75,
+      borderColor: ({ palette }) => palette.gray[30],
+      borderWidth: 1,
+      borderStyle: "solid",
+      borderLeftWidth: amongMultipleTypes ? 1 : 0,
+      borderRightWidth: amongMultipleTypes ? 1 : 0,
+    }}
+  >
+    <Box display="flex">
+      {/* @todo H-3363 account for inherited icons, and SVG URL icons */}
+      {linkEntityType.schema.icon ?? (
+        <LinkRegularIcon
+          sx={{
+            color: ({ palette }) => palette.common.black,
+            fontSize: 16,
+            transition: ({ transitions }) => transitions.create("color"),
+          }}
+        />
+      )}
+    </Box>
+    <ContentTypography>
+      {linkEntityType.schema.title}
+      <Box
+        component="span"
+        sx={{
+          color: ({ palette }) => palette.gray[50],
+          fontSize: 11,
+          fontWeight: 400,
+          ml: 0.5,
+        }}
+      >
+        v{linkEntityType.metadata.recordId.version}
+      </Box>
+    </ContentTypography>
+  </Box>
+);
 
 export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   linkEntity: LinkEntity;
@@ -495,64 +569,6 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   const leftEntityRef = useRef<HTMLDivElement>(null);
   const rightEntityRef = useRef<HTMLDivElement>(null);
 
-  const LinkTypeInner = ({ linkEntityType, ref }: { linkEntityType: EntityTypeWithMetadata; ref: RefObject<HTMLDivElement}) => (
-    <Box
-      ref={(el) => {
-        ref = el as HTMLDivElement;
-      }}
-      sx={{
-        "&:hover": {
-          [`.${typographyClasses.root}, svg`]: {
-            color: ({ palette }) => palette.blue[70],
-          },
-        },
-        background: ({ palette }) =>
-          linkEntityTypes.length > 1
-            ? palette.common.white
-            : palette.gray[5],
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 1,
-        paddingX: 1.5,
-        paddingY: 0.75,
-        borderColor: ({ palette }) => palette.gray[30],
-        borderWidth: 1,
-        borderStyle: "solid",
-        borderLeftWidth: linkEntityTypes.length > 1 ? 1 : 0,
-        borderRightWidth: linkEntityTypes.length > 1 ? 1 : 0,
-      }}
-    >
-      <Box display="flex">
-        {/* @todo H-3363 account for inherited icons, and SVG URL icons */}
-        {linkEntityType.schema.icon ?? (
-          <LinkRegularIcon
-            sx={{
-              color: ({ palette }) => palette.common.black,
-              fontSize: 16,
-              transition: ({ transitions }) =>
-                transitions.create("color"),
-            }}
-          />
-        )}
-      </Box>
-      <ContentTypography>
-        {linkEntityType.schema.title}
-        <Box
-          component="span"
-          sx={{
-            color: ({ palette }) => palette.gray[50],
-            fontSize: 11,
-            fontWeight: 400,
-            ml: 0.5,
-          }}
-        >
-          v{linkEntityType.metadata.recordId.version}
-        </Box>
-      </ContentTypography>
-    </Box>
-  )
-
   return (
     <Stack
       alignItems="center"
@@ -582,15 +598,27 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
       >
         {linkEntityTypes.map((linkEntityType, index) => (
           <Fragment key={linkEntityType.schema.$id}>
-            {disableTypeClick ? <Box><LinkTypeInner linkEntityType={linkEntityType} ref={linkTypeRefs.current[index]} /></Box> :
-            <Link
-              openInNew={openInNew}
-              href={generateLinkParameters(linkEntityType.schema.$id).href}
-              noLinkStyle
-            >
-              <LinkTypeInner linkEntityType={linkEntityType} ref={linkTypeRefs.current[index]} />
-            </Link>
-            }
+            {disableTypeClick ? (
+              <Box>
+                <LinkTypeInner
+                  amongMultipleTypes={linkEntityTypes.length > 1}
+                  linkEntityType={linkEntityType}
+                  elementRef={linkTypeRefs.current[index]!}
+                />
+              </Box>
+            ) : (
+              <Link
+                openInNew={openInNew}
+                href={generateLinkParameters(linkEntityType.schema.$id).href}
+                noLinkStyle
+              >
+                <LinkTypeInner
+                  amongMultipleTypes={linkEntityTypes.length > 1}
+                  linkEntityType={linkEntityType}
+                  elementRef={linkTypeRefs.current[index]!}
+                />
+              </Link>
+            )}
             {linkEntityTypes.length > 0 && linkTypeRefs.current[index] && (
               /**
                * In cases where we have multiple link entity types, draw a line from:

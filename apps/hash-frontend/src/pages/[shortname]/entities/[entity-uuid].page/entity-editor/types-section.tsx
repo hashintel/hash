@@ -139,12 +139,12 @@ export const TypeButton = ({
   const isNotYetInDb = entity.metadata.recordId.entityId.includes("draft");
   const canChangeTypes = !readonly && !isNotYetInDb;
 
+  /** @todo H-3363 take account of inherited icons */
   return (
     <>
       <TypeCard
         disableClick={disableTypeClick}
         LinkComponent={Link}
-        {/* @todo H-3363 take account of inherited icons */}
         icon={currentEntityType.schema.icon}
         onDelete={canChangeTypes ? onDeleteClicked : undefined}
         url={entityTypeId}

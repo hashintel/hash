@@ -250,7 +250,7 @@ export const EntityGraphVisualizer = memo(
         onEntityClick?.(edgeData.source as EntityId, screenContainerRef, {
           defaultOutgoingLinkFilters: {
             linkedTo: new Set([edgeData.target]),
-            linkType: new Set([edgeData.edgeTypeId!]),
+            linkTypes: new Set([edgeData.edgeTypeId!]),
           },
         });
       },

@@ -273,14 +273,21 @@ export const isValueIncludedInFilter = ({
   valueToCheck,
   currentValue,
 }: {
-  valueToCheck: string | null;
+  valueToCheck: string[] | string | null;
   currentValue: string | Set<string | null>;
 }) => {
   if (typeof currentValue === "string") {
-    return currentValue === valueToCheck;
+    if (typeof valueToCheck === "string" || valueToCheck === null) {
+      return currentValue === valueToCheck;
+    }
+    return valueToCheck.includes(currentValue);
   }
 
-  return currentValue.has(valueToCheck);
+  if (typeof valueToCheck === "string" || valueToCheck === null) {
+    return currentValue.has(valueToCheck);
+  }
+
+  return valueToCheck.some((value) => currentValue.has(value));
 };
 
 export const FilterButton = <
