@@ -1,4 +1,4 @@
-use core::fmt;
+use core::{error::Error, fmt};
 
 use error_stack::Context;
 
@@ -24,7 +24,7 @@ impl fmt::Display for QueryError {
     }
 }
 
-impl Context for QueryError {}
+impl Error for QueryError {}
 
 #[derive(Debug)]
 #[must_use]

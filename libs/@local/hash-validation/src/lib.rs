@@ -106,7 +106,7 @@ mod tests {
             visitor::{EntityVisitor, TraversalError},
         },
         ontology::{
-            DataTypeMetadata, DataTypeProvider, DataTypeWithMetadata, EntityTypeProvider,
+            DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, EntityTypeProvider,
             OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
             OntologyTypeClassificationMetadata, OntologyTypeProvider, OntologyTypeRecordId,
             PropertyTypeProvider, ProvidedOntologyEditionProvenance,
@@ -118,8 +118,9 @@ mod tests {
     use thiserror::Error;
     use type_system::{
         schema::{
-            ClosedEntityType, ClosedMultiEntityType, ConversionExpression, DataType, EntityType,
-            EntityTypeUuid, OntologyTypeResolver, PropertyType,
+            ClosedEntityType, ClosedMultiEntityType, ConversionExpression, DataType,
+            DataTypeReference, DataTypeUuid, EntityType, EntityTypeUuid, OntologyTypeResolver,
+            PropertyType,
         },
         url::{BaseUrl, VersionedUrl},
     };
@@ -158,7 +159,7 @@ mod tests {
         entities: HashMap<EntityId, Entity>,
         entity_types: HashMap<VersionedUrl, Arc<ClosedEntityType>>,
         property_types: HashMap<VersionedUrl, Arc<PropertyType>>,
-        data_types: HashMap<VersionedUrl, Arc<DataTypeWithMetadata>>,
+        data_types: HashMap<DataTypeUuid, Arc<DataTypeWithMetadata>>,
     }
     impl Provider {
         fn new(
@@ -184,7 +185,7 @@ mod tests {
                     .into_iter()
                     .map(|schema| {
                         (
-                            schema.id.clone(),
+                            DataTypeUuid::from_url(&schema.id),
                             Arc::new(generate_data_type_metadata(schema)),
                         )
                     })
@@ -211,10 +212,8 @@ mod tests {
         id: VersionedUrl,
     }
     #[derive(Debug, Error)]
-    #[error("data type was not found: `{id}`")]
-    struct InvalidDataType {
-        id: VersionedUrl,
-    }
+    #[error("data type was not found")]
+    struct InvalidDataType;
 
     impl EntityProvider for Provider {
         #[expect(refining_impl_trait)]
@@ -289,44 +288,39 @@ mod tests {
 
     impl PropertyTypeProvider for Provider {}
 
-    impl OntologyTypeProvider<DataTypeWithMetadata> for Provider {
-        type Value = Arc<DataTypeWithMetadata>;
+    impl DataTypeLookup for Provider {
+        type DataTypeWithMetadata = Arc<DataTypeWithMetadata>;
+        type Error = InvalidDataType;
 
-        #[expect(refining_impl_trait)]
-        async fn provide_type(
+        async fn lookup_data_type_by_uuid(
             &self,
-            type_id: &VersionedUrl,
+            data_type_uuid: DataTypeUuid,
         ) -> Result<Arc<DataTypeWithMetadata>, Report<InvalidDataType>> {
-            self.data_types.get(type_id).map(Arc::clone).ok_or_else(|| {
-                Report::new(InvalidDataType {
-                    id: type_id.clone(),
-                })
-            })
+            self.data_types
+                .get(&data_type_uuid)
+                .map(Arc::clone)
+                .ok_or_else(|| Report::new(InvalidDataType))
         }
-    }
 
-    impl DataTypeProvider for Provider {
-        #[expect(refining_impl_trait)]
         async fn is_parent_of(
             &self,
-            child: &VersionedUrl,
+            child: &DataTypeReference,
             parent: &BaseUrl,
         ) -> Result<bool, Report<InvalidDataType>> {
-            Ok(
-                OntologyTypeProvider::<DataTypeWithMetadata>::provide_type(self, child)
-                    .await?
-                    .schema
-                    .all_of
-                    .iter()
-                    .any(|id| id.url.base_url == *parent),
-            )
+            Ok(self
+                .lookup_data_type_by_ref(child)
+                .await?
+                .schema
+                .all_of
+                .iter()
+                .any(|id| id.url.base_url == *parent))
         }
 
         #[expect(refining_impl_trait)]
         async fn find_conversion(
             &self,
-            _: &VersionedUrl,
-            _: &VersionedUrl,
+            _: &DataTypeReference,
+            _: &DataTypeReference,
         ) -> Result<Vec<ConversionExpression>, Report<InvalidDataType>> {
             Ok(Vec::new())
         }

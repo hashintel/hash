@@ -1,3 +1,7 @@
+pub use self::lookup::DataTypeLookup;
+
+mod lookup;
+
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};

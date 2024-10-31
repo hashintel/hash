@@ -11,14 +11,14 @@ use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
     schema::{
-        ClosedEntityType, ConversionExpression, DataTypeReference, EntityTypeReference,
-        PropertyType, PropertyTypeReference,
+        ClosedEntityType, DataTypeReference, EntityTypeReference, PropertyType,
+        PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
 pub use self::{
-    data_type::{DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
+    data_type::{DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
     entity_type::{
         EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata,
     },
@@ -173,20 +173,6 @@ pub trait OntologyTypeProvider<O> {
         &self,
         type_id: &VersionedUrl,
     ) -> impl Future<Output = Result<Self::Value, Report<impl Context>>> + Send;
-}
-
-pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
-    fn is_parent_of(
-        &self,
-        child: &VersionedUrl,
-        parent: &BaseUrl,
-    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
-
-    fn find_conversion(
-        &self,
-        source_data_type_id: &VersionedUrl,
-        target_data_type_id: &VersionedUrl,
-    ) -> impl Future<Output = Result<impl Borrow<Vec<ConversionExpression>>, Report<impl Context>>> + Send;
 }
 
 pub trait PropertyTypeProvider: OntologyTypeProvider<PropertyType> {}

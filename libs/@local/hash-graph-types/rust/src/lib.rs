@@ -1,5 +1,6 @@
 #![feature(impl_trait_in_assoc_type)]
 #![feature(hash_raw_entry)]
+#![feature(return_type_notation)]
 
 extern crate alloc;
 
