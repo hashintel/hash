@@ -685,6 +685,8 @@ export const EntitiesTable: FunctionComponent<{
     createdByActors,
     lastEditedByActors,
     entityTypeTitles,
+    noSourceCount,
+    noTargetCount,
     sources,
     targets,
     webs,
@@ -694,6 +696,9 @@ export const EntitiesTable: FunctionComponent<{
     const entityTypeTitleCount: {
       [entityTypeTitle: string]: number | undefined;
     } = {};
+
+    let noSource = 0;
+    let noTarget = 0;
 
     const sourcesByEntityId: {
       [entityId: string]: {
@@ -727,12 +732,7 @@ export const EntitiesTable: FunctionComponent<{
         };
         sourcesByEntityId[row.sourceEntity.entityId]!.count++;
       } else {
-        sourcesByEntityId[noneString] ??= {
-          count: 0,
-          entityId: noneString,
-          label: "--- Does not apply ---",
-        };
-        sourcesByEntityId[noneString].count++;
+        noSource++;
       }
 
       if (row.targetEntity) {
@@ -743,12 +743,7 @@ export const EntitiesTable: FunctionComponent<{
         };
         targetsByEntityId[row.targetEntity.entityId]!.count++;
       } else {
-        targetsByEntityId[noneString] ??= {
-          count: 0,
-          entityId: noneString,
-          label: "--- Does not apply ---",
-        };
-        targetsByEntityId[noneString].count++;
+        noTarget++;
       }
 
       for (const entityType of row.entityTypes) {
@@ -764,6 +759,8 @@ export const EntitiesTable: FunctionComponent<{
       createdByActors: [...createdBySet],
       entityTypeTitles: entityTypeTitleCount,
       webs: webCountById,
+      noSourceCount: noSource,
+      noTargetCount: noTarget,
       sources: Object.values(sourcesByEntityId),
       targets: Object.values(targetsByEntityId),
     };
@@ -903,10 +900,27 @@ export const EntitiesTable: FunctionComponent<{
       },
       {
         columnKey: "sourceEntity",
-        filterItems: sources.map((source) => ({
-          id: source.entityId,
-          label: source.label,
-        })),
+        filterItems: (() => {
+          const items: ColumnFilter<string, TypeEntitiesRow>["filterItems"] =
+            [];
+          if (noSourceCount) {
+            items.push({
+              id: noneString,
+              doesNotApplyValue: true,
+              label: "Does not apply",
+              count: noSourceCount,
+            });
+          }
+          items.push(
+            ...sources.map((source) => ({
+              id: source.entityId,
+              label: source.label,
+              count: source.count,
+            })),
+          );
+
+          return items;
+        })(),
         selectedFilterItemIds: selectedSourceEntities,
         setSelectedFilterItemIds: setSelectedSourceEntities,
         isRowFiltered: (row) =>
@@ -916,10 +930,27 @@ export const EntitiesTable: FunctionComponent<{
       },
       {
         columnKey: "targetEntity",
-        filterItems: targets.map((target) => ({
-          id: target.entityId,
-          label: target.label,
-        })),
+        filterItems: (() => {
+          const items: ColumnFilter<string, TypeEntitiesRow>["filterItems"] =
+            [];
+          if (noTargetCount) {
+            items.push({
+              id: noneString,
+              doesNotApplyValue: true,
+              label: "Does not apply",
+              count: noTargetCount,
+            });
+          }
+          items.push(
+            ...targets.map((target) => ({
+              id: target.entityId,
+              label: target.label,
+              count: target.count,
+            })),
+          );
+
+          return items;
+        })(),
         selectedFilterItemIds: selectedTargetEntities,
         setSelectedFilterItemIds: setSelectedTargetEntities,
         isRowFiltered: (row) =>
@@ -940,6 +971,8 @@ export const EntitiesTable: FunctionComponent<{
       selectedArchivedStatus,
       selectedSourceEntities,
       selectedTargetEntities,
+      noSourceCount,
+      noTargetCount,
       sources,
       targets,
     ],

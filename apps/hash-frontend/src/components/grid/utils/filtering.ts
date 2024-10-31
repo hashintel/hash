@@ -7,6 +7,7 @@ export type ColumnFilter<
   columnKey: ColumnKey;
   filterItems: {
     id: string;
+    doesNotApplyValue?: boolean;
     label: string;
     count?: number;
   }[];
