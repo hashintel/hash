@@ -1,11 +1,16 @@
 {
-  "type":"dataType",
-  "metadata":
-  {
-    "fetchedAt":"2000-01-01T00:00:00Z",
-    "provenance":{
-      "edition":{
-        "createdById":"00000000-0001-0000-0000-000000000000"
-      }
-    },
-    "temporalVersioning":{"transactionTime":{"end":{"kind":"unbounded"},"start":{"kind":"inclusive","limit":"2000-01-15T00:00Z"}}},"recordId":{"baseUrl":"https://blockprotocol.org/@blockprotocol/types/data-type/number/","version":1}},"schema":{"$schema":"https://blockprotocol.org/types/modules/graph/0.3/schema/data-type","kind":"dataType","$id":"https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1","allOf":[{"$ref":"https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1"}],"title":"Number","description":"An arithmetical value (in the Real number system)"","type":"number","abstract":false},"relations":[{"relation":"viewer","subject":{"kind":"public"}}]}
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+  "kind": "dataType",
+  "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
+  "title": "Value",
+  "description": "A piece of data that can be used to convey information about an attribute, quality or state of something.",
+  "abstract": false,
+  "anyOf": [
+    { "type": "null" },
+    { "type": "boolean" },
+    { "type": "number" },
+    { "type": "string" },
+    { "type": "array" },
+    { "type": "object" }
+  ]
+}
