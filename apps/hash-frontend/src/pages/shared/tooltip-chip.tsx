@@ -19,7 +19,6 @@ export const TooltipChip = ({
         background: palette.common.black,
         border: `1px solid ${palette.gray[80]}`,
         borderRadius: "30px",
-        height: 24,
         cursor: onClick ? "pointer" : "default",
         maxWidth: "100%",
       })}
@@ -31,7 +30,7 @@ export const TooltipChip = ({
             borderRight: `1px solid ${palette.gray[80]}`,
             pl: 1,
             pr: 0.8,
-            height: "100%",
+            py: 0.8,
             "& svg": {
               fill: palette.common.white,
             },
@@ -45,7 +44,7 @@ export const TooltipChip = ({
           color: ({ palette }) => palette.common.white,
           fontSize: 11,
           fontWeight: 600,
-          lineHeight: 1,
+          lineHeight: 1.1,
           px: 1,
           display: "block",
           textOverflow: "ellipsis",

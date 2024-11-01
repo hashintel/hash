@@ -195,6 +195,7 @@ export const TypesSection = () => {
       latestOnly: false,
       includeArchived: true,
     },
+    skip: readonly,
   });
 
   const entityTypes = useMemo<

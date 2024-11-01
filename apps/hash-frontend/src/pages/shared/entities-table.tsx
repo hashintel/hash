@@ -804,21 +804,37 @@ export const EntitiesTable: FunctionComponent<{
     setSelectedWebs(new Set(Object.keys(webs)));
   }, [webs]);
 
-  const [selectedSourceEntities, setSelectedSourceEntities] = useState(
-    new Set(sources.map(({ entityId }) => entityId)),
-  );
+  const [selectedSourceEntities, setSelectedSourceEntities] = useState(() => {
+    const selectedSources = new Set(sources.map(({ entityId }) => entityId));
+    if (noSourceCount) {
+      selectedSources.add(noneString);
+    }
+    return selectedSources;
+  });
 
   useEffect(() => {
-    setSelectedSourceEntities(new Set(sources.map(({ entityId }) => entityId)));
-  }, [sources]);
+    const selectedSources = new Set(sources.map(({ entityId }) => entityId));
+    if (noSourceCount) {
+      selectedSources.add(noneString);
+    }
+    setSelectedSourceEntities(selectedSources);
+  }, [sources, noSourceCount]);
 
-  const [selectedTargetEntities, setSelectedTargetEntities] = useState(
-    new Set(targets.map(({ entityId }) => entityId)),
-  );
+  const [selectedTargetEntities, setSelectedTargetEntities] = useState(() => {
+    const selectedTargets = new Set(targets.map(({ entityId }) => entityId));
+    if (noTargetCount) {
+      selectedTargets.add(noneString);
+    }
+    return selectedTargets;
+  });
 
   useEffect(() => {
-    setSelectedTargetEntities(new Set(targets.map(({ entityId }) => entityId)));
-  }, [targets]);
+    const selectedTargets = new Set(targets.map(({ entityId }) => entityId));
+    if (noTargetCount) {
+      selectedTargets.add(noneString);
+    }
+    setSelectedTargetEntities(selectedTargets);
+  }, [targets, noTargetCount]);
 
   const columnFilters = useMemo<ColumnFilter<string, TypeEntitiesRow>[]>(
     () => [
