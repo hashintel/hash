@@ -60,7 +60,8 @@ use temporal_versioning::{
 use tokio_postgres::{GenericClient as _, Row, error::SqlState};
 use type_system::{
     schema::{
-        ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, InheritanceDepth, OntologyTypeUuid,
+        ClosedEntityType, ClosedMultiEntityType, EntityTypeReference, EntityTypeUuid,
+        InheritanceDepth, OntologyTypeUuid,
     },
     url::VersionedUrl,
 };
@@ -72,9 +73,9 @@ use crate::store::{
     crud::{QueryResult as _, Read, ReadPaginated, Sorting as _},
     error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
     knowledge::{
-        CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore,
-        EntityValidationType, GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams,
-        GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
+        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, EntityQuerySorting,
+        EntityStore, EntityValidationType, GetEntitiesParams, GetEntitiesResponse,
+        GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
         UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
     },
     postgres::{
@@ -99,6 +100,7 @@ struct GetEntitiesImplParams<'a> {
     limit: Option<usize>,
     include_drafts: bool,
     include_count: bool,
+    include_closed_multi_entity_types: bool,
     include_web_ids: bool,
     include_created_by_ids: bool,
     include_edition_created_by_ids: bool,
@@ -403,6 +405,15 @@ where
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self, entities))]
+    async fn resolve_closed_multi_entity_types(
+        &self,
+        actor_id: AccountId,
+        entities: impl IntoIterator<Item = &Entity>,
+    ) -> Result<HashMap<EntityTypeReference, ClosedMultiEntityTypeMap>, QueryError> {
+        todo!();
+    }
+
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn get_entities_impl(
         &self,
@@ -557,14 +568,9 @@ where
                 )
             };
 
-            root_entities.extend(
-                entities
-                    .into_iter()
-                    .filter(|(entity, _)| {
-                        permitted_ids.contains(&entity.metadata.record_id.entity_id.entity_uuid)
-                    })
-                    .take(params.limit.unwrap_or(usize::MAX) - root_entities.len()),
-            );
+            root_entities.extend(entities.into_iter().filter(|(entity, _)| {
+                permitted_ids.contains(&entity.metadata.record_id.entity_id.entity_uuid)
+            }));
 
             if let Some(limit) = params.limit {
                 if num_returned_entities < limit {
@@ -589,6 +595,15 @@ where
 
         Ok((
             GetEntitiesResponse {
+                closed_multi_entity_types: if params.include_closed_multi_entity_types {
+                    self.resolve_closed_multi_entity_types(
+                        actor_id,
+                        root_entities.iter().map(|(entity, _)| entity),
+                    )
+                    .await?
+                } else {
+                    HashMap::new()
+                },
                 entities: root_entities
                     .into_iter()
                     .map(|(entity, _)| entity)
@@ -1111,6 +1126,7 @@ where
                     limit: params.limit,
                     include_drafts: params.include_drafts,
                     include_count: params.include_count,
+                    include_closed_multi_entity_types: params.include_closed_multi_entity_types,
                     include_web_ids: params.include_web_ids,
                     include_created_by_ids: params.include_created_by_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
@@ -1163,6 +1179,7 @@ where
                 entities: root_entities,
                 cursor,
                 count,
+                closed_multi_entity_types,
                 web_ids,
                 created_by_ids,
                 edition_created_by_ids,
@@ -1178,6 +1195,7 @@ where
                     limit: params.limit,
                     include_drafts: params.include_drafts,
                     include_count: false,
+                    include_closed_multi_entity_types: params.include_closed_multi_entity_types,
                     include_web_ids: params.include_web_ids,
                     include_created_by_ids: params.include_created_by_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
@@ -1251,6 +1269,7 @@ where
             subgraph,
             cursor,
             count,
+            closed_multi_entity_types,
             web_ids,
             created_by_ids,
             edition_created_by_ids,
