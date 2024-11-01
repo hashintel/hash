@@ -198,7 +198,7 @@ struct UnknownError(#[error(not(source))] serde_json::Value);
 impl<Svc, C> AuthenticationService<role::Client<Svc, C>> for AuthenticationClient
 where
     Svc: role::ConnectionService<C>,
-    C: role::ConnectionCodec,
+    C: role::ConnectionCodec<Buf: Send>,
 {
     async fn authenticate(
         &self,

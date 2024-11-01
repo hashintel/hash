@@ -95,17 +95,14 @@ mod role {
     pub(crate) async fn encode_request<S, E, C>(
         codec: E,
         procedure: S::ProcedureId,
-        items: impl IntoIterator<Item: serde::Serialize, IntoIter: Send>,
+        items: impl IntoIterator<Item: serde::Serialize, IntoIter: Send> + Send,
     ) -> Result<Request<RequestStream<E>>, Report<[C]>>
     where
-        S: harpc_service::Service,
-        E: Encoder<Error = Report<C>>,
+        S: harpc_service::Service<ProcedureId: Send>,
+        E: Encoder<Error = Report<C>, Buf: Send> + Send,
         C: Error + Send + Sync + 'static,
     {
-        let items: Vec<_> = codec
-            .encode(stream::iter(items))
-            .try_collect_reports()
-            .await?;
+        let items: Vec<_> = codec.encode(stream::iter(items)).try_collect().await?;
 
         Ok(Request::from_parts(
             request::Parts {
