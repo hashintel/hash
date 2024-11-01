@@ -954,12 +954,23 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ]
 
 ### Get all latest entity types
-POST http://127.0.0.1:4000/entity-types/query/multi
+POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "entityTypeIds": ["{{person_entity_type_2_id}}"],
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "version"
+        ]
+      },
+      {
+        "parameter": "latest"
+      }
+    ]
+  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
