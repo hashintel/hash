@@ -11,7 +11,7 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -49,6 +49,7 @@ import type {
   EntityEditorProps,
 } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 import { useAuthenticatedUser } from "./auth-info-context";
+import type { ChipCellProps } from "./chip-cell";
 import { renderChipCell } from "./chip-cell";
 import { GridView } from "./entities-table/grid-view";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
@@ -229,11 +230,15 @@ export const EntitiesTable: FunctionComponent<{
     let isViewingPages = true;
     let hasLinks = false;
     for (const entity of entities ?? []) {
-      if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
+      if (!includesPageEntityTypeId(entity.metadata.entityTypeIds)) {
         isViewingPages = false;
       }
       if (entity.linkData) {
         hasLinks = true;
+      }
+
+      if (hasLinks && !isViewingPages) {
+        break;
       }
     }
     return { isViewingOnlyPages: isViewingPages, hasSomeLinks: hasLinks };
@@ -263,7 +268,7 @@ export const EntitiesTable: FunctionComponent<{
               )) &&
           (filterState.includeArchived === undefined ||
           filterState.includeArchived ||
-          !isPageEntityTypeId(entity.metadata.entityTypeId)
+          !includesPageEntityTypeId(entity.metadata.entityTypeIds)
             ? true
             : simplifyProperties(entity.properties as PageProperties)
                 .archived !== true) &&
@@ -370,29 +375,48 @@ export const EntitiesTable: FunctionComponent<{
                 },
               },
             };
-          } else if (["web", "entityTypeVersion"].includes(columnId)) {
-            const cellValue = row[columnId];
-            const stringValue = String(cellValue);
+          } else if (columnId === "entityTypes") {
+            return {
+              kind: GridCellKind.Custom,
+              allowOverlay: false,
+              readonly: true,
+              copyData: row.entityTypes.map((type) => type.title).join(", "),
+              cursor: disableTypeClick ? "default" : "pointer",
+              data: {
+                kind: "chip-cell",
+                chips: row.entityTypes.map((value) => ({
+                  text: value.title,
+                  /**
+                   * @todo H-1978: support custom icons in cell renderers, including URLs to SVGs, and emojis
+                   */
+                  icon: undefined,
+                  onClick: () => {
+                    if (!disableTypeClick) {
+                      setSelectedEntityType({
+                        entityTypeId: value.entityTypeId,
+                      });
+                    }
+                  },
+                })),
+                color: "gray",
+                variant: "filled",
+              } satisfies ChipCellProps,
+            };
+          } else if (columnId === "webId") {
+            const shortname = row[columnId];
 
             return {
               kind: GridCellKind.Custom,
               allowOverlay: false,
               readonly: true,
-              cursor:
-                columnId === "entityTypeVersion" && disableTypeClick
-                  ? "default"
-                  : "pointer",
-              copyData: stringValue,
+              cursor: "pointer",
+              copyData: shortname,
               data: {
                 kind: "text-icon-cell",
                 icon: null,
-                value: stringValue,
+                value: shortname,
                 onClick: () => {
-                  if (columnId === "web") {
-                    void router.push(`/${cellValue}`);
-                  } else if (!disableTypeClick) {
-                    setSelectedEntityType({ entityTypeId: row.entityTypeId });
-                  }
+                  void router.push(`/${shortname}`);
                 },
               },
             };
@@ -660,16 +684,21 @@ export const EntitiesTable: FunctionComponent<{
   const {
     createdByActors,
     lastEditedByActors,
-    entityTypeVersions,
+    entityTypeTitles,
+    noSourceCount,
+    noTargetCount,
     sources,
     targets,
     webs,
   } = useMemo(() => {
     const lastEditedBySet = new Set<MinimalActor>();
     const createdBySet = new Set<MinimalActor>();
-    const entityTypeVersionCount: {
-      [entityTypeVersion: string]: number;
+    const entityTypeTitleCount: {
+      [entityTypeTitle: string]: number | undefined;
     } = {};
+
+    let noSource = 0;
+    let noTarget = 0;
 
     const sourcesByEntityId: {
       [entityId: string]: {
@@ -703,12 +732,7 @@ export const EntitiesTable: FunctionComponent<{
         };
         sourcesByEntityId[row.sourceEntity.entityId]!.count++;
       } else {
-        sourcesByEntityId[noneString] ??= {
-          count: 0,
-          entityId: noneString,
-          label: "--- Does not apply ---",
-        };
-        sourcesByEntityId[noneString].count++;
+        noSource++;
       }
 
       if (row.targetEntity) {
@@ -719,36 +743,36 @@ export const EntitiesTable: FunctionComponent<{
         };
         targetsByEntityId[row.targetEntity.entityId]!.count++;
       } else {
-        targetsByEntityId[noneString] ??= {
-          count: 0,
-          entityId: noneString,
-          label: "--- Does not apply ---",
-        };
-        targetsByEntityId[noneString].count++;
+        noTarget++;
       }
 
-      entityTypeVersionCount[row.entityTypeVersion] ??= 0;
-      entityTypeVersionCount[row.entityTypeVersion]!++;
+      for (const entityType of row.entityTypes) {
+        entityTypeTitleCount[entityType.title] ??= 0;
+        entityTypeTitleCount[entityType.title]!++;
+      }
+
       webCountById[row.web] ??= 0;
       webCountById[row.web]!++;
     }
     return {
       lastEditedByActors: [...lastEditedBySet],
       createdByActors: [...createdBySet],
-      entityTypeVersions: entityTypeVersionCount,
+      entityTypeTitles: entityTypeTitleCount,
       webs: webCountById,
+      noSourceCount: noSource,
+      noTargetCount: noTarget,
       sources: Object.values(sourcesByEntityId),
       targets: Object.values(targetsByEntityId),
     };
   }, [rows]);
 
-  const [selectedEntityTypeVersions, setSelectedEntityTypeVersions] = useState<
+  const [selectedEntityTypeTitles, setSelectedEntityTypeTitles] = useState<
     Set<string>
-  >(new Set(Object.keys(entityTypeVersions)));
+  >(new Set(Object.keys(entityTypeTitles)));
 
   useEffect(() => {
-    setSelectedEntityTypeVersions(new Set(Object.keys(entityTypeVersions)));
-  }, [entityTypeVersions]);
+    setSelectedEntityTypeTitles(new Set(Object.keys(entityTypeTitles)));
+  }, [entityTypeTitles]);
 
   const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
     useState<Set<string>>(
@@ -780,21 +804,37 @@ export const EntitiesTable: FunctionComponent<{
     setSelectedWebs(new Set(Object.keys(webs)));
   }, [webs]);
 
-  const [selectedSourceEntities, setSelectedSourceEntities] = useState(
-    new Set(sources.map(({ entityId }) => entityId)),
-  );
+  const [selectedSourceEntities, setSelectedSourceEntities] = useState(() => {
+    const selectedSources = new Set(sources.map(({ entityId }) => entityId));
+    if (noSourceCount) {
+      selectedSources.add(noneString);
+    }
+    return selectedSources;
+  });
 
   useEffect(() => {
-    setSelectedSourceEntities(new Set(sources.map(({ entityId }) => entityId)));
-  }, [sources]);
+    const selectedSources = new Set(sources.map(({ entityId }) => entityId));
+    if (noSourceCount) {
+      selectedSources.add(noneString);
+    }
+    setSelectedSourceEntities(selectedSources);
+  }, [sources, noSourceCount]);
 
-  const [selectedTargetEntities, setSelectedTargetEntities] = useState(
-    new Set(targets.map(({ entityId }) => entityId)),
-  );
+  const [selectedTargetEntities, setSelectedTargetEntities] = useState(() => {
+    const selectedTargets = new Set(targets.map(({ entityId }) => entityId));
+    if (noTargetCount) {
+      selectedTargets.add(noneString);
+    }
+    return selectedTargets;
+  });
 
   useEffect(() => {
-    setSelectedTargetEntities(new Set(targets.map(({ entityId }) => entityId)));
-  }, [targets]);
+    const selectedTargets = new Set(targets.map(({ entityId }) => entityId));
+    if (noTargetCount) {
+      selectedTargets.add(noneString);
+    }
+    setSelectedTargetEntities(selectedTargets);
+  }, [targets, noTargetCount]);
 
   const columnFilters = useMemo<ColumnFilter<string, TypeEntitiesRow>[]>(
     () => [
@@ -810,18 +850,21 @@ export const EntitiesTable: FunctionComponent<{
         isRowFiltered: (row) => !selectedWebs.has(row.web),
       },
       {
-        columnKey: "entityTypeVersion",
-        filterItems: Object.entries(entityTypeVersions).map(
-          ([entityTypeVersion, count]) => ({
-            id: entityTypeVersion,
-            label: entityTypeVersion,
+        columnKey: "entityTypes",
+        filterItems: Object.entries(entityTypeTitles).map(
+          ([entityTypeTitle, count]) => ({
+            id: entityTypeTitle,
+            label: entityTypeTitle,
             count,
           }),
         ),
-        selectedFilterItemIds: selectedEntityTypeVersions,
-        setSelectedFilterItemIds: setSelectedEntityTypeVersions,
-        isRowFiltered: (row) =>
-          !selectedEntityTypeVersions.has(row.entityTypeVersion),
+        selectedFilterItemIds: selectedEntityTypeTitles,
+        setSelectedFilterItemIds: setSelectedEntityTypeTitles,
+        isRowFiltered: (row) => {
+          return !row.entityTypes.some(({ title }) =>
+            selectedEntityTypeTitles.has(title),
+          );
+        },
       },
       {
         columnKey: "archived",
@@ -873,10 +916,27 @@ export const EntitiesTable: FunctionComponent<{
       },
       {
         columnKey: "sourceEntity",
-        filterItems: sources.map((source) => ({
-          id: source.entityId,
-          label: source.label,
-        })),
+        filterItems: (() => {
+          const items: ColumnFilter<string, TypeEntitiesRow>["filterItems"] =
+            [];
+          if (noSourceCount) {
+            items.push({
+              id: noneString,
+              doesNotApplyValue: true,
+              label: "Does not apply",
+              count: noSourceCount,
+            });
+          }
+          items.push(
+            ...sources.map((source) => ({
+              id: source.entityId,
+              label: source.label,
+              count: source.count,
+            })),
+          );
+
+          return items;
+        })(),
         selectedFilterItemIds: selectedSourceEntities,
         setSelectedFilterItemIds: setSelectedSourceEntities,
         isRowFiltered: (row) =>
@@ -886,10 +946,27 @@ export const EntitiesTable: FunctionComponent<{
       },
       {
         columnKey: "targetEntity",
-        filterItems: targets.map((target) => ({
-          id: target.entityId,
-          label: target.label,
-        })),
+        filterItems: (() => {
+          const items: ColumnFilter<string, TypeEntitiesRow>["filterItems"] =
+            [];
+          if (noTargetCount) {
+            items.push({
+              id: noneString,
+              doesNotApplyValue: true,
+              label: "Does not apply",
+              count: noTargetCount,
+            });
+          }
+          items.push(
+            ...targets.map((target) => ({
+              id: target.entityId,
+              label: target.label,
+              count: target.count,
+            })),
+          );
+
+          return items;
+        })(),
         selectedFilterItemIds: selectedTargetEntities,
         setSelectedFilterItemIds: setSelectedTargetEntities,
         isRowFiltered: (row) =>
@@ -902,14 +979,16 @@ export const EntitiesTable: FunctionComponent<{
       createdByActors,
       webs,
       selectedWebs,
-      entityTypeVersions,
-      selectedEntityTypeVersions,
+      entityTypeTitles,
+      selectedEntityTypeTitles,
       lastEditedByActors,
       selectedCreatedByAccountIds,
       selectedLastEditedByAccountIds,
       selectedArchivedStatus,
       selectedSourceEntities,
       selectedTargetEntities,
+      noSourceCount,
+      noTargetCount,
       sources,
       targets,
     ],
@@ -924,11 +1003,13 @@ export const EntitiesTable: FunctionComponent<{
     }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
 
   const isPrimaryEntity = useCallback(
-    (entity: { metadata: Pick<Entity["metadata"], "entityTypeId"> }) =>
+    (entity: { metadata: Pick<Entity["metadata"], "entityTypeIds"> }) =>
       entityTypeBaseUrl
-        ? extractBaseUrl(entity.metadata.entityTypeId) === entityTypeBaseUrl
+        ? entity.metadata.entityTypeIds.some(
+            (typeId) => extractBaseUrl(typeId) === entityTypeBaseUrl,
+          )
         : entityTypeId
-          ? entityTypeId === entity.metadata.entityTypeId
+          ? entity.metadata.entityTypeIds.includes(entityTypeId)
           : false,
     [entityTypeId, entityTypeBaseUrl],
   );

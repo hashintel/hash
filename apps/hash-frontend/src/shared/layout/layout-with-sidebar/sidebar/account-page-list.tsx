@@ -354,7 +354,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             key={entityId}
             title={title}
             pageEntityId={entityId}
-            pageEntityTypeId={metadata.entityTypeId}
+            pageEntityTypeId={metadata.entityTypeIds[0]}
             icon={icon}
             pagePath={
               !ownerShortname

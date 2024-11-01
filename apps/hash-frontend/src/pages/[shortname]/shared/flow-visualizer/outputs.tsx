@@ -41,11 +41,11 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
+import { EntityEditorSlideStack } from "../../../shared/entity-editor-slide-stack";
 import { TypeSlideOverStack } from "../../../shared/entity-type-page/type-slide-over-stack";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../shared/get-file-properties";
 import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
-import { EditEntitySlideOver } from "../../entities/[entity-uuid].page/edit-entity-slide-over";
 import { ClaimsTable } from "./outputs/claims-table";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
@@ -88,7 +88,7 @@ export const getDeliverables = (
       if (fileUrl) {
         deliverables.push({
           displayName,
-          entityTypeId: entity.metadata.entityTypeId,
+          entityTypeId: entity.metadata.entityTypeIds[0],
           fileName,
           fileUrl,
           type: "file",
@@ -259,7 +259,7 @@ const mockEntityFromProposedEntity = (
         entityId: proposedEntity.localEntityId,
         editionId,
       },
-      entityTypeIds: [proposedEntity.entityTypeId],
+      entityTypeIds: proposedEntity.entityTypeIds,
       temporalVersioning: {
         decisionTime: temporalInterval,
         transactionTime: temporalInterval,
@@ -358,8 +358,14 @@ export const Outputs = ({
     fetchPolicy: "cache-and-network",
     variables: {
       filter: {
-        any: proposedEntities.map((proposedEntity) =>
-          generateVersionedUrlMatchingFilter(proposedEntity.entityTypeId, {
+        any: [
+          ...new Set(
+            proposedEntities.flatMap(
+              (proposedEntity) => proposedEntity.entityTypeIds,
+            ),
+          ),
+        ].map((entityTypeId) =>
+          generateVersionedUrlMatchingFilter(entityTypeId, {
             forEntityType: true,
           }),
         ),
@@ -512,7 +518,7 @@ export const Outputs = ({
 
     for (const entity of proposedEntities) {
       const {
-        entityTypeId,
+        entityTypeIds,
         localEntityId,
         properties,
         sourceEntityId,
@@ -540,7 +546,7 @@ export const Outputs = ({
             editionId,
             entityId: localEntityId,
           },
-          entityTypeId,
+          entityTypeIds,
         },
         properties,
       });
@@ -567,15 +573,14 @@ export const Outputs = ({
           onClose={() => setSlideOver(null)}
         />
       )}
-      {selectedEntitySubgraph && (
-        <EditEntitySlideOver
+      {selectedEntitySubgraph && slideOver?.type === "entity" && (
+        <EntityEditorSlideStack
           entitySubgraph={selectedEntitySubgraph}
           hideOpenInNew={persistedEntities.length === 0}
-          onEntityClick={onEntityClick}
-          open={slideOver?.type === "entity"}
+          rootEntityId={slideOver.entityId}
           onClose={() => setSlideOver(null)}
           onSubmit={() => {
-            throw new Error("Editing not permitted in this context");
+            throw new Error(`Editing not yet supported from this screen`);
           }}
           readonly
         />

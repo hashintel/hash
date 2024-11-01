@@ -39,10 +39,10 @@ const getAvatarForEntity = (
     subgraph,
     entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
-    ({ linkEntity }) =>
-      linkEntity[0]?.metadata.entityTypeId ===
+  ).filter(({ linkEntity }) =>
+    linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
+    ),
   );
   return avatarLinkAndEntities[0]?.rightEntity[0] as Entity<Image> | undefined;
 };
@@ -87,10 +87,10 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
       const orgLinksAndEntities = getOutgoingLinkAndTargetEntities(
         subgraph,
         user.metadata.recordId.entityId,
-      ).filter(
-        ({ linkEntity }) =>
-          linkEntity[0]?.metadata.entityTypeId ===
+      ).filter(({ linkEntity }) =>
+        linkEntity[0]?.metadata.entityTypeIds.includes(
           systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+        ),
       );
 
       const userBrowserPreferences = getOutgoingLinkAndTargetEntities(
@@ -98,10 +98,12 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         user.metadata.recordId.entityId,
       ).filter(
         ({ linkEntity, rightEntity }) =>
-          linkEntity[0]?.metadata.entityTypeId ===
-            systemLinkEntityTypes.has.linkEntityTypeId &&
-          rightEntity[0]?.metadata.entityTypeId ===
+          linkEntity[0]?.metadata.entityTypeIds.includes(
+            systemLinkEntityTypes.has.linkEntityTypeId,
+          ) &&
+          rightEntity[0]?.metadata.entityTypeIds.includes(
             systemEntityTypes.browserPluginSettings.entityTypeId,
+          ),
       )[0]?.rightEntity[0];
 
       let settingsEntityId: EntityId;
@@ -204,14 +206,14 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         };
 
         const settingsEntityMetadata = await createEntity({
-          entityTypeId: systemEntityTypes.browserPluginSettings.entityTypeId,
+          entityTypeIds: [systemEntityTypes.browserPluginSettings.entityTypeId],
           properties,
         });
 
         settingsEntityId = settingsEntityMetadata.metadata.recordId.entityId;
 
         await createEntity({
-          entityTypeId: systemLinkEntityTypes.has.linkEntityTypeId,
+          entityTypeIds: [systemLinkEntityTypes.has.linkEntityTypeId],
           properties: { value: {} },
           linkData: {
             leftEntityId: user.metadata.recordId.entityId,

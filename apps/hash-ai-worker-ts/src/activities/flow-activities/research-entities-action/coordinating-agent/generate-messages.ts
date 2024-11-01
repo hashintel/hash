@@ -54,8 +54,9 @@ export const generateProgressReport = (params: {
         .map((proposedEntity) =>
           simplifyProposedEntityForLlmConsumption({
             proposedEntity,
-            entityType:
-              allDereferencedEntityTypesById[proposedEntity.entityTypeId]!,
+            entityTypes: proposedEntity.entityTypeIds.map(
+              (entityTypeId) => allDereferencedEntityTypesById[entityTypeId]!,
+            ),
           }),
         )
         .join("\n")}
@@ -69,8 +70,9 @@ export const generateProgressReport = (params: {
         .map((proposedLink) =>
           simplifyProposedEntityForLlmConsumption({
             proposedEntity: proposedLink,
-            entityType:
-              allDereferencedEntityTypesById[proposedLink.entityTypeId]!,
+            entityTypes: proposedLink.entityTypeIds.map(
+              (entityTypeId) => allDereferencedEntityTypesById[entityTypeId]!,
+            ),
           }),
         )
         .join("\n")}

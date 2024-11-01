@@ -27,7 +27,7 @@ import { GraphVisualizer } from "./graph-visualizer";
 
 export type EntityForGraph = {
   linkData?: LinkData;
-  metadata: Pick<EntityMetadata, "recordId" | "entityTypeId"> &
+  metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds"> &
     Partial<Pick<EntityMetadata, "temporalVersioning">>;
   properties: PropertyObject;
 };
@@ -149,34 +149,42 @@ export const EntityGraphVisualizer = memo(
 
         const specialHighlight = isPrimaryEntity?.(entity) ?? false;
 
-        if (!entityTypeIdToColor.has(entity.metadata.entityTypeId)) {
+        /**
+         * @todo H-3539: take account of additional types an entity might have
+         */
+        if (!entityTypeIdToColor.has(entity.metadata.entityTypeIds[0])) {
           entityTypeIdToColor.set(
-            entity.metadata.entityTypeId,
+            entity.metadata.entityTypeIds[0],
             entityTypeIdToColor.size % nodeColors.length,
           );
         }
 
         const { color, borderColor } = specialHighlight
           ? { color: palette.blue[50], borderColor: palette.blue[60] }
-          : nodeColors[entityTypeIdToColor.get(entity.metadata.entityTypeId)!]!;
+          : nodeColors[
+              entityTypeIdToColor.get(entity.metadata.entityTypeIds[0])!
+            ]!;
 
         const entityType =
-          entityTypesById[entity.metadata.entityTypeId] ??
-          getEntityTypeById(subgraphWithTypes, entity.metadata.entityTypeId);
+          entityTypesById[entity.metadata.entityTypeIds[0]] ??
+          getEntityTypeById(
+            subgraphWithTypes,
+            entity.metadata.entityTypeIds[0],
+          );
 
         if (!entityType) {
           throw new Error(
-            `Could not find entity type for ${entity.metadata.entityTypeId}`,
+            `Could not find entity type for ${entity.metadata.entityTypeIds[0]}`,
           );
         }
 
-        entityTypesById[entity.metadata.entityTypeId] ??= entityType;
+        entityTypesById[entity.metadata.entityTypeIds[0]] ??= entityType;
 
         nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
           icon: entityType.schema.icon ?? undefined,
           label: generateEntityLabel(subgraphWithTypes, entity),
           nodeId: entity.metadata.recordId.entityId,
-          nodeTypeId: entity.metadata.entityTypeId,
+          nodeTypeId: entity.metadata.entityTypeIds[0],
           nodeTypeLabel: entityType.schema.title,
           color,
           borderColor,
@@ -204,7 +212,7 @@ export const EntityGraphVisualizer = memo(
           source: linkEntity.linkData.leftEntityId,
           target: linkEntity.linkData.rightEntityId,
           edgeId: linkEntity.metadata.recordId.entityId,
-          edgeTypeId: linkEntity.metadata.entityTypeId,
+          edgeTypeId: linkEntity.metadata.entityTypeIds[0],
           size: 1,
         });
       }
@@ -242,7 +250,7 @@ export const EntityGraphVisualizer = memo(
         onEntityClick?.(edgeData.source as EntityId, screenContainerRef, {
           defaultOutgoingLinkFilters: {
             linkedTo: new Set([edgeData.target]),
-            linkType: new Set([edgeData.edgeTypeId!]),
+            linkTypes: new Set([edgeData.edgeTypeId!]),
           },
         });
       },

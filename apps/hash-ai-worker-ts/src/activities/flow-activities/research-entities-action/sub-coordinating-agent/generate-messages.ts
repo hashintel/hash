@@ -70,7 +70,7 @@ ${entityTypes
 ${
   relevantEntities.length > 0
     ? `<RelevantEntities>${relevantEntities
-        .map(({ localId, name, summary, entityTypeId }) => {
+        .map(({ localId, name, summary, entityTypeIds }) => {
           const claimsAboutEntity = existingClaimsAboutRelevantEntities.filter(
             (claim) => claim.subjectEntityLocalId === localId,
           );
@@ -79,7 +79,7 @@ ${
           <Entity>
             Name: ${name}
             Summary: ${summary}
-            EntityType: ${entityTypeId}
+            ${entityTypeIds.length > 1 ? "Entity Types" : "Entity Type"}: ${entityTypeIds.join(", ")}
             Claims known at start of task: ${claimsAboutEntity
               .map(
                 (claim) =>
@@ -124,7 +124,7 @@ export const generateProgressReport = (params: {
     text += dedent(`
       Here's the information about entities we've gathered so far:
       <Entities>${entitySummaries
-        .map(({ localId, name, summary, entityTypeId }) => {
+        .map(({ localId, name, summary, entityTypeIds }) => {
           const claimsAboutEntity = inferredClaims.filter(
             (claim) => claim.subjectEntityLocalId === localId,
           );
@@ -132,7 +132,7 @@ export const generateProgressReport = (params: {
           return dedent(`<Entity>
     Name: ${name}
     Summary: ${summary}
-    EntityType: ${entityTypeId}
+    ${entityTypeIds.length > 1 ? "Entity Types" : "Entity Type"}: ${entityTypeIds.join(", ")}
     Claims: ${claimsAboutEntity
       .map((claim) => `<Claim>${simplifyClaimForLlmConsumption(claim)}</Claim>`)
       .join("\n")}

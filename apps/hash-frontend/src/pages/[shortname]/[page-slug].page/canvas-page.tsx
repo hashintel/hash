@@ -99,7 +99,7 @@ export const CanvasPageBlock = ({
               blockEntityId:
                 blockEntity.blockChildEntity.metadata.recordId.entityId,
               blockEntityTypeId:
-                blockEntity.blockChildEntity.metadata.entityTypeId,
+                blockEntity.blockChildEntity.metadata.entityTypeIds,
               wrappingEntityId: blockEntity.metadata.recordId.entityId,
               blockMetadata: blocks[blockEntity.componentId]!.meta,
               readonly: false,

@@ -3,7 +3,7 @@ import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
@@ -48,7 +48,7 @@ const EntityRow: FunctionComponent<{
   const label = generateEntityLabel(entitiesSubgraph, entity);
 
   const href = `/@${profile.shortname}/${
-    isPageEntityTypeId(entity.metadata.entityTypeId) ? "" : "entities/"
+    includesPageEntityTypeId(entity.metadata.entityTypeIds) ? "" : "entities/"
   }${extractEntityUuidFromEntityId(entity.metadata.recordId.entityId)}`;
 
   const updatedAt = new Date(
@@ -61,15 +61,16 @@ const EntityRow: FunctionComponent<{
 
   const icon = useEntityIcon({
     entity,
-    entityType,
-    pageIcon:
-      entity.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId ? (
-        <CanvasIcon
-          sx={{ fontSize: 20, fill: ({ palette }) => palette.gray[40] }}
-        />
-      ) : (
-        <PageLightIcon sx={{ fontSize: 18 }} />
-      ),
+    entityTypes: entityType ? [entityType] : undefined,
+    pageIcon: entity.metadata.entityTypeIds.includes(
+      systemEntityTypes.canvas.entityTypeId,
+    ) ? (
+      <CanvasIcon
+        sx={{ fontSize: 20, fill: ({ palette }) => palette.gray[40] }}
+      />
+    ) : (
+      <PageLightIcon sx={{ fontSize: 18 }} />
+    ),
   });
 
   return (

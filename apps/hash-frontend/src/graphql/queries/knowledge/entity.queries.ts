@@ -3,7 +3,7 @@ import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/que
 
 export const createEntityMutation = gql`
   mutation createEntity(
-    $entityTypeId: VersionedUrl!
+    $entityTypeIds: [VersionedUrl!]!
     $ownedById: OwnedById
     $properties: PropertyObjectWithMetadata!
     $linkData: LinkData
@@ -12,7 +12,7 @@ export const createEntityMutation = gql`
   ) {
     # This is a scalar, which has no selection.
     createEntity(
-      entityTypeId: $entityTypeId
+      entityTypeIds: $entityTypeIds
       ownedById: $ownedById
       properties: $properties
       linkData: $linkData

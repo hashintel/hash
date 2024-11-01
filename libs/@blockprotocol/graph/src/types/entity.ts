@@ -64,7 +64,7 @@ export type EntityTemporalVersioningMetadata = Record<
 
 export type EntityMetadata = {
   recordId: EntityRecordId;
-  entityTypeId: VersionedUrl;
+  entityTypeIds: VersionedUrl[];
   temporalVersioning: EntityTemporalVersioningMetadata;
 };
 
@@ -91,7 +91,7 @@ export type LinkEntityAndRightEntity = {
 };
 
 export type CreateEntityData = {
-  entityTypeId: VersionedUrl;
+  entityTypeIds: VersionedUrl[];
   properties: EntityPropertiesObject;
   linkData?: LinkData;
 };
@@ -104,7 +104,7 @@ export type GetEntityData = {
 
 export type UpdateEntityData = {
   entityId: EntityId;
-  entityTypeId: VersionedUrl;
+  entityTypeIds: VersionedUrl[];
   properties: EntityPropertiesObject;
 };
 

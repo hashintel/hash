@@ -72,6 +72,7 @@ export const TypeCard = ({
           "&:hover": {
             backgroundColor: "blue.5",
           },
+          whiteSpace: "nowrap",
         }}
       >
         <TypeIcon icon={icon} />

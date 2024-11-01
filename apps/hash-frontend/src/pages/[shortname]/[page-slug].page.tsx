@@ -160,10 +160,9 @@ const generateCrumbsFromPages = ({
         <PageIcon
           icon={currentPage.icon}
           size="small"
-          isCanvas={
-            currentPage.metadata.entityTypeId ===
-            systemEntityTypes.canvas.entityTypeId
-          }
+          isCanvas={currentPage.metadata.entityTypeIds.includes(
+            systemEntityTypes.canvas.entityTypeId,
+          )}
         />
       ),
     });
@@ -314,11 +313,13 @@ const Page: NextPageWithLayout<PageProps> = () => {
     page.properties as PageProperties,
   );
 
-  const isCanvasPage =
-    page.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId;
+  const isCanvasPage = page.metadata.entityTypeIds.includes(
+    systemEntityTypes.canvas.entityTypeId,
+  );
 
-  const isDocumentPage =
-    page.metadata.entityTypeId === systemEntityTypes.document.entityTypeId;
+  const isDocumentPage = page.metadata.entityTypeIds.includes(
+    systemEntityTypes.document.entityTypeId,
+  );
 
   const canUserEdit = userPermissionsOnEntities[pageEntityId]?.edit ?? false;
 
@@ -386,7 +387,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
             <Box position="relative">
               <PageIconButton
                 entityId={pageEntityId}
-                pageEntityTypeId={page.metadata.entityTypeId}
+                pageEntityTypeId={page.metadata.entityTypeIds[0]}
                 icon={icon}
                 readonly={!canUserEdit}
                 sx={({ breakpoints }) => ({

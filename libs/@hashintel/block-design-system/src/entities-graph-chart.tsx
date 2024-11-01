@@ -24,7 +24,7 @@ import { useEffect, useMemo, useState } from "react";
 
 export type EntityForGraphChart = {
   linkData?: LinkData;
-  metadata: Pick<EntityMetadata, "recordId" | "entityTypeId"> &
+  metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds"> &
     Partial<Pick<EntityMetadata, "temporalVersioning">>;
   properties: PropertyObject;
 };
@@ -161,67 +161,68 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
         },
       });
 
-      const entityType = getEntityTypeById(
-        subgraphWithTypes,
-        entity.metadata.entityTypeId,
-      );
+      for (const entityTypeId of entity.metadata.entityTypeIds) {
+        const entityType = getEntityTypeById(subgraphWithTypes, entityTypeId);
 
-      if (entityType) {
-        const {
-          schema: { title, $id },
-        } = entityType;
+        if (entityType) {
+          const {
+            schema: { title, $id },
+          } = entityType;
 
-        if (!typesAlreadyAdded.has($id)) {
-          typesAlreadyAdded.add($id);
+          if (!typesAlreadyAdded.has($id)) {
+            typesAlreadyAdded.add($id);
 
-          nodes.push({
-            category: "entityType",
-            name: title,
-            id: $id,
+            nodes.push({
+              category: "entityType",
+              name: title,
+              id: $id,
+              label: {
+                ...nodeLabelStyle,
+              },
+              itemStyle: {
+                color: theme.palette.blue[70],
+              },
+            });
+          }
+
+          edges.push({
+            source: entity.metadata.recordId.entityId,
+            target: $id,
+            name: `${entity.metadata.recordId.entityId}-${$id}`,
             label: {
-              ...nodeLabelStyle,
+              fontSize: 12,
+              padding: 2,
+              show: true,
+              formatter: () => "is of type",
             },
-            itemStyle: {
-              color: theme.palette.blue[70],
-            },
+            symbol: ["none", "arrow"],
+            symbolSize: 8,
           });
         }
+      }
+    }
+
+    for (const linkEntity of linkEntities ?? []) {
+      for (const entityTypeId of linkEntity.metadata.entityTypeIds) {
+        const linkEntityType = getEntityTypeById(
+          subgraphWithTypes,
+          entityTypeId,
+        );
 
         edges.push({
-          source: entity.metadata.recordId.entityId,
-          target: $id,
-          name: `${entity.metadata.recordId.entityId}-${$id}`,
+          /** @todo: figure out why the right entity is the source and not the target */
+          source: linkEntity.linkData.leftEntityId,
+          target: linkEntity.linkData.rightEntityId,
+          id: linkEntity.metadata.recordId.entityId,
+          name: linkEntity.metadata.recordId.entityId,
           label: {
-            fontSize: 12,
-            padding: 2,
             show: true,
-            formatter: () => "is of type",
+            formatter: () => linkEntityType?.schema.title ?? "Unknown",
           },
           symbol: ["none", "arrow"],
           symbolSize: 8,
         });
       }
-    }
-
-    for (const linkEntity of linkEntities ?? []) {
-      const linkEntityType = getEntityTypeById(
-        subgraphWithTypes,
-        linkEntity.metadata.entityTypeId,
-      );
-
-      edges.push({
-        /** @todo: figure out why the right entity is the source and not the target */
-        source: linkEntity.linkData.leftEntityId,
-        target: linkEntity.linkData.rightEntityId,
-        id: linkEntity.metadata.recordId.entityId,
-        name: linkEntity.metadata.recordId.entityId,
-        label: {
-          show: true,
-          formatter: () => linkEntityType?.schema.title ?? "Unknown",
-        },
-        symbol: ["none", "arrow"],
-        symbolSize: 8,
-      });
     }
 
     return {
@@ -257,7 +258,7 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
 
               const linkEntityTypeTitle = getEntityTypeById(
                 subgraphWithTypes,
-                linkEntity.metadata.entityTypeId,
+                linkEntity.metadata.entityTypeIds[0],
               )?.schema.title;
 
               return [
@@ -280,7 +281,7 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
             if (entity) {
               const entityType = getEntityTypeById(
                 subgraphWithTypes,
-                entity.metadata.entityTypeId,
+                entity.metadata.entityTypeIds[0],
               );
 
               return entityType?.schema.title ?? "";

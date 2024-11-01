@@ -68,7 +68,7 @@ export const EntityEditor = (props: EntityEditorProps) => {
   }, [entitySubgraph]);
 
   /**
-   * @todo when we allow starting an empty link entity and choosing the type later, this will need to be updated
+   * @todo when we allow starting an empty link entity and choosing the source/target later, this will need to be updated
    *    to use isSpecialEntityTypeLookup instead
    */
   const isLinkEntity = !!entity.linkData;

@@ -12,7 +12,7 @@ import { simplifyEntity } from "../../../shared/simplify-entity.js";
 
 export type ExistingEntitySummary = {
   entityId: EntityId;
-  entityTypeId: VersionedUrl;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   name: string;
   summary: string;
 };
@@ -142,7 +142,7 @@ export const summarizeExistingEntities = async (params: {
 
       validEntitySummaries.push({
         entityId: existingEntity.metadata.recordId.entityId,
-        entityTypeId: existingEntity.metadata.entityTypeId,
+        entityTypeIds: existingEntity.metadata.entityTypeIds,
         name,
         summary,
       });

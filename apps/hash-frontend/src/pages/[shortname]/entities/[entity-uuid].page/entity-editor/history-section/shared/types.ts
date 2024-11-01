@@ -15,7 +15,7 @@ type HistoryEventBase = {
 type CreationEvent = HistoryEventBase & {
   type: "created";
   entity: Entity;
-  entityType: EntityType;
+  entityTypes: EntityType[];
   provenance: {
     edition: EntityEditionProvenance;
   };

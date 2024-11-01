@@ -108,7 +108,9 @@ export type {
  * A spreadsheet file.
  */
 export type SpreadsheetFile = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1",
+  ];
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
 };

@@ -323,7 +323,7 @@ const EditEntitySlideOver = memo(
                   undefined,
                 ),
               }),
-              entityTypeId: draftEntity.metadata.entityTypeId,
+              entityTypeIds: draftEntity.metadata.entityTypeIds,
             },
           },
         });
