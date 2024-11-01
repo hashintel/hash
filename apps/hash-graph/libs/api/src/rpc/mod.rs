@@ -46,6 +46,7 @@ mod role {
 
     type RequestStream<C> = stream::Iter<vec::IntoIter<<C as Encoder>::Buf>>;
 
+    // TODO: move this into `harpc_client`
     impl<C, St, ResData, ResError, ServiceError, T> ConnectionService<C> for T
     where
         T: tower::Service<
@@ -67,8 +68,9 @@ mod role {
         type ServiceError = ServiceError;
     }
 
+    // TODO: move this into `harpc_client`
     pub(crate) trait ConnectionCodec:
-        Encoder<Error = Report<Self::EncoderError>>
+        Encoder<Error = Report<Self::EncoderError>, Buf: Send>
         + Decoder<Error = Report<Self::DecoderError>>
         + Clone
         + Send
@@ -80,7 +82,7 @@ mod role {
 
     impl<C, EncoderError, DecoderError> ConnectionCodec for C
     where
-        C: Encoder<Error = Report<EncoderError>>
+        C: Encoder<Error = Report<EncoderError>, Buf: Send>
             + Decoder<Error = Report<DecoderError>>
             + Clone
             + Send
@@ -92,6 +94,7 @@ mod role {
         type EncoderError = EncoderError;
     }
 
+    // TODO: move this into `harpc_client`
     pub(crate) async fn encode_request<S, E, C>(
         codec: E,
         procedure: S::ProcedureId,

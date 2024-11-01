@@ -4,7 +4,7 @@ use graph_types::{
     account::{AccountGroupId, AccountId},
     owned_by_id::OwnedById,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 fn random_account_id() -> AccountId {
@@ -19,7 +19,7 @@ fn random_account_group_id() -> AccountGroupId {
 #[error("Could not insert account")]
 pub struct AccountInsertionError;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InsertAccountIdParams {
