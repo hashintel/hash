@@ -118,9 +118,9 @@ mod tests {
     use thiserror::Error;
     use type_system::{
         schema::{
-            ClosedEntityType, ClosedMultiEntityType, ConversionExpression, DataType,
-            DataTypeReference, DataTypeUuid, EntityType, EntityTypeUuid, OntologyTypeResolver,
-            PropertyType,
+            ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConversionExpression,
+            DataType, DataTypeReference, DataTypeUuid, EntityType, EntityTypeUuid,
+            OntologyTypeResolver, PropertyType,
         },
         url::{BaseUrl, VersionedUrl},
     };
@@ -289,6 +289,7 @@ mod tests {
     impl PropertyTypeProvider for Provider {}
 
     impl DataTypeLookup for Provider {
+        type ClosedDataType = Arc<ClosedDataType>;
         type DataTypeWithMetadata = Arc<DataTypeWithMetadata>;
         type Error = InvalidDataType;
 
@@ -300,6 +301,13 @@ mod tests {
                 .get(&data_type_uuid)
                 .map(Arc::clone)
                 .ok_or_else(|| Report::new(InvalidDataType))
+        }
+
+        async fn lookup_closed_data_type_by_uuid(
+            &self,
+            _: DataTypeUuid,
+        ) -> Result<Self::ClosedDataType, Report<Self::Error>> {
+            unimplemented!()
         }
 
         async fn is_parent_of(

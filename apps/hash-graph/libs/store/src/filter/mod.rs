@@ -529,7 +529,7 @@ mod tests {
         owned_by_id::OwnedById,
     };
     use serde_json::json;
-    use type_system::schema::{ConversionExpression, DataTypeReference};
+    use type_system::schema::{ClosedDataType, ConversionExpression, DataTypeReference};
     use uuid::Uuid;
 
     use super::*;
@@ -537,6 +537,7 @@ mod tests {
     struct TestDataTypeProvider;
 
     impl DataTypeLookup for TestDataTypeProvider {
+        type ClosedDataType = ClosedDataType;
         type DataTypeWithMetadata = DataTypeWithMetadata;
         type Error = !;
 
@@ -544,6 +545,13 @@ mod tests {
             &self,
             _: DataTypeUuid,
         ) -> Result<Self::DataTypeWithMetadata, Report<!>> {
+            unimplemented!()
+        }
+
+        async fn lookup_closed_data_type_by_uuid(
+            &self,
+            _: DataTypeUuid,
+        ) -> Result<Self::ClosedDataType, Report<Self::Error>> {
             unimplemented!()
         }
 

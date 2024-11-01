@@ -2,7 +2,7 @@ use core::{borrow::Borrow, error::Error};
 
 use error_stack::{FutureExt as _, Report};
 use type_system::{
-    schema::{ConversionExpression, DataTypeReference, DataTypeUuid},
+    schema::{ClosedDataType, ConversionExpression, DataTypeReference, DataTypeUuid},
     url::BaseUrl,
 };
 
@@ -11,6 +11,7 @@ use crate::ontology::DataTypeWithMetadata;
 #[trait_variant::make(Send)]
 pub trait DataTypeLookup {
     type DataTypeWithMetadata: Borrow<DataTypeWithMetadata> + Send;
+    type ClosedDataType: Borrow<ClosedDataType> + Send;
     type Error: Error + Send + Sync + 'static;
 
     async fn lookup_data_type_by_ref(
@@ -25,6 +26,11 @@ pub trait DataTypeLookup {
         &self,
         data_type_uuid: DataTypeUuid,
     ) -> Result<Self::DataTypeWithMetadata, Report<Self::Error>>;
+
+    async fn lookup_closed_data_type_by_uuid(
+        &self,
+        data_type_uuid: DataTypeUuid,
+    ) -> Result<Self::ClosedDataType, Report<Self::Error>>;
 
     async fn is_parent_of(
         &self,

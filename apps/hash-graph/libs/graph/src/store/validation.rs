@@ -28,9 +28,10 @@ use hash_graph_store::{
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
 use type_system::{
+    Valid,
     schema::{
-        ClosedEntityType, ConversionDefinition, ConversionExpression, DataTypeReference,
-        DataTypeUuid, EntityTypeUuid, PropertyType, PropertyTypeUuid,
+        ClosedDataType, ClosedEntityType, ConversionDefinition, ConversionExpression,
+        DataTypeReference, DataTypeUuid, EntityTypeUuid, PropertyType, PropertyTypeUuid,
     },
     url::{BaseUrl, VersionedUrl},
 };
@@ -123,6 +124,7 @@ where
 #[derive(Debug, Default)]
 pub struct StoreCache {
     data_types: CacheHashMap<DataTypeUuid, DataTypeWithMetadata>,
+    closed_data_types: CacheHashMap<DataTypeUuid, ClosedDataType>,
     property_types: CacheHashMap<PropertyTypeUuid, PropertyType>,
     entity_types: CacheHashMap<EntityTypeUuid, ClosedEntityType>,
     entities: CacheHashMap<EntityId, Entity>,
@@ -166,6 +168,7 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
+    type ClosedDataType = Arc<ClosedDataType>;
     type DataTypeWithMetadata = Arc<DataTypeWithMetadata>;
     type Error = QueryError;
 
@@ -198,6 +201,39 @@ where
             .await?;
 
         let schema = self.cache.data_types.grant(data_type_uuid, schema).await;
+
+        Ok(schema)
+    }
+
+    async fn lookup_closed_data_type_by_uuid(
+        &self,
+        data_type_uuid: DataTypeUuid,
+    ) -> Result<Arc<ClosedDataType>, Report<QueryError>> {
+        if let Some(cached) = self.cache.closed_data_types.get(&data_type_uuid).await {
+            return cached;
+        }
+
+        if let Err(error) = self.authorize_data_type(data_type_uuid).await {
+            self.cache.closed_data_types.deny(data_type_uuid).await;
+            return Err(error);
+        }
+
+        let schema: Valid<ClosedDataType> = self
+            .store
+            .as_client()
+            .query_one(
+                "SELECT closed_schema FROM data_types WHERE ontology_id = $1",
+                &[&data_type_uuid],
+            )
+            .await
+            .change_context(QueryError)?
+            .get(0);
+
+        let schema = self
+            .cache
+            .closed_data_types
+            .grant(data_type_uuid, schema.into_inner())
+            .await;
 
         Ok(schema)
     }
