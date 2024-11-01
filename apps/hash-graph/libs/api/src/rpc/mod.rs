@@ -1,5 +1,5 @@
-mod account;
-mod auth;
+pub mod account;
+pub mod auth;
 mod session;
 
 mod role {
@@ -7,8 +7,8 @@ mod role {
     use core::error::Error;
 
     use bytes::Buf;
-    use error_stack::{Context, Report, TryReportStreamExt as _};
-    use futures::{TryStreamExt as _, stream};
+    use error_stack::{Report, TryReportStreamExt as _};
+    use futures::stream;
     use harpc_client::connection::Connection;
     use harpc_codec::{decode::Decoder, encode::Encoder};
     use harpc_server::session::{Session, SessionId};
@@ -102,7 +102,10 @@ mod role {
         E: Encoder<Error = Report<C>, Buf: Send> + Send,
         C: Error + Send + Sync + 'static,
     {
-        let items: Vec<_> = codec.encode(stream::iter(items)).try_collect().await?;
+        let items: Vec<_> = codec
+            .encode(stream::iter(items))
+            .try_collect_reports()
+            .await?;
 
         Ok(Request::from_parts(
             request::Parts {

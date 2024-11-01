@@ -21,6 +21,7 @@ graph-types = { workspace = true, public = true, features = ["utoipa"] }
 hash-graph-store = { workspace = true, features = ["utoipa"] }
 temporal-client = { workspace = true, public = true }
 harpc-server = { workspace = true, public = true }
+harpc-client = { workspace = true, public = true }
 
 # Public third-party dependencies
 axum = { workspace = true, public = true }
@@ -36,6 +37,10 @@ type-system = { workspace = true, features = ["utoipa"] }
 validation = { workspace = true, features = ["utoipa"] }
 harpc-service = { workspace = true }
 harpc-types = { workspace = true }
+
+# Private workspace dependencies
+harpc-tower = { workspace = true }
+harpc-codec = { workspace = true }
 
 # Private third-party dependencies
 async-trait = { workspace = true }
@@ -54,10 +59,7 @@ utoipa = { workspace = true }
 uuid = { workspace = true }
 frunk = "0.4.3"
 derive_more = { version = "1.0.0", features = ["display", "error"] }
-harpc-tower.workspace = true
-harpc-codec.workspace = true
 futures.workspace = true
-harpc-client.workspace = true
 tower.workspace = true
 
 [lints]

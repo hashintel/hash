@@ -3,4 +3,4 @@
 extern crate alloc;
 
 pub mod rest;
-mod rpc;
+pub mod rpc;

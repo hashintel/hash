@@ -1,25 +1,18 @@
 use core::{fmt::Debug, pin::pin};
 
-use bytes::BytesMut;
-use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _};
-use futures::{StreamExt, TryFutureExt, stream};
+use error_stack::{Report, ResultExt as _};
+use futures::{StreamExt, stream};
 use graph_types::account::AccountId;
 use harpc_client::connection::Connection;
 use harpc_codec::{decode::Decoder, encode::Encoder};
-use harpc_server::{
-    error::ProcedureNotFound,
-    session::{Session, SessionId},
-};
-use harpc_service::{Service as _, delegate::ServiceDelegate, procedure::ProcedureIdentifier};
+use harpc_server::{error::ProcedureNotFound, session::Session};
+use harpc_service::{delegate::ServiceDelegate, procedure::ProcedureIdentifier};
 use harpc_tower::{
-    Extensions,
     body::{Body, BodyExt},
     request::Request,
     response::{self, Response},
 };
-use harpc_types::{
-    procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
-};
+use harpc_types::{procedure::ProcedureDescriptor, response_kind::ResponseKind};
 use tower::ServiceExt as _;
 
 use super::{role, session::User};
@@ -220,7 +213,7 @@ where
             .await
             .change_context(AuthenticationError)?;
 
-        let (parts, body) = response.into_parts();
+        let (_, body) = response.into_parts();
 
         let items = codec.decode(body);
         let mut items = core::pin::pin!(items);
