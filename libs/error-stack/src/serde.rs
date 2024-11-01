@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 //! Implementation of general [`Report`] serialization.
 //!
 //! The value can be of any type, currently only printable attachments and context are supported, in

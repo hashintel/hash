@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 pub mod __private {
     #![doc(hidden)]
     //! Implementation detail for macros.
@@ -99,9 +101,10 @@ pub mod __private {
 /// # let user = 0;
 /// # type Resource = u32;
 /// # let resource = 0;
+/// use core::error::Error;
 /// use core::fmt;
 ///
-/// use error_stack::{report, Context};
+/// use error_stack::report;
 ///
 /// #[derive(Debug)]
 /// # #[allow(dead_code)]
@@ -115,7 +118,7 @@ pub mod __private {
 ///         # }; Ok(())}
 /// }
 ///
-/// impl Context for PermissionDenied {}
+/// impl Error for PermissionDenied {}
 ///
 /// if !has_permission(&user, &resource) {
 ///     return Err(report!(PermissionDenied(user, resource)));
@@ -239,9 +242,10 @@ macro_rules! bail {
 /// # let user = 0;
 /// # type Resource = u32;
 /// # let resource = 0;
+/// use core::error::Error;
 /// use core::fmt;
 ///
-/// use error_stack::{bail, Context};
+/// use error_stack::bail;
 ///
 /// #[derive(Debug)]
 /// # #[allow(dead_code)]
@@ -256,7 +260,7 @@ macro_rules! bail {
 ///     }
 /// }
 ///
-/// impl Context for PermissionDenied {}
+/// impl Error for PermissionDenied {}
 ///
 /// if !has_permission(&user, &resource) {
 ///     bail!(PermissionDenied(user, resource));
@@ -343,9 +347,10 @@ macro_rules! bail {
 /// # let user = 0;
 /// # type Resource = u32;
 /// # let resource = 0;
-/// # use core::fmt;
+/// use core::error::Error;
+/// use core::fmt;
 ///
-/// use error_stack::{Context, ensure};
+/// use error_stack::ensure;
 ///
 /// #[derive(Debug)]
 /// # #[allow(dead_code)]
@@ -361,7 +366,7 @@ macro_rules! bail {
 ///     }
 /// }
 ///
-/// impl Context for PermissionDenied {}
+/// impl Error for PermissionDenied {}
 ///
 /// ensure!(
 ///     has_permission(&user, &resource),

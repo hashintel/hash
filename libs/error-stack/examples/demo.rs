@@ -1,9 +1,9 @@
 // This is the same example also used in the README.md. When updating this, don't forget updating
 // the README.md as well. This is mainly used to test the code and generate the output shown.
 
-use core::fmt;
+use core::{error::Error, fmt};
 
-use error_stack::{Context, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 
 #[derive(Debug)]
 struct ParseExperimentError;
@@ -14,7 +14,7 @@ impl fmt::Display for ParseExperimentError {
     }
 }
 
-impl Context for ParseExperimentError {}
+impl Error for ParseExperimentError {}
 
 #[expect(
     clippy::manual_try_fold,
@@ -57,7 +57,7 @@ impl fmt::Display for ExperimentError {
     }
 }
 
-impl Context for ExperimentError {}
+impl Error for ExperimentError {}
 
 #[expect(
     clippy::manual_try_fold,

@@ -2,10 +2,10 @@
 // This is the same example also used in `lib.rs`. When updating this, don't forget updating the doc
 // example as well. This example is mainly used to generate the output shown in the documentation.
 
-use core::fmt;
+use core::{error::Error, fmt};
 use std::{fs, path::Path};
 
-use error_stack::{Context, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 
 pub type Config = String;
 
@@ -25,7 +25,7 @@ impl fmt::Display for ParseConfigError {
     }
 }
 
-impl Context for ParseConfigError {}
+impl Error for ParseConfigError {}
 
 struct Suggestion(&'static str);
 

@@ -14,6 +14,7 @@ extern crate alloc;
 use core::{any::TypeId, panic::Location};
 #[expect(unused_imports)]
 use core::{
+    error::Error,
     fmt,
     future::Future,
     iter,
@@ -24,7 +25,7 @@ use std::backtrace::Backtrace;
 #[cfg(all(feature = "std", any(feature = "backtrace", feature = "spantrace")))]
 use std::sync::LazyLock;
 
-use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report};
+use error_stack::{AttachmentKind, Frame, FrameKind, Report};
 #[cfg(all(
     not(feature = "std"),
     any(feature = "backtrace", feature = "spantrace")
@@ -42,7 +43,7 @@ impl fmt::Display for RootError {
     }
 }
 
-impl Context for RootError {}
+impl Error for RootError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContextA(pub u32);
@@ -53,7 +54,7 @@ impl fmt::Display for ContextA {
     }
 }
 
-impl Context for ContextA {
+impl Error for ContextA {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         request.provide_ref(&self.0);
@@ -70,7 +71,7 @@ impl fmt::Display for ContextB {
     }
 }
 
-impl Context for ContextB {
+impl Error for ContextB {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         request.provide_ref(&self.0);
@@ -97,7 +98,7 @@ impl fmt::Display for ErrorA {
 }
 
 #[cfg(feature = "spantrace")]
-impl Context for ErrorA {
+impl Error for ErrorA {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         request.provide_ref(&self.1);
@@ -122,8 +123,8 @@ impl fmt::Display for ErrorB {
     }
 }
 
-#[cfg(all(nightly, feature = "backtrace"))]
-impl core::error::Error for ErrorB {
+#[cfg(feature = "backtrace")]
+impl Error for ErrorB {
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         request.provide_ref(&self.1);
     }

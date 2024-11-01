@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{error::Error, fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(feature = "backtrace")]
@@ -100,9 +102,9 @@ use crate::{
 /// ## Enforce a context for an error
 ///
 /// ```rust
-/// use std::{fmt, path::{Path, PathBuf}};
+/// use std::{error::Error, fmt, path::{Path, PathBuf}};
 ///
-/// use error_stack::{Context, Report, ResultExt};
+/// use error_stack::{Report, ResultExt};
 ///
 /// #[derive(Debug)]
 /// # #[derive(PartialEq)]
@@ -141,8 +143,8 @@ use crate::{
 ///     # }
 /// }
 ///
-/// impl Context for RuntimeError {}
-/// impl Context for ConfigError {}
+/// impl Error for RuntimeError {}
+/// impl Error for ConfigError {}
 ///
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
@@ -702,7 +704,7 @@ impl<C> Report<[C]> {
     /// ```rust
     /// use std::{fmt, path::Path};
     ///
-    /// use error_stack::{Context, Report, ResultExt};
+    /// use error_stack::{Report, ResultExt};
     ///
     /// #[derive(Debug)]
     /// struct IoError;
@@ -716,7 +718,7 @@ impl<C> Report<[C]> {
     ///     # }
     /// }
     ///
-    /// # impl Context for IoError {}
+    /// # impl core::error::Error for IoError {}
     ///
     /// # #[allow(unused_variables)]
     /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<IoError>> {
@@ -748,7 +750,7 @@ impl<C> Report<[C]> {
     /// ```rust
     /// use std::{fmt, path::Path};
     ///
-    /// use error_stack::{Context, Report, ResultExt};
+    /// use error_stack::{Report, ResultExt};
     ///
     /// #[derive(Debug)]
     /// struct IoError;
@@ -762,7 +764,7 @@ impl<C> Report<[C]> {
     ///     # }
     /// }
     ///
-    /// # impl Context for IoError {}
+    /// # impl core::error::Error for IoError {}
     ///
     /// # #[allow(unused_variables)]
     /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<IoError>> {

@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 use core::fmt;
 
 use crate::{Context, Report};
@@ -21,7 +23,7 @@ use crate::{Context, Report};
 /// # impl core::fmt::Display for AccessError {
 /// #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
 /// # }
-/// # impl error_stack::Context for AccessError {}
+/// # impl core::error::Error for AccessError {}
 /// use error_stack::{ensure, Report};
 ///
 /// fn main() -> Result<(), Report<AccessError>> {

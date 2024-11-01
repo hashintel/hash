@@ -2,10 +2,13 @@
 
 extern crate alloc;
 
-use core::fmt::{Display, Formatter, Write};
+use core::{
+    error::Error,
+    fmt::{Display, Formatter, Write},
+};
 
 mod common;
-use error_stack::{Context, Report, report};
+use error_stack::{Report, report};
 
 #[derive(Debug)]
 struct Char(char);
@@ -16,7 +19,7 @@ impl Display for Char {
     }
 }
 
-impl Context for Char {}
+impl Error for Char {}
 
 /// Builds the following tree:
 ///

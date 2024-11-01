@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::error::Request;

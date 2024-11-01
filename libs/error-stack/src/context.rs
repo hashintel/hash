@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 use alloc::string::{String, ToString};
 #[cfg(nightly)]
 use core::error::Request;
@@ -15,9 +17,9 @@ use crate::Report;
 /// Used for creating a [`Report`] or for switching the [`Report`]'s context:
 ///
 /// ```rust
-/// use std::{fmt, fs, io};
+/// use std::{error::Error, fmt, fs, io};
 ///
-/// use error_stack::{Context, ResultExt, Report};
+/// use error_stack::{ResultExt, Report};
 ///
 /// # type Config = ();
 /// #[derive(Debug)]
@@ -36,7 +38,7 @@ use crate::Report;
 ///
 /// // In this scenario, `Error` is not implemented for `ConfigError` for some reason, so implement
 /// // `Context` manually.
-/// impl Context for ConfigError {}
+/// impl Error for ConfigError {}
 ///
 /// pub fn read_file(path: &str) -> Result<String, Report<io::Error>> {
 ///     // Creates a `Report` from `io::Error`, the current context is `io::Error`
@@ -56,6 +58,7 @@ use crate::Report;
 /// # assert!(err.contains::<io::Error>());
 /// # assert!(err.contains::<ConfigError>());
 /// ```
+#[deprecated(note = "Use `core::error::Error` instead", since = "0.6.0")]
 pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     /// Provide values which can then be requested by [`Report`].
     #[cfg(nightly)]

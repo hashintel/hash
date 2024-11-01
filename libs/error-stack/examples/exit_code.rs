@@ -1,13 +1,14 @@
 //! Example of using `attach` to set a custom exit code. Requires nightly and std feature.
 
+use core::error::Error;
 use std::process::{ExitCode, Termination};
 
-use error_stack::{Context, Report};
+use error_stack::Report;
 
 #[derive(Debug)]
 struct CustomError;
 
-impl Context for CustomError {}
+impl Error for CustomError {}
 
 impl core::fmt::Display for CustomError {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

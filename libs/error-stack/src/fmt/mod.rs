@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 //! Implementation of formatting, to enable colors and the use of box-drawing characters use the
 //! `pretty-print` feature.
 //!

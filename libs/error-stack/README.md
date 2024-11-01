@@ -22,9 +22,9 @@ Read our [announcement post] for the story behind its origins.
 The library enables building a `Report` around an error as it propagates:
 
 ```rust
-use core::fmt;
+use core::{error::Error, fmt};
 
-use error_stack::{Context, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 
 #[derive(Debug)]
 struct ParseExperimentError;
@@ -35,9 +35,9 @@ impl fmt::Display for ParseExperimentError {
     }
 }
 
-impl Context for ParseExperimentError {}
+impl Error for ParseExperimentError {}
 
-fn parse_experiment(description: &str) -> Result<(u64, u64), ParseExperimentError> {
+fn parse_experiment(description: &str) -> Result<(u64, u64), Report<ParseExperimentError>> {
     let value = description
         .parse::<u64>()
         .attach_printable_lazy(|| format!("{description:?} could not be parsed as experiment"))
@@ -55,7 +55,7 @@ impl fmt::Display for ExperimentError {
     }
 }
 
-impl Context for ExperimentError {}
+impl Error for ExperimentError {}
 
 fn start_experiments(
     experiment_ids: &[usize],
@@ -75,7 +75,7 @@ fn start_experiments(
 
             Ok(move || experiment.0 * experiment.1)
         })
-        .collect::<Result<Vec<_>, ExperimentError>>()
+        .collect::<Result<Vec<_>, Report<ExperimentError>>>()
         .attach_printable("unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())

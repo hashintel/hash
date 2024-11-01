@@ -1,3 +1,4 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
 //! Extension for convenient usage of [`Report`]s returned by [`Future`] s.
 //!
 //! Extends [`Future`] with the same methods as [`ResultExt`] but calls the methods on [`poll`]ing.

@@ -83,7 +83,7 @@
 //! # impl core::fmt::Display for AccessError {
 //! #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
 //! # }
-//! # impl error_stack::Context for AccessError {}
+//! # impl core::error::Error for AccessError {}
 //! use error_stack::{ensure, Report};
 //!
 //! fn main() -> Result<(), Report<AccessError>> {
@@ -144,7 +144,9 @@
 //!
 //! ```rust
 //! # use std::{fmt, fs, io, path::Path};
-//! use error_stack::{Context, Report, ResultExt};
+//! use core::error::Error;
+//!
+//! use error_stack::{Report, ResultExt};
 //! # pub type Config = String;
 //!
 //! #[derive(Debug)]
@@ -157,7 +159,7 @@
 //! }
 //!
 //! // It's also possible to implement `Error` instead.
-//! impl Context for ParseConfigError {}
+//! impl Error for ParseConfigError {}
 //!
 //! // For clarification, this example is not using `error_stack::Result`.
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
@@ -184,7 +186,7 @@
 //! # // we only test the snapshot on nightly, therefore report is unused (so is render)
 //! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
-//! # use error_stack::{Context, Report, ResultExt};
+//! # use error_stack::{Report, ResultExt};
 //! # pub type Config = String;
 //! # #[derive(Debug)] struct ParseConfigError;
 //! # impl ParseConfigError { pub fn new() -> Self { Self } }
@@ -193,7 +195,7 @@
 //! #         fmt.write_str("could not parse configuration file")
 //! #     }
 //! # }
-//! # impl Context for ParseConfigError {}
+//! # impl core::error::Error for ParseConfigError {}
 //! # #[derive(Debug, PartialEq)]
 //! struct Suggestion(&'static str);
 //!
@@ -523,6 +525,8 @@ mod serde;
 #[cfg(feature = "unstable")]
 mod sink;
 
+#[expect(deprecated, reason = "`core::error::Error` is stable now")]
+pub use self::context::Context;
 #[cfg(all(feature = "unstable", feature = "futures"))]
 pub use self::ext::stream::TryReportStreamExt;
 #[cfg(feature = "unstable")]
@@ -533,7 +537,6 @@ pub use self::result::Result;
 pub use self::sink::ReportSink;
 pub use self::{
     compat::IntoReportCompat,
-    context::Context,
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
