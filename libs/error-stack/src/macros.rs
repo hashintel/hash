@@ -82,7 +82,7 @@ pub mod __private {
 ///
 /// use error_stack::report;
 ///
-/// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
+/// # fn wrapper() -> Result<(), error_stack::Report<impl core::fmt::Debug>> {
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("file contents: {content}"),
 ///     Err(err) => return Err(report!(err)),
@@ -194,7 +194,7 @@ macro_rules! report {
 #[macro_export]
 macro_rules! bail {
     ($err:expr) => {{
-        return $crate::Result::Err($crate::report!($err));
+        return ::core::result::Result::Err($crate::report!($err));
     }};
 }
 
@@ -220,7 +220,7 @@ macro_rules! bail {
 /// use std::fs;
 ///
 /// use error_stack::bail;
-/// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
+/// # fn wrapper() -> Result<(), error_stack::Report<impl core::fmt::Debug>> {
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("file contents: {content}"),
 ///     Err(err) => bail!(err),
@@ -304,7 +304,7 @@ macro_rules! bail {
 #[macro_export]
 macro_rules! bail {
     ($err:expr) => {{
-        return $crate::Result::Err($crate::report!($err));
+        return ::core::result::Result::Err($crate::report!($err));
     }};
 
     [$($err:expr),+ $(,)?] => {{
@@ -319,7 +319,7 @@ macro_rules! bail {
             Err(error) => error,
         };
 
-        return core::result::Result::Err(error);
+        return ::core::result::Result::Err(error);
     }};
 }
 
@@ -354,9 +354,9 @@ macro_rules! bail {
 /// impl fmt::Display for PermissionDenied {
 ///     # #[allow(unused_variables)]
 ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         const _: &str = stringify! {
+///         # const _: &str = stringify! {
 ///         ...
-///          };
+///         # };
 ///         Ok(())
 ///     }
 /// }

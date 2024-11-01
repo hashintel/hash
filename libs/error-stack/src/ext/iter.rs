@@ -1,4 +1,4 @@
-use crate::{Context, Report, Result};
+use crate::{Context, Report};
 
 // inspired by the implementation in `std`, see: https://doc.rust-lang.org/1.81.0/src/core/iter/adapters/mod.rs.html#157
 // except with the removal of the Try trait, as it is unstable.
@@ -14,7 +14,7 @@ struct ReportShunt<'a, I, T, C> {
 
 impl<I, T, R, C> Iterator for ReportShunt<'_, I, T, C>
 where
-    I: Iterator<Item = core::result::Result<T, R>>,
+    I: Iterator<Item = Result<T, R>>,
     R: Into<Report<[C]>>,
 {
     type Item = T;
@@ -62,9 +62,9 @@ fn try_process_reports<I, T, R, C, F, U>(
     iter: I,
     bound: Option<usize>,
     mut collect: F,
-) -> Result<U, [C]>
+) -> Result<U, Report<[C]>>
 where
-    I: Iterator<Item = core::result::Result<T, R>>,
+    I: Iterator<Item = Result<T, R>>,
     R: Into<Report<[C]>>,
     for<'a> F: FnMut(ReportShunt<'a, I, T, C>) -> U,
 {
@@ -116,10 +116,10 @@ pub trait TryReportIteratorExt<C> {
     /// # Examples
     ///
     /// ```
-    /// use error_stack::{Result, Report, TryReportIteratorExt};
+    /// use error_stack::{Report, TryReportIteratorExt};
     /// use std::io;
     ///
-    /// fn fetch_fail() -> Result<u8, io::Error> {
+    /// fn fetch_fail() -> Result<u8, Report<io::Error>> {
     ///    # stringify! {
     ///    ...
     ///    # };
@@ -132,7 +132,7 @@ pub trait TryReportIteratorExt<C> {
     ///
     /// assert_eq!(error.current_contexts().count(), 3);
     /// ```
-    fn try_collect_reports<A>(self) -> Result<A, [C]>
+    fn try_collect_reports<A>(self) -> Result<A, Report<[C]>>
     where
         A: FromIterator<Self::Ok>;
 
@@ -151,10 +151,10 @@ pub trait TryReportIteratorExt<C> {
     /// # Examples
     ///
     /// ```
-    /// use error_stack::{Result, Report, TryReportIteratorExt};
+    /// use error_stack::{Report, TryReportIteratorExt};
     /// use std::io;
     ///
-    /// fn fetch_fail() -> Result<u8, io::Error> {
+    /// fn fetch_fail() -> Result<u8, Report<io::Error>> {
     ///    # stringify! {
     ///    ...
     ///    # };
@@ -167,27 +167,27 @@ pub trait TryReportIteratorExt<C> {
     ///
     /// assert_eq!(error.current_contexts().count(), 2);
     /// ```
-    fn try_collect_reports_bounded<A>(self, bound: usize) -> Result<A, [C]>
+    fn try_collect_reports_bounded<A>(self, bound: usize) -> Result<A, Report<[C]>>
     where
         A: FromIterator<Self::Ok>;
 }
 
 impl<T, C, R, I> TryReportIteratorExt<C> for I
 where
-    I: Iterator<Item = core::result::Result<T, R>>,
+    I: Iterator<Item = Result<T, R>>,
     R: Into<Report<[C]>>,
     C: Context,
 {
     type Ok = T;
 
-    fn try_collect_reports<A>(self) -> Result<A, [C]>
+    fn try_collect_reports<A>(self) -> Result<A, Report<[C]>>
     where
         A: FromIterator<Self::Ok>,
     {
         try_process_reports(self, None, |shunt| shunt.collect())
     }
 
-    fn try_collect_reports_bounded<A>(self, bound: usize) -> Result<A, [C]>
+    fn try_collect_reports_bounded<A>(self, bound: usize) -> Result<A, Report<[C]>>
     where
         A: FromIterator<Self::Ok>,
     {
@@ -223,7 +223,7 @@ mod tests {
             }
         });
 
-        let result: Result<Vec<_>, [CustomError]> = iter.try_collect_reports();
+        let result: Result<Vec<_>, Report<[CustomError]>> = iter.try_collect_reports();
         let report = result.expect_err("should have failed");
 
         let contexts: BTreeSet<_> = report.current_contexts().collect();
@@ -242,7 +242,7 @@ mod tests {
             }
         });
 
-        let result: Result<Vec<_>, [CustomError]> = iter.try_collect_reports_bounded(3);
+        let result: Result<Vec<_>, Report<[CustomError]>> = iter.try_collect_reports_bounded(3);
         let report = result.expect_err("should have failed");
 
         let contexts: BTreeSet<_> = report.current_contexts().collect();
@@ -254,9 +254,9 @@ mod tests {
 
     #[test]
     fn try_collect_no_errors() {
-        let iter = (0..5).map(Result::<_, CustomError>::Ok);
+        let iter = (0..5).map(Result::<_, Report<CustomError>>::Ok);
 
-        let result: Result<Vec<_>, [CustomError]> = iter.try_collect_reports();
+        let result: Result<Vec<_>, Report<[CustomError]>> = iter.try_collect_reports();
         let values = result.expect("should have succeeded");
 
         assert_eq!(values, [0, 1, 2, 3, 4]);
@@ -272,7 +272,7 @@ mod tests {
             }
         });
 
-        let result: Result<Vec<_>, [CustomError]> = iter.try_collect_reports();
+        let result: Result<Vec<_>, Report<[CustomError]>> = iter.try_collect_reports();
         let report = result.expect_err("should have failed");
 
         let contexts: BTreeSet<_> = report.current_contexts().collect();

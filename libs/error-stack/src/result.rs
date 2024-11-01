@@ -16,15 +16,15 @@ use crate::{Context, Report};
 /// ```rust
 /// # fn has_permission(_: (), _: ()) -> bool { true }
 /// # fn get_user() -> Result<(), AccessError> { Ok(()) }
-/// # fn get_resource() -> Result<(), AccessError> { Ok(()) }
+/// # fn get_resource() -> Result<(), Report<AccessError>> { Ok(()) }
 /// # #[derive(Debug)] enum AccessError { PermissionDenied((), ()) }
 /// # impl core::fmt::Display for AccessError {
 /// #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
 /// # }
 /// # impl error_stack::Context for AccessError {}
-/// use error_stack::{ensure, Result};
+/// use error_stack::{ensure, Report};
 ///
-/// fn main() -> Result<(), AccessError> {
+/// fn main() -> Result<(), Report<AccessError>> {
 ///     let user = get_user()?;
 ///     let resource = get_resource()?;
 ///
@@ -38,6 +38,10 @@ use crate::{Context, Report};
 ///     # }; Ok(())
 /// }
 /// ```
+#[deprecated(
+    note = "Use `core::result::Result<T, Report<C>>` instead",
+    since = "0.6.0"
+)]
 pub type Result<T, C> = core::result::Result<T, Report<C>>;
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
@@ -114,7 +118,7 @@ where
     type Ok = T;
 
     #[track_caller]
-    fn attach<A>(self, attachment: A) -> Result<T, C>
+    fn attach<A>(self, attachment: A) -> core::result::Result<T, Report<C>>
     where
         A: Send + Sync + 'static,
     {
@@ -125,7 +129,7 @@ where
     }
 
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> Result<T, C>
+    fn attach_lazy<A, F>(self, attachment: F) -> core::result::Result<T, Report<C>>
     where
         A: Send + Sync + 'static,
         F: FnOnce() -> A,
@@ -137,7 +141,7 @@ where
     }
 
     #[track_caller]
-    fn attach_printable<A>(self, attachment: A) -> Result<T, C>
+    fn attach_printable<A>(self, attachment: A) -> core::result::Result<T, Report<C>>
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
@@ -148,7 +152,7 @@ where
     }
 
     #[track_caller]
-    fn attach_printable_lazy<A, F>(self, attachment: F) -> Result<T, C>
+    fn attach_printable_lazy<A, F>(self, attachment: F) -> core::result::Result<T, Report<C>>
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> A,
@@ -160,7 +164,7 @@ where
     }
 
     #[track_caller]
-    fn change_context<C2>(self, context: C2) -> Result<T, C2>
+    fn change_context<C2>(self, context: C2) -> core::result::Result<T, Report<C2>>
     where
         C2: Context,
     {
@@ -171,7 +175,7 @@ where
     }
 
     #[track_caller]
-    fn change_context_lazy<C2, F>(self, context: F) -> Result<T, C2>
+    fn change_context_lazy<C2, F>(self, context: F) -> core::result::Result<T, Report<C2>>
     where
         C2: Context,
         F: FnOnce() -> C2,
@@ -183,7 +187,7 @@ where
     }
 }
 
-impl<T, C> ResultExt for Result<T, C>
+impl<T, C> ResultExt for core::result::Result<T, Report<C>>
 where
     C: Context,
 {
@@ -241,7 +245,7 @@ where
     }
 
     #[track_caller]
-    fn change_context<C2>(self, context: C2) -> Result<T, C2>
+    fn change_context<C2>(self, context: C2) -> core::result::Result<T, Report<C2>>
     where
         C2: Context,
     {
@@ -253,7 +257,7 @@ where
     }
 
     #[track_caller]
-    fn change_context_lazy<C2, F>(self, context: F) -> Result<T, C2>
+    fn change_context_lazy<C2, F>(self, context: F) -> core::result::Result<T, Report<C2>>
     where
         C2: Context,
         F: FnOnce() -> C2,
@@ -266,7 +270,7 @@ where
     }
 }
 
-impl<T, C> ResultExt for Result<T, [C]>
+impl<T, C> ResultExt for core::result::Result<T, Report<[C]>>
 where
     C: Context,
 {
@@ -324,7 +328,7 @@ where
     }
 
     #[track_caller]
-    fn change_context<C2>(self, context: C2) -> Result<T, C2>
+    fn change_context<C2>(self, context: C2) -> core::result::Result<T, Report<C2>>
     where
         C2: Context,
     {
@@ -336,7 +340,7 @@ where
     }
 
     #[track_caller]
-    fn change_context_lazy<C2, F>(self, context: F) -> Result<T, C2>
+    fn change_context_lazy<C2, F>(self, context: F) -> core::result::Result<T, Report<C2>>
     where
         C2: Context,
         F: FnOnce() -> C2,

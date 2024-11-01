@@ -84,10 +84,10 @@ use crate::{
 /// ## Provide a context for an error
 ///
 /// ```rust
-/// use error_stack::{ResultExt, Result};
+/// use error_stack::ResultExt;
 ///
 /// # #[allow(dead_code)]
-/// # fn fake_main() -> Result<String, std::io::Error> {
+/// # fn fake_main() -> Result<String, error_stack::Report<std::io::Error>> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"))?;
@@ -208,10 +208,10 @@ use crate::{
 /// ## Get the attached [`Backtrace`] and [`SpanTrace`]:
 ///
 /// ```rust,should_panic
-/// use error_stack::{ResultExt, Result};
+/// use error_stack::{ResultExt, Report};
 ///
 /// # #[allow(unused_variables)]
-/// # fn main() -> Result<(), std::io::Error> {
+/// # fn main() -> Result<(), Report<std::io::Error>> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"));

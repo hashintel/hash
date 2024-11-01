@@ -17,7 +17,7 @@ use crate::Report;
 /// ```rust
 /// use std::{fmt, fs, io};
 ///
-/// use error_stack::{Context, Result, ResultExt, Report};
+/// use error_stack::{Context, ResultExt, Report};
 ///
 /// # type Config = ();
 /// #[derive(Debug)]
@@ -38,12 +38,12 @@ use crate::Report;
 /// // `Context` manually.
 /// impl Context for ConfigError {}
 ///
-/// pub fn read_file(path: &str) -> Result<String, io::Error> {
+/// pub fn read_file(path: &str) -> Result<String, Report<io::Error>> {
 ///     // Creates a `Report` from `io::Error`, the current context is `io::Error`
 ///     fs::read_to_string(path).map_err(Report::from)
 /// }
 ///
-/// pub fn parse_config(path: &str) -> Result<Config, ConfigError> {
+/// pub fn parse_config(path: &str) -> Result<Config, Report<ConfigError>> {
 ///     // The return type of `parse_config` requires another context. By calling `change_context`
 ///     // the context may be changed.
 ///     read_file(path).change_context(ConfigError::ParseError)?;

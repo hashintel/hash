@@ -24,7 +24,7 @@ The library enables building a `Report` around an error as it propagates:
 ```rust
 use core::fmt;
 
-use error_stack::{Context, Report, Result, ResultExt};
+use error_stack::{Context, Report, ResultExt};
 
 #[derive(Debug)]
 struct ParseExperimentError;
@@ -60,7 +60,7 @@ impl Context for ExperimentError {}
 fn start_experiments(
     experiment_ids: &[usize],
     experiment_descriptions: &[&str],
-) -> Result<Vec<u64>, ExperimentError> {
+) -> Result<Vec<u64>, Report<ExperimentError>> {
     let experiments = experiment_ids
         .iter()
         .map(|exp_id| {
@@ -81,7 +81,7 @@ fn start_experiments(
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
 
-fn main() -> Result<(), ExperimentError> {
+fn main() -> Result<(), Report<ExperimentError>> {
     let experiment_ids = &[0, 2];
     let experiment_descriptions = &["10", "20", "3o"];
     start_experiments(experiment_ids, experiment_descriptions)?;

@@ -73,12 +73,12 @@ fn snap_suffix() -> String {
 #[cfg(feature = "spantrace")]
 pub fn create_report() -> Report<RootError> {
     #[tracing::instrument]
-    fn func_b() -> error_stack::Result<(), RootError> {
+    fn func_b() -> Result<(), Report<RootError>> {
         create_error()
     }
 
     #[tracing::instrument]
-    fn func_a() -> error_stack::Result<(), RootError> {
+    fn func_a() -> Result<(), Report<RootError>> {
         func_b()
     }
 

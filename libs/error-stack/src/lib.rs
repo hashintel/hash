@@ -31,7 +31,7 @@
 //!
 //! ```rust
 //! # #![allow(dead_code)]
-//! use error_stack::ResultExt;
+//! use error_stack::{Report, ResultExt};
 //! // using `thiserror` is not neccessary, but convenient
 //! use thiserror::Error;
 //!
@@ -45,14 +45,14 @@
 //!     Trivial,
 //! }
 //!
-//! type AppResult<T> = error_stack::Result<T, AppError>;
+//! type AppResult<T> = Result<T, Report<AppError>>;
 //!
 //! // Errors can also be a plain `struct`, somewhat like in `anyhow`.
 //! #[derive(Error, Debug)]
 //! #[error("logic error")]
 //! struct LogicError;
 //!
-//! type LogicResult<T> = error_stack::Result<T, LogicError>;
+//! type LogicResult<T> = Result<T, Report<LogicError>>;
 //!
 //! fn do_logic() -> LogicResult<()> {
 //!     Ok(())
@@ -84,9 +84,9 @@
 //! #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
 //! # }
 //! # impl error_stack::Context for AccessError {}
-//! use error_stack::{ensure, Result};
+//! use error_stack::{ensure, Report};
 //!
-//! fn main() -> Result<(), AccessError> {
+//! fn main() -> Result<(), Report<AccessError>> {
 //!     let user = get_user()?;
 //!     let resource = get_resource()?;
 //!
@@ -144,7 +144,7 @@
 //!
 //! ```rust
 //! # use std::{fmt, fs, io, path::Path};
-//! use error_stack::{Context, Result, ResultExt};
+//! use error_stack::{Context, Report, ResultExt};
 //! # pub type Config = String;
 //!
 //! #[derive(Debug)]
@@ -160,7 +160,7 @@
 //! impl Context for ParseConfigError {}
 //!
 //! // For clarification, this example is not using `error_stack::Result`.
-//! fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
+//! fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
 //!     let content = fs::read_to_string(path.as_ref())
 //!         .change_context(ParseConfigError)?;
 //!
@@ -359,9 +359,8 @@
 //!
 //! ```rust
 //! # #![cfg_attr(not(nightly), allow(unused_variables, dead_code))]
-//! # use error_stack::Result;
 //! # struct Suggestion(&'static str);
-//! # fn parse_config(_: &str) -> Result<(), std::io::Error> { Ok(()) }
+//! # fn parse_config(_: &str) -> Result<(), error_stack::Report<std::io::Error>> { Ok(()) }
 //! fn main() {
 //!     if let Err(report) = parse_config("config.json") {
 //!         # #[cfg(nightly)]
@@ -528,6 +527,8 @@ mod sink;
 pub use self::ext::stream::TryReportStreamExt;
 #[cfg(feature = "unstable")]
 pub use self::ext::{iter::TryReportIteratorExt, tuple::TryReportTupleExt};
+#[expect(deprecated, reason = "We are moving to a more explicit API")]
+pub use self::result::Result;
 #[cfg(feature = "unstable")]
 pub use self::sink::ReportSink;
 pub use self::{
@@ -536,7 +537,6 @@ pub use self::{
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
-    result::Result,
 };
 #[doc(inline)]
 pub use self::{future::FutureExt, result::ResultExt};
