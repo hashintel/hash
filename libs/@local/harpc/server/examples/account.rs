@@ -52,6 +52,8 @@ enum AccountProcedureId {
 }
 
 impl ProcedureIdentifier for AccountProcedureId {
+    type Service = Account;
+
     fn from_id(id: ProcedureId) -> Option<Self> {
         match id.value() {
             0 => Some(Self::CreateAccount),
