@@ -93,6 +93,8 @@ import {
   unarchivePropertyTypeResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
+import { generateInverseResolver } from "./generation/generate-inverse";
+import { generatePluralResolver } from "./generation/generate-plural";
 
 export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   Query: Required<QueryResolvers>;
@@ -138,6 +140,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       checkUserPermissionsOnEntity({ metadata }, _, context, info),
     checkUserPermissionsOnEntityType: checkUserPermissionsOnEntityTypeResolver,
     hasAccessToHash: loggedInMiddleware(hasAccessToHashResolver),
+    // Generation
+    generateInverse: loggedInMiddleware(generateInverseResolver),
+    generatePlural: loggedInMiddleware(generatePluralResolver),
   },
 
   Mutation: {

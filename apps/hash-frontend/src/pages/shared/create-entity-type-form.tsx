@@ -1,3 +1,4 @@
+import { useLazyQuery } from "@apollo/client";
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system/slim";
 import { Callout, TextField } from "@hashintel/design-system";
@@ -12,10 +13,20 @@ import {
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import type { ReactNode } from "react";
-import { useContext } from "react";
+import { useCallback, useContext } from "react";
 import { useForm } from "react-hook-form";
 
 import { useBlockProtocolGetEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
+import type {
+  GenerateInverseQuery,
+  GenerateInverseQueryVariables,
+  GeneratePluralQuery,
+  GeneratePluralQueryVariables,
+} from "../../graphql/api-types.gen";
+import {
+  generateInverseQuery,
+  generatePluralQuery,
+} from "../../graphql/queries/generation.queries";
 import { useEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { Button } from "../../shared/ui/button";
 import { useAuthenticatedUser } from "./auth-info-context";
@@ -44,7 +55,10 @@ const FormHelperLabel = ({
 
 type CreateEntityTypeFormData = {
   extendsEntityTypeId?: VersionedUrl;
-  name: string;
+  title: string;
+  titlePlural: string;
+  inverseTitle?: string;
+  inverseTitlePlural?: string;
   description: string;
 };
 
@@ -52,6 +66,7 @@ type CreateEntityTypeFormProps = {
   afterSubmit?: () => void;
   initialData: Partial<CreateEntityTypeFormData>;
   inModal?: boolean;
+  isLink: boolean;
   onCancel: () => void;
 };
 
@@ -63,6 +78,7 @@ export const CreateEntityTypeForm = ({
   afterSubmit,
   initialData,
   inModal,
+  isLink,
   onCancel,
 }: CreateEntityTypeFormProps) => {
   const router = useRouter();
@@ -72,15 +88,94 @@ export const CreateEntityTypeForm = ({
     register,
     formState: {
       isSubmitting,
-      errors: { name: nameError },
+      errors: { title: titleError },
     },
     clearErrors,
+    setValue,
+    watch,
   } = useForm<CreateEntityTypeFormData>({
     shouldFocusError: true,
     mode: "onSubmit",
     reValidateMode: "onSubmit",
     defaultValues: initialData,
   });
+
+  const titlePlural = watch("titlePlural");
+  const inverseTitle = watch("inverseTitle");
+  const inverseTitlePlural = watch("inverseTitlePlural");
+
+  const [generatePlural] = useLazyQuery<
+    GeneratePluralQuery,
+    GeneratePluralQueryVariables
+  >(generatePluralQuery);
+
+  const [generateInverse] = useLazyQuery<
+    GenerateInverseQuery,
+    GenerateInverseQueryVariables
+  >(generateInverseQuery);
+
+  const updateTitlePlural = useCallback(
+    async (title: string, inverse: boolean) => {
+      if (
+        !title
+        // (inverse && inverseTitlePlural) ||
+        // (!inverse && titlePlural)
+      ) {
+        return;
+      }
+
+      const { data } = await generatePlural({
+        variables: {
+          singular: title,
+        },
+      });
+
+      if (!data) {
+        throw new Error(`No data returned from generatePlural query`);
+      }
+
+      const plural = data.generatePlural;
+
+      if (
+        (inverse && plural === inverseTitlePlural) ||
+        (!inverse && plural === titlePlural)
+      ) {
+        return;
+      }
+
+      setValue(inverse ? "inverseTitlePlural" : "titlePlural", plural);
+    },
+    [generatePlural, inverseTitlePlural, setValue, titlePlural],
+  );
+
+  const updateInverse = useCallback(
+    async (linkTitle: string) => {
+      if (!linkTitle) {
+        return;
+      }
+
+      const { data } = await generateInverse({
+        variables: {
+          relationship: linkTitle,
+        },
+      });
+
+      if (!data) {
+        throw new Error(`No data returned from generateInverse query`);
+      }
+
+      const inverse = data.generateInverse;
+
+      if (inverse === inverseTitle) {
+        return;
+      }
+
+      setValue("inverseTitle", inverse);
+
+      await updateTitlePlural(inverse, true);
+    },
+    [generateInverse, inverseTitle, setValue, updateTitlePlural],
+  );
 
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { activeWorkspace } = useContext(WorkspaceContext);
@@ -107,33 +202,42 @@ export const CreateEntityTypeForm = ({
     );
   }
 
-  const handleFormSubmit = handleSubmit(
-    async ({ extendsEntityTypeId: parentId, name, description }) => {
-      const { baseUrl, versionedUrl } = generateTypeUrlsForUser({
-        title: name,
-        kind: "entity-type",
-        version: 1,
-      });
-      const entityType: EntityType = {
-        $schema: ENTITY_TYPE_META_SCHEMA,
-        kind: "entityType",
-        $id: versionedUrl,
-        allOf: parentId ? [{ $ref: parentId }] : undefined,
-        title: name,
-        description,
-        type: "object",
-        properties: {},
+  const handleFormSubmit = handleSubmit(async (data) => {
+    const { extendsEntityTypeId: parentId, title } = data;
+
+    const { baseUrl, versionedUrl } = generateTypeUrlsForUser({
+      title,
+      kind: "entity-type",
+      version: 1,
+    });
+
+    const entityType: EntityType = {
+      $schema: ENTITY_TYPE_META_SCHEMA,
+      kind: "entityType",
+      $id: versionedUrl,
+      allOf: parentId ? [{ $ref: parentId }] : undefined,
+      title,
+      titlePlural: data.titlePlural,
+      description: data.description,
+      type: "object",
+      properties: {},
+    };
+
+    if (isLink && "inverseTitle" in data) {
+      entityType.inverse = {
+        title: data.inverseTitle!,
+        titlePlural: data.inverseTitlePlural!,
       };
+    }
 
-      const nextUrl = `${baseUrl}?draft=${encodeURIComponent(
-        Buffer.from(JSON.stringify(entityType)).toString("base64"),
-      )}`;
+    const nextUrl = `${baseUrl}?draft=${encodeURIComponent(
+      Buffer.from(JSON.stringify(entityType)).toString("base64"),
+    )}`;
 
-      afterSubmit?.();
+    afterSubmit?.();
 
-      await router.push(nextUrl);
-    },
-  );
+    await router.push(nextUrl);
+  });
 
   const formItemWidth = `min(calc(100% - ${HELPER_TEXT_WIDTH + 52}px), 600px)`;
 
@@ -212,10 +316,17 @@ export const CreateEntityTypeForm = ({
           </Callout>
         )}
         <TextField
-          {...register("name", {
+          {...register("title", {
             required: true,
             onChange() {
-              clearErrors("name");
+              clearErrors("title");
+            },
+            onBlur(event) {
+              void updateTitlePlural(event.target.value, false);
+
+              if (isLink) {
+                void updateInverse(event.target.value);
+              }
             },
             async validate(title) {
               const res = await getEntityType({
@@ -241,18 +352,18 @@ export const CreateEntityTypeForm = ({
           })}
           autoFocus
           required
-          label="Singular Name"
+          label="Singular name"
           type="text"
-          placeholder="e.g. Stock Price"
+          placeholder={isLink ? "e.g. Is Parent Of" : "e.g. Stock Price"}
           helperText={
-            nameError?.message ? (
+            titleError?.message ? (
               <>
                 <FormHelperLabel
                   sx={(theme) => ({ color: theme.palette.red[70] })}
                 >
                   Error
                 </FormHelperLabel>{" "}
-                - {nameError.message}
+                - {titleError.message}
               </>
             ) : inModal ? undefined : (
               <>
@@ -262,9 +373,92 @@ export const CreateEntityTypeForm = ({
               </>
             )
           }
-          error={!!nameError}
+          error={!!titleError}
           sx={{ px: inModal ? 3 : 0 }}
         />
+        <TextField
+          {...register("titlePlural", {
+            required: true,
+            onChange() {
+              clearErrors("titlePlural");
+            },
+          })}
+          required
+          label="Pluralized name"
+          type="text"
+          placeholder={isLink ? "Are Parents Of" : "e.g. Stock Prices"}
+          helperText={
+            inModal ? undefined : (
+              <>
+                <FormHelperLabel>Required</FormHelperLabel> - provide the
+                pluralized form of your entity type’s name so it can be referred
+                to correctly when multiple are present
+              </>
+            )
+          }
+          sx={{ px: inModal ? 3 : 0 }}
+        />
+        {isLink && (
+          <>
+            <TextField
+              {...register("inverseTitle", {
+                required: true,
+                onBlur(event) {
+                  void updateInverse(event.target.value);
+                },
+                onChange() {
+                  clearErrors("inverseTitle");
+                },
+              })}
+              required
+              label="Singular inverse name"
+              type="text"
+              placeholder="e.g. Is Child Of"
+              helperText={
+                titleError?.message ? (
+                  <>
+                    <FormHelperLabel
+                      sx={(theme) => ({ color: theme.palette.red[70] })}
+                    >
+                      Error
+                    </FormHelperLabel>{" "}
+                    - {titleError.message}
+                  </>
+                ) : inModal ? undefined : (
+                  <>
+                    <FormHelperLabel>Required</FormHelperLabel> - provide the
+                    inverse name for the link so it can be used when describing
+                    the link in the opposite direction
+                  </>
+                )
+              }
+              error={!!titleError}
+              sx={{ px: inModal ? 3 : 0 }}
+            />
+            <TextField
+              {...register("inverseTitlePlural", {
+                required: true,
+                onChange() {
+                  clearErrors("inverseTitlePlural");
+                },
+              })}
+              required
+              label="Pluralized inverse name"
+              type="text"
+              placeholder="e.g. Are Children Of"
+              helperText={
+                inModal ? undefined : (
+                  <>
+                    <FormHelperLabel>Required</FormHelperLabel> - provide the
+                    pluralized form of the inverse link so that it can be used
+                    when describing a list of links in the opposite direction
+                  </>
+                )
+              }
+              sx={{ px: inModal ? 3 : 0 }}
+            />
+          </>
+        )}
         <TextField
           {...register("description", {
             required: true,
@@ -301,7 +495,7 @@ export const CreateEntityTypeForm = ({
             type="submit"
             size="small"
             loading={isSubmitting}
-            disabled={isSubmitting || !!nameError}
+            disabled={isSubmitting || !!titleError}
             loadingWithoutText
           >
             Create new entity type

@@ -17,7 +17,6 @@ import {
   Container,
   Fade,
   Stack,
-  styled,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
@@ -50,29 +49,13 @@ import { EntitiesTable } from "./shared/entities-table";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "./shared/workspace-context";
+import { CreateButton } from "./shared/create-button";
 
 const contentMaxWidth = 1000;
 
 type ParsedQueryParams = {
   entityTypeIdOrBaseUrl?: string;
 };
-
-export const CreateButton = styled(Button)(({ theme }) => ({
-  color: theme.palette.gray[90],
-  fontSize: 14,
-  padding: 0,
-  transition: theme.transitions.create("color"),
-  ":hover": {
-    background: "transparent",
-    color: theme.palette.blue[70],
-    [`.${buttonClasses.endIcon}`]: {
-      color: theme.palette.blue[70],
-    },
-  },
-  [`.${buttonClasses.endIcon}`]: {
-    color: theme.palette.blue[70],
-  },
-}));
 
 export const CreateButtons: FunctionComponent<{
   entityType?: EntityTypeWithMetadata;

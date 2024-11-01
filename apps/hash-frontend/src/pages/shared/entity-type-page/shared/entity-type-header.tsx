@@ -142,6 +142,7 @@ export const EntityTypeHeader = ({
             <CreateEntityTypeForm
               afterSubmit={() => setShowExtendTypeModal(false)}
               inModal
+              isLink={isLink}
               initialData={{ extendsEntityTypeId: entityTypeSchema.$id }}
               onCancel={() => setShowExtendTypeModal(false)}
             />

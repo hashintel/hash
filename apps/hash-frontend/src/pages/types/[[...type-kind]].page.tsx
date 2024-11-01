@@ -1,7 +1,7 @@
 import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { DataTypeRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Container, Stack, Typography } from "@mui/material";
 import type { GetServerSideProps } from "next";
 import { NextSeo } from "next-seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -19,6 +19,8 @@ import {
   TypesPageTabs,
 } from "./[[...type-kind]].page/types-page-tabs";
 import { TypesTable } from "./[[...type-kind]].page/types-table";
+import { PlusRegularIcon } from "../../shared/icons/plus-regular";
+import { CreateButton } from "../shared/create-button";
 
 const parsedQueryParams = [
   "entity-type",
@@ -199,16 +201,25 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             </Box>
             Types
           </Typography>
-          <TypesPageTabs
-            currentTab={currentTab}
-            numberOfTypesByTab={{
-              all: allTypes?.length,
-              "entity-type": latestNonLinkEntityTypes?.length,
-              "link-type": latestLinkEntityTypes?.length,
-              "property-type": latestPropertyTypes?.length,
-              "data-type": latestDataTypes?.length,
-            }}
-          />
+          <Stack direction="row" justifyContent="space-between">
+            <TypesPageTabs
+              currentTab={currentTab}
+              numberOfTypesByTab={{
+                all: allTypes?.length,
+                "entity-type": latestNonLinkEntityTypes?.length,
+                "link-type": latestLinkEntityTypes?.length,
+                "property-type": latestPropertyTypes?.length,
+                "data-type": latestDataTypes?.length,
+              }}
+            />
+            <CreateButton
+              href="/new/types/entity-type"
+              variant="tertiary_quiet"
+              endIcon={<PlusRegularIcon />}
+            >
+              Create type
+            </CreateButton>
+          </Stack>
         </Container>
       </Box>
       <Container sx={{ paddingTop: 5, maxWidth: { lg: contentMaxWidth } }}>
