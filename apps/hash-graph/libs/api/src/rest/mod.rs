@@ -62,7 +62,7 @@ use hash_graph_store::{
 use hash_status::Status;
 use include_dir::{Dir, include_dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
@@ -116,7 +116,7 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
     }
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PermissionResponse {
     pub has_permission: bool,
 }
