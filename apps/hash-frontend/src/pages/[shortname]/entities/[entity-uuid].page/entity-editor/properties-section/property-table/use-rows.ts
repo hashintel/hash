@@ -9,10 +9,11 @@ import type { PropertyRow } from "./types";
 import { generatePropertyRowsFromEntity } from "./use-rows/generate-property-rows-from-entity";
 
 export const useRows = () => {
-  const { entitySubgraph, propertyExpandStatus } = useEntityEditor();
+  const { closedMultiEntityType, entitySubgraph, propertyExpandStatus } =
+    useEntityEditor();
 
   const rows = useMemo<PropertyRow[]>(() => {
-    return generatePropertyRowsFromEntity(entitySubgraph);
+    return generatePropertyRowsFromEntity(closedMultiEntityType);
   }, [entitySubgraph]);
 
   const sortAndFlattenRows = useCallback(
