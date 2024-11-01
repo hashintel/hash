@@ -518,7 +518,34 @@ where
         session: Connection<Svc, C>,
         params: InsertAccountGroupIdParams,
     ) -> Result<AccountGroupId, Report<AccountError>> {
-        todo!()
+        let (service, codec) = session.into_parts();
+
+        let request = harpc_client::common::encode_request_iter(
+            codec.clone(),
+            meta::AccountProcedureId::CreateAccountGroup,
+            [params],
+        )
+        .await
+        .change_context(AccountError)?;
+
+        let response = service
+            .oneshot(request)
+            .await
+            .change_context(AccountError)?;
+
+        let (_, body) = response.into_parts();
+
+        let items = codec.decode(body);
+        let mut items = core::pin::pin!(items);
+
+        let data: Result<_, _> = items
+            .next()
+            .await
+            .ok_or_else(|| Report::new(ExpectedItemCountMismatch::exactly(1)))
+            .change_context(AccountError)?
+            .change_context(AccountError)?;
+
+        data.map_err(RemoteError::new).change_context(AccountError)
     }
 
     async fn check_account_group_permission(
@@ -527,7 +554,34 @@ where
         account_group_id: AccountGroupId,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>> {
-        todo!()
+        let (service, codec) = session.into_parts();
+
+        let request = harpc_client::common::encode_request_iter(
+            codec.clone(),
+            meta::AccountProcedureId::CheckAccountGroupPermission,
+            [(account_group_id, permission)],
+        )
+        .await
+        .change_context(AccountError)?;
+
+        let response = service
+            .oneshot(request)
+            .await
+            .change_context(AccountError)?;
+
+        let (_, body) = response.into_parts();
+
+        let items = codec.decode(body);
+        let mut items = core::pin::pin!(items);
+
+        let data: Result<_, _> = items
+            .next()
+            .await
+            .ok_or_else(|| Report::new(ExpectedItemCountMismatch::exactly(1)))
+            .change_context(AccountError)?
+            .change_context(AccountError)?;
+
+        data.map_err(RemoteError::new).change_context(AccountError)
     }
 
     async fn add_account_group_member(
@@ -536,7 +590,34 @@ where
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
-        todo!()
+        let (service, codec) = session.into_parts();
+
+        let request = harpc_client::common::encode_request_iter(
+            codec.clone(),
+            meta::AccountProcedureId::AddAccountGroupMember,
+            [(account_group_id, account_id)],
+        )
+        .await
+        .change_context(AccountError)?;
+
+        let response = service
+            .oneshot(request)
+            .await
+            .change_context(AccountError)?;
+
+        let (_, body) = response.into_parts();
+
+        let items = codec.decode(body);
+        let mut items = core::pin::pin!(items);
+
+        let data: Result<_, _> = items
+            .next()
+            .await
+            .ok_or_else(|| Report::new(ExpectedItemCountMismatch::exactly(1)))
+            .change_context(AccountError)?
+            .change_context(AccountError)?;
+
+        data.map_err(RemoteError::new).change_context(AccountError)
     }
 
     async fn remove_account_group_member(
@@ -545,6 +626,33 @@ where
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
-        todo!()
+        let (service, codec) = session.into_parts();
+
+        let request = harpc_client::common::encode_request_iter(
+            codec.clone(),
+            meta::AccountProcedureId::RemoveAccountGroupMember,
+            [(account_group_id, account_id)],
+        )
+        .await
+        .change_context(AccountError)?;
+
+        let response = service
+            .oneshot(request)
+            .await
+            .change_context(AccountError)?;
+
+        let (_, body) = response.into_parts();
+
+        let items = codec.decode(body);
+        let mut items = core::pin::pin!(items);
+
+        let data: Result<_, _> = items
+            .next()
+            .await
+            .ok_or_else(|| Report::new(ExpectedItemCountMismatch::exactly(1)))
+            .change_context(AccountError)?
+            .change_context(AccountError)?;
+
+        data.map_err(RemoteError::new).change_context(AccountError)
     }
 }

@@ -31,7 +31,7 @@ pub struct InsertAccountIdParams {
 #[error("Could not insert account group")]
 pub struct AccountGroupInsertionError;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InsertAccountGroupIdParams {
