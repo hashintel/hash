@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import type { ReactElement } from "react";
 
 export const TooltipChip = ({
@@ -21,23 +21,25 @@ export const TooltipChip = ({
         borderRadius: "30px",
         cursor: onClick ? "pointer" : "default",
         maxWidth: "100%",
+        height: 24,
       })}
     >
       {icon && (
-        <Box
+        <Stack
+          justifyContent="center"
           sx={({ palette }) => ({
             color: palette.common.white,
             borderRight: `1px solid ${palette.gray[80]}`,
             pl: 1,
             pr: 0.8,
-            py: 0.8,
+            height: "100%",
             "& svg": {
               fill: palette.common.white,
             },
           })}
         >
           {icon}
-        </Box>
+        </Stack>
       )}
       <Typography
         sx={{
