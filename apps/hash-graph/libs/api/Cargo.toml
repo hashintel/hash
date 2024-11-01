@@ -28,9 +28,7 @@ axum-core = { workspace = true, public = true }
 http = { workspace = true, public = true }
 tower-http = { workspace = true, public = true }
 tracing = { workspace = true, public = true }
-
-# Private workspace dependencies
-error-stack = { workspace = true, features = ["spantrace"] }
+error-stack = { workspace = true, features = ["futures", "spantrace", "unstable"] }
 graph-type-defs = { workspace = true }
 hash-status = { workspace = true }
 temporal-versioning = { workspace = true }
@@ -59,6 +57,8 @@ derive_more = { version = "1.0.0", features = ["display", "error"] }
 harpc-tower.workspace = true
 harpc-codec.workspace = true
 futures.workspace = true
+harpc-client.workspace = true
+tower.workspace = true
 
 [lints]
 workspace = true
