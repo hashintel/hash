@@ -5,6 +5,9 @@ use futures::Stream;
 use harpc_tower::request::Request;
 use tower::Service;
 
+pub use self::alias::{ConnectionCodec, ConnectionRequestStream, ConnectionService};
+
+mod alias;
 pub mod default;
 pub mod service;
 

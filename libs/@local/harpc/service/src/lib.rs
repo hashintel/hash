@@ -10,7 +10,7 @@ pub mod procedure;
 pub mod role;
 
 pub trait Service {
-    type ProcedureId: ProcedureIdentifier;
+    type ProcedureId: ProcedureIdentifier<Service = Self>;
     /// Heteregenous list of procedures that are part of this service, used for type-level
     /// validation.
     type Procedures;
