@@ -2004,7 +2004,6 @@ dependencies = [
  "futures-core",
  "futures-util",
  "insta",
- "once_cell",
  "owo-colors",
  "pin-project-lite",
  "regex",
