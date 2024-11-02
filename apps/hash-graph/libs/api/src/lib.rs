@@ -1,4 +1,9 @@
-#![feature(impl_trait_in_assoc_type, never_type, return_type_notation)]
+#![feature(
+    impl_trait_in_assoc_type,
+    never_type,
+    return_type_notation,
+    async_closure
+)]
 
 extern crate alloc;
 

@@ -82,3 +82,9 @@ impl Display for ResponseExpectedItemCountMismatch {
 }
 
 impl Error for ResponseExpectedItemCountMismatch {}
+
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+#[display("The client has encountered an error while making a call to the remote server.")]
+pub struct RemoteInvocationError;
+
+impl Error for RemoteInvocationError {}

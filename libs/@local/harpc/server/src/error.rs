@@ -118,4 +118,12 @@ impl Display for RequestExpectedItemCountMismatch {
     }
 }
 
-impl Error for RequestExpectedItemCountMismatch {}
+impl Error for RequestExpectedItemCountMismatch {
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_value(ErrorCode::REQUEST_EXPECTED_ITEM_COUNT_MISMATCH);
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[display("unable to delegate request to service implementation")]
+pub struct DelegationError;

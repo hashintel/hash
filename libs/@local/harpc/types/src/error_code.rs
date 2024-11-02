@@ -93,7 +93,9 @@ define_error_code_consts! {
         /// The client is not allowed to call the procedure.
         ///
         /// The HTTP equivalent is 403 Forbidden.
-        FORBIDDEN
+        FORBIDDEN,
+        /// The amount of items in the request stream does not match the expected amount.
+        REQUEST_EXPECTED_ITEM_COUNT_MISMATCH
     ],
     // 0xFF_xx = server errors
     /// Errors that occur in a session and are issued by the server.

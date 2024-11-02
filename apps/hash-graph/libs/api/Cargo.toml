@@ -37,9 +37,7 @@ type-system = { workspace = true, features = ["utoipa"] }
 validation = { workspace = true, features = ["utoipa"] }
 harpc-service = { workspace = true }
 harpc-types = { workspace = true }
-
-# Private workspace dependencies
-harpc-tower = { workspace = true }
+harpc-tower.workspace = true
 harpc-codec = { workspace = true }
 
 # Private third-party dependencies

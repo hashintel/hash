@@ -1,25 +1,17 @@
-use core::{fmt::Debug, pin::pin};
+use core::fmt::Debug;
 
 use error_stack::{Report, ResultExt as _};
-use futures::{StreamExt, stream};
 use graph_types::account::AccountId;
-use harpc_client::{
-    connection::Connection,
-    error::{RemoteError, ResponseExpectedItemCountMismatch},
-};
-use harpc_codec::{decode::Decoder, encode::Encoder};
+use harpc_client::{connection::Connection, utils::invoke_call_discrete};
+use harpc_codec::{decode::ReportDecoder, encode::Encoder};
 use harpc_server::{
-    error::{ProcedureNotFound, RequestExpectedItemCountMismatch},
+    error::DelegationError,
     session::Session,
+    utils::{delegate_call_discrete, parse_procedure_id},
 };
-use harpc_service::{delegate::ServiceDelegate, procedure::ProcedureIdentifier};
-use harpc_tower::{
-    body::{Body, BodyExt},
-    request::Request,
-    response::{self, Response},
-};
-use harpc_types::{procedure::ProcedureDescriptor, response_kind::ResponseKind};
-use tower::ServiceExt as _;
+use harpc_service::delegate::ServiceDelegate;
+use harpc_tower::{body::Body, request::Request, response::Response};
+use harpc_types::response_kind::ResponseKind;
 
 use super::{role, session::User};
 
@@ -137,12 +129,12 @@ pub struct AuthenticationDelegate<T> {
     inner: T,
 }
 
-impl<T, C, DecoderError> ServiceDelegate<Session<User>, C> for AuthenticationDelegate<T>
+impl<T, C> ServiceDelegate<Session<User>, C> for AuthenticationDelegate<T>
 where
     T: AuthenticationService<role::Server, authenticate(..): Send> + Send,
-    C: Encoder + Decoder<Error = Report<DecoderError>> + Clone + Send,
+    C: Encoder + ReportDecoder + Clone + Send,
 {
-    type Error = ProcedureNotFound;
+    type Error = Report<DelegationError>;
     type Service = meta::AuthenticationService;
 
     type Body<Source>
@@ -159,34 +151,14 @@ where
     where
         B: Body<Control = !, Error: Send + Sync> + Send + Sync,
     {
-        let session_id = request.session();
-        let ProcedureDescriptor { id } = request.procedure();
-
-        let id = meta::AuthenticationProcedureId::from_id(id).ok_or_else(|| ProcedureNotFound {
-            service: request.service(),
-            procedure: id,
-        })?;
+        let id = parse_procedure_id(&request)?;
 
         match id {
             meta::AuthenticationProcedureId::Authenticate => {
-                let body = request.into_body();
-                let data = body.into_stream().into_data_stream();
-
-                let stream = codec.clone().decode(data);
-                let mut stream = pin!(stream);
-
-                let payload = stream
-                    .next()
-                    .await
-                    .ok_or_else(|| Report::new(RequestExpectedItemCountMismatch::exactly(1)))
-                    .change_context(AuthenticationError)?
-                    .change_context(AuthenticationError)?;
-
-                let response = self.inner.authenticate(session, payload).await;
-                let data = codec.encode(stream::iter([response]));
-
-                // In theory we could also box this, or use `Either` if we have multiple responses
-                Ok(Response::from_ok(response::Parts::new(session_id), data))
+                delegate_call_discrete(request, codec, |actor_id| async move {
+                    self.inner.authenticate(session, actor_id).await
+                })
+                .await
             }
         }
     }
@@ -205,34 +177,10 @@ where
         session: Connection<Svc, C>,
         actor_id: AccountId,
     ) -> Result<(), Report<AuthenticationError>> {
-        let (service, codec) = session.into_parts();
-
-        let request = harpc_client::common::encode_request_iter(
-            codec.clone(),
-            meta::AuthenticationProcedureId::Authenticate,
-            [actor_id],
-        )
+        invoke_call_discrete(session, meta::AuthenticationProcedureId::Authenticate, [
+            actor_id,
+        ])
         .await
-        .change_context(AuthenticationError)?;
-
-        let response = service
-            .oneshot(request)
-            .await
-            .change_context(AuthenticationError)?;
-
-        let (_, body) = response.into_parts();
-
-        let items = codec.decode(body);
-        let mut items = core::pin::pin!(items);
-
-        let data: Result<_, _> = items
-            .next()
-            .await
-            .ok_or_else(|| Report::new(ResponseExpectedItemCountMismatch::exactly(1)))
-            .change_context(AuthenticationError)?
-            .change_context(AuthenticationError)?;
-
-        data.map_err(RemoteError::new)
-            .change_context(AuthenticationError)
+        .change_context(AuthenticationError)
     }
 }
