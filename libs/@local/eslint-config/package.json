@@ -29,6 +29,6 @@
   "devDependencies": {
     "@local/tsconfig": "0.0.0-private",
     "@types/eslint": "8.56.12",
-    "@types/node": "20.17.0"
+    "@types/node": "20.17.3"
   }
 }
