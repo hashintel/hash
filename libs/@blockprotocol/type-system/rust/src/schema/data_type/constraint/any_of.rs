@@ -1,5 +1,5 @@
-use error_stack::{Report, ReportSink, ResultExt, TryReportIteratorExt, bail};
-use itertools::Itertools;
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail};
+use itertools::Itertools as _;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 

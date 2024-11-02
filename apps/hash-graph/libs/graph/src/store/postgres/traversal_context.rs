@@ -13,7 +13,7 @@ use hash_graph_store::{
     error::QueryError,
     filter::{Filter, FilterExpression, ParameterList},
     property_type::PropertyTypeQueryPath,
-    subgraph::{Subgraph, SubgraphRecord, edges::GraphResolveDepths, temporal_axes::VariableAxis},
+    subgraph::{Subgraph, SubgraphRecord as _, edges::GraphResolveDepths, temporal_axes::VariableAxis},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};

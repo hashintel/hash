@@ -8,8 +8,8 @@ use authorization::{
     schema::{DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Result, ResultExt};
-use futures::StreamExt;
+use error_stack::{Result, ResultExt as _};
+use futures::StreamExt as _;
 use graph_types::{
     Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
@@ -28,7 +28,7 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
-        Subgraph, SubgraphRecord,
+        Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{DataTypeVertexId, GraphElementVertexId},
         temporal_axes::{
@@ -40,10 +40,10 @@ use hash_graph_store::{
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use tokio_postgres::{GenericClient, Row};
+use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{
-    Valid, Validator,
+    Valid, Validator as _,
     schema::{
         ClosedDataType, ConversionDefinition, Conversions, DataType, DataTypeEdge,
         DataTypeResolveData, DataTypeUuid, DataTypeValidator, InheritanceDepth,
@@ -53,7 +53,7 @@ use type_system::{
 };
 
 use crate::store::{
-    crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
+    crud::{QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     postgres::{
         AsClient, PostgresStore, TraversalContext,

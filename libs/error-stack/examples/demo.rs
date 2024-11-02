@@ -3,7 +3,7 @@
 
 use core::{error::Error, fmt};
 
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 #[derive(Debug)]
 struct ParseExperimentError;

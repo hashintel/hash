@@ -16,7 +16,7 @@ use harpc_types::{
     version::Version,
 };
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
@@ -38,7 +38,7 @@ use harpc_wire_protocol::{
     test_utils::mock_request_id,
 };
 use tokio::{sync::mpsc, task::JoinHandle};
-use tokio_stream::StreamExt;
+use tokio_stream::StreamExt as _;
 use tokio_util::sync::CancellationToken;
 
 use super::{ServerTransactionPermit, TransactionStream};

@@ -5,7 +5,7 @@ use core::{
 };
 
 use frunk::{HCons, HNil};
-use futures::{FutureExt, Stream};
+use futures::{FutureExt as _, Stream};
 use harpc_net::session::server::SessionEvent;
 use harpc_service::delegate::ServiceDelegate;
 use harpc_tower::{

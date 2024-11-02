@@ -46,7 +46,7 @@ mod wasm {
 pub(crate) mod tests {
     use core::fmt::Debug;
 
-    use error_stack::ResultExt;
+    use error_stack::ResultExt as _;
     use serde::{Deserialize, Serialize};
 
     use crate::{Valid, Validator};

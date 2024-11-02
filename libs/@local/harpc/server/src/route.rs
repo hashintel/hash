@@ -2,7 +2,7 @@ use core::future::ready;
 
 use bytes::Bytes;
 use frunk::{HCons, HNil};
-use futures::FutureExt;
+use futures::FutureExt as _;
 use harpc_codec::error::NetworkError;
 use harpc_tower::{
     body::{Body, controlled::Controlled, full::Full},
@@ -10,7 +10,7 @@ use harpc_tower::{
     response::{Parts, Response},
 };
 use harpc_types::{response_kind::ResponseKind, service::ServiceId, version::Version};
-use tower::{Service, ServiceExt, util::Oneshot};
+use tower::{Service, ServiceExt as _, util::Oneshot};
 
 use crate::error::NotFound;
 

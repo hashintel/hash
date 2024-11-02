@@ -6,7 +6,7 @@ mod read;
 use alloc::borrow::Cow;
 use core::convert::identity;
 
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use graph_types::{
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeClassificationMetadata,
@@ -28,7 +28,7 @@ use type_system::{
 
 use crate::store::{
     Ordering,
-    crud::{Sorting, VersionedUrlSorting},
+    crud::{Sorting as _, VersionedUrlSorting},
     error::DeletionError,
     postgres::{
         AsClient as _, PostgresStore,

@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Result, ResultExt as _};
 use harpc_types::response_kind::ResponseKind;
 
 use crate::{

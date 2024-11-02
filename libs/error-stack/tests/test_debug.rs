@@ -12,7 +12,7 @@ use insta::assert_snapshot;
 #[cfg(feature = "spantrace")]
 use tracing_error::ErrorLayer;
 #[cfg(feature = "spantrace")]
-use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::layer::SubscriberExt as _;
 
 #[cfg(feature = "spantrace")]
 fn setup_tracing() {

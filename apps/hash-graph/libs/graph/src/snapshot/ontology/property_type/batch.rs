@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use authorization::{backend::ZanzibarBackend, schema::PropertyTypeRelationAndSubject};
-use error_stack::{Result, ResultExt};
+use error_stack::{Result, ResultExt as _};
 use hash_graph_store::error::InsertionError;
-use tokio_postgres::GenericClient;
+use tokio_postgres::GenericClient as _;
 use type_system::schema::PropertyTypeUuid;
 
 use crate::{

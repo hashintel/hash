@@ -1,10 +1,10 @@
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt as _};
 use num_traits::NumCast;
 
 use crate::{
     Context, Deserialize, Deserializer, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor,
-    Reflection, StructVisitor, Visitor,
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    Reflection as _, StructVisitor, Visitor,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant as _},
 };
 
 pub trait IntoDeserializer<'de> {

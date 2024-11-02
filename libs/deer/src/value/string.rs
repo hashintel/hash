@@ -1,12 +1,12 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::string::String;
 
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt as _};
 
 use crate::{
-    Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor, Reflection,
+    Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor, Reflection as _,
     StructVisitor, Visitor,
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant as _},
     value::IntoDeserializer,
 };
 

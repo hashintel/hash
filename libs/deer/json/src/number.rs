@@ -1,12 +1,12 @@
 #[cfg(not(feature = "arbitrary-precision"))]
-use deer::error::Variant;
+use deer::error::Variant as _;
 use deer::{Number, error::Error};
 #[cfg(not(feature = "arbitrary-precision"))]
 use error_stack::Report;
 use error_stack::Result;
 use justjson::JsonNumber;
 #[cfg(not(feature = "arbitrary-precision"))]
-use lexical::{FromLexicalWithOptions, parse_float_options::JSON, parse_integer_options::STANDARD};
+use lexical::{FromLexicalWithOptions as _, parse_float_options::JSON, parse_integer_options::STANDARD};
 
 #[cfg(not(feature = "arbitrary-precision"))]
 use crate::error::NumberError;

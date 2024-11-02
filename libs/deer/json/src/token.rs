@@ -1,6 +1,6 @@
 use deer::{
     Deserialize, Document, Number, Reflection, Schema,
-    error::{Error, Variant},
+    error::{Error, Variant as _},
 };
 use error_stack::Report;
 use justjson::{JsonNumber, JsonString, parser::Token};

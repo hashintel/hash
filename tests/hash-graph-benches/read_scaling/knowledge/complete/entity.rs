@@ -1,4 +1,4 @@
-use core::{iter::repeat, str::FromStr};
+use core::{iter::repeat, str::FromStr as _};
 use std::collections::HashSet;
 
 use authorization::{AuthorizationApi, NoAuthorization, schema::WebOwnerSubject};
@@ -18,7 +18,7 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
-    account::{AccountStore, InsertAccountIdParams, InsertWebIdParams},
+    account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
     filter::Filter,
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
@@ -28,7 +28,7 @@ use hash_graph_store::{
         },
     },
 };
-use rand::{prelude::IteratorRandom, thread_rng};
+use rand::{prelude::IteratorRandom as _, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
 use type_system::schema::EntityType;

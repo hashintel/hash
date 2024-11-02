@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Result, ResultExt as _};
 
 use super::{
     begin::RequestBegin,
@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
 };
 

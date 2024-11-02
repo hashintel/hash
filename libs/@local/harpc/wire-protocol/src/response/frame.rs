@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Result, ResultExt as _};
 
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},

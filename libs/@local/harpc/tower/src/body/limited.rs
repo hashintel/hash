@@ -3,7 +3,7 @@ use core::{
     task::{Context, Poll, ready},
 };
 
-use bytes::Buf;
+use bytes::Buf as _;
 use error_stack::Report;
 
 use super::{Body, BodyState, Frame, SizeHint};
@@ -122,7 +122,7 @@ mod test {
 
     use super::Limited;
     use crate::body::{
-        Body, BodyExt, BodyState, Frame, SizeHint, full::Full, limited::LimitedError,
+        Body, BodyExt as _, BodyState, Frame, SizeHint, full::Full, limited::LimitedError,
         stream::StreamBody, test::poll_frame_unpin,
     };
 

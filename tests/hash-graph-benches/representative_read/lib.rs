@@ -40,7 +40,7 @@ mod ontology;
 
 mod seed;
 
-use core::str::FromStr;
+use core::str::FromStr as _;
 
 use authorization::NoAuthorization;
 use criterion::{BenchmarkId, Criterion, SamplingMode};

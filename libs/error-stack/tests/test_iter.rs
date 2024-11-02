@@ -4,7 +4,7 @@ extern crate alloc;
 
 use core::{
     error::Error,
-    fmt::{Display, Formatter, Write},
+    fmt::{Display, Formatter, Write as _},
 };
 
 mod common;

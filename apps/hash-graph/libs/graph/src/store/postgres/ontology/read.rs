@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 
-use error_stack::{Result, ResultExt};
-use futures::{Stream, StreamExt};
+use error_stack::{Result, ResultExt as _};
+use futures::{Stream, StreamExt as _};
 use graph_types::ontology::EntityTypeWithMetadata;
 use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
@@ -14,7 +14,7 @@ use hash_graph_store::{
 };
 use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
-use tokio_postgres::GenericClient;
+use tokio_postgres::GenericClient as _;
 use type_system::{
     schema::{ClosedEntityType, EntityTypeUuid, OntologyTypeUuid},
     url::VersionedUrl,
@@ -23,8 +23,8 @@ use type_system::{
 use crate::store::postgres::{
     AsClient, PostgresStore,
     query::{
-        Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile,
-        table::DatabaseColumn,
+        Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile as _,
+        table::DatabaseColumn as _,
     },
 };
 

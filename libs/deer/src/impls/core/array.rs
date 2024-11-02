@@ -1,12 +1,12 @@
 use core::{marker::PhantomData, mem, mem::MaybeUninit, ptr};
 
-use error_stack::{Report, ReportSink, Result, ResultExt};
+use error_stack::{Report, ReportSink, Result, ResultExt as _};
 
 use crate::{
     ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
     error::{
         ArrayAccessError, ArrayLengthError, DeserializeError, ExpectedLength, Location,
-        ReceivedLength, Variant, VisitorError,
+        ReceivedLength, Variant as _, VisitorError,
     },
 };
 

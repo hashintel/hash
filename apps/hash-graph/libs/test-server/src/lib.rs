@@ -19,10 +19,10 @@ use axum::{
     routing::{delete, post},
 };
 use error_stack::{Context, Report};
-use futures::TryStreamExt;
+use futures::TryStreamExt as _;
 use graph::{
     snapshot::SnapshotStore,
-    store::{PostgresStorePool, StorePool},
+    store::{PostgresStorePool, StorePool as _},
 };
 use graph_api::rest::{middleware::span_trace_layer, status::status_to_response};
 use graph_type_defs::error::{ErrorInfo, StatusPayloads};

@@ -12,7 +12,7 @@ use core::{
     task::{Context, Poll, ready},
 };
 
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use futures::{Stream, stream::FusedStream};
 use libp2p::Multiaddr;
 use tokio::sync::{Semaphore, broadcast, mpsc};

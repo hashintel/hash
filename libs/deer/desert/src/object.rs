@@ -2,7 +2,7 @@ use deer::{
     Context, Deserializer as _, FieldVisitor,
     error::{ObjectAccessError, ObjectLengthError},
 };
-use error_stack::{Result, ResultExt};
+use error_stack::{Result, ResultExt as _};
 
 use crate::{deserializer::Deserializer, skip::skip_tokens, token::Token};
 

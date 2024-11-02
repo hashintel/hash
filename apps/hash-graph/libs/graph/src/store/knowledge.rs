@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
-use futures::TryFutureExt;
+use futures::TryFutureExt as _;
 use graph_types::{
     account::{AccountId, CreatedById, EditionCreatedById},
     knowledge::{

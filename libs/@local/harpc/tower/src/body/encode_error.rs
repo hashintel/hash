@@ -10,7 +10,7 @@ use harpc_types::response_kind::ResponseKind;
 
 use super::{Body, full::Full};
 use crate::{
-    body::{BodyExt, controlled::Controlled},
+    body::{BodyExt as _, controlled::Controlled},
     either::Either,
 };
 
@@ -141,10 +141,10 @@ mod test {
 
     use crate::{
         body::{
-            Body, BodyState, Frame, SizeHint, encode_error::EncodeError, test::poll_frame_unpin,
+            Body as _, BodyState, Frame, SizeHint, encode_error::EncodeError, test::poll_frame_unpin,
         },
         either::Either,
-        test::{PollExt, StaticBody},
+        test::{PollExt as _, StaticBody},
     };
 
     #[derive(Debug, thiserror::Error, serde::Serialize)]

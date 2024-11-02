@@ -1,17 +1,17 @@
 use authorization::{AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject};
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use graph_types::{
     knowledge::{
         entity::{Entity, EntityUuid},
-        property::{PropertyWithMetadataObject, visitor::EntityVisitor},
+        property::{PropertyWithMetadataObject, visitor::EntityVisitor as _},
     },
     ontology::OntologyTypeProvider,
 };
 use hash_graph_store::{error::InsertionError, filter::Filter};
-use tokio_postgres::GenericClient;
+use tokio_postgres::GenericClient as _;
 use type_system::schema::{ClosedEntityType, ClosedMultiEntityType};
-use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
+use validation::{EntityPreprocessor, Validate as _, ValidateEntityComponents};
 
 use crate::{
     snapshot::WriteBatch,

@@ -74,7 +74,7 @@ use graph_types::{
 };
 use hash_graph_store::{
     ConflictBehavior,
-    account::{AccountStore, InsertAccountIdParams, InsertWebIdParams},
+    account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
         GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,

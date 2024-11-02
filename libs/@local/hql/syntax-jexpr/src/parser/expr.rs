@@ -4,7 +4,7 @@ use hql_cst::expr::{Expr, ExprKind, call::Call};
 use hql_diagnostics::Diagnostic;
 use hql_span::{SpanId, TextRange};
 use winnow::{
-    Located, Parser,
+    Located, Parser as _,
     error::{ContextError, ErrMode, ParseError},
 };
 
@@ -15,7 +15,7 @@ use super::{
 use crate::{
     lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
     parser::{
-        IntoTextRange,
+        IntoTextRange as _,
         error::{expected_callee, invalid_identifier, invalid_signature},
         path::parse_path,
         signature::parse_signature,

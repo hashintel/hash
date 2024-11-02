@@ -5,7 +5,7 @@
 use core::{error::Error, fmt};
 use std::{fs, path::Path};
 
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 pub type Config = String;
 

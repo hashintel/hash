@@ -5,8 +5,8 @@ use core::{
     task::{Context, Poll},
 };
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use futures::{FutureExt, Stream};
+use bytes::{Buf as _, BufMut as _, Bytes, BytesMut};
+use futures::{FutureExt as _, Stream};
 use harpc_codec::error::NetworkError;
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use tower::{Layer, Service};
@@ -209,7 +209,7 @@ mod test {
     use core::error::Error;
 
     use bytes::Bytes;
-    use futures::{StreamExt, stream};
+    use futures::{StreamExt as _, stream};
     use harpc_codec::error::NetworkError;
     use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 

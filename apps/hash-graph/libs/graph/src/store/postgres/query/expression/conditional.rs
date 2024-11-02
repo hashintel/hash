@@ -1,12 +1,12 @@
 use core::fmt::{
-    Display, Formatter, Write, {self},
+    Display, Formatter, Write as _, {self},
 };
 
 use hash_graph_store::filter::PathToken;
 
 use crate::store::postgres::query::{
     Alias, AliasedTable, Column, SelectStatement, Table, Transpile, WindowStatement,
-    table::DatabaseColumn,
+    table::DatabaseColumn as _,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -266,7 +266,7 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, PostgresQueryPath, test_helper::max_version_expression,
+        Alias, PostgresQueryPath as _, test_helper::max_version_expression,
     };
 
     #[test]
