@@ -3,9 +3,9 @@
 use deer::{
     ArrayAccess, Deserialize, Deserializer, Document, FieldVisitor, ObjectAccess, Reflection,
     Schema, StructVisitor, Visitor,
-    error::{ArrayAccessError, DeserializeError, Variant, VisitorError},
+    error::{ArrayAccessError, DeserializeError, Variant as _, VisitorError},
 };
-use error_stack::{Report, ReportSink, Result, ResultExt, TryReportTupleExt};
+use error_stack::{Report, ReportSink, Result, ResultExt as _, TryReportTupleExt as _};
 use serde_json::json;
 
 mod common;

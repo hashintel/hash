@@ -1,6 +1,6 @@
 #![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
 
-use alloc::string::{String, ToString};
+use alloc::string::{String, ToString as _};
 #[cfg(nightly)]
 use core::error::Request;
 use core::{error::Error, fmt};

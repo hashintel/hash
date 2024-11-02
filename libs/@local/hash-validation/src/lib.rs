@@ -96,14 +96,14 @@ mod tests {
     use core::iter;
     use std::collections::HashMap;
 
-    use error_stack::ResultExt;
+    use error_stack::ResultExt as _;
     use graph_types::{
         account::{AccountId, EditionCreatedById},
         knowledge::property::{
             Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
             PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
             error::install_error_stack_hooks,
-            visitor::{EntityVisitor, TraversalError},
+            visitor::{EntityVisitor as _, TraversalError},
         },
         ontology::{
             DataTypeMetadata, DataTypeProvider, DataTypeWithMetadata, EntityTypeProvider,

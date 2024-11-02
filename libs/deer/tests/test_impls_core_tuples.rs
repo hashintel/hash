@@ -1,4 +1,4 @@
-use deer::Deserialize;
+use deer::Deserialize as _;
 use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
 use proptest::prelude::*;
 use seq_macro::seq;

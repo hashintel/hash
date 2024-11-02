@@ -19,8 +19,8 @@
 use alloc::{string::String, vec::Vec};
 use core::marker::PhantomData;
 
-use error_stack::{Report, Result, ResultExt};
-use num_traits::{FromPrimitive, ToPrimitive};
+use error_stack::{Report, Result, ResultExt as _};
+use num_traits::{FromPrimitive as _, ToPrimitive as _};
 pub use schema::{Document, Reflection, Schema};
 
 use crate::{
@@ -28,7 +28,7 @@ use crate::{
     error::{
         ArrayAccessError, BoundedContractViolationError, DeserializeError, DeserializerError,
         ExpectedType, MissingError, ObjectAccessError, ReceivedType, ReceivedValue, TypeError,
-        ValueError, Variant, VisitorError,
+        ValueError, Variant as _, VisitorError,
     },
     schema::visitor,
 };
@@ -805,7 +805,7 @@ pub(crate) mod test {
     use error_stack::{Context, Frame, Report};
     use serde::{
         Serialize, Serializer,
-        ser::{Error as _, SerializeMap},
+        ser::{Error as _, SerializeMap as _},
     };
 
     use crate::error::{Error, ErrorProperties, Variant};

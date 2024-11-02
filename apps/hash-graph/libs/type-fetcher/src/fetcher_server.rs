@@ -1,8 +1,8 @@
 use core::time::Duration;
 use std::{collections::HashMap, io};
 
-use error_stack::{Report, ResultExt};
-use futures::{StreamExt, TryStreamExt, stream};
+use error_stack::{Report, ResultExt as _};
+use futures::{StreamExt as _, TryStreamExt as _, stream};
 use include_dir::{Dir, DirEntry, include_dir};
 use reqwest::{
     Client,

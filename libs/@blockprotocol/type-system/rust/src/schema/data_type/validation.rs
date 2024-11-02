@@ -1,4 +1,4 @@
-use core::str::FromStr;
+use core::str::FromStr as _;
 use std::{collections::HashSet, sync::LazyLock};
 
 use serde_json::Value as JsonValue;

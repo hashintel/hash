@@ -3,7 +3,7 @@ use core::fmt::Debug;
 use authorization::backend::PermissionAssertion;
 use axum::{
     Json,
-    response::{IntoResponse, Response},
+    response::{IntoResponse as _, Response},
 };
 use error_stack::{Context, Report};
 use graph::store::error::BaseUrlAlreadyExists;

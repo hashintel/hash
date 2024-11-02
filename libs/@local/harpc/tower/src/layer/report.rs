@@ -7,7 +7,7 @@ use bytes::Bytes;
 use error_stack::Report;
 use harpc_codec::error::NetworkError;
 use harpc_types::response_kind::ResponseKind;
-use tower::{Layer, Service, ServiceExt};
+use tower::{Layer, Service, ServiceExt as _};
 
 use crate::{
     Extensions,
@@ -97,12 +97,12 @@ mod test {
     use error_stack::Report;
     use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
     use tokio_test::{assert_pending, assert_ready};
-    use tower::{Layer, Service, ServiceExt};
+    use tower::{Layer as _, Service, ServiceExt as _};
     use tower_test::mock::{self, spawn_with};
 
     use crate::{
         Extensions,
-        body::{BodyExt, Frame, controlled::Controlled, full::Full},
+        body::{BodyExt as _, Frame, controlled::Controlled, full::Full},
         either::Either,
         layer::{
             error::test::{BODY, BoxedError, GenericError, request},

@@ -7,7 +7,7 @@
 //! [`Store`]: crate::store::Store
 
 use error_stack::Result;
-use futures::{Stream, TryFutureExt, TryStreamExt};
+use futures::{Stream, TryFutureExt as _, TryStreamExt};
 use hash_graph_store::{
     error::QueryError,
     filter::{Filter, QueryRecord},

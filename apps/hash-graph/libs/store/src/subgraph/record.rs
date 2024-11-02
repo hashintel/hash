@@ -2,7 +2,7 @@ use graph_types::{
     knowledge::entity::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
-use temporal_versioning::{ClosedTemporalBound, TemporalTagged, TimeAxis};
+use temporal_versioning::{ClosedTemporalBound, TemporalTagged as _, TimeAxis};
 
 use crate::subgraph::identifier::{
     DataTypeVertexId, EntityTypeVertexId, EntityVertexId, PropertyTypeVertexId, VertexId,

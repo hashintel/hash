@@ -1,6 +1,6 @@
 use authorization::NoAuthorization;
 use clap::Parser;
-use error_stack::{Report, Result, ResultExt, ensure};
+use error_stack::{Report, Result, ResultExt as _, ensure};
 use graph::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool as _,
     knowledge::EntityStore as _, ontology::EntityTypeStore as _,

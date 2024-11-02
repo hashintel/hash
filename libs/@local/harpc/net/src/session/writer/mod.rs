@@ -1,13 +1,13 @@
 #[cfg(test)]
 mod test;
 
-use bytes::{Buf, Bytes};
+use bytes::{Buf as _, Bytes};
 use bytes_utils::SegmentedBuf;
 use harpc_types::{
     procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
 };
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{

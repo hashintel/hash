@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Result, ResultExt as _};
 
 use super::{body::RequestBody, flags::RequestFlags, id::RequestId};
 use crate::{

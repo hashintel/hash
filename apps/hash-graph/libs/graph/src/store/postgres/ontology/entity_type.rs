@@ -10,8 +10,8 @@ use authorization::{
     },
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Result, ResultExt};
-use futures::{StreamExt, TryStreamExt};
+use error_stack::{Result, ResultExt as _};
+use futures::{StreamExt as _, TryStreamExt as _};
 use graph_types::{
     Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
@@ -25,7 +25,7 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
-        Subgraph, SubgraphRecord,
+        Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{
@@ -38,10 +38,10 @@ use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use tokio_postgres::{GenericClient, Row};
+use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{
-    Valid, Validator,
+    Valid, Validator as _,
     schema::{
         ClosedEntityType, ClosedMultiEntityType, DataTypeUuid, EntityType, EntityTypeResolveData,
         EntityTypeToPropertyTypeEdge, EntityTypeUuid, EntityTypeValidator, InheritanceDepth,
@@ -52,7 +52,7 @@ use type_system::{
 
 use crate::store::{
     EntityTypeStore,
-    crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
+    crud::{QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,

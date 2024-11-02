@@ -78,7 +78,7 @@ async fn test_root_sorting<A: AuthorizationApi>(
                 },
                 sorting: EntityQuerySorting {
                     paths: sorting_paths.clone(),
-                    cursor: cursor.take(),
+                    cursor: Option::take(&mut cursor),
                 },
                 limit: Some(chunk_size),
                 conversions: Vec::new(),

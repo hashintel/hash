@@ -1,17 +1,17 @@
-use alloc::borrow::ToOwned;
+use alloc::borrow::ToOwned as _;
 use core::num::TryFromIntError;
 
 use deer::{
     Context, EnumVisitor, IdentifierVisitor, OptionalVisitor, StructVisitor, Visitor,
     error::{
         DeserializerError, ExpectedType, ReceivedType, ReceivedValue, TypeError, ValueError,
-        Variant,
+        Variant as _,
     },
     helpers::EnumObjectVisitor,
     value::NoneDeserializer,
 };
-use error_stack::{Report, Result, ResultExt};
-use num_traits::ToPrimitive;
+use error_stack::{Report, Result, ResultExt as _};
+use num_traits::ToPrimitive as _;
 
 use crate::{
     array::ArrayAccess, object::ObjectAccess, skip::skip_tokens, tape::Tape, token::Token,

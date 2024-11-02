@@ -3,14 +3,14 @@ use core::{
     ops::{Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
 
-use error_stack::{Report, ReportSink, Result, ResultExt, TryReportTupleExt};
+use error_stack::{Report, ReportSink, Result, ResultExt as _, TryReportTupleExt as _};
 
 use crate::{
     ArrayAccess, Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess,
     Reflection, Schema, StructVisitor,
     error::{
-        ArrayAccessError, DeserializeError, DuplicateField, DuplicateFieldError, Location, Variant,
-        VisitorError,
+        ArrayAccessError, DeserializeError, DuplicateField, DuplicateFieldError, Location,
+        Variant as _, VisitorError,
     },
     helpers::Properties,
     identifier,

@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::mem::swap;
 
-use error_stack::{Result, ResultExt};
+use error_stack::{Result, ResultExt as _};
 use graph_types::{
     knowledge::entity::{EntityEditionId, EntityId, EntityUuid},
     owned_by_id::OwnedById,
@@ -17,13 +17,13 @@ use hash_graph_store::{
 use temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
 };
-use tokio_postgres::GenericClient;
-use tracing::Instrument;
+use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 use type_system::{schema::OntologyTypeUuid, url::BaseUrl};
 
 use crate::store::postgres::{
     AsClient, PostgresStore,
-    query::{ForeignKeyReference, ReferenceTable, Table, Transpile},
+    query::{ForeignKeyReference, ReferenceTable, Table, Transpile as _},
 };
 
 #[derive(Debug)]

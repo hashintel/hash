@@ -1,4 +1,4 @@
-use core::{assert_matches::assert_matches, str::FromStr};
+use core::{assert_matches::assert_matches, str::FromStr as _};
 use std::collections::HashSet;
 
 use authorization::AuthorizationApi;

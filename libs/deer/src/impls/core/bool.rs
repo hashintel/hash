@@ -1,4 +1,4 @@
-use error_stack::{Result, ResultExt};
+use error_stack::{Result, ResultExt as _};
 
 use crate::{
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,

@@ -11,15 +11,16 @@ pub(crate) mod test;
 
 use alloc::sync::Arc;
 
-use error_stack::{Result, ResultExt};
-use futures::stream::StreamExt;
+use error_stack::{Result, ResultExt as _};
+use futures::stream::StreamExt as _;
 use libp2p::{
     Multiaddr, PeerId, StreamProtocol, metrics, tcp::tokio::Transport as TokioTcpTransport,
 };
 use libp2p_core::transport::MemoryTransport;
 use tokio::io::BufStream;
 use tokio_util::{
-    codec::Framed, compat::FuturesAsyncReadCompatExt, sync::CancellationToken, task::TaskTracker,
+    codec::Framed, compat::FuturesAsyncReadCompatExt as _, sync::CancellationToken,
+    task::TaskTracker,
 };
 
 use self::{

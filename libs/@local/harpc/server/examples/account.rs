@@ -14,9 +14,9 @@ use core::{error::Error, fmt::Debug};
 use std::time::Instant;
 
 use bytes::Buf;
-use error_stack::{FutureExt as _, Report, ResultExt};
+use error_stack::{FutureExt as _, Report, ResultExt as _};
 use frunk::HList;
-use futures::{Stream, StreamExt, TryFutureExt, TryStreamExt, pin_mut, stream};
+use futures::{Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _, pin_mut, stream};
 use graph_types::account::AccountId;
 use harpc_client::{Client, ClientConfig, connection::Connection};
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
@@ -31,7 +31,7 @@ use harpc_service::{
 };
 use harpc_tower::{
     Extensions,
-    body::{Body, BodyExt},
+    body::{Body, BodyExt as _},
     layer::{
         body_report::HandleBodyReportLayer, boxed::BoxedResponseLayer, report::HandleReportLayer,
     },

@@ -5,8 +5,8 @@ use core::num::{
     NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroUsize, Wrapping,
 };
 
-use error_stack::{Report, ResultExt};
-use serde::{Serialize, Serializer, ser::SerializeMap};
+use error_stack::{Report, ResultExt as _};
+use serde::{Serialize, Serializer, ser::SerializeMap as _};
 
 use crate::{
     Deserialize, Deserializer, Document, Reflection, Schema,

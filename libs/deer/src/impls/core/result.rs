@@ -1,12 +1,12 @@
 use core::marker::PhantomData;
 
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt as _};
 
 use crate::{
     Deserialize, Deserializer, Document, EnumVisitor, Reflection, Schema, Visitor,
     error::{
-        DeserializeError, ExpectedVariant, Location, ReceivedVariant, UnknownVariantError, Variant,
-        VisitorError,
+        DeserializeError, ExpectedVariant, Location, ReceivedVariant, UnknownVariantError,
+        Variant as _, VisitorError,
     },
     schema::Reference,
 };

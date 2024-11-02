@@ -1,4 +1,4 @@
-use core::str::FromStr;
+use core::str::FromStr as _;
 use std::collections::{HashMap, HashSet};
 
 use graph::store::{
