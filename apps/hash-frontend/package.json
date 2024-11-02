@@ -153,7 +153,7 @@
     "rimraf": "6.0.1",
     "sass": "1.80.5",
     "typescript": "5.6.3",
-    "webpack": "5.95.0"
+    "webpack": "5.96.1"
   },
   "engines": {
     "node": ">= v20"
