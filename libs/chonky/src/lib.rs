@@ -16,7 +16,7 @@ pub enum ChonkyError {
 
 pub mod pdf_segmentation {
     use error_stack::{Report, ResultExt};
-    use image::DynamicImage;
+    use image::{DynamicImage, GrayImage, RgbaImage};
     use pdfium_render::prelude::*;
 
     use crate::ChonkyError;
@@ -35,6 +35,32 @@ pub mod pdf_segmentation {
             .load_pdf_from_file(file_path, None)
             .map_err(|err| Report::new(err).change_context(ChonkyError::Pdfium))
     }
+
+    // /// TODO: This function returns the extracted text that is segmented in proper reading order
+    // and /// grouped by boundaries such as newline spacing and other layout information,
+    // segments can /// contain texts with different formatting (such as a sentence with a
+    // **bold** inside) ///
+    // /// #Errors
+    // ///
+    // /// TBD
+    //pub fn extract_text(pdf: &PdfDocument) -> () {}
+
+    // /// TODO: Given a list of segments of a PDF this function reads the segments via the bounding
+    // /// box order, with the naive approach of top→bottom (and if same top then left→right) and
+    // /// returns a sorted vector of reading order of segments
+    // ///
+    // /// #Errors
+    // ///
+    // /// TBD
+    //fn obtain_reading_order(segments: Vec<segment>) -> () {}
+
+    // /// TODO: Function returns a smaller segment vector by grouping segments in similar chunks,
+    // but /// have different style formatting The new vector stores this information seperately
+    // ///
+    // /// #Errors
+    // ///
+    // /// TBD
+    //fn group_similar_segments() -> () {}
 
     /// Takes in a pdf document and returns a vector list where each page
     /// is processed into a raw image that can be later converted to any image format
@@ -60,7 +86,7 @@ pub mod pdf_segmentation {
                 .change_context(ChonkyError::Pdfium)?;
 
             // Convert PdfBitmap to DynamicImage
-            let dynamic_image = bitmap.as_image();
+            let dynamic_image = as_image(&bitmap)?;
             images.push(dynamic_image);
         }
 
@@ -84,6 +110,8 @@ pub mod pdf_segmentation {
             .page_sizes()
             .change_context(ChonkyError::Pdfium)?[0];
 
+        let page = pdf.pages().get(0).change_context(ChonkyError::Pdfium)?;
+
         //converts the boundings boxes to pixels that can be used for creating bitmap with proper
         // for correct bitmap dimensions, height point must be set to 0 to get max pixel height
         let page_dimensions = pdf
@@ -93,23 +121,71 @@ pub mod pdf_segmentation {
             .points_to_pixels(page_dimensions.width(), PdfPoints::new(0.0), config)
             .change_context(ChonkyError::Pdfium)?;
 
+        // some pdfs have dimensions that are larger than the actual "content" resulting in negative
+        // dimensions we aim to get the "net" dimensions by subtracting the 0.0 point pixel
+        // conversion from the height and width
+        let base_page_dimensions = page
+            .points_to_pixels(PdfPoints::new(0.0), page.height(), config)
+            .change_context(ChonkyError::Pdfium)?;
+
+        let page_dimensions = (
+            page_dimensions.0 - base_page_dimensions.0,
+            page_dimensions.1 - base_page_dimensions.1,
+        );
+
         //create an empty bitmap that follows dimensions of pdf
         // to prevent repeated memory allocations (we assume all pdfs are same dimension)
         let bitmap = PdfBitmap::empty(
             page_dimensions.0,
             page_dimensions.1,
-            PdfBitmapFormat::BGR,
+            PdfBitmapFormat::BGRA,
             pdf.bindings(),
         )
         .change_context(ChonkyError::Pdfium)?;
 
         Ok(bitmap)
     }
+
+    ///A vendored function from pdfium-render's `as_image` function that returns a result instead
+    /// of panicking
+    ///
+    /// Errors#
+    ///
+    /// [`PdfiumError::ImageError`] when the image had an error being processed
+    fn as_image(bitmap: &PdfBitmap) -> Result<DynamicImage, ChonkyError> {
+        let bytes = bitmap.as_rgba_bytes();
+
+        // clippy complains if we directly cast into u32 from i32 because of sign loss
+        // since we assume dimensions must be positive this is not as issue
+        let width = bitmap
+            .width()
+            .try_into()
+            .map_err(|_foo| ChonkyError::Pdfium)?;
+
+        let height = bitmap
+            .height()
+            .try_into()
+            .map_err(|_foo| ChonkyError::Pdfium)?;
+
+        Ok(match bitmap.format().map_err(|_foo| ChonkyError::Pdfium)? {
+            #[expect(deprecated)]
+            PdfBitmapFormat::BGRA
+            | PdfBitmapFormat::BRGx
+            | PdfBitmapFormat::BGRx
+            | PdfBitmapFormat::BGR => RgbaImage::from_raw(width, height, bytes)
+                .map(DynamicImage::ImageRgba8)
+                .ok_or(ChonkyError::Pdfium)?,
+            PdfBitmapFormat::Gray => GrayImage::from_raw(width, height, bytes)
+                .map(DynamicImage::ImageLuma8)
+                .ok_or(ChonkyError::Pdfium)?,
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use error_stack::{Report, ResultExt};
+    use insta::*;
     use pdfium_render::prelude::*;
 
     use super::*;
@@ -164,15 +240,33 @@ mod tests {
         let pdf = pdf_segmentation::load_pdf(&pdfium, test_pdf_string)
             .change_context(ChonkyError::Pdfium)?;
 
+        //number of pages of pdf
+        let num_pages: usize = pdf.pages().len().into();
+
         let preprocessed_pdf =
             pdf_segmentation::pdf_to_images(&pdf).change_context(ChonkyError::Pdfium)?;
 
-        let num_pages: usize = pdf.pages().len().into(); //number of pages of pdf
-
+        //start by checking if proper amount of images are converted
         match preprocessed_pdf.len() {
-            x if x == num_pages => Ok(()),
-            _ => Err(Report::new(ChonkyError::Pdfium)
-                .attach_printable("The length of vector should be number of pages")),
+            x if x == num_pages => (),
+            _ => {
+                return Err(Report::new(ChonkyError::Pdfium)
+                    .attach_printable("The length of vector should be number of pages"));
+            }
         }
+
+        // now check if the image contents are the same using insta snapshots
+        // start by converting images to binary
+        let preprocessed_pdf: Vec<Vec<u8>> = preprocessed_pdf
+            .into_iter()
+            .map(image::DynamicImage::into_bytes)
+            .collect();
+
+        // we only really need to check the first three pages
+        for (index, page_bytes) in preprocessed_pdf.into_iter().enumerate().take(3) {
+            assert_binary_snapshot!(format!("page_{}.BIN", index + 1).as_str(), page_bytes);
+        }
+
+        Ok(())
     }
 }

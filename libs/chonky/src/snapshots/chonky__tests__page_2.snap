@@ -1,0 +1,6 @@
+---
+source: libs/chonky/src/lib.rs
+expression: page_bytes
+extension: BIN
+snapshot_kind: binary
+---
