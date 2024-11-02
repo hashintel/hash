@@ -12,9 +12,13 @@ fn main() -> Result<(), Report<ChonkyError>> {
     ensure!(args.len() > 1, ChonkyError::Arguments);
 
     // creates instance so must be global
+    // let pdfium = Pdfium::new(
+    //     Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
+    //         .change_context(ChonkyError::Pdfium)?,
+    // );
+
     let pdfium = Pdfium::new(
-        Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
-            .change_context(ChonkyError::Pdfium)?,
+        Pdfium::bind_to_statically_linked_library().change_context(ChonkyError::Pdfium)?,
     );
 
     let pdf = pdf_segmentation::load_pdf(&pdfium, &args[1]).change_context(ChonkyError::Pdfium)?;

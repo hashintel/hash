@@ -194,10 +194,7 @@ mod tests {
 
     #[test]
     fn pdf_load_success() -> Result<(), Report<ChonkyError>> {
-        let pdfium = Pdfium::new(
-            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
-                .change_context(ChonkyError::Pdfium)?,
-        );
+        let pdfium = Pdfium::default();
 
         let test_pdf_string = "tests/docs/test-doc.pdf";
 
@@ -209,10 +206,7 @@ mod tests {
 
     #[test]
     fn pdf_load_failure() -> Result<(), Report<ChonkyError>> {
-        let pdfium = Pdfium::new(
-            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
-                .change_context(ChonkyError::Pdfium)?,
-        );
+        let pdfium = Pdfium::default();
 
         let test_pdf_string = "tests/docs/invalid.pdf";
 
@@ -231,11 +225,8 @@ mod tests {
 
     #[test]
     fn pdf_image_conversion() -> Result<(), Report<ChonkyError>> {
-        //create the pdfium instance and bind to library
-        let pdfium = Pdfium::new(
-            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
-                .change_context(ChonkyError::Pdfium)?,
-        );
+        //create the pdfium instance and bind to static library
+        let pdfium = Pdfium::default();
 
         let test_pdf_string = "tests/docs/test-doc.pdf";
 
@@ -259,14 +250,19 @@ mod tests {
 
         // now check if the image contents are the same using insta snapshots
         // start by converting images to binary
-        let preprocessed_pdf: Vec<Vec<u8>> = preprocessed_pdf
-            .into_iter()
-            .map(image::DynamicImage::into_bytes)
-            .collect();
+        // let preprocessed_pdf: Vec<Vec<u8>> = preprocessed_pdf
+        //     .into_iter()
+        //     .map(image::DynamicImage::into_bytes)
+        //     .collect();
 
         // we only really need to check the first three pages
-        for (index, page_bytes) in preprocessed_pdf.into_iter().enumerate().take(3) {
-            assert_binary_snapshot!(format!("page_{}.BIN", index + 1).as_str(), page_bytes);
+        for (index, page) in preprocessed_pdf.into_iter().enumerate().take(3) {
+            let mut buffer = Vec::new();
+            let encoder = image::codecs::bmp::BmpEncoder::new(&mut buffer);
+
+            page.write_with_encoder(encoder)
+                .expect("image should be able to be encoded into a bitmap");
+            assert_binary_snapshot!(format!("page_{}.bmp", index + 1).as_str(), buffer);
         }
 
         Ok(())
