@@ -1,5 +1,8 @@
 use alloc::borrow::Cow;
-use core::{error::Error, fmt::Display};
+use core::{
+    error::Error,
+    fmt::{self, Display},
+};
 
 use harpc_types::{error_code::ErrorCode, procedure::ProcedureId, service::ServiceDescriptor};
 
@@ -38,11 +41,15 @@ pub struct Forbidden {
 }
 
 impl Display for Forbidden {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "forbidden to call {}::{}", self.service, self.procedure)?;
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            fmt,
+            "forbidden to call {}::{}",
+            self.service, self.procedure
+        )?;
 
         if !self.reason.is_empty() {
-            write!(f, ", reason: {}", self.reason)?;
+            write!(fmt, ", reason: {}", self.reason)?;
         }
 
         Ok(())
@@ -54,3 +61,61 @@ impl Error for Forbidden {
         request.provide_value(ErrorCode::FORBIDDEN);
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RequestExpectedItemCountMismatch {
+    min: Option<usize>,
+    max: Option<usize>,
+}
+
+impl RequestExpectedItemCountMismatch {
+    #[must_use]
+    pub const fn exactly(expected: usize) -> Self {
+        Self {
+            min: Some(expected),
+            max: Some(expected),
+        }
+    }
+
+    #[must_use]
+    pub const fn at_least(min: usize) -> Self {
+        Self {
+            min: Some(min),
+            max: None,
+        }
+    }
+
+    #[must_use]
+    pub const fn at_most(max: usize) -> Self {
+        Self {
+            min: None,
+            max: Some(max),
+        }
+    }
+
+    #[must_use]
+    pub const fn with_min(mut self, min: usize) -> Self {
+        self.min = Some(min);
+        self
+    }
+
+    #[must_use]
+    pub const fn with_max(mut self, max: usize) -> Self {
+        self.max = Some(max);
+        self
+    }
+}
+
+impl Display for RequestExpectedItemCountMismatch {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match (self.min, self.max) {
+            (Some(min), Some(max)) if min == max => write!(fmt, "expected length of {min}"),
+            (Some(min), Some(max)) => write!(fmt, "expected length between {min} and {max}"),
+            (Some(min), None) => write!(fmt, "expected length of at least {min}"),
+            (None, Some(max)) => write!(fmt, "expected length of at most {max}"),
+            (None, None) => fmt.write_str("expected length"),
+        }
+    }
+}
+
+impl Error for RequestExpectedItemCountMismatch {}

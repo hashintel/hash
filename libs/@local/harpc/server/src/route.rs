@@ -133,8 +133,7 @@ impl<ReqBody> Route<ReqBody> for HNil {
         ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
     {
         let error = ServiceNotFound {
-            service: request.service().id,
-            version: request.service().version,
+            service: request.service(),
         };
 
         let session = request.session();

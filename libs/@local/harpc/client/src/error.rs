@@ -26,12 +26,12 @@ impl From<serde_value::Value> for RemoteError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExpectedItemCountMismatch {
+pub struct ResponseExpectedItemCountMismatch {
     min: Option<usize>,
     max: Option<usize>,
 }
 
-impl ExpectedItemCountMismatch {
+impl ResponseExpectedItemCountMismatch {
     #[must_use]
     pub const fn exactly(expected: usize) -> Self {
         Self {
@@ -69,7 +69,7 @@ impl ExpectedItemCountMismatch {
     }
 }
 
-impl Display for ExpectedItemCountMismatch {
+impl Display for ResponseExpectedItemCountMismatch {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match (self.min, self.max) {
             (Some(min), Some(max)) if min == max => write!(fmt, "expected length of {min}"),
@@ -81,4 +81,4 @@ impl Display for ExpectedItemCountMismatch {
     }
 }
 
-impl Error for ExpectedItemCountMismatch {}
+impl Error for ResponseExpectedItemCountMismatch {}

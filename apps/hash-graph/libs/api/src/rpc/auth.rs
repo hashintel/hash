@@ -5,10 +5,13 @@ use futures::{StreamExt, stream};
 use graph_types::account::AccountId;
 use harpc_client::{
     connection::Connection,
-    error::{ExpectedItemCountMismatch, RemoteError},
+    error::{RemoteError, ResponseExpectedItemCountMismatch},
 };
 use harpc_codec::{decode::Decoder, encode::Encoder};
-use harpc_server::{error::ProcedureNotFound, session::Session};
+use harpc_server::{
+    error::{ProcedureNotFound, RequestExpectedItemCountMismatch},
+    session::Session,
+};
 use harpc_service::{delegate::ServiceDelegate, procedure::ProcedureIdentifier};
 use harpc_tower::{
     body::{Body, BodyExt},
@@ -134,10 +137,10 @@ pub struct AuthenticationDelegate<T> {
     inner: T,
 }
 
-impl<T, C> ServiceDelegate<Session<User>, C> for AuthenticationDelegate<T>
+impl<T, C, DecoderError> ServiceDelegate<Session<User>, C> for AuthenticationDelegate<T>
 where
     T: AuthenticationService<role::Server, authenticate(..): Send> + Send,
-    C: Encoder + Decoder<Error: Debug> + Clone + Send,
+    C: Encoder + Decoder<Error = Report<DecoderError>> + Clone + Send,
 {
     type Error = ProcedureNotFound;
     type Service = meta::AuthenticationService;
@@ -160,8 +163,7 @@ where
         let ProcedureDescriptor { id } = request.procedure();
 
         let id = meta::AuthenticationProcedureId::from_id(id).ok_or_else(|| ProcedureNotFound {
-            service: request.service().id,
-            version: request.service().version,
+            service: request.service(),
             procedure: id,
         })?;
 
@@ -173,8 +175,12 @@ where
                 let stream = codec.clone().decode(data);
                 let mut stream = pin!(stream);
 
-                // TODO: errors here
-                let payload = stream.next().await.unwrap().unwrap();
+                let payload = stream
+                    .next()
+                    .await
+                    .ok_or_else(|| Report::new(RequestExpectedItemCountMismatch::exactly(1)))
+                    .change_context(AuthenticationError)?
+                    .change_context(AuthenticationError)?;
 
                 let response = self.inner.authenticate(session, payload).await;
                 let data = codec.encode(stream::iter([response]));
@@ -222,7 +228,7 @@ where
         let data: Result<_, _> = items
             .next()
             .await
-            .ok_or_else(|| Report::new(ExpectedItemCountMismatch::exactly(1)))
+            .ok_or_else(|| Report::new(ResponseExpectedItemCountMismatch::exactly(1)))
             .change_context(AuthenticationError)?
             .change_context(AuthenticationError)?;
 

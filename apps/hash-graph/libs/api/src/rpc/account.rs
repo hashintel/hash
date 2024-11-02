@@ -18,7 +18,7 @@ use graph_types::{
 };
 use harpc_client::{
     connection::Connection,
-    error::{ExpectedItemCountMismatch, RemoteError},
+    error::{RemoteError, ResponseExpectedItemCountMismatch},
 };
 use harpc_server::session::Session;
 use harpc_service::role::Role;
@@ -506,7 +506,7 @@ where
         let data: Result<_, _> = items
             .next()
             .await
-            .ok_or_else(|| Report::new(ExpectedItemCountMismatch::exactly(1)))
+            .ok_or_else(|| Report::new(ResponseExpectedItemCountMismatch::exactly(1)))
             .change_context(AccountError)?
             .change_context(AccountError)?;
 
@@ -541,7 +541,7 @@ where
         let data: Result<_, _> = items
             .next()
             .await
-            .ok_or_else(|| Report::new(ExpectedItemCountMismatch::exactly(1)))
+            .ok_or_else(|| Report::new(ResponseExpectedItemCountMismatch::exactly(1)))
             .change_context(AccountError)?
             .change_context(AccountError)?;
 
@@ -577,7 +577,7 @@ where
         let data: Result<_, _> = items
             .next()
             .await
-            .ok_or_else(|| Report::new(ExpectedItemCountMismatch::exactly(1)))
+            .ok_or_else(|| Report::new(ResponseExpectedItemCountMismatch::exactly(1)))
             .change_context(AccountError)?
             .change_context(AccountError)?;
 
@@ -613,7 +613,7 @@ where
         let data: Result<_, _> = items
             .next()
             .await
-            .ok_or_else(|| Report::new(ExpectedItemCountMismatch::exactly(1)))
+            .ok_or_else(|| Report::new(ResponseExpectedItemCountMismatch::exactly(1)))
             .change_context(AccountError)?
             .change_context(AccountError)?;
 
@@ -649,7 +649,7 @@ where
         let data: Result<_, _> = items
             .next()
             .await
-            .ok_or_else(|| Report::new(ExpectedItemCountMismatch::exactly(1)))
+            .ok_or_else(|| Report::new(ResponseExpectedItemCountMismatch::exactly(1)))
             .change_context(AccountError)?
             .change_context(AccountError)?;
 
