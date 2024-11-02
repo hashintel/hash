@@ -80,7 +80,7 @@ type-system.path = "libs/@blockprotocol/type-system/rust"
 validation.path = "libs/@local/hash-validation"
 
 # Pinned workspace members
-error-stack = { path = "./libs/error-stack", default-features = false }
+error-stack = { git = "https://github.com/hashintel/hash", rev = "f6ecda1ec75f4aca1f738b2fbe413613a356069c", default-features = false }
 
 # Public dependencies
 ahash = { version = "=0.8.11", default-features = false }

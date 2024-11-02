@@ -1,13 +1,13 @@
 use anyhow::Error as AnyhowError;
 
-use crate::{Frame, IntoReportCompat, Report, Result};
+use crate::{Frame, IntoReportCompat, Report};
 
-impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
+impl<T> IntoReportCompat for Result<T, AnyhowError> {
     type Err = AnyhowError;
     type Ok = T;
 
     #[track_caller]
-    fn into_report(self) -> Result<T, AnyhowError> {
+    fn into_report(self) -> Result<T, Report<AnyhowError>> {
         match self {
             Ok(value) => Ok(value),
             Err(anyhow) => {

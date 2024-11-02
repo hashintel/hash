@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 pub mod __private {
     #![doc(hidden)]
     //! Implementation detail for macros.
@@ -82,7 +84,7 @@ pub mod __private {
 ///
 /// use error_stack::report;
 ///
-/// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
+/// # fn wrapper() -> Result<(), error_stack::Report<impl core::fmt::Debug>> {
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("file contents: {content}"),
 ///     Err(err) => return Err(report!(err)),
@@ -99,9 +101,10 @@ pub mod __private {
 /// # let user = 0;
 /// # type Resource = u32;
 /// # let resource = 0;
+/// use core::error::Error;
 /// use core::fmt;
 ///
-/// use error_stack::{report, Context};
+/// use error_stack::report;
 ///
 /// #[derive(Debug)]
 /// # #[allow(dead_code)]
@@ -115,7 +118,7 @@ pub mod __private {
 ///         # }; Ok(())}
 /// }
 ///
-/// impl Context for PermissionDenied {}
+/// impl Error for PermissionDenied {}
 ///
 /// if !has_permission(&user, &resource) {
 ///     return Err(report!(PermissionDenied(user, resource)));
@@ -194,7 +197,7 @@ macro_rules! report {
 #[macro_export]
 macro_rules! bail {
     ($err:expr) => {{
-        return $crate::Result::Err($crate::report!($err));
+        return ::core::result::Result::Err($crate::report!($err));
     }};
 }
 
@@ -220,7 +223,7 @@ macro_rules! bail {
 /// use std::fs;
 ///
 /// use error_stack::bail;
-/// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
+/// # fn wrapper() -> Result<(), error_stack::Report<impl core::fmt::Debug>> {
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("file contents: {content}"),
 ///     Err(err) => bail!(err),
@@ -239,9 +242,10 @@ macro_rules! bail {
 /// # let user = 0;
 /// # type Resource = u32;
 /// # let resource = 0;
+/// use core::error::Error;
 /// use core::fmt;
 ///
-/// use error_stack::{bail, Context};
+/// use error_stack::bail;
 ///
 /// #[derive(Debug)]
 /// # #[allow(dead_code)]
@@ -256,7 +260,7 @@ macro_rules! bail {
 ///     }
 /// }
 ///
-/// impl Context for PermissionDenied {}
+/// impl Error for PermissionDenied {}
 ///
 /// if !has_permission(&user, &resource) {
 ///     bail!(PermissionDenied(user, resource));
@@ -304,7 +308,7 @@ macro_rules! bail {
 #[macro_export]
 macro_rules! bail {
     ($err:expr) => {{
-        return $crate::Result::Err($crate::report!($err));
+        return ::core::result::Result::Err($crate::report!($err));
     }};
 
     [$($err:expr),+ $(,)?] => {{
@@ -319,7 +323,7 @@ macro_rules! bail {
             Err(error) => error,
         };
 
-        return core::result::Result::Err(error);
+        return ::core::result::Result::Err(error);
     }};
 }
 
@@ -343,9 +347,10 @@ macro_rules! bail {
 /// # let user = 0;
 /// # type Resource = u32;
 /// # let resource = 0;
-/// # use core::fmt;
+/// use core::error::Error;
+/// use core::fmt;
 ///
-/// use error_stack::{Context, ensure};
+/// use error_stack::ensure;
 ///
 /// #[derive(Debug)]
 /// # #[allow(dead_code)]
@@ -354,14 +359,14 @@ macro_rules! bail {
 /// impl fmt::Display for PermissionDenied {
 ///     # #[allow(unused_variables)]
 ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         const _: &str = stringify! {
+///         # const _: &str = stringify! {
 ///         ...
-///          };
+///         # };
 ///         Ok(())
 ///     }
 /// }
 ///
-/// impl Context for PermissionDenied {}
+/// impl Error for PermissionDenied {}
 ///
 /// ensure!(
 ///     has_permission(&user, &resource),

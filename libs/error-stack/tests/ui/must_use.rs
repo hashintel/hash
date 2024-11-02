@@ -1,8 +1,8 @@
 #![deny(unused_must_use)]
 
-use core::fmt;
+use core::{error::Error, fmt};
 
-use error_stack::{Context, Report};
+use error_stack::Report;
 
 #[derive(Debug)]
 pub struct RootError;
@@ -13,7 +13,7 @@ impl fmt::Display for RootError {
     }
 }
 
-impl Context for RootError {}
+impl Error for RootError {}
 
 fn main() {
     Report::new(RootError);

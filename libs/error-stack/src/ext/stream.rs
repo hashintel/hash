@@ -8,7 +8,7 @@ use core::{
 use futures_core::{FusedFuture, FusedStream, TryStream};
 use pin_project_lite::pin_project;
 
-use crate::{Report, Result};
+use crate::Report;
 
 pin_project! {
     /// Future for the [`try_collect_reports`](TryReportStreamExt::try_collect_reports)
@@ -18,7 +18,7 @@ pin_project! {
     pub struct TryCollectReports<S, A, C> {
         #[pin]
         stream: S,
-        output: Result<A, [C]>,
+        output: Result<A, Report<[C]>>,
 
         context_len: usize,
         context_bound: usize
@@ -55,7 +55,7 @@ where
     S: TryStream<Error: Into<Report<[C]>>>,
     A: Default + Extend<S::Ok>,
 {
-    type Output = Result<A, [C]>;
+    type Output = Result<A, Report<[C]>>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut this = self.project();
@@ -123,7 +123,7 @@ pub trait TryReportStreamExt<C>: TryStream<Error: Into<Report<[C]>>> {
     /// # Examples
     ///
     /// ```
-    /// # use error_stack::{Report, Result, TryReportStreamExt};
+    /// # use error_stack::{Report, TryReportStreamExt};
     /// # use futures_util::stream;
     ///
     /// #[derive(Debug, Clone, PartialEq, Eq)]
@@ -169,7 +169,7 @@ pub trait TryReportStreamExt<C>: TryStream<Error: Into<Report<[C]>>> {
     /// once the number of accumulated errors reaches the specified `bound`.
     ///
     /// ```
-    /// # use error_stack::{Report, Result, TryReportStreamExt};
+    /// # use error_stack::{Report, TryReportStreamExt};
     /// # use futures_util::stream;
     ///
     /// #[derive(Debug, Clone, PartialEq, Eq)]

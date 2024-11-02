@@ -1,4 +1,4 @@
-use crate::{Report, Result};
+use crate::Report;
 
 /// Extends tuples with error-handling capabilities.
 ///
@@ -25,7 +25,7 @@ pub trait TryReportTupleExt<C> {
     /// # Examples
     ///
     /// ```
-    /// use error_stack::{Report, Result, TryReportTupleExt};
+    /// use error_stack::{Report, TryReportTupleExt};
     ///
     /// #[derive(Debug)]
     /// struct CustomError;
@@ -38,20 +38,20 @@ pub trait TryReportTupleExt<C> {
     ///
     /// impl core::error::Error for CustomError {}
     ///
-    /// let result1: Result<i32, CustomError> = Ok(1);
-    /// let result2: Result<&'static str, CustomError> = Ok("success");
-    /// let result3: Result<bool, CustomError> = Ok(true);
+    /// let result1: Result<i32, Report<CustomError>> = Ok(1);
+    /// let result2: Result<&'static str, Report<CustomError>> = Ok("success");
+    /// let result3: Result<bool, Report<CustomError>> = Ok(true);
     ///
     /// let combined = (result1, result2, result3).try_collect();
     /// assert_eq!(combined.unwrap(), (1, "success", true));
     ///
-    /// let result1: Result<i32, CustomError> = Ok(1);
-    /// let result2: Result<&'static str, CustomError> = Err(Report::new(CustomError));
-    /// let result3: Result<bool, CustomError> = Err(Report::new(CustomError));
+    /// let result1: Result<i32, Report<CustomError>> = Ok(1);
+    /// let result2: Result<&'static str, Report<CustomError>> = Err(Report::new(CustomError));
+    /// let result3: Result<bool, Report<CustomError>> = Err(Report::new(CustomError));
     /// let combined_with_error = (result1, result2, result3).try_collect();
     /// assert!(combined_with_error.is_err());
     /// ```
-    fn try_collect(self) -> Result<Self::Output, [C]>;
+    fn try_collect(self) -> Result<Self::Output, Report<[C]>>;
 }
 
 impl<T, R, C> TryReportTupleExt<C> for (core::result::Result<T, R>,)
@@ -60,7 +60,7 @@ where
 {
     type Output = (T,);
 
-    fn try_collect(self) -> Result<Self::Output, [C]> {
+    fn try_collect(self) -> Result<Self::Output, Report<[C]>> {
         let (result,) = self;
 
         match result {
@@ -102,7 +102,7 @@ macro_rules! impl_ext {
             type Output = ($($output),*, T);
 
             #[expect(non_snake_case, clippy::min_ident_chars)]
-            fn try_collect(self) -> Result<Self::Output, [Context]> {
+            fn try_collect(self) -> Result<Self::Output, Report<[Context]>> {
                 let ($($type),*, result) = self;
                 let prefix = ($($type,)*).try_collect();
 
@@ -128,7 +128,7 @@ mod test {
     use core::{error::Error, fmt::Display};
 
     use super::TryReportTupleExt;
-    use crate::{Report, Result};
+    use crate::Report;
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     struct TestError(usize);
@@ -143,9 +143,9 @@ mod test {
 
     #[test]
     fn single_error() {
-        let result1: Result<i32, TestError> = Ok(1);
-        let result2: Result<String, TestError> = Ok("test".to_owned());
-        let result3: Result<bool, TestError> = Err(Report::new(TestError(0)));
+        let result1: Result<i32, Report<TestError>> = Ok(1);
+        let result2: Result<String, Report<TestError>> = Ok("test".to_owned());
+        let result3: Result<bool, Report<TestError>> = Err(Report::new(TestError(0)));
 
         let combined = (result1, result2, result3).try_collect();
         let report = combined.expect_err("should have error");
@@ -157,9 +157,9 @@ mod test {
 
     #[test]
     fn no_error() {
-        let result1: Result<i32, TestError> = Ok(1);
-        let result2: Result<String, TestError> = Ok("test".to_owned());
-        let result3: Result<bool, TestError> = Ok(true);
+        let result1: Result<i32, Report<TestError>> = Ok(1);
+        let result2: Result<String, Report<TestError>> = Ok("test".to_owned());
+        let result3: Result<bool, Report<TestError>> = Ok(true);
 
         let combined = (result1, result2, result3).try_collect();
         let (ok1, ok2, ok3) = combined.expect("should have no error");
@@ -171,9 +171,9 @@ mod test {
 
     #[test]
     fn expanded_error() {
-        let result1: Result<i32, [TestError]> = Ok(1);
-        let result2: Result<String, [TestError]> = Ok("test".to_owned());
-        let result3: Result<bool, [TestError]> = Err(Report::new(TestError(0)).expand());
+        let result1: Result<i32, Report<[TestError]>> = Ok(1);
+        let result2: Result<String, Report<[TestError]>> = Ok("test".to_owned());
+        let result3: Result<bool, Report<[TestError]>> = Err(Report::new(TestError(0)).expand());
 
         let combined = (result1, result2, result3).try_collect();
         let report = combined.expect_err("should have error");
@@ -186,9 +186,9 @@ mod test {
 
     #[test]
     fn single_and_expanded_mixed() {
-        let result1: Result<i32, [TestError]> = Ok(1);
-        let result2: Result<String, TestError> = Err(Report::new(TestError(0)));
-        let result3: Result<bool, [TestError]> = Err(Report::new(TestError(1)).expand());
+        let result1: Result<i32, Report<[TestError]>> = Ok(1);
+        let result2: Result<String, Report<TestError>> = Err(Report::new(TestError(0)));
+        let result3: Result<bool, Report<[TestError]>> = Err(Report::new(TestError(1)).expand());
 
         let combined = (result1, result2, result3).try_collect();
         let report = combined.expect_err("should have error");
@@ -202,9 +202,9 @@ mod test {
 
     #[test]
     fn multiple_errors() {
-        let result1: Result<i32, TestError> = Err(Report::new(TestError(0)));
-        let result2: Result<String, TestError> = Ok("test".to_owned());
-        let result3: Result<bool, TestError> = Err(Report::new(TestError(1)));
+        let result1: Result<i32, Report<TestError>> = Err(Report::new(TestError(0)));
+        let result2: Result<String, Report<TestError>> = Ok("test".to_owned());
+        let result3: Result<bool, Report<TestError>> = Err(Report::new(TestError(1)));
 
         let combined = (result1, result2, result3).try_collect();
         let report = combined.expect_err("should have error");
