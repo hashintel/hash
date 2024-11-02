@@ -756,7 +756,7 @@ fn collect<'a>(root: &'a Frame, prefix: &'a [&Frame]) -> (Vec<&'a Frame>, &'a [F
     (stack, next)
 }
 
-/// Partition the tree, this looks for the first `Context`,
+/// Partition the tree, this looks for the first `ontext`,
 /// then moves it up the chain and adds it to our results.
 /// Once we reach the end all remaining items on the stack are added to the prefix pile,
 /// which will be used in next iteration.

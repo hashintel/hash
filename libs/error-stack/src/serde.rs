@@ -32,7 +32,7 @@ impl Serialize for SerializeAttachment<'_> {
 
         match frame.kind() {
             FrameKind::Context(_) => {
-                // TODO: for now `Context` is unsupported, upcoming PR will fix via hooks
+                // TODO: for now `Error` is unsupported, upcoming PR will fix via hooks
                 // `SerializeAttachmentList` ensures that no context is ever serialized
                 unimplemented!()
             }

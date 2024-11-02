@@ -9,7 +9,7 @@ use crate::{Context, Report};
 /// A reasonable return type to use throughout an application.
 ///
 /// The `Result` type can be used with one or two parameters, where the first parameter represents
-/// the [`Ok`] arm and the second parameter `Context` is used as in [`Report<C>`].
+/// the [`Ok`] arm and the second parameter `Error` is used as in [`Report<C>`].
 ///
 /// # Examples
 ///

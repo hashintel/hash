@@ -16,10 +16,10 @@
 //!   1. Contexts
 //!   2. Attachments
 //!
-//! A [`Context`] is a view of the world, it helps describe how the current section of code
-//! interprets the error. This is used to capture how various scopes require differing levels of
-//! detail and understanding of the error as it propagates. A [`Report`] always captures the
-//! _current context_ in its generic argument.
+//! A context is a view of the world, it helps describe how the current section of code interprets
+//! the error. This is used to capture how various scopes require differing levels of detail and
+//! understanding of the error as it propagates. A [`Report`] always captures the _current context_
+//! in its generic argument.
 //!
 //! As the [`Report`] is built, various pieces of supporting information can be _attached_. These
 //! can be anything that can be shared between threads whether it be a supporting message or a
@@ -71,9 +71,7 @@
 //!
 //! ## Where to use a Report
 //!
-//! [`Report`] has been designed to be used as the [`Err`] variant of a `Result`. This crate
-//! provides a [`Result<E, C>`] type alias for convenience which uses [`Report<C>`] as the [`Err`]
-//! variant and can be used as a return type:
+//! [`Report`] has been designed to be used as the [`Err`] variant of a [`Result`]:
 //!
 //! ```rust
 //! # fn has_permission(_: (), _: ()) -> bool { true }
@@ -103,10 +101,8 @@
 //!
 //! ### Initializing a Report
 //!
-//! A [`Report`] can be created directly from anything that implements [`Context`] by using
+//! A [`Report`] can be created directly from anything that implements [`Error`] by using
 //! [`Report::new()`] or through any of the provided macros ([`report!`], [`bail!`], [`ensure!`]).
-//! Any [`Error`] can be used as a [`Context`], so it's possible to create [`Report`] from an
-//! existing [`Error`]:
 //!
 //! ```rust
 //! use std::{fs, io, path::Path};
@@ -133,7 +129,7 @@
 //! ### Changing Context
 //!
 //! The generic parameter in [`Report`] is called the _current context_. When creating a new
-//! [`Report`], the [`Context`] that's provided will be set as the current context. The current
+//! [`Report`], the [`Error`] that's provided will be set as the current context. The current
 //! context should encapsulate how the current code interprets the error. As the error propagates,
 //! it will cross boundaries where new information is available, and the previous level of detail is
 //! no longer applicable. These boundaries will often occur when crossing between major modules, or
@@ -245,7 +241,7 @@
 //! </pre>
 //!
 //! The `Suggestion` which was added via [`attach`] is not shown directly and only increases the
-//! counter of opaque attachments for the containing [`Context`]. The message which was passed to
+//! counter of opaque attachments for the containing [`Error`]. The message which was passed to
 //! [`attach_printable`], however, is displayed in full. To be able to show attachments that have
 //! been added via [`attach`], one must make use of [hooks](#debug-and-display-hooks) instead.
 //!
@@ -327,7 +323,7 @@
 //!
 //! ### Improving Result::Err Types
 //!
-//! By capturing the current [`Context`] in the type parameter, return types in function signatures
+//! By capturing the current [`Error`] in the type parameter, return types in function signatures
 //! continue to explicitly capture the perspective of the current code. This means that **more often
 //! than not** the user is _forced_ to re-describe the error when entering a substantially different
 //! part of the code because the constraints of typed return types will require it. This will happen
@@ -341,9 +337,8 @@
 //!
 //! ### Compatibility with other Libraries
 //!
-//! In `std` (or `nightly`) environments a blanket implementation for `Context` for any `Error` is
-//! provided. This blanket implementation for [`Error`] means `error-stack` is compatible with
-//! almost all other libraries that use the [`Error`] trait.
+//! `error-stack` uses the standard [`Error`] type which makes it compatible with almost all other
+//! libraries that use that trait.
 //!
 //! This has the added benefit that migrating from other error libraries can often be incremental,
 //! as a lot of popular error library types will work within the [`Report`] struct.
@@ -353,8 +348,8 @@
 //!
 //! ### Doing more
 //!
-//! Beyond making new [`Context`] types, the library supports the attachment of arbitrary
-//! thread-safe data. These attachments (and data that is [`provide`]d by the [`Context`] can be
+//! Beyond making new [`Error`] types, the library supports the attachment of arbitrary
+//! thread-safe data. These attachments (and data that is [`provide`]d by the [`Error`] can be
 //! requested through [`Report::request_ref()`]. This gives a novel way to expand standard
 //! error-handling approaches, without decreasing the ergonomics of creating the actual error
 //! variants:
@@ -382,10 +377,10 @@
 //!
 //! ### Automatic Backtraces
 //!
-//! When on a Rust 1.65 or later, [`Report`] will try to capture a [`Backtrace`] if `RUST_BACKTRACE`
-//! or `RUST_BACKTRACE_LIB` is set and the `backtrace` feature is enabled (by default this is the
-//! case). If on a nightly toolchain, it will use the [`Backtrace`] if provided by the base
-//! [`Context`], and will try to capture one otherwise.
+//! [`Report`] will try to capture a [`Backtrace`] if `RUST_BACKTRACE` or `RUST_BACKTRACE_LIB` is
+//! set and the `backtrace` feature is enabled (by default this is the case). If on a nightly
+//! toolchain, it will use the [`Backtrace`] if provided by the base [`Error`], and will try to
+//! capture one otherwise.
 //!
 //! Unlike some other approaches, this does not require the user modifying their custom error types
 //! to be aware of backtraces, and doesn't require manual implementations to forward calls down any
@@ -399,9 +394,7 @@
 //! ### Provider API
 //!
 //! This crate uses the [`Provider` API] to provide arbitrary data. This can be done either by
-//! [`attach`]ing them to a [`Report`] or by providing it directly when implementing [`Context`].
-//! The blanket implementation of [`Context`] for [`Error`] will provide any data provided by
-//! [`Error::provide`].
+//! [`attach`]ing them to a [`Report`] or by providing it directly when implementing [`Error`].
 //!
 //! To request a provided type, [`Report::request_ref`] or [`Report::request_value`] are used. Both
 //! return an iterator of all provided values with the specified type. The value, which was provided
@@ -415,9 +408,9 @@
 //! Three macros are provided to simplify the generation of a [`Report`].
 //!
 //! - [`report!`] will only create a [`Report`] from its parameter. It will take into account if the
-//!   passed type itself is a [`Report`] or a [`Context`]. For the former case, it will retain the
+//!   passed type itself is a [`Report`] or a [`Error`]. For the former case, it will retain the
 //!   details stored on a [`Report`], for the latter case it will create a new [`Report`] from the
-//!   [`Context`].
+//!   [`Error`].
 //! - [`bail!`] acts like [`report!`] but also immediately returns the [`Report`] as [`Err`]
 //!   variant.
 //! - [`ensure!`] will check an expression and if it's evaluated to `false`, it will act like
@@ -427,7 +420,7 @@
 //!
 //! The crate comes with built-in support for `tracing`s [`SpanTrace`]. If the `spantrace` feature
 //! is enabled and an [`ErrorLayer`] is set, a [`SpanTrace`] is either used when provided by the
-//! root [`Context`] or will be captured when creating the [`Report`].
+//! root [`Error`] or will be captured when creating the [`Report`].
 //!
 //! [`ErrorLayer`]: tracing_error::ErrorLayer
 //!
@@ -443,8 +436,8 @@
 //!
 //! ### Additional Adaptors
 //!
-//! [`ResultExt`] is a convenient wrapper around `Result<_, impl Context>` and `Result<_,
-//! Report<impl Context>`. It offers [`attach`](ResultExt::attach) and
+//! [`ResultExt`] is a convenient wrapper around `Result<_, impl Error>` and `Result<_, Report<impl
+//! Error>`. It offers [`attach`](ResultExt::attach) and
 //! [`change_context`](ResultExt::change_context) on the [`Result`] directly, but also a lazy
 //! variant that receives a function which is only called if an error happens.
 //!

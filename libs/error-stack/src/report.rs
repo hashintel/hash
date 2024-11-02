@@ -393,7 +393,7 @@ impl<C> Report<C> {
     /// frames to find the current context. A [`Report`] and be made up of multiple [`Frame`]s,
     /// which stack on top of each other. Considering `PrintableA<PrintableA<Context>>`,
     /// [`Report::current_frame`] will return the "outer" layer `PrintableA`, while
-    /// [`Report::current_context`] will return the underlying `Context` (the current type
+    /// [`Report::current_context`] will return the underlying `Error` (the current type
     /// parameter of this [`Report`])
     ///
     /// A report can be made up of multiple stacks of frames and builds a "group" of them, this can
@@ -676,7 +676,7 @@ impl<C> Report<[C]> {
     /// frames to find the current context. A [`Report`] and be made up of multiple [`Frame`]s,
     /// which stack on top of each other. Considering `PrintableA<PrintableA<Context>>`,
     /// [`Report::current_frames`] will return the "outer" layer `PrintableA`, while
-    /// [`Report::current_context`] will return the underlying `Context` (the current type
+    /// [`Report::current_context`] will return the underlying `Error` (the current type
     /// parameter of this [`Report`])
     ///
     /// Using [`Extend`], [`push()`] and [`append()`], a [`Report`] can additionally be made up of
