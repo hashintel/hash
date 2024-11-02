@@ -2,7 +2,7 @@ use std::env;
 
 use chonky::{ChonkyError, pdf_segmentation};
 use error_stack::{Report, ResultExt, ensure};
-use pdfium_render::prelude::*;
+use pdfium_render::prelude::Pdfium;
 
 fn main() -> Result<(), Report<ChonkyError>> {
     // read file path arguments

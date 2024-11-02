@@ -17,7 +17,9 @@ pub enum ChonkyError {
 pub mod pdf_segmentation {
     use error_stack::{Report, ResultExt};
     use image::{DynamicImage, GrayImage, RgbaImage};
-    use pdfium_render::prelude::*;
+    use pdfium_render::prelude::{
+        PdfBitmap, PdfBitmapFormat, PdfDocument, PdfPoints, PdfRenderConfig, Pdfium,
+    };
 
     use crate::ChonkyError;
 
@@ -185,8 +187,8 @@ pub mod pdf_segmentation {
 #[cfg(test)]
 mod tests {
     use error_stack::{Report, ResultExt};
-    use insta::*;
-    use pdfium_render::prelude::*;
+    use insta::assert_binary_snapshot;
+    use pdfium_render::prelude::Pdfium;
 
     use super::*;
 
