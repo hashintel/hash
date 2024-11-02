@@ -8082,10 +8082,10 @@
   resolved "https://registry.yarnpkg.com/@sigma/node-border/-/node-border-3.0.0-beta.7.tgz#624e0d0e4b1732c6a4daab65e69a8136b27985dc"
   integrity sha512-M4ivn9H5BNMZudeQJ63Kfngu4Uwn0QM3qXZeWjDKp/X6c1Bsf44furMf2EmMbBmGYvYS5ummi03CQ33lh//DeQ==
 
-"@sigma/node-image@3.0.0-beta.15":
-  version "3.0.0-beta.15"
-  resolved "https://registry.yarnpkg.com/@sigma/node-image/-/node-image-3.0.0-beta.15.tgz#17d862aca7fcc0f571450dcef3caec39d3048255"
-  integrity sha512-WcfblgpWCX/ApM9r7+asPZynqZslT7Hf2oEZC55DLBzgzQU/SCnAdcA9X3VkMK/JMIhs/bK4BoghpTa1FH7g2w==
+"@sigma/node-image@3.0.0-beta.16":
+  version "3.0.0-beta.16"
+  resolved "https://registry.yarnpkg.com/@sigma/node-image/-/node-image-3.0.0-beta.16.tgz#fc3600d4bbd99d91655177ceb1abe4a7a61e9bc0"
+  integrity sha512-MLFlgQL7IfML4THaR3pK77t9cIxopXW/Vrb+7GGYvMuF4Pp15ufZFhMJG/YQSoKn/J30eLQnWKv+ErBeK/xglg==
 
 "@sigstore/bundle@^2.3.2":
   version "2.3.2"
@@ -28422,10 +28422,10 @@ siginfo@^2.0.0:
   resolved "https://registry.yarnpkg.com/siginfo/-/siginfo-2.0.0.tgz#32e76c70b79724e3bb567cb9d543eb858ccfaf30"
   integrity sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==
 
-sigma@3.0.0-beta.33:
-  version "3.0.0-beta.33"
-  resolved "https://registry.yarnpkg.com/sigma/-/sigma-3.0.0-beta.33.tgz#78b41cb44535a0861f80520a7d638d3dd91b7306"
-  integrity sha512-a7ApWAoUg5/ADU3aiQFQSUcab9JHyI5v5A6CKlCyfLj+bTEqJH2Frx5Jo4jSTi9v25bfsa8sP8Gftp0eecKqIw==
+sigma@3.0.0-beta.34:
+  version "3.0.0-beta.34"
+  resolved "https://registry.yarnpkg.com/sigma/-/sigma-3.0.0-beta.34.tgz#1b2214e10b8d4e435256ecbb2862c6c3bed7ca1b"
+  integrity sha512-Y1gaQftc1+UG6TzT9RY3FgZzhT8zH2+KhZGlaWuNEBUcEQbHNPPpF8B3N8RGLa7UmsLhhjkymLxpV25fqgz8fQ==
   dependencies:
     events "^3.3.0"
     graphology-utils "^2.5.2"
