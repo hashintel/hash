@@ -1,8 +1,8 @@
 use core::ops::Range;
 
 use deer::{
-    Context, Deserialize as _, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor, Reflection as _,
-    StructVisitor, Visitor,
+    Context, Deserialize as _, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor,
+    Reflection as _, StructVisitor, Visitor,
     error::{
         DeserializerError, Error, ExpectedLength, ExpectedType, ObjectLengthError, ReceivedType,
         TypeError, Variant as _,

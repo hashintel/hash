@@ -115,7 +115,8 @@ mod test {
 
     use super::FrameTimeout;
     use crate::body::{
-        Body as _, BodyExt as _, BodyState, Frame, full::Full, stream::StreamBody, timeout::TimeoutError,
+        Body as _, BodyExt as _, BodyState, Frame, full::Full, stream::StreamBody,
+        timeout::TimeoutError,
     };
 
     const HELLO: &[u8] = b"hello";

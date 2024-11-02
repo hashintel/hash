@@ -9,8 +9,8 @@ use crate::{
     ArrayAccess, Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess,
     Reflection, Schema, StructVisitor,
     error::{
-        ArrayAccessError, DeserializeError, DuplicateField, DuplicateFieldError, Location, Variant as _,
-        VisitorError,
+        ArrayAccessError, DeserializeError, DuplicateField, DuplicateFieldError, Location,
+        Variant as _, VisitorError,
     },
     helpers::Properties,
     identifier,

@@ -3,7 +3,9 @@ use num_traits::ToPrimitive as _;
 
 use crate::{
     Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,
-    error::{DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant as _, VisitorError},
+    error::{
+        DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant as _, VisitorError,
+    },
 };
 
 macro_rules! impl_reflection {

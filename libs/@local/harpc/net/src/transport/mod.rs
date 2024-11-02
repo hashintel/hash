@@ -19,7 +19,8 @@ use libp2p::{
 use libp2p_core::transport::MemoryTransport;
 use tokio::io::BufStream;
 use tokio_util::{
-    codec::Framed, compat::FuturesAsyncReadCompatExt as _, sync::CancellationToken, task::TaskTracker,
+    codec::Framed, compat::FuturesAsyncReadCompatExt as _, sync::CancellationToken,
+    task::TaskTracker,
 };
 
 use self::{

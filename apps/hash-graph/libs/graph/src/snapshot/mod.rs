@@ -35,7 +35,8 @@ use authorization::{
 };
 use error_stack::{Context, Report, Result, ResultExt as _, ensure};
 use futures::{
-    Sink, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _, channel::mpsc, stream,
+    Sink, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _,
+    channel::mpsc, stream,
 };
 use graph_types::{
     account::{AccountGroupId, AccountId},

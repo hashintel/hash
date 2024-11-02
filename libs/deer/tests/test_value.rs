@@ -1,6 +1,8 @@
 use deer::{
     Context, Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,
-    error::{DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant as _, VisitorError},
+    error::{
+        DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant as _, VisitorError,
+    },
     value::{
         BoolDeserializer, BorrowedBytesDeserializer, BorrowedStrDeserializer,
         BytesBufferDeserializer, BytesDeserializer, CharDeserializer, F32Deserializer,

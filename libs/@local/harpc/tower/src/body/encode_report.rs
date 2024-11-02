@@ -145,7 +145,8 @@ mod test {
 
     use crate::{
         body::{
-            Body as _, BodyState, Frame, SizeHint, encode_report::EncodeReport, test::poll_frame_unpin,
+            Body as _, BodyState, Frame, SizeHint, encode_report::EncodeReport,
+            test::poll_frame_unpin,
         },
         either::Either,
         test::{PollExt as _, StaticBody},
