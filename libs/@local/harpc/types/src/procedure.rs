@@ -1,3 +1,5 @@
+use core::fmt::Display;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "proptest", derive(test_strategy::Arbitrary))]
@@ -18,6 +20,14 @@ impl ProcedureId {
     pub const fn is_reserved(self) -> bool {
         // 0xFxxx are reserved for internal use
         self.0 & 0xF000 == 0xF000
+    }
+}
+
+impl Display for ProcedureId {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let Self(value) = self;
+
+        write!(fmt, "{value:#06x}")
     }
 }
 

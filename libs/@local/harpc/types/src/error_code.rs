@@ -89,7 +89,11 @@ define_error_code_consts! {
         /// The service was found, but the procedure was not.
         ///
         /// The HTTP equivalent is 404 Not Found.
-        PROCEDURE_NOT_FOUND
+        PROCEDURE_NOT_FOUND,
+        /// The client is not allowed to call the procedure.
+        ///
+        /// The HTTP equivalent is 403 Forbidden.
+        FORBIDDEN
     ],
     // 0xFF_xx = server errors
     /// Errors that occur in a session and are issued by the server.
