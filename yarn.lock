@@ -31498,10 +31498,10 @@ warning@^4.0.2:
   dependencies:
     loose-envify "^1.0.0"
 
-wasm-pack@0.13.0:
-  version "0.13.0"
-  resolved "https://registry.yarnpkg.com/wasm-pack/-/wasm-pack-0.13.0.tgz#c2637e0129e1854735f3daead45d92165d54709d"
-  integrity sha512-AmboGZEnZoIcVCzSlkLEmNFEqJN+IwgshJ5S7pi30uNUTce4LvWkifQzsQRxnWj47G8gkqZxlyGlyQplsnIS7w==
+wasm-pack@0.13.1:
+  version "0.13.1"
+  resolved "https://registry.yarnpkg.com/wasm-pack/-/wasm-pack-0.13.1.tgz#345701522420ad74a5b584f1bdaf6db8c264cb54"
+  integrity sha512-P9exD4YkjpDbw68xUhF3MDm/CC/3eTmmthyG5bHJ56kalxOTewOunxTke4SyF8MTXV6jUtNjXggPgrGmMtczGg==
   dependencies:
     binary-install "^1.0.1"
 
