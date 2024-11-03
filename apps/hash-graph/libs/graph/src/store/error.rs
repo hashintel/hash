@@ -1,6 +1,5 @@
 use core::fmt;
 
-use error_stack::Context;
 
 #[derive(Debug)]
 pub struct StoreError;

@@ -1,5 +1,5 @@
 use bytes::{Buf, Bytes};
-use error_stack::{Context, Report};
+use error_stack::Report;
 
 use super::buffer::{Buffer, BufferError};
 

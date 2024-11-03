@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 
 use bytes::{BufMut, Bytes};
-use error_stack::{Context, Report, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 
 use super::{BufferError, buffer::Buffer};
 

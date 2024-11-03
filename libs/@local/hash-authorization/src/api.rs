@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use error_stack::{Context, Report};
+use error_stack::Report;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},

@@ -21,7 +21,6 @@ use core::{
 };
 
 use bytes::BytesMut;
-use error_stack::Context;
 use graph_types::knowledge::entity::Entity;
 use hash_graph_store::{
     filter::{ParameterConversionError, QueryRecord},

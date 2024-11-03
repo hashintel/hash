@@ -5,7 +5,7 @@ use axum::{
     Json,
     response::{IntoResponse as _, Response},
 };
-use error_stack::{Context, Report};
+use error_stack::Report;
 use graph::store::error::BaseUrlAlreadyExists;
 use hash_status::{Status, StatusCode};
 use serde::Serialize;
