@@ -146,7 +146,7 @@
     "@types/react-dom": "18.2.25",
     "@types/react-window": "1.8.8",
     "@types/url-regex-safe": "1.0.2",
-    "@types/uuid": "8.3.4",
+    "@types/uuid": "10.0.0",
     "@welldone-software/why-did-you-render": "8.0.3",
     "eslint": "8.57.0",
     "graphology-types": "0.24.7",
