@@ -1,6 +1,5 @@
 use core::fmt;
 
-
 #[derive(Debug)]
 pub struct StoreError;
 

@@ -1,6 +1,5 @@
 use core::fmt;
 
-
 #[derive(Debug)]
 #[must_use]
 pub struct InsertionError;

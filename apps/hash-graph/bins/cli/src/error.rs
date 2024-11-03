@@ -1,6 +1,5 @@
 use core::fmt;
 
-
 #[derive(Debug)]
 pub struct GraphError;
 impl ::core::error::Error for GraphError {}

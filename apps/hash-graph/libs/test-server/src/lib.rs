@@ -18,7 +18,7 @@ use axum::{
     response::Response,
     routing::{delete, post},
 };
-use error_stack::{Context, Report};
+use error_stack::Report;
 use futures::TryStreamExt as _;
 use graph::{
     snapshot::SnapshotStore,
@@ -53,7 +53,9 @@ where
     clippy::needless_pass_by_value,
     reason = "This is used inside of error-mapping functions only"
 )]
-fn store_acquisition_error(report: Report<impl ::core::error::Error + Send + Sync + 'static>) -> Response {
+fn store_acquisition_error(
+    report: Report<impl ::core::error::Error + Send + Sync + 'static>,
+) -> Response {
     tracing::error!(error=?report, "Could not acquire store");
     status_to_response(Status::new(
         StatusCode::Internal,
