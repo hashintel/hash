@@ -374,7 +374,7 @@ version = "0.0.0"
 dependencies = [
  "codec",
  "derive-where",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures",
  "futures-core",
  "graph-types",
@@ -1139,7 +1139,7 @@ dependencies = [
 name = "chonky"
 version = "0.0.0"
 dependencies = [
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
 ]
 
 [[package]]
@@ -1249,7 +1249,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive-where",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "harpc-wire-protocol",
  "regex",
  "serde",
@@ -1644,7 +1644,7 @@ dependencies = [
  "approx",
  "deer-desert",
  "erased-serde",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "num-traits",
  "paste",
  "proptest",
@@ -1661,7 +1661,7 @@ version = "0.0.0"
 dependencies = [
  "bitvec",
  "deer",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "num-traits",
  "serde",
  "serde_json",
@@ -1673,7 +1673,7 @@ name = "deer-json"
 version = "0.0.0-reserved"
 dependencies = [
  "deer",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "justjson",
  "lexical",
  "memchr",
@@ -2020,23 +2020,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "error-stack"
-version = "0.5.0"
-source = "git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c#f6ecda1ec75f4aca1f738b2fbe413613a356069c"
-dependencies = [
- "anyhow",
- "rustc_version",
- "serde",
- "spin 0.9.8",
- "tracing",
- "tracing-error",
-]
-
-[[package]]
 name = "error-stack-macros"
 version = "0.0.0-reserved"
 dependencies = [
- "error-stack 0.5.0",
+ "error-stack",
 ]
 
 [[package]]
@@ -2453,7 +2440,7 @@ dependencies = [
  "deadpool-postgres",
  "derive-where",
  "dotenv-flow",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures",
  "futures-sink",
  "graph-types",
@@ -2488,7 +2475,7 @@ dependencies = [
  "axum 0.7.7",
  "axum-core 0.4.5",
  "bytes",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "graph",
  "graph-type-defs",
  "graph-types",
@@ -2544,7 +2531,7 @@ name = "graph-integration"
 version = "0.0.0"
 dependencies = [
  "authorization",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "graph",
  "graph-test-data",
  "graph-types",
@@ -2580,7 +2567,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "codec",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures",
  "graph-test-data",
  "postgres-types",
@@ -2651,7 +2638,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive-where",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures",
  "harpc-codec",
  "harpc-net",
@@ -2667,7 +2654,7 @@ name = "harpc-codec"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures-core",
  "futures-util",
  "harpc-types",
@@ -2687,7 +2674,7 @@ dependencies = [
  "bytes-utils",
  "codec",
  "derive_more 1.0.0",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures",
  "futures-core",
  "futures-io",
@@ -2727,7 +2714,7 @@ dependencies = [
  "bytes",
  "derive-where",
  "derive_more 1.0.0",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "frunk",
  "frunk_core",
  "futures",
@@ -2764,7 +2751,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive_more 1.0.0",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures",
  "futures-core",
  "harpc-codec",
@@ -2799,7 +2786,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "enumflags2",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "expect-test",
  "harpc-types",
  "proptest",
@@ -2817,7 +2804,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "codec",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures",
  "graph",
  "graph-api",
@@ -2847,7 +2834,7 @@ dependencies = [
  "authorization",
  "bytes",
  "derive-where",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "graph-types",
  "postgres-types",
  "serde",
@@ -2873,7 +2860,7 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "clap_builder",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "opentelemetry 0.26.0",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
@@ -3062,7 +3049,7 @@ dependencies = [
  "anstyle",
  "anstyle-yansi",
  "ariadne",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "hql-span",
  "jsonptr",
  "serde",
@@ -5715,7 +5702,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "criterion",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "inferno",
  "serde",
  "serde_json",
@@ -6746,7 +6733,7 @@ dependencies = [
 name = "temporal-client"
 version = "0.0.0"
 dependencies = [
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "graph-types",
  "serde",
  "serde_json",
@@ -6938,7 +6925,7 @@ dependencies = [
  "authorization",
  "axum 0.7.7",
  "codec",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures",
  "graph",
  "graph-api",
@@ -7572,7 +7559,7 @@ dependencies = [
 name = "type-fetcher"
 version = "0.0.0"
 dependencies = [
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures",
  "include_dir",
  "reqwest",
@@ -7592,7 +7579,7 @@ dependencies = [
  "codec",
  "console_error_panic_hook",
  "email_address",
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures",
  "graph-test-data",
  "iso8601-duration",
@@ -7839,7 +7826,7 @@ dependencies = [
 name = "validation"
 version = "0.0.0"
 dependencies = [
- "error-stack 0.5.0 (git+https://github.com/hashintel/hash?rev=f6ecda1ec75f4aca1f738b2fbe413613a356069c)",
+ "error-stack",
  "futures",
  "graph-test-data",
  "graph-types",

@@ -1,4 +1,4 @@
-use error_stack::ResultExt as _;
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
@@ -14,7 +14,7 @@ impl Visitor<'_> for UnitVisitor {
         <()>::reflection()
     }
 
-    fn visit_null(self) -> error_stack::Result<Self::Value, VisitorError> {
+    fn visit_null(self) -> Result<Self::Value, Report<VisitorError>> {
         Ok(())
     }
 }
@@ -35,7 +35,7 @@ impl<'de> Deserialize<'de> for () {
 
     fn deserialize<D: Deserializer<'de>>(
         deserializer: D,
-    ) -> error_stack::Result<Self, DeserializeError> {
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_null(UnitVisitor)
             .change_context(DeserializeError)

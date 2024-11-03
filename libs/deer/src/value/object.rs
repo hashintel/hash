@@ -1,4 +1,4 @@
-use error_stack::{Report, Result, ResultExt as _, TryReportTupleExt as _};
+use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 
 use crate::{
     Context, Deserializer, EnumVisitor, FieldVisitor, IdentifierVisitor, ObjectAccess,
@@ -45,7 +45,7 @@ where
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -54,14 +54,14 @@ where
             .change_context(DeserializerError)
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: OptionalVisitor<'de>,
     {
         visitor.visit_some(self).change_context(DeserializerError)
     }
 
-    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: EnumVisitor<'de>,
     {
@@ -74,7 +74,7 @@ where
             type Key = T::Discriminant;
             type Value = T::Value;
 
-            fn visit_key<D>(&self, deserializer: D) -> Result<Self::Key, VisitorError>
+            fn visit_key<D>(&self, deserializer: D) -> Result<Self::Key, Report<VisitorError>>
             where
                 D: Deserializer<'de>,
             {
@@ -87,7 +87,7 @@ where
                 self,
                 key: Self::Key,
                 deserializer: D,
-            ) -> Result<Self::Value, VisitorError>
+            ) -> Result<Self::Value, Report<VisitorError>>
             where
                 D: Deserializer<'de>,
             {
@@ -113,7 +113,7 @@ where
         Ok(value)
     }
 
-    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: StructVisitor<'de>,
     {
@@ -122,7 +122,7 @@ where
             .change_context(DeserializerError)
     }
 
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: IdentifierVisitor<'de>,
     {

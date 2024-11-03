@@ -2,7 +2,7 @@ use std::io;
 
 use bytes::BytesMut;
 use codec::harpc::wire::{RequestCodec, ResponseCodec};
-use error_stack::{Report, Result};
+use error_stack::Report;
 use harpc_wire_protocol::{request::Request, response::Response};
 use tokio_util::codec::{Decoder, Encoder};
 
@@ -24,7 +24,7 @@ impl ServerCodec {
 impl Encoder<Response> for ServerCodec {
     type Error = Report<io::Error>;
 
-    fn encode(&mut self, item: Response, dst: &mut BytesMut) -> Result<(), io::Error> {
+    fn encode(&mut self, item: Response, dst: &mut BytesMut) -> Result<(), Report<io::Error>> {
         self.response.encode(item, dst)
     }
 }
@@ -33,7 +33,7 @@ impl Decoder for ServerCodec {
     type Error = Report<io::Error>;
     type Item = Request;
 
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Request>, io::Error> {
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Request>, Report<io::Error>> {
         self.request.decode(src)
     }
 }

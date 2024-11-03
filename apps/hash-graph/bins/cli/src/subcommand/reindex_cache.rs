@@ -1,6 +1,6 @@
 use authorization::NoAuthorization;
 use clap::Parser;
-use error_stack::{Report, Result, ResultExt as _, ensure};
+use error_stack::{Report, ResultExt as _, ensure};
 use graph::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool as _,
     knowledge::EntityStore as _, ontology::EntityTypeStore as _,
@@ -37,7 +37,7 @@ pub struct ReindexOperations {
     pub entities: bool,
 }
 
-pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), GraphError> {
+pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), Report<GraphError>> {
     let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
         .await
         .change_context(GraphError)

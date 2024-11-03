@@ -1,6 +1,6 @@
 use authorization::NoAuthorization;
 use clap::Parser;
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use graph::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StoreMigration as _,
     StorePool as _,
@@ -19,7 +19,7 @@ pub struct MigrateArgs {
     pub pool_config: DatabasePoolConfig,
 }
 
-pub async fn migrate(args: MigrateArgs) -> Result<(), GraphError> {
+pub async fn migrate(args: MigrateArgs) -> Result<(), Report<GraphError>> {
     let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
         .await
         .change_context(GraphError)

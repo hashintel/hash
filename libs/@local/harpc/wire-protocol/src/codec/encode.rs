@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 
 use bytes::{BufMut, Bytes};
-use error_stack::{Context, Report, Result, ResultExt as _};
+use error_stack::{Context, Report, ResultExt as _};
 
 use super::{BufferError, buffer::Buffer};
 
@@ -13,7 +13,7 @@ pub trait Encode {
     /// # Errors
     ///
     /// Returns an error if the buffer is not large enough or if the to be encoded value is invalid.
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut;
 }
@@ -21,7 +21,7 @@ pub trait Encode {
 impl Encode for u8 {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -32,7 +32,7 @@ impl Encode for u8 {
 impl Encode for u16 {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -43,7 +43,7 @@ impl Encode for u16 {
 impl Encode for u32 {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -62,7 +62,7 @@ pub enum BytesEncodeError {
 impl Encode for Bytes {
     type Error = BytesEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {

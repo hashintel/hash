@@ -19,7 +19,7 @@
 use alloc::{string::String, vec::Vec};
 use core::marker::PhantomData;
 
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
 pub use schema::{Document, Reflection, Schema};
 
@@ -67,7 +67,11 @@ impl<'de, T: Deserialize<'de>, U: Deserialize<'de>> FieldVisitor<'de>
     type Key = T;
     type Value = (T, U);
 
-    fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, VisitorError>
+    fn visit_value<D>(
+        self,
+        key: Self::Key,
+        deserializer: D,
+    ) -> Result<Self::Value, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
@@ -102,7 +106,10 @@ pub trait ObjectAccess<'de>: Sized {
     ///
     /// This will error if a call to [`Self::next`] has been made before calling this function or
     /// this function has been called repeatably.
-    fn into_bound(self, length: usize) -> Result<BoundObjectAccess<Self>, ObjectAccessError> {
+    fn into_bound(
+        self,
+        length: usize,
+    ) -> Result<BoundObjectAccess<Self>, Report<ObjectAccessError>> {
         if self.is_dirty() {
             Err(
                 Report::new(BoundedContractViolationError::SetDirty.into_error())
@@ -113,7 +120,7 @@ pub trait ObjectAccess<'de>: Sized {
         }
     }
 
-    fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
+    fn next<K, V>(&mut self) -> Option<Result<(K, V), Report<ObjectAccessError>>>
     where
         K: Deserialize<'de>,
         V: Deserialize<'de>,
@@ -121,7 +128,7 @@ pub trait ObjectAccess<'de>: Sized {
         self.field(GenericFieldVisitor(PhantomData))
     }
 
-    fn field<F>(&mut self, visitor: F) -> Option<Result<F::Value, ObjectAccessError>>
+    fn field<F>(&mut self, visitor: F) -> Option<Result<F::Value, Report<ObjectAccessError>>>
     where
         F: FieldVisitor<'de>,
     {
@@ -131,27 +138,31 @@ pub trait ObjectAccess<'de>: Sized {
     fn try_field<F>(
         &mut self,
         visitor: F,
-    ) -> core::result::Result<Result<F::Value, ObjectAccessError>, F>
+    ) -> Result<Result<F::Value, Report<ObjectAccessError>>, F>
     where
         F: FieldVisitor<'de>;
 
     fn size_hint(&self) -> Option<usize>;
 
-    fn end(self) -> Result<(), ObjectAccessError>;
+    fn end(self) -> Result<(), Report<ObjectAccessError>>;
 }
 
 pub trait FieldVisitor<'de> {
     type Key: Deserialize<'de>;
     type Value;
 
-    fn visit_key<D>(&self, deserializer: D) -> Result<Self::Key, VisitorError>
+    fn visit_key<D>(&self, deserializer: D) -> Result<Self::Key, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
         <Self::Key as Deserialize<'de>>::deserialize(deserializer).change_context(VisitorError)
     }
 
-    fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, VisitorError>
+    fn visit_value<D>(
+        self,
+        key: Self::Key,
+        deserializer: D,
+    ) -> Result<Self::Value, Report<VisitorError>>
     where
         D: Deserializer<'de>;
 }
@@ -183,7 +194,7 @@ pub trait ArrayAccess<'de>: Sized {
     ///
     /// This will error if a call to [`Self::next`] has been made before setting
     /// [`Self::into_bound`] or [`Self::into_bound`] was called repeatedly.
-    fn into_bound(self, length: usize) -> Result<BoundArrayAccess<Self>, ArrayAccessError> {
+    fn into_bound(self, length: usize) -> Result<BoundArrayAccess<Self>, Report<ArrayAccessError>> {
         if self.is_dirty() {
             Err(
                 Report::new(BoundedContractViolationError::SetDirty.into_error())
@@ -194,13 +205,13 @@ pub trait ArrayAccess<'de>: Sized {
         }
     }
 
-    fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
+    fn next<T>(&mut self) -> Option<Result<T, Report<ArrayAccessError>>>
     where
         T: Deserialize<'de>;
 
     fn size_hint(&self) -> Option<usize>;
 
-    fn end(self) -> Result<(), ArrayAccessError>;
+    fn end(self) -> Result<(), Report<ArrayAccessError>>;
 }
 
 pub trait EnumVisitor<'de>: Sized {
@@ -211,7 +222,10 @@ pub trait EnumVisitor<'de>: Sized {
 
     fn expecting(&self) -> Document;
 
-    fn visit_discriminant<D>(&self, deserializer: D) -> Result<Self::Discriminant, VisitorError>
+    fn visit_discriminant<D>(
+        &self,
+        deserializer: D,
+    ) -> Result<Self::Discriminant, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
@@ -226,7 +240,7 @@ pub trait EnumVisitor<'de>: Sized {
         self,
         discriminant: Self::Discriminant,
         deserializer: D,
-    ) -> Result<Self::Value, VisitorError>
+    ) -> Result<Self::Value, Report<VisitorError>>
     where
         D: Deserializer<'de>;
 }
@@ -249,26 +263,26 @@ pub trait IdentifierVisitor<'de>: Sized {
 
     fn expecting(&self) -> Document;
 
-    fn visit_u8(self, value: u8) -> Result<Self::Value, VisitorError> {
+    fn visit_u8(self, value: u8) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_u64(u64::from(value))
             .attach(ReceivedType::new(u8::document()))
     }
 
-    fn visit_u64(self, value: u64) -> Result<Self::Value, VisitorError> {
+    fn visit_u64(self, value: u64) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(u64::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+    fn visit_str(self, value: &str) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(str::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(<[u8]>::document()))
             .attach(ExpectedType::new(self.expecting()))
@@ -284,34 +298,34 @@ pub trait Visitor<'de>: Sized {
 
     fn expecting(&self) -> Document;
 
-    fn visit_none(self) -> Result<Self::Value, VisitorError> {
+    fn visit_none(self) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(MissingError.into_error())
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_null(self) -> Result<Self::Value, VisitorError> {
+    fn visit_null(self) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(<()>::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_bool(self, value: bool) -> Result<Self::Value, VisitorError> {
+    fn visit_bool(self, value: bool) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(bool::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_number(self, value: Number) -> Result<Self::Value, VisitorError> {
+    fn visit_number(self, value: Number) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Number::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_char(self, value: char) -> Result<Self::Value, VisitorError> {
+    fn visit_char(self, value: char) -> Result<Self::Value, Report<VisitorError>> {
         let mut buffer = [0; 4];
         let string = value.encode_utf8(&mut buffer);
 
@@ -319,37 +333,37 @@ pub trait Visitor<'de>: Sized {
             .attach(ReceivedType::new(char::reflection()))
     }
 
-    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+    fn visit_str(self, value: &str) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(<&str>::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_borrowed_str(self, value: &'de str) -> Result<Self::Value, VisitorError> {
+    fn visit_borrowed_str(self, value: &'de str) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_str(value)
     }
 
-    fn visit_string(self, value: String) -> Result<Self::Value, VisitorError> {
+    fn visit_string(self, value: String) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_str(&value)
     }
 
-    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(visitor::BinarySchema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_borrowed_bytes(self, value: &'de [u8]) -> Result<Self::Value, VisitorError> {
+    fn visit_borrowed_bytes(self, value: &'de [u8]) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_bytes(value)
     }
 
-    fn visit_bytes_buffer(self, value: Vec<u8>) -> Result<Self::Value, VisitorError> {
+    fn visit_bytes_buffer(self, value: Vec<u8>) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_bytes(&value)
     }
 
-    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ArrayAccess<'de>,
     {
@@ -359,7 +373,7 @@ pub trait Visitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
-    fn visit_object<A>(self, object: A) -> Result<Self::Value, VisitorError>
+    fn visit_object<A>(self, object: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ObjectAccess<'de>,
     {
@@ -369,66 +383,66 @@ pub trait Visitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
-    fn visit_i8(self, value: i8) -> Result<Self::Value, VisitorError> {
+    fn visit_i8(self, value: i8) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_number(Number::from(value))
             .attach(ReceivedType::new(i8::reflection()))
     }
 
-    fn visit_i16(self, value: i16) -> Result<Self::Value, VisitorError> {
+    fn visit_i16(self, value: i16) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_number(Number::from(value))
             .attach(ReceivedType::new(i16::reflection()))
     }
 
-    fn visit_i32(self, value: i32) -> Result<Self::Value, VisitorError> {
+    fn visit_i32(self, value: i32) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_number(Number::from(value))
             .attach(i32::reflection())
     }
 
-    fn visit_i64(self, value: i64) -> Result<Self::Value, VisitorError> {
+    fn visit_i64(self, value: i64) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_number(Number::from(value))
             .attach(ReceivedType::new(i64::reflection()))
     }
 
-    fn visit_i128(self, value: i128) -> Result<Self::Value, VisitorError> {
+    fn visit_i128(self, value: i128) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(i128::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_u8(self, value: u8) -> Result<Self::Value, VisitorError> {
+    fn visit_u8(self, value: u8) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_number(Number::from(value))
             .attach(ReceivedType::new(u8::reflection()))
     }
 
-    fn visit_u16(self, value: u16) -> Result<Self::Value, VisitorError> {
+    fn visit_u16(self, value: u16) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_number(Number::from(value))
             .attach(ReceivedType::new(u16::reflection()))
     }
 
-    fn visit_u32(self, value: u32) -> Result<Self::Value, VisitorError> {
+    fn visit_u32(self, value: u32) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_number(Number::from(value))
             .attach(ReceivedType::new(u32::reflection()))
     }
 
-    fn visit_u64(self, value: u64) -> Result<Self::Value, VisitorError> {
+    fn visit_u64(self, value: u64) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_number(Number::from(value))
             .attach(ReceivedType::new(u64::reflection()))
     }
 
-    fn visit_u128(self, value: u128) -> Result<Self::Value, VisitorError> {
+    fn visit_u128(self, value: u128) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(u128::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_f32(self, value: f32) -> Result<Self::Value, VisitorError> {
+    fn visit_f32(self, value: f32) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_number(Number::from(value))
             .attach(ReceivedType::new(f32::reflection()))
     }
 
-    fn visit_f64(self, value: f64) -> Result<Self::Value, VisitorError> {
+    fn visit_f64(self, value: f64) -> Result<Self::Value, Report<VisitorError>> {
         self.visit_number(Number::from(value))
             .attach(ReceivedType::new(f64::reflection()))
     }
@@ -440,20 +454,20 @@ pub trait OptionalVisitor<'de>: Sized {
 
     fn expecting(&self) -> Document;
 
-    fn visit_none(self) -> Result<Self::Value, VisitorError> {
+    fn visit_none(self) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(MissingError.into_error())
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_null(self) -> Result<Self::Value, VisitorError> {
+    fn visit_null(self) -> Result<Self::Value, Report<VisitorError>> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(<()>::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
-    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, VisitorError>
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
@@ -473,7 +487,7 @@ pub trait StructVisitor<'de>: Sized {
     // visit_none and visit_null are not implemented, as they can be used more expressively using
     // `OptionalVisitor`
 
-    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ArrayAccess<'de>,
     {
@@ -483,7 +497,7 @@ pub trait StructVisitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
-    fn visit_object<A>(self, object: A) -> Result<Self::Value, VisitorError>
+    fn visit_object<A>(self, object: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ObjectAccess<'de>,
     {
@@ -517,17 +531,17 @@ impl<T: Reflection> Visitor<'_> for NumberVisitor<T> {
         T::document()
     }
 
-    fn visit_number(self, value: Number) -> Result<Self::Value, VisitorError> {
+    fn visit_number(self, value: Number) -> Result<Self::Value, Report<VisitorError>> {
         Ok(value)
     }
 
-    fn visit_i128(self, value: i128) -> Result<Self::Value, VisitorError> {
+    fn visit_i128(self, value: i128) -> Result<Self::Value, Report<VisitorError>> {
         Number::from_i128(value)
             .ok_or_else(|| self.value_error(value))
             .and_then(|number| self.visit_number(number))
     }
 
-    fn visit_u128(self, value: u128) -> Result<Self::Value, VisitorError> {
+    fn visit_u128(self, value: u128) -> Result<Self::Value, Report<VisitorError>> {
         Number::from_u128(value)
             .ok_or_else(|| self.value_error(value))
             .and_then(|number| self.visit_number(number))
@@ -546,7 +560,7 @@ macro_rules! derive_from_number {
         /// # Errors
         ///
         /// Current value is either not a number or wasn't able to be casted to the primitive type
-        fn $method<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn $method<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
         where
             V: Visitor<'de>,
         {
@@ -612,7 +626,7 @@ pub trait Deserializer<'de>: Sized {
     ///
     /// You should not rely on this when implementing [`Deserialize`], as non self-describing
     /// formats are unable to provide this method.
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>;
 
@@ -623,7 +637,7 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type null
-    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>;
 
@@ -638,7 +652,7 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type bool
-    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>;
 
@@ -657,11 +671,11 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type number
-    fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>;
 
-    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>;
 
@@ -679,19 +693,19 @@ pub trait Deserializer<'de>: Sized {
     /// Current value is not of type string
     ///
     /// [`serde`]: https://serde.rs/
-    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>;
 
-    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>;
 
-    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>;
 
-    fn deserialize_bytes_buffer<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_bytes_buffer<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>;
 
@@ -703,7 +717,7 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type array
-    fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>;
 
@@ -715,14 +729,14 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type object
-    fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>;
 
     /// Hint that the `Deserialize` type expects a value to be present or not.
     ///
     /// Due to the special nature of this deserialization call a special visitor is used.
-    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: OptionalVisitor<'de>;
 
@@ -730,11 +744,11 @@ pub trait Deserializer<'de>: Sized {
     ///
     /// Due to the very special nature of an enum (being a fundamental type) a special visitor is
     /// used.
-    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: EnumVisitor<'de>;
 
-    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: StructVisitor<'de>;
 
@@ -755,7 +769,7 @@ pub trait Deserializer<'de>: Sized {
         deserialize_f64(to_f64: f64) -> visit_f64,
     ];
 
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: IdentifierVisitor<'de>;
 }
@@ -780,7 +794,7 @@ pub trait Deserialize<'de>: Sized {
     /// # Errors
     ///
     /// Deserialization was unsuccessful
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>;
 

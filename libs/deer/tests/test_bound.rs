@@ -7,7 +7,7 @@ use deer::{
     schema::Reference,
 };
 use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
-use error_stack::{ReportSink, Result, ResultExt as _};
+use error_stack::{Report, ReportSink, ResultExt as _};
 use serde::{Serialize, Serializer, ser::SerializeMap as _};
 use serde_json::json;
 
@@ -55,7 +55,7 @@ impl<'de> Visitor<'de> for ArrayStatsVisitor {
         Self::Value::document()
     }
 
-    fn visit_array<T>(self, array: T) -> Result<Self::Value, VisitorError>
+    fn visit_array<T>(self, array: T) -> Result<Self::Value, Report<VisitorError>>
     where
         T: ArrayAccess<'de>,
     {
@@ -97,7 +97,9 @@ impl<'de> Visitor<'de> for ArrayStatsVisitor {
 impl<'de> Deserialize<'de> for ArrayStats {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_array(ArrayStatsVisitor)
             .change_context(DeserializeError)
@@ -160,7 +162,7 @@ impl<'de> Visitor<'de> for DirtyArrayVisitor {
         <()>::reflection()
     }
 
-    fn visit_array<T>(self, mut array: T) -> Result<Self::Value, VisitorError>
+    fn visit_array<T>(self, mut array: T) -> Result<Self::Value, Report<VisitorError>>
     where
         T: ArrayAccess<'de>,
     {
@@ -176,7 +178,9 @@ impl<'de> Visitor<'de> for DirtyArrayVisitor {
 impl<'de> Deserialize<'de> for DirtyArray {
     type Reflection = <() as Deserialize<'de>>::Reflection;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_array(DirtyArrayVisitor)
             .change_context(DeserializeError)
@@ -254,7 +258,7 @@ impl<'de> Visitor<'de> for ObjectStatsVisitor {
         Self::Value::document()
     }
 
-    fn visit_object<T>(self, object: T) -> Result<Self::Value, VisitorError>
+    fn visit_object<T>(self, object: T) -> Result<Self::Value, Report<VisitorError>>
     where
         T: ObjectAccess<'de>,
     {
@@ -309,7 +313,9 @@ impl<'de> Visitor<'de> for ObjectStatsVisitor {
 impl<'de> Deserialize<'de> for ObjectStats {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_object(ObjectStatsVisitor)
             .change_context(DeserializeError)
@@ -405,7 +411,7 @@ impl<'de> Visitor<'de> for DirtyObjectVisitor {
         <()>::reflection()
     }
 
-    fn visit_object<T>(self, mut object: T) -> Result<Self::Value, VisitorError>
+    fn visit_object<T>(self, mut object: T) -> Result<Self::Value, Report<VisitorError>>
     where
         T: ObjectAccess<'de>,
     {
@@ -421,7 +427,9 @@ impl<'de> Visitor<'de> for DirtyObjectVisitor {
 impl<'de> Deserialize<'de> for DirtyObject {
     type Reflection = <() as Deserialize<'de>>::Reflection;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_array(DirtyObjectVisitor)
             .change_context(DeserializeError)

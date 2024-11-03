@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},
@@ -19,7 +19,7 @@ pub struct ResponseFrame {
 impl Encode for ResponseFrame {
     type Error = ResponseFrameEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -38,7 +38,7 @@ impl Decode for ResponseFrame {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {

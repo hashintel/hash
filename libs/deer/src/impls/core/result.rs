@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
     Deserialize, Deserializer, Document, EnumVisitor, Reflection, Schema, Visitor,
@@ -25,7 +25,7 @@ impl Visitor<'_> for ResultDiscriminantVisitor {
         ResultDiscriminant::reflection()
     }
 
-    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+    fn visit_str(self, value: &str) -> Result<Self::Value, Report<VisitorError>> {
         match value {
             "Ok" => Ok(ResultDiscriminant::Ok),
             "Err" => Ok(ResultDiscriminant::Err),
@@ -37,7 +37,7 @@ impl Visitor<'_> for ResultDiscriminantVisitor {
         }
     }
 
-    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, Report<VisitorError>> {
         match value {
             b"Ok" => Ok(ResultDiscriminant::Ok),
             b"Err" => Ok(ResultDiscriminant::Err),
@@ -65,7 +65,9 @@ impl Reflection for ResultDiscriminant {
 impl<'de> Deserialize<'de> for ResultDiscriminant {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_str(ResultDiscriminantVisitor)
             .change_context(DeserializeError)
@@ -90,7 +92,7 @@ where
         self,
         discriminant: Self::Discriminant,
         deserializer: D,
-    ) -> Result<Self::Value, VisitorError>
+    ) -> Result<Self::Value, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
@@ -149,7 +151,9 @@ where
 {
     type Reflection = ResultReflection<T::Reflection, E::Reflection>;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_enum(ResultEnumVisitor(PhantomData))
             .change_context(DeserializeError)

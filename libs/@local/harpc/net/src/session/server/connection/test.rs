@@ -4,6 +4,7 @@ use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
 use std::io;
 
 use bytes::Bytes;
+use error_stack::Report;
 use futures::{StreamExt as _, prelude::sink::SinkExt as _};
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use harpc_wire_protocol::{
@@ -68,7 +69,7 @@ struct Setup {
     output: mpsc::Receiver<Transaction>,
     events: broadcast::Receiver<SessionEvent>,
 
-    stream: mpsc::Sender<error_stack::Result<Request, io::Error>>,
+    stream: mpsc::Sender<Result<Request, Report<io::Error>>>,
     sink: mpsc::Receiver<Response>,
 
     handle: JoinHandle<()>,

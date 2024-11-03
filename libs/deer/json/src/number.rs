@@ -1,9 +1,7 @@
 #[cfg(not(feature = "arbitrary-precision"))]
 use deer::error::Variant as _;
 use deer::{Number, error::Error};
-#[cfg(not(feature = "arbitrary-precision"))]
 use error_stack::Report;
-use error_stack::Result;
 use justjson::JsonNumber;
 #[cfg(not(feature = "arbitrary-precision"))]
 use lexical::{
@@ -56,7 +54,7 @@ pub(crate) fn try_convert_number(number: &JsonNumber) -> Result<Number, Error> {
 
 #[cfg(feature = "arbitrary-precision")]
 #[expect(clippy::unnecessary_wraps)]
-pub(crate) fn try_convert_number(number: &JsonNumber) -> Result<Number, Error> {
+pub(crate) fn try_convert_number(number: &JsonNumber) -> Result<Number, Report<Error>> {
     #[expect(unsafe_code)]
     // SAFETY: `justjson` ensures that the contained source is a valid JSON number, these are
     // accepted by the parse algorithm of Rust

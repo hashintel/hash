@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use error_stack::{Context, Result};
+use error_stack::{Context, Report};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
@@ -22,8 +22,9 @@ use crate::{
 };
 
 pub trait AuthorizationApi: Send + Sync {
-    fn seed(&mut self)
-    -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+    fn seed(
+        &mut self,
+    ) -> impl Future<Output = Result<Zookie<'static>, Report<ModifyRelationError>>> + Send;
 
     ////////////////////////////////////////////////////////////////////////////
     // Account group authorization
@@ -34,7 +35,7 @@ pub trait AuthorizationApi: Send + Sync {
         permission: AccountGroupPermission,
         account_group: AccountGroupId,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+    ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
     fn modify_account_group_relations(
         &mut self,
@@ -46,7 +47,7 @@ pub trait AuthorizationApi: Send + Sync {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, Report<ModifyRelationError>>> + Send;
 
     ////////////////////////////////////////////////////////////////////////////
     // Web authorization
@@ -57,7 +58,7 @@ pub trait AuthorizationApi: Send + Sync {
         permission: WebPermission,
         web: OwnedById,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+    ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
     fn check_webs_permission(
         &self,
@@ -65,8 +66,9 @@ pub trait AuthorizationApi: Send + Sync {
         permission: WebPermission,
         entities: impl IntoIterator<Item = OwnedById, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<(HashMap<OwnedById, bool>, Zookie<'static>), CheckError>> + Send
-    {
+    ) -> impl Future<
+        Output = Result<(HashMap<OwnedById, bool>, Zookie<'static>), Report<CheckError>>,
+    > + Send {
         async move {
             let mut zookie = Zookie::empty();
             let mut result = HashMap::new();
@@ -94,13 +96,13 @@ pub trait AuthorizationApi: Send + Sync {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, Report<ModifyRelationError>>> + Send;
 
     fn get_web_relations(
         &self,
         web: OwnedById,
         consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<WebRelationAndSubject>, ReadError>> + Send;
+    ) -> impl Future<Output = Result<Vec<WebRelationAndSubject>, Report<ReadError>>> + Send;
 
     ////////////////////////////////////////////////////////////////////////////
     // Entity authorization
@@ -111,7 +113,7 @@ pub trait AuthorizationApi: Send + Sync {
         permission: EntityPermission,
         entity: EntityId,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+    ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
     fn modify_entity_relations(
         &mut self,
@@ -123,7 +125,7 @@ pub trait AuthorizationApi: Send + Sync {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, Report<ModifyRelationError>>> + Send;
 
     fn check_entities_permission(
         &self,
@@ -131,13 +133,15 @@ pub trait AuthorizationApi: Send + Sync {
         permission: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<(HashMap<EntityUuid, bool>, Zookie<'static>), CheckError>> + Send;
+    ) -> impl Future<
+        Output = Result<(HashMap<EntityUuid, bool>, Zookie<'static>), Report<CheckError>>,
+    > + Send;
 
     fn get_entity_relations(
         &self,
         entity: EntityId,
         consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<EntityRelationAndSubject>, ReadError>> + Send;
+    ) -> impl Future<Output = Result<Vec<EntityRelationAndSubject>, Report<ReadError>>> + Send;
 
     ////////////////////////////////////////////////////////////////////////////
     // Entity type authorization
@@ -148,7 +152,7 @@ pub trait AuthorizationApi: Send + Sync {
         permission: EntityTypePermission,
         entity_type: EntityTypeUuid,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+    ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
     fn modify_entity_type_relations(
         &mut self,
@@ -160,7 +164,7 @@ pub trait AuthorizationApi: Send + Sync {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, Report<ModifyRelationError>>> + Send;
 
     fn check_entity_types_permission(
         &self,
@@ -168,13 +172,15 @@ pub trait AuthorizationApi: Send + Sync {
         permission: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), CheckError>> + Send;
+    ) -> impl Future<
+        Output = Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), Report<CheckError>>,
+    > + Send;
 
     fn get_entity_type_relations(
         &self,
         entity_type: EntityTypeUuid,
         consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<EntityTypeRelationAndSubject>, ReadError>> + Send;
+    ) -> impl Future<Output = Result<Vec<EntityTypeRelationAndSubject>, Report<ReadError>>> + Send;
 
     ////////////////////////////////////////////////////////////////////////////
     // Property type authorization
@@ -185,7 +191,7 @@ pub trait AuthorizationApi: Send + Sync {
         permission: PropertyTypePermission,
         property_type: PropertyTypeUuid,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+    ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
     fn modify_property_type_relations(
         &mut self,
@@ -197,7 +203,7 @@ pub trait AuthorizationApi: Send + Sync {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, Report<ModifyRelationError>>> + Send;
 
     fn check_property_types_permission(
         &self,
@@ -205,14 +211,15 @@ pub trait AuthorizationApi: Send + Sync {
         permission: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), CheckError>>
-    + Send;
+    ) -> impl Future<
+        Output = Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), Report<CheckError>>,
+    > + Send;
 
     fn get_property_type_relations(
         &self,
         property_type: PropertyTypeUuid,
         consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<PropertyTypeRelationAndSubject>, ReadError>> + Send;
+    ) -> impl Future<Output = Result<Vec<PropertyTypeRelationAndSubject>, Report<ReadError>>> + Send;
 
     ////////////////////////////////////////////////////////////////////////////
     // Data type authorization
@@ -223,7 +230,7 @@ pub trait AuthorizationApi: Send + Sync {
         permission: DataTypePermission,
         data_type: DataTypeUuid,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+    ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
     fn modify_data_type_relations(
         &mut self,
@@ -235,7 +242,7 @@ pub trait AuthorizationApi: Send + Sync {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, Report<ModifyRelationError>>> + Send;
 
     fn check_data_types_permission(
         &self,
@@ -243,17 +250,19 @@ pub trait AuthorizationApi: Send + Sync {
         permission: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), CheckError>> + Send;
+    ) -> impl Future<
+        Output = Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), Report<CheckError>>,
+    > + Send;
 
     fn get_data_type_relations(
         &self,
         data_type: DataTypeUuid,
         consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<DataTypeRelationAndSubject>, ReadError>> + Send;
+    ) -> impl Future<Output = Result<Vec<DataTypeRelationAndSubject>, Report<ReadError>>> + Send;
 }
 
 impl<A: AuthorizationApi> AuthorizationApi for &mut A {
-    async fn seed(&mut self) -> Result<Zookie<'static>, ModifyRelationError> {
+    async fn seed(&mut self) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         (**self).seed().await
     }
 
@@ -263,7 +272,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         permission: AccountGroupPermission,
         account_group: AccountGroupId,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         (**self)
             .check_account_group_permission(actor, permission, account_group, consistency)
             .await
@@ -279,7 +288,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         (**self).modify_account_group_relations(relationships).await
     }
 
@@ -289,7 +298,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         permission: WebPermission,
         web: OwnedById,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         (**self)
             .check_web_permission(actor, permission, web, consistency)
             .await
@@ -305,7 +314,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         (**self).modify_web_relations(relationships).await
     }
 
@@ -313,7 +322,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         web: OwnedById,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<WebRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<WebRelationAndSubject>, Report<ReadError>> {
         (**self).get_web_relations(web, consistency).await
     }
 
@@ -323,7 +332,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         permission: EntityPermission,
         entity: EntityId,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         (**self)
             .check_entity_permission(actor, permission, entity, consistency)
             .await
@@ -339,7 +348,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         (**self).modify_entity_relations(relationships).await
     }
 
@@ -349,7 +358,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         permission: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<(HashMap<EntityUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<EntityUuid, bool>, Zookie<'static>), Report<CheckError>> {
         (**self)
             .check_entities_permission(actor, permission, entities, consistency)
             .await
@@ -359,7 +368,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         entity: EntityId,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<EntityRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<EntityRelationAndSubject>, Report<ReadError>> {
         (**self).get_entity_relations(entity, consistency).await
     }
 
@@ -369,7 +378,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         permission: EntityTypePermission,
         entity_type: EntityTypeUuid,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         (**self)
             .check_entity_type_permission(actor, permission, entity_type, consistency)
             .await
@@ -385,7 +394,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         (**self).modify_entity_type_relations(relationships).await
     }
 
@@ -395,7 +404,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         permission: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         (**self)
             .check_entity_types_permission(actor, permission, entity_types, consistency)
             .await
@@ -405,7 +414,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         entity_type: EntityTypeUuid,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<EntityTypeRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<EntityTypeRelationAndSubject>, Report<ReadError>> {
         (**self)
             .get_entity_type_relations(entity_type, consistency)
             .await
@@ -417,7 +426,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         permission: PropertyTypePermission,
         property_type: PropertyTypeUuid,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         (**self)
             .check_property_type_permission(actor, permission, property_type, consistency)
             .await
@@ -433,7 +442,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         (**self).modify_property_type_relations(relationships).await
     }
 
@@ -443,7 +452,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         permission: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         (**self)
             .check_property_types_permission(actor, permission, property_types, consistency)
             .await
@@ -453,7 +462,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         property_type: PropertyTypeUuid,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<PropertyTypeRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<PropertyTypeRelationAndSubject>, Report<ReadError>> {
         (**self)
             .get_property_type_relations(property_type, consistency)
             .await
@@ -465,7 +474,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         permission: DataTypePermission,
         data_type: DataTypeUuid,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         (**self)
             .check_data_type_permission(actor, permission, data_type, consistency)
             .await
@@ -481,7 +490,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         (**self).modify_data_type_relations(relationships).await
     }
 
@@ -491,7 +500,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         permission: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         (**self)
             .check_data_types_permission(actor, permission, data_types, consistency)
             .await
@@ -501,7 +510,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         data_type: DataTypeUuid,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<DataTypeRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<DataTypeRelationAndSubject>, Report<ReadError>> {
         (**self)
             .get_data_type_relations(data_type, consistency)
             .await
@@ -517,7 +526,7 @@ pub trait AuthorizationApiPool {
     type Api<'pool>: AuthorizationApi;
 
     /// Retrieves an [`AuthorizationApi`] from the pool.
-    fn acquire(&self) -> impl Future<Output = Result<Self::Api<'_>, Self::Error>> + Send;
+    fn acquire(&self) -> impl Future<Output = Result<Self::Api<'_>, Report<Self::Error>>> + Send;
 
     /// Retrieves an owned [`AuthorizationApi`] from the pool.
     ///
@@ -526,6 +535,7 @@ pub trait AuthorizationApiPool {
     /// reference to the `AuthorizationApiPool`) should be preferred whenever possible.
     ///
     /// [`acquire`]: Self::acquire
-    fn acquire_owned(&self)
-    -> impl Future<Output = Result<Self::Api<'static>, Self::Error>> + Send;
+    fn acquire_owned(
+        &self,
+    ) -> impl Future<Output = Result<Self::Api<'static>, Report<Self::Error>>> + Send;
 }

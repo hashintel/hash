@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::Result;
+use error_stack::Report;
 use harpc_types::response_kind::ResponseKind;
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
@@ -7,7 +7,7 @@ use crate::codec::{Buffer, BufferError, Decode, Encode};
 impl Encode for ResponseKind {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -19,7 +19,7 @@ impl Decode for ResponseKind {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {

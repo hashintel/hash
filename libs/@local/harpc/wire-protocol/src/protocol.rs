@@ -3,7 +3,7 @@
 use core::fmt::Display;
 
 use bytes::{Buf, BufMut};
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
 
@@ -40,7 +40,7 @@ impl Display for ProtocolVersion {
 impl Encode for ProtocolVersion {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -52,7 +52,7 @@ impl Decode for ProtocolVersion {
     type Context = ();
     type Error = ProtocolVersionDecodeError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -93,7 +93,7 @@ pub struct Protocol {
 impl Encode for Protocol {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -107,7 +107,7 @@ impl Decode for Protocol {
     type Context = ();
     type Error = ProtocolDecodeError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {

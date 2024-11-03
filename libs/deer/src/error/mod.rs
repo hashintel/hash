@@ -65,7 +65,7 @@ use core::{
 };
 
 pub use duplicate::{DuplicateField, DuplicateFieldError, DuplicateKey, DuplicateKeyError};
-use error_stack::{Context, Frame, Report, Result};
+use error_stack::{Context, Frame, Report};
 pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ObjectLengthError, ReceivedKey,
     ReceivedLength,
@@ -203,7 +203,7 @@ pub trait ErrorProperties {
 
     fn value<'a>(stack: &[&'a Frame]) -> Self::Value<'a>;
 
-    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), [SerdeSerializeError]>
+    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), Report<[SerdeSerializeError]>>
     where
         S: SerializeMap;
 }
@@ -223,7 +223,7 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
         <T as ErrorProperty>::value(stack)
     }
 
-    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), [SerdeSerializeError]>
+    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), Report<[SerdeSerializeError]>>
     where
         S: SerializeMap,
     {

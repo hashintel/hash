@@ -1,6 +1,6 @@
 use core::cmp::{Ordering, Reverse};
 
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
@@ -13,7 +13,9 @@ use crate::{
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Reverse<T> {
     type Reflection = T::Reflection;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         T::deserialize(deserializer).map(Reverse)
     }
 }
@@ -27,7 +29,7 @@ impl Visitor<'_> for OrderingVisitor {
         Ordering::reflection()
     }
 
-    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+    fn visit_str(self, value: &str) -> Result<Self::Value, Report<VisitorError>> {
         match value {
             "Less" => Ok(Ordering::Less),
             "Equal" => Ok(Ordering::Equal),
@@ -41,7 +43,7 @@ impl Visitor<'_> for OrderingVisitor {
         }
     }
 
-    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, Report<VisitorError>> {
         match value {
             b"Less" => Ok(Ordering::Less),
             b"Equal" => Ok(Ordering::Equal),
@@ -72,7 +74,9 @@ impl Reflection for Ordering {
 impl<'de> Deserialize<'de> for Ordering {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_str(OrderingVisitor)
             .change_context(DeserializeError)
