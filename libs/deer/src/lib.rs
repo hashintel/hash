@@ -816,7 +816,7 @@ pub(crate) mod test {
         marker::PhantomData,
     };
 
-    use error_stack::{Context, Frame, Report};
+    use error_stack::{Frame, Report};
     use serde::{
         Serialize, Serializer,
         ser::{Error as _, SerializeMap as _},
@@ -843,7 +843,9 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn to_json<T: Variant>(report: &Report<impl ::core::error::Error + Send + Sync + 'static>) -> serde_json::Value {
+    pub(crate) fn to_json<T: Variant>(
+        report: &Report<impl ::core::error::Error + Send + Sync + 'static>,
+    ) -> serde_json::Value {
         // we do not need to worry about the tree structure
         let frames: Vec<_> = report.frames().collect();
 

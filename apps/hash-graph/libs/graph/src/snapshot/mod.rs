@@ -33,7 +33,7 @@ use authorization::{
         types::{RelationshipFilter, ResourceFilter},
     },
 };
-use error_stack::{Context, Report, ResultExt as _, ensure};
+use error_stack::{Report, ResultExt as _, ensure};
 use futures::{
     Sink, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _,
     channel::mpsc, stream,
@@ -545,7 +545,11 @@ impl PostgresStorePool {
     #[expect(clippy::too_many_lines)]
     pub fn dump_snapshot(
         &self,
-        sink: impl Sink<SnapshotEntry, Error = Report<impl ::core::error::Error + Send + Sync + 'static>> + Send + 'static,
+        sink: impl Sink<
+            SnapshotEntry,
+            Error = Report<impl ::core::error::Error + Send + Sync + 'static>,
+        > + Send
+        + 'static,
         authorization_api: &(impl ZanzibarBackend + Sync),
         settings: SnapshotDumpSettings,
     ) -> Result<(), Report<SnapshotDumpError>> {
@@ -808,7 +812,10 @@ where
     /// - If writing a record into the datastore fails
     pub async fn restore_snapshot(
         &mut self,
-        snapshot: impl Stream<Item = Result<SnapshotEntry, Report<impl ::core::error::Error + Send + Sync + 'static>>> + Send + 'static,
+        snapshot: impl Stream<
+            Item = Result<SnapshotEntry, Report<impl ::core::error::Error + Send + Sync + 'static>>,
+        > + Send
+        + 'static,
         chunk_size: usize,
         validation: bool,
     ) -> Result<(), Report<SnapshotRestoreError>> {

@@ -6,7 +6,7 @@ use std::{
 };
 
 use bytes::Bytes;
-use error_stack::{Context, Report};
+use error_stack::Report;
 use inferno::flamegraph;
 
 use crate::benches::{generate_path, report::Measurement};

@@ -5,7 +5,7 @@ mod provenance;
 
 use core::{borrow::Borrow, fmt};
 
-use error_stack::{Context, Report};
+use error_stack::Report;
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
@@ -172,7 +172,9 @@ pub trait OntologyTypeProvider<O> {
     fn provide_type(
         &self,
         type_id: &VersionedUrl,
-    ) -> impl Future<Output = Result<Self::Value, Report<impl ::core::error::Error + Send + Sync + 'static>>> + Send;
+    ) -> impl Future<
+        Output = Result<Self::Value, Report<impl ::core::error::Error + Send + Sync + 'static>>,
+    > + Send;
 }
 
 pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
@@ -180,13 +182,20 @@ pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
         &self,
         child: &VersionedUrl,
         parent: &BaseUrl,
-    ) -> impl Future<Output = Result<bool, Report<impl ::core::error::Error + Send + Sync + 'static>>> + Send;
+    ) -> impl Future<
+        Output = Result<bool, Report<impl ::core::error::Error + Send + Sync + 'static>>,
+    > + Send;
 
     fn find_conversion(
         &self,
         source_data_type_id: &VersionedUrl,
         target_data_type_id: &VersionedUrl,
-    ) -> impl Future<Output = Result<impl Borrow<Vec<ConversionExpression>>, Report<impl ::core::error::Error + Send + Sync + 'static>>> + Send;
+    ) -> impl Future<
+        Output = Result<
+            impl Borrow<Vec<ConversionExpression>>,
+            Report<impl ::core::error::Error + Send + Sync + 'static>,
+        >,
+    > + Send;
 }
 
 pub trait PropertyTypeProvider: OntologyTypeProvider<PropertyType> {}
@@ -202,10 +211,17 @@ pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
         &self,
         parent: &VersionedUrl,
         child: &VersionedUrl,
-    ) -> impl Future<Output = Result<bool, Report<impl ::core::error::Error + Send + Sync + 'static>>> + Send;
+    ) -> impl Future<
+        Output = Result<bool, Report<impl ::core::error::Error + Send + Sync + 'static>>,
+    > + Send;
 
     fn find_parents(
         &self,
         entity_types: &[VersionedUrl],
-    ) -> impl Future<Output = Result<Vec<VersionedUrl>, Report<impl ::core::error::Error + Send + Sync + 'static>>> + Send;
+    ) -> impl Future<
+        Output = Result<
+            Vec<VersionedUrl>,
+            Report<impl ::core::error::Error + Send + Sync + 'static>,
+        >,
+    > + Send;
 }

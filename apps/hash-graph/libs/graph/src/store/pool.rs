@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 
 use authorization::AuthorizationApi;
-use error_stack::{Context as _, Report};
+use error_stack::Report;
 use temporal_client::TemporalClient;
 
 use crate::store::Store;

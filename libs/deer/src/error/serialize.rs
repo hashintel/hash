@@ -7,7 +7,7 @@ use core::{
     iter::once,
 };
 
-use error_stack::{Context, Frame, Report};
+use error_stack::{Frame, Report};
 use serde::{
     Serialize, Serializer,
     ser::{Error as _, SerializeMap as _},
@@ -277,7 +277,7 @@ mod tests {
     use alloc::{format, vec, vec::Vec};
     use core::fmt::{Display, Formatter};
 
-    use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report};
+    use error_stack::{AttachmentKind, Frame, FrameKind, Report};
     use serde_json::{json, to_value};
     use similar_asserts::assert_serde_eq;
 

@@ -65,7 +65,7 @@ use core::{
 };
 
 pub use duplicate::{DuplicateField, DuplicateFieldError, DuplicateKey, DuplicateKeyError};
-use error_stack::{Context, Frame, Report};
+use error_stack::{Frame, Report};
 pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ObjectLengthError, ReceivedKey,
     ReceivedLength,

@@ -12,7 +12,7 @@ mod test_property_type;
 
 use core::borrow::Borrow;
 
-use error_stack::{Context, Report};
+use error_stack::Report;
 use graph_types::knowledge::entity::{Entity, EntityId};
 use serde::Deserialize;
 
@@ -87,7 +87,12 @@ pub trait EntityProvider {
     fn provide_entity(
         &self,
         entity_id: EntityId,
-    ) -> impl Future<Output = Result<impl Borrow<Entity> + Send + Sync, Report<impl ::core::error::Error + Send + Sync + 'static>>> + Send;
+    ) -> impl Future<
+        Output = Result<
+            impl Borrow<Entity> + Send + Sync,
+            Report<impl ::core::error::Error + Send + Sync + 'static>,
+        >,
+    > + Send;
 }
 
 #[cfg(test)]
