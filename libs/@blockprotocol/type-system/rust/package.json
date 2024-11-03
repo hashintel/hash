@@ -25,7 +25,8 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@rust/codec": "0.0.0-private"
+    "@rust/codec": "0.0.0-private",
+    "@rust/error-stack": "0.5.0"
   },
   "devDependencies": {
     "@rust/graph-test-data": "0.0.0-private",

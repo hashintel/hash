@@ -12,6 +12,7 @@
   "dependencies": {
     "@rust/authorization": "0.0.0-private",
     "@rust/codec": "0.0.0-private",
+    "@rust/error-stack": "0.5.0",
     "@rust/graph": "0.0.0-private",
     "@rust/graph-api": "0.0.0-private",
     "@rust/graph-type-defs": "0.0.0-private",

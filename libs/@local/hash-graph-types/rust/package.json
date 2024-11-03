@@ -11,6 +11,7 @@
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/codec": "0.0.0-private",
+    "@rust/error-stack": "0.5.0",
     "@rust/temporal-versioning": "0.0.0-private"
   },
   "devDependencies": {
