@@ -47,7 +47,7 @@ where
     // The extra bounds here are not strictly required, but they help to make the error messages
     // more expressive during compilation
     ResBody: Body<Control: AsRef<ResponseKind>, Error = Report<C>>,
-    C: error_stack::Context,
+    C: ::core::error::Error + Send + Sync + 'static,
 {
     type Error = S::Error;
     type Response = Response<EncodeReport<ResBody>>;

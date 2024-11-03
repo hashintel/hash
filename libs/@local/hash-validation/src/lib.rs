@@ -17,7 +17,7 @@ use graph_types::knowledge::entity::{Entity, EntityId};
 use serde::Deserialize;
 
 pub trait Schema<V: ?Sized, P: Sync> {
-    type Error: Context;
+    type Error: ::core::error::Error + Send + Sync + 'static;
 
     fn validate_value<'a>(
         &'a self,
@@ -73,7 +73,7 @@ impl Default for ValidateEntityComponents {
 }
 
 pub trait Validate<S, C> {
-    type Error: Context;
+    type Error: ::core::error::Error + Send + Sync + 'static;
 
     fn validate(
         &self,

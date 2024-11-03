@@ -167,7 +167,7 @@ impl SerdeSerializeError {
 impl core::error::Error for SerdeSerializeError {}
 
 #[cfg(all(not(nightly), not(feature = "std")))]
-impl error_stack::Context for SerdeSerializeError {}
+impl ::core::error::Error for SerdeSerializeError {}
 
 #[cfg(all(not(nightly), feature = "std"))]
 impl std::error::Error for SerdeSerializeError {}
@@ -394,7 +394,7 @@ impl core::error::Error for Error {
 }
 
 #[cfg(all(not(nightly), not(feature = "std")))]
-impl error_stack::Context for Error {}
+impl ::core::error::Error for Error {}
 
 #[cfg(all(not(nightly), feature = "std"))]
 impl std::error::Error for Error {}

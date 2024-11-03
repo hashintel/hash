@@ -12,7 +12,7 @@ impl fmt::Display for InsertionError {
     }
 }
 
-impl Context for InsertionError {}
+impl ::core::error::Error for InsertionError {}
 
 #[derive(Debug, Clone)]
 #[must_use]
@@ -24,7 +24,7 @@ impl fmt::Display for QueryError {
     }
 }
 
-impl Context for QueryError {}
+impl ::core::error::Error for QueryError {}
 
 #[derive(Debug)]
 #[must_use]
@@ -36,7 +36,7 @@ impl fmt::Display for UpdateError {
     }
 }
 
-impl Context for UpdateError {}
+impl ::core::error::Error for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]

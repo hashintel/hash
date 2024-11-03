@@ -6,7 +6,7 @@ use error_stack::{Context, Report, ResultExt as _};
 use super::{BufferError, buffer::Buffer};
 
 pub trait Encode {
-    type Error: Context;
+    type Error: ::core::error::Error + Send + Sync + 'static;
 
     /// Encode the value into the buffer.
     ///

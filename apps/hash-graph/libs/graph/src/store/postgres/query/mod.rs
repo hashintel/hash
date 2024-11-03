@@ -105,7 +105,7 @@ pub trait PostgresSorting<'s, R: QueryRecord>:
 {
     type CompilationParameters: Send;
 
-    type Error: Context + Send + Sync + 'static;
+    type Error: ::core::error::Error + Send + Sync + 'static + Send + Sync + 'static;
 
     fn encode(&self) -> Result<Option<Self::CompilationParameters>, Self::Error>;
 

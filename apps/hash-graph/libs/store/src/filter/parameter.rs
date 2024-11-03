@@ -176,7 +176,7 @@ impl fmt::Display for ParameterConversionError {
     }
 }
 
-impl Context for ParameterConversionError {}
+impl ::core::error::Error for ParameterConversionError {}
 
 impl Parameter<'_> {
     #[expect(

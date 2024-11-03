@@ -7,7 +7,7 @@ use type_system::schema::{DataType, EntityType, PropertyType};
 #[derive(Debug)]
 pub struct DomainValidationError;
 
-impl Context for DomainValidationError {}
+impl ::core::error::Error for DomainValidationError {}
 
 impl fmt::Display for DomainValidationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

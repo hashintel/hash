@@ -310,7 +310,7 @@ mod tests {
         }
     }
 
-    impl Context for Root {}
+    impl ::core::error::Error for Root {}
 
     fn assert_stack(frames: &[&Frame], expect: &[&'static str]) {
         let frames: Vec<_> = frames
@@ -378,7 +378,7 @@ mod tests {
         }
     }
 
-    impl Context for ErrorY {}
+    impl ::core::error::Error for ErrorY {}
 
     #[derive(Debug)]
     struct ErrorZ;

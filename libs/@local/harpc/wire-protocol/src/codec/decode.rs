@@ -5,7 +5,7 @@ use super::buffer::{Buffer, BufferError};
 
 pub trait Decode: Sized {
     type Context: Send + Sync;
-    type Error: Context;
+    type Error: ::core::error::Error + Send + Sync + 'static;
 
     /// Decode a value from the buffer.
     ///

@@ -11,7 +11,7 @@ use type_system::url::VersionedUrl;
 #[derive(Debug)]
 pub struct PatchAndParseError;
 
-impl Context for PatchAndParseError {}
+impl ::core::error::Error for PatchAndParseError {}
 
 impl fmt::Display for PatchAndParseError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -4,7 +4,7 @@ use error_stack::Context;
 
 #[derive(Debug)]
 pub struct GraphError;
-impl Context for GraphError {}
+impl ::core::error::Error for GraphError {}
 
 impl fmt::Display for GraphError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -27,4 +27,4 @@ impl fmt::Display for HealthcheckError {
     }
 }
 
-impl Context for HealthcheckError {}
+impl ::core::error::Error for HealthcheckError {}

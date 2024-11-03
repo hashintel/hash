@@ -29,7 +29,7 @@ where
 
 pub(crate) fn report_to_response<C>(report: impl Into<Report<[C]>>) -> Response
 where
-    C: Context,
+    C: ::core::error::Error + Send + Sync + 'static,
 {
     let report = report.into();
     let status_code = report
