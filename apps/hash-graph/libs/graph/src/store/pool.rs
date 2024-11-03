@@ -1,4 +1,5 @@
 use alloc::sync::Arc;
+use core::error::Error;
 
 use authorization::AuthorizationApi;
 use error_stack::Report;
@@ -9,7 +10,7 @@ use crate::store::Store;
 /// Managed pool to keep track about [`Store`]s.
 pub trait StorePool {
     /// The error returned when acquiring a [`Store`].
-    type Error: ::core::error::Error + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     /// The store returned when acquiring.
     type Store<'pool, A: AuthorizationApi>: Store + Send + Sync;

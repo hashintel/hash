@@ -17,7 +17,7 @@ mod ontology;
 mod restore;
 mod web;
 
-use core::future::ready;
+use core::{error::Error, future::ready};
 
 use async_scoped::TokioScope;
 use authorization::{
@@ -545,10 +545,8 @@ impl PostgresStorePool {
     #[expect(clippy::too_many_lines)]
     pub fn dump_snapshot(
         &self,
-        sink: impl Sink<
-            SnapshotEntry,
-            Error = Report<impl ::core::error::Error + Send + Sync + 'static>,
-        > + Send
+        sink: impl Sink<SnapshotEntry, Error = Report<impl Error + Send + Sync + 'static>>
+        + Send
         + 'static,
         authorization_api: &(impl ZanzibarBackend + Sync),
         settings: SnapshotDumpSettings,
@@ -812,9 +810,8 @@ where
     /// - If writing a record into the datastore fails
     pub async fn restore_snapshot(
         &mut self,
-        snapshot: impl Stream<
-            Item = Result<SnapshotEntry, Report<impl ::core::error::Error + Send + Sync + 'static>>,
-        > + Send
+        snapshot: impl Stream<Item = Result<SnapshotEntry, Report<impl Error + Send + Sync + 'static>>>
+        + Send
         + 'static,
         chunk_size: usize,
         validation: bool,

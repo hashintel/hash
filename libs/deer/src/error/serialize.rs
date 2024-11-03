@@ -2,6 +2,7 @@
 use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
 use core::{
     cell::Cell,
+    error::Error,
     fmt,
     fmt::{Display, Formatter},
     iter::once,
@@ -134,7 +135,7 @@ struct FrameSplitIterator<'a> {
 }
 
 impl<'a> FrameSplitIterator<'a> {
-    fn new(report: &'a Report<[impl ::core::error::Error + Send + Sync + 'static]>) -> Self {
+    fn new(report: &'a Report<[impl Error + Send + Sync + 'static]>) -> Self {
         let stack = report
             .current_frames()
             .iter()
@@ -198,7 +199,7 @@ fn divide_frames<'a>(
 }
 
 fn serialize_report<S: Serializer>(
-    report: &Report<[impl ::core::error::Error + Send + Sync + 'static]>,
+    report: &Report<[impl Error + Send + Sync + 'static]>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     let frames = FrameSplitIterator::new(report);
@@ -254,15 +255,15 @@ pub(super) fn impl_serialize<'a, E: Variant>(
 ///
 /// These types can then be used to generate a personalized message and will be attached to
 /// `properties` with the predefined key.
-pub struct Export<C: ::core::error::Error + Send + Sync + 'static>(Report<[C]>);
+pub struct Export<C: Error + Send + Sync + 'static>(Report<[C]>);
 
-impl<C: ::core::error::Error + Send + Sync + 'static> Export<C> {
+impl<C: Error + Send + Sync + 'static> Export<C> {
     pub(crate) const fn new(report: Report<[C]>) -> Self {
         Self(report)
     }
 }
 
-impl<C: ::core::error::Error + Send + Sync + 'static> Serialize for Export<C> {
+impl<C: Error + Send + Sync + 'static> Serialize for Export<C> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -275,7 +276,10 @@ impl<C: ::core::error::Error + Send + Sync + 'static> Serialize for Export<C> {
 mod tests {
     #[cfg_attr(feature = "std", allow(unused_imports))]
     use alloc::{format, vec, vec::Vec};
-    use core::fmt::{Display, Formatter};
+    use core::{
+        error::Error,
+        fmt::{Display, Formatter},
+    };
 
     use error_stack::{AttachmentKind, Frame, FrameKind, Report};
     use serde_json::{json, to_value};
@@ -310,7 +314,7 @@ mod tests {
         }
     }
 
-    impl ::core::error::Error for Root {}
+    impl Error for Root {}
 
     fn assert_stack(frames: &[&Frame], expect: &[&'static str]) {
         let frames: Vec<_> = frames
@@ -378,7 +382,7 @@ mod tests {
         }
     }
 
-    impl ::core::error::Error for ErrorY {}
+    impl Error for ErrorY {}
 
     #[derive(Debug)]
     struct ErrorZ;

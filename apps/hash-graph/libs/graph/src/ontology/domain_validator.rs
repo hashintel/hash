@@ -1,4 +1,4 @@
-use core::fmt;
+use core::{error::Error, fmt};
 
 use error_stack::{Report, ResultExt as _};
 use regex::{Captures, Regex};
@@ -7,7 +7,7 @@ use type_system::schema::{DataType, EntityType, PropertyType};
 #[derive(Debug)]
 pub struct DomainValidationError;
 
-impl ::core::error::Error for DomainValidationError {}
+impl Error for DomainValidationError {}
 
 impl fmt::Display for DomainValidationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

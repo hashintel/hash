@@ -1,4 +1,4 @@
-use core::fmt::Debug;
+use core::{error::Error, fmt::Debug};
 
 use bytes::{BufMut, Bytes};
 use error_stack::{Report, ResultExt as _};
@@ -6,7 +6,7 @@ use error_stack::{Report, ResultExt as _};
 use super::{BufferError, buffer::Buffer};
 
 pub trait Encode {
-    type Error: ::core::error::Error + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     /// Encode the value into the buffer.
     ///

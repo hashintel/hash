@@ -1,3 +1,5 @@
+use core::error::Error;
+
 use bytes::{Buf, Bytes};
 use error_stack::Report;
 
@@ -5,7 +7,7 @@ use super::buffer::{Buffer, BufferError};
 
 pub trait Decode: Sized {
     type Context: Send + Sync;
-    type Error: ::core::error::Error + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     /// Decode a value from the buffer.
     ///

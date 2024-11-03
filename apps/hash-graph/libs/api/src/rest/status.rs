@@ -1,4 +1,4 @@
-use core::fmt::Debug;
+use core::{error::Error, fmt::Debug};
 
 use authorization::backend::PermissionAssertion;
 use axum::{
@@ -29,7 +29,7 @@ where
 
 pub(crate) fn report_to_response<C>(report: impl Into<Report<[C]>>) -> Response
 where
-    C: ::core::error::Error + Send + Sync + 'static,
+    C: Error + Send + Sync + 'static,
 {
     let report = report.into();
     let status_code = report

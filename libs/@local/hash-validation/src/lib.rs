@@ -10,14 +10,14 @@ mod property;
 mod test_data_type;
 mod test_property_type;
 
-use core::borrow::Borrow;
+use core::{borrow::Borrow, error::Error};
 
 use error_stack::Report;
 use graph_types::knowledge::entity::{Entity, EntityId};
 use serde::Deserialize;
 
 pub trait Schema<V: ?Sized, P: Sync> {
-    type Error: ::core::error::Error + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     fn validate_value<'a>(
         &'a self,
@@ -73,7 +73,7 @@ impl Default for ValidateEntityComponents {
 }
 
 pub trait Validate<S, C> {
-    type Error: ::core::error::Error + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     fn validate(
         &self,
@@ -90,7 +90,7 @@ pub trait EntityProvider {
     ) -> impl Future<
         Output = Result<
             impl Borrow<Entity> + Send + Sync,
-            Report<impl ::core::error::Error + Send + Sync + 'static>,
+            Report<impl Error + Send + Sync + 'static>,
         >,
     > + Send;
 }

@@ -167,7 +167,7 @@ impl SerdeSerializeError {
 impl core::error::Error for SerdeSerializeError {}
 
 #[cfg(all(not(nightly), not(feature = "std")))]
-impl ::core::error::Error for SerdeSerializeError {}
+impl Error for SerdeSerializeError {}
 
 #[cfg(all(not(nightly), feature = "std"))]
 impl std::error::Error for SerdeSerializeError {}
@@ -386,18 +386,12 @@ impl Error {
     }
 }
 
-#[cfg(nightly)]
 impl core::error::Error for Error {
+    #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
         (self.provide)(&self.variant, request);
     }
 }
-
-#[cfg(all(not(nightly), not(feature = "std")))]
-impl ::core::error::Error for Error {}
-
-#[cfg(all(not(nightly), feature = "std"))]
-impl std::error::Error for Error {}
 
 /// This macro makes implementation of error structs easier, by implementing all necessary
 /// traits automatically and removing significant boilerplate.
@@ -463,17 +457,17 @@ error!(
     ArrayAccessError: "array access encountered one or more errors during access"
 );
 
-pub trait ReportExt<C: ::core::error::Error + Send + Sync + 'static> {
+pub trait ReportExt<C: core::error::Error + Send + Sync + 'static> {
     fn export(self) -> Export<C>;
 }
 
-impl<C: ::core::error::Error + Send + Sync + 'static> ReportExt<C> for Report<C> {
+impl<C: core::error::Error + Send + Sync + 'static> ReportExt<C> for Report<C> {
     fn export(self) -> Export<C> {
         Export::new(self.expand())
     }
 }
 
-impl<C: ::core::error::Error + Send + Sync + 'static> ReportExt<C> for Report<[C]> {
+impl<C: core::error::Error + Send + Sync + 'static> ReportExt<C> for Report<[C]> {
     fn export(self) -> Export<C> {
         Export::new(self)
     }

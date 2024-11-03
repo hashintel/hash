@@ -1,6 +1,7 @@
 extern crate alloc;
 
 use alloc::sync::Arc;
+use core::error::Error;
 use std::collections::HashMap;
 
 use authorization::{
@@ -53,9 +54,7 @@ where
     clippy::needless_pass_by_value,
     reason = "This is used inside of error-mapping functions only"
 )]
-fn store_acquisition_error(
-    report: Report<impl ::core::error::Error + Send + Sync + 'static>,
-) -> Response {
+fn store_acquisition_error(report: Report<impl Error + Send + Sync + 'static>) -> Response {
     tracing::error!(error=?report, "Could not acquire store");
     status_to_response(Status::new(
         StatusCode::Internal,

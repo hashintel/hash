@@ -1,4 +1,4 @@
-use core::fmt;
+use core::{error::Error, fmt};
 
 #[derive(Debug)]
 #[must_use]
@@ -10,7 +10,7 @@ impl fmt::Display for InsertionError {
     }
 }
 
-impl ::core::error::Error for InsertionError {}
+impl Error for InsertionError {}
 
 #[derive(Debug, Clone)]
 #[must_use]
@@ -22,7 +22,7 @@ impl fmt::Display for QueryError {
     }
 }
 
-impl ::core::error::Error for QueryError {}
+impl Error for QueryError {}
 
 #[derive(Debug)]
 #[must_use]
@@ -34,7 +34,7 @@ impl fmt::Display for UpdateError {
     }
 }
 
-impl ::core::error::Error for UpdateError {}
+impl Error for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]

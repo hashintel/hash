@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{fmt, mem, str::FromStr as _};
+use core::{error::Error, fmt, mem, str::FromStr as _};
 
 use error_stack::{Report, ResultExt as _, bail};
 use graph_types::{Embedding, knowledge::entity::EntityEditionId};
@@ -176,7 +176,7 @@ impl fmt::Display for ParameterConversionError {
     }
 }
 
-impl ::core::error::Error for ParameterConversionError {}
+impl Error for ParameterConversionError {}
 
 impl Parameter<'_> {
     #[expect(

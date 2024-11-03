@@ -812,6 +812,7 @@ pub(crate) mod test {
     #[cfg_attr(feature = "std", allow(unused_imports))]
     use alloc::{format, string::String, vec::Vec};
     use core::{
+        error::Error,
         fmt::{Display, Formatter},
         marker::PhantomData,
     };
@@ -844,7 +845,7 @@ pub(crate) mod test {
     }
 
     pub(crate) fn to_json<T: Variant>(
-        report: &Report<impl ::core::error::Error + Send + Sync + 'static>,
+        report: &Report<impl Error + Send + Sync + 'static>,
     ) -> serde_json::Value {
         // we do not need to worry about the tree structure
         let frames: Vec<_> = report.frames().collect();

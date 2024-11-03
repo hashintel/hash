@@ -1,3 +1,4 @@
+use core::error::Error;
 use std::collections::HashMap;
 
 use error_stack::Report;
@@ -520,7 +521,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
 /// Managed pool to keep track about [`AuthorizationApi`]s.
 pub trait AuthorizationApiPool {
     /// The error returned when acquiring an [`AuthorizationApi`].
-    type Error: ::core::error::Error + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     /// The [`AuthorizationApi`] returned when acquiring.
     type Api<'pool>: AuthorizationApi;

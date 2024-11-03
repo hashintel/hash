@@ -2,7 +2,7 @@
 
 pub mod domain_validator;
 
-use core::fmt;
+use core::{error::Error, fmt};
 
 use error_stack::{Report, ResultExt as _};
 use serde::Deserialize;
@@ -11,7 +11,7 @@ use type_system::url::VersionedUrl;
 #[derive(Debug)]
 pub struct PatchAndParseError;
 
-impl ::core::error::Error for PatchAndParseError {}
+impl Error for PatchAndParseError {}
 
 impl fmt::Display for PatchAndParseError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

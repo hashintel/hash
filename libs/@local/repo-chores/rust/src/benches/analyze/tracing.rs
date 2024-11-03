@@ -1,3 +1,4 @@
+use core::error::Error;
 use std::{
     fs::File,
     io,
@@ -72,7 +73,7 @@ impl FoldedStacks {
     pub fn create_flame_graph(
         &self,
         mut options: flamegraph::Options,
-    ) -> Result<FlameGraph, Report<impl ::core::error::Error + Send + Sync + 'static>> {
+    ) -> Result<FlameGraph, Report<impl Error + Send + Sync + 'static>> {
         let mut buffer = Vec::new();
         flamegraph::from_lines(
             &mut options,

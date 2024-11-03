@@ -1,4 +1,7 @@
-use core::task::{Context, Poll};
+use core::{
+    error::Error,
+    task::{Context, Poll},
+};
 
 use error_stack::Report;
 use futures::TryFutureExt as _;
@@ -47,7 +50,7 @@ where
     // The extra bounds here are not strictly required, but they help to make the error messages
     // more expressive during compilation
     ResBody: Body<Control: AsRef<ResponseKind>, Error = Report<C>>,
-    C: ::core::error::Error + Send + Sync + 'static,
+    C: Error + Send + Sync + 'static,
 {
     type Error = S::Error;
     type Response = Response<EncodeReport<ResBody>>;
