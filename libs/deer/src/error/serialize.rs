@@ -254,15 +254,15 @@ pub(super) fn impl_serialize<'a, E: Variant>(
 ///
 /// These types can then be used to generate a personalized message and will be attached to
 /// `properties` with the predefined key.
-pub struct Export<C: Context>(Report<[C]>);
+pub struct Export<C: ::core::error::Error + Send + Sync + 'static>(Report<[C]>);
 
-impl<C: Context> Export<C> {
+impl<C: ::core::error::Error + Send + Sync + 'static> Export<C> {
     pub(crate) const fn new(report: Report<[C]>) -> Self {
         Self(report)
     }
 }
 
-impl<C: Context> Serialize for Export<C> {
+impl<C: ::core::error::Error + Send + Sync + 'static> Serialize for Export<C> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

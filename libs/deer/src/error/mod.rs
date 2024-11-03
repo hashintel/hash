@@ -463,17 +463,17 @@ error!(
     ArrayAccessError: "array access encountered one or more errors during access"
 );
 
-pub trait ReportExt<C: Context> {
+pub trait ReportExt<C: ::core::error::Error + Send + Sync + 'static> {
     fn export(self) -> Export<C>;
 }
 
-impl<C: Context> ReportExt<C> for Report<C> {
+impl<C: ::core::error::Error + Send + Sync + 'static> ReportExt<C> for Report<C> {
     fn export(self) -> Export<C> {
         Export::new(self.expand())
     }
 }
 
-impl<C: Context> ReportExt<C> for Report<[C]> {
+impl<C: ::core::error::Error + Send + Sync + 'static> ReportExt<C> for Report<[C]> {
     fn export(self) -> Export<C> {
         Export::new(self)
     }
