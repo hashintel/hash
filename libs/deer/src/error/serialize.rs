@@ -134,7 +134,7 @@ struct FrameSplitIterator<'a> {
 }
 
 impl<'a> FrameSplitIterator<'a> {
-    fn new(report: &'a Report<[impl Context]>) -> Self {
+    fn new(report: &'a Report<[impl ::core::error::Error + Send + Sync + 'static]>) -> Self {
         let stack = report
             .current_frames()
             .iter()
@@ -198,7 +198,7 @@ fn divide_frames<'a>(
 }
 
 fn serialize_report<S: Serializer>(
-    report: &Report<[impl Context]>,
+    report: &Report<[impl ::core::error::Error + Send + Sync + 'static]>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     let frames = FrameSplitIterator::new(report);

@@ -843,7 +843,7 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn to_json<T: Variant>(report: &Report<impl Context>) -> serde_json::Value {
+    pub(crate) fn to_json<T: Variant>(report: &Report<impl ::core::error::Error + Send + Sync + 'static>) -> serde_json::Value {
         // we do not need to worry about the tree structure
         let frames: Vec<_> = report.frames().collect();
 

@@ -87,7 +87,7 @@ pub trait EntityProvider {
     fn provide_entity(
         &self,
         entity_id: EntityId,
-    ) -> impl Future<Output = Result<impl Borrow<Entity> + Send + Sync, Report<impl Context>>> + Send;
+    ) -> impl Future<Output = Result<impl Borrow<Entity> + Send + Sync, Report<impl ::core::error::Error + Send + Sync + 'static>>> + Send;
 }
 
 #[cfg(test)]

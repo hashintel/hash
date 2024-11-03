@@ -545,7 +545,7 @@ impl PostgresStorePool {
     #[expect(clippy::too_many_lines)]
     pub fn dump_snapshot(
         &self,
-        sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send + 'static,
+        sink: impl Sink<SnapshotEntry, Error = Report<impl ::core::error::Error + Send + Sync + 'static>> + Send + 'static,
         authorization_api: &(impl ZanzibarBackend + Sync),
         settings: SnapshotDumpSettings,
     ) -> Result<(), Report<SnapshotDumpError>> {
@@ -808,7 +808,7 @@ where
     /// - If writing a record into the datastore fails
     pub async fn restore_snapshot(
         &mut self,
-        snapshot: impl Stream<Item = Result<SnapshotEntry, Report<impl Context>>> + Send + 'static,
+        snapshot: impl Stream<Item = Result<SnapshotEntry, Report<impl ::core::error::Error + Send + Sync + 'static>>> + Send + 'static,
         chunk_size: usize,
         validation: bool,
     ) -> Result<(), Report<SnapshotRestoreError>> {
