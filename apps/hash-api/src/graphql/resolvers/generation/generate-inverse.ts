@@ -10,7 +10,7 @@ import { getOpenAiClient } from "./shared/openai-client";
 const generatePrompt = (relationship: string): string => `
 You are building the ontology for a knowledge graph. You have a directed relationship between two nodes called "${relationship}".
 
-You need to come up with a name for the inverse relationship that represents the opposite direction of the original relationship.
+We're looking for a description of the relationship in the other direction, i.e. if 'X ${relationship} Y', then 'Y [inverse] X'.
 
 Examples:
 - "Parent Of" -> "Child Of"
@@ -20,8 +20,6 @@ Examples:
 - "Majored In" -> "Was Majored In By"
 
 Please provide a name for the inverse relationship, without quotation marks. Do not provide any other information – your response will be fed directly into the system you're building.
-
-We're looking for a description of the relationship in the other direction, i.e. if 'X ${relationship} Y', then 'Y [inverse] X'.
 
 We're NOT looking for a description of the opposite concept.
 
@@ -35,9 +33,9 @@ For example, if someone 'Majored In' something the inverse is 'Was Majored In By
 
 Match the words in the original as much as possible – don't replace key words with synonyms unless necessary.
 
-Given those requirements, what is the inverse of ${relationship}?
+Given those requirements, what is the inverse of ${relationship}? Or in other words, fill in the blank: 'If X ${relationship} Y, then Y [inverse] X.'
 
-Remember, we are looking to answer the following: if 'X ${relationship} Y', then 'Y [inverse] X', as [inverse] would be said by a native English speaker.
+Don't append 'X'!
 `;
 
 export const generateInverseResolver: ResolverFn<

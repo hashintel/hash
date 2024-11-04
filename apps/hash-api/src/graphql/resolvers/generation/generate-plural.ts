@@ -12,15 +12,22 @@ You are building the ontology for a knowledge graph.
 
 You need to come up with a name for the plural form for the type named "${type}".
 
+This will be used to describe multiple instances of the type, for example "View all [plural form]"
+
 Examples:
 - "Company" -> "Companies"
 - "Person" -> "People"
 - "Child" -> "Children"
 - "Data" -> "Data"
 
+If the type represents a link between two entities, it may be called something like "Is Child Of".
+
+In this case, the plural should be "Is Child Ofs", because we're talking about multiple of the "Is Child Of" link,
+NOT multiple children.
+
 Please provide the plural form, without quotation marks. Do not provide any other information – your response will be fed directly into the system you're building.
 
-What is the plural of ${type}?
+What is the plural of ${type}, that we can use when saying 'View all ${type}'?
 `;
 
 export const generatePluralResolver: ResolverFn<

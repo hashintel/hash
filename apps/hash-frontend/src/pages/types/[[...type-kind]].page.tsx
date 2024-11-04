@@ -10,17 +10,17 @@ import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-pro
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
+import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { usePropertyTypes } from "../../shared/property-types-context";
+import { CreateButton } from "../shared/create-button";
 import { TopContextBar } from "../shared/top-context-bar";
 import {
   tabTitles,
   TypesPageTabs,
 } from "./[[...type-kind]].page/types-page-tabs";
 import { TypesTable } from "./[[...type-kind]].page/types-table";
-import { PlusRegularIcon } from "../../shared/icons/plus-regular";
-import { CreateButton } from "../shared/create-button";
 
 const parsedQueryParams = [
   "entity-type",

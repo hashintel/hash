@@ -45,11 +45,11 @@ import { TabLink } from "../shared/ui/tab-link";
 import { Tabs } from "../shared/ui/tabs";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
 import type { Breadcrumb } from "./shared/breadcrumbs";
+import { CreateButton } from "./shared/create-button";
 import { EntitiesTable } from "./shared/entities-table";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "./shared/workspace-context";
-import { CreateButton } from "./shared/create-button";
 
 const contentMaxWidth = 1000;
 
@@ -222,7 +222,8 @@ const EntitiesPage: NextPageWithLayout = () => {
   const pageTitle = entityType
     ? entityTypeId
       ? `${entityType.schema.title} v${extractVersion(entityTypeId)}`
-      : pluralize(entityType.schema.title)
+      : // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+        entityType.schema.titlePlural || pluralize(entityType.schema.title)
     : "Entities";
 
   const { entities, loading } = entityTypeEntitiesValue;
