@@ -62,18 +62,18 @@ impl<'a> Diagnostic<'a, SpanId> {
     where
         S: Span + Clone,
     {
-        let labels: Result<Vec<_>, _> = self
+        let labels: Vec<_> = self
             .labels
             .into_iter()
             .map(|label| label.resolve(storage))
-            .try_collect_reports();
+            .try_collect_reports()?;
 
         Ok(Diagnostic {
             category: self.category,
             severity: self.severity,
             message: self.message,
 
-            labels: labels?,
+            labels,
             note: self.note,
             help: self.help,
         })
