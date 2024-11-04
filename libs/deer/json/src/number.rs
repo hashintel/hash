@@ -12,7 +12,7 @@ use lexical::{
 use crate::error::NumberError;
 
 #[cfg(not(feature = "arbitrary-precision"))]
-pub(crate) fn try_convert_number(number: &JsonNumber) -> Result<Number, Error> {
+pub(crate) fn try_convert_number(number: &JsonNumber) -> Result<Number, Report<Error>> {
     let number_source = number.source();
     let negative = number_source.as_bytes().first().copied() == Some(b'-');
 
