@@ -2,7 +2,7 @@ use alloc::{borrow::Cow, sync::Arc};
 use core::error::{self, Error};
 
 use authorization::{
-    AuthorizationApi, AuthorizationApiPool,
+    AuthorizationApi as _, AuthorizationApiPool,
     backend::ModifyRelationshipOperation,
     schema::{
         AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
@@ -10,7 +10,7 @@ use authorization::{
     },
     zanzibar::Consistency,
 };
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use graph::store::StorePool;
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -26,7 +26,9 @@ use harpc_server::{
 use harpc_service::{delegate::ServiceDelegate, role::Role};
 use harpc_tower::{body::Body, either::Either, request::Request, response::Response};
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
-use hash_graph_store::account::{AccountStore, InsertAccountGroupIdParams, InsertAccountIdParams};
+use hash_graph_store::account::{
+    AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams,
+};
 use temporal_client::TemporalClient;
 
 use super::{role, session::User};

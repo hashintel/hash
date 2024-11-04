@@ -1,4 +1,4 @@
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use harpc_client::{connection::Connection, utils::invoke_call_discrete};
 use harpc_codec::{decode::ReportDecoder, encode::Encoder};
 use harpc_server::{
