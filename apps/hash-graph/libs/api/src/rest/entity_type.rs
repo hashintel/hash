@@ -4,7 +4,7 @@ use alloc::sync::Arc;
 use std::collections::hash_map;
 
 use authorization::{
-    AuthorizationApi, AuthorizationApiPool,
+    AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         EntityTypeEditorSubject, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject,
@@ -20,10 +20,10 @@ use axum::{
     response::Response,
     routing::{get, post, put},
 };
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use graph::{
     ontology::{
-        domain_validator::{DomainValidator, ValidateOntologyType},
+        domain_validator::{DomainValidator, ValidateOntologyType as _},
         patch_id_and_parse,
     },
     store::{
@@ -77,7 +77,7 @@ use crate::rest::{
         load_external_entity_type,
         get_entity_types,
         get_entity_type_subgraph,
-        get_closed_multi_entity_types,
+        get_closed_multi_entity_type,
         update_entity_type,
         update_entity_type_embeddings,
         archive_entity_type,
@@ -155,7 +155,7 @@ impl RoutedResource for EntityTypeResource {
                     "/query",
                     Router::new()
                         .route("/", post(get_entity_types::<S, A>))
-                        .route("/multi", post(get_closed_multi_entity_types::<S, A>))
+                        .route("/multi", post(get_closed_multi_entity_type::<S, A>))
                         .route("/subgraph", post(get_entity_type_subgraph::<S, A>)),
                 )
                 .route("/load", post(load_external_entity_type::<S, A>))
@@ -726,7 +726,7 @@ where
 
 #[utoipa::path(
     post,
-    path = "/entity-types/multi",
+    path = "/entity-types/query/multi",
     request_body = GetClosedMultiEntityTypeParams,
     tag = "EntityType",
     params(
@@ -748,7 +748,7 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client, request)
 )]
-async fn get_closed_multi_entity_types<S, A>(
+async fn get_closed_multi_entity_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,

@@ -66,11 +66,13 @@ export type User = {
 function assertUserEntity(
   entity: Entity,
 ): asserts entity is Entity<UserEntity> {
-  if (entity.metadata.entityTypeId !== systemEntityTypes.user.entityTypeId) {
+  if (
+    !entity.metadata.entityTypeIds.includes(systemEntityTypes.user.entityTypeId)
+  ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.user.entityTypeId,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 }
@@ -407,7 +409,7 @@ export const createUser: ImpureGraphFunction<
     {
       ownedById: userAccountId as OwnedById,
       properties,
-      entityTypeId: systemEntityTypes.user.entityTypeId,
+      entityTypeIds: [systemEntityTypes.user.entityTypeId],
       entityUuid: userAccountId as string as EntityUuid,
       relationships: [
         {

@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use futures::{Stream, TryStreamExt, stream::MapOk};
+use futures::{Stream, TryStreamExt as _, stream::MapOk};
 use harpc_codec::error::NetworkError;
 use harpc_net::session::server::SessionId;
 use harpc_types::response_kind::ResponseKind;

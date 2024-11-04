@@ -65,7 +65,9 @@ export type {
  * A notification of a change to a graph
  */
 export type GraphChangeNotification = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1",
+  ];
   properties: GraphChangeNotificationProperties;
   propertiesWithMetadata: GraphChangeNotificationPropertiesWithMetadata;
 };

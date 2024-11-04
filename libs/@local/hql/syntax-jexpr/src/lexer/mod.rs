@@ -101,7 +101,7 @@ impl<'source> Iterator for Lexer<'source> {
 
 #[cfg(test)]
 mod test {
-    use core::fmt::Write;
+    use core::fmt::Write as _;
 
     use hql_diagnostics::{config::ReportConfig, span::DiagnosticSpan};
     use hql_span::storage::SpanStorage;

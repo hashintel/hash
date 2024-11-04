@@ -9,7 +9,7 @@ mod type_fetcher;
 
 use core::time::Duration;
 
-use error_stack::{Result, ensure};
+use error_stack::{Report, ensure};
 use hash_tracing::{TracingConfig, init_tracing};
 use tokio::{runtime::Handle, time::sleep};
 
@@ -51,9 +51,9 @@ pub enum Subcommand {
 }
 
 fn block_on(
-    future: impl Future<Output = Result<(), GraphError>>,
+    future: impl Future<Output = Result<(), Report<GraphError>>>,
     tracing_config: TracingConfig,
-) -> Result<(), GraphError> {
+) -> Result<(), Report<GraphError>> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -68,7 +68,7 @@ fn block_on(
 }
 
 impl Subcommand {
-    pub(crate) fn execute(self, tracing_config: TracingConfig) -> Result<(), GraphError> {
+    pub(crate) fn execute(self, tracing_config: TracingConfig) -> Result<(), Report<GraphError>> {
         match self {
             Self::Server(args) => block_on(server(args), tracing_config),
             Self::Migrate(args) => block_on(migrate(args), tracing_config),
@@ -89,10 +89,10 @@ pub async fn wait_healthcheck<F, Ret>(
     func: F,
     wait: bool,
     wait_timeout: Option<Duration>,
-) -> Result<(), HealthcheckError>
+) -> Result<(), Report<HealthcheckError>>
 where
     F: Fn() -> Ret + Send,
-    Ret: Future<Output = Result<(), HealthcheckError>> + Send,
+    Ret: Future<Output = Result<(), Report<HealthcheckError>>> + Send,
 {
     let expected_end_time = wait_timeout.map(|timeout| std::time::Instant::now() + timeout);
 

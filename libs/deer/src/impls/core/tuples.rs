@@ -1,11 +1,11 @@
 use core::marker::PhantomData;
 
-use error_stack::{Report, Result, ResultExt, TryReportTupleExt};
+use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 
 use crate::{
     ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
     error::{
-        ArrayLengthError, DeserializeError, ExpectedLength, Location, ReceivedLength, Variant,
+        ArrayLengthError, DeserializeError, ExpectedLength, Location, ReceivedLength, Variant as _,
         VisitorError,
     },
 };
@@ -65,7 +65,7 @@ macro_rules! impl_tuple {
             }
 
             #[expect(non_snake_case)]
-            fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
+            fn visit_array<A>(self, array: A) -> Result<Self::Value, Report<VisitorError>>
             where
                 A: ArrayAccess<'de>,
             {
@@ -103,7 +103,7 @@ macro_rules! impl_tuple {
         {
             type Reflection = $reflection<$($elem::Reflection),*>;
 
-            fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
+            fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, Report<DeserializeError>> {
                 de.deserialize_array($visitor::<$($elem,)*>(PhantomData))
                             .change_context(DeserializeError)
             }

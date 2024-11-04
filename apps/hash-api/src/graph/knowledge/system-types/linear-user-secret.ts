@@ -40,12 +40,14 @@ function assertLinearUserSecret(
   entity: Entity,
 ): asserts entity is Entity<UserSecret> {
   if (
-    entity.metadata.entityTypeId !== systemEntityTypes.userSecret.entityTypeId
+    !entity.metadata.entityTypeIds.includes(
+      systemEntityTypes.userSecret.entityTypeId,
+    )
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.userSecret.entityTypeId,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 }
@@ -54,13 +56,14 @@ function assertLinearIntegration(
   entity: Entity,
 ): asserts entity is Entity<LinearIntegration> {
   if (
-    entity.metadata.entityTypeId !==
-    systemEntityTypes.linearIntegration.entityTypeId
+    !entity.metadata.entityTypeIds.includes(
+      systemEntityTypes.linearIntegration.entityTypeId,
+    )
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.linearIntegration.entityTypeId,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 }

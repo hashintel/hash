@@ -1,4 +1,4 @@
-use core::{iter::once, str::FromStr};
+use core::{iter::once, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
 
 use authorization::AuthorizationApi;

@@ -200,7 +200,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
           entityUpdates: params.notificationEntities.map(
             (notificationEntity) => ({
               entityId: notificationEntity.metadata.recordId.entityId,
-              entityTypeId: notificationEntity.metadata.entityTypeId,
+              entityTypeIds: notificationEntity.metadata.entityTypeIds,
               propertyPatches: [
                 {
                   op: "add",
@@ -234,7 +234,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
         variables: {
           entityUpdate: {
             entityId: notificationEntity.metadata.recordId.entityId,
-            entityTypeId: notificationEntity.metadata.entityTypeId,
+            entityTypeIds: notificationEntity.metadata.entityTypeIds,
             propertyPatches: [
               {
                 op: "add",
@@ -268,7 +268,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
           entityUpdates: params.notificationEntities.map(
             (notificationEntity) => ({
               entityId: notificationEntity.metadata.recordId.entityId,
-              entityTypeId: notificationEntity.metadata.entityTypeId,
+              entityTypeIds: notificationEntity.metadata.entityTypeIds,
               propertyPatches: [
                 {
                   op: "add",

@@ -16,7 +16,7 @@ import {
   generateEntityLabel,
   generateLinkEntityLabel,
 } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -43,9 +43,9 @@ const columnDefinitionsByKey: Record<
     width: number;
   }
 > = {
-  entityTypeVersion: {
+  entityTypes: {
     title: "Entity Type",
-    id: "entityTypeVersion",
+    id: "entityTypes",
     width: 200,
   },
   web: {
@@ -95,8 +95,11 @@ export interface TypeEntitiesRow {
   entityId: EntityId;
   entity: Entity;
   entityLabel: string;
-  entityTypeId: VersionedUrl;
-  entityTypeVersion: string;
+  entityTypes: {
+    entityTypeId: VersionedUrl;
+    icon?: string;
+    title: string;
+  }[];
   archived?: boolean;
   lastEdited: string;
   lastEditedBy?: MinimalActor | "loading";
@@ -174,7 +177,12 @@ export const useEntitiesTable = (params: {
       !!entities &&
       !!entities.length &&
       entities
-        .map(({ metadata: { entityTypeId } }) => extractBaseUrl(entityTypeId))
+        .map(({ metadata: { entityTypeIds } }) =>
+          entityTypeIds
+            .toSorted()
+            .map((entityTypeId) => extractBaseUrl(entityTypeId))
+            .join(","),
+        )
         .every((value, _i, all) => value === all[0]),
     [entities],
   );
@@ -187,28 +195,27 @@ export const useEntitiesTable = (params: {
     }
 
     return Object.fromEntries(
-      entities.map((entity) => {
-        const entityType = getEntityTypeById(
-          subgraph,
-          entity.metadata.entityTypeId,
-        );
+      entities.flatMap((entity) =>
+        entity.metadata.entityTypeIds.map((entityTypeId) => {
+          const entityType = getEntityTypeById(subgraph, entityTypeId);
 
-        if (!entityType) {
-          throw new Error(
-            `Could not find entityType with id ${entity.metadata.entityTypeId} in subgraph`,
-          );
-        }
+          if (!entityType) {
+            throw new Error(
+              `Could not find entityType with id ${entityTypeId} in subgraph`,
+            );
+          }
 
-        return [
-          entityType.schema.$id,
-          [
-            ...getPropertyTypesForEntityType(
-              entityType.schema,
-              subgraph,
-            ).values(),
-          ],
-        ];
-      }),
+          return [
+            entityType.schema.$id,
+            [
+              ...getPropertyTypesForEntityType(
+                entityType.schema,
+                subgraph,
+              ).values(),
+            ],
+          ];
+        }),
+      ),
     );
   }, [entities, subgraph]);
 
@@ -248,7 +255,7 @@ export const useEntitiesTable = (params: {
       {
         title: entitiesHaveSameType
           ? (entityTypes?.find(
-              ({ $id }) => $id === entities?.[0]?.metadata.entityTypeId,
+              ({ $id }) => $id === entities?.[0]?.metadata.entityTypeIds[0],
             )?.title ?? "Entity")
           : "Entity",
         id: "entityLabel",
@@ -281,15 +288,9 @@ export const useEntitiesTable = (params: {
         ? entities?.map((entity) => {
             const entityLabel = generateEntityLabel(subgraph, entity);
 
-            const entityType = entityTypes.find(
-              (type) => type.$id === entity.metadata.entityTypeId,
+            const currentEntitysTypes = entityTypes.filter((type) =>
+              entity.metadata.entityTypeIds.includes(type.$id),
             );
-
-            if (!entityType) {
-              throw new Error(
-                `Could not find entity type with id ${entity.metadata.entityTypeId} in subgraph`,
-              );
-            }
 
             const { shortname: entityNamespace } = getOwnerForEntity({
               entityId: entity.metadata.recordId.entityId,
@@ -297,7 +298,9 @@ export const useEntitiesTable = (params: {
 
             const entityId = entity.metadata.recordId.entityId;
 
-            const isPage = isPageEntityTypeId(entity.metadata.entityTypeId);
+            const isPage = includesPageEntityTypeId(
+              entity.metadata.entityTypeIds,
+            );
 
             /**
              * @todo: consider displaying handling this differently for pages, where
@@ -331,9 +334,12 @@ export const useEntitiesTable = (params: {
                     accountId === entity.metadata.provenance.createdById,
                 );
 
-            const applicableProperties = usedPropertyTypesByEntityTypeId[
-              entityType.$id
-            ]!.map((propertyType) => extractBaseUrl(propertyType.schema.$id));
+            const applicableProperties = currentEntitysTypes.flatMap(
+              (entityType) =>
+                usedPropertyTypesByEntityTypeId[entityType.$id]!.map(
+                  (propertyType) => extractBaseUrl(propertyType.schema.$id),
+                ),
+            );
 
             let sourceEntity: TypeEntitiesRow["sourceEntity"];
             let targetEntity: TypeEntitiesRow["targetEntity"];
@@ -370,20 +376,26 @@ export const useEntitiesTable = (params: {
               };
             }
 
-            let entityTypeVersion = entityType.title;
-            if (
-              entityTypesWithMultipleVersionsPresent.includes(entityType.$id)
-            ) {
-              entityTypeVersion += ` v${extractVersion(entityType.$id)}`;
-            }
-
             return {
               rowId: entityId,
               entityId,
               entity,
               entityLabel,
-              entityTypeId: entityType.$id,
-              entityTypeVersion,
+              entityTypes: currentEntitysTypes.map((entityType) => {
+                let entityTypeLabel = entityType.title;
+                if (
+                  entityTypesWithMultipleVersionsPresent.includes(
+                    entityType.$id,
+                  )
+                ) {
+                  entityTypeLabel += ` v${extractVersion(entityType.$id)}`;
+                }
+
+                return {
+                  title: entityTypeLabel,
+                  entityTypeId: entityType.$id,
+                };
+              }),
               web: `@${entityNamespace}`,
               archived: isPage
                 ? simplifyProperties(entity.properties as PageProperties)

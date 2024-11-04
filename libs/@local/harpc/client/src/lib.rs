@@ -6,7 +6,7 @@ pub mod connection;
 
 use alloc::sync::Arc;
 
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use harpc_net::{
     session::client::{SessionConfig, SessionLayer},
     transport::{TransportConfig, TransportLayer},

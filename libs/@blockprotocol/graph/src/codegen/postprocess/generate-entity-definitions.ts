@@ -20,7 +20,7 @@ const generateEntityDefinitionForEntityType = (
   * ${type.description}
   */
   export type ${entityName} = {
-  entityTypeId: "${entityTypeId}";
+  entityTypeIds: ["${entityTypeId}"];
   properties: ${typeName};
   propertiesWithMetadata: ${typeName}WithMetadata;
 }\n`;

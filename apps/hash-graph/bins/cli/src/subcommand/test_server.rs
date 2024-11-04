@@ -1,12 +1,12 @@
 use core::{net::SocketAddr, time::Duration};
 
 use authorization::{
-    AuthorizationApi,
-    backend::{SpiceDbOpenApi, ZanzibarBackend},
+    AuthorizationApi as _,
+    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
     zanzibar::ZanzibarClient,
 };
 use clap::Parser;
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use graph::{
     snapshot::SnapshotEntry,
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool},
@@ -58,7 +58,7 @@ pub struct TestServerArgs {
     pub spicedb_grpc_preshared_key: Option<String>,
 }
 
-pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
+pub async fn test_server(args: TestServerArgs) -> Result<(), Report<GraphError>> {
     SnapshotEntry::install_error_stack_hook();
 
     if args.healthcheck {
@@ -109,7 +109,7 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
     Ok(())
 }
 
-pub async fn healthcheck(address: ApiAddress) -> Result<(), HealthcheckError> {
+pub async fn healthcheck(address: ApiAddress) -> Result<(), Report<HealthcheckError>> {
     let request_url = format!("http://{address}/snapshot");
 
     timeout(

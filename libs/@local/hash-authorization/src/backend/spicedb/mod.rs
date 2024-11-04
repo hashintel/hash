@@ -4,7 +4,7 @@ pub(crate) mod serde;
 
 use core::fmt;
 
-use error_stack::Result;
+use error_stack::Report;
 
 pub use self::model::RpcError;
 
@@ -32,7 +32,10 @@ impl SpiceDbOpenApi {
     /// # Errors
     ///
     /// - Errors if the client could not be built
-    pub fn new(base_path: impl Into<String>, key: Option<&str>) -> Result<Self, reqwest::Error> {
+    pub fn new(
+        base_path: impl Into<String>,
+        key: Option<&str>,
+    ) -> Result<Self, Report<reqwest::Error>> {
         Ok(Self {
             base_path: base_path.into(),
             client: reqwest::Client::builder()

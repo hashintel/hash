@@ -1,11 +1,11 @@
 use core::task::{Context, Poll};
 
-use bytes::Buf;
+use bytes::Buf as _;
 use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service};
 
 use crate::{
-    body::{Body, BodyExt},
+    body::{Body, BodyExt as _},
     request::Request,
     response::{BoxedResponse, Response},
 };

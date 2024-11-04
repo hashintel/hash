@@ -91,8 +91,9 @@ export const isBlockCollectionContentsEmpty = (params: {
 
   if (
     contents.length === 1 &&
-    contents[0]!.rightEntity.blockChildEntity.metadata.entityTypeId ===
-      systemEntityTypes.text.entityTypeId
+    contents[0]!.rightEntity.blockChildEntity.metadata.entityTypeIds.includes(
+      systemEntityTypes.text.entityTypeId,
+    )
   ) {
     const textualContent = contents[0]!.rightEntity.blockChildEntity.properties[
       blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl
@@ -111,9 +112,9 @@ export const getBlockCollectionContents = (params: {
   const { blockCollectionEntityId, blockCollectionSubgraph } = params;
 
   const blockCollection = getRoots(blockCollectionSubgraph)[0]!;
-  const isCanvas =
-    blockCollection.metadata.entityTypeId ===
-    systemEntityTypes.canvas.entityTypeId;
+  const isCanvas = blockCollection.metadata.entityTypeIds.includes(
+    systemEntityTypes.canvas.entityTypeId,
+  );
 
   const outgoingContentLinks = getOutgoingLinkAndTargetEntities<
     {
@@ -126,11 +127,12 @@ export const getBlockCollectionContents = (params: {
     .filter(
       ({ linkEntity: linkEntityRevisions }) =>
         linkEntityRevisions[0] &&
-        linkEntityRevisions[0].metadata.entityTypeId ===
-          (isCanvas
+        linkEntityRevisions[0].metadata.entityTypeIds.includes(
+          isCanvas
             ? systemLinkEntityTypes.hasSpatiallyPositionedContent
                 .linkEntityTypeId
-            : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId),
+            : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+        ),
     )
     .sort((a, b) =>
       sortBlockCollectionLinks(a.linkEntity[0]!, b.linkEntity[0]!),
@@ -154,8 +156,9 @@ export const getBlockCollectionContents = (params: {
       ).find(
         ({ linkEntity: linkEntityRevisions }) =>
           linkEntityRevisions[0] &&
-          linkEntityRevisions[0].metadata.entityTypeId ===
+          linkEntityRevisions[0].metadata.entityTypeIds.includes(
             systemLinkEntityTypes.hasData.linkEntityTypeId,
+          ),
       )?.rightEntity[0];
 
       if (!blockChildEntity) {

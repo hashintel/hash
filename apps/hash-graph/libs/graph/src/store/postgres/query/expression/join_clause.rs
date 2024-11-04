@@ -1,4 +1,4 @@
-use core::{fmt, fmt::Write};
+use core::{fmt, fmt::Write as _};
 
 use crate::store::postgres::query::{
     Alias, AliasedTable, Expression, SelectStatement, Transpile,

@@ -1,16 +1,16 @@
 use core::ops::Range;
 
 use deer::{
-    Context, Deserialize, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor, Reflection,
-    StructVisitor, Visitor,
+    Context, Deserialize as _, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor,
+    Reflection as _, StructVisitor, Visitor,
     error::{
         DeserializerError, Error, ExpectedLength, ExpectedType, ObjectLengthError, ReceivedType,
-        TypeError, Variant,
+        TypeError, Variant as _,
     },
     schema::Document,
     value::NoneDeserializer,
 };
-use error_stack::{Report, ReportSink, Result, ResultExt};
+use error_stack::{Report, ReportSink, ResultExt as _};
 use justjson::{
     AnyStr,
     parser::{PeekableTokenKind, Token, Tokenizer},
@@ -52,7 +52,7 @@ impl Stack {
         Self { limit, depth: 0 }
     }
 
-    pub(crate) fn push(&mut self) -> Result<(), DeserializerError> {
+    pub(crate) fn push(&mut self) -> Result<(), Report<DeserializerError>> {
         self.depth += 1;
 
         if self.depth >= self.limit {
@@ -89,7 +89,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         }
     }
 
-    fn next(&mut self) -> Result<Token<'de>, DeserializerError> {
+    fn next(&mut self) -> Result<Token<'de>, Report<DeserializerError>> {
         let offset = self.tokenizer.offset();
         let Some(token) = self.tokenizer.next() else {
             return Err(Report::new(SyntaxError::UnexpectedEof.into_error())
@@ -102,7 +102,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
             .change_context(DeserializerError)
     }
 
-    fn next_value(&mut self) -> Result<ValueToken<'de>, DeserializerError> {
+    fn next_value(&mut self) -> Result<ValueToken<'de>, Report<DeserializerError>> {
         let token = self.next()?;
 
         ValueToken::try_from(token).change_context(DeserializerError)
@@ -139,7 +139,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         &mut self,
         token: PeekableTokenKind,
         error: SyntaxError,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Report<Error>> {
         if self.skip_if(token).is_none() {
             Err(Report::new(error.into_error()).attach(Position::new(self.offset())))
         } else {
@@ -155,7 +155,10 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         self.tokenizer.offset()
     }
 
-    pub(crate) fn try_stack_push(&mut self, token: &Token) -> Result<(), DeserializerError> {
+    pub(crate) fn try_stack_push(
+        &mut self,
+        token: &Token,
+    ) -> Result<(), Report<DeserializerError>> {
         if let Err(error) = self.stack.push() {
             // we can still recover, we pop us again from the stack as we stopped before and do not
             // commit. We still show the error, but we could continue, so we skip all tokens.
@@ -187,7 +190,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -211,7 +214,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         .change_context(DeserializerError)
     }
 
-    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -223,7 +226,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -235,7 +238,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -249,21 +252,21 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
         self.deserialize_str(visitor)
     }
 
-    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
         self.deserialize_str(visitor)
     }
 
-    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -279,21 +282,21 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_bytes<V>(self, _: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_bytes<V>(self, _: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
         Err(Report::new(BytesUnsupportedError.into_error()).change_context(DeserializerError))
     }
 
-    fn deserialize_bytes_buffer<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_bytes_buffer<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
         self.deserialize_bytes(visitor)
     }
 
-    fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -307,7 +310,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -321,7 +324,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: OptionalVisitor<'de>,
     {
@@ -340,7 +343,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: EnumVisitor<'de>,
     {
@@ -427,7 +430,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         value.change_context(DeserializerError)
     }
 
-    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: StructVisitor<'de>,
     {
@@ -444,7 +447,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: IdentifierVisitor<'de>,
     {

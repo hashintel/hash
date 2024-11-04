@@ -3,43 +3,41 @@ import { AsteriskRegularIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box } from "@mui/material";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 
-import { FileRegularIcon } from "./icons/file-regular-icon";
+import { CanvasIcon } from "./icons/canvas-icon";
+import { PageLightIcon } from "./icons/page-light-icon";
 import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
 
+/**
+ * @todo H-2014 support URL icons on entity types and remove these overrides
+ */
 export const entityTypeIcons: Record<VersionedUrl, ReactNode> = {
   [systemEntityTypes.user.entityTypeId]: <UserIcon sx={{ fontSize: 12 }} />,
   [systemEntityTypes.organization.entityTypeId]: (
     <UsersRegularIcon sx={{ fontSize: 14, position: "relative", top: 1 }} />
   ),
   [systemEntityTypes.document.entityTypeId]: (
-    <FileRegularIcon sx={{ fontSize: 12 }} />
+    <PageLightIcon sx={{ fontSize: 13 }} />
   ),
-  // @todo canvas icon
+  [systemEntityTypes.canvas.entityTypeId]: <CanvasIcon sx={{ fontSize: 12 }} />,
 };
 
 export const useEntityIcon = (params: {
   entity?: Entity;
-  entityType?: EntityTypeWithMetadata;
+  entityTypes?: EntityTypeWithMetadata[];
   pageIcon?: JSX.Element;
 }) => {
-  const { entity, entityType, pageIcon } = params;
+  const { entity, entityTypes, pageIcon } = params;
   return useMemo(() => {
     if (entity) {
-      /**
-       * @todo do we need this check for page? and the same below
-       * we could let people set an icon on any entity and use it
-       * if we do so we may wish to check if the icon is a URL, and show an image if it is
-       * consider as part of H-783
-       */
-      if (isPageEntityTypeId(entity.metadata.entityTypeId)) {
+      if (includesPageEntityTypeId(entity.metadata.entityTypeIds)) {
         const { icon: customPageIcon } = simplifyProperties(
           entity.properties as PageProperties,
         );
@@ -51,19 +49,26 @@ export const useEntityIcon = (params: {
             </Box>
           );
         }
+
+        if (pageIcon) {
+          return pageIcon;
+        }
       }
+
       /**
-       * @todo: use the entity type icon
-       * @see https://linear.app/hash/issue/H-783/implement-entity-type-icons
+       * @todo H-739 account for 'icon' property being a URL to an image. Combine with TypeIcon
        */
-      return pageIcon &&
-        // @todo when implementing H-783 – do we need this check? see comment above
-        isPageEntityTypeId(entity.metadata.entityTypeId)
-        ? pageIcon
-        : (entityTypeIcons[entity.metadata.entityTypeId] ??
-            entityType?.schema.icon ?? (
-              <AsteriskRegularIcon sx={{ fontSize: 12 }} />
-            ));
+      for (const entityType of entityTypes ?? []) {
+        if (entityType.schema.icon) {
+          return entityType.schema.icon;
+        }
+
+        if (entityTypeIcons[entityType.schema.$id]) {
+          return entityTypeIcons[entityType.schema.$id];
+        }
+      }
+
+      return <AsteriskRegularIcon sx={{ fontSize: 12 }} />;
     }
-  }, [entity, entityType, pageIcon]);
+  }, [entity, entityTypes, pageIcon]);
 };

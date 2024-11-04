@@ -4,9 +4,9 @@
 mod common;
 
 use common::*;
-use error_stack::Result;
+use error_stack::Report;
 use tracing_error::{ErrorLayer, SpanTrace};
-use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::layer::SubscriberExt as _;
 
 fn install_tracing_subscriber() {
     static ONCE: std::sync::Once = std::sync::Once::new();
@@ -23,12 +23,12 @@ fn captured() {
     install_tracing_subscriber();
 
     #[tracing::instrument]
-    fn func_b() -> Result<(), RootError> {
+    fn func_b() -> Result<(), Report<RootError>> {
         create_error()
     }
 
     #[tracing::instrument]
-    fn func_a() -> Result<(), RootError> {
+    fn func_a() -> Result<(), Report<RootError>> {
         func_b()
     }
 
@@ -62,8 +62,8 @@ fn provided() {
     }
 
     #[tracing::instrument]
-    fn func_a() -> Result<(), ErrorA> {
-        Err(error_stack::Report::new(func_b()))
+    fn func_a() -> Result<(), Report<ErrorA>> {
+        Err(Report::new(func_b()))
     }
 
     let report = capture_error(func_a);

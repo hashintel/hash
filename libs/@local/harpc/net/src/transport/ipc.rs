@@ -1,4 +1,4 @@
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use libp2p::{Multiaddr, PeerId};
 use libp2p_stream::Control;
 use tokio::sync::{mpsc, oneshot};
@@ -15,7 +15,7 @@ impl TransportLayerIpc {
         Self { tx }
     }
 
-    pub(super) async fn control(&self) -> Result<Control, IpcError> {
+    pub(super) async fn control(&self) -> Result<Control, Report<IpcError>> {
         let (tx, rx) = oneshot::channel();
 
         self.tx
@@ -26,7 +26,7 @@ impl TransportLayerIpc {
         rx.await.change_context(IpcError::NoResponse)
     }
 
-    pub(super) async fn lookup_peer(&self, address: Multiaddr) -> Result<PeerId, IpcError> {
+    pub(super) async fn lookup_peer(&self, address: Multiaddr) -> Result<PeerId, Report<IpcError>> {
         let (tx, rx) = oneshot::channel();
 
         self.tx
@@ -39,7 +39,10 @@ impl TransportLayerIpc {
             .change_context(IpcError::Swarm)
     }
 
-    pub(super) async fn listen_on(&self, address: Multiaddr) -> Result<Multiaddr, IpcError> {
+    pub(super) async fn listen_on(
+        &self,
+        address: Multiaddr,
+    ) -> Result<Multiaddr, Report<IpcError>> {
         let (tx, rx) = oneshot::channel();
 
         self.tx
@@ -59,7 +62,7 @@ impl TransportLayerIpc {
     /// # Errors
     ///
     /// If the transport layer has been shut down, this will return an error.
-    pub async fn external_addresses(&self) -> Result<Vec<Multiaddr>, IpcError> {
+    pub async fn external_addresses(&self) -> Result<Vec<Multiaddr>, Report<IpcError>> {
         let (tx, rx) = oneshot::channel();
 
         self.tx

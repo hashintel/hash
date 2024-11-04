@@ -156,7 +156,7 @@ mod test {
 
     use super::{BodyStream, StreamBody};
     use crate::body::{
-        Body, BodyState, Frame,
+        Body as _, BodyState, Frame,
         test::{poll_frame_unpin, poll_stream_unpin},
     };
 

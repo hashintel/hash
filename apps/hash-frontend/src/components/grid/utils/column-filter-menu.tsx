@@ -44,6 +44,7 @@ const blueFilterButtonSx: SxProps<Theme> = ({ palette, transitions }) => ({
 
 type FilterItemData = {
   id: string;
+  doesNotApplyValue?: boolean;
   label: string;
   checked: boolean;
 };
@@ -75,7 +76,7 @@ const FilterItem = memo(
     } = data;
 
     const item = items[index]!;
-    const { id, label, checked } = item;
+    const { id, doesNotApplyValue, label, checked } = item;
 
     return (
       <Box style={style}>
@@ -122,6 +123,16 @@ const FilterItem = memo(
             </ListItemIcon>
             <ListItemText
               primary={label}
+              primaryTypographyProps={
+                doesNotApplyValue
+                  ? {
+                      sx: {
+                        color: ({ palette }) =>
+                          `${palette.gray[60]} !important`,
+                      },
+                    }
+                  : {}
+              }
               sx={{
                 "& span": {
                   display: "block",
@@ -215,7 +226,7 @@ export const ColumnFilterMenu: FunctionComponent<
         continue;
       }
 
-      const { id, label, count } = item;
+      const { id, doesNotApplyValue, label, count } = item;
 
       const checked = !!selectedFilterItemIds?.has(id);
 
@@ -224,12 +235,20 @@ export const ColumnFilterMenu: FunctionComponent<
 
       filteredItems.push({
         id,
+        doesNotApplyValue,
         label: text,
         checked,
       });
     }
 
     const sortedItems = filteredItems.sort((a, b) => {
+      if (a.doesNotApplyValue && !b.doesNotApplyValue) {
+        return -1;
+      }
+      if (!a.doesNotApplyValue && b.doesNotApplyValue) {
+        return 1;
+      }
+
       if (
         searchText &&
         a.label.toLowerCase().startsWith(lowerCasedSearchText) &&

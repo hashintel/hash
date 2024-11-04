@@ -52,11 +52,15 @@ export type Block = {
 function assertBlockEntity(
   entity: Entity,
 ): asserts entity is Entity<BlockEntity> {
-  if (entity.metadata.entityTypeId !== systemEntityTypes.block.entityTypeId) {
+  if (
+    !entity.metadata.entityTypeIds.includes(
+      systemEntityTypes.block.entityTypeId,
+    )
+  ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.block.entityTypeId,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 }
@@ -119,7 +123,7 @@ export const createBlock: ImpureGraphFunction<
         },
       },
     },
-    entityTypeId: systemEntityTypes.block.entityTypeId,
+    entityTypeIds: [systemEntityTypes.block.entityTypeId],
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
@@ -130,7 +134,7 @@ export const createBlock: ImpureGraphFunction<
       leftEntityId: entity.metadata.recordId.entityId,
       rightEntityId: blockData.metadata.recordId.entityId,
     },
-    entityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
+    entityTypeIds: [systemLinkEntityTypes.hasData.linkEntityTypeId],
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
@@ -234,7 +238,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
       leftEntityId: block.entity.metadata.recordId.entityId,
       rightEntityId: newBlockDataEntity.metadata.recordId.entityId,
     },
-    entityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
+    entityTypeIds: [systemLinkEntityTypes.hasData.linkEntityTypeId],
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 };

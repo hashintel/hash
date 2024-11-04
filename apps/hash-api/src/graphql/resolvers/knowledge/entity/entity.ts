@@ -1,3 +1,4 @@
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
@@ -82,7 +83,7 @@ export const createEntityResolver: ResolverFn<
   {
     ownedById,
     properties,
-    entityTypeId,
+    entityTypeIds,
     linkedEntities,
     linkData,
     draft,
@@ -122,7 +123,7 @@ export const createEntityResolver: ResolverFn<
         leftEntityId,
         rightEntityId,
       },
-      entityTypeId,
+      entityTypeIds: mustHaveAtLeastOne(entityTypeIds),
       relationships:
         relationships ??
         createDefaultAuthorizationRelationships(authentication),
@@ -131,7 +132,7 @@ export const createEntityResolver: ResolverFn<
   } else {
     entity = await createEntityWithLinks(context, authentication, {
       ownedById: ownedById ?? (user.accountId as OwnedById),
-      entityTypeId,
+      entityTypeIds: mustHaveAtLeastOne(entityTypeIds),
       properties,
       linkedEntities: linkedEntities ?? undefined,
       relationships: createDefaultAuthorizationRelationships(authentication),
@@ -318,7 +319,7 @@ export const updateEntityResolver: ResolverFn<
   MutationUpdateEntityArgs
 > = async (
   _,
-  { entityUpdate: { draft, entityId, propertyPatches, entityTypeId } },
+  { entityUpdate: { draft, entityId, propertyPatches, entityTypeIds } },
   graphQLContext,
 ) => {
   const { authentication, user } = graphQLContext;
@@ -350,7 +351,9 @@ export const updateEntityResolver: ResolverFn<
   } else {
     updatedEntity = await updateEntity(context, authentication, {
       entity,
-      entityTypeId: entityTypeId ?? undefined,
+      entityTypeIds: entityTypeIds
+        ? mustHaveAtLeastOne(entityTypeIds)
+        : undefined,
       propertyPatches,
       draft: draft ?? undefined,
     });

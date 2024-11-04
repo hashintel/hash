@@ -114,7 +114,7 @@ export const createGraphChangeNotification = async (
     { actorId: webMachineActorId },
     {
       draft: false,
-      entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
+      entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
       ownedById: notifiedUserAccountId as OwnedById,
       properties: {
         value: {
@@ -144,7 +144,7 @@ export const createGraphChangeNotification = async (
     { actorId: notifiedUserAccountId },
     {
       draft: false,
-      entityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+      entityTypeIds: [systemLinkEntityTypes.occurredInEntity.linkEntityTypeId],
       ownedById: notifiedUserAccountId as OwnedById,
       linkData: {
         leftEntityId: notificationEntity.metadata.recordId.entityId,

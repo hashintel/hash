@@ -10,8 +10,8 @@ use authorization::{
     },
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Result, ResultExt};
-use futures::StreamExt;
+use error_stack::{Report, ResultExt as _};
+use futures::StreamExt as _;
 use graph_types::{
     Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
@@ -25,7 +25,7 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     property_type::PropertyTypeQueryPath,
     subgraph::{
-        Subgraph, SubgraphRecord,
+        Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{DataTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{QueryTemporalAxes, VariableAxis},
@@ -33,17 +33,17 @@ use hash_graph_store::{
 };
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use tokio_postgres::{GenericClient, Row};
+use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{
-    Validator,
+    Validator as _,
     schema::{DataTypeUuid, OntologyTypeUuid, PropertyTypeUuid, PropertyTypeValidator},
     url::{OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::store::{
     PropertyTypeStore,
-    crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
+    crud::{QueryResult as _, Read as _, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
@@ -71,7 +71,7 @@ where
         actor_id: AccountId,
         authorization_api: &A,
         zookie: &Zookie<'static>,
-    ) -> Result<impl Iterator<Item = T>, QueryError>
+    ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
     where
         I: Into<PropertyTypeUuid> + Send,
         T: Send,
@@ -109,7 +109,7 @@ where
         actor_id: AccountId,
         params: GetPropertyTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Result<(GetPropertyTypesResponse, Zookie<'static>), QueryError> {
+    ) -> Result<(GetPropertyTypesResponse, Zookie<'static>), Report<QueryError>> {
         #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
         let count = if params.include_count {
             Some(
@@ -210,7 +210,7 @@ where
         actor_id: AccountId,
         zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), Report<QueryError>> {
         let mut data_type_queue = Vec::new();
         let mut edges_to_traverse = HashMap::<OntologyEdgeKind, OntologyTypeTraversalData>::new();
 
@@ -315,7 +315,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    pub async fn delete_property_types(&mut self) -> Result<(), DeletionError> {
+    pub async fn delete_property_types(&mut self) -> Result<(), Report<DeletionError>> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
 
         transaction
@@ -363,7 +363,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: P,
-    ) -> Result<Vec<PropertyTypeMetadata>, InsertionError>
+    ) -> Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>
     where
         P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
@@ -524,7 +524,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: CountPropertyTypesParams<'_>,
-    ) -> Result<usize, QueryError> {
+    ) -> Result<usize, Report<QueryError>> {
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -550,7 +550,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: GetPropertyTypesParams<'_>,
-    ) -> Result<GetPropertyTypesResponse, QueryError> {
+    ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -572,7 +572,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: GetPropertyTypeSubgraphParams<'_>,
-    ) -> Result<GetPropertyTypeSubgraphResponse, QueryError> {
+    ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -667,7 +667,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: UpdatePropertyTypesParams<R>,
-    ) -> Result<PropertyTypeMetadata, UpdateError>
+    ) -> Result<PropertyTypeMetadata, Report<UpdateError>>
     where
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
@@ -808,7 +808,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: ArchivePropertyTypeParams<'_>,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.archive_ontology_type(&params.property_type_id, EditionArchivedById::new(actor_id))
             .await
     }
@@ -818,7 +818,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: UnarchivePropertyTypeParams<'_>,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.unarchive_ontology_type(&params.property_type_id, &OntologyEditionProvenance {
             created_by_id: EditionCreatedById::new(actor_id),
             archived_by_id: None,
@@ -832,7 +832,7 @@ where
         &mut self,
         _: AccountId,
         params: UpdatePropertyTypeEmbeddingParams<'_>,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<(), Report<UpdateError>> {
         #[derive(Debug, ToSql)]
         #[postgres(name = "property_type_embeddings")]
         pub struct PropertyTypeEmbeddingsRow<'a> {

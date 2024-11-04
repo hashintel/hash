@@ -1,4 +1,4 @@
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
@@ -14,7 +14,7 @@ impl Visitor<'_> for BoolVisitor {
         bool::document()
     }
 
-    fn visit_bool(self, value: bool) -> Result<Self::Value, VisitorError> {
+    fn visit_bool(self, value: bool) -> Result<Self::Value, Report<VisitorError>> {
         Ok(value)
     }
 }
@@ -28,7 +28,9 @@ impl Reflection for bool {
 impl<'de> Deserialize<'de> for bool {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_bool(BoolVisitor)
             .change_context(DeserializeError)

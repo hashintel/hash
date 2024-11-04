@@ -3,12 +3,12 @@ import { print } from "graphql";
 
 export const createEntityMutation = /* GraphQL */ `
   mutation createEntity(
-    $entityTypeId: VersionedUrl!
+    $entityTypeIds: [VersionedUrl!]!
     $properties: PropertyObjectWithMetadata!
     $linkData: LinkData
   ) {
     createEntity(
-      entityTypeId: $entityTypeId
+      entityTypeIds: $entityTypeIds
       properties: $properties
       linkData: $linkData
     )

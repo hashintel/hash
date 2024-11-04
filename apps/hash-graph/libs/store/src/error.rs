@@ -1,7 +1,5 @@
 use core::{error::Error, fmt};
 
-use error_stack::Context;
-
 #[derive(Debug)]
 #[must_use]
 pub struct InsertionError;
@@ -12,7 +10,7 @@ impl fmt::Display for InsertionError {
     }
 }
 
-impl Context for InsertionError {}
+impl Error for InsertionError {}
 
 #[derive(Debug, Clone)]
 #[must_use]
@@ -36,7 +34,7 @@ impl fmt::Display for UpdateError {
     }
 }
 
-impl Context for UpdateError {}
+impl Error for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]

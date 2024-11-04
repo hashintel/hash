@@ -3,9 +3,9 @@
 use deer::{
     ArrayAccess, Deserialize, Deserializer, Document, FieldVisitor, ObjectAccess, Reflection,
     Schema, StructVisitor, Visitor,
-    error::{ArrayAccessError, DeserializeError, Variant, VisitorError},
+    error::{ArrayAccessError, DeserializeError, Variant as _, VisitorError},
 };
-use error_stack::{Report, ReportSink, Result, ResultExt, TryReportTupleExt};
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 use serde_json::json;
 
 mod common;
@@ -45,7 +45,7 @@ impl Reflection for ExampleFieldDiscriminator {
 impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
     type Reflection = Self;
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>,
     {
@@ -58,7 +58,7 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 Self::Value::reflection()
             }
 
-            fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+            fn visit_str(self, value: &str) -> Result<Self::Value, Report<VisitorError>> {
                 match value {
                     "a" => Ok(ExampleFieldDiscriminator::A),
                     "b" => Ok(ExampleFieldDiscriminator::B),
@@ -72,7 +72,7 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 }
             }
 
-            fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+            fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, Report<VisitorError>> {
                 match value {
                     b"a" => Ok(ExampleFieldDiscriminator::A),
                     b"b" => Ok(ExampleFieldDiscriminator::B),
@@ -92,7 +92,7 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 }
             }
 
-            fn visit_u64(self, value: u64) -> Result<Self::Value, VisitorError> {
+            fn visit_u64(self, value: u64) -> Result<Self::Value, Report<VisitorError>> {
                 match value {
                     0 => Ok(ExampleFieldDiscriminator::A),
                     1 => Ok(ExampleFieldDiscriminator::B),
@@ -116,7 +116,11 @@ impl<'de> FieldVisitor<'de> for ExampleFieldVisitor<'_> {
     type Key = ExampleFieldDiscriminator;
     type Value = ();
 
-    fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, VisitorError>
+    fn visit_value<D>(
+        self,
+        key: Self::Key,
+        deserializer: D,
+    ) -> Result<Self::Value, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
@@ -173,7 +177,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         Example::reflection()
     }
 
-    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ArrayAccess<'de>,
     {
@@ -219,7 +223,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         Ok(Example { a, b, c })
     }
 
-    fn visit_object<A>(self, mut object: A) -> Result<Self::Value, VisitorError>
+    fn visit_object<A>(self, mut object: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ObjectAccess<'de>,
     {
@@ -293,7 +297,7 @@ impl Reflection for Example {
 impl<'de> Deserialize<'de> for Example {
     type Reflection = Self;
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>,
     {

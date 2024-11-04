@@ -1,7 +1,8 @@
 use alloc::sync::Arc;
+use core::error::Error;
 
 use authorization::AuthorizationApi;
-use error_stack::{Context, Result};
+use error_stack::Report;
 use temporal_client::TemporalClient;
 
 use crate::store::Store;
@@ -9,7 +10,7 @@ use crate::store::Store;
 /// Managed pool to keep track about [`Store`]s.
 pub trait StorePool {
     /// The error returned when acquiring a [`Store`].
-    type Error: Context;
+    type Error: Error + Send + Sync + 'static;
 
     /// The store returned when acquiring.
     type Store<'pool, A: AuthorizationApi>: Store + Send + Sync;
@@ -19,7 +20,7 @@ pub trait StorePool {
         &self,
         authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> impl Future<Output = Result<Self::Store<'_, A>, Self::Error>> + Send;
+    ) -> impl Future<Output = Result<Self::Store<'_, A>, Report<Self::Error>>> + Send;
 
     /// Retrieves an owned [`Store`] from the pool.
     ///
@@ -32,5 +33,5 @@ pub trait StorePool {
         &self,
         authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> impl Future<Output = Result<Self::Store<'static, A>, Self::Error>> + Send;
+    ) -> impl Future<Output = Result<Self::Store<'static, A>, Report<Self::Error>>> + Send;
 }

@@ -60,7 +60,7 @@ import { fetchEmbedCode } from "./fetch-embed-code";
 export type BlockLoaderProps = {
   blockCollectionSubgraph?: Subgraph<EntityRootType>;
   blockEntityId?: EntityId; // @todo make this always defined
-  blockEntityTypeId: VersionedUrl;
+  blockEntityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   blockMetadata: HashBlockMeta;
   editableRef: ((node: HTMLElement | null) => void) | null;
   entityStore?: EntityStore;
@@ -111,7 +111,7 @@ const rewrittenPropertiesForTextualContent = (properties: PropertyObject) => {
 export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   blockCollectionSubgraph,
   blockEntityId,
-  blockEntityTypeId,
+  blockEntityTypeIds,
   blockMetadata,
   editableRef,
   entityStore,
@@ -380,7 +380,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      * If we don't yet have a blockEntityId, fetchBlockSubgraph will provide a default.
      */
     void fetchBlockSubgraph(
-      blockEntityTypeId,
+      blockEntityTypeIds,
       blockEntityId,
       fallbackBlockProperties,
     ).then((newBlockSubgraph) => {
@@ -391,7 +391,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   }, [
     fetchingBlockSubgraph,
     blockEntityId,
-    blockEntityTypeId,
+    blockEntityTypeIds,
     blockSubgraph,
     fallbackBlockProperties,
     fetchBlockSubgraph,
@@ -401,7 +401,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
   const refetchSubgraph = useCallback(async () => {
     const newBlockSubgraph = await fetchBlockSubgraph(
-      blockEntityTypeId,
+      blockEntityTypeIds,
       blockEntityId,
     );
 
@@ -409,7 +409,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
   }, [
     blockEntityId,
-    blockEntityTypeId,
+    blockEntityTypeIds,
     fetchBlockSubgraph,
     setBlockSubgraph,
     setUserPermissions,

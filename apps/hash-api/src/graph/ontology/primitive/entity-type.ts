@@ -255,7 +255,7 @@ export const getClosedMultiEntityType: ImpureGraphFunction<
   Promise<ClosedMultiEntityType>
 > = async ({ graphApi }, { actorId }, { temporalClient: _, ...request }) =>
   graphApi
-    .getClosedMultiEntityTypes(actorId, request)
+    .getClosedMultiEntityType(actorId, request)
     .then(({ data: response }) =>
       mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType(
         response.entityType,

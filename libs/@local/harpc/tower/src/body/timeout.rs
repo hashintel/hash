@@ -109,13 +109,14 @@ mod test {
 
     use bytes::Bytes;
     use error_stack::Report;
-    use futures::{StreamExt, stream};
+    use futures::{StreamExt as _, stream};
     use tokio::pin;
     use tokio_util::time::{DelayQueue, delay_queue::Expired};
 
     use super::FrameTimeout;
     use crate::body::{
-        Body, BodyExt, BodyState, Frame, full::Full, stream::StreamBody, timeout::TimeoutError,
+        Body as _, BodyExt as _, BodyState, Frame, full::Full, stream::StreamBody,
+        timeout::TimeoutError,
     };
 
     const HELLO: &[u8] = b"hello";

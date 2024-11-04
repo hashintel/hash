@@ -172,7 +172,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
 
       return {
         localEntityId: localIdToEntityId[proposal.entityId]!,
-        entityTypeId: entityTypeId as VersionedUrl,
+        entityTypeIds: [entityTypeId as VersionedUrl],
         claims: {
           isObjectOf: [],
           isSubjectOf: [],

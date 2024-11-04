@@ -42,11 +42,15 @@ export const processEntityChange = async (
   entity: Entity,
   graphApi: GraphApi,
 ) => {
-  const { entityTypeId } = entity.metadata;
+  const { entityTypeIds } = entity.metadata;
 
-  if (!supportedLinearTypeIds.includes(entityTypeId)) {
+  if (
+    !entityTypeIds.some(
+      (entityTypeId) => !supportedLinearTypeIds.includes(entityTypeId),
+    )
+  ) {
     throw new Error(
-      `Entity with entity type ${entityTypeId} passed to Linear sync back processor – supported types are ${supportedLinearEntityTypeIds.join(
+      `Entity with entity type(s) ${entityTypeIds.join(", ")} passed to Linear sync back processor – supported types are ${supportedLinearEntityTypeIds.join(
         ", ",
       )}.`,
     );
@@ -82,8 +86,8 @@ export const processEntityChange = async (
     temporalClient: null,
   };
 
-  const linearEntityToUpdate = supportedLinearEntityTypeIds.includes(
-    entityTypeId,
+  const linearEntityToUpdate = entityTypeIds.some(
+    (entityTypeId) => !supportedLinearTypeIds.includes(entityTypeId),
   )
     ? entity
     : await getLatestEntityById(
@@ -141,7 +145,7 @@ export const processEntityChange = async (
           apiKey: linearApiKey,
           linearId: linearId as string,
           authentication: { actorId: linearMachineActorId },
-          entityTypeId: linearEntityToUpdate.metadata.entityTypeId,
+          entityTypeIds: linearEntityToUpdate.metadata.entityTypeIds,
           entity: linearEntityToUpdate.toJSON(),
         },
       ],

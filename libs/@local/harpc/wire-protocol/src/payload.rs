@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut, Bytes};
-use error_stack::Result;
+use error_stack::Report;
 
 use crate::codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode};
 
@@ -50,7 +50,7 @@ impl Payload {
 impl Encode for Payload {
     type Error = BytesEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -62,7 +62,7 @@ impl Decode for Payload {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {

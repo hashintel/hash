@@ -32,3 +32,12 @@ export const hiddenEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.usageRecord.entityTypeId,
   systemEntityTypes.userSecret.entityTypeId,
 ];
+
+/**
+ * Types which shouldn't be shown in type selectors etc,
+ * because they either are forbidden from being created by users,
+ * or because they require special handling and will be unusable if manually created.
+ */
+export const nonAssignableTypes = Object.values(systemEntityTypes).map(
+  (type) => type.entityTypeId,
+);
