@@ -18,7 +18,7 @@ use type_system::{
 };
 
 pub use self::{
-    data_type::{DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
+    data_type::{DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
     entity_type::{
         EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata,
     },

@@ -9,11 +9,11 @@ use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
 use graph_types::{
     knowledge::entity::{Entity, EntityId},
-    ontology::{DataTypeProvider, DataTypeWithMetadata},
+    ontology::{DataTypeLookup, DataTypeWithMetadata},
 };
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    schema::DataTypeUuid,
+    schema::{DataTypeReference, DataTypeUuid},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
@@ -161,6 +161,19 @@ where
 
 impl<'p> Filter<'p, DataTypeWithMetadata> {
     #[must_use]
+    pub const fn for_data_type_uuid(data_type_uuid: DataTypeUuid) -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path {
+                path: DataTypeQueryPath::OntologyId,
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Uuid(data_type_uuid.into_uuid()),
+                convert: None,
+            }),
+        )
+    }
+
+    #[must_use]
     pub fn for_data_type_parents(
         data_type_ids: &'p [DataTypeUuid],
         inheritance_depth: Option<u32>,
@@ -295,7 +308,7 @@ where
         data_type_provider: &P,
     ) -> Result<(), Report<ParameterConversionError>>
     where
-        P: DataTypeProvider + Sync,
+        P: DataTypeLookup + Sync,
     {
         match self {
             Self::All(filters) | Self::Any(filters) => {
@@ -474,7 +487,7 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
         provider: &D,
     ) -> Result<(), Report<ParameterConversionError>>
     where
-        D: DataTypeProvider + Sync,
+        D: DataTypeLookup + Sync,
     {
         if let Self::Parameter { parameter, convert } = self {
             if let Some(conversion) = convert.take() {
@@ -486,7 +499,10 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
                 };
 
                 let conversions = provider
-                    .find_conversion(&conversion.from, &conversion.to)
+                    .find_conversion(
+                        <&DataTypeReference>::from(&conversion.from),
+                        <&DataTypeReference>::from(&conversion.to),
+                    )
                     .await
                     .change_context_lazy(|| ParameterConversionError::NoConversionFound {
                         from: conversion.from.clone(),
@@ -509,36 +525,49 @@ mod tests {
 
     use graph_types::{
         knowledge::entity::{DraftId, EntityUuid},
-        ontology::{DataTypeWithMetadata, OntologyTypeProvider},
+        ontology::{DataTypeLookup, DataTypeWithMetadata},
         owned_by_id::OwnedById,
     };
     use serde_json::json;
-    use type_system::schema::ConversionExpression;
+    use type_system::schema::{ClosedDataType, ConversionExpression, DataTypeReference};
     use uuid::Uuid;
 
     use super::*;
 
     struct TestDataTypeProvider;
 
-    #[expect(refining_impl_trait)]
-    impl OntologyTypeProvider<DataTypeWithMetadata> for TestDataTypeProvider {
-        type Value = DataTypeWithMetadata;
+    impl DataTypeLookup for TestDataTypeProvider {
+        type ClosedDataType = ClosedDataType;
+        type DataTypeWithMetadata = DataTypeWithMetadata;
+        type Error = !;
 
-        async fn provide_type(&self, _: &VersionedUrl) -> Result<DataTypeWithMetadata, Report<!>> {
-            unimplemented!()
-        }
-    }
-
-    #[expect(refining_impl_trait)]
-    impl DataTypeProvider for TestDataTypeProvider {
-        async fn is_parent_of(&self, _: &VersionedUrl, _: &BaseUrl) -> Result<bool, Report<!>> {
+        async fn lookup_data_type_by_uuid(
+            &self,
+            _: DataTypeUuid,
+        ) -> Result<Self::DataTypeWithMetadata, Report<!>> {
             unimplemented!()
         }
 
+        async fn lookup_closed_data_type_by_uuid(
+            &self,
+            _: DataTypeUuid,
+        ) -> Result<Self::ClosedDataType, Report<Self::Error>> {
+            unimplemented!()
+        }
+
+        async fn is_parent_of(
+            &self,
+            _: &DataTypeReference,
+            _: &BaseUrl,
+        ) -> Result<bool, Report<!>> {
+            unimplemented!()
+        }
+
+        #[expect(refining_impl_trait_internal)]
         async fn find_conversion(
             &self,
-            _: &VersionedUrl,
-            _: &VersionedUrl,
+            _: &DataTypeReference,
+            _: &DataTypeReference,
         ) -> Result<Vec<ConversionExpression>, Report<!>> {
             unimplemented!()
         }

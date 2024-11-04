@@ -31,7 +31,7 @@ use graph_types::{
             PropertyWithMetadataValue, visitor::EntityVisitor as _,
         },
     },
-    ontology::{DataTypeProvider, OntologyTypeProvider},
+    ontology::{DataTypeLookup, OntologyTypeProvider},
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
@@ -60,7 +60,8 @@ use temporal_versioning::{
 use tokio_postgres::{GenericClient as _, Row, error::SqlState};
 use type_system::{
     schema::{
-        ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, InheritanceDepth, OntologyTypeUuid,
+        ClosedEntityType, ClosedMultiEntityType, DataTypeReference, EntityTypeUuid,
+        InheritanceDepth, OntologyTypeUuid,
     },
     url::VersionedUrl,
 };
@@ -333,7 +334,7 @@ where
         Ok(())
     }
 
-    async fn convert_entity_properties<P: DataTypeProvider + Sync>(
+    async fn convert_entity_properties<P: DataTypeLookup + Sync>(
         &self,
         provider: &P,
         entity: &mut PropertyWithMetadata,
@@ -353,7 +354,10 @@ where
         };
 
         let Ok(conversions) = provider
-            .find_conversion(source_data_type_id, target_data_type_id)
+            .find_conversion(
+                <&DataTypeReference>::from(&*source_data_type_id),
+                <&DataTypeReference>::from(target_data_type_id),
+            )
             .await
         else {
             // If no conversion is found, we can ignore the property.
@@ -375,7 +379,7 @@ where
         metadata.data_type_id = Some(target_data_type_id.clone());
     }
 
-    async fn convert_entity<P: DataTypeProvider + Sync>(
+    async fn convert_entity<P: DataTypeLookup + Sync>(
         &self,
         provider: &P,
         entity: &mut Entity,
