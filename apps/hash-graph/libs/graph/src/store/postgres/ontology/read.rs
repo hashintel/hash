@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use futures::{Stream, StreamExt as _};
 use graph_types::ontology::EntityTypeWithMetadata;
 use hash_graph_store::{
@@ -63,8 +63,8 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         filter: &Filter<'f, EntityTypeWithMetadata>,
         temporal_axes: Option<&'f QueryTemporalAxes>,
     ) -> Result<
-        impl Stream<Item = Result<(EntityTypeUuid, ClosedEntityType), QueryError>>,
-        QueryError,
+        impl Stream<Item = Result<(EntityTypeUuid, ClosedEntityType), Report<QueryError>>>,
+        Report<QueryError>,
     > {
         let mut compiler = SelectCompiler::new(temporal_axes, false);
 
@@ -98,7 +98,7 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         reference_table: ReferenceTable,
     ) -> Result<
         impl Iterator<Item = (OntologyTypeUuid, OntologyEdgeTraversal<L, R>)> + 'r,
-        QueryError,
+        Report<QueryError>,
     >
     where
         L: From<VersionedUrl>,

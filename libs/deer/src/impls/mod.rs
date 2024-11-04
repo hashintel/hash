@@ -1,4 +1,4 @@
-use error_stack::Result;
+use error_stack::Report;
 
 use crate::{Deserialize, Document, OptionalVisitor, error::VisitorError};
 
@@ -14,11 +14,11 @@ impl OptionalVisitor<'_> for UnitVariantVisitor {
         <() as Deserialize>::reflection()
     }
 
-    fn visit_none(self) -> Result<Self::Value, VisitorError> {
+    fn visit_none(self) -> Result<Self::Value, Report<VisitorError>> {
         Ok(())
     }
 
-    fn visit_null(self) -> Result<Self::Value, VisitorError> {
+    fn visit_null(self) -> Result<Self::Value, Report<VisitorError>> {
         Ok(())
     }
 

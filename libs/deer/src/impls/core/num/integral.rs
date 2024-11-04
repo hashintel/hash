@@ -1,4 +1,4 @@
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use num_traits::ToPrimitive as _;
 
 use crate::{
@@ -132,7 +132,9 @@ impl<'de> Deserialize<'de> for usize {
     }
 
     #[cfg(target_pointer_width = "64")]
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         u64::deserialize(deserializer).map(|value| value as Self)
     }
 }
@@ -161,7 +163,9 @@ impl<'de> Deserialize<'de> for isize {
     }
 
     #[cfg(target_pointer_width = "64")]
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         i64::deserialize(deserializer).map(|value| value as Self)
     }
 }

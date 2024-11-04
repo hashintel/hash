@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::mem::swap;
 
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use graph_types::{
     knowledge::entity::{EntityEditionId, EntityId, EntityUuid},
     owned_by_id::OwnedById,
@@ -92,8 +92,10 @@ where
         &self,
         traversal_data: &'t EntityEdgeTraversalData,
         depth: Option<u32>,
-    ) -> Result<impl Iterator<Item = (OntologyTypeUuid, SharedEdgeTraversal)> + 't, QueryError>
-    {
+    ) -> Result<
+        impl Iterator<Item = (OntologyTypeUuid, SharedEdgeTraversal)> + 't,
+        Report<QueryError>,
+    > {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
@@ -177,7 +179,8 @@ where
         traversal_data: &'t EntityEdgeTraversalData,
         reference_table: ReferenceTable,
         edge_direction: EdgeDirection,
-    ) -> Result<impl Iterator<Item = (EntityId, KnowledgeEdgeTraversal)> + 't, QueryError> {
+    ) -> Result<impl Iterator<Item = (EntityId, KnowledgeEdgeTraversal)> + 't, Report<QueryError>>
+    {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),

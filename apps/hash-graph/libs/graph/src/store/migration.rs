@@ -1,4 +1,4 @@
-use error_stack::Result;
+use error_stack::Report;
 
 use super::error::MigrationError;
 
@@ -56,16 +56,16 @@ impl Migration {
 pub trait StoreMigration: Sync {
     fn run_migrations(
         &mut self,
-    ) -> impl Future<Output = Result<Vec<Migration>, MigrationError>> + Send;
+    ) -> impl Future<Output = Result<Vec<Migration>, Report<MigrationError>>> + Send;
 
     fn all_migrations(
         &mut self,
-    ) -> impl Future<Output = Result<Vec<Migration>, MigrationError>> + Send;
+    ) -> impl Future<Output = Result<Vec<Migration>, Report<MigrationError>>> + Send;
 
     fn applied_migrations(
         &mut self,
-    ) -> impl Future<Output = Result<Vec<Migration>, MigrationError>> + Send;
+    ) -> impl Future<Output = Result<Vec<Migration>, Report<MigrationError>>> + Send;
     fn missing_migrations(
         &mut self,
-    ) -> impl Future<Output = Result<Vec<Migration>, MigrationError>> + Send;
+    ) -> impl Future<Output = Result<Vec<Migration>, Report<MigrationError>>> + Send;
 }

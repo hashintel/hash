@@ -5,7 +5,7 @@ use std::{
     io,
 };
 
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use futures::prelude::stream::StreamExt as _;
 use libp2p::{
     Multiaddr, PeerId, SwarmBuilder,
@@ -74,7 +74,7 @@ impl TransportTask {
     pub(crate) fn new(
         config: TransportConfig,
         transport: impl Transport,
-    ) -> Result<Self, TransportError> {
+    ) -> Result<Self, Report<TransportError>> {
         let mut registry = metrics::Registry::default();
 
         let (ipx_tx, rx) = mpsc::channel(config.ipc_buffer_size.get());

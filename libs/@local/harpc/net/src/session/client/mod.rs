@@ -2,7 +2,7 @@ mod config;
 mod connection;
 mod transaction;
 
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use libp2p::Multiaddr;
 use tokio_util::sync::CancellationToken;
 
@@ -45,7 +45,7 @@ impl SessionLayer {
     /// # Errors
     ///
     /// Returns an error if the dial fails.
-    pub async fn dial(&self, address: Multiaddr) -> Result<Connection, SessionError> {
+    pub async fn dial(&self, address: Multiaddr) -> Result<Connection, Report<SessionError>> {
         let peer = self
             .transport
             .lookup_peer(address)

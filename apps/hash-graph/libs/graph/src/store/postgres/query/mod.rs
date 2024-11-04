@@ -21,7 +21,6 @@ use core::{
 };
 
 use bytes::BytesMut;
-use error_stack::Context;
 use graph_types::knowledge::entity::Entity;
 use hash_graph_store::{
     filter::{ParameterConversionError, QueryRecord},
@@ -105,7 +104,7 @@ pub trait PostgresSorting<'s, R: QueryRecord>:
 {
     type CompilationParameters: Send;
 
-    type Error: Context + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static + Send + Sync + 'static;
 
     fn encode(&self) -> Result<Option<Self::CompilationParameters>, Self::Error>;
 

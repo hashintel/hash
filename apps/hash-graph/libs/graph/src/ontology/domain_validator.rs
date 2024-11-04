@@ -1,13 +1,13 @@
-use core::fmt;
+use core::{error::Error, fmt};
 
-use error_stack::{Context, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use regex::{Captures, Regex};
 use type_system::schema::{DataType, EntityType, PropertyType};
 
 #[derive(Debug)]
 pub struct DomainValidationError;
 
-impl Context for DomainValidationError {}
+impl Error for DomainValidationError {}
 
 impl fmt::Display for DomainValidationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -21,7 +21,7 @@ pub trait ValidateOntologyType<T> {
     /// # Errors
     ///
     /// - [`DomainValidationError`], if the base URL doesn't match or the kind is invalid
-    fn validate(&self, ontology_type: &T) -> error_stack::Result<(), DomainValidationError>;
+    fn validate(&self, ontology_type: &T) -> Result<(), Report<DomainValidationError>>;
 }
 
 #[expect(dead_code, reason = "We currently don't validate the shortname")]
@@ -60,10 +60,7 @@ impl DomainValidator {
         self.0.is_match(url)
     }
 
-    fn captures<'a>(
-        &'a self,
-        url: &'a str,
-    ) -> error_stack::Result<Captures<'a>, DomainValidationError> {
+    fn captures<'a>(&'a self, url: &'a str) -> Result<Captures<'a>, Report<DomainValidationError>> {
         Ok(self.0.captures(url).ok_or(DomainValidationError)?)
     }
 
@@ -75,7 +72,7 @@ impl DomainValidator {
     fn extract_shortname_and_kind<'a>(
         &'a self,
         url: &'a str,
-    ) -> error_stack::Result<ShortNameAndKind<'a>, DomainValidationError> {
+    ) -> Result<ShortNameAndKind<'a>, Report<DomainValidationError>> {
         let captures = self.captures(url)?;
 
         let short_name = captures
@@ -95,7 +92,7 @@ impl DomainValidator {
 }
 
 impl ValidateOntologyType<DataType> for DomainValidator {
-    fn validate(&self, ontology_type: &DataType) -> error_stack::Result<(), DomainValidationError> {
+    fn validate(&self, ontology_type: &DataType) -> Result<(), Report<DomainValidationError>> {
         let base_url = &ontology_type.id.base_url;
 
         if !self.validate_url(base_url.as_str()) {
@@ -122,10 +119,7 @@ impl ValidateOntologyType<DataType> for DomainValidator {
 }
 
 impl ValidateOntologyType<PropertyType> for DomainValidator {
-    fn validate(
-        &self,
-        ontology_type: &PropertyType,
-    ) -> error_stack::Result<(), DomainValidationError> {
+    fn validate(&self, ontology_type: &PropertyType) -> Result<(), Report<DomainValidationError>> {
         let base_url = &ontology_type.id.base_url;
 
         if !self.validate_url(base_url.as_str()) {
@@ -153,10 +147,7 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
 }
 
 impl ValidateOntologyType<EntityType> for DomainValidator {
-    fn validate(
-        &self,
-        ontology_type: &EntityType,
-    ) -> error_stack::Result<(), DomainValidationError> {
+    fn validate(&self, ontology_type: &EntityType) -> Result<(), Report<DomainValidationError>> {
         let base_url = &ontology_type.id.base_url;
 
         if !self.validate_url(base_url.as_str()) {

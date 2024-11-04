@@ -2,7 +2,7 @@ use core::time::Duration;
 use std::collections::HashMap;
 
 use clap::Parser;
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, future};
 use tarpc::{
     serde_transport::Transport,
@@ -52,7 +52,7 @@ pub struct TypeFetcherArgs {
     pub timeout: Option<u64>,
 }
 
-pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
+pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError>> {
     if args.healthcheck {
         return wait_healthcheck(
             || healthcheck(args.address.clone()),
@@ -104,7 +104,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
     Ok(())
 }
 
-async fn healthcheck(address: TypeFetcherAddress) -> Result<(), HealthcheckError> {
+async fn healthcheck(address: TypeFetcherAddress) -> Result<(), Report<HealthcheckError>> {
     let transport = tarpc::serde_transport::tcp::connect(
         (address.type_fetcher_host, address.type_fetcher_port),
         tarpc::tokio_serde::formats::Json::default,

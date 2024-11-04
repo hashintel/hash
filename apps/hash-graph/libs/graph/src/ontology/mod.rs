@@ -2,16 +2,16 @@
 
 pub mod domain_validator;
 
-use core::fmt;
+use core::{error::Error, fmt};
 
-use error_stack::{Context, Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use serde::Deserialize;
 use type_system::url::VersionedUrl;
 
 #[derive(Debug)]
 pub struct PatchAndParseError;
 
-impl Context for PatchAndParseError {}
+impl Error for PatchAndParseError {}
 
 impl fmt::Display for PatchAndParseError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -36,7 +36,7 @@ impl fmt::Display for PatchAndParseError {
 pub fn patch_id_and_parse<T>(
     id: &VersionedUrl,
     mut value: serde_json::Value,
-) -> Result<T, PatchAndParseError>
+) -> Result<T, Report<PatchAndParseError>>
 where
     for<'de> T: Deserialize<'de>,
 {

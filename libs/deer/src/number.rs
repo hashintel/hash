@@ -4,7 +4,7 @@ use core::fmt::{Display, Formatter};
 #[cfg(not(feature = "arbitrary-precision"))]
 use core::ops::Neg;
 
-use error_stack::ResultExt as _;
+use error_stack::{Report, ResultExt as _};
 use num_traits::{FromPrimitive, ToPrimitive};
 use serde::{Serialize, Serializer};
 
@@ -383,7 +383,7 @@ impl<'de> Deserialize<'de> for Number {
 
     fn deserialize<D: Deserializer<'de>>(
         deserializer: D,
-    ) -> error_stack::Result<Self, DeserializeError> {
+    ) -> Result<Self, Report<DeserializeError>> {
         struct Visitor;
 
         impl crate::Visitor<'_> for Visitor {
@@ -393,7 +393,7 @@ impl<'de> Deserialize<'de> for Number {
                 Number::reflection()
             }
 
-            fn visit_number(self, value: Number) -> error_stack::Result<Self::Value, VisitorError> {
+            fn visit_number(self, value: Number) -> Result<Self::Value, Report<VisitorError>> {
                 Ok(value)
             }
 

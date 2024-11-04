@@ -61,7 +61,7 @@ impl SimpleEchoService {
     async fn handle(
         mut sink: TransactionSink,
         mut stream: TransactionStream,
-    ) -> error_stack::Result<(), PingError> {
+    ) -> Result<(), Report<PingError>> {
         while let Some(received) = stream.next().await {
             sink.send(Ok(received))
                 .await

@@ -12,7 +12,7 @@ use deer::{
         U64Deserializer, U128Deserializer, UsizeDeserializer,
     },
 };
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use proptest::prelude::*;
 
 macro_rules! generate_proptest {
@@ -109,7 +109,7 @@ impl Visitor<'_> for ChoiceVisitor {
         Self::Value::document()
     }
 
-    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+    fn visit_str(self, value: &str) -> Result<Self::Value, Report<VisitorError>> {
         match value {
             "yes" => Ok(Choice::Yes),
             "no" => Ok(Choice::No),
@@ -124,7 +124,9 @@ impl Visitor<'_> for ChoiceVisitor {
 impl<'de> Deserialize<'de> for Choice {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_str(ChoiceVisitor)
             .change_context(DeserializeError)
@@ -148,7 +150,7 @@ impl Visitor<'_> for NullVisitor {
         Self::Value::document()
     }
 
-    fn visit_null(self) -> Result<Self::Value, VisitorError> {
+    fn visit_null(self) -> Result<Self::Value, Report<VisitorError>> {
         Ok(Null)
     }
 }
@@ -156,7 +158,9 @@ impl Visitor<'_> for NullVisitor {
 impl<'de> Deserialize<'de> for Null {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_null(NullVisitor)
             .change_context(DeserializeError)
@@ -304,7 +308,7 @@ impl<'de> Visitor<'de> for BytesVisitor {
         Bytes::document()
     }
 
-    fn visit_borrowed_bytes(self, value: &'de [u8]) -> Result<Self::Value, VisitorError> {
+    fn visit_borrowed_bytes(self, value: &'de [u8]) -> Result<Self::Value, Report<VisitorError>> {
         Ok(Bytes(value))
     }
 }
@@ -312,7 +316,9 @@ impl<'de> Visitor<'de> for BytesVisitor {
 impl<'de: 'a, 'a> Deserialize<'de> for Bytes<'a> {
     type Reflection = Bytes<'static>;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_bytes(BytesVisitor)
             .change_context(DeserializeError)
@@ -336,7 +342,7 @@ impl Visitor<'_> for BytesLengthVisitor {
         Self::Value::document()
     }
 
-    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, Report<VisitorError>> {
         Ok(BytesLength(value.len()))
     }
 }
@@ -344,7 +350,9 @@ impl Visitor<'_> for BytesLengthVisitor {
 impl<'de> Deserialize<'de> for BytesLength {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_bytes(BytesLengthVisitor)
             .change_context(DeserializeError)
@@ -368,7 +376,7 @@ impl Visitor<'_> for ByteBufferVisitor {
         Self::Value::document()
     }
 
-    fn visit_bytes_buffer(self, value: Vec<u8>) -> Result<Self::Value, VisitorError> {
+    fn visit_bytes_buffer(self, value: Vec<u8>) -> Result<Self::Value, Report<VisitorError>> {
         Ok(ByteBuffer(value))
     }
 }
@@ -376,7 +384,9 @@ impl Visitor<'_> for ByteBufferVisitor {
 impl<'de> Deserialize<'de> for ByteBuffer {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_bytes_buffer(ByteBufferVisitor)
             .change_context(DeserializeError)

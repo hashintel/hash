@@ -1,4 +1,4 @@
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
     ArrayAccess, Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor,
@@ -43,7 +43,7 @@ where
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -52,21 +52,21 @@ where
             .change_context(DeserializerError)
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: OptionalVisitor<'de>,
     {
         visitor.visit_some(self).change_context(DeserializerError)
     }
 
-    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: EnumVisitor<'de>,
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
 
-    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: StructVisitor<'de>,
     {
@@ -75,7 +75,7 @@ where
             .change_context(DeserializerError)
     }
 
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: IdentifierVisitor<'de>,
     {

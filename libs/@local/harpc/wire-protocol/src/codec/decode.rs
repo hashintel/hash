@@ -1,18 +1,23 @@
+use core::error::Error;
+
 use bytes::{Buf, Bytes};
-use error_stack::{Context, Result};
+use error_stack::Report;
 
 use super::buffer::{Buffer, BufferError};
 
 pub trait Decode: Sized {
     type Context: Send + Sync;
-    type Error: Context;
+    type Error: Error + Send + Sync + 'static;
 
     /// Decode a value from the buffer.
     ///
     /// # Errors
     ///
     /// Returns an error if the contained value is invalid, or the buffer is too short.
-    fn decode<B>(buffer: &mut Buffer<B>, context: Self::Context) -> Result<Self, Self::Error>
+    fn decode<B>(
+        buffer: &mut Buffer<B>,
+        context: Self::Context,
+    ) -> Result<Self, Report<Self::Error>>
     where
         B: Buf;
 }
@@ -21,7 +26,7 @@ impl Decode for u8 {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -33,7 +38,7 @@ impl Decode for u16 {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -45,7 +50,7 @@ impl Decode for u32 {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -57,7 +62,7 @@ impl Decode for Bytes {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {

@@ -1,4 +1,4 @@
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
     ArrayAccess, Context, Deserialize, FieldVisitor, ObjectAccess,
@@ -29,7 +29,7 @@ where
 {
     // TODO: in struct derive, have option for none! (or should we just not use bounded in that
     //  case?)
-    fn visit_none<F>(&self, visitor: F) -> Result<F::Value, ObjectAccessError>
+    fn visit_none<F>(&self, visitor: F) -> Result<F::Value, Report<ObjectAccessError>>
     where
         F: FieldVisitor<'de>,
     {
@@ -55,17 +55,14 @@ where
         self.access.context()
     }
 
-    fn into_bound(self, _: usize) -> Result<BoundObjectAccess<Self>, ObjectAccessError> {
+    fn into_bound(self, _: usize) -> Result<BoundObjectAccess<Self>, Report<ObjectAccessError>> {
         Err(
             Report::new(BoundedContractViolationError::SetCalledMultipleTimes.into_error())
                 .change_context(ObjectAccessError),
         )
     }
 
-    fn try_field<F>(
-        &mut self,
-        visitor: F,
-    ) -> core::result::Result<Result<F::Value, ObjectAccessError>, F>
+    fn try_field<F>(&mut self, visitor: F) -> Result<Result<F::Value, Report<ObjectAccessError>>, F>
     where
         F: FieldVisitor<'de>,
     {
@@ -93,7 +90,7 @@ where
         self.access.size_hint()
     }
 
-    fn end(self) -> Result<(), ObjectAccessError> {
+    fn end(self) -> Result<(), Report<ObjectAccessError>> {
         let mut result = self.access.end().map_err(Report::expand);
 
         if self.remaining > 0 {
@@ -140,14 +137,14 @@ where
         self.access.context()
     }
 
-    fn into_bound(self, _: usize) -> Result<BoundArrayAccess<Self>, ArrayAccessError> {
+    fn into_bound(self, _: usize) -> Result<BoundArrayAccess<Self>, Report<ArrayAccessError>> {
         Err(
             Report::new(BoundedContractViolationError::SetCalledMultipleTimes.into_error())
                 .change_context(ArrayAccessError),
         )
     }
 
-    fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
+    fn next<T>(&mut self) -> Option<Result<T, Report<ArrayAccessError>>>
     where
         T: Deserialize<'de>,
     {
@@ -181,7 +178,7 @@ where
         self.access.size_hint()
     }
 
-    fn end(self) -> Result<(), ArrayAccessError> {
+    fn end(self) -> Result<(), Report<ArrayAccessError>> {
         let mut result = self.access.end().map_err(Report::expand);
 
         if self.remaining > 0 {

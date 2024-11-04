@@ -1,3 +1,4 @@
+use core::error::Error;
 use std::{
     fs::File,
     io,
@@ -6,7 +7,7 @@ use std::{
 };
 
 use bytes::Bytes;
-use error_stack::{Context, Report};
+use error_stack::Report;
 use inferno::flamegraph;
 
 use crate::benches::{generate_path, report::Measurement};
@@ -72,7 +73,7 @@ impl FoldedStacks {
     pub fn create_flame_graph(
         &self,
         mut options: flamegraph::Options,
-    ) -> Result<FlameGraph, Report<impl Context>> {
+    ) -> Result<FlameGraph, Report<impl Error + Send + Sync + 'static>> {
         let mut buffer = Vec::new();
         flamegraph::from_lines(
             &mut options,

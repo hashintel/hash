@@ -6,6 +6,7 @@ use alloc::sync::Arc;
 use core::{error::Error, fmt::Debug, future};
 use std::io;
 
+use error_stack::Report;
 use futures::{FutureExt as _, Sink, Stream, StreamExt as _, stream};
 use harpc_codec::error::NetworkError;
 use harpc_types::response_kind::ResponseKind;
@@ -215,7 +216,7 @@ impl ConnectionTask {
         cancel: CancellationToken,
     ) where
         T: Sink<Response, Error: Debug + Send> + Send + 'static,
-        U: Stream<Item = error_stack::Result<Request, io::Error>> + Send,
+        U: Stream<Item = Result<Request, Report<io::Error>>> + Send,
     {
         let stream = stream.fuse();
         let stream = StreamNotifyClose::new(stream);

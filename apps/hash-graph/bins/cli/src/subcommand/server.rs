@@ -12,7 +12,7 @@ use authorization::{
     zanzibar::ZanzibarClient,
 };
 use clap::Parser;
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use graph::{
     ontology::domain_validator::DomainValidator,
     store::{
@@ -51,7 +51,7 @@ impl fmt::Display for ApiAddress {
 impl TryFrom<ApiAddress> for SocketAddr {
     type Error = Report<AddrParseError>;
 
-    fn try_from(address: ApiAddress) -> Result<Self, AddrParseError> {
+    fn try_from(address: ApiAddress) -> Result<Self, Report<AddrParseError>> {
         address
             .to_string()
             .parse::<Self>()
@@ -134,7 +134,7 @@ pub struct ServerArgs {
     pub temporal_port: u16,
 }
 
-pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
+pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
     if args.healthcheck {
         return wait_healthcheck(
             || healthcheck(args.api_address.clone()),
@@ -218,7 +218,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     Ok(())
 }
 
-pub async fn healthcheck(address: ApiAddress) -> Result<(), HealthcheckError> {
+pub async fn healthcheck(address: ApiAddress) -> Result<(), Report<HealthcheckError>> {
     let request_url = format!("http://{address}/api-doc/openapi.json");
 
     timeout(

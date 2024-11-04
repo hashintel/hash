@@ -1,7 +1,7 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::string::String;
 
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
     Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor, Reflection as _,

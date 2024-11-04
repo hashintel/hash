@@ -2,7 +2,7 @@ use deer::{
     Context, Deserializer as _, FieldVisitor,
     error::{DeserializerError, Error, ObjectAccessError, ObjectLengthError, Variant as _},
 };
-use error_stack::{Report, ReportSink, Result, ResultExt as _};
+use error_stack::{Report, ReportSink, ResultExt as _};
 use justjson::parser::{PeekableTokenKind, Token};
 
 use crate::{
@@ -21,7 +21,7 @@ pub(crate) struct ObjectAccess<'a, 'b, 'de: 'a> {
 impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
     pub(crate) fn new(
         deserializer: &'a mut Deserializer<'b, 'de>,
-    ) -> Result<Self, DeserializerError> {
+    ) -> Result<Self, Report<DeserializerError>> {
         deserializer.try_stack_push(&Token::Object)?;
 
         Ok(Self {
@@ -32,13 +32,13 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
         })
     }
 
-    pub(crate) fn try_skip_colon(&mut self) -> Result<(), Error> {
+    pub(crate) fn try_skip_colon(&mut self) -> Result<(), Report<Error>> {
         // skip `:`, be tolerant if someone forgot, but still propagate the error
         self.deserializer
             .try_skip(PeekableTokenKind::Colon, SyntaxError::ExpectedColon)
     }
 
-    pub(crate) fn try_skip_comma(&mut self) -> Result<(), Error> {
+    pub(crate) fn try_skip_comma(&mut self) -> Result<(), Report<Error>> {
         self.deserializer
             .try_skip(PeekableTokenKind::Comma, SyntaxError::ExpectedComma)
     }
@@ -56,7 +56,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
     fn try_field<F>(
         &mut self,
         visitor: F,
-    ) -> core::result::Result<Result<F::Value, ObjectAccessError>, F>
+    ) -> core::result::Result<Result<F::Value, Report<ObjectAccessError>>, F>
     where
         F: FieldVisitor<'de>,
     {
@@ -151,7 +151,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         None
     }
 
-    fn end(self) -> Result<(), ObjectAccessError> {
+    fn end(self) -> Result<(), Report<ObjectAccessError>> {
         self.deserializer.stack.pop();
 
         let result = match self.deserializer.peek() {

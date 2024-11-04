@@ -1,7 +1,7 @@
 use core::hash::Hash;
 use std::collections::HashMap;
 
-use error_stack::Result;
+use error_stack::Report;
 use graph_types::{
     knowledge::entity::{Entity, EntityEditionId},
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
@@ -35,7 +35,7 @@ where
         &self,
         data_type_ids: &[DataTypeUuid],
         subgraph: &mut Subgraph,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), Report<QueryError>> {
         for data_type in <Self as Read<DataTypeWithMetadata>>::read_vec(
             self,
             &Filter::<DataTypeWithMetadata>::In(
@@ -63,7 +63,7 @@ where
         &self,
         property_type_ids: &[PropertyTypeUuid],
         subgraph: &mut Subgraph,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), Report<QueryError>> {
         for property_type in <Self as Read<PropertyTypeWithMetadata>>::read_vec(
             self,
             &Filter::<PropertyTypeWithMetadata>::In(
@@ -91,7 +91,7 @@ where
         &self,
         entity_type_ids: &[EntityTypeUuid],
         subgraph: &mut Subgraph,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), Report<QueryError>> {
         for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
             self,
             &Filter::<EntityTypeWithMetadata>::In(
@@ -120,7 +120,7 @@ where
         edition_ids: &[EntityEditionId],
         subgraph: &mut Subgraph,
         include_drafts: bool,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), Report<QueryError>> {
         let entities = <Self as Read<Entity>>::read_vec(
             self,
             &Filter::<Entity>::In(
@@ -254,7 +254,7 @@ impl TraversalContext {
         store: &PostgresStore<C, A>,
         subgraph: &mut Subgraph,
         include_drafts: bool,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), Report<QueryError>> {
         if !self.data_types.0.is_empty() {
             store
                 .read_data_types_by_ids(

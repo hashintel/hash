@@ -1,4 +1,4 @@
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use tokio_postgres::Client;
 
 use super::{AsClient, PostgresStore};
@@ -35,7 +35,7 @@ where
     C: AsClient<Client = Client>,
     A: Send + Sync,
 {
-    async fn run_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
+    async fn run_migrations(&mut self) -> Result<Vec<Migration>, Report<MigrationError>> {
         Ok(embedded::migrations::runner()
             .run_async(self.as_mut_client())
             .await
@@ -46,7 +46,7 @@ where
             .collect())
     }
 
-    async fn all_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
+    async fn all_migrations(&mut self) -> Result<Vec<Migration>, Report<MigrationError>> {
         Ok(embedded::migrations::runner()
             .get_migrations()
             .iter()
@@ -54,7 +54,7 @@ where
             .collect())
     }
 
-    async fn applied_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
+    async fn applied_migrations(&mut self) -> Result<Vec<Migration>, Report<MigrationError>> {
         Ok(embedded::migrations::runner()
             .get_applied_migrations_async(self.as_mut_client())
             .await
@@ -64,7 +64,7 @@ where
             .collect())
     }
 
-    async fn missing_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
+    async fn missing_migrations(&mut self) -> Result<Vec<Migration>, Report<MigrationError>> {
         let all_migrations = self.all_migrations().await?;
         let applied_migrations = self.all_migrations().await?;
 

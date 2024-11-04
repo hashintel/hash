@@ -1,4 +1,4 @@
-use error_stack::{Result, ResultExt as _, TryReportTupleExt as _};
+use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use serde::{Serialize, Serializer, ser::SerializeMap as _};
 
 use crate::{
@@ -19,14 +19,18 @@ where
     type Key = T::Discriminant;
     type Value = T::Value;
 
-    fn visit_key<D>(&self, deserializer: D) -> Result<Self::Key, VisitorError>
+    fn visit_key<D>(&self, deserializer: D) -> Result<Self::Key, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
         self.visitor.visit_discriminant(deserializer)
     }
 
-    fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, VisitorError>
+    fn visit_value<D>(
+        self,
+        key: Self::Key,
+        deserializer: D,
+    ) -> Result<Self::Value, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
@@ -55,7 +59,7 @@ where
         self.visitor.expecting()
     }
 
-    fn visit_object<A>(self, object: A) -> Result<Self::Value, VisitorError>
+    fn visit_object<A>(self, object: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ObjectAccess<'de>,
     {
@@ -89,7 +93,7 @@ impl Visitor<'_> for ExpectNoneVisitor {
         Self::Value::reflection()
     }
 
-    fn visit_none(self) -> Result<Self::Value, VisitorError> {
+    fn visit_none(self) -> Result<Self::Value, Report<VisitorError>> {
         Ok(ExpectNone)
     }
 }
@@ -107,7 +111,7 @@ impl Reflection for ExpectNone {
 impl<'de> Deserialize<'de> for ExpectNone {
     type Reflection = Self;
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>,
     {

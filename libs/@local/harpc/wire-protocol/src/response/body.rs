@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 
 use super::{
     begin::ResponseBegin,
@@ -35,7 +35,7 @@ impl ResponseBody {
 impl Encode for ResponseBody {
     type Error = ResponseBodyEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -81,7 +81,10 @@ impl Decode for ResponseBody {
     type Context = ResponseBodyContext;
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, context: Self::Context) -> Result<Self, Self::Error>
+    fn decode<B>(
+        buffer: &mut Buffer<B>,
+        context: Self::Context,
+    ) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
