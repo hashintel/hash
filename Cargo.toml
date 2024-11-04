@@ -132,7 +132,7 @@ tower-service = { version = "=0.3.3", default-features = false }
 tracing-appender = { version = "=0.2.3", default-features = false }
 tracing-core = { version = "=0.1.32", default-features = false }
 tracing-subscriber = { version = "=0.3.18", default-features = false }
-url = { version = "=2.5.2", default-features = false }
+url = { version = "=2.5.3", default-features = false }
 utoipa = { version = "=4.2.3", default-features = false }
 uuid = { version = "=1.11.0", default-features = false }
 time = { version = "=0.3.36", default-features = false }
