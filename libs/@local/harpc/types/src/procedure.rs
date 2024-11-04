@@ -37,3 +37,9 @@ impl Display for ProcedureId {
 pub struct ProcedureDescriptor {
     pub id: ProcedureId,
 }
+
+impl Display for ProcedureDescriptor {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.id, fmt)
+    }
+}

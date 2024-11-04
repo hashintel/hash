@@ -5,15 +5,26 @@ use std::{collections::HashSet, sync::Mutex};
 use futures::{Stream, StreamExt as _};
 pub use harpc_net::session::server::SessionId;
 use harpc_net::session::server::{SessionEvent, SessionEventError};
+use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 use scc::{ebr::Guard, hash_index::Entry};
 use tokio::pin;
 use tokio_util::sync::CancellationToken;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RequestInfo {
+    pub service: ServiceDescriptor,
+    pub procedure: ProcedureDescriptor,
+}
+
+#[derive(derive_more::Debug)]
 pub struct Session<T> {
+    #[debug(skip)]
     storage: Arc<SessionStorage<T>>,
 
     key: SessionId,
     value: Arc<T>,
+
+    request_info: RequestInfo,
 }
 
 impl<T> Session<T>
@@ -68,6 +79,12 @@ where
         } else {
             false
         }
+    }
+
+    /// Request information associated with the current request.
+    #[must_use]
+    pub const fn request_info(&self) -> RequestInfo {
+        self.request_info
     }
 }
 
@@ -184,10 +201,14 @@ impl<T> SessionStorage<T>
 where
     T: Default + Send + Sync + 'static,
 {
-    pub(crate) async fn get_or_insert(self: Arc<Self>, session_id: SessionId) -> Session<T> {
+    pub(crate) async fn get_or_insert(
+        self: Arc<Self>,
+        session_id: SessionId,
+        request_info: RequestInfo,
+    ) -> Session<T> {
         self.marked.remove(session_id);
 
-        // shortcut, which is completely lock-free
+        // Shortcut, which is completely lock-free
         if let Some(value) = self
             .storage
             .peek_with(&session_id, |_, value| Arc::clone(value))
@@ -196,16 +217,21 @@ where
                 storage: Arc::clone(&self),
                 key: session_id,
                 value,
+                request_info,
             };
         }
 
-        let entry = self.storage.entry_async(session_id).await.or_default();
-        let value = Arc::clone(entry.get());
+        let value = {
+            let entry = self.storage.entry_async(session_id).await.or_default();
+
+            Arc::clone(entry.get())
+        };
 
         Session {
             storage: Arc::clone(&self),
             key: session_id,
             value,
+            request_info,
         }
     }
 }

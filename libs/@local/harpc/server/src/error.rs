@@ -4,7 +4,11 @@ use core::{
     fmt::{self, Display},
 };
 
-use harpc_types::{error_code::ErrorCode, procedure::ProcedureId, service::ServiceDescriptor};
+use harpc_types::{
+    error_code::ErrorCode,
+    procedure::{ProcedureDescriptor, ProcedureId},
+    service::ServiceDescriptor,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
 #[display("service {service} not found")]
@@ -35,7 +39,7 @@ impl Error for ProcedureNotFound {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Forbidden {
     pub service: ServiceDescriptor,
-    pub procedure: ProcedureId,
+    pub procedure: ProcedureDescriptor,
 
     pub reason: Cow<'static, str>,
 }
