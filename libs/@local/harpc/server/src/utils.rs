@@ -7,7 +7,7 @@ use futures::{StreamExt as _, stream};
 use harpc_codec::{decode::ReportDecoder, encode::Encoder};
 use harpc_service::{Service, procedure::ProcedureIdentifier};
 use harpc_tower::{
-    body::{Body, BodyExt, Frame, controlled::Controlled, stream::StreamBody},
+    body::{Body, BodyExt as _, Frame, controlled::Controlled, stream::StreamBody},
     request::Request,
     response::{self, Response},
 };

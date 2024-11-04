@@ -30,19 +30,25 @@ http = { workspace = true, public = true }
 tower-http = { workspace = true, public = true }
 tracing = { workspace = true, public = true }
 error-stack = { workspace = true, features = ["futures", "spantrace", "unstable"] }
+
+# Private workspace dependencies
 graph-type-defs = { workspace = true }
+harpc-codec = { workspace = true }
+harpc-service = { workspace = true }
+harpc-tower = { workspace = true }
+harpc-types = { workspace = true }
 hash-status = { workspace = true }
 temporal-versioning = { workspace = true }
 type-system = { workspace = true, features = ["utoipa"] }
 validation = { workspace = true, features = ["utoipa"] }
-harpc-service = { workspace = true }
-harpc-types = { workspace = true }
-harpc-tower.workspace = true
-harpc-codec = { workspace = true }
 
 # Private third-party dependencies
 async-trait = { workspace = true }
 bytes = { workspace = true }
+derive-where = { workspace = true }
+derive_more = { version = "1.0.0", features = ["display", "error"] }
+frunk = "0.4.3"
+futures = { workspace = true }
 hyper = { workspace = true }
 include_dir = { workspace = true }
 mime = { workspace = true }
@@ -52,14 +58,10 @@ sentry = { workspace = true }
 serde = { workspace = true, features = ['derive'] }
 serde_json = { workspace = true }
 time = { workspace = true }
+tower = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 utoipa = { workspace = true }
 uuid = { workspace = true }
-frunk = "0.4.3"
-derive_more = { version = "1.0.0", features = ["display", "error"] }
-futures.workspace = true
-tower.workspace = true
-derive-where.workspace = true
 
 [lints]
 workspace = true
