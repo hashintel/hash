@@ -7,7 +7,7 @@ use alloc::sync::Arc;
 
 use bytes::Bytes;
 use error_stack::Report;
-use futures::{Sink, Stream, StreamExt, prelude::future::FutureExt};
+use futures::{Sink, Stream, StreamExt as _, prelude::future::FutureExt as _};
 use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 use harpc_wire_protocol::{request::Request, response::Response};
 use scc::ebr::Guard;
@@ -77,7 +77,7 @@ struct ConnectionResponseDelegateTask<S> {
 
 impl<S> ConnectionResponseDelegateTask<S>
 where
-    S: Stream<Item = error_stack::Result<Response, io::Error>> + Send,
+    S: Stream<Item = Result<Response, Report<io::Error>>> + Send,
 {
     pub(crate) async fn route(
         config: SessionConfig,
@@ -338,7 +338,7 @@ impl Connection {
         service: ServiceDescriptor,
         procedure: ProcedureDescriptor,
         payload: impl Stream<Item = Bytes> + Send + 'static,
-    ) -> error_stack::Result<ResponseStream, ConnectionPartiallyClosedError> {
+    ) -> Result<ResponseStream, Report<ConnectionPartiallyClosedError>> {
         // While not strictly necessary (as the transaction will immediately terminate if the
         // underlying connection is closed) and the `ResponseStream` will return `None` it is a good
         // indicator to the user that the connection is unhealthy, and as to why, as these tasks

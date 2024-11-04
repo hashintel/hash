@@ -1,6 +1,6 @@
 use anstyle::Color;
 use ariadne::ColorGenerator;
-use error_stack::{Report, Result};
+use error_stack::Report;
 use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
 
 use crate::{
@@ -71,7 +71,7 @@ impl Label<SpanId> {
     pub(crate) fn resolve<S>(
         self,
         storage: &SpanStorage<S>,
-    ) -> Result<Label<SpanNode<S>>, ResolveError>
+    ) -> Result<Label<SpanNode<S>>, Report<ResolveError>>
     where
         S: Span + Clone,
     {

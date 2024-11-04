@@ -101,7 +101,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
       variables: {
         entityUpdate: {
           entityId: quickNoteEntity.metadata.recordId.entityId,
-          entityTypeId: systemEntityTypes.document.entityTypeId,
+          entityTypeIds: [systemEntityTypes.document.entityTypeId],
           propertyPatches: [
             {
               path: [
@@ -143,7 +143,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
     if (parentPage) {
       await createEntity({
         data: {
-          entityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
+          entityTypeIds: [systemLinkEntityTypes.hasParent.linkEntityTypeId],
           properties: {},
           linkData: {
             leftEntityId: pageEntity.metadata.recordId.entityId,

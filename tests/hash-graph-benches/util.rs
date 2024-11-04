@@ -12,12 +12,12 @@ use authorization::{
 use graph::{
     Environment, load_env,
     store::{
-        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig,
-        DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        StoreMigration, StorePool,
+        AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
+        PostgresStorePool, StoreMigration as _, StorePool,
+        error::BaseUrlAlreadyExists,
         ontology::{
-            CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
-            UpdateDataTypesParams, UpdateEntityTypesParams, UpdatePropertyTypesParams,
+            CreateEntityTypeParams, CreatePropertyTypeParams, EntityTypeStore as _,
+            PropertyTypeStore as _, UpdateEntityTypesParams, UpdatePropertyTypesParams,
         },
     },
 };
@@ -26,7 +26,10 @@ use graph_types::{
     ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
     owned_by_id::OwnedById,
 };
-use hash_graph_store::ConflictBehavior;
+use hash_graph_store::{
+    ConflictBehavior,
+    data_type::{CreateDataTypeParams, DataTypeStore as _, UpdateDataTypesParams},
+};
 use repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;

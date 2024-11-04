@@ -10,7 +10,7 @@ use hash_graph_store::{
     entity::EntityQueryPath,
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
 };
-use serde::Deserialize;
+use serde::Deserialize as _;
 use tokio_postgres::Row;
 use tracing::instrument;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};

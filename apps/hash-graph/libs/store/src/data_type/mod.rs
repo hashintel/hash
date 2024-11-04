@@ -1,7 +1,16 @@
 pub(crate) use self::query::DataTypeQueryPathVisitor;
-pub use self::query::{DataTypeQueryPath, DataTypeQueryToken};
+pub use self::{
+    query::{DataTypeQueryPath, DataTypeQueryToken},
+    store::{
+        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
+        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
+        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        UpdateDataTypesParams,
+    },
+};
 
 mod query;
+mod store;
 
 use graph_types::ontology::DataTypeWithMetadata;
 

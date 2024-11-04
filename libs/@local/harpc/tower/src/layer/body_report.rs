@@ -1,7 +1,10 @@
-use core::task::{Context, Poll};
+use core::{
+    error::Error,
+    task::{Context, Poll},
+};
 
 use error_stack::Report;
-use futures::TryFutureExt;
+use futures::TryFutureExt as _;
 use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service};
 
@@ -47,7 +50,7 @@ where
     // The extra bounds here are not strictly required, but they help to make the error messages
     // more expressive during compilation
     ResBody: Body<Control: AsRef<ResponseKind>, Error = Report<C>>,
-    C: error_stack::Context,
+    C: Error + Send + Sync + 'static,
 {
     type Error = S::Error;
     type Response = Response<EncodeReport<ResBody>>;

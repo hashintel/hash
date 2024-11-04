@@ -57,7 +57,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   });
   const contentRef = useRef<HTMLDivElement>(null);
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
-  const { entityTypes } = useEntityTypesContextRequired();
+  const { entityTypes: allEntityTypes } = useEntityTypesContextRequired();
 
   const [popoverOpen, setPopoverOpen] = useState(false);
 
@@ -116,8 +116,10 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       ).find(
         ({ linkEntity: linkEntityRevisions }) =>
           linkEntityRevisions[0] &&
-          extractBaseUrl(linkEntityRevisions[0].metadata.entityTypeId) ===
-            mention.linkEntityTypeBaseUrl,
+          linkEntityRevisions[0].metadata.entityTypeIds.some(
+            (entityTypeId) =>
+              extractBaseUrl(entityTypeId) === mention.linkEntityTypeBaseUrl,
+          ),
       );
 
       const targetEntity = outgoingLinkAndTargetEntities?.rightEntity[0];
@@ -143,10 +145,12 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     if (entity) {
       if (mention.kind === "user" || mention.kind === "entity") {
         if (
-          entity.metadata.entityTypeId ===
-            systemEntityTypes.user.entityTypeId ||
-          entity.metadata.entityTypeId ===
-            systemEntityTypes.organization.entityTypeId
+          entity.metadata.entityTypeIds.includes(
+            systemEntityTypes.user.entityTypeId,
+          ) ||
+          entity.metadata.entityTypeIds.includes(
+            systemEntityTypes.organization.entityTypeId,
+          )
         ) {
           const { shortname } = simplifyProperties(
             entity.properties as UserProperties,
@@ -165,15 +169,23 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     }
   }, [entity, entityId, mention.kind, entityOwnerShortname, entityHref]);
 
-  const entityType = useMemo(
+  const entityTypes = useMemo(
     () =>
       entitySubgraph && entity
-        ? getEntityTypeById(entitySubgraph, entity.metadata.entityTypeId)
+        ? entity.metadata.entityTypeIds.map((entityTypeId) => {
+            const entityType = getEntityTypeById(entitySubgraph, entityTypeId);
+            if (!entityType) {
+              throw new Error(
+                `Could not find entity type with ID ${entityTypeId}`,
+              );
+            }
+            return entityType;
+          })
         : undefined,
     [entitySubgraph, entity],
   );
 
-  const entityIcon = useEntityIcon({ entity, entityType });
+  const entityIcon = useEntityIcon({ entity, entityTypes });
 
   const propertyType = useMemo(() => {
     if (mention.kind === "property-value" && propertyTypes) {
@@ -191,7 +203,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   }, [mention, propertyTypes]);
 
   const outgoingLinkType = useMemo(() => {
-    if (mention.kind === "outgoing-link" && entityTypes) {
+    if (mention.kind === "outgoing-link" && allEntityTypes) {
       const { linkEntityTypeBaseUrl } = mention;
 
       /**
@@ -199,11 +211,11 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
        * in the source entity type schema instead
        */
 
-      return entityTypes.find(
+      return allEntityTypes.find(
         ({ metadata }) => metadata.recordId.baseUrl === linkEntityTypeBaseUrl,
       );
     }
-  }, [mention, entityTypes]);
+  }, [mention, allEntityTypes]);
 
   const hasPopover =
     mention.kind === "property-value" || mention.kind === "outgoing-link";
@@ -315,7 +327,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           }}
         >
           <Link
-            href={entityType?.schema.$id ?? "#"}
+            href={entityTypes?.[0]?.schema.$id ?? "#"}
             sx={{
               textDecoration: "none",
               "&:hover > p": {

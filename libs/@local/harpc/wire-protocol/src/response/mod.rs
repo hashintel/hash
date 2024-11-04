@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use self::{
     body::{ResponseBody, ResponseBodyContext},
@@ -100,7 +100,7 @@ pub struct Response {
 impl Encode for Response {
     type Error = ResponseEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -120,7 +120,7 @@ impl Decode for Response {
     type Context = ();
     type Error = ResponseDecodeError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -145,7 +145,7 @@ mod test {
     use super::{flags::ResponseFlags, header::ResponseHeader};
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode, encode_value},
-        flags::BitFlagsOp,
+        flags::BitFlagsOp as _,
         payload::Payload,
         protocol::{Protocol, ProtocolVersion},
         request::id::test_utils::mock_request_id,

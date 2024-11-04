@@ -40,13 +40,12 @@ export const useEntityTypeEntitiesContextValue = (params: {
 
     const relevantTypesMap = new Map<string, EntityType>();
     for (const { metadata } of entities) {
-      if (!relevantTypesMap.has(metadata.entityTypeId)) {
-        const types = getEntityTypeAndParentsById(
-          subgraph,
-          metadata.entityTypeId,
-        );
-        for (const { schema } of types) {
-          relevantTypesMap.set(schema.$id, schema);
+      for (const typeId of metadata.entityTypeIds) {
+        if (!relevantTypesMap.has(typeId)) {
+          const types = getEntityTypeAndParentsById(subgraph, typeId);
+          for (const { schema } of types) {
+            relevantTypesMap.set(schema.$id, schema);
+          }
         }
       }
     }

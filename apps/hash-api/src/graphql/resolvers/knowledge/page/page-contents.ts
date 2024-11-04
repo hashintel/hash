@@ -24,10 +24,11 @@ export const pageContents: ResolverFn<
 
   const contentItems = await getPageBlocks(context, authentication, {
     pageEntityId: page.metadata.recordId.entityId,
-    type:
-      page.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId
-        ? "canvas"
-        : "document",
+    type: page.metadata.entityTypeIds.includes(
+      systemEntityTypes.canvas.entityTypeId,
+    )
+      ? "canvas"
+      : "document",
   });
 
   return contentItems.map(({ linkEntity, rightEntity }) => ({

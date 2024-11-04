@@ -102,7 +102,7 @@ impl Drop for Bomb {
 /// # Examples
 ///
 /// ```
-/// use error_stack::{ReportSink, Result};
+/// use error_stack::{Report, ReportSink};
 ///
 /// #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// struct InternalError;
@@ -115,17 +115,17 @@ impl Drop for Bomb {
 ///
 /// impl core::error::Error for InternalError {}
 ///
-/// fn operation1() -> Result<u32, InternalError> {
+/// fn operation1() -> Result<u32, Report<InternalError>> {
 ///     // ...
 ///     # Ok(42)
 /// }
 ///
-/// fn operation2() -> Result<(), InternalError> {
+/// fn operation2() -> Result<(), Report<InternalError>> {
 ///     // ...
 ///     # Ok(())
 /// }
 ///
-/// fn process_data() -> Result<(), [InternalError]> {
+/// fn process_data() -> Result<(), Report<[InternalError]>> {
 ///     let mut sink = ReportSink::new();
 ///
 ///     if let Some(value) = sink.attempt(operation1()) {

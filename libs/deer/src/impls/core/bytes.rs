@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use error_stack::ResultExt;
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
@@ -16,10 +16,7 @@ impl<'de> Visitor<'de> for BytesVisitor<'de> {
         Self::Value::reflection()
     }
 
-    fn visit_borrowed_bytes(
-        self,
-        value: &'de [u8],
-    ) -> error_stack::Result<Self::Value, VisitorError> {
+    fn visit_borrowed_bytes(self, value: &'de [u8]) -> Result<Self::Value, Report<VisitorError>> {
         Ok(value)
     }
 }
@@ -37,7 +34,7 @@ impl<'de> Deserialize<'de> for &'de [u8] {
 
     fn deserialize<D: Deserializer<'de>>(
         deserializer: D,
-    ) -> error_stack::Result<Self, DeserializeError> {
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_bytes(BytesVisitor(PhantomData))
             .change_context(DeserializeError)

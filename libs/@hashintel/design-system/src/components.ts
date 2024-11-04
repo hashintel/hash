@@ -43,6 +43,7 @@ export * from "./icon-close";
 export * from "./icon-code";
 export * from "./icon-copy-regular";
 export * from "./icon-dash";
+export * from "./icon-diagram-nested-light";
 export * from "./icon-discord";
 export * from "./icon-download-regular";
 export * from "./icon-eye-regular";

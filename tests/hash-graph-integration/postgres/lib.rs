@@ -37,30 +37,28 @@ use authorization::{
     },
     zanzibar::Consistency,
 };
-use error_stack::Result;
+use error_stack::Report;
 use graph::{
     Environment, load_env,
     store::{
-        DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, EntityStore,
-        EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        QueryError, StorePool, UpdateError,
+        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
+        StorePool,
         knowledge::{
-            CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
-            GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
-            UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
+            CountEntitiesParams, CreateEntityParams, EntityStore, GetEntitiesParams,
+            GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
+            PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityError,
+            ValidateEntityParams,
         },
         ontology::{
-            ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
-            CountDataTypesParams, CountEntityTypesParams, CountPropertyTypesParams,
-            CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
-            GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
-            GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-            GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
-            GetEntityTypesParams, GetEntityTypesResponse, GetPropertyTypeSubgraphParams,
-            GetPropertyTypeSubgraphResponse, GetPropertyTypesParams, GetPropertyTypesResponse,
-            UnarchiveDataTypeParams, UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
-            UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
-            UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+            ArchiveEntityTypeParams, ArchivePropertyTypeParams, CountEntityTypesParams,
+            CountPropertyTypesParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            EntityTypeStore, GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
+            GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
+            GetEntityTypesResponse, GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse,
+            GetPropertyTypesParams, GetPropertyTypesResponse, PropertyTypeStore,
+            UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
+            UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
     },
 };
@@ -76,7 +74,14 @@ use graph_types::{
 };
 use hash_graph_store::{
     ConflictBehavior,
-    account::{AccountStore, InsertAccountIdParams, InsertWebIdParams},
+    account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
+    data_type::{
+        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
+        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
+        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        UpdateDataTypesParams,
+    },
+    error::{InsertionError, QueryError, UpdateError},
 };
 use hash_tracing::logging::env_filter;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
@@ -193,7 +198,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
         data_types: D,
         property_types: P,
         entity_types: E,
-    ) -> Result<DatabaseApi<'_, &mut A>, InsertionError>
+    ) -> Result<DatabaseApi<'_, &mut A>, Report<InsertionError>>
     where
         D: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
         P: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
@@ -285,7 +290,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: P,
-    ) -> Result<Vec<DataTypeMetadata>, InsertionError>
+    ) -> Result<Vec<DataTypeMetadata>, Report<InsertionError>>
     where
         P: IntoIterator<Item = CreateDataTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
@@ -297,7 +302,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         &self,
         actor_id: AccountId,
         params: CountDataTypesParams<'_>,
-    ) -> Result<usize, QueryError> {
+    ) -> Result<usize, Report<QueryError>> {
         self.store.count_data_types(actor_id, params).await
     }
 
@@ -305,7 +310,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         &self,
         actor_id: AccountId,
         mut params: GetDataTypesParams<'_>,
-    ) -> Result<GetDataTypesResponse, QueryError> {
+    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -337,7 +342,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         &self,
         actor_id: AccountId,
         mut params: GetDataTypeSubgraphParams<'_>,
-    ) -> Result<GetDataTypeSubgraphResponse, QueryError> {
+    ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -369,7 +374,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: UpdateDataTypesParams<R>,
-    ) -> Result<DataTypeMetadata, UpdateError>
+    ) -> Result<DataTypeMetadata, Report<UpdateError>>
     where
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
@@ -380,7 +385,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: ArchiveDataTypeParams<'_>,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.archive_data_type(actor_id, params).await
     }
 
@@ -388,7 +393,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: UnarchiveDataTypeParams,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.unarchive_data_type(actor_id, params).await
     }
 
@@ -396,13 +401,13 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: UpdateDataTypeEmbeddingParams<'_>,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<(), Report<UpdateError>> {
         self.store
             .update_data_type_embeddings(actor_id, params)
             .await
     }
 
-    async fn reindex_data_type_cache(&mut self) -> Result<(), UpdateError> {
+    async fn reindex_data_type_cache(&mut self) -> Result<(), Report<UpdateError>> {
         self.store.reindex_entity_type_cache().await
     }
 }
@@ -412,7 +417,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: P,
-    ) -> Result<Vec<PropertyTypeMetadata>, InsertionError>
+    ) -> Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>
     where
         P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
@@ -424,7 +429,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         &self,
         actor_id: AccountId,
         params: CountPropertyTypesParams<'_>,
-    ) -> Result<usize, QueryError> {
+    ) -> Result<usize, Report<QueryError>> {
         self.store.count_property_types(actor_id, params).await
     }
 
@@ -432,7 +437,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         &self,
         actor_id: AccountId,
         mut params: GetPropertyTypesParams<'_>,
-    ) -> Result<GetPropertyTypesResponse, QueryError> {
+    ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -465,7 +470,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         &self,
         actor_id: AccountId,
         mut params: GetPropertyTypeSubgraphParams<'_>,
-    ) -> Result<GetPropertyTypeSubgraphResponse, QueryError> {
+    ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -502,7 +507,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: UpdatePropertyTypesParams<R>,
-    ) -> Result<PropertyTypeMetadata, UpdateError>
+    ) -> Result<PropertyTypeMetadata, Report<UpdateError>>
     where
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
@@ -513,7 +518,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: ArchivePropertyTypeParams<'_>,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.archive_property_type(actor_id, params).await
     }
 
@@ -521,7 +526,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: UnarchivePropertyTypeParams<'_>,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.unarchive_property_type(actor_id, params).await
     }
 
@@ -529,7 +534,7 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: UpdatePropertyTypeEmbeddingParams<'_>,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<(), Report<UpdateError>> {
         self.store
             .update_property_type_embeddings(actor_id, params)
             .await
@@ -541,7 +546,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: P,
-    ) -> Result<Vec<EntityTypeMetadata>, InsertionError>
+    ) -> Result<Vec<EntityTypeMetadata>, Report<InsertionError>>
     where
         P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
@@ -553,7 +558,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         &self,
         actor_id: AccountId,
         params: CountEntityTypesParams<'_>,
-    ) -> Result<usize, QueryError> {
+    ) -> Result<usize, Report<QueryError>> {
         self.store.count_entity_types(actor_id, params).await
     }
 
@@ -561,7 +566,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         &self,
         actor_id: AccountId,
         mut params: GetEntityTypesParams<'_>,
-    ) -> Result<GetEntityTypesResponse, QueryError> {
+    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -593,7 +598,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         &self,
         actor_id: AccountId,
         params: GetClosedMultiEntityTypeParams,
-    ) -> Result<GetClosedMultiEntityTypeResponse, QueryError> {
+    ) -> Result<GetClosedMultiEntityTypeResponse, Report<QueryError>> {
         self.store
             .get_closed_multi_entity_types(actor_id, params)
             .await
@@ -603,7 +608,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         &self,
         actor_id: AccountId,
         mut params: GetEntityTypeSubgraphParams<'_>,
-    ) -> Result<GetEntityTypeSubgraphResponse, QueryError> {
+    ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -639,7 +644,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: UpdateEntityTypesParams<R>,
-    ) -> Result<EntityTypeMetadata, UpdateError>
+    ) -> Result<EntityTypeMetadata, Report<UpdateError>>
     where
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
@@ -650,7 +655,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: ArchiveEntityTypeParams<'_>,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.archive_entity_type(actor_id, params).await
     }
 
@@ -658,7 +663,7 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: UnarchiveEntityTypeParams<'_>,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.store.unarchive_entity_type(actor_id, params).await
     }
 
@@ -666,13 +671,13 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         &mut self,
         actor_id: AccountId,
         params: UpdateEntityTypeEmbeddingParams<'_>,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<(), Report<UpdateError>> {
         self.store
             .update_entity_type_embeddings(actor_id, params)
             .await
     }
 
-    async fn reindex_entity_type_cache(&mut self) -> Result<(), UpdateError> {
+    async fn reindex_entity_type_cache(&mut self) -> Result<(), Report<UpdateError>> {
         self.store.reindex_entity_type_cache().await
     }
 }
@@ -685,7 +690,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: Vec<CreateEntityParams<R>>,
-    ) -> Result<Vec<Entity>, InsertionError>
+    ) -> Result<Vec<Entity>, Report<InsertionError>>
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
@@ -697,7 +702,7 @@ where
         actor_id: AccountId,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
-    ) -> Result<(), ValidateEntityError> {
+    ) -> Result<(), Report<ValidateEntityError>> {
         self.store
             .validate_entities(actor_id, consistency, params)
             .await
@@ -707,7 +712,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: GetEntitiesParams<'_>,
-    ) -> Result<GetEntitiesResponse<'static>, QueryError> {
+    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -739,7 +744,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: GetEntitySubgraphParams<'_>,
-    ) -> Result<GetEntitySubgraphResponse<'static>, QueryError> {
+    ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -770,7 +775,7 @@ where
         &self,
         actor_id: AccountId,
         params: CountEntitiesParams<'_>,
-    ) -> Result<usize, QueryError> {
+    ) -> Result<usize, Report<QueryError>> {
         self.store.count_entities(actor_id, params).await
     }
 
@@ -780,7 +785,7 @@ where
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> Result<Entity, QueryError> {
+    ) -> Result<Entity, Report<QueryError>> {
         self.store
             .get_entity_by_id(actor_id, entity_id, transaction_time, decision_time)
             .await
@@ -790,7 +795,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: PatchEntityParams,
-    ) -> Result<Entity, UpdateError> {
+    ) -> Result<Entity, Report<UpdateError>> {
         self.store.patch_entity(actor_id, params).await
     }
 
@@ -798,11 +803,11 @@ where
         &mut self,
         actor_id: AccountId,
         params: UpdateEntityEmbeddingsParams<'_>,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<(), Report<UpdateError>> {
         self.store.update_entity_embeddings(actor_id, params).await
     }
 
-    async fn reindex_entity_cache(&mut self) -> Result<(), UpdateError> {
+    async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
         self.store.reindex_entity_cache().await
     }
 }

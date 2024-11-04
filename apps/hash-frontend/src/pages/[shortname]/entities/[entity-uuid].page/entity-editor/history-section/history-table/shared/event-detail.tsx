@@ -23,11 +23,13 @@ export const EventDetail = ({
         <>
           <ValueChip>{entityLabel}</ValueChip>
           <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
-            created with type
+            created with {event.entityTypes.length === 1 ? "type" : "types"}
           </Box>
-          <ValueChip showInFull type>
-            {event.entityType.title}
-          </ValueChip>
+          {event.entityTypes.map((entityType) => (
+            <ValueChip key={entityType.title} showInFull type>
+              {entityType.title}
+            </ValueChip>
+          ))}
         </>
       );
     }

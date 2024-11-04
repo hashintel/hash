@@ -2,7 +2,7 @@ use derive_where::derive_where;
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{
     DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
-    TemporalBound, TemporalInterval, TemporalTagged, TimeAxis, Timestamp, TransactionTime,
+    TemporalBound, TemporalInterval, TemporalTagged as _, TimeAxis, Timestamp, TransactionTime,
 };
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};

@@ -1,5 +1,6 @@
 use authorization::{AuthorizationApi, backend::ZanzibarBackend};
-use error_stack::Result;
+use error_stack::Report;
+use hash_graph_store::error::InsertionError;
 
 use crate::{
     snapshot::{
@@ -12,7 +13,7 @@ use crate::{
         owner::AccountRowBatch,
         web::WebBatch,
     },
-    store::{AsClient, InsertionError, PostgresStore},
+    store::{AsClient, PostgresStore},
 };
 
 pub enum SnapshotRecordBatch {
@@ -30,7 +31,9 @@ where
     C: AsClient,
     A: AuthorizationApi + ZanzibarBackend,
 {
-    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
+    async fn begin(
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> Result<(), Report<InsertionError>> {
         AccountRowBatch::begin(postgres_client).await?;
         WebBatch::begin(postgres_client).await?;
         OntologyTypeMetadataRowBatch::begin(postgres_client).await?;
@@ -41,7 +44,10 @@ where
         Ok(())
     }
 
-    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
+    async fn write(
+        self,
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> Result<(), Report<InsertionError>> {
         match self {
             Self::Accounts(account) => account.write(postgres_client).await,
             Self::Webs(web) => web.write(postgres_client).await,
@@ -56,7 +62,7 @@ where
     async fn commit(
         postgres_client: &mut PostgresStore<C, A>,
         validation: bool,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), Report<InsertionError>> {
         AccountRowBatch::commit(postgres_client, validation).await?;
         WebBatch::commit(postgres_client, validation).await?;
         OntologyTypeMetadataRowBatch::commit(postgres_client, validation).await?;

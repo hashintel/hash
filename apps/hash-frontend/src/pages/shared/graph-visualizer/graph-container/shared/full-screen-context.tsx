@@ -11,23 +11,38 @@ export const FullScreenContext = createContext<FullScreenContextType | null>(
   null,
 );
 
-export const FullScreenContextProvider = ({ children }: PropsWithChildren) => {
+export const FullScreenContextProvider = ({
+  children,
+  fullScreenMode = "element",
+}: PropsWithChildren<{ fullScreenMode?: "document" | "element" }>) => {
   const handle = useFullScreenHandle();
 
   const toggleFullScreen = useCallback(() => {
+    if (fullScreenMode === "document") {
+      if (document.fullscreenElement) {
+        void document.exitFullscreen();
+      } else {
+        void document.documentElement.requestFullscreen();
+      }
+      return;
+    }
+
     if (handle.active) {
       void handle.exit();
     } else {
       void handle.enter();
     }
-  }, [handle]);
+  }, [fullScreenMode, handle]);
 
   const value = useMemo<FullScreenContextType>(
     () => ({
-      isFullScreen: handle.active,
+      isFullScreen:
+        fullScreenMode === "document"
+          ? !!document.fullscreenElement
+          : handle.active,
       toggleFullScreen,
     }),
-    [handle.active, toggleFullScreen],
+    [handle.active, fullScreenMode, toggleFullScreen],
   );
 
   return (

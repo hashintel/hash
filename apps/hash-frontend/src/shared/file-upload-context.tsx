@@ -147,7 +147,9 @@ export type FileUploadsContextValue = {
 };
 
 // The main context to store file upload metadata and the function to request a new upload
-const FileUploadsContext = createContext<null | FileUploadsContextValue>(null);
+export const FileUploadsContext = createContext<null | FileUploadsContextValue>(
+  null,
+);
 
 type FileUploadsProgress = {
   [requestId: string]: number;
@@ -509,7 +511,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       try {
         const { data, errors } = await createEntity({
           variables: {
-            entityTypeId: linkEntityTypeId,
+            entityTypeIds: [linkEntityTypeId],
             linkData: {
               leftEntityId: linkedEntityId,
               rightEntityId: fileEntity.metadata.recordId.entityId,

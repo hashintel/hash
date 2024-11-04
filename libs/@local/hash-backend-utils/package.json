@@ -23,8 +23,8 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.679.0",
-    "@aws-sdk/s3-request-presigner": "3.679.0",
+    "@aws-sdk/client-s3": "3.685.0",
+    "@aws-sdk/s3-request-presigner": "3.685.0",
     "@blockprotocol/core": "0.1.3",
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@blockprotocol/type-system": "0.1.2-canary.0",
@@ -53,18 +53,18 @@
     "redis": "4.7.0",
     "slonik": "24.2.0",
     "wait-on": "8.0.1",
-    "winston": "3.15.0"
+    "winston": "3.16.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.3.3",
-    "@types/node": "20.17.0",
+    "@types/node": "22.8.7",
     "@types/wait-on": "5.3.4",
-    "@vitest/coverage-istanbul": "2.1.3",
+    "@vitest/coverage-istanbul": "2.1.4",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
     "typescript": "5.6.3",
-    "vitest": "2.1.3"
+    "vitest": "2.1.4"
   }
 }

@@ -119,8 +119,9 @@ export const useFlowRunsUsage = ({
 
         const incurredInLinkAndEntities = linkedEntities.filter(
           ({ linkEntity }) =>
-            linkEntity[0]!.metadata.entityTypeId ===
-            systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+            linkEntity[0]!.metadata.entityTypeIds.includes(
+              systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+            ),
         );
 
         if (incurredInLinkAndEntities.length !== 1) {

@@ -1,10 +1,10 @@
 use core::marker::PhantomData;
 
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
-    error::{DeserializeError, ExpectedType, ReceivedType, TypeError, Variant, VisitorError},
+    error::{DeserializeError, ExpectedType, ReceivedType, TypeError, Variant as _, VisitorError},
 };
 
 struct StrVisitor<'a>(PhantomData<fn() -> &'a ()>);
@@ -16,7 +16,7 @@ impl<'de: 'a, 'a> Visitor<'de> for StrVisitor<'a> {
         <&str>::reflection()
     }
 
-    fn visit_borrowed_str(self, value: &'de str) -> Result<Self::Value, VisitorError> {
+    fn visit_borrowed_str(self, value: &'de str) -> Result<Self::Value, Report<VisitorError>> {
         Ok(value)
     }
 }
@@ -30,7 +30,9 @@ impl Reflection for str {
 impl<'de: 'a, 'a> Deserialize<'de> for &'a str {
     type Reflection = str;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_str(StrVisitor(PhantomData))
             .change_context(DeserializeError)
@@ -46,11 +48,11 @@ impl Visitor<'_> for CharVisitor {
         Document::new::<char>()
     }
 
-    fn visit_char(self, value: char) -> Result<Self::Value, VisitorError> {
+    fn visit_char(self, value: char) -> Result<Self::Value, Report<VisitorError>> {
         Ok(value)
     }
 
-    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+    fn visit_str(self, value: &str) -> Result<Self::Value, Report<VisitorError>> {
         let mut chars = value.chars();
 
         let first = chars.next();
@@ -79,7 +81,9 @@ impl Reflection for char {
 impl<'de> Deserialize<'de> for char {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_char(CharVisitor)
             .change_context(DeserializeError)

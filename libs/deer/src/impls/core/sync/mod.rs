@@ -5,6 +5,7 @@ use core::sync::Exclusive;
 use crate::{Deserialize, Deserializer, error::DeserializeError};
 
 mod atomic;
+use error_stack::Report;
 
 #[cfg(nightly)]
 impl<'de, T> Deserialize<'de> for Exclusive<T>
@@ -15,7 +16,7 @@ where
 
     fn deserialize<D: Deserializer<'de>>(
         deserializer: D,
-    ) -> error_stack::Result<Self, DeserializeError> {
+    ) -> Result<Self, Report<DeserializeError>> {
         T::deserialize(deserializer).map(Self::new)
     }
 }

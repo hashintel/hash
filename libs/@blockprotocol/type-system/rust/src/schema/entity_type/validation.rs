@@ -20,16 +20,17 @@ pub enum EntityTypeValidationError {
     ObjectValidationFailed(#[from] ObjectSchemaValidationError),
 }
 
+#[derive(Debug)]
 pub struct EntityTypeValidator;
 
 impl Validator<EntityType> for EntityTypeValidator {
     type Error = EntityTypeValidationError;
 
-    async fn validate_ref<'v>(
+    fn validate_ref<'v>(
         &self,
         value: &'v EntityType,
     ) -> Result<&'v Valid<EntityType>, Self::Error> {
-        ObjectSchemaValidator.validate_ref(value).await?;
+        ObjectSchemaValidator.validate_ref(value)?;
 
         for (property, value) in &value.constraints.properties {
             let reference = match value {
@@ -53,11 +54,11 @@ impl Validator<EntityType> for EntityTypeValidator {
 impl Validator<ClosedEntityType> for EntityTypeValidator {
     type Error = EntityTypeValidationError;
 
-    async fn validate_ref<'v>(
+    fn validate_ref<'v>(
         &self,
         value: &'v ClosedEntityType,
     ) -> Result<&'v Valid<ClosedEntityType>, Self::Error> {
-        ObjectSchemaValidator.validate_ref(value).await?;
+        ObjectSchemaValidator.validate_ref(value)?;
 
         for (property, value) in &value.constraints.properties {
             let reference = match value {

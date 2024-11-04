@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
-use futures::TryFutureExt;
+use futures::TryFutureExt as _;
 use graph_types::{
     account::{AccountId, CreatedById, EditionCreatedById},
     knowledge::{
@@ -19,6 +19,7 @@ use graph_types::{
 };
 use hash_graph_store::{
     entity::EntityQueryPath,
+    error::{InsertionError, QueryError, UpdateError},
     filter::Filter,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
@@ -32,10 +33,7 @@ use utoipa::{
 };
 use validation::ValidateEntityComponents;
 
-use crate::store::{
-    InsertionError, NullOrdering, Ordering, QueryError, UpdateError, crud::Sorting,
-    postgres::CursorField,
-};
+use crate::store::{NullOrdering, Ordering, crud::Sorting, postgres::CursorField};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]

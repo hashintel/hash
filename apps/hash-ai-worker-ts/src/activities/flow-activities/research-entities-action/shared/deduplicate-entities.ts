@@ -130,7 +130,7 @@ export const deduplicateEntities = async (params: {
                   .map(
                     (entitySummary) => `<Entity>
                     Name: ${entitySummary.name}
-                    Type: ${entitySummary.entityTypeId}
+                    ${entitySummary.entityTypeIds.length > 1 ? "Types" : "Type"}: ${entitySummary.entityTypeIds.join(", ")}
                     Summary: ${entitySummary.summary}
                     ID: ${
                       "localId" in entitySummary

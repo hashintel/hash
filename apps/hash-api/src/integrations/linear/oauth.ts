@@ -236,7 +236,7 @@ export const oAuthLinearCallback: RequestHandler<
         req.context,
         authentication,
         {
-          entityTypeId: systemEntityTypes.linearIntegration.entityTypeId,
+          entityTypeIds: [systemEntityTypes.linearIntegration.entityTypeId],
           ownedById: userAccountId as OwnedById,
           properties: linearIntegrationProperties,
           relationships:

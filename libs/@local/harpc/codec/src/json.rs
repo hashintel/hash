@@ -3,10 +3,10 @@ use core::{
     task::{Context, Poll, ready},
 };
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use error_stack::{Report, ResultExt};
+use bytes::{Buf, BufMut as _, Bytes, BytesMut};
+use error_stack::{Report, ResultExt as _};
 use futures_core::{Stream, TryStream};
-use futures_util::stream::{self, StreamExt};
+use futures_util::stream::{self, StreamExt as _};
 use serde::de::DeserializeOwned;
 
 use crate::{decode::Decoder, encode::Encoder};
@@ -183,10 +183,10 @@ mod tests {
     use std::io;
 
     use bytes::Bytes;
-    use futures_util::{StreamExt, stream};
+    use futures_util::{StreamExt as _, stream};
     use serde_json::json;
 
-    use crate::{decode::Decoder, encode::Encoder, json::JsonCodec};
+    use crate::{decode::Decoder as _, encode::Encoder as _, json::JsonCodec};
 
     #[tokio::test]
     async fn decode_multiple_records_in_single_chunk() {

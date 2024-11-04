@@ -65,7 +65,7 @@ use core::{
 };
 
 pub use duplicate::{DuplicateField, DuplicateFieldError, DuplicateKey, DuplicateKeyError};
-use error_stack::{Context, Frame, Report, Result};
+use error_stack::{Frame, Report};
 pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ObjectLengthError, ReceivedKey,
     ReceivedLength,
@@ -167,7 +167,7 @@ impl SerdeSerializeError {
 impl core::error::Error for SerdeSerializeError {}
 
 #[cfg(all(not(nightly), not(feature = "std")))]
-impl error_stack::Context for SerdeSerializeError {}
+impl Error for SerdeSerializeError {}
 
 #[cfg(all(not(nightly), feature = "std"))]
 impl std::error::Error for SerdeSerializeError {}
@@ -203,7 +203,7 @@ pub trait ErrorProperties {
 
     fn value<'a>(stack: &[&'a Frame]) -> Self::Value<'a>;
 
-    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), [SerdeSerializeError]>
+    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), Report<[SerdeSerializeError]>>
     where
         S: SerializeMap;
 }
@@ -223,7 +223,7 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
         <T as ErrorProperty>::value(stack)
     }
 
-    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), [SerdeSerializeError]>
+    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), Report<[SerdeSerializeError]>>
     where
         S: SerializeMap,
     {
@@ -386,18 +386,12 @@ impl Error {
     }
 }
 
-#[cfg(nightly)]
 impl core::error::Error for Error {
+    #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
         (self.provide)(&self.variant, request);
     }
 }
-
-#[cfg(all(not(nightly), not(feature = "std")))]
-impl error_stack::Context for Error {}
-
-#[cfg(all(not(nightly), feature = "std"))]
-impl std::error::Error for Error {}
 
 /// This macro makes implementation of error structs easier, by implementing all necessary
 /// traits automatically and removing significant boilerplate.
@@ -463,17 +457,17 @@ error!(
     ArrayAccessError: "array access encountered one or more errors during access"
 );
 
-pub trait ReportExt<C: Context> {
+pub trait ReportExt<C: core::error::Error + Send + Sync + 'static> {
     fn export(self) -> Export<C>;
 }
 
-impl<C: Context> ReportExt<C> for Report<C> {
+impl<C: core::error::Error + Send + Sync + 'static> ReportExt<C> for Report<C> {
     fn export(self) -> Export<C> {
         Export::new(self.expand())
     }
 }
 
-impl<C: Context> ReportExt<C> for Report<[C]> {
+impl<C: core::error::Error + Send + Sync + 'static> ReportExt<C> for Report<[C]> {
     fn export(self) -> Export<C> {
         Export::new(self)
     }

@@ -2,10 +2,10 @@ use alloc::sync::Arc;
 use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
 
 use bytes::{Bytes, BytesMut};
-use futures::StreamExt;
+use futures::StreamExt as _;
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
@@ -30,7 +30,7 @@ use super::{
     ClientTransactionPermit, ErrorStream, TransactionReceiveTask, TransactionSendTask, ValueStream,
 };
 use crate::session::{
-    client::{TransactionStream, config::SessionConfig, transaction::StreamState},
+    client::{TransactionStream as _, config::SessionConfig, transaction::StreamState},
     test::Descriptor,
 };
 

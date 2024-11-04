@@ -4,7 +4,10 @@ import { getEntityTypes } from "@local/hash-subgraph/stdlib";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolQueryEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
-import type { EntityTypesContextValue } from "../shared/context-types";
+import type {
+  EntityTypesContextValue,
+  SpecialEntityTypeRecord,
+} from "../shared/context-types";
 import {
   getParentIds,
   isSpecialEntityType,
@@ -16,6 +19,7 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
   >({
     entityTypes: null,
     isSpecialEntityTypeLookup: null,
+    includesSpecialEntityTypes: null,
     entityTypeParentIds: null,
     loading: true,
     subgraph: null,
@@ -66,10 +70,34 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
       ]),
     );
 
+    const includesSpecialEntityTypes = (
+      entityTypeIds: VersionedUrl[],
+    ): SpecialEntityTypeRecord => {
+      const specialTypeRecord: SpecialEntityTypeRecord = {
+        isFile: false,
+        isImage: false,
+        isLink: false,
+      };
+
+      for (const entityTypeId of entityTypeIds) {
+        const record = isSpecialEntityTypeLookup[entityTypeId];
+
+        if (record) {
+          specialTypeRecord.isFile = specialTypeRecord.isFile || record.isFile;
+          specialTypeRecord.isImage =
+            specialTypeRecord.isImage || record.isImage;
+          specialTypeRecord.isLink = specialTypeRecord.isLink || record.isLink;
+        }
+      }
+
+      return specialTypeRecord;
+    };
+
     setTypes({
       entityTypes,
       entityTypeParentIds,
       isSpecialEntityTypeLookup,
+      includesSpecialEntityTypes,
       subgraph: subgraph ?? null,
       loading: false,
     });

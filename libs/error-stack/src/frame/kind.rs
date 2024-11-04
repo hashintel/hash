@@ -1,3 +1,4 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
 use core::fmt::{Debug, Display};
 
 use crate::Context;

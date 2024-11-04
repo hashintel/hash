@@ -24,7 +24,7 @@ import {
   isEntityRootedSubgraph,
 } from "@local/hash-subgraph/stdlib";
 import type { SxProps, Theme } from "@mui/material";
-import { Box, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
@@ -124,7 +124,19 @@ const EntityResult: FunctionComponent<{
     { ownedById },
   );
 
-  const entityType = getEntityTypeById(subgraph, entity.metadata.entityTypeId);
+  const entityTypes = useMemo(
+    () =>
+      entity.metadata.entityTypeIds.map((entityTypeId) => {
+        const entityType = getEntityTypeById(subgraph, entityTypeId);
+
+        if (!entityType) {
+          throw new Error(`Entity type ${entityTypeId} not found in subgraph`);
+        }
+
+        return entityType;
+      }),
+    [entity.metadata.entityTypeIds, subgraph],
+  );
 
   return (
     <Link
@@ -136,9 +148,16 @@ const EntityResult: FunctionComponent<{
     >
       <ResultItem>
         {generateEntityLabel(subgraph, entity)}
-        {entityType && (
-          <Chip color="teal" label={entityType.schema.title} sx={chipStyles} />
-        )}
+        <Stack direction="row" gap={1}>
+          {entityTypes.map((entityType) => (
+            <Chip
+              key={entityType.schema.$id}
+              color="teal"
+              label={entityType.schema.title}
+              sx={chipStyles}
+            />
+          ))}
+        </Stack>
       </ResultItem>
     </Link>
   );

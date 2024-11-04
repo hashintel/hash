@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 mod analyze;
 mod upload;
 use clap::Parser;
-use error_stack::ResultExt;
+use error_stack::ResultExt as _;
 
 fn target_directory() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

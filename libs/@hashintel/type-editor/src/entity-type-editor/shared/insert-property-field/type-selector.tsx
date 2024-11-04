@@ -50,7 +50,7 @@ export const TypeSelector = <T extends TypeSelectorType>({
       inputRef={inputRef}
       isOptionEqualToValue={(option, value) => option.$id === value.$id}
       optionToRenderData={({ $id, Icon, title, description }) => ({
-        typeId: $id,
+        typeIds: [$id],
         icon: Icon ? <Icon /> : null,
         uniqueId: $id,
         title,

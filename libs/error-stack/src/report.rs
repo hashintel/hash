@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{error::Error, fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(feature = "backtrace")]
@@ -84,10 +86,10 @@ use crate::{
 /// ## Provide a context for an error
 ///
 /// ```rust
-/// use error_stack::{ResultExt, Result};
+/// use error_stack::ResultExt;
 ///
 /// # #[allow(dead_code)]
-/// # fn fake_main() -> Result<String, std::io::Error> {
+/// # fn fake_main() -> Result<String, error_stack::Report<std::io::Error>> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"))?;
@@ -100,9 +102,9 @@ use crate::{
 /// ## Enforce a context for an error
 ///
 /// ```rust
-/// use std::{fmt, path::{Path, PathBuf}};
+/// use std::{error::Error, fmt, path::{Path, PathBuf}};
 ///
-/// use error_stack::{Context, Report, ResultExt};
+/// use error_stack::{Report, ResultExt};
 ///
 /// #[derive(Debug)]
 /// # #[derive(PartialEq)]
@@ -141,8 +143,8 @@ use crate::{
 ///     # }
 /// }
 ///
-/// impl Context for RuntimeError {}
-/// impl Context for ConfigError {}
+/// impl Error for RuntimeError {}
+/// impl Error for ConfigError {}
 ///
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
@@ -208,10 +210,10 @@ use crate::{
 /// ## Get the attached [`Backtrace`] and [`SpanTrace`]:
 ///
 /// ```rust,should_panic
-/// use error_stack::{ResultExt, Result};
+/// use error_stack::{ResultExt, Report};
 ///
 /// # #[allow(unused_variables)]
-/// # fn main() -> Result<(), std::io::Error> {
+/// # fn main() -> Result<(), Report<std::io::Error>> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"));
@@ -391,7 +393,7 @@ impl<C> Report<C> {
     /// frames to find the current context. A [`Report`] and be made up of multiple [`Frame`]s,
     /// which stack on top of each other. Considering `PrintableA<PrintableA<Context>>`,
     /// [`Report::current_frame`] will return the "outer" layer `PrintableA`, while
-    /// [`Report::current_context`] will return the underlying `Context` (the current type
+    /// [`Report::current_context`] will return the underlying `Error` (the current type
     /// parameter of this [`Report`])
     ///
     /// A report can be made up of multiple stacks of frames and builds a "group" of them, this can
@@ -674,7 +676,7 @@ impl<C> Report<[C]> {
     /// frames to find the current context. A [`Report`] and be made up of multiple [`Frame`]s,
     /// which stack on top of each other. Considering `PrintableA<PrintableA<Context>>`,
     /// [`Report::current_frames`] will return the "outer" layer `PrintableA`, while
-    /// [`Report::current_context`] will return the underlying `Context` (the current type
+    /// [`Report::current_context`] will return the underlying `Error` (the current type
     /// parameter of this [`Report`])
     ///
     /// Using [`Extend`], [`push()`] and [`append()`], a [`Report`] can additionally be made up of
@@ -702,7 +704,7 @@ impl<C> Report<[C]> {
     /// ```rust
     /// use std::{fmt, path::Path};
     ///
-    /// use error_stack::{Context, Report, ResultExt};
+    /// use error_stack::{Report, ResultExt};
     ///
     /// #[derive(Debug)]
     /// struct IoError;
@@ -716,7 +718,7 @@ impl<C> Report<[C]> {
     ///     # }
     /// }
     ///
-    /// # impl Context for IoError {}
+    /// # impl core::error::Error for IoError {}
     ///
     /// # #[allow(unused_variables)]
     /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<IoError>> {
@@ -748,7 +750,7 @@ impl<C> Report<[C]> {
     /// ```rust
     /// use std::{fmt, path::Path};
     ///
-    /// use error_stack::{Context, Report, ResultExt};
+    /// use error_stack::{Report, ResultExt};
     ///
     /// #[derive(Debug)]
     /// struct IoError;
@@ -762,7 +764,7 @@ impl<C> Report<[C]> {
     ///     # }
     /// }
     ///
-    /// # impl Context for IoError {}
+    /// # impl core::error::Error for IoError {}
     ///
     /// # #[allow(unused_variables)]
     /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<IoError>> {

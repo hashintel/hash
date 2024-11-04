@@ -3,7 +3,7 @@ use core::cell::{Cell, RefCell, UnsafeCell};
 #[cfg(nightly)]
 use core::cell::{OnceCell, SyncUnsafeCell};
 
-use deer::{Deserialize, Number};
+use deer::{Deserialize as _, Number};
 use deer_desert::{Token, assert_tokens, assert_tokens_with_assertion};
 use proptest::prelude::*;
 use serde::Serialize;

@@ -1,11 +1,13 @@
-use error_stack::{Report, ResultExt};
-use futures::{Stream, StreamExt, TryStreamExt};
-use hash_graph_store::{filter::Filter, subgraph::temporal_axes::QueryTemporalAxes};
-use tokio_postgres::{GenericClient, Row};
-use tracing::Instrument;
+use error_stack::{Report, ResultExt as _};
+use futures::{Stream, StreamExt as _, TryStreamExt as _};
+use hash_graph_store::{
+    error::QueryError, filter::Filter, subgraph::temporal_axes::QueryTemporalAxes,
+};
+use tokio_postgres::{GenericClient as _, Row};
+use tracing::Instrument as _;
 
 use crate::store::{
-    AsClient, PostgresStore, QueryError,
+    AsClient, PostgresStore,
     crud::{QueryResult, Read, ReadPaginated, Sorting},
     postgres::query::{PostgresQueryPath, PostgresRecord, PostgresSorting, SelectCompiler},
 };

@@ -59,7 +59,7 @@ describe("Comment", () => {
           { actorId: testUser.accountId },
           {
             ownedById: testUser.accountId as OwnedById,
-            entityTypeId: systemEntityTypes.text.entityTypeId,
+            entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
                 "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":

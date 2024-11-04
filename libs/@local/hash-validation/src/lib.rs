@@ -10,14 +10,14 @@ mod property;
 mod test_data_type;
 mod test_property_type;
 
-use core::borrow::Borrow;
+use core::{borrow::Borrow, error::Error};
 
-use error_stack::{Context, Report};
+use error_stack::Report;
 use graph_types::knowledge::entity::{Entity, EntityId};
 use serde::Deserialize;
 
 pub trait Schema<V: ?Sized, P: Sync> {
-    type Error: Context;
+    type Error: Error + Send + Sync + 'static;
 
     fn validate_value<'a>(
         &'a self,
@@ -73,7 +73,7 @@ impl Default for ValidateEntityComponents {
 }
 
 pub trait Validate<S, C> {
-    type Error: Context;
+    type Error: Error + Send + Sync + 'static;
 
     fn validate(
         &self,
@@ -87,7 +87,12 @@ pub trait EntityProvider {
     fn provide_entity(
         &self,
         entity_id: EntityId,
-    ) -> impl Future<Output = Result<impl Borrow<Entity> + Send + Sync, Report<impl Context>>> + Send;
+    ) -> impl Future<
+        Output = Result<
+            impl Borrow<Entity> + Send + Sync,
+            Report<impl Error + Send + Sync + 'static>,
+        >,
+    > + Send;
 }
 
 #[cfg(test)]
@@ -96,14 +101,14 @@ mod tests {
     use core::iter;
     use std::collections::HashMap;
 
-    use error_stack::ResultExt;
+    use error_stack::ResultExt as _;
     use graph_types::{
         account::{AccountId, EditionCreatedById},
         knowledge::property::{
             Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
             PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
             error::install_error_stack_hooks,
-            visitor::{EntityVisitor, TraversalError},
+            visitor::{EntityVisitor as _, TraversalError},
         },
         ontology::{
             DataTypeMetadata, DataTypeProvider, DataTypeWithMetadata, EntityTypeProvider,

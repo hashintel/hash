@@ -4,13 +4,13 @@ import type { FunctionComponent } from "react";
 import { useEffect, useMemo } from "react";
 
 import { FilterLightIcon } from "../../../../../shared/icons/filter-light-icon";
-import type { GraphVizNode } from "../graph-data-loader";
 import { controlButtonSx, ControlPanel, ItemLabel } from "./control-components";
 import {
   filterButtonSx,
   NodeTypeFilters,
 } from "./filter-control/node-type-filters";
 import { useGraphContext } from "./graph-context";
+import type { GraphVizNode } from "./types";
 
 type NodeTypesInData = {
   [nodeTypeId: string]: {
@@ -45,7 +45,12 @@ const FilterPanel: FunctionComponent<{
   const { filters, setFilters } = useGraphContext();
 
   return (
-    <ControlPanel onClose={onClose} open={open} title="Filters">
+    <ControlPanel
+      onClose={onClose}
+      open={open}
+      position="right"
+      title="Filters"
+    >
       <Box sx={{ pl: 1, pr: 2, pb: 0.5 }}>
         <Stack
           direction="row"

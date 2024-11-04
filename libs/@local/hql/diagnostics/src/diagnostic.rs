@@ -4,7 +4,7 @@ use core::{
 };
 
 use ariadne::ColorGenerator;
-use error_stack::{Result, TryReportIteratorExt};
+use error_stack::{Report, TryReportIteratorExt as _};
 use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
 
 use crate::{
@@ -58,7 +58,7 @@ impl<'a> Diagnostic<'a, SpanId> {
     pub fn resolve<S>(
         self,
         storage: &SpanStorage<S>,
-    ) -> Result<Diagnostic<'a, SpanNode<S>>, [ResolveError]>
+    ) -> Result<Diagnostic<'a, SpanNode<S>>, Report<[ResolveError]>>
     where
         S: Span + Clone,
     {

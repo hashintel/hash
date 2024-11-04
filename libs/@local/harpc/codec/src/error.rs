@@ -1,9 +1,9 @@
 use core::{
     error::Error,
-    fmt::{self, Debug, Display, Write},
+    fmt::{self, Debug, Display, Write as _},
 };
 
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{BufMut as _, Bytes, BytesMut};
 use error_stack::Report;
 use harpc_types::error_code::ErrorCode;
 

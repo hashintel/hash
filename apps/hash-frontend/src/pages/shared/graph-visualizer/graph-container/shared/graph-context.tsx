@@ -9,22 +9,30 @@ import {
 } from "react";
 import { useLocalstorageState } from "rooks";
 
-import type { GraphVizConfig } from "./config-control";
+import type {
+  DynamicNodeSizing,
+  GraphVizConfig,
+  StaticNodeSizing,
+} from "./config-control";
 import type { GraphVizFilters } from "./filter-control";
 import type { GraphState } from "./state";
 import type { RegisterEventsArgs } from "./use-event-handlers";
 import { useEventHandlers } from "./use-event-handlers";
 import { useSetDrawSettings } from "./use-set-draw-settings";
 
-export type GraphContextType = {
-  config: GraphVizConfig;
+export type GraphContextType<
+  NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
+> = {
+  config: GraphVizConfig<NodeSizing>;
   configPanelOpen: boolean;
   filters: GraphVizFilters;
   filterPanelOpen: boolean;
   graphContainerRef: RefObject<HTMLDivElement>;
   graphState: GraphState;
+  pathFinderPanelOpen: boolean;
   refreshGraphHighlights: () => void;
-  setConfig: (config: GraphVizConfig) => void;
+  searchPanelOpen: boolean;
+  setConfig: (config: GraphVizConfig<NodeSizing>) => void;
   setConfigPanelOpen: (open: boolean) => void;
   setFilters: (filters: GraphVizFilters) => void;
   setFilterPanelOpen: (open: boolean) => void;
@@ -32,34 +40,47 @@ export type GraphContextType = {
     key: K,
     value: GraphState[K],
   ) => void;
+  setPathFinderPanelOpen: (open: boolean) => void;
+  setSearchPanelOpen: (open: boolean) => void;
 };
 
-export const GraphContext = createContext<GraphContextType | null>(null);
+const GraphContext = createContext<GraphContextType<
+  DynamicNodeSizing | StaticNodeSizing
+> | null>(null);
 
-export type GraphContextProviderProps = {
-  defaultConfig: GraphVizConfig;
+export type GraphContextProviderProps<
+  NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
+> = {
+  defaultConfig: GraphVizConfig<NodeSizing>;
+  defaultFilters?: GraphVizFilters;
   graphContainerRef: RefObject<HTMLDivElement>;
-} & Pick<RegisterEventsArgs, "onEdgeClick" | "onNodeSecondClick">;
+} & Pick<RegisterEventsArgs, "onEdgeClick" | "onNodeSecondClick" | "onRender">;
 
-export const GraphContextProvider = ({
+export const GraphContextProvider = <
+  NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
+>({
   children,
   defaultConfig,
+  defaultFilters,
   graphContainerRef,
   onEdgeClick,
   onNodeSecondClick,
-}: PropsWithChildren<GraphContextProviderProps>) => {
-  const [config, setConfig] = useLocalstorageState<GraphVizConfig>(
+  onRender,
+}: PropsWithChildren<GraphContextProviderProps<NodeSizing>>) => {
+  const [config, setConfig] = useLocalstorageState<GraphVizConfig<NodeSizing>>(
     `graph-viz-config~${defaultConfig.graphKey}`,
     defaultConfig,
   );
 
   const [filters, setFilters] = useLocalstorageState<GraphVizFilters>(
     `graph-viz-filters~${defaultConfig.graphKey}`,
-    {},
+    defaultFilters ?? {},
   );
 
   const [configPanelOpen, setConfigPanelOpen] = useState(false);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
+  const [pathFinderPanelOpen, setPathFinderPanelOpen] = useState(false);
 
   /**
    * State to track interactions with the graph.
@@ -73,19 +94,19 @@ export const GraphContextProvider = ({
      * (which we'd have to do if we made them dependent on React state)
      */
     colorByNodeTypeId: filters.colorByNodeTypeId,
+    hoveredEdgeId: null,
     hoveredNodeId: null,
-    highlightedNeighborIds: null,
+    highlightedEdgePath: null,
+    neighborsByDepth: null,
     selectedNodeId: null,
   });
 
-  const setGraphState: GraphContextType["setGraphState"] = useCallback(
-    (key, value) => {
+  const setGraphState: GraphContextType<NodeSizing>["setGraphState"] =
+    useCallback((key, value) => {
       graphState.current[key] = value;
-    },
-    [],
-  );
+    }, []);
 
-  useSetDrawSettings(graphState.current);
+  useSetDrawSettings(graphState.current, config);
 
   const { refreshGraphHighlights } = useEventHandlers({
     config,
@@ -93,12 +114,15 @@ export const GraphContextProvider = ({
     graphState: graphState.current,
     onEdgeClick,
     onNodeSecondClick,
+    onRender,
     setConfigPanelOpen,
     setFilterPanelOpen,
+    setPathFinderPanelOpen,
+    setSearchPanelOpen,
     setGraphState,
   });
 
-  const value = useMemo<GraphContextType>(
+  const value = useMemo<GraphContextType<NodeSizing>>(
     () => ({
       config,
       configPanelOpen,
@@ -106,12 +130,16 @@ export const GraphContextProvider = ({
       filterPanelOpen,
       graphContainerRef,
       graphState: graphState.current,
+      pathFinderPanelOpen,
       refreshGraphHighlights,
+      searchPanelOpen,
       setConfig,
       setConfigPanelOpen,
       setFilters,
       setFilterPanelOpen,
       setGraphState,
+      setPathFinderPanelOpen,
+      setSearchPanelOpen,
     }),
     [
       config,
@@ -119,17 +147,29 @@ export const GraphContextProvider = ({
       filters,
       filterPanelOpen,
       graphContainerRef,
+      pathFinderPanelOpen,
       refreshGraphHighlights,
+      searchPanelOpen,
       setConfig,
-      setConfigPanelOpen,
       setFilters,
-      setFilterPanelOpen,
       setGraphState,
     ],
   );
 
   return (
-    <GraphContext.Provider value={value}>{children}</GraphContext.Provider>
+    <GraphContext.Provider
+      value={
+        /**
+         * this should be safe as the useMemo enforces the correct type, but ideally we wouldn't have to assert any type.
+         * probably involves losing the generic or wrapping createContext in a function
+         */
+        value as unknown as GraphContextType<
+          DynamicNodeSizing | StaticNodeSizing
+        >
+      }
+    >
+      {children}
+    </GraphContext.Provider>
   );
 };
 

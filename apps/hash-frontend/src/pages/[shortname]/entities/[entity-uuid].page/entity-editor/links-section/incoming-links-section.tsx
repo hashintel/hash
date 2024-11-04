@@ -33,7 +33,10 @@ export const IncomingLinksSection = ({
       titleTooltip="Links from other entities to this entity. These may only be edited on the source entity."
       titleStartContent={
         <Stack direction="row" spacing={1.5}>
-          <Chip size="xs" label={`${incomingLinksAndSources.length} links`} />
+          <Chip
+            size="xs"
+            label={`${incomingLinksAndSources.length} ${incomingLinksAndSources.length === 1 ? "link" : "links"}`}
+          />
         </Stack>
       }
     >

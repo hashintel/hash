@@ -1,10 +1,11 @@
 use authorization::NoAuthorization;
 use clap::Parser;
-use error_stack::{Report, Result, ResultExt, ensure};
+use error_stack::{Report, ResultExt as _, ensure};
 use graph::store::{
-    DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig, EntityStore, EntityTypeStore,
-    PostgresStorePool, StorePool,
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool as _,
+    knowledge::EntityStore as _, ontology::EntityTypeStore as _,
 };
+use hash_graph_store::data_type::DataTypeStore as _;
 use tokio_postgres::NoTls;
 
 use crate::error::GraphError;
@@ -36,7 +37,7 @@ pub struct ReindexOperations {
     pub entities: bool,
 }
 
-pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), GraphError> {
+pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), Report<GraphError>> {
     let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
         .await
         .change_context(GraphError)
@@ -58,7 +59,8 @@ pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), GraphError> {
 
     if args.operations.data_types {
         did_something = true;
-        DataTypeStore::reindex_data_type_cache(&mut store)
+        store
+            .reindex_data_type_cache()
             .await
             .change_context(GraphError)
             .map_err(|report| {
@@ -69,7 +71,8 @@ pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), GraphError> {
 
     if args.operations.entity_types {
         did_something = true;
-        EntityTypeStore::reindex_entity_type_cache(&mut store)
+        store
+            .reindex_entity_type_cache()
             .await
             .change_context(GraphError)
             .map_err(|report| {
@@ -80,7 +83,8 @@ pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), GraphError> {
 
     if args.operations.entities {
         did_something = true;
-        EntityStore::reindex_entity_cache(&mut store)
+        store
+            .reindex_entity_cache()
             .await
             .change_context(GraphError)
             .map_err(|report| {
@@ -88,6 +92,8 @@ pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), GraphError> {
                 report
             })?;
     }
+
+    drop(store);
 
     ensure!(
         did_something,
