@@ -4,7 +4,7 @@ use core::{
 };
 
 use ariadne::ColorGenerator;
-use error_stack::{Report, TryReportIteratorExt as _, TryReportTupleExt as _};
+use error_stack::{Report, TryReportIteratorExt as _};
 use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
     note::Note,
     rob::RefOrBox,
     severity::Severity,
-    span::{AbsoluteDiagnosticSpan, TransformSpan, absolute_span},
+    span::{AbsoluteDiagnosticSpan, TransformSpan},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -26,7 +26,6 @@ pub struct Diagnostic<'a, S> {
     pub severity: RefOrBox<'a, Severity<'a>>,
 
     pub message: Option<Box<str>>,
-    pub span: Option<S>,
 
     pub labels: Vec<Label<S>>,
     pub note: Option<Note>,
@@ -43,7 +42,6 @@ impl<'a, S> Diagnostic<'a, S> {
             category: category.into(),
             severity: severity.into(),
             message: None,
-            span: None,
             labels: Vec::new(),
             note: None,
             help: None,
@@ -64,28 +62,17 @@ impl<'a> Diagnostic<'a, SpanId> {
     where
         S: Span + Clone,
     {
-        let span = self
-            .span
-            .map(|id| {
-                storage
-                    .resolve(id)
-                    .ok_or_else(|| Report::new(ResolveError::UnknownSpan { id }))
-            })
-            .transpose();
-
-        let labels: Result<Vec<_>, _> = self
+        let labels: Vec<_> = self
             .labels
             .into_iter()
             .map(|label| label.resolve(storage))
-            .try_collect_reports();
-
-        let (span, labels) = (span, labels).try_collect()?;
+            .try_collect_reports()?;
 
         Ok(Diagnostic {
             category: self.category,
             severity: self.severity,
             message: self.message,
-            span,
+
             labels,
             note: self.note,
             help: self.help,
@@ -98,13 +85,19 @@ impl<S> Diagnostic<'_, SpanNode<S>> {
         &self,
         mut config: ReportConfig<impl TransformSpan<S>>,
     ) -> ariadne::Report<AbsoluteDiagnosticSpan> {
-        let start = self.span.as_ref().map_or(0, |span| {
-            u32::from(absolute_span(span, &mut config.transform_span).start())
-        });
+        // According to the examples, the span given to `Report::build` should be the span of the
+        // primary (first) label.
+        // See: https://github.com/zesterer/ariadne/blob/74c2a7f8881e95629f9fb8d70140c133972d81d3/examples/simple.rs#L14
+        let span = self
+            .labels
+            .first()
+            .map_or_else(AbsoluteDiagnosticSpan::full, |label| {
+                label.absolute_span(&mut config.transform_span)
+            });
 
         let mut generator = ColorGenerator::new();
 
-        let mut builder = ariadne::Report::build(self.severity.as_ref().kind(), (), start as usize)
+        let mut builder = ariadne::Report::build(self.severity.as_ref().kind(), span)
             .with_code(self.category.as_ref().canonical_id());
 
         builder.set_message(
