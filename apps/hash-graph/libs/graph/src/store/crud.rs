@@ -100,7 +100,7 @@ impl<'f, R: SubgraphRecord + QueryRecord, S> ReadParameter<'f, R, S> {
     }
 }
 
-impl<'f, R: QueryRecord> ReadParameter<'f, R, ()> {
+impl<R: QueryRecord> ReadParameter<'_, R, ()> {
     /// # Errors
     ///
     /// Returns an error if reading the records fails.
