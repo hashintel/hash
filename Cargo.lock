@@ -2475,6 +2475,7 @@ dependencies = [
  "axum 0.7.7",
  "axum-core 0.4.5",
  "bytes",
+ "derive-where",
  "derive_more 1.0.0",
  "error-stack",
  "frunk",

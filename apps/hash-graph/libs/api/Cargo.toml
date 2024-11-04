@@ -59,6 +59,7 @@ frunk = "0.4.3"
 derive_more = { version = "1.0.0", features = ["display", "error"] }
 futures.workspace = true
 tower.workspace = true
+derive-where.workspace = true
 
 [lints]
 workspace = true
