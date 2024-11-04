@@ -1,6 +1,6 @@
 mod query;
 mod read;
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, collections::BTreeSet};
 use core::{borrow::Borrow as _, iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
@@ -60,8 +60,7 @@ use temporal_versioning::{
 use tokio_postgres::{GenericClient as _, Row, error::SqlState};
 use type_system::{
     schema::{
-        ClosedEntityType, ClosedMultiEntityType, EntityTypeReference, EntityTypeUuid,
-        InheritanceDepth, OntologyTypeUuid,
+        ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, InheritanceDepth, OntologyTypeUuid,
     },
     url::VersionedUrl,
 };
@@ -405,13 +404,90 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self, entities))]
+    // #[tracing::instrument(level = "info", skip(self, entities))]
     async fn resolve_closed_multi_entity_types(
         &self,
-        actor_id: AccountId,
-        entities: impl IntoIterator<Item = &Entity>,
-    ) -> Result<HashMap<EntityTypeReference, ClosedMultiEntityTypeMap>, QueryError> {
-        todo!();
+        entities: impl IntoIterator<Item = &Entity> + Send,
+    ) -> Result<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>, Report<QueryError>> {
+        let mut entity_type_ids_to_resolve = HashSet::<&VersionedUrl>::new();
+        let all_multi_entity_type_ids = entities
+            .into_iter()
+            .map(|entity| {
+                entity_type_ids_to_resolve.extend(entity.metadata.entity_type_ids.iter());
+                entity
+                    .metadata
+                    .entity_type_ids
+                    .iter()
+                    .collect::<BTreeSet<_>>()
+            })
+            .collect::<Vec<_>>();
+
+        let (entity_type_references, entity_type_uuids): (Vec<_>, Vec<_>) =
+            entity_type_ids_to_resolve
+                .into_iter()
+                .map(|entity_type_id| (EntityTypeUuid::from_url(entity_type_id), entity_type_id))
+                .unzip();
+
+        let closed_types = entity_type_uuids
+            .into_iter()
+            .zip(
+                self.get_closed_entity_types(&entity_type_references)
+                    .await?,
+            )
+            .collect::<HashMap<_, _>>();
+
+        let mut resolved_entity_types = HashMap::<VersionedUrl, ClosedMultiEntityTypeMap>::new();
+        for entity_multi_type_ids in all_multi_entity_type_ids {
+            let mut entity_type_id_iter = entity_multi_type_ids.iter();
+            let Some(first_entity_type_id) = entity_type_id_iter.next() else {
+                continue;
+            };
+            let (_, ref mut map) = resolved_entity_types
+                .raw_entry_mut()
+                .from_key(*first_entity_type_id)
+                .or_insert_with(|| {
+                    ((*first_entity_type_id).clone(), ClosedMultiEntityTypeMap {
+                        schema: ClosedMultiEntityType::from_closed_schema(
+                            closed_types
+                                .get(*first_entity_type_id)
+                                .expect(
+                                    "The entity type was already resolved, so it should be \
+                                     present in the closed types",
+                                )
+                                .clone(),
+                        ),
+                        inner: HashMap::new(),
+                    })
+                });
+
+            for entity_type_id in entity_type_id_iter {
+                let (_, new_map) = map
+                    .inner
+                    .raw_entry_mut()
+                    .from_key(*entity_type_id)
+                    .or_insert_with(|| {
+                        let mut closed_parent = map.schema.clone();
+                        closed_parent
+                            .add_closed_entity_type(
+                                closed_types
+                                    .get(*entity_type_id)
+                                    .expect(
+                                        "The entity type was already resolved, so it should be \
+                                         present in the closed types",
+                                    )
+                                    .clone(),
+                            )
+                            .expect("The entity type was constructed before so it has to be valid");
+                        ((*entity_type_id).clone(), ClosedMultiEntityTypeMap {
+                            schema: closed_parent,
+                            inner: HashMap::new(),
+                        })
+                    });
+                *map = new_map;
+            }
+        }
+
+        Ok(resolved_entity_types)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
@@ -597,7 +673,6 @@ where
             GetEntitiesResponse {
                 closed_multi_entity_types: if params.include_closed_multi_entity_types {
                     self.resolve_closed_multi_entity_types(
-                        actor_id,
                         root_entities.iter().map(|(entity, _)| entity),
                     )
                     .await?

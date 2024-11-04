@@ -25,10 +25,7 @@ use hash_graph_store::{
 };
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use type_system::{
-    schema::{ClosedMultiEntityType, EntityTypeReference},
-    url::VersionedUrl,
-};
+use type_system::{schema::ClosedMultiEntityType, url::VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     ToSchema,
@@ -239,11 +236,10 @@ pub struct GetEntitiesParams<'a> {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct ClosedMultiEntityTypeMap {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub schema: Option<ClosedMultiEntityType>,
+    #[cfg_attr(feature = "utoipa", schema(value_type = VAR_CLOSED_MULTI_ENTITY_TYPE))]
+    pub schema: ClosedMultiEntityType,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub inner: HashMap<EntityTypeReference, Self>,
+    pub inner: HashMap<VersionedUrl, Self>,
 }
 
 #[derive(Debug, Serialize)]
@@ -254,7 +250,7 @@ pub struct GetEntitiesResponse<'r> {
     pub cursor: Option<EntityQueryCursor<'r>>,
     pub count: Option<usize>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub closed_multi_entity_types: HashMap<EntityTypeReference, ClosedMultiEntityTypeMap>,
+    pub closed_multi_entity_types: HashMap<VersionedUrl, ClosedMultiEntityTypeMap>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub web_ids: Option<HashMap<OwnedById, usize>>,
@@ -292,7 +288,7 @@ pub struct GetEntitySubgraphResponse<'r> {
     pub subgraph: Subgraph,
     pub cursor: Option<EntityQueryCursor<'r>>,
     pub count: Option<usize>,
-    pub closed_multi_entity_types: HashMap<EntityTypeReference, ClosedMultiEntityTypeMap>,
+    pub closed_multi_entity_types: HashMap<VersionedUrl, ClosedMultiEntityTypeMap>,
     pub web_ids: Option<HashMap<OwnedById, usize>>,
     pub created_by_ids: Option<HashMap<CreatedById, usize>>,
     pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,

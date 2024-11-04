@@ -62,7 +62,7 @@ use hash_graph_store::{
 };
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
-use type_system::{schema::EntityTypeReference, url::VersionedUrl};
+use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 use validation::ValidateEntityComponents;
 
@@ -677,7 +677,7 @@ struct GetEntitySubgraphResponse<'r> {
     cursor: Option<EntityQueryCursor<'r>>,
     count: Option<usize>,
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    closed_multi_entity_types: HashMap<EntityTypeReference, ClosedMultiEntityTypeMap>,
+    closed_multi_entity_types: HashMap<VersionedUrl, ClosedMultiEntityTypeMap>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     web_ids: Option<HashMap<OwnedById, usize>>,

@@ -3090,6 +3090,9 @@
       },
       "ClosedMultiEntityTypeMap": {
         "type": "object",
+        "required": [
+          "schema"
+        ],
         "properties": {
           "inner": {
             "type": "object",
@@ -3098,11 +3101,7 @@
             }
           },
           "schema": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ClosedMultiEntityType"
-              }
-            ]
+            "$ref": "./models/closed_multi_entity_type.json"
           }
         }
       },

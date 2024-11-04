@@ -1,7 +1,14 @@
+import type {
+  ClosedMultiEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
+  ClosedMultiEntityType as GraphApiClosedMultiEntityType,
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
+  GetEntitiesResponse,
+  GetEntitySubgraphResponse,
   GraphApi,
   OriginProvenance,
   PatchEntityParams as GraphApiPatchEntityParams,
@@ -461,6 +468,32 @@ export const flattenPropertyMetadata = (
   visitElement([], metadata);
 
   return flattened;
+};
+
+export const getClosedMultiEntityTypesFromResponse = (
+  response: GetEntitySubgraphResponse | GetEntitiesResponse,
+  entityTypesIds: [VersionedUrl, ...VersionedUrl[]],
+): ClosedMultiEntityType | undefined => {
+  if (!response.closedMultiEntityTypes) {
+    return;
+  }
+
+  const [firstEntityTypeId, ...restEntityTypesIds] = entityTypesIds.sort();
+  let currentClosedMultiEntityTypeMap =
+    response.closedMultiEntityTypes[firstEntityTypeId];
+
+  for (const id of restEntityTypesIds) {
+    if (!currentClosedMultiEntityTypeMap?.inner) {
+      return;
+    }
+    currentClosedMultiEntityTypeMap = currentClosedMultiEntityTypeMap.inner[id];
+  }
+
+  if (!currentClosedMultiEntityTypeMap) {
+    return;
+  }
+
+  return currentClosedMultiEntityTypeMap.schema satisfies GraphApiClosedMultiEntityType as ClosedMultiEntityType;
 };
 
 export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
