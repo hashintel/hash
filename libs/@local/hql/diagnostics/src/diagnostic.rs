@@ -85,7 +85,8 @@ impl<S> Diagnostic<'_, SpanNode<S>> {
         &self,
         mut config: ReportConfig<impl TransformSpan<S>>,
     ) -> ariadne::Report<AbsoluteDiagnosticSpan> {
-        // According to the examples, the first range supplied should be the one that is absolute.
+        // According to the examples, the span given to `Report::build` should be the span of the
+        // primary (first) label.
         // See: https://github.com/zesterer/ariadne/blob/74c2a7f8881e95629f9fb8d70140c133972d81d3/examples/simple.rs#L14
         let span = self
             .labels
