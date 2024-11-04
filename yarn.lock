@@ -26731,10 +26731,10 @@ react-draggable@^4.0.3:
     clsx "^1.1.1"
     prop-types "^15.8.1"
 
-react-dropzone@14.3.3:
-  version "14.3.3"
-  resolved "https://registry.yarnpkg.com/react-dropzone/-/react-dropzone-14.3.3.tgz#8f2cf46567615123c91e1ba59b07e6c815e5aef0"
-  integrity sha512-38yaWovqDqZdtn7LKTE5lFdqc57hYbPdS/oIxyhmaTP/yzC0yztPxnNy+poxew5HKF44gzGCNcNDBYjqlCXr6g==
+react-dropzone@14.3.4:
+  version "14.3.4"
+  resolved "https://registry.yarnpkg.com/react-dropzone/-/react-dropzone-14.3.4.tgz#c32ee953a074bffea2a68b4ffb39a75366e8c018"
+  integrity sha512-UwbhxVOLIajIIOTDb+jf58loAzKH+iK5EgTbUOBEbnOfd7lxk8LnNMZxmixhaxjox5ysZJYm42TcmuTrJ7dKwg==
   dependencies:
     attr-accept "^2.2.4"
     file-selector "^2.1.0"
