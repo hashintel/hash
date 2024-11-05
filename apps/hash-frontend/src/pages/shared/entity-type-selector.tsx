@@ -1,8 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   Chip,
-  EntityTypeIcon,
-  LinkTypeIcon,
+  EntityOrTypeIcon,
   SelectorAutocomplete,
 } from "@hashintel/design-system";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
@@ -103,13 +102,14 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
       }}
       optionToRenderData={({ schema: { $id, title, description, icon } }) => ({
         uniqueId: $id,
-        icon:
-          icon ??
-          (isSpecialEntityTypeLookup?.[$id]?.isLink ? (
-            <LinkTypeIcon />
-          ) : (
-            <EntityTypeIcon />
-          )),
+        icon: (
+          <EntityOrTypeIcon
+            entity={null}
+            icon={icon}
+            isLink={isSpecialEntityTypeLookup?.[$id]?.isLink}
+            fontSize={24}
+          />
+        ),
         typeIds: [$id],
         title,
         description,

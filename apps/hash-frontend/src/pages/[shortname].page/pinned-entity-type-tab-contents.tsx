@@ -1,3 +1,4 @@
+import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -29,12 +30,9 @@ import type { Org, User } from "../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ArrowDownAZRegularIcon } from "../../shared/icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../shared/icons/arrow-up-a-z-regular-icon";
-import { CanvasIcon } from "../../shared/icons/canvas-icon";
 import { ClockRegularIcon } from "../../shared/icons/clock-regular-icon";
-import { PageLightIcon } from "../../shared/icons/page-light-icon";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { Button, Link, MenuItem } from "../../shared/ui";
-import { useEntityIcon } from "../../shared/use-entity-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { InlineSelect } from "../shared/inline-select";
 import type { ProfilePageTab } from "./util";
@@ -59,20 +57,6 @@ const EntityRow: FunctionComponent<{
     ? format(updatedAt, "d MMMM yyyy")
     : `${formatDistanceToNowStrict(updatedAt)} ago`;
 
-  const icon = useEntityIcon({
-    entity,
-    entityTypes: entityType ? [entityType] : undefined,
-    pageIcon: entity.metadata.entityTypeIds.includes(
-      systemEntityTypes.canvas.entityTypeId,
-    ) ? (
-      <CanvasIcon
-        sx={{ fontSize: 20, fill: ({ palette }) => palette.gray[40] }}
-      />
-    ) : (
-      <PageLightIcon sx={{ fontSize: 18 }} />
-    ),
-  });
-
   return (
     <Link
       target="_blank"
@@ -90,17 +74,13 @@ const EntityRow: FunctionComponent<{
       }}
     >
       <Box sx={{ padding: 3 }}>
-        <Box
-          display="flex"
-          alignItems="center"
-          columnGap={1.5}
-          sx={{
-            "> svg": {
-              color: ({ palette }) => palette.gray[50],
-            },
-          }}
-        >
-          {icon}
+        <Box display="flex" alignItems="center" columnGap={1.5}>
+          <EntityOrTypeIcon
+            entity={null}
+            icon={entityType?.schema.icon}
+            fontSize={14}
+            fill={({ palette }) => palette.gray[50]}
+          />
           <Typography component="h2" sx={{ fontWeight: 700, fontSize: 14 }}>
             {label}
           </Typography>

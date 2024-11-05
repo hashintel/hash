@@ -1,11 +1,7 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  EntityTypeIcon,
-  LinkTypeIcon,
-  OntologyChip,
-} from "@hashintel/design-system";
+import { EntityOrTypeIcon, OntologyChip } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
   EntityTypeFormProvider,
@@ -287,21 +283,15 @@ export const EntityTypePage = ({
                     title: entityType.schema.title,
                     href: "#",
                     id: entityType.schema.$id,
-                    icon:
-                      icon ??
-                      (isLink ? (
-                        <LinkTypeIcon
-                          sx={({ palette }) => ({
-                            stroke: palette.gray[50],
-                          })}
-                        />
-                      ) : (
-                        <EntityTypeIcon
-                          sx={({ palette }) => ({
-                            fill: palette.gray[50],
-                          })}
-                        />
-                      )),
+                    icon: (
+                      <EntityOrTypeIcon
+                        entity={null}
+                        fill={({ palette }) => palette.gray[50]}
+                        fontSize={24}
+                        icon={icon}
+                        isLink={isLink}
+                      />
+                    ),
                   },
                 ]}
                 scrollToTop={() => {}}

@@ -32,6 +32,7 @@ export const DestinationEntityType = ({
       label={
         <TypeChipLabel
           currentVersion={currentVersion}
+          icon={entityTypeSchema.icon}
           latestVersion={latestVersion}
           onUpdate={
             updateVersion

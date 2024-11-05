@@ -1,3 +1,4 @@
+import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -252,14 +253,13 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       {loading ? (
         "Loading..."
       ) : (
-        <>
-          {["user", "page", "entity"].includes(mention.kind) ? (
-            <Box component="span" marginRight={0.5}>
-              {entityIcon}
-            </Box>
-          ) : null}
-          {title}
-        </>
+        <Box component="span" marginRight={0.5}>
+          <EntityOrTypeIcon
+            entity={entity ?? null}
+            icon={entityIcon}
+            fontSize={12}
+          />
+        </Box>
       )}
     </Box>
   );

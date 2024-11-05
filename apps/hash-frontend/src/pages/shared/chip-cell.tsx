@@ -83,7 +83,7 @@ export const createRenderChipCell = (params?: {
 
     const columnPadding =
       typeof params?.firstColumnLeftPadding !== "undefined" && args.col === 1
-        ? params?.firstColumnLeftPadding
+        ? params.firstColumnLeftPadding
         : getCellHorizontalPadding();
 
     let chipLeft = rect.x + columnPadding;

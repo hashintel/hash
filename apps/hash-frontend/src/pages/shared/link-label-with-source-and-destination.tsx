@@ -1,5 +1,8 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
-import { EyeSlashIconRegular } from "@hashintel/design-system";
+import {
+  EntityOrTypeIcon,
+  EyeSlashIconRegular,
+} from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -30,10 +33,8 @@ import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-e
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
 import { Link } from "../../shared/ui";
-import { useEntityIcon } from "../../shared/use-entity-icon";
 import { useEntityEditor } from "../[shortname]/entities/[entity-uuid].page/entity-editor/entity-editor-context";
 import { TooltipChip } from "./tooltip-chip";
-import { TypeIcon } from "./type-icon";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({
   fontSize: 14,
@@ -93,7 +94,11 @@ const LeftOrRightEntity: FunctionComponent<{
     });
   }, [entity, subgraph]);
 
-  const icon = useEntityIcon({ entity, entityTypes });
+  /**
+   * @todo H-3363 account for multitype and inheritance here (use closed schema)
+   */
+  const firstTypeIcon = entityTypes?.find((type) => type.schema.icon)?.schema
+    .icon;
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
@@ -137,12 +142,12 @@ const LeftOrRightEntity: FunctionComponent<{
           },
         }}
       >
-        {icon ? (
-          typeof icon === "string" ? (
-            <TypeIcon fontSize={12} icon={icon} />
-          ) : (
-            icon
-          )
+        {entity ? (
+          <EntityOrTypeIcon
+            entity={entity}
+            fontSize={12}
+            icon={firstTypeIcon}
+          />
         ) : (
           <EyeSlashIconRegular sx={{ fontSize: 14 }} />
         )}
@@ -361,7 +366,8 @@ const LeftOrRightEntity: FunctionComponent<{
                       <TooltipChip
                         label={rightEntityLabel}
                         icon={
-                          <TypeIcon
+                          <EntityOrTypeIcon
+                            entity={rightEntity}
                             fill={theme.palette.gray[30]}
                             fontSize={11}
                             icon={rightEntityEntityType?.schema.icon}

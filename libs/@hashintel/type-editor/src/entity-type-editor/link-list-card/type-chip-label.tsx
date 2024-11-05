@@ -1,8 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   ArrowUpRightRegularIcon,
-  FontAwesomeIcon,
+  EntityOrTypeIcon,
 } from "@hashintel/design-system";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import type { ReactNode } from "react";
@@ -15,12 +14,14 @@ import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
 export const TypeChipLabel = ({
   children,
   currentVersion,
+  icon,
   latestVersion,
   onUpdate,
   versionedUrl,
 }: {
   children: ReactNode;
   currentVersion?: number;
+  icon?: string;
   latestVersion?: number;
   versionedUrl?: VersionedUrl;
   onUpdate?: () => void;
@@ -29,7 +30,7 @@ export const TypeChipLabel = ({
 
   return (
     <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
-      <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: "inherit" }} />
+      <EntityOrTypeIcon entity={null} fontSize="inherit" icon={icon} />
       <Box component="span">{children}</Box>
 
       {!readonly &&

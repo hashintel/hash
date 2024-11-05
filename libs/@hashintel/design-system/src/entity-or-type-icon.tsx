@@ -1,0 +1,72 @@
+import { AsteriskRegularIcon, LinkTypeIcon } from "@hashintel/design-system";
+// eslint-disable-next-line no-restricted-imports -- TODO fix this to make package publishable again
+import type { Entity } from "@local/hash-graph-sdk/entity";
+// eslint-disable-next-line no-restricted-imports -- TODO fix this to make package publishable again
+import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { Theme } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+import type { ReactElement } from "react";
+
+export const EntityOrTypeIcon = ({
+  entity,
+  fill,
+  fontSize,
+  icon,
+  isLink,
+}: {
+  entity: Entity | null;
+  fill?: string | ((theme: Theme) => string);
+  fontSize: number | string;
+  icon?: string | ReactElement | null;
+  isLink?: boolean;
+}) => {
+  if (!icon) {
+    if (isLink) {
+      return <LinkTypeIcon sx={{ stroke: fill, fontSize }} />;
+    }
+    return <AsteriskRegularIcon sx={{ fill, fontSize }} />;
+  }
+
+  /**
+   * @todo H-1978 remove hardcoded ReactElement overrides when system types have icons assigned to schema
+   */
+  if (typeof icon !== "string") {
+    return icon;
+  }
+
+  if (
+    icon.startsWith("http://") ||
+    icon.startsWith("https://") ||
+    icon.startsWith("/")
+  ) {
+    const iconUrl = icon.startsWith("/")
+      ? new URL(icon, window.location.origin).href
+      : icon;
+
+    return (
+      <Box
+        sx={({ palette }) => ({
+          backgroundColor: fill ?? palette.gray[80],
+          "-webkit-mask": `url(${iconUrl}) no-repeat center / contain`,
+          mask: `url(${iconUrl}) no-repeat center / contain`,
+          width: fontSize,
+          height: fontSize,
+        })}
+      />
+    );
+  }
+
+  /**
+   * Pages at least can have an emoji set for the 'icon' property, overriding the type's icon
+   */
+  const emojiIcon =
+    (entity?.properties[systemPropertyTypes.icon.propertyTypeBaseUrl] as
+      | string
+      | undefined) ?? icon;
+
+  return (
+    <Typography fontSize={fontSize} sx={{ lineHeight: 1 }}>
+      {emojiIcon}
+    </Typography>
+  );
+};

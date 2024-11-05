@@ -1,5 +1,4 @@
 import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 
 import type {
   ChipCellColor,
@@ -194,7 +193,7 @@ export const drawChipWithIcon = ({
       } else {
         let iconUrl;
         if (icon.entityTypeIcon.startsWith("/")) {
-          iconUrl = new URL(icon.entityTypeIcon, frontendUrl).href;
+          iconUrl = new URL(icon.entityTypeIcon, window.location.origin).href;
         } else if (icon.entityTypeIcon.startsWith("https")) {
           iconUrl = icon.entityTypeIcon;
         }
