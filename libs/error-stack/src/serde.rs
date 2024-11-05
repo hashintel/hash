@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 //! Implementation of general [`Report`] serialization.
 //!
 //! The value can be of any type, currently only printable attachments and context are supported, in
@@ -15,7 +17,7 @@
 
 use alloc::{format, vec, vec::Vec};
 
-use serde::{Serialize, Serializer, ser::SerializeMap};
+use serde::{Serialize, Serializer, ser::SerializeMap as _};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
@@ -30,7 +32,7 @@ impl Serialize for SerializeAttachment<'_> {
 
         match frame.kind() {
             FrameKind::Context(_) => {
-                // TODO: for now `Context` is unsupported, upcoming PR will fix via hooks
+                // TODO: for now `Error` is unsupported, upcoming PR will fix via hooks
                 // `SerializeAttachmentList` ensures that no context is ever serialized
                 unimplemented!()
             }

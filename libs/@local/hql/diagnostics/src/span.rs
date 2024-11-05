@@ -54,6 +54,12 @@ impl AbsoluteDiagnosticSpan {
 
         Self { range }
     }
+
+    pub(crate) const fn full() -> Self {
+        Self {
+            range: TextRange::new(TextSize::new(0), TextSize::new(u32::MAX)),
+        }
+    }
 }
 
 impl ariadne::Span for AbsoluteDiagnosticSpan {

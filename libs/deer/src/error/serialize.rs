@@ -7,10 +7,10 @@ use core::{
     iter::once,
 };
 
-use error_stack::{Context, Frame, Report};
+use error_stack::{Frame, Report};
 use serde::{
     Serialize, Serializer,
-    ser::{Error as _, SerializeMap},
+    ser::{Error as _, SerializeMap as _},
 };
 
 use crate::error::{Error, ErrorProperties, Id, Namespace, Variant};
@@ -134,7 +134,7 @@ struct FrameSplitIterator<'a> {
 }
 
 impl<'a> FrameSplitIterator<'a> {
-    fn new(report: &'a Report<[impl Context]>) -> Self {
+    fn new(report: &'a Report<[impl core::error::Error + Send + Sync + 'static]>) -> Self {
         let stack = report
             .current_frames()
             .iter()
@@ -198,7 +198,7 @@ fn divide_frames<'a>(
 }
 
 fn serialize_report<S: Serializer>(
-    report: &Report<[impl Context]>,
+    report: &Report<[impl core::error::Error + Send + Sync + 'static]>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     let frames = FrameSplitIterator::new(report);
@@ -254,15 +254,15 @@ pub(super) fn impl_serialize<'a, E: Variant>(
 ///
 /// These types can then be used to generate a personalized message and will be attached to
 /// `properties` with the predefined key.
-pub struct Export<C: Context>(Report<[C]>);
+pub struct Export<C: core::error::Error + Send + Sync + 'static>(Report<[C]>);
 
-impl<C: Context> Export<C> {
+impl<C: core::error::Error + Send + Sync + 'static> Export<C> {
     pub(crate) const fn new(report: Report<[C]>) -> Self {
         Self(report)
     }
 }
 
-impl<C: Context> Serialize for Export<C> {
+impl<C: core::error::Error + Send + Sync + 'static> Serialize for Export<C> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -277,15 +277,15 @@ mod tests {
     use alloc::{format, vec, vec::Vec};
     use core::fmt::{Display, Formatter};
 
-    use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report};
+    use error_stack::{AttachmentKind, Frame, FrameKind, Report};
     use serde_json::{json, to_value};
     use similar_asserts::assert_serde_eq;
 
     use crate::{
-        Deserialize, Number, Reflection,
+        Deserialize as _, Number, Reflection as _,
         error::{
             Error, ErrorProperties, ExpectedType, Id, Location, MissingError, NAMESPACE, Namespace,
-            ReceivedValue, ReportExt, ValueError, Variant, VisitorError,
+            ReceivedValue, ReportExt as _, ValueError, Variant, VisitorError,
             serialize::{FrameSplitIterator, divide_frames},
         },
         id,
@@ -310,7 +310,7 @@ mod tests {
         }
     }
 
-    impl Context for Root {}
+    impl core::error::Error for Root {}
 
     fn assert_stack(frames: &[&Frame], expect: &[&'static str]) {
         let frames: Vec<_> = frames
@@ -378,7 +378,7 @@ mod tests {
         }
     }
 
-    impl Context for ErrorY {}
+    impl core::error::Error for ErrorY {}
 
     #[derive(Debug)]
     struct ErrorZ;

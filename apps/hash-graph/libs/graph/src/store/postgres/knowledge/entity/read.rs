@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::mem::swap;
 
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use graph_types::{
     knowledge::entity::{EntityEditionId, EntityId, EntityUuid},
     owned_by_id::OwnedById,
@@ -17,13 +17,13 @@ use hash_graph_store::{
 use temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
 };
-use tokio_postgres::GenericClient;
-use tracing::Instrument;
+use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 use type_system::{schema::OntologyTypeUuid, url::BaseUrl};
 
 use crate::store::postgres::{
     AsClient, PostgresStore,
-    query::{ForeignKeyReference, ReferenceTable, Table, Transpile},
+    query::{ForeignKeyReference, ReferenceTable, Table, Transpile as _},
 };
 
 #[derive(Debug)]
@@ -92,8 +92,10 @@ where
         &self,
         traversal_data: &'t EntityEdgeTraversalData,
         depth: Option<u32>,
-    ) -> Result<impl Iterator<Item = (OntologyTypeUuid, SharedEdgeTraversal)> + 't, QueryError>
-    {
+    ) -> Result<
+        impl Iterator<Item = (OntologyTypeUuid, SharedEdgeTraversal)> + 't,
+        Report<QueryError>,
+    > {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
@@ -177,7 +179,8 @@ where
         traversal_data: &'t EntityEdgeTraversalData,
         reference_table: ReferenceTable,
         edge_direction: EdgeDirection,
-    ) -> Result<impl Iterator<Item = (EntityId, KnowledgeEdgeTraversal)> + 't, QueryError> {
+    ) -> Result<impl Iterator<Item = (EntityId, KnowledgeEdgeTraversal)> + 't, Report<QueryError>>
+    {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),

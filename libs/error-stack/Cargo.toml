@@ -40,7 +40,6 @@ insta = { workspace = true, features = ["filters", "ron"] }
 regex = { workspace = true }
 expect-test = { workspace = true }
 ansi-to-html = { workspace = true }
-once_cell = { workspace = true }
 supports-color = { workspace = true }
 supports-unicode = { workspace = true }
 owo-colors = { workspace = true }

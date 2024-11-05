@@ -4,7 +4,7 @@ use core::{
 };
 
 use bytes::Bytes;
-use futures::StreamExt;
+use futures::StreamExt as _;
 use harpc_net::session::server::transaction::TransactionStream;
 
 use crate::body::{Body, BodyFrameResult, BodyState, Frame};

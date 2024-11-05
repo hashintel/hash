@@ -1,11 +1,9 @@
-use core::fmt;
-
-use error_stack::Context;
+use core::{error::Error, fmt};
 
 #[derive(Debug)]
 pub struct StoreError;
 
-impl Context for StoreError {}
+impl Error for StoreError {}
 
 impl fmt::Display for StoreError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -23,7 +21,7 @@ impl fmt::Display for DeletionError {
     }
 }
 
-impl Context for DeletionError {}
+impl Error for DeletionError {}
 
 #[derive(Debug)]
 #[must_use]
@@ -35,7 +33,7 @@ impl fmt::Display for BaseUrlAlreadyExists {
     }
 }
 
-impl Context for BaseUrlAlreadyExists {}
+impl Error for BaseUrlAlreadyExists {}
 
 #[derive(Debug)]
 #[must_use]
@@ -47,7 +45,7 @@ impl fmt::Display for EntityDoesNotExist {
     }
 }
 
-impl Context for EntityDoesNotExist {}
+impl Error for EntityDoesNotExist {}
 
 #[derive(Debug)]
 #[must_use]
@@ -59,7 +57,7 @@ impl fmt::Display for RaceConditionOnUpdate {
     }
 }
 
-impl Context for RaceConditionOnUpdate {}
+impl Error for RaceConditionOnUpdate {}
 
 #[derive(Debug)]
 #[must_use]
@@ -71,7 +69,7 @@ impl fmt::Display for VersionedUrlAlreadyExists {
     }
 }
 
-impl Context for VersionedUrlAlreadyExists {}
+impl Error for VersionedUrlAlreadyExists {}
 
 #[derive(Debug)]
 #[must_use]
@@ -83,7 +81,7 @@ impl fmt::Display for OntologyVersionDoesNotExist {
     }
 }
 
-impl Context for OntologyVersionDoesNotExist {}
+impl Error for OntologyVersionDoesNotExist {}
 
 #[derive(Debug)]
 #[must_use]
@@ -95,12 +93,12 @@ impl fmt::Display for OntologyTypeIsNotOwned {
     }
 }
 
-impl Context for OntologyTypeIsNotOwned {}
+impl Error for OntologyTypeIsNotOwned {}
 
 #[derive(Debug)]
 pub struct MigrationError;
 
-impl Context for MigrationError {}
+impl Error for MigrationError {}
 
 impl fmt::Display for MigrationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

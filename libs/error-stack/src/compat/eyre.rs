@@ -1,13 +1,13 @@
 use eyre::Report as EyreReport;
 
-use crate::{Frame, IntoReportCompat, Report, Result};
+use crate::{Frame, IntoReportCompat, Report};
 
-impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
+impl<T> IntoReportCompat for Result<T, EyreReport> {
     type Err = EyreReport;
     type Ok = T;
 
     #[track_caller]
-    fn into_report(self) -> Result<T, EyreReport> {
+    fn into_report(self) -> Result<T, Report<EyreReport>> {
         match self {
             Ok(value) => Ok(value),
             Err(eyre) => {

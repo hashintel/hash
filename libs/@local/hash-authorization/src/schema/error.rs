@@ -1,6 +1,6 @@
 use core::{
     error::Error,
-    fmt::{self, Debug, Write},
+    fmt::{self, Debug, Write as _},
 };
 
 use derive_where::derive_where;

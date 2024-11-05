@@ -1,6 +1,6 @@
-use core::fmt;
+use core::{error::Error, fmt};
 
-use error_stack::{bail, ensure, report, Context, Result};
+use error_stack::{Report, bail, ensure, report};
 
 #[derive(Debug)]
 pub struct RootError;
@@ -11,47 +11,47 @@ impl fmt::Display for RootError {
     }
 }
 
-impl Context for RootError {}
+impl Error for RootError {}
 
-fn invalid_report_arg() -> Result<(), RootError> {
+fn invalid_report_arg() -> Result<(), Report<RootError>> {
     let _ = report!("Error");
 
     Ok(())
 }
 
-fn empty_report_arg() -> Result<(), RootError> {
+fn empty_report_arg() -> Result<(), Report<RootError>> {
     let _ = report!();
 
     Ok(())
 }
 
-fn invalid_bail_arg() -> Result<(), RootError> {
+fn invalid_bail_arg() -> Result<(), Report<RootError>> {
     bail!("Error")
 }
 
-fn empty_bail_arg() -> Result<(), RootError> {
+fn empty_bail_arg() -> Result<(), Report<RootError>> {
     bail!()
 }
 
-fn invalid_ensure_error_arg() -> Result<(), RootError> {
+fn invalid_ensure_error_arg() -> Result<(), Report<RootError>> {
     let _ = ensure!(true, "Error");
 
     Ok(())
 }
 
-fn invalid_ensure_condition_arg() -> Result<(), RootError> {
+fn invalid_ensure_condition_arg() -> Result<(), Report<RootError>> {
     let _ = ensure!("No boolean", RootError);
 
     Ok(())
 }
 
-fn missing_ensure_arg() -> Result<(), RootError> {
+fn missing_ensure_arg() -> Result<(), Report<RootError>> {
     let _ = ensure!(true);
 
     Ok(())
 }
 
-fn empty_ensure_arg() -> Result<(), RootError> {
+fn empty_ensure_arg() -> Result<(), Report<RootError>> {
     let _ = ensure!();
 
     Ok(())

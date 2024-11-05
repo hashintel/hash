@@ -1,5 +1,5 @@
 use clap::{
-    ColorChoice, CommandFactory, FromArgMatches, Parser,
+    ColorChoice, CommandFactory as _, FromArgMatches as _, Parser,
     builder::{
         Styles,
         styling::{AnsiColor, Effects},

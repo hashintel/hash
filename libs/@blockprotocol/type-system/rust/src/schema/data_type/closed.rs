@@ -224,7 +224,7 @@ impl DataTypeResolveData {
 mod tests {
     use alloc::sync::Arc;
 
-    use itertools::Itertools;
+    use itertools::Itertools as _;
     use serde_json::json;
 
     use crate::{

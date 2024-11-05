@@ -84,7 +84,7 @@ error-stack = { path = "./libs/error-stack", default-features = false }
 
 # Public dependencies
 ahash = { version = "=0.8.11", default-features = false }
-ariadne = { version = "=0.4.1", default-features = false }
+ariadne = { version = "=0.5.0", default-features = false }
 aws-types = { version = "=1.3.3", default-features = false }
 axum = "0.7.5"
 axum-core = "0.4.3"
@@ -118,11 +118,11 @@ libp2p-swarm = { version = "=0.45.1", default-features = false }
 libp2p-yamux = { version = "=0.46.0", default-features = false }
 prometheus-client = { version = "=0.22.3", default-features = false }
 postgres-types = { version = "=0.2.8", default-features = false }
-reqwest = { version = "=0.12.8", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "=0.12.9", default-features = false, features = ["rustls-tls"] }
 regex = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 semver = { version = "=1.0.23", default-features = false }
 sentry-types = { version = "=0.34.0", default-features = false }
-serde = { version = "=1.0.213", default-features = false }
+serde = { version = "=1.0.214", default-features = false }
 serde_json = { version = "=1.0.132" }
 text-size = { version = "=1.1.1", default-features = false }
 tokio = { version = "=1.41.0", default-features = false }
@@ -132,7 +132,7 @@ tower-service = { version = "=0.3.3", default-features = false }
 tracing-appender = { version = "=0.2.3", default-features = false }
 tracing-core = { version = "=0.1.32", default-features = false }
 tracing-subscriber = { version = "=0.3.18", default-features = false }
-url = { version = "=2.5.2", default-features = false }
+url = { version = "=2.5.3", default-features = false }
 utoipa = { version = "=4.2.3", default-features = false }
 uuid = { version = "=1.11.0", default-features = false }
 time = { version = "=0.3.36", default-features = false }
@@ -141,13 +141,13 @@ tower-http = { version = "=0.6.1", features = ["trace"] }
 
 # Shared third-party dependencies
 ansi-to-html = { version = "=0.2.1", default-features = false }
-anstyle = { version = "=1.0.9", default-features = false }
+anstyle = { version = "=1.0.10", default-features = false }
 anstyle-yansi = { version = "=2.0.2", default-features = false }
 approx = { version = "=0.5.1", default-features = false }
 async-scoped = { version = "=0.9.0", default-features = false }
 async-trait = { version = "=0.1.83", default-features = false }
 aws-config = { version = "=1.5.9" }
-aws-sdk-s3 = { version = "=1.58.0", default-features = false }
+aws-sdk-s3 = { version = "=1.59.0", default-features = false }
 bitvec = { version = "=1.0.1", default-features = false }
 bytes-utils = { version = "=0.1.4", default-features = false }
 clap = { version = "=4.5.20", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
@@ -162,7 +162,7 @@ hifijson = { version = "=0.2.2", default-features = false }
 humansize = { version = "=2.1.3", default-features = false }
 hyper = { version = "=1.5.0", default-features = false }
 include_dir = { version = "=0.7.4", default-features = false }
-insta = { version = "=1.40.0", default-features = false }
+insta = { version = "=1.41.1", default-features = false }
 itertools = { version = "0.13.0", default-features = false }
 jsonschema = { version = "=0.26.1", default-features = false }
 justjson = { version = "=0.3.0", default-features = false }
@@ -204,11 +204,12 @@ temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "htt
 test-fuzz = { version = "=6.0.0", default-features = false }
 test-log = { version = "=0.2.16", default-features = false }
 test-strategy = { version = "=0.4.0", default-features = false }
-thiserror = { version = "=1.0.65", default-features = false }
+thiserror = { version = "=1.0.67", default-features = false }
 tokio-stream = { version = "=0.1.16", default-features = false }
 tokio-test = { version = "=0.4.4", default-features = false }
 tower = { version = "=0.5.1", default-features = false }
 tower-test = { version = "=0.4.0", default-features = false }
+trait-variant = { version = "=0.1.2", default-features = false }
 tracing = { version = "=0.1.40", default-features = false }
 tracing-error = { version = "=0.2.0", default-features = false }
 tracing-flame = { version = "=0.2.0", default-features = false }
@@ -270,12 +271,10 @@ expect_used = "allow"
 indexing_slicing = "allow"
 let_underscore_must_use = "allow"
 missing_assert_message = "allow"
-needless_return = "allow" # False positives, https://github.com/rust-lang/rust-clippy/issues/13458
 multiple_inherent_impl = "allow"
 panic = "allow"
 partial_pub_fields = "allow"
 unwrap_in_result = "allow"
-unused_trait_names = "allow" # should be supported by IDEs
 wildcard_enum_match_arm = "allow"
 
 # Consider enabling:
@@ -299,15 +298,15 @@ implicit_return = "allow"
 missing_docs_in_private_items = "allow"
 missing_inline_in_public_items = "allow"
 missing_trait_methods = "allow" # Should be enabled per `impl` instead of globally
-mod_module_files = "allow" # opposite of `clippy::self_named_module_files`
+mod_module_files = "allow" # Opposite of `clippy::self_named_module_files`
 module_name_repetitions = "allow"
 pub_use = "allow"
-pub_with_shorthand = "allow" # # opposite of `clippy::pub_without_shorthand`
+pub_with_shorthand = "allow" # Opposite of `clippy::pub_without_shorthand`
 question_mark_used = "allow"
 ref_patterns = "allow"
-redundant_pub_crate = "allow" # opposite of `unreachable_pub`
-semicolon_outside_block = "allow" # opposite of `clippy::semicolon_inside_block`
-separated_literal_suffix = "allow" # opposite of `clippy::unseparated_literal_suffix`
+redundant_pub_crate = "allow" # Opposite of `unreachable_pub`
+semicolon_outside_block = "allow" # Opposite of `clippy::semicolon_inside_block`
+separated_literal_suffix = "allow" # Opposite of `clippy::unseparated_literal_suffix`
 shadow_reuse = "allow"
 shadow_same = "allow"
 unneeded_field_pattern = "allow" # Actually, the opposite would be a great lint

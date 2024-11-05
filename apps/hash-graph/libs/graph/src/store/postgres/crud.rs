@@ -1,10 +1,10 @@
-use error_stack::{Report, ResultExt};
-use futures::{Stream, StreamExt, TryStreamExt};
+use error_stack::{Report, ResultExt as _};
+use futures::{Stream, StreamExt as _, TryStreamExt as _};
 use hash_graph_store::{
     error::QueryError, filter::Filter, subgraph::temporal_axes::QueryTemporalAxes,
 };
-use tokio_postgres::{GenericClient, Row};
-use tracing::Instrument;
+use tokio_postgres::{GenericClient as _, Row};
+use tracing::Instrument as _;
 
 use crate::store::{
     AsClient, PostgresStore,

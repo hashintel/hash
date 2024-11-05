@@ -3,7 +3,7 @@
 use alloc::sync::Arc;
 
 use authorization::{
-    AuthorizationApi, AuthorizationApiPool,
+    AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
@@ -22,7 +22,7 @@ use axum::{
 use error_stack::Report;
 use graph::store::StorePool;
 use graph_types::owned_by_id::OwnedById;
-use hash_graph_store::account::{AccountStore, InsertWebIdParams};
+use hash_graph_store::account::{AccountStore as _, InsertWebIdParams};
 use serde::Deserialize;
 use temporal_client::TemporalClient;
 use utoipa::{OpenApi, ToSchema};

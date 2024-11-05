@@ -8,8 +8,8 @@ use authorization::{
     schema::{DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Result, ResultExt};
-use futures::StreamExt;
+use error_stack::{Report, ResultExt as _};
+use futures::StreamExt as _;
 use graph_types::{
     Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
@@ -28,7 +28,7 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
-        Subgraph, SubgraphRecord,
+        Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{DataTypeVertexId, GraphElementVertexId},
         temporal_axes::{
@@ -40,10 +40,10 @@ use hash_graph_store::{
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use tokio_postgres::{GenericClient, Row};
+use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{
-    Valid, Validator,
+    Valid, Validator as _,
     schema::{
         ClosedDataType, ConversionDefinition, Conversions, DataType, DataTypeEdge,
         DataTypeResolveData, DataTypeUuid, DataTypeValidator, InheritanceDepth,
@@ -53,7 +53,7 @@ use type_system::{
 };
 
 use crate::store::{
-    crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
+    crud::{QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     postgres::{
         AsClient, PostgresStore, TraversalContext,
@@ -78,7 +78,7 @@ where
         actor_id: AccountId,
         authorization_api: &A,
         zookie: &Zookie<'static>,
-    ) -> Result<impl Iterator<Item = T>, QueryError>
+    ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
     where
         I: Into<DataTypeUuid> + Send,
         T: Send,
@@ -114,7 +114,7 @@ where
     async fn get_data_type_inheritance_metadata(
         &self,
         data_types: &[DataTypeUuid],
-    ) -> Result<impl Iterator<Item = (DataTypeUuid, DataTypeResolveData)>, QueryError> {
+    ) -> Result<impl Iterator<Item = (DataTypeUuid, DataTypeResolveData)>, Report<QueryError>> {
         Ok(self
             .as_client()
             .query(
@@ -163,7 +163,7 @@ where
         actor_id: AccountId,
         params: GetDataTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Result<(GetDataTypesResponse, Zookie<'static>), QueryError> {
+    ) -> Result<(GetDataTypesResponse, Zookie<'static>), Report<QueryError>> {
         #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
         let count = if params.include_count {
             Some(
@@ -262,7 +262,7 @@ where
         actor_id: AccountId,
         zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), Report<QueryError>> {
         while !data_type_queue.is_empty() {
             let mut edges_to_traverse =
                 HashMap::<OntologyEdgeKind, OntologyTypeTraversalData>::new();
@@ -335,7 +335,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    pub async fn delete_data_types(&mut self) -> Result<(), DeletionError> {
+    pub async fn delete_data_types(&mut self) -> Result<(), Report<DeletionError>> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
 
         transaction
@@ -384,7 +384,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: P,
-    ) -> Result<Vec<DataTypeMetadata>, InsertionError>
+    ) -> Result<Vec<DataTypeMetadata>, Report<InsertionError>>
     where
         P: IntoIterator<Item = CreateDataTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
@@ -539,7 +539,7 @@ where
 
                 Ok((closed_schema, closed_metadata))
             })
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, Report<_>>>()?;
 
         let data_type_validator = DataTypeValidator;
         for ((closed_schema, _), (data_type_id, data_type)) in
@@ -642,7 +642,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: GetDataTypesParams<'_>,
-    ) -> Result<GetDataTypesResponse, QueryError> {
+    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -665,7 +665,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: CountDataTypesParams<'_>,
-    ) -> Result<usize, QueryError> {
+    ) -> Result<usize, Report<QueryError>> {
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -692,7 +692,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: GetDataTypeSubgraphParams<'_>,
-    ) -> Result<GetDataTypeSubgraphResponse, QueryError> {
+    ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -787,7 +787,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: UpdateDataTypesParams<R>,
-    ) -> Result<DataTypeMetadata, UpdateError>
+    ) -> Result<DataTypeMetadata, Report<UpdateError>>
     where
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
@@ -1004,7 +1004,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: ArchiveDataTypeParams<'_>,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.archive_ontology_type(&params.data_type_id, EditionArchivedById::new(actor_id))
             .await
     }
@@ -1014,7 +1014,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: UnarchiveDataTypeParams,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.unarchive_ontology_type(&params.data_type_id, &OntologyEditionProvenance {
             created_by_id: EditionCreatedById::new(actor_id),
             archived_by_id: None,
@@ -1028,7 +1028,7 @@ where
         &mut self,
         _: AccountId,
         params: UpdateDataTypeEmbeddingParams<'_>,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<(), Report<UpdateError>> {
         #[derive(Debug, ToSql)]
         #[postgres(name = "data_type_embeddings")]
         pub struct DataTypeEmbeddingsRow<'a> {
@@ -1096,7 +1096,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn reindex_data_type_cache(&mut self) -> Result<(), UpdateError> {
+    async fn reindex_data_type_cache(&mut self) -> Result<(), Report<UpdateError>> {
         tracing::info!("Reindexing data type cache");
         let transaction = self.transaction().await.change_context(UpdateError)?;
 

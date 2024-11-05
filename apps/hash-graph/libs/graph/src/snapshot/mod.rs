@@ -17,7 +17,7 @@ mod ontology;
 mod restore;
 mod web;
 
-use core::future::ready;
+use core::{error::Error, future::ready};
 
 use async_scoped::TokioScope;
 use authorization::{
@@ -33,9 +33,10 @@ use authorization::{
         types::{RelationshipFilter, ResourceFilter},
     },
 };
-use error_stack::{Context, Report, Result, ResultExt, ensure};
+use error_stack::{Report, ResultExt as _, ensure};
 use futures::{
-    Sink, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt, channel::mpsc, stream,
+    Sink, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _,
+    channel::mpsc, stream,
 };
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -238,15 +239,15 @@ impl SnapshotEntry {
 trait WriteBatch<C, A> {
     fn begin(
         postgres_client: &mut PostgresStore<C, A>,
-    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
+    ) -> impl Future<Output = Result<(), Report<InsertionError>>> + Send;
     fn write(
         self,
         postgres_client: &mut PostgresStore<C, A>,
-    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
+    ) -> impl Future<Output = Result<(), Report<InsertionError>>> + Send;
     fn commit(
         postgres_client: &mut PostgresStore<C, A>,
         validation: bool,
-    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
+    ) -> impl Future<Output = Result<(), Report<InsertionError>>> + Send;
 }
 
 pub struct SnapshotStore<C, A>(PostgresStore<C, A>);
@@ -278,8 +279,10 @@ pub struct SnapshotDumpSettings {
 impl PostgresStorePool {
     async fn read_accounts(
         &self,
-    ) -> Result<impl Stream<Item = Result<Account, SnapshotDumpError>> + Send, SnapshotDumpError>
-    {
+    ) -> Result<
+        impl Stream<Item = Result<Account, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
+    > {
         // TODO: Make accounts a first-class `Record` type
         //   see https://linear.app/hash/issue/H-752
         Ok(self
@@ -299,8 +302,8 @@ impl PostgresStorePool {
         &'a self,
         authorization_api: &'a (impl ZanzibarBackend + Sync),
     ) -> Result<
-        impl Stream<Item = Result<AccountGroup, SnapshotDumpError>> + Send + 'a,
-        SnapshotDumpError,
+        impl Stream<Item = Result<AccountGroup, Report<SnapshotDumpError>>> + Send + 'a,
+        Report<SnapshotDumpError>,
     > {
         // TODO: Make account groups a first-class `Record` type
         //   see https://linear.app/hash/issue/H-752
@@ -336,8 +339,10 @@ impl PostgresStorePool {
     async fn read_webs<'a>(
         &'a self,
         authorization_api: &'a (impl ZanzibarBackend + Sync),
-    ) -> Result<impl Stream<Item = Result<Web, SnapshotDumpError>> + Send + 'a, SnapshotDumpError>
-    {
+    ) -> Result<
+        impl Stream<Item = Result<Web, Report<SnapshotDumpError>>> + Send + 'a,
+        Report<SnapshotDumpError>,
+    > {
         Ok(self
             .acquire(NoAuthorization, None)
             .await
@@ -369,7 +374,10 @@ impl PostgresStorePool {
     /// Convenience function to create a stream of snapshot entries.
     async fn create_dump_stream<'pool, T>(
         &'pool self,
-    ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send + 'pool, SnapshotDumpError>
+    ) -> Result<
+        impl Stream<Item = Result<T, Report<SnapshotDumpError>>> + Send + 'pool,
+        Report<SnapshotDumpError>,
+    >
     where
         <Self as StorePool>::Store<'pool, NoAuthorization>: Read<T>,
         T: QueryRecord + 'pool,
@@ -391,8 +399,8 @@ impl PostgresStorePool {
     async fn create_data_type_embedding_stream(
         &self,
     ) -> Result<
-        impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + Send,
-        SnapshotDumpError,
+        impl Stream<Item = Result<SnapshotEntry, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
     > {
         Ok(self
             .acquire(NoAuthorization, None)
@@ -423,8 +431,8 @@ impl PostgresStorePool {
     async fn create_property_type_embedding_stream(
         &self,
     ) -> Result<
-        impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + Send,
-        SnapshotDumpError,
+        impl Stream<Item = Result<SnapshotEntry, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
     > {
         Ok(self
             .acquire(NoAuthorization, None)
@@ -455,8 +463,8 @@ impl PostgresStorePool {
     async fn create_entity_type_embedding_stream(
         &self,
     ) -> Result<
-        impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + Send,
-        SnapshotDumpError,
+        impl Stream<Item = Result<SnapshotEntry, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
     > {
         Ok(self
             .acquire(NoAuthorization, None)
@@ -487,8 +495,8 @@ impl PostgresStorePool {
     async fn create_entity_embedding_stream(
         &self,
     ) -> Result<
-        impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + Send,
-        SnapshotDumpError,
+        impl Stream<Item = Result<SnapshotEntry, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
     > {
         Ok(self
             .acquire(NoAuthorization, None)
@@ -537,10 +545,12 @@ impl PostgresStorePool {
     #[expect(clippy::too_many_lines)]
     pub fn dump_snapshot(
         &self,
-        sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send + 'static,
+        sink: impl Sink<SnapshotEntry, Error = Report<impl Error + Send + Sync + 'static>>
+        + Send
+        + 'static,
         authorization_api: &(impl ZanzibarBackend + Sync),
         settings: SnapshotDumpSettings,
-    ) -> Result<(), SnapshotDumpError> {
+    ) -> Result<(), Report<SnapshotDumpError>> {
         let (snapshot_record_tx, snapshot_record_rx) = mpsc::channel(settings.chunk_size);
         let snapshot_record_tx = snapshot_record_tx
             .sink_map_err(|error| Report::new(error).change_context(SnapshotDumpError::Write));
@@ -800,10 +810,12 @@ where
     /// - If writing a record into the datastore fails
     pub async fn restore_snapshot(
         &mut self,
-        snapshot: impl Stream<Item = Result<SnapshotEntry, impl Context>> + Send + 'static,
+        snapshot: impl Stream<Item = Result<SnapshotEntry, Report<impl Error + Send + Sync + 'static>>>
+        + Send
+        + 'static,
         chunk_size: usize,
         validation: bool,
-    ) -> Result<(), SnapshotRestoreError> {
+    ) -> Result<(), Report<SnapshotRestoreError>> {
         tracing::info!("snapshot restore started");
 
         let (snapshot_record_tx, snapshot_record_rx, metadata_rx) = restore::channel(chunk_size);

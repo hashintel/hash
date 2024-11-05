@@ -8,13 +8,13 @@ use core::{
 };
 
 use bytes::Bytes;
-use futures::{Sink, Stream, StreamExt, stream::FusedStream};
+use futures::{Sink, Stream, StreamExt as _, stream::FusedStream};
 use harpc_codec::error::NetworkError;
 use harpc_types::{
     procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
 };
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     request::{Request, begin::RequestBegin, flags::RequestFlag, id::RequestId},
     response::Response,
 };

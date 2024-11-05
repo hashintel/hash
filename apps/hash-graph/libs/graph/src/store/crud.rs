@@ -6,8 +6,8 @@
 //!
 //! [`Store`]: crate::store::Store
 
-use error_stack::Result;
-use futures::{Stream, TryFutureExt, TryStreamExt};
+use error_stack::Report;
+use futures::{Stream, TryFutureExt as _, TryStreamExt};
 use hash_graph_store::{
     error::QueryError,
     filter::{Filter, QueryRecord},
@@ -107,7 +107,7 @@ impl<'f, R: QueryRecord> ReadParameter<'f, R, ()> {
     pub async fn read(
         &self,
         store: &impl Read<R>,
-    ) -> Result<impl Stream<Item = Result<R, QueryError>>, QueryError> {
+    ) -> Result<impl Stream<Item = Result<R, Report<QueryError>>>, Report<QueryError>> {
         store
             .read(
                 self.filters.unwrap_or(&Filter::All(Vec::new())),
@@ -120,7 +120,7 @@ impl<'f, R: QueryRecord> ReadParameter<'f, R, ()> {
     /// # Errors
     ///
     /// Returns an error if reading the records fails.
-    pub async fn read_vec(&self, store: &impl Read<R>) -> Result<Vec<R>, QueryError> {
+    pub async fn read_vec(&self, store: &impl Read<R>) -> Result<Vec<R>, Report<QueryError>> {
         self.read(store).await?.try_collect().await
     }
 }
@@ -152,7 +152,9 @@ impl<R: QueryRecord, S: Sorting> ReadParameter<'_, R, S> {
 pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
     type QueryResult: QueryResult<R, S> + Send;
 
-    type ReadPaginatedStream: Stream<Item = Result<Self::QueryResult, QueryError>> + Send + Sync;
+    type ReadPaginatedStream: Stream<Item = Result<Self::QueryResult, Report<QueryError>>>
+        + Send
+        + Sync;
 
     #[expect(
         clippy::type_complexity,
@@ -171,7 +173,7 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
                 Self::ReadPaginatedStream,
                 <Self::QueryResult as QueryResult<R, S>>::Indices,
             ),
-            QueryError,
+            Report<QueryError>,
         >,
     > + Send;
 
@@ -193,7 +195,7 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
                 Vec<Self::QueryResult>,
                 <Self::QueryResult as QueryResult<R, S>>::Indices,
             ),
-            QueryError,
+            Report<QueryError>,
         >,
     > + Send {
         async move {
@@ -209,14 +211,14 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
 ///
 /// [`Store`]: crate::store::Store
 pub trait Read<R: QueryRecord>: Sync {
-    type ReadStream: Stream<Item = Result<R, QueryError>> + Send + Sync;
+    type ReadStream: Stream<Item = Result<R, Report<QueryError>>> + Send + Sync;
 
     fn read(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> impl Future<Output = Result<Self::ReadStream, QueryError>> + Send;
+    ) -> impl Future<Output = Result<Self::ReadStream, Report<QueryError>>> + Send;
 
     #[instrument(level = "info", skip(self, filter))]
     fn read_vec(
@@ -224,7 +226,7 @@ pub trait Read<R: QueryRecord>: Sync {
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> impl Future<Output = Result<Vec<R>, QueryError>> + Send {
+    ) -> impl Future<Output = Result<Vec<R>, Report<QueryError>>> + Send {
         self.read(filter, temporal_axes, include_drafts)
             .and_then(TryStreamExt::try_collect)
     }
@@ -234,7 +236,7 @@ pub trait Read<R: QueryRecord>: Sync {
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> impl Future<Output = Result<R, QueryError>> + Send;
+    ) -> impl Future<Output = Result<R, Report<QueryError>>> + Send;
 }
 
 // TODO: Add remaining CRUD traits

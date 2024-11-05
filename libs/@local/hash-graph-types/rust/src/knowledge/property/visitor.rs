@@ -1,6 +1,6 @@
-use core::{borrow::Borrow, future::Future};
+use core::{borrow::Borrow as _, future::Future};
 
-use error_stack::{Report, ReportSink, ResultExt, bail};
+use error_stack::{Report, ReportSink, ResultExt as _, bail};
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::{
@@ -17,9 +17,7 @@ use crate::{
         PropertyWithMetadataValue, ValueMetadata,
         error::{Actual, Expected},
     },
-    ontology::{
-        DataTypeProvider, DataTypeWithMetadata, OntologyTypeProvider, PropertyTypeProvider,
-    },
+    ontology::{DataTypeLookup, DataTypeWithMetadata, OntologyTypeProvider, PropertyTypeProvider},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -111,7 +109,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         type_provider: &P,
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
-        P: DataTypeProvider + Sync,
+        P: DataTypeLookup + Sync,
     {
         walk_value(self, data_type, value, metadata, type_provider)
     }
@@ -126,7 +124,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         type_provider: &P,
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
-        P: DataTypeProvider + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + PropertyTypeProvider + Sync,
     {
         walk_property(self, schema, property, type_provider)
     }
@@ -142,7 +140,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
         T: PropertyValueSchema + Sync,
-        P: DataTypeProvider + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + PropertyTypeProvider + Sync,
     {
         walk_array(self, schema, array, type_provider)
     }
@@ -158,7 +156,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
         T: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
-        P: DataTypeProvider + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + PropertyTypeProvider + Sync,
     {
         walk_object(self, schema, object, type_provider)
     }
@@ -173,7 +171,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         type_provider: &P,
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
-        P: DataTypeProvider + Sync,
+        P: DataTypeLookup + Sync,
     {
         walk_one_of_property_value(self, schema, property, type_provider)
     }
@@ -188,7 +186,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         type_provider: &P,
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
-        P: DataTypeProvider + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + PropertyTypeProvider + Sync,
     {
         walk_one_of_array(self, schema, array, type_provider)
     }
@@ -203,7 +201,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         type_provider: &P,
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
-        P: DataTypeProvider + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + PropertyTypeProvider + Sync,
     {
         walk_one_of_object(self, schema, object, type_provider)
     }
@@ -225,13 +223,13 @@ pub async fn walk_value<V, P>(
 ) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
-    P: DataTypeProvider + Sync,
+    P: DataTypeLookup + Sync,
 {
     let mut status = ReportSink::new();
 
     for parent in &data_type.schema.all_of {
         match type_provider
-            .provide_type(&parent.url)
+            .lookup_data_type_by_ref(parent)
             .await
             .change_context_lazy(|| TraversalError::DataTypeRetrieval { id: parent.clone() })
         {
@@ -270,7 +268,7 @@ pub async fn walk_property<V, P>(
 ) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
-    P: DataTypeProvider + PropertyTypeProvider + Sync,
+    P: DataTypeLookup + PropertyTypeProvider + Sync,
 {
     let mut status = ReportSink::new();
     match property {
@@ -316,7 +314,7 @@ pub async fn walk_array<V, S, P>(
 where
     V: EntityVisitor,
     S: PropertyValueSchema + Sync,
-    P: DataTypeProvider + PropertyTypeProvider + Sync,
+    P: DataTypeLookup + PropertyTypeProvider + Sync,
 {
     let mut status = ReportSink::new();
 
@@ -380,7 +378,7 @@ pub async fn walk_object<V, S, P>(
 where
     V: EntityVisitor,
     S: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
-    P: DataTypeProvider + PropertyTypeProvider + Sync,
+    P: DataTypeLookup + PropertyTypeProvider + Sync,
 {
     let mut status = ReportSink::new();
 
@@ -467,7 +465,7 @@ pub async fn walk_one_of_property_value<V, P>(
 ) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
-    P: DataTypeProvider + Sync,
+    P: DataTypeLookup + Sync,
 {
     let mut status = ReportSink::new();
     let mut passed: usize = 0;
@@ -476,7 +474,7 @@ where
         match schema {
             PropertyValues::DataTypeReference(data_type_ref) => {
                 let data_type = type_provider
-                    .provide_type(&data_type_ref.url)
+                    .lookup_data_type_by_ref(data_type_ref)
                     .await
                     .change_context_lazy(|| TraversalError::DataTypeRetrieval {
                         id: data_type_ref.clone(),
@@ -545,7 +543,7 @@ pub async fn walk_one_of_array<V, P>(
 ) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
-    P: DataTypeProvider + PropertyTypeProvider + Sync,
+    P: DataTypeLookup + PropertyTypeProvider + Sync,
 {
     let mut status = ReportSink::new();
     let mut passed: usize = 0;
@@ -609,7 +607,7 @@ pub async fn walk_one_of_object<V, P>(
 ) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
-    P: DataTypeProvider + PropertyTypeProvider + Sync,
+    P: DataTypeLookup + PropertyTypeProvider + Sync,
 {
     let mut status = ReportSink::new();
     let mut passed: usize = 0;

@@ -3,7 +3,7 @@ use core::iter;
 use std::collections::HashMap;
 
 use authorization::schema::{EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject};
-use error_stack::Result;
+use error_stack::Report;
 use graph_types::{
     Embedding,
     account::{AccountId, EditionCreatedById},
@@ -155,7 +155,7 @@ pub trait PropertyTypeStore {
         &mut self,
         actor_id: AccountId,
         params: CreatePropertyTypeParams<R>,
-    ) -> impl Future<Output = Result<PropertyTypeMetadata, InsertionError>> + Send
+    ) -> impl Future<Output = Result<PropertyTypeMetadata, Report<InsertionError>>> + Send
     where
         Self: Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
@@ -181,7 +181,7 @@ pub trait PropertyTypeStore {
         &mut self,
         actor_id: AccountId,
         params: P,
-    ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, InsertionError>> + Send
+    ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>> + Send
     where
         P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync;
@@ -195,7 +195,7 @@ pub trait PropertyTypeStore {
         &self,
         actor_id: AccountId,
         params: CountPropertyTypesParams<'_>,
-    ) -> impl Future<Output = Result<usize, QueryError>> + Send;
+    ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
     /// Get the [`Subgraph`] specified by the [`GetPropertyTypeSubgraphParams`].
     ///
@@ -206,7 +206,7 @@ pub trait PropertyTypeStore {
         &self,
         actor_id: AccountId,
         params: GetPropertyTypeSubgraphParams<'_>,
-    ) -> impl Future<Output = Result<GetPropertyTypeSubgraphResponse, QueryError>> + Send;
+    ) -> impl Future<Output = Result<GetPropertyTypeSubgraphResponse, Report<QueryError>>> + Send;
 
     /// Get the [`PropertyTypes`] specified by the [`GetPropertyTypesParams`].
     ///
@@ -219,7 +219,7 @@ pub trait PropertyTypeStore {
         &self,
         actor_id: AccountId,
         params: GetPropertyTypesParams<'_>,
-    ) -> impl Future<Output = Result<GetPropertyTypesResponse, QueryError>> + Send;
+    ) -> impl Future<Output = Result<GetPropertyTypesResponse, Report<QueryError>>> + Send;
 
     /// Update the definition of an existing [`PropertyType`].
     ///
@@ -230,7 +230,7 @@ pub trait PropertyTypeStore {
         &mut self,
         actor_id: AccountId,
         params: UpdatePropertyTypesParams<R>,
-    ) -> impl Future<Output = Result<PropertyTypeMetadata, UpdateError>> + Send
+    ) -> impl Future<Output = Result<PropertyTypeMetadata, Report<UpdateError>>> + Send
     where
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync;
 
@@ -244,7 +244,7 @@ pub trait PropertyTypeStore {
         actor_id: AccountId,
 
         params: ArchivePropertyTypeParams<'_>,
-    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     /// Restores the definition of an existing [`PropertyType`].
     ///
@@ -256,14 +256,14 @@ pub trait PropertyTypeStore {
         actor_id: AccountId,
 
         params: UnarchivePropertyTypeParams<'_>,
-    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     fn update_property_type_embeddings(
         &mut self,
         actor_id: AccountId,
 
         params: UpdatePropertyTypeEmbeddingParams<'_>,
-    ) -> impl Future<Output = Result<(), UpdateError>> + Send;
+    ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 }
 
 #[derive(Debug, Deserialize)]
@@ -435,7 +435,7 @@ pub trait EntityTypeStore {
         &mut self,
         actor_id: AccountId,
         params: CreateEntityTypeParams<R>,
-    ) -> impl Future<Output = Result<EntityTypeMetadata, InsertionError>> + Send
+    ) -> impl Future<Output = Result<EntityTypeMetadata, Report<InsertionError>>> + Send
     where
         Self: Send,
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
@@ -461,7 +461,7 @@ pub trait EntityTypeStore {
         &mut self,
         actor_id: AccountId,
         params: P,
-    ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, InsertionError>> + Send
+    ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<InsertionError>>> + Send
     where
         P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync;
@@ -475,7 +475,7 @@ pub trait EntityTypeStore {
         &self,
         actor_id: AccountId,
         params: CountEntityTypesParams<'_>,
-    ) -> impl Future<Output = Result<usize, QueryError>> + Send;
+    ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
     /// Get the [`Subgraph`]s specified by the [`GetEntityTypeSubgraphParams`].
     ///
@@ -486,7 +486,7 @@ pub trait EntityTypeStore {
         &self,
         actor_id: AccountId,
         params: GetEntityTypeSubgraphParams<'_>,
-    ) -> impl Future<Output = Result<GetEntityTypeSubgraphResponse, QueryError>> + Send;
+    ) -> impl Future<Output = Result<GetEntityTypeSubgraphResponse, Report<QueryError>>> + Send;
 
     /// Get the [`EntityType`]s specified by the [`GetEntityTypesParams`].
     ///
@@ -497,7 +497,7 @@ pub trait EntityTypeStore {
         &self,
         actor_id: AccountId,
         params: GetEntityTypesParams<'_>,
-    ) -> impl Future<Output = Result<GetEntityTypesResponse, QueryError>> + Send;
+    ) -> impl Future<Output = Result<GetEntityTypesResponse, Report<QueryError>>> + Send;
 
     /// Get the [`ClosedMultiEntityType`] specified by the [`GetClosedMultiEntityTypeParams`].
     ///
@@ -508,7 +508,7 @@ pub trait EntityTypeStore {
         &self,
         actor_id: AccountId,
         params: GetClosedMultiEntityTypeParams,
-    ) -> impl Future<Output = Result<GetClosedMultiEntityTypeResponse, QueryError>> + Send;
+    ) -> impl Future<Output = Result<GetClosedMultiEntityTypeResponse, Report<QueryError>>> + Send;
 
     /// Update the definition of an existing [`EntityType`].
     ///
@@ -519,7 +519,7 @@ pub trait EntityTypeStore {
         &mut self,
         actor_id: AccountId,
         params: UpdateEntityTypesParams<R>,
-    ) -> impl Future<Output = Result<EntityTypeMetadata, UpdateError>> + Send
+    ) -> impl Future<Output = Result<EntityTypeMetadata, Report<UpdateError>>> + Send
     where
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync;
 
@@ -533,7 +533,7 @@ pub trait EntityTypeStore {
         actor_id: AccountId,
 
         params: ArchiveEntityTypeParams,
-    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     /// Restores the definition of an existing [`EntityType`].
     ///
@@ -545,14 +545,14 @@ pub trait EntityTypeStore {
         actor_id: AccountId,
 
         params: UnarchiveEntityTypeParams,
-    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     fn update_entity_type_embeddings(
         &mut self,
         actor_id: AccountId,
 
         params: UpdateEntityTypeEmbeddingParams<'_>,
-    ) -> impl Future<Output = Result<(), UpdateError>> + Send;
+    ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 
     /// Re-indexes the cache for entity types.
     ///
@@ -562,6 +562,7 @@ pub trait EntityTypeStore {
     /// # Errors
     ///
     /// - if re-indexing the cache fails.
-    fn reindex_entity_type_cache(&mut self)
-    -> impl Future<Output = Result<(), UpdateError>> + Send;
+    fn reindex_entity_type_cache(
+        &mut self,
+    ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 }

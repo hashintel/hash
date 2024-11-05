@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use authorization::{
     AuthorizationApi, backend::ZanzibarBackend, schema::EntityTypeRelationAndSubject,
 };
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use hash_graph_store::error::InsertionError;
-use tokio_postgres::GenericClient;
+use tokio_postgres::GenericClient as _;
 use type_system::schema::EntityTypeUuid;
 
 use crate::{
@@ -28,7 +28,9 @@ where
     C: AsClient,
     A: ZanzibarBackend + AuthorizationApi,
 {
-    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
+    async fn begin(
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -49,7 +51,10 @@ where
         Ok(())
     }
 
-    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
+    async fn write(
+        self,
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Schema(entity_types) => {
@@ -109,7 +114,7 @@ where
     async fn commit(
         postgres_client: &mut PostgresStore<C, A>,
         _validation: bool,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()

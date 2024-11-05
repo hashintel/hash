@@ -5,13 +5,13 @@ use std::{
     io,
 };
 
-use error_stack::{Result, ResultExt};
-use futures::prelude::stream::StreamExt;
+use error_stack::{Report, ResultExt as _};
+use futures::prelude::stream::StreamExt as _;
 use libp2p::{
     Multiaddr, PeerId, SwarmBuilder,
     core::{transport::ListenerId, upgrade},
     identify,
-    metrics::{self, Metrics, Recorder},
+    metrics::{self, Metrics, Recorder as _},
     noise, ping,
     swarm::{ConnectionId, DialError, SwarmEvent, dial_opts::DialOpts},
     yamux,
@@ -74,7 +74,7 @@ impl TransportTask {
     pub(crate) fn new(
         config: TransportConfig,
         transport: impl Transport,
-    ) -> Result<Self, TransportError> {
+    ) -> Result<Self, Report<TransportError>> {
         let mut registry = metrics::Registry::default();
 
         let (ipx_tx, rx) = mpsc::channel(config.ipc_buffer_size.get());

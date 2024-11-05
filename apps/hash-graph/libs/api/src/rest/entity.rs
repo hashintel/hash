@@ -4,7 +4,7 @@ use alloc::sync::Arc;
 use std::collections::HashMap;
 
 use authorization::{
-    AuthorizationApi, AuthorizationApiPool,
+    AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         EntityAdministratorSubject, EntityEditorSubject, EntityOwnerSubject, EntityPermission,
@@ -20,7 +20,7 @@ use axum::{
     response::Response,
     routing::{get, post},
 };
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use graph::store::{
     NullOrdering, Ordering, StorePool,
     error::{EntityDoesNotExist, RaceConditionOnUpdate},
@@ -54,7 +54,7 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
-    account::AccountStore,
+    account::AccountStore as _,
     entity::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
     filter::Filter,
     subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},

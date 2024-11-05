@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use futures::{FutureExt, StreamExt};
+use futures::{FutureExt as _, StreamExt as _};
 use tokio::{
     select,
     sync::{Semaphore, TryAcquireError, broadcast, mpsc},

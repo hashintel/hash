@@ -2,8 +2,8 @@ use alloc::sync::Arc;
 use core::{iter, net::Ipv4Addr, time::Duration};
 
 use bytes::Bytes;
-use error_stack::{Report, ResultExt};
-use futures::{prelude::stream, sink::SinkExt, stream::StreamExt};
+use error_stack::{Report, ResultExt as _};
+use futures::{prelude::stream, sink::SinkExt as _, stream::StreamExt as _};
 use harpc_types::{
     procedure::{ProcedureDescriptor, ProcedureId},
     service::{ServiceDescriptor, ServiceId},
@@ -61,7 +61,7 @@ impl SimpleEchoService {
     async fn handle(
         mut sink: TransactionSink,
         mut stream: TransactionStream,
-    ) -> error_stack::Result<(), PingError> {
+    ) -> Result<(), Report<PingError>> {
         while let Some(received) = stream.next().await {
             sink.send(Ok(received))
                 .await
