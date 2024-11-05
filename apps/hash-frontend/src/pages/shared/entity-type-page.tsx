@@ -67,7 +67,7 @@ export const EntityTypePage = ({
   });
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
-    defaultValues: { allOf: [], properties: [], links: [] },
+    defaultValues: { allOf: [], properties: [], links: [], inverse: {} },
   });
   const { handleSubmit: wrapHandleSubmit, reset, watch } = formMethods;
 

@@ -20,6 +20,7 @@ import { startFlow } from "./flows/start-flow";
 import { submitExternalInputResponse } from "./flows/submit-external-input-response";
 import { generateInverseResolver } from "./generation/generate-inverse";
 import { generatePluralResolver } from "./generation/generate-plural";
+import { isGenerationAvailableResolver } from "./generation/is-generation-available";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
 import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
 import { blocksResolver } from "./knowledge/block/block";
@@ -95,7 +96,6 @@ import {
   unarchivePropertyTypeResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
-import { isGenerationAvailableResolver } from "./generation/is-generation-available";
 
 export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   Query: Required<QueryResolvers>;

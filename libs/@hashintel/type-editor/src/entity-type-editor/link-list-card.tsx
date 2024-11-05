@@ -76,7 +76,7 @@ export const LinkTypeForm = (props: TypeFormProps) => {
       title,
     });
 
-  return <TypeForm validateTitle={validateTitle} {...props} />;
+  return <TypeForm validateTitle={validateTitle} kind="link" {...props} />;
 };
 
 const LinkTypeRow = ({

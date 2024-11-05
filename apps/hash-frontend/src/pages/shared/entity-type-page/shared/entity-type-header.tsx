@@ -20,6 +20,8 @@ import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
 import { Button, Link, Modal } from "../../../../shared/ui";
 import { CreateEntityTypeForm } from "../../create-entity-type-form";
 import { EntityTypeDescription } from "../entity-type-description";
+import { EntityTypeInverse } from "../entity-type-inverse";
+import { EntityTypePlural } from "../entity-type-plural";
 
 interface EntityTypeHeaderProps {
   isPreviewSlide?: boolean;
@@ -79,37 +81,48 @@ export const EntityTypeHeader = ({
           alignItems="center"
           justifyContent="space-between"
         >
-          <Box display="flex" alignItems="flex-end" my={3}>
-            <Controller
-              control={control}
-              name="icon"
-              render={({ field }) => (
-                <EditEmojiIconButton
-                  icon={field.value}
-                  disabled={isReadonly}
-                  onChange={(updatedIcon) => field.onChange(updatedIcon)}
-                  defaultIcon={
-                    isLink ? (
-                      <LinkTypeIcon
-                        sx={({ palette }) => ({
-                          stroke: palette.gray[50],
-                        })}
-                      />
-                    ) : (
-                      <EntityTypeIcon
-                        sx={({ palette }) => ({
-                          fill: palette.gray[50],
-                        })}
-                      />
-                    )
-                  }
-                />
-              )}
-            />
-            <Typography variant="h1" fontWeight="bold" marginLeft={3}>
-              {entityTypeSchema.title}
-            </Typography>
-          </Box>
+          <Stack direction="row" alignItems="center" gap={5}>
+            <Box display="flex" alignItems="center" my={3}>
+              <Controller
+                control={control}
+                name="icon"
+                render={({ field }) => (
+                  <EditEmojiIconButton
+                    icon={field.value}
+                    disabled={isReadonly}
+                    onChange={(updatedIcon) => field.onChange(updatedIcon)}
+                    defaultIcon={
+                      isLink ? (
+                        <LinkTypeIcon
+                          sx={({ palette }) => ({
+                            stroke: palette.gray[50],
+                          })}
+                        />
+                      ) : (
+                        <EntityTypeIcon
+                          sx={({ palette }) => ({
+                            fill: palette.gray[50],
+                          })}
+                        />
+                      )
+                    }
+                  />
+                )}
+              />
+              <Typography variant="h1" fontWeight="bold" marginLeft={2}>
+                {entityTypeSchema.title}
+              </Typography>
+            </Box>
+            <Stack
+              direction="row"
+              alignItems="flex-start"
+              gap={1}
+              sx={{ position: "relative", top: 5 }}
+            >
+              <EntityTypePlural isLinkType={isLink} readonly={isReadonly} />
+              {isLink && <EntityTypeInverse readonly={isReadonly} />}
+            </Stack>
+          </Stack>
           {!isDraft && !isPreviewSlide ? (
             <Button
               onClick={() => setShowExtendTypeModal(true)}

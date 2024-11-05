@@ -13,7 +13,15 @@ export const getEntityTypeFromFormData = (
   data: EntityTypeEditorFormData,
 ): {
   schema: Required<Pick<EntityType, "description" | "links" | "properties">> &
-    Pick<EntityType, "allOf" | "required" | "labelProperty" | "icon">;
+    Pick<
+      EntityType,
+      | "allOf"
+      | "required"
+      | "labelProperty"
+      | "icon"
+      | "titlePlural"
+      | "inverse"
+    >;
 } => {
   const allOf = atLeastOne<EntityTypeReference>(
     data.allOf.map((versionedUrl) => ({ $ref: versionedUrl })),
@@ -81,6 +89,8 @@ export const getEntityTypeFromFormData = (
       required: atLeastOne(required),
       icon: data.icon,
       labelProperty: data.labelProperty,
+      titlePlural: data.titlePlural,
+      inverse: data.inverse,
     },
   };
 };

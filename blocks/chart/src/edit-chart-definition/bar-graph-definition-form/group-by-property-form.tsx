@@ -34,7 +34,7 @@ export const generateXAxisLabel = (params: {
   } ${params.groupByPropertyType.title.toLowerCase()}`;
 
 /**
- * @todo add titlePlural to @blockprotocol/graph and make use of here
+ * @todo upgrade block to use in-repo @blockprotocol/graph and use titlePlural from schema here
  */
 export const generateYAxisLabel = (params: { entityType: EntityType }) =>
   `Number of ${pluralize(params.entityType.title.toLowerCase())}`;

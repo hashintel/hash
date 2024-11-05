@@ -6,7 +6,7 @@ import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { Box, Stack } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { useState, useCallback, useContext } from "react";
+import { useCallback, useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { useBlockProtocolGetEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";

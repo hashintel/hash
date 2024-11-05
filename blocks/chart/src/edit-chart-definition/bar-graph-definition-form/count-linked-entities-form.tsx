@@ -30,7 +30,7 @@ import type {
 import { getEntityTypePropertyTypes } from "../util";
 
 /**
- * @todo add titlePlural to @blockprotocol/graph and make use of here
+ * @todo upgrade block to use in-repo @blockprotocol/graph and use titlePlural from schema here
  */
 export const generateXAxisLabel = (params: { entityType: EntityType }) =>
   `${pluralize(params.entityType.title)}`;
