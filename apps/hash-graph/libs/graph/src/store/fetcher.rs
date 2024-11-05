@@ -304,6 +304,7 @@ where
                     after: None,
                     limit: None,
                     include_closed: false,
+                    include_resolved: false,
                     include_count: false,
                     include_web_ids: false,
                     include_edition_created_by_ids: false,

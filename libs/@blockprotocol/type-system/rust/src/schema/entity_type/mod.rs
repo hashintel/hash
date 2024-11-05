@@ -116,6 +116,38 @@ pub struct EntityType {
     pub icon: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PartialEntityType {
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    pub description: String,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+impl From<EntityType> for PartialEntityType {
+    fn from(value: EntityType) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            title_plural: value.title_plural,
+            description: value.description,
+            inverse: value.inverse,
+            label_property: value.label_property,
+            icon: value.icon,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum EntityTypeToEntityTypeEdge {
     Inheritance,

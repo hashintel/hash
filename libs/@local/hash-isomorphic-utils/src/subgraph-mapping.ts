@@ -8,6 +8,7 @@ import type {
   ClosedMultiEntityType as GraphApiClosedMultiEntityType,
   DataTypeWithMetadata as GraphApiDataTypeWithMetadata,
   Entity as GraphApiEntity,
+  EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
   EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   PropertyTypeWithMetadata as GraphApiPropertyTypeWithMetadata,
@@ -24,6 +25,7 @@ import type {
 import type {
   BaseUrl,
   DataTypeWithMetadata,
+  EntityTypeResolveDefinitions,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
@@ -219,6 +221,10 @@ export const mapGraphApiEntityTypesToEntityTypes = (
 export const mapGraphApiClosedEntityTypesToClosedEntityTypes = (
   entityTypes: GraphApiClosedEntityType[],
 ) => entityTypes as ClosedEntityType[];
+
+export const mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions =
+  (entityType: GraphApiEntityTypeResolveDefinitions) =>
+    entityType as EntityTypeResolveDefinitions;
 
 export const mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType = (
   entityType: GraphApiClosedMultiEntityType,

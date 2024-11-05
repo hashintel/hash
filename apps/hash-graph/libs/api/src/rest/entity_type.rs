@@ -30,8 +30,8 @@ use graph::{
         StorePool,
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
-            ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeStore as _,
-            GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
+            ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeResolveDefinitions,
+            EntityTypeStore as _, GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
             GetEntityTypeSubgraphParams, GetEntityTypesParams, GetEntityTypesResponse,
             UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
         },
@@ -107,6 +107,7 @@ use crate::rest::{
             GetEntityTypesResponse,
             GetClosedMultiEntityTypeParams,
             GetClosedMultiEntityTypeResponse,
+            EntityTypeResolveDefinitions,
             GetEntityTypeSubgraphParams,
             GetEntityTypeSubgraphResponse,
             ArchiveEntityTypeParams,
@@ -349,10 +350,10 @@ where
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = MaybeListOfEntityTypeMetadata),
-        (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
+        (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = Status),
 
-        (status = 409, content_type = "application/json", description = "Unable to create entity type in the datastore as the base entity type ID already exists", body = VAR_STATUS),
-        (status = 500, content_type = "application/json", description = "Store error occurred", body = VAR_STATUS),
+        (status = 409, content_type = "application/json", description = "Unable to create entity type in the datastore as the base entity type ID already exists", body = Status),
+        (status = 500, content_type = "application/json", description = "Store error occurred", body = Status),
     ),
 )]
 #[tracing::instrument(
@@ -533,7 +534,6 @@ enum LoadExternalEntityTypeRequest {
     Fetch { entity_type_id: VersionedUrl },
     #[serde(rename_all = "camelCase")]
     Create {
-        #[schema(value_type = VAR_ENTITY_TYPE)]
         schema: Box<EntityType>,
 
         relationships: Vec<EntityTypeRelationAndSubject>,
@@ -552,10 +552,10 @@ enum LoadExternalEntityTypeRequest {
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = EntityTypeMetadata),
-        (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
+        (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = Status),
 
-        (status = 409, content_type = "application/json", description = "Unable to load entity type in the datastore as the entity type ID already exists", body = VAR_STATUS),
-        (status = 500, content_type = "application/json", description = "Store error occurred", body = VAR_STATUS),
+        (status = 409, content_type = "application/json", description = "Unable to load entity type in the datastore as the entity type ID already exists", body = Status),
+        (status = 500, content_type = "application/json", description = "Store error occurred", body = Status),
     ),
 )]
 #[tracing::instrument(
@@ -864,7 +864,7 @@ where
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdateEntityTypeRequest {
-    #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
+    #[schema(value_type = UpdateEntityType)]
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
 

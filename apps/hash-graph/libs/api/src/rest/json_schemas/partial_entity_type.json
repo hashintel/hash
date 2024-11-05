@@ -1,0 +1,21 @@
+{
+  "title": "Partial Entity Type",
+  "description": "Specifies the partial structure of a Block Protocol entity type",
+  "type": "object",
+  "properties": {
+    "$id": {
+      "$ref": "./shared.json#/definitions/VersionedUrl"
+    },
+    "title": {
+      "type": "string"
+    },
+    "titlePlural": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["$id", "title", "description"]
+}

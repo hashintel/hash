@@ -1,0 +1,32 @@
+{
+  "title": "Closed Data Type",
+  "description": "Specifies the structure of a closed Data Type",
+  "type": "object",
+  "properties": {
+    "$id": {
+      "$ref": "./shared.json#/definitions/VersionedUrl"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "type": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      ]
+    }
+  },
+  "required": ["$id", "title", "description"],
+  "additionalProperties": true
+}

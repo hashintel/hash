@@ -26,7 +26,7 @@ use hash_graph_store::{
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
         Subgraph, SubgraphRecord as _,
-        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
         identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -43,9 +43,10 @@ use tracing::instrument;
 use type_system::{
     Valid, Validator as _,
     schema::{
-        ClosedEntityType, ClosedMultiEntityType, DataTypeUuid, EntityType, EntityTypeResolveData,
-        EntityTypeToPropertyTypeEdge, EntityTypeUuid, EntityTypeValidator, InheritanceDepth,
-        OntologyTypeResolver, OntologyTypeUuid, PropertyTypeUuid,
+        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, DataTypeUuid, EntityType,
+        EntityTypeResolveData, EntityTypeToPropertyTypeEdge, EntityTypeUuid, EntityTypeValidator,
+        InheritanceDepth, OntologyTypeResolver, OntologyTypeUuid, PartialEntityType,
+        PropertyTypeUuid,
     },
     url::{OntologyTypeVersion, VersionedUrl},
 };
@@ -56,10 +57,11 @@ use crate::store::{
     error::DeletionError,
     ontology::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
-        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
-        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-        GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-        UpdateEntityTypesParams,
+        EntityTypeResolveDefinitions, GetClosedMultiEntityTypeParams,
+        GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams,
+        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
+        GetPropertyTypeSubgraphParams, PropertyTypeStore as _, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     postgres::{
         AsClient, PostgresStore, ResponseCountMap, TraversalContext,
@@ -115,7 +117,123 @@ where
             }))
     }
 
-    async fn get_entity_type_resolve_metadata(
+    #[expect(clippy::too_many_lines)]
+    pub(crate) async fn get_entity_type_resolve_definitions(
+        &self,
+        actor_id: AccountId,
+        entity_types: &[EntityTypeUuid],
+    ) -> Result<EntityTypeResolveDefinitions, Report<QueryError>> {
+        let mut definitions = EntityTypeResolveDefinitions::default();
+        let rows = self
+            .as_client()
+            .query(
+                "
+                SELECT
+                    edge_kind,
+                    target_ontology_id,
+                    schema
+                FROM (
+                   	SELECT
+                        source_entity_type_ontology_id,
+                        'link' AS edge_kind,
+                  		NULL::UUID AS target_ontology_id,
+                        schema
+                   	FROM entity_type_constrains_links_on
+                   	JOIN entity_types ON target_entity_type_ontology_id = ontology_id
+                UNION
+                   	SELECT
+                        source_entity_type_ontology_id,
+                        'link_destination' AS edge_kind,
+                  		NULL::UUID AS target_ontology_id,
+                        schema
+                   	FROM entity_type_constrains_link_destinations_on
+                   	JOIN entity_types ON target_entity_type_ontology_id = ontology_id
+                UNION
+                   	SELECT
+                        source_entity_type_ontology_id,
+                        'property' AS edge_kind,
+                  		target_property_type_ontology_id AS target_ontology_id,
+                        '{}' AS schema
+                   	FROM entity_type_constrains_properties_on
+                   	JOIN property_types ON target_property_type_ontology_id = ontology_id
+                ) AS subquery
+                WHERE source_entity_type_ontology_id = ANY($1);
+                ",
+                &[&entity_types],
+            )
+            .await
+            .change_context(QueryError)?;
+
+        let mut property_type_uuids = Vec::<PropertyTypeUuid>::new();
+        for row in rows {
+            let edge_kind: String = row.get(0);
+            match edge_kind.as_str() {
+                "link" | "link_destination" => {
+                    let entity_type: Valid<EntityType> = row.get(2);
+                    definitions.entity_types.insert(
+                        entity_type.id.clone(),
+                        PartialEntityType::from(entity_type.into_inner()),
+                    );
+                }
+                "property" => property_type_uuids.push(row.get(1)),
+                _ => unreachable!(),
+            }
+        }
+
+        let property_types = self
+            .get_property_type_subgraph(actor_id, GetPropertyTypeSubgraphParams {
+                filter: Filter::for_property_type_uuids(&property_type_uuids),
+                graph_resolve_depths: GraphResolveDepths {
+                    constrains_properties_on: OutgoingEdgeResolveDepth {
+                        outgoing: 255,
+                        incoming: 0,
+                    },
+                    ..GraphResolveDepths::default()
+                },
+                temporal_axes: QueryTemporalAxesUnresolved::default(),
+                after: None,
+                limit: None,
+                include_drafts: false,
+                include_count: false,
+            })
+            .await?
+            .subgraph
+            .vertices
+            .property_types;
+
+        let mut data_type_uuids = Vec::new();
+        for (vertex_id, property_type) in property_types {
+            data_type_uuids.extend(
+                property_type
+                    .schema
+                    .data_type_references()
+                    .into_iter()
+                    .map(|reference| DataTypeUuid::from_url(&reference.url)),
+            );
+            definitions
+                .property_types
+                .insert(VersionedUrl::from(vertex_id), property_type.schema);
+        }
+
+        definitions.data_types.extend(
+            self.as_client()
+                .query(
+                    "SELECT closed_schema FROM data_types WHERE ontology_id = ANY($1);",
+                    &[&data_type_uuids],
+                )
+                .await
+                .change_context(QueryError)?
+                .into_iter()
+                .map(|row| {
+                    let schema: Valid<ClosedDataType> = row.get(0);
+                    (schema.id.clone(), schema.into_inner())
+                }),
+        );
+
+        Ok(definitions)
+    }
+
+    async fn get_per_entity_type_resolve_metadata(
         &self,
         entity_types: &[EntityTypeUuid],
     ) -> Result<
@@ -135,37 +253,37 @@ where
                     FROM (
                        	SELECT
                       		source_entity_type_ontology_id,
+                      		'inheritance' AS edge_kind,
                       		target_entity_type_ontology_id AS target_ontology_id,
-                      		schema,
                       		depth,
-                      		'inheritance' AS edge_kind
+                      		schema
                        	FROM entity_type_inherits_from
                        	JOIN entity_types ON target_entity_type_ontology_id = ontology_id
                     UNION
                        	SELECT
                       		source_entity_type_ontology_id,
+                      		'link' AS edge_kind,
                       		target_entity_type_ontology_id AS target_ontology_id,
-                      		schema,
                       		inheritance_depth,
-                      		'link' AS edge_kind
+                      		'{}' AS schema
                        	FROM entity_type_constrains_links_on
                        	JOIN entity_types ON target_entity_type_ontology_id = ontology_id
                     UNION
                        	SELECT
                       		source_entity_type_ontology_id,
+                      		'link_destination' AS edge_kind,
                       		target_entity_type_ontology_id AS target_ontology_id,
-                      		schema,
                       		inheritance_depth,
-                      		'link_destination' AS edge_kind
+                      		'{}' AS schema
                        	FROM entity_type_constrains_link_destinations_on
                        	JOIN entity_types ON target_entity_type_ontology_id = ontology_id
                     UNION
                        	SELECT
                       		source_entity_type_ontology_id,
+                      		'property' AS edge_kind,
                       		target_property_type_ontology_id AS target_ontology_id,
-                      		schema,
                       		inheritance_depth,
-                      		'property' AS edge_kind
+                      		'{}' AS schema
                        	FROM entity_type_constrains_properties_on
                        	JOIN property_types ON target_property_type_ontology_id = ontology_id
                     ) AS subquery
@@ -355,7 +473,10 @@ where
                     None
                 },
                 entity_types,
-                closed_entity_types: None,
+                closed_entity_types: params.include_closed.then(Vec::new),
+                definitions: params
+                    .include_resolved
+                    .then(EntityTypeResolveDefinitions::default),
                 count,
                 web_ids,
                 edition_created_by_ids,
@@ -675,7 +796,7 @@ where
         let required_reference_ids = entity_type_reference_ids.into_iter().collect::<Vec<_>>();
 
         let mut resolve_data = transaction
-            .get_entity_type_resolve_metadata(&required_reference_ids)
+            .get_per_entity_type_resolve_metadata(&required_reference_ids)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not read entity type resolve data")?
@@ -698,6 +819,7 @@ where
                 after: None,
                 limit: None,
                 include_closed: false,
+                include_resolved: false,
                 include_count: false,
                 include_web_ids: false,
                 include_edition_created_by_ids: false,
@@ -850,6 +972,7 @@ where
         mut params: GetEntityTypesParams<'_>,
     ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
         let include_closed = params.include_closed;
+        let include_resolved = params.include_resolved;
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -872,6 +995,12 @@ where
                 .map(|entity_type| EntityTypeUuid::from_url(&entity_type.schema.id))
                 .collect::<Vec<_>>();
             response.closed_entity_types = Some(self.get_closed_entity_types(&ids).await?);
+            if include_resolved {
+                response.definitions = Some(
+                    self.get_entity_type_resolve_definitions(actor_id, &ids)
+                        .await?,
+                );
+            }
         };
         Ok(response)
     }
@@ -900,6 +1029,7 @@ where
                 limit: None,
                 include_count: false,
                 include_closed: true,
+                include_resolved: params.include_resolved,
                 include_web_ids: false,
                 include_edition_created_by_ids: false,
             })
@@ -913,6 +1043,7 @@ where
                     .expect("Response should include closed entity types"),
             )
             .change_context(QueryError)?,
+            definitions: response.definitions,
         })
     }
 
@@ -939,6 +1070,7 @@ where
             GetEntityTypesResponse {
                 entity_types,
                 closed_entity_types: _,
+                definitions: _,
                 cursor,
                 count,
                 web_ids,
@@ -955,6 +1087,7 @@ where
                     limit: params.limit,
                     include_drafts: params.include_drafts,
                     include_closed: false,
+                    include_resolved: false,
                     include_count: params.include_count,
                     include_web_ids: params.include_web_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
@@ -1080,7 +1213,7 @@ where
             .collect::<Vec<_>>();
 
         let mut resolve_data = transaction
-            .get_entity_type_resolve_metadata(&required_reference_ids)
+            .get_per_entity_type_resolve_metadata(&required_reference_ids)
             .await
             .change_context(UpdateError)
             .attach_printable("Could not read entity type resolve data")?
@@ -1103,6 +1236,7 @@ where
                 after: None,
                 limit: None,
                 include_closed: false,
+                include_resolved: false,
                 include_count: false,
                 include_web_ids: false,
                 include_edition_created_by_ids: false,

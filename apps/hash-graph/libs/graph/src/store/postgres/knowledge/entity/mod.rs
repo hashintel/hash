@@ -101,6 +101,7 @@ struct GetEntitiesImplParams<'a> {
     include_drafts: bool,
     include_count: bool,
     include_closed_multi_entity_types: bool,
+    include_resolved: bool,
     include_web_ids: bool,
     include_created_by_ids: bool,
     include_edition_created_by_ids: bool,
@@ -441,7 +442,7 @@ where
             .collect::<HashMap<_, _>>();
 
         let mut resolved_entity_types = HashMap::<VersionedUrl, ClosedMultiEntityTypeMap>::new();
-        for entity_multi_type_ids in all_multi_entity_type_ids {
+        for entity_multi_type_ids in &all_multi_entity_type_ids {
             let mut entity_type_id_iter = entity_multi_type_ids.iter();
             let Some(first_entity_type_id) = entity_type_id_iter.next() else {
                 continue;
@@ -675,13 +676,43 @@ where
 
         Ok((
             GetEntitiesResponse {
+                #[expect(
+                    clippy::if_then_some_else_none,
+                    reason = "False positive, use of `await`"
+                )]
                 closed_multi_entity_types: if params.include_closed_multi_entity_types {
-                    self.resolve_closed_multi_entity_types(
-                        root_entities.iter().map(|(entity, _)| entity),
+                    Some(
+                        self.resolve_closed_multi_entity_types(
+                            root_entities.iter().map(|(entity, _)| entity),
+                        )
+                        .await?,
                     )
-                    .await?
                 } else {
-                    HashMap::new()
+                    None
+                },
+                #[expect(
+                    clippy::if_then_some_else_none,
+                    reason = "False positive, use of `await`"
+                )]
+                definitions: if params.include_resolved {
+                    let entity_type_uuids = root_entities
+                        .iter()
+                        .flat_map(|(entity, _)| {
+                            entity
+                                .metadata
+                                .entity_type_ids
+                                .iter()
+                                .map(EntityTypeUuid::from_url)
+                        })
+                        .collect::<HashSet<_>>()
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    Some(
+                        self.get_entity_type_resolve_definitions(actor_id, &entity_type_uuids)
+                            .await?,
+                    )
+                } else {
+                    None
                 },
                 entities: root_entities
                     .into_iter()
@@ -1205,6 +1236,7 @@ where
                     limit: params.limit,
                     include_drafts: params.include_drafts,
                     include_count: params.include_count,
+                    include_resolved: params.include_resolved,
                     include_closed_multi_entity_types: params.include_closed_multi_entity_types,
                     include_web_ids: params.include_web_ids,
                     include_created_by_ids: params.include_created_by_ids,
@@ -1259,6 +1291,7 @@ where
                 cursor,
                 count,
                 closed_multi_entity_types,
+                definitions,
                 web_ids,
                 created_by_ids,
                 edition_created_by_ids,
@@ -1275,6 +1308,7 @@ where
                     include_drafts: params.include_drafts,
                     include_count: false,
                     include_closed_multi_entity_types: params.include_closed_multi_entity_types,
+                    include_resolved: params.include_resolved,
                     include_web_ids: params.include_web_ids,
                     include_created_by_ids: params.include_created_by_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
@@ -1349,6 +1383,7 @@ where
             cursor,
             count,
             closed_multi_entity_types,
+            definitions,
             web_ids,
             created_by_ids,
             edition_created_by_ids,

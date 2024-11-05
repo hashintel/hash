@@ -90,6 +90,15 @@ macro_rules! define_ontology_type_vertex_id {
                 }
             }
         }
+
+        impl From<$name> for VersionedUrl {
+            fn from(vertex_id: $name) -> Self {
+                Self {
+                    base_url: vertex_id.base_id,
+                    version: vertex_id.revision_id,
+                }
+            }
+        }
     };
 }
 

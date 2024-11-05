@@ -23,7 +23,10 @@ use hash_graph_store::{
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
-    schema::{ClosedEntityType, ClosedMultiEntityType, EntityType, PropertyType},
+    schema::{
+        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, EntityType, PartialEntityType,
+        PropertyType,
+    },
     url::VersionedUrl,
 };
 
@@ -339,9 +342,28 @@ pub struct GetEntityTypesParams<'p> {
     #[serde(default)]
     pub include_closed: bool,
     #[serde(default)]
+    pub include_resolved: bool,
+    #[serde(default)]
     pub include_web_ids: bool,
     #[serde(default)]
     pub include_edition_created_by_ids: bool,
+}
+
+#[derive(Debug, Default, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+#[expect(clippy::struct_field_names)]
+pub struct EntityTypeResolveDefinitions {
+    pub data_types: HashMap<VersionedUrl, ClosedDataType>,
+    pub property_types: HashMap<VersionedUrl, PropertyType>,
+    pub entity_types: HashMap<VersionedUrl, PartialEntityType>,
+}
+
+impl EntityTypeResolveDefinitions {
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.data_types.is_empty() && self.property_types.is_empty() && self.entity_types.is_empty()
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -350,11 +372,11 @@ pub struct GetEntityTypesParams<'p> {
 pub struct GetEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(
-        feature = "utoipa",
-        schema(nullable = false, value_type = [VAR_CLOSED_ENTITY_TYPE])
-    )]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub closed_entity_types: Option<Vec<ClosedEntityType>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub definitions: Option<EntityTypeResolveDefinitions>,
     pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -372,14 +394,18 @@ pub struct GetClosedMultiEntityTypeParams {
     pub entity_type_ids: Vec<VersionedUrl>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
+    #[serde(default)]
+    pub include_resolved: bool,
 }
 
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct GetClosedMultiEntityTypeResponse {
-    #[cfg_attr(feature = "utoipa", schema(value_type = VAR_CLOSED_MULTI_ENTITY_TYPE))]
     pub entity_type: ClosedMultiEntityType,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub definitions: Option<EntityTypeResolveDefinitions>,
 }
 
 #[derive(Debug, Deserialize)]

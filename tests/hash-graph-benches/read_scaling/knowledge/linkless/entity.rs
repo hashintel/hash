@@ -171,6 +171,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
                     conversions: Vec::new(),
                     include_count: false,
                     include_closed_multi_entity_types: false,
+                    include_resolved: false,
                     include_drafts: false,
                     include_web_ids: false,
                     include_created_by_ids: false,
