@@ -509,10 +509,10 @@ export const getClosedMultiEntityTypesFromResponse = (
   // Thus, we sort the entity type IDs and traverse the nested map to find the closed multi-entity type.
   // The first entity type ID is used to get the first level of the nested map. The rest of the entity
   // type IDs are used to traverse the nested map.
-  const [firstEntityTypeId, ...restEntityTypesIds] = entityTypesIds.sort();
+  const [firstEntityTypeId, ...restEntityTypesIds] = entityTypesIds.toSorted();
   return restEntityTypesIds.reduce((map, entity_type_id) => {
     return map?.inner?.[entity_type_id];
-  }, response.closedMultiEntityTypes[firstEntityTypeId])?.schema satisfies
+  }, response.closedMultiEntityTypes[firstEntityTypeId!])?.schema satisfies
     | GraphApiClosedMultiEntityType
     | undefined as ClosedMultiEntityType | undefined;
 };
