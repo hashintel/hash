@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useLazyQuery, useQuery } from "@apollo/client";
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system/slim";
 import { Callout, TextField } from "@hashintel/design-system";
@@ -6,7 +6,7 @@ import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { Box, Stack } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { useCallback, useContext } from "react";
+import { useState, useCallback, useContext } from "react";
 import { useForm } from "react-hook-form";
 
 import { useBlockProtocolGetEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
@@ -15,10 +15,12 @@ import type {
   GenerateInverseQueryVariables,
   GeneratePluralQuery,
   GeneratePluralQueryVariables,
+  IsGenerationAvailableQuery,
 } from "../../graphql/api-types.gen";
 import {
   generateInverseQuery,
   generatePluralQuery,
+  isGenerationAvailableQuery,
 } from "../../graphql/queries/generation.queries";
 import { useEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { Button } from "../../shared/ui/button";
@@ -78,6 +80,16 @@ export const CreateEntityTypeForm = ({
   const titlePlural = watch("titlePlural");
   const inverseTitle = watch("inverseTitle");
 
+  const { data: isGenerationAvailableData } =
+    useQuery<IsGenerationAvailableQuery>(isGenerationAvailableQuery, {
+      fetchPolicy: "no-cache",
+    });
+
+  const generationAvailable =
+    !!isGenerationAvailableData?.isGenerationAvailable.available;
+
+  const [requestHasBeenMade, setRequestHasBeenMade] = useState(false);
+
   const [generatePlural, { loading: pluralLoading }] = useLazyQuery<
     GeneratePluralQuery,
     GeneratePluralQueryVariables
@@ -90,7 +102,9 @@ export const CreateEntityTypeForm = ({
 
   const updateTitlePlural = useCallback(
     async (newTitle: string) => {
-      if (!newTitle) {
+      setRequestHasBeenMade(true);
+
+      if (!newTitle || !generationAvailable) {
         return;
       }
 
@@ -112,14 +126,16 @@ export const CreateEntityTypeForm = ({
 
       setValue("titlePlural", plural);
     },
-    [generatePlural, setValue, titlePlural],
+    [generatePlural, generationAvailable, setValue, titlePlural],
   );
 
   const updateInverse = useCallback(
     async (linkTitle: string) => {
-      if (!linkTitle) {
+      if (!linkTitle || !generationAvailable) {
         return;
       }
+
+      setRequestHasBeenMade(true);
 
       const { data } = await generateInverse({
         variables: {
@@ -139,7 +155,7 @@ export const CreateEntityTypeForm = ({
 
       setValue("inverseTitle", inverse);
     },
-    [generateInverse, inverseTitle, setValue],
+    [generateInverse, generationAvailable, inverseTitle, setValue],
   );
 
   const { getEntityType } = useBlockProtocolGetEntityType();
@@ -320,7 +336,11 @@ export const CreateEntityTypeForm = ({
                 clearErrors("titlePlural");
               },
             })}
-            disabled={!title || pluralLoading}
+            disabled={
+              !title ||
+              pluralLoading ||
+              (generationAvailable && !requestHasBeenMade)
+            }
             loading={pluralLoading}
             required
             label="Pluralized name"
@@ -349,7 +369,11 @@ export const CreateEntityTypeForm = ({
                 clearErrors("inverseTitle");
               },
             })}
-            disabled={!title || inverseLoading}
+            disabled={
+              !title ||
+              inverseLoading ||
+              (generationAvailable && !requestHasBeenMade)
+            }
             required
             label="Inverse name"
             type="text"

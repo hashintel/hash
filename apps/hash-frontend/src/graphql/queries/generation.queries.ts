@@ -11,3 +11,12 @@ export const generatePluralQuery = gql`
     generatePlural(singular: $singular)
   }
 `;
+
+export const isGenerationAvailableQuery = gql`
+  query isGenerationAvailable {
+    isGenerationAvailable {
+      available
+      reason
+    }
+  }
+`;

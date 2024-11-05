@@ -95,6 +95,7 @@ import {
   unarchivePropertyTypeResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
+import { isGenerationAvailableResolver } from "./generation/is-generation-available";
 
 export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   Query: Required<QueryResolvers>;
@@ -143,6 +144,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     // Generation
     generateInverse: loggedInMiddleware(generateInverseResolver),
     generatePlural: loggedInMiddleware(generatePluralResolver),
+    isGenerationAvailable: isGenerationAvailableResolver,
   },
 
   Mutation: {
