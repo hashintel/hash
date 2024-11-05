@@ -2,18 +2,24 @@ import { useRegisterEvents, useSigma } from "@react-sigma/core";
 import type { RefObject } from "react";
 import { useCallback, useEffect } from "react";
 
-import type { GraphVizConfig } from "./config-control";
+import type {
+  DynamicNodeSizing,
+  GraphVizConfig,
+  StaticNodeSizing,
+} from "./config-control";
 import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
+import type { GraphVizEdge } from "./types";
 
 export type RegisterEventsArgs = {
-  config: GraphVizConfig;
+  config: GraphVizConfig<DynamicNodeSizing | StaticNodeSizing>;
   graphContainerRef: RefObject<HTMLDivElement>;
   graphState: GraphState;
   onEdgeClick?: (params: {
-    edgeId: string;
+    edgeData: GraphVizEdge;
     screenContainerRef?: RefObject<HTMLDivElement>;
   }) => void;
+  onRender?: () => void;
   onNodeSecondClick?: (params: {
     nodeId: string;
     /**
@@ -25,6 +31,8 @@ export type RegisterEventsArgs = {
   }) => void;
   setConfigPanelOpen: (open: boolean) => void;
   setFilterPanelOpen: (open: boolean) => void;
+  setPathFinderPanelOpen: (open: boolean) => void;
+  setSearchPanelOpen: (open: boolean) => void;
   setGraphState: <K extends keyof GraphState>(
     key: K,
     value: GraphState[K],
@@ -39,9 +47,12 @@ export const useEventHandlers = ({
   graphContainerRef,
   graphState,
   onEdgeClick,
+  onRender,
   onNodeSecondClick,
   setConfigPanelOpen,
   setFilterPanelOpen,
+  setPathFinderPanelOpen,
+  setSearchPanelOpen,
   setGraphState,
 }: RegisterEventsArgs) => {
   const sigma = useSigma();
@@ -63,7 +74,7 @@ export const useEventHandlers = ({
 
     const getNeighbors = (
       nodeId: string,
-      neighborIds: Set<string> = new Set(),
+      neighborIds: NonNullable<GraphState["neighborsByDepth"]> = [],
       depth = 1,
     ) => {
       if (depth > config.nodeHighlighting.depth) {
@@ -81,19 +92,25 @@ export const useEventHandlers = ({
         case "Out":
           directNeighbors = sigma.getGraph().outNeighbors(nodeId);
           break;
+        default:
+          throw new Error(
+            `Unhandled direction: ${config.nodeHighlighting.direction}`,
+          );
       }
 
       for (const neighbor of directNeighbors) {
-        neighborIds.add(neighbor);
+        const zeroBasedDepth = depth - 1;
+
+        // eslint-disable-next-line no-param-reassign
+        neighborIds[zeroBasedDepth] ??= new Set<string>();
+        neighborIds[zeroBasedDepth].add(neighbor);
         getNeighbors(neighbor, neighborIds, depth + 1);
       }
 
       return neighborIds;
     };
 
-    setGraphState("highlightedNeighborIds", getNeighbors(highlightedNode));
-
-    sigma.setSetting("renderEdgeLabels", true);
+    setGraphState("neighborsByDepth", getNeighbors(highlightedNode));
 
     /**
      * We haven't touched the graph data, so don't need to re-index.
@@ -112,18 +129,26 @@ export const useEventHandlers = ({
   useEffect(() => {
     const removeHighlights = () => {
       setGraphState("hoveredNodeId", null);
-      setGraphState("highlightedNeighborIds", null);
+      setGraphState("neighborsByDepth", null);
 
-      sigma.setSetting("renderEdgeLabels", false);
       sigma.refresh({ skipIndexation: true });
     };
 
     registerEvents({
+      afterRender: () => {
+        onRender?.();
+      },
       clickEdge: (event) => {
-        onEdgeClick?.({
-          edgeId: event.edge,
-          screenContainerRef: isFullScreen ? graphContainerRef : undefined,
-        });
+        if (onEdgeClick) {
+          const edgeData = sigma
+            .getGraph()
+            .getEdgeAttributes(event.edge) as GraphVizEdge;
+
+          onEdgeClick({
+            edgeData,
+            screenContainerRef: isFullScreen ? graphContainerRef : undefined,
+          });
+        }
       },
       clickNode: (event) => {
         if (graphState.selectedNodeId === event.node) {
@@ -141,6 +166,7 @@ export const useEventHandlers = ({
           return;
         }
 
+        setGraphState("hoveredNodeId", event.node);
         setGraphState("selectedNodeId", event.node);
         refreshGraphHighlights();
       },
@@ -148,49 +174,81 @@ export const useEventHandlers = ({
         /**
          * If we click on the background (the 'stage'), deselect the selected node, and close any open panels.
          */
-        if (graphState.selectedNodeId) {
+        if (graphState.selectedNodeId ?? graphState.highlightedEdgePath) {
           setGraphState("selectedNodeId", null);
+          setGraphState("highlightedEdgePath", null);
           removeHighlights();
         }
 
         setConfigPanelOpen(false);
         setFilterPanelOpen(false);
+        setPathFinderPanelOpen(false);
+        setSearchPanelOpen(false);
       },
       enterNode: (event) => {
-        if (graphState.selectedNodeId) {
-          /**
-           * If a user has clicked on a node, don't do anything when hovering other over nodes,
-           * because it makes it harder to click to highlight neighbors and then browse the highlighted graph.
-           * They can click on the background or another node to deselect this one.
-           */
-          return;
-        }
-
         setGraphState("hoveredNodeId", event.node);
         refreshGraphHighlights();
       },
-      leaveNode: () => {
+      leaveNode: (event) => {
         if (graphState.selectedNodeId) {
           /**
-           * If there's a selected node (has been clicked on), we don't want to remove highlights.
+           * If there's a selected node (has been clicked on), we don't want to remove all highlights when leaving a node.
            * The user can click the background or another node to deselect it.
+           * We do still need to set the hoveredNodeId to null and rerender the node that the mouse has left,
+           * because node labels change when hovered even if another node is selected.
            */
+          setGraphState("hoveredNodeId", null);
+          sigma.refresh({
+            skipIndexation: true,
+            partialGraph: { nodes: [event.node] },
+          });
           return;
         }
         removeHighlights();
+      },
+      enterEdge: (event) => {
+        setGraphState("hoveredEdgeId", event.edge);
+        const source = sigma.getGraph().source(event.edge);
+        const target = sigma.getGraph().target(event.edge);
+
+        sigma.refresh({
+          partialGraph: {
+            edges: [event.edge],
+            nodes: [source, target],
+          },
+          skipIndexation: true,
+        });
+      },
+      leaveEdge: (event) => {
+        setGraphState("hoveredEdgeId", null);
+
+        const source = sigma.getGraph().source(event.edge);
+        const target = sigma.getGraph().target(event.edge);
+
+        sigma.refresh({
+          partialGraph: {
+            edges: [event.edge],
+            nodes: [source, target],
+          },
+          skipIndexation: true,
+        });
       },
     });
   }, [
     config,
     graphContainerRef,
+    graphState.highlightedEdgePath,
     graphState.selectedNodeId,
     isFullScreen,
     onEdgeClick,
     onNodeSecondClick,
+    onRender,
     refreshGraphHighlights,
     registerEvents,
     setConfigPanelOpen,
     setFilterPanelOpen,
+    setPathFinderPanelOpen,
+    setSearchPanelOpen,
     setGraphState,
     sigma,
   ]);

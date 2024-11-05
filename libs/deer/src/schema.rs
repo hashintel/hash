@@ -6,7 +6,7 @@ use alloc::collections::BTreeMap;
 use alloc::{boxed::Box, format, string::String};
 use core::any::{TypeId, type_name};
 
-use serde::{Serialize, Serializer, ser::SerializeMap};
+use serde::{Serialize, Serializer, ser::SerializeMap as _};
 
 pub trait Reflection: 'static {
     fn schema(doc: &mut Document) -> Schema;

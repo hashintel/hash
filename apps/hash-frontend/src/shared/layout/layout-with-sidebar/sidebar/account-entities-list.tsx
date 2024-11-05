@@ -95,8 +95,8 @@ export const AccountEntitiesList: FunctionComponent<
         (root) =>
           ((isOwnedOntologyElementMetadata(root.metadata) &&
             root.metadata.ownedById === ownedById) ||
-            userEntities?.find(
-              (entity) => entity.metadata.entityTypeId === root.schema.$id,
+            userEntities?.find((entity) =>
+              entity.metadata.entityTypeIds.includes(root.schema.$id),
             )) &&
           // Filter out external types from blockprotocol.org, except the Address type.
           (!root.schema.$id.startsWith(blockProtocolHubOrigin) ||

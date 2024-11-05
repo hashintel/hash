@@ -8,34 +8,39 @@ use authorization::{
     schema::{DataTypePermission, EntityPermission, EntityTypePermission, PropertyTypePermission},
     zanzibar::Consistency,
 };
-use error_stack::{Report, ResultExt, ensure};
-use futures::TryStreamExt;
+use error_stack::{Report, ResultExt as _, ensure};
+use futures::TryStreamExt as _;
 use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
     ontology::{
-        DataTypeProvider, DataTypeWithMetadata, EntityTypeProvider, EntityTypeWithMetadata,
+        DataTypeLookup, DataTypeWithMetadata, EntityTypeProvider, EntityTypeWithMetadata,
         OntologyTypeProvider, PropertyTypeProvider, PropertyTypeWithMetadata,
     },
 };
 use hash_graph_store::{
+    error::QueryError,
     filter::Filter,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
 use tokio::sync::RwLock;
-use tokio_postgres::GenericClient;
+use tokio_postgres::GenericClient as _;
 use type_system::{
+    Valid,
     schema::{
-        ClosedEntityType, ConversionDefinition, ConversionExpression, DataTypeUuid, EntityTypeUuid,
-        PropertyType, PropertyTypeUuid,
+        ClosedDataType, ClosedEntityType, ConversionDefinition, ConversionExpression,
+        DataTypeReference, DataTypeUuid, EntityTypeUuid, PropertyType, PropertyTypeUuid,
     },
     url::{BaseUrl, VersionedUrl},
 };
 use validation::EntityProvider;
 
-use crate::store::{AsClient, PostgresStore, QueryError, crud::Read};
+use crate::store::{
+    crud::Read as _,
+    postgres::{AsClient, PostgresStore},
+};
 
 #[derive(Debug, Clone)]
 enum Access<T> {
@@ -119,6 +124,7 @@ where
 #[derive(Debug, Default)]
 pub struct StoreCache {
     data_types: CacheHashMap<DataTypeUuid, DataTypeWithMetadata>,
+    closed_data_types: CacheHashMap<DataTypeUuid, ClosedDataType>,
     property_types: CacheHashMap<PropertyTypeUuid, PropertyType>,
     entity_types: CacheHashMap<EntityTypeUuid, ClosedEntityType>,
     entities: CacheHashMap<EntityId, Entity>,
@@ -157,33 +163,32 @@ where
     }
 }
 
-impl<C, A> OntologyTypeProvider<DataTypeWithMetadata> for StoreProvider<'_, PostgresStore<C, A>>
+impl<C, A> DataTypeLookup for StoreProvider<'_, PostgresStore<C, A>>
 where
     C: AsClient,
     A: AuthorizationApi,
 {
-    type Value = Arc<DataTypeWithMetadata>;
+    type ClosedDataType = Arc<ClosedDataType>;
+    type DataTypeWithMetadata = Arc<DataTypeWithMetadata>;
+    type Error = QueryError;
 
-    #[expect(refining_impl_trait)]
-    async fn provide_type(
+    async fn lookup_data_type_by_uuid(
         &self,
-        type_id: &VersionedUrl,
+        data_type_uuid: DataTypeUuid,
     ) -> Result<Arc<DataTypeWithMetadata>, Report<QueryError>> {
-        let data_type_id = DataTypeUuid::from_url(type_id);
-
-        if let Some(cached) = self.cache.data_types.get(&data_type_id).await {
+        if let Some(cached) = self.cache.data_types.get(&data_type_uuid).await {
             return cached;
         }
 
-        if let Err(error) = self.authorize_data_type(data_type_id).await {
-            self.cache.data_types.deny(data_type_id).await;
+        if let Err(error) = self.authorize_data_type(data_type_uuid).await {
+            self.cache.data_types.deny(data_type_uuid).await;
             return Err(error);
         }
 
         let schema = self
             .store
             .read_one(
-                &Filter::<DataTypeWithMetadata>::for_versioned_url(type_id),
+                &Filter::for_data_type_uuid(data_type_uuid),
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -195,25 +200,51 @@ where
             )
             .await?;
 
-        let schema = self.cache.data_types.grant(data_type_id, schema).await;
+        let schema = self.cache.data_types.grant(data_type_uuid, schema).await;
 
         Ok(schema)
     }
-}
 
-impl<C, A> DataTypeProvider for StoreProvider<'_, PostgresStore<C, A>>
-where
-    C: AsClient,
-    A: AuthorizationApi,
-{
-    #[expect(refining_impl_trait)]
+    async fn lookup_closed_data_type_by_uuid(
+        &self,
+        data_type_uuid: DataTypeUuid,
+    ) -> Result<Arc<ClosedDataType>, Report<QueryError>> {
+        if let Some(cached) = self.cache.closed_data_types.get(&data_type_uuid).await {
+            return cached;
+        }
+
+        if let Err(error) = self.authorize_data_type(data_type_uuid).await {
+            self.cache.closed_data_types.deny(data_type_uuid).await;
+            return Err(error);
+        }
+
+        let schema: Valid<ClosedDataType> = self
+            .store
+            .as_client()
+            .query_one(
+                "SELECT closed_schema FROM data_types WHERE ontology_id = $1",
+                &[&data_type_uuid],
+            )
+            .await
+            .change_context(QueryError)?
+            .get(0);
+
+        let schema = self
+            .cache
+            .closed_data_types
+            .grant(data_type_uuid, schema.into_inner())
+            .await;
+
+        Ok(schema)
+    }
+
     async fn is_parent_of(
         &self,
-        child: &VersionedUrl,
+        child: &DataTypeReference,
         parent: &BaseUrl,
     ) -> Result<bool, Report<QueryError>> {
         let client = self.store.as_client().client();
-        let child = DataTypeUuid::from_url(child);
+        let child = DataTypeUuid::from_url(&child.url);
 
         Ok(client
             .query_one(
@@ -233,16 +264,20 @@ where
             .get(0))
     }
 
-    #[expect(refining_impl_trait)]
     async fn find_conversion(
         &self,
-        source_data_type_id: &VersionedUrl,
-        target_data_type_id: &VersionedUrl,
+        source: &DataTypeReference,
+        target: &DataTypeReference,
     ) -> Result<impl Borrow<Vec<ConversionExpression>>, Report<QueryError>> {
-        let source = DataTypeUuid::from_url(source_data_type_id);
-        let target = DataTypeUuid::from_url(target_data_type_id);
+        let source_uuid = DataTypeUuid::from_url(&source.url);
+        let target_uuid = DataTypeUuid::from_url(&target.url);
 
-        if let Some(cached) = self.cache.conversions.get(&(source, target)).await {
+        if let Some(cached) = self
+            .cache
+            .conversions
+            .get(&(source_uuid, target_uuid))
+            .await
+        {
             return cached;
         }
 
@@ -270,18 +305,18 @@ where
                        AND target_data_type_base_url = $3
                 ;",
                 &[
-                    &source,
-                    &target,
-                    &source_data_type_id.base_url,
-                    &target_data_type_id.base_url,
+                    &source_uuid,
+                    &target_uuid,
+                    &source.url.base_url,
+                    &target.url.base_url,
                 ],
             )
             .await
             .change_context(QueryError)
             .attach_printable_lazy(|| {
                 format!(
-                    "Found none or more than one conversions between `{source_data_type_id}` and \
-                     `{target_data_type_id}`"
+                    "Found none or more than one conversions between `{}` and `{}`",
+                    source.url, target.url
                 )
             })?
             .get::<_, Vec<ConversionDefinition>>(0)
@@ -292,7 +327,7 @@ where
         Ok(self
             .cache
             .conversions
-            .grant((source, target), expression)
+            .grant((source_uuid, target_uuid), expression)
             .await)
     }
 }

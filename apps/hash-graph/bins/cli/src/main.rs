@@ -12,7 +12,7 @@ mod args;
 mod error;
 mod subcommand;
 
-use error_stack::Result;
+use error_stack::Report;
 use graph::load_env;
 use hash_tracing::sentry::{init, release_name};
 
@@ -21,7 +21,7 @@ use self::{args::Args, error::GraphError};
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-fn main() -> Result<(), GraphError> {
+fn main() -> Result<(), Report<GraphError>> {
     load_env(None);
     graph_types::knowledge::property::error::install_error_stack_hooks();
 

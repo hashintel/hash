@@ -5,14 +5,22 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createEntityType,
+  getClosedEntityTypes,
+  getClosedMultiEntityType,
   getEntityTypeById,
   getEntityTypeSubgraphById,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import type {
+  ClosedEntityType,
+  ClosedMultiEntityType,
+} from "@blockprotocol/type-system";
+import { atLeastOne } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
+  ClosedEntityTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
@@ -21,6 +29,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
@@ -29,7 +38,7 @@ import {
   isOwnedOntologyElementMetadata,
   linkEntityTypeUrl,
 } from "@local/hash-subgraph";
-import { beforeAll, describe, expect, it } from "vitest";
+import { assert, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -272,6 +281,148 @@ describe("Entity type CRU", () => {
     );
 
     expect(fetchedEntityType.schema).toEqual(createdEntityType.schema);
+  });
+
+  it("can read a closed entity type", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    const userType = await getEntityTypeById(graphContext, authentication, {
+      entityTypeId: systemEntityTypes.user.entityTypeId,
+    });
+    const actorType = await getEntityTypeById(graphContext, authentication, {
+      entityTypeId: systemEntityTypes.actor.entityTypeId,
+    });
+
+    const fetchedEntityType = await getClosedEntityTypes(
+      graphContext,
+      authentication,
+      {
+        filter: {
+          equal: [
+            { path: ["versionedUrl"] },
+            { parameter: userType.schema.$id },
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    );
+
+    // It's not specified how `required` is ordered, so we need to sort it before comparing
+    for (const entityType of fetchedEntityType) {
+      if (entityType.schema.required) {
+        entityType.schema.required.sort();
+      }
+    }
+
+    expect(fetchedEntityType).toEqual([
+      {
+        metadata: userType.metadata,
+        schema: {
+          $id: userType.schema.$id,
+          title: userType.schema.title,
+          description: userType.schema.description,
+          properties: {
+            ...userType.schema.properties,
+            ...actorType.schema.properties,
+          },
+          required: atLeastOne(
+            Array.from(
+              new Set([
+                ...(userType.schema.required ?? []),
+                ...(actorType.schema.required ?? []),
+              ]),
+            ).toSorted(),
+          ),
+          links: {
+            ...(userType.schema.links ?? {}),
+            ...(userType.schema.links ?? {}),
+          },
+        } satisfies ClosedEntityType,
+      },
+    ]);
+  });
+
+  it("can read a closed multi-entity type", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    const closedEntityTypes = (await getClosedEntityTypes(
+      graphContext,
+      authentication,
+      {
+        filter: {
+          any: [
+            {
+              equal: [
+                { path: ["versionedUrl"] },
+                { parameter: systemEntityTypes.user.entityTypeId },
+              ],
+            },
+            {
+              equal: [
+                { path: ["versionedUrl"] },
+                { parameter: systemEntityTypes.actor.entityTypeId },
+              ],
+            },
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    )) as [ClosedEntityTypeWithMetadata, ...ClosedEntityTypeWithMetadata[]];
+
+    const closedMultiEntityType = await getClosedMultiEntityType(
+      graphContext,
+      authentication,
+      {
+        entityTypeIds: [
+          systemEntityTypes.user.entityTypeId,
+          systemEntityTypes.actor.entityTypeId,
+        ],
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+      },
+    );
+
+    // It's not specified how `required` is ordered, so we need to sort it before comparing
+    if (closedMultiEntityType.required) {
+      closedMultiEntityType.required.sort();
+    }
+
+    const allOf = atLeastOne(
+      closedEntityTypes.map(
+        (closedEntityType) =>
+          ({
+            $id: closedEntityType.schema.$id,
+            title: closedEntityType.schema.title,
+            description: closedEntityType.schema.description,
+          }) as ClosedMultiEntityType["allOf"][0],
+      ),
+    );
+    assert(allOf !== undefined);
+
+    expect(closedMultiEntityType).toEqual({
+      allOf,
+      properties: closedEntityTypes.reduce(
+        (acc, closedEntityType) => {
+          return { ...acc, ...closedEntityType.schema.properties };
+        },
+        {} as ClosedMultiEntityType["properties"],
+      ),
+      required: atLeastOne(
+        Array.from(
+          new Set(
+            closedEntityTypes.flatMap(
+              (closedEntityType) => closedEntityType.schema.required ?? [],
+            ),
+          ),
+        ).toSorted(),
+      ),
+      links: closedEntityTypes.reduce(
+        (acc, closedEntityType) => {
+          return { ...acc, ...closedEntityType.schema.links };
+        },
+        {} as ClosedMultiEntityType["links"],
+      ),
+    } satisfies ClosedMultiEntityType);
   });
 
   const updatedTitle = "New text!";

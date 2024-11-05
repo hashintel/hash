@@ -246,7 +246,7 @@ fn extend_links(
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr;
+    use core::str::FromStr as _;
 
     use serde_json::json;
 

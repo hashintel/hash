@@ -7,26 +7,27 @@ export class EntityTypeMismatchError extends Error {
     | (BaseUrl | VersionedUrl)
     | (BaseUrl | VersionedUrl)[];
 
-  actualEntityTypeBaseUrl: BaseUrl | VersionedUrl;
+  actualEntityTypesBaseUrlOrVersionedUrls: BaseUrl[] | VersionedUrl[];
 
   constructor(
     entityId: string,
     expectedEntityTypeIdOrBaseUrl:
       | (BaseUrl | VersionedUrl)
       | (BaseUrl | VersionedUrl)[],
-    actualEntityTypeBaseUrl: BaseUrl | VersionedUrl,
+    actualEntityTypesBaseUrlOrVersionedUrls: BaseUrl[] | VersionedUrl[],
   ) {
     super(
-      `Expected entity with id "${entityId}" to be of type "${
+      `Expected entity with id "${entityId}" to have type "${
         typeof expectedEntityTypeIdOrBaseUrl === "string"
           ? expectedEntityTypeIdOrBaseUrl
           : expectedEntityTypeIdOrBaseUrl.join('" or "')
-      }" but got:  ${actualEntityTypeBaseUrl}`,
+      }" but got: ${actualEntityTypesBaseUrlOrVersionedUrls.join(", ")}`,
     );
     this.name = "TypeMismatchError";
     this.entityId = entityId;
     this.expectedEntityTypeIdOrBaseUrl = expectedEntityTypeIdOrBaseUrl;
-    this.actualEntityTypeBaseUrl = actualEntityTypeBaseUrl;
+    this.actualEntityTypesBaseUrlOrVersionedUrls =
+      actualEntityTypesBaseUrlOrVersionedUrls;
   }
 }
 

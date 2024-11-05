@@ -7,7 +7,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-[![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2024-10-21&color=blue)][rust-version]
+[![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2024-10-28&color=blue)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 
@@ -22,9 +22,9 @@ Read our [announcement post] for the story behind its origins.
 The library enables building a `Report` around an error as it propagates:
 
 ```rust
-use core::fmt;
+use core::{error::Error, fmt};
 
-use error_stack::{Context, Report, Result, ResultExt};
+use error_stack::{Report, ResultExt};
 
 #[derive(Debug)]
 struct ParseExperimentError;
@@ -35,9 +35,9 @@ impl fmt::Display for ParseExperimentError {
     }
 }
 
-impl Context for ParseExperimentError {}
+impl Error for ParseExperimentError {}
 
-fn parse_experiment(description: &str) -> Result<(u64, u64), ParseExperimentError> {
+fn parse_experiment(description: &str) -> Result<(u64, u64), Report<ParseExperimentError>> {
     let value = description
         .parse::<u64>()
         .attach_printable_lazy(|| format!("{description:?} could not be parsed as experiment"))
@@ -55,12 +55,12 @@ impl fmt::Display for ExperimentError {
     }
 }
 
-impl Context for ExperimentError {}
+impl Error for ExperimentError {}
 
 fn start_experiments(
     experiment_ids: &[usize],
     experiment_descriptions: &[&str],
-) -> Result<Vec<u64>, ExperimentError> {
+) -> Result<Vec<u64>, Report<ExperimentError>> {
     let experiments = experiment_ids
         .iter()
         .map(|exp_id| {
@@ -75,13 +75,13 @@ fn start_experiments(
 
             Ok(move || experiment.0 * experiment.1)
         })
-        .collect::<Result<Vec<_>, ExperimentError>>()
+        .collect::<Result<Vec<_>, Report<ExperimentError>>>()
         .attach_printable("unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
 
-fn main() -> Result<(), ExperimentError> {
+fn main() -> Result<(), Report<ExperimentError>> {
     let experiment_ids = &[0, 2];
     let experiment_descriptions = &["10", "20", "3o"];
     start_experiments(experiment_ids, experiment_descriptions)?;

@@ -113,7 +113,7 @@ describe.skip("Page Mention Notification", () => {
       block: occurredInBlock,
     });
 
-    expect(textEntity.metadata.entityTypeId).toBe(
+    expect(textEntity.metadata.entityTypeIds).toContain(
       systemEntityTypes.text.entityTypeId,
     );
 
@@ -139,10 +139,10 @@ describe.skip("Page Mention Notification", () => {
       { entityId: pageMentionNotification.entity.metadata.recordId.entityId },
     );
 
-    const occurredInEntityLinks = outgoingLinks.filter(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const occurredInEntityLinks = outgoingLinks.filter(({ metadata }) =>
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+      ),
     );
 
     expect(occurredInEntityLinks).toHaveLength(1);
@@ -153,10 +153,10 @@ describe.skip("Page Mention Notification", () => {
       occurredInEntity.entity.metadata.recordId.entityId,
     );
 
-    const occurredInTextLinks = outgoingLinks.filter(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const occurredInTextLinks = outgoingLinks.filter(({ metadata }) =>
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.occurredInText.linkEntityTypeId,
+      ),
     );
 
     expect(occurredInTextLinks).toHaveLength(1);
@@ -167,10 +167,10 @@ describe.skip("Page Mention Notification", () => {
       occurredInText.entity.metadata.recordId.entityId,
     );
 
-    const triggeredByUserLinks = outgoingLinks.filter(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const triggeredByUserLinks = outgoingLinks.filter(({ metadata }) =>
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
+      ),
     );
 
     expect(triggeredByUserLinks).toHaveLength(1);

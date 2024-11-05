@@ -54,6 +54,7 @@ export const createHashInstance: ImpureGraphFunction<
 
   const hashOrg = await getOrgByShortname(ctx, authentication, {
     shortname: "hash",
+    permitOlderVersions: true,
   });
 
   if (!hashOrg) {
@@ -99,7 +100,7 @@ export const createHashInstance: ImpureGraphFunction<
           },
       },
     },
-    entityTypeId: systemEntityTypes.hashInstance.entityTypeId,
+    entityTypeIds: [systemEntityTypes.hashInstance.entityTypeId],
     relationships: [
       {
         relation: "viewer",

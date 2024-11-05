@@ -1,7 +1,7 @@
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
-  getEntityTypeAndParentsById,
+  getBreadthFirstEntityTypesAndParents,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 
@@ -13,23 +13,31 @@ export const generatePropertyRowsFromEntity = (
 ): PropertyRow[] => {
   const entity = getRoots(entitySubgraph)[0]!;
 
-  const entityTypeAndAncestors = getEntityTypeAndParentsById(
+  const entityTypeAndAncestors = getBreadthFirstEntityTypesAndParents(
     entitySubgraph,
-    entity.metadata.entityTypeId,
+    entity.metadata.entityTypeIds,
   );
 
   const requiredPropertyTypes = entityTypeAndAncestors.flatMap(
     (type) => (type.schema.required ?? []) as BaseUrl[],
   );
 
+  const processedPropertyTypes = new Set<BaseUrl>();
+
   return entityTypeAndAncestors.flatMap((entityType) =>
-    Object.keys(entityType.schema.properties).map((propertyTypeBaseUrl) => {
+    Object.keys(entityType.schema.properties).flatMap((propertyTypeBaseUrl) => {
+      if (processedPropertyTypes.has(propertyTypeBaseUrl as BaseUrl)) {
+        return [];
+      }
+
       const propertyRefSchema =
         entityType.schema.properties[propertyTypeBaseUrl];
 
       if (!propertyRefSchema) {
         throw new Error("Property not found");
       }
+
+      processedPropertyTypes.add(propertyTypeBaseUrl as BaseUrl);
 
       return generatePropertyRowRecursively({
         propertyTypeBaseUrl: propertyTypeBaseUrl as BaseUrl,

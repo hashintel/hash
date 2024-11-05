@@ -187,6 +187,7 @@ const bpMultiFilterFieldPathToPathExpression = (
     })(),
   };
 };
+
 const bpFilterToGraphFilter = (
   filter: MultiFilter["filters"][number],
 ): Filter => {
@@ -255,6 +256,7 @@ const bpFilterToGraphFilter = (
     `UNIMPLEMENTED: Unknown filter operator \`${filter.operator}\``,
   );
 };
+
 export const convertBpFilterToGraphFilter = (bpFilter: MultiFilter): Filter => {
   const { filters: bpFilters, operator } = bpFilter;
 

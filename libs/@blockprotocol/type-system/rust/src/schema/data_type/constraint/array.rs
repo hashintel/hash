@@ -1,5 +1,5 @@
 use codec::serde::constant::ConstBool;
-use error_stack::{Report, ReportSink, ResultExt, TryReportIteratorExt, bail};
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;

@@ -4,7 +4,7 @@ use core::{
 };
 
 use bytes::{Buf, BufMut};
-use error_stack::Result;
+use error_stack::Report;
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
 
@@ -21,7 +21,7 @@ impl Display for RequestId {
 impl Encode for RequestId {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -33,7 +33,7 @@ impl Decode for RequestId {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {

@@ -182,7 +182,7 @@ export const EntitySelector = <Multiple extends boolean>({
           /**
            * @todo update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId
            * */
-          typeId: entity.metadata.entityTypeId,
+          typeIds: entity.metadata.entityTypeIds,
           title: generateEntityLabel(entitiesSubgraph!, entity),
           draft: !!extractDraftIdFromEntityId(
             entity.metadata.recordId.entityId,

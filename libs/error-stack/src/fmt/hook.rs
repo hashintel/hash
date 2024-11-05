@@ -454,7 +454,7 @@ impl Hooks {
 mod default {
     #[cfg(any(feature = "backtrace", feature = "spantrace"))]
     use alloc::format;
-    use alloc::string::ToString;
+    use alloc::string::ToString as _;
     use core::{
         panic::Location,
         sync::atomic::{AtomicBool, Ordering},

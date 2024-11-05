@@ -227,7 +227,7 @@ describe("Ontology queries", () => {
       graphResolveDepths: resolve_depths,
       temporalAxes: fullDecisionTimeAxis,
     });
-    expect(subgraph.roots.length).toEqual(3);
+    expect(subgraph.roots.length).toEqual(6);
     expect(Object.keys(subgraph.edges).length).toEqual(0);
 
     expect(
@@ -238,6 +238,9 @@ describe("Ontology queries", () => {
       "http://localhost:3000/@alice/types/data-type/number/v/1",
       "http://localhost:3000/@alice/types/data-type/text/v/1",
       "http://localhost:3000/@alice/types/data-type/text/v/2",
+      "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+      "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
     ]);
   });
 

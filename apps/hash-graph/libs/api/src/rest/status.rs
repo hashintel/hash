@@ -1,12 +1,12 @@
-use core::fmt::Debug;
+use core::{error::Error, fmt::Debug};
 
 use authorization::backend::PermissionAssertion;
 use axum::{
     Json,
-    response::{IntoResponse, Response},
+    response::{IntoResponse as _, Response},
 };
-use error_stack::{Context, Report};
-use graph::store::BaseUrlAlreadyExists;
+use error_stack::Report;
+use graph::store::error::BaseUrlAlreadyExists;
 use hash_status::{Status, StatusCode};
 use serde::Serialize;
 
@@ -29,7 +29,7 @@ where
 
 pub(crate) fn report_to_response<C>(report: impl Into<Report<[C]>>) -> Response
 where
-    C: Context,
+    C: Error + Send + Sync + 'static,
 {
     let report = report.into();
     let status_code = report

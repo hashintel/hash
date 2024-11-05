@@ -1,4 +1,4 @@
-use core::{fmt, fmt::Write};
+use core::{fmt, fmt::Write as _};
 
 use crate::store::postgres::query::{Expression, Transpile};
 
@@ -156,7 +156,7 @@ mod tests {
     };
     use postgres_types::ToSql;
 
-    use crate::store::postgres::query::{SelectCompiler, Transpile};
+    use crate::store::postgres::query::{SelectCompiler, Transpile as _};
 
     fn test_condition<'p, 'f: 'p>(
         filter: &'f Filter<'p, DataTypeWithMetadata>,

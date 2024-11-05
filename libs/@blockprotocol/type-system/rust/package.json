@@ -30,6 +30,6 @@
   },
   "devDependencies": {
     "@rust/graph-test-data": "0.0.0-private",
-    "wasm-pack": "0.13.0"
+    "wasm-pack": "0.13.1"
   }
 }

@@ -1,6 +1,7 @@
 extern crate alloc;
 
 use alloc::sync::Arc;
+use core::error::Error;
 use std::collections::HashMap;
 
 use authorization::{
@@ -18,11 +19,11 @@ use axum::{
     response::Response,
     routing::{delete, post},
 };
-use error_stack::{Context, Report};
-use futures::TryStreamExt;
+use error_stack::Report;
+use futures::TryStreamExt as _;
 use graph::{
     snapshot::SnapshotStore,
-    store::{PostgresStorePool, StorePool},
+    store::{PostgresStorePool, StorePool as _},
 };
 use graph_api::rest::{middleware::span_trace_layer, status::status_to_response};
 use graph_type_defs::error::{ErrorInfo, StatusPayloads};
@@ -53,7 +54,7 @@ where
     clippy::needless_pass_by_value,
     reason = "This is used inside of error-mapping functions only"
 )]
-fn store_acquisition_error(report: Report<impl Context>) -> Response {
+fn store_acquisition_error(report: Report<impl Error + Send + Sync + 'static>) -> Response {
     tracing::error!(error=?report, "Could not acquire store");
     status_to_response(Status::new(
         StatusCode::Internal,

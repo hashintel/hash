@@ -208,7 +208,9 @@ export class ComponentView implements NodeView {
                         | EntityId
                         | undefined
                     } // @todo make this always defined
-                    blockEntityTypeId={this.block.meta.schema as VersionedUrl}
+                    blockEntityTypeIds={[
+                      this.block.meta.schema as VersionedUrl,
+                    ]}
                     blockMetadata={this.block.meta}
                     entityStore={this.store}
                     // @todo uncomment this when sandbox is fixed

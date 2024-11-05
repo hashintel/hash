@@ -21,6 +21,9 @@ const EntityEditorContext = createContext<Props | null>(null);
 
 export const EntityEditorContextProvider = ({
   children,
+  customColumns,
+  defaultOutgoingLinkFilters,
+  disableTypeClick,
   draftLinksToArchive,
   draftLinksToCreate,
   entityLabel,
@@ -66,6 +69,9 @@ export const EntityEditorContextProvider = ({
 
   const state = useMemo(
     () => ({
+      customColumns,
+      defaultOutgoingLinkFilters,
+      disableTypeClick,
       draftLinksToArchive,
       draftLinksToCreate,
       entityLabel,
@@ -82,6 +88,9 @@ export const EntityEditorContextProvider = ({
       togglePropertyExpand,
     }),
     [
+      customColumns,
+      defaultOutgoingLinkFilters,
+      disableTypeClick,
       draftLinksToArchive,
       draftLinksToCreate,
       entityLabel,

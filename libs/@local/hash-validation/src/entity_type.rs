@@ -1,8 +1,8 @@
-use core::borrow::Borrow;
+use core::borrow::Borrow as _;
 use std::collections::{HashSet, hash_map::RawEntryMut};
 
-use error_stack::{Report, ReportSink, ResultExt};
-use futures::{StreamExt, TryStreamExt, stream};
+use error_stack::{Report, ReportSink, ResultExt as _};
+use futures::{StreamExt as _, TryStreamExt as _, stream};
 use graph_types::{
     knowledge::{
         entity::{Entity, EntityId},
@@ -17,7 +17,7 @@ use graph_types::{
         },
     },
     ontology::{
-        DataTypeProvider, DataTypeWithMetadata, EntityTypeProvider, OntologyTypeProvider,
+        DataTypeLookup, DataTypeWithMetadata, EntityTypeProvider, OntologyTypeProvider,
         PropertyTypeProvider,
     },
 };
@@ -25,7 +25,7 @@ use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
     schema::{
-        ClosedEntityType, ClosedMultiEntityType, ConstraintValidator, DataTypeReference,
+        ClosedEntityType, ClosedMultiEntityType, ConstraintValidator as _, DataTypeReference,
         JsonSchemaValueType, PropertyObjectSchema, PropertyType, PropertyTypeReference,
         PropertyValueArray, PropertyValueSchema, PropertyValues, ValueOrArray,
     },
@@ -61,7 +61,7 @@ where
     P: EntityProvider
         + EntityTypeProvider
         + OntologyTypeProvider<PropertyType>
-        + OntologyTypeProvider<DataTypeWithMetadata>
+        + DataTypeLookup
         + Sync,
 {
     type Error = EntityValidationError;
@@ -124,7 +124,7 @@ where
     P: EntityProvider
         + EntityTypeProvider
         + OntologyTypeProvider<PropertyType>
-        + DataTypeProvider
+        + DataTypeLookup
         + Sync,
 {
     type Error = EntityValidationError;
@@ -328,7 +328,7 @@ impl EntityVisitor for ValueValidator {
         _: &P,
     ) -> Result<(), Report<[TraversalError]>>
     where
-        P: DataTypeProvider + Sync,
+        P: DataTypeLookup + Sync,
     {
         let mut status = ReportSink::new();
 
@@ -361,14 +361,15 @@ impl EntityVisitor for EntityPreprocessor {
         type_provider: &P,
     ) -> Result<(), Report<[TraversalError]>>
     where
-        P: DataTypeProvider + Sync,
+        P: DataTypeLookup + Sync,
     {
         let mut status = ReportSink::new();
 
         if let Some(data_type_url) = &metadata.data_type_id {
+            let data_type_ref: &DataTypeReference = data_type_url.into();
             if data_type.schema.id != *data_type_url {
                 let is_compatible = type_provider
-                    .is_parent_of(data_type_url, &data_type.schema.id.base_url)
+                    .is_parent_of(data_type_ref, &data_type.schema.id.base_url)
                     .await
                     .change_context_lazy(|| TraversalError::DataTypeRetrieval {
                         id: DataTypeReference {
@@ -384,7 +385,7 @@ impl EntityVisitor for EntityPreprocessor {
                 }
 
                 let desired_data_type = type_provider
-                    .provide_type(data_type_url)
+                    .lookup_data_type_by_ref(data_type_ref)
                     .await
                     .change_context_lazy(|| TraversalError::DataTypeRetrieval {
                         id: DataTypeReference {
@@ -430,7 +431,7 @@ impl EntityVisitor for EntityPreprocessor {
         type_provider: &P,
     ) -> Result<(), Report<[TraversalError]>>
     where
-        P: DataTypeProvider + Sync,
+        P: DataTypeLookup + Sync,
     {
         let mut status = ReportSink::new();
 
@@ -445,7 +446,7 @@ impl EntityVisitor for EntityPreprocessor {
                 if let PropertyValues::DataTypeReference(data_type_ref) = values {
                     let Some(data_type) = infer_status.attempt(
                         type_provider
-                            .provide_type(&data_type_ref.url)
+                            .lookup_data_type_by_ref(data_type_ref)
                             .await
                             .change_context_lazy(|| TraversalError::DataTypeRetrieval {
                                 id: data_type_ref.clone(),
@@ -494,17 +495,16 @@ impl EntityVisitor for EntityPreprocessor {
             &property.metadata.original_data_type_id,
             &property.metadata.data_type_id,
         ) {
-            if source_data_type_id != target_data_type_id {
+            let source_data_type_ref: &DataTypeReference = source_data_type_id.into();
+            let target_data_type_ref: &DataTypeReference = target_data_type_id.into();
+
+            if source_data_type_ref != target_data_type_ref {
                 let conversions = type_provider
-                    .find_conversion(source_data_type_id, target_data_type_id)
+                    .find_conversion(source_data_type_ref, target_data_type_ref)
                     .await
                     .change_context_lazy(|| TraversalError::ConversionRetrieval {
-                        current: DataTypeReference {
-                            url: source_data_type_id.clone(),
-                        },
-                        target: DataTypeReference {
-                            url: target_data_type_id.clone(),
-                        },
+                        current: source_data_type_ref.clone(),
+                        target: target_data_type_ref.clone(),
                     })?;
 
                 if let Some(mut value) = property.value.as_f64() {
@@ -528,7 +528,7 @@ impl EntityVisitor for EntityPreprocessor {
                 .insert(data_type_id.base_url.clone(), property.value.clone());
 
             let data_type_result = type_provider
-                .provide_type(data_type_id)
+                .lookup_data_type_by_ref(<&DataTypeReference>::from(data_type_id))
                 .await
                 .change_context_lazy(|| TraversalError::DataTypeRetrieval {
                     id: DataTypeReference {
@@ -620,7 +620,7 @@ impl EntityVisitor for EntityPreprocessor {
     ) -> Result<(), Report<[TraversalError]>>
     where
         T: PropertyValueSchema + Sync,
-        P: DataTypeProvider + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + PropertyTypeProvider + Sync,
     {
         let mut status = ReportSink::new();
         if let Err(error) = walk_array(self, schema, array, type_provider).await {
@@ -658,7 +658,7 @@ impl EntityVisitor for EntityPreprocessor {
     ) -> Result<(), Report<[TraversalError]>>
     where
         T: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
-        P: DataTypeProvider + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + PropertyTypeProvider + Sync,
     {
         let mut status = ReportSink::new();
         if let Err(error) = walk_object(self, schema, object, type_provider).await {

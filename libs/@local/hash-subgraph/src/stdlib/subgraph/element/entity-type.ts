@@ -72,6 +72,54 @@ export const getEntityTypeAndParentsById = (
 };
 
 /**
+ * Gets an array of `EntityTypeWithMetadata` containing the requested entity types and all their ancestors
+ * i.e. entity types they inherit from, whether directly or indirectly, ordered for breadth-first traversal.
+ *
+ * Note that each EntityType will only appear once in the result. If an EntityType appears multiple times in the
+ * inheritance chains of different requested EntityTypes, it will only appear in the position it is first encountered.
+ *
+ * @param subgraph a subgraph containing the entity types and their ancestors
+ * @param entityTypeIds the `VersionedUrl`s of the entity types
+ * @throws Error if any requested entity type or any of its ancestors aren't present in the subgraph
+ * @returns EntityTypeWithMetadata[] an array containing the requested entity types and their ancestors, breadth-first.
+ */
+export const getBreadthFirstEntityTypesAndParents = (
+  subgraph: Subgraph,
+  entityTypeIds: VersionedUrl[],
+): EntityTypeWithMetadata[] => {
+  const visited = new Set<VersionedUrl>();
+  const queue: VersionedUrl[] = [...entityTypeIds];
+  const result: EntityTypeWithMetadata[] = [];
+
+  while (queue.length > 0) {
+    const currentEntityTypeId = queue.shift()!;
+
+    if (!visited.has(currentEntityTypeId)) {
+      visited.add(currentEntityTypeId);
+      const entityType = getEntityTypeById(subgraph, currentEntityTypeId);
+
+      if (!entityType) {
+        throw new Error(
+          `Entity type ${currentEntityTypeId} not found in subgraph`,
+        );
+      }
+
+      result.push(entityType);
+
+      for (const parentId of entityType.schema.allOf?.map(
+        (parent) => parent.$ref,
+      ) ?? []) {
+        if (!visited.has(parentId)) {
+          queue.push(parentId);
+        }
+      }
+    }
+  }
+
+  return result;
+};
+
+/**
  * Gets an array of `EntityTypeWithMetadata` containing the requested entity type and all its descendants
  * i.e. entity types which inherit from it, whether directly or indirectly.
  *

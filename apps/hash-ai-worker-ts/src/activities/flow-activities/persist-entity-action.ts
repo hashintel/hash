@@ -67,7 +67,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   const createEditionAsDraft = draft ?? false;
 
   const {
-    entityTypeId,
+    entityTypeIds,
     localEntityId,
     claims,
     properties,
@@ -80,7 +80,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     CreateEntityParameters,
     "relationships" | "ownedById" | "draft" | "linkData"
   > & { linkData: Entity["linkData"] } = {
-    entityTypeId,
+    entityTypeIds,
     properties: mergePropertyObjectAndMetadata(properties, propertyMetadata),
     linkData,
     provenance,
@@ -114,7 +114,9 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
    * by looking up the entity type's parents in the graph, rather than
    * relying on a hardcoded value.
    */
-  const isFileEntity = fileEntityTypeIds.includes(entityTypeId);
+  const isFileEntity = entityTypeIds.some((entityTypeId) =>
+    fileEntityTypeIds.includes(entityTypeId),
+  );
 
   const fileUrl = isFileEntity
     ? (properties as Partial<FileProperties>)[
@@ -134,7 +136,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       url: fileUrl,
       propertyMetadata,
       provenance,
-      entityTypeId,
+      entityTypeIds,
     });
 
     if (getFileEntityFromUrlStatus.status !== "ok") {
@@ -305,12 +307,15 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       includeDrafts: draft,
     });
 
+    const entityTypeId =
+      `https://hash.ai/@hash/types/entity-type/${linkType}/v/1` as const;
+
     return LinkEntity.create<T extends "has-subject" ? HasSubject : HasObject>(
       graphApiClient,
       { actorId: webBotActorId },
       {
         draft,
-        entityTypeId: `https://hash.ai/@hash/types/entity-type/${linkType}/v/1`,
+        entityTypeIds: [entityTypeId],
         ownedById: webId,
         provenance: {
           ...claim.metadata.provenance,

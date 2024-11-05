@@ -20,7 +20,7 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  isPageEntityTypeId,
+  includesPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import type { EntityRootType } from "@local/hash-subgraph";
@@ -232,28 +232,30 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 if (
                   (isEntityPageEntity(currentEntity) &&
                     isPageArchived(currentEntity)) ||
-                  hiddenEntityTypeIds.includes(
-                    currentEntity.metadata.entityTypeId,
+                  hiddenEntityTypeIds.some((hiddenTypeId) =>
+                    currentEntity.metadata.entityTypeIds.includes(hiddenTypeId),
                   ) ||
                   Object.values(systemLinkEntityTypes).some(
                     ({ linkEntityTypeId }) =>
-                      linkEntityTypeId === currentEntity.metadata.entityTypeId,
+                      currentEntity.metadata.entityTypeIds.includes(
+                        linkEntityTypeId,
+                      ),
                   )
                 ) {
                   return prev;
                 }
 
-                const existingIndex = prev.findIndex(
-                  ({ entityType }) =>
-                    entityType.schema.$id ===
-                    currentEntity.metadata.entityTypeId,
+                const existingIndex = prev.findIndex(({ entityType }) =>
+                  currentEntity.metadata.entityTypeIds.includes(
+                    entityType.schema.$id,
+                  ),
                 );
 
                 const entityType =
                   prev[existingIndex]?.entityType ??
                   getEntityTypeById(
                     entitiesSubgraph,
-                    currentEntity.metadata.entityTypeId,
+                    currentEntity.metadata.entityTypeIds[0],
                   );
 
                 if (!entityType) {
@@ -393,7 +395,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
             const linkEntityType = getEntityTypeById(
               entitiesSubgraph,
-              linkEntity.metadata.entityTypeId,
+              linkEntity.metadata.entityTypeIds[0],
             )!;
 
             return {
@@ -506,7 +508,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
       if (entity) {
         const {
-          entityTypeId,
+          entityTypeIds,
           recordId: { entityId },
         } = entity.metadata;
 
@@ -518,7 +520,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         if (selectedSubMenuItem) {
           if (selectedSubMenuItem.kind === "outgoing-link") {
             const linkEntityTypeBaseUrl = extractBaseUrl(
-              selectedSubMenuItem.linkEntity.metadata.entityTypeId,
+              selectedSubMenuItem.linkEntity.metadata.entityTypeIds[0],
             );
 
             onChange({
@@ -537,9 +539,11 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               propertyTypeBaseUrl,
             });
           }
-        } else if (isPageEntityTypeId(entityTypeId)) {
+        } else if (includesPageEntityTypeId(entityTypeIds)) {
           onChange({ kind: "page", entityId });
-        } else if (entityTypeId === systemEntityTypes.user.entityTypeId) {
+        } else if (
+          entityTypeIds.includes(systemEntityTypes.user.entityTypeId)
+        ) {
           onChange({ kind: "user", entityId });
         } else {
           onChange({ kind: "entity", entityId });
@@ -582,12 +586,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               return (
                 <MentionSuggesterEntity
                   key={entity.metadata.recordId.entityId}
-                  entityType={
-                    getEntityTypeById(
-                      entitiesSubgraph,
-                      entity.metadata.entityTypeId,
-                    )!
-                  }
+                  entityTypes={entity.metadata.entityTypeIds.map(
+                    (entityTypeId) =>
+                      getEntityTypeById(entitiesSubgraph, entityTypeId)!,
+                  )}
                   ref={selected ? selectedEntityRef : undefined}
                   selected={selected}
                   displaySubMenu={selected && displayEntitySubMenu}
@@ -668,7 +670,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                       return (
                         <Fragment key={entity.metadata.recordId.entityId}>
                           <MentionSuggesterEntity
-                            entityType={entityType}
+                            entityTypes={[entityType]}
                             entitiesSubgraph={entitiesSubgraph}
                             entity={entity}
                             ref={selected ? selectedEntityRef : undefined}

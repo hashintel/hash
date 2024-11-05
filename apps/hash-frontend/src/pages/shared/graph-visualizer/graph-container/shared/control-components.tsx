@@ -1,12 +1,16 @@
 import { IconButton } from "@hashintel/design-system";
 import { Box, Stack, type Theme, Tooltip, Typography } from "@mui/material";
 import type { SystemStyleObject } from "@mui/system";
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, ReactElement } from "react";
 
 import { ArrowRightToLineIcon } from "../../../../../shared/icons/arrow-right-to-line-icon";
 import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
 
-export const InfoIconTooltip = ({ tooltip }: { tooltip: string }) => {
+export const InfoIconTooltip = ({
+  tooltip,
+}: {
+  tooltip: string | ReactElement;
+}) => {
   return (
     <Tooltip title={tooltip} placement="top">
       <Box
@@ -24,19 +28,25 @@ export const InfoIconTooltip = ({ tooltip }: { tooltip: string }) => {
 
 export const ItemLabel = ({
   children,
-  fontSize = 11,
+  fontSize = 13,
   tooltip,
-}: PropsWithChildren<{ fontSize?: number; tooltip: string }>) => (
+  uppercase = false,
+}: PropsWithChildren<{
+  fontSize?: number;
+  tooltip: string | ReactElement;
+  uppercase?: boolean;
+}>) => (
   <Stack alignItems="center" direction="row" gap={0.5}>
     <Typography
       component="div"
       sx={{
-        color: ({ palette }) => palette.gray[80],
+        color: ({ palette }) =>
+          uppercase ? palette.gray[70] : palette.common.black,
         fontSize,
-        fontWeight: 600,
-        letterSpacing: 0.2,
+        fontWeight: uppercase ? 600 : 400,
+        letterSpacing: uppercase ? 0.2 : 0,
+        textTransform: uppercase ? "uppercase" : "none",
       }}
-      variant="smallCaps"
     >
       {children}
     </Typography>
@@ -51,20 +61,20 @@ export const ControlSectionContainer = ({
 }: PropsWithChildren<{ label: string; tooltip: string }>) => {
   return (
     <Stack
-      gap={0.5}
+      gap={1}
       sx={{
+        flex: 1,
         mx: 1,
         mt: 1.5,
-        border: ({ palette }) => `1px solid ${palette.gray[30]}`,
         borderRadius: 2,
-        px: 1.5,
+        px: 1,
         py: 1,
       }}
     >
-      <ItemLabel fontSize={12} tooltip={tooltip}>
+      <ItemLabel fontSize={12} tooltip={tooltip} uppercase>
         {label}
       </ItemLabel>
-      <Stack gap={1.2}>{children}</Stack>
+      <Stack gap={1.5}>{children}</Stack>
     </Stack>
   );
 };
@@ -73,10 +83,12 @@ export const ControlPanel = ({
   children,
   onClose,
   open,
+  position,
   title,
 }: PropsWithChildren<{
   open: boolean;
   onClose: () => void;
+  position: "left" | "right";
   title: string;
 }>) => {
   return (
@@ -84,9 +96,12 @@ export const ControlPanel = ({
       sx={{
         zIndex: 1,
         position: "absolute",
-        right: 0,
+        left: position === "left" ? 0 : undefined,
+        right: position === "right" ? 0 : undefined,
         top: 0,
-        transform: open ? "translateX(0%)" : "translateX(100%)",
+        transform: open
+          ? "translateX(0%)"
+          : `translateX(${position === "left" ? "-" : ""}100%)`,
         maxHeight: ({ spacing }) => `calc(100% - ${spacing(4)})`,
         transition: ({ transitions }) => transitions.create(["transform"]),
         py: 1.2,
@@ -99,7 +114,7 @@ export const ControlPanel = ({
         borderLeftWidth: 1,
         borderBottomLeftRadius: 4,
         boxShadow: open ? ({ boxShadows }) => boxShadows.sm : undefined,
-        minWidth: 150,
+        minWidth: 180,
         overflowY: "auto",
       }}
     >
@@ -127,7 +142,7 @@ export const ControlPanel = ({
               fontSize: 16,
               color: ({ palette }) => palette.gray[50],
             },
-            transform: "rotate(180deg)",
+            transform: position === "left" ? undefined : "rotate(180deg)",
           }}
         >
           <ArrowRightToLineIcon />

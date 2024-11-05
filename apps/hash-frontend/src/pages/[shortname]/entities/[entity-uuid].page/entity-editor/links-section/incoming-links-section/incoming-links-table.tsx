@@ -2,7 +2,10 @@ import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import {
+  generateEntityLabel,
+  generateLinkEntityLabel,
+} from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { LinkEntityAndLeftEntity } from "@local/hash-subgraph";
 import {
@@ -10,8 +13,16 @@ import {
   getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  type ReactElement,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
+import { ClickableCellChip } from "../../../../../../shared/clickable-cell-chip";
 import { ValueChip } from "../../../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
@@ -30,6 +41,7 @@ import { isValueIncludedInFilter } from "../../../../../../shared/virtualized-ta
 import type { VirtualizedTableSort } from "../../../../../../shared/virtualized-table/header/sort";
 import { useVirtualizedTableFilterState } from "../../../../../../shared/virtualized-table/use-filter-state";
 import { useEntityEditor } from "../../entity-editor-context";
+import type { CustomColumn } from "../../shared/types";
 import { PropertiesTooltip } from "../shared/properties-tooltip";
 import {
   linksTableCellSx,
@@ -38,26 +50,31 @@ import {
   maxLinksTableHeight,
 } from "../shared/table-styling";
 
-const fieldIds = ["linkedFrom", "linkType", "linkedFromType", "link"] as const;
+const fieldIds = [
+  "linkedFrom",
+  "linkTypes",
+  "linkedFromTypes",
+  "link",
+] as const;
 
 type FieldId = (typeof fieldIds)[number];
 
-const columns: VirtualizedTableColumn<FieldId>[] = [
+const staticColumns: VirtualizedTableColumn<FieldId>[] = [
   {
     label: "Linked from",
     id: "linkedFrom",
     sortable: true,
-    width: 100,
+    width: 180,
   },
   {
     label: "Link type",
-    id: "linkType",
+    id: "linkTypes",
     sortable: true,
     width: 160,
   },
   {
     label: "Linked from type",
-    id: "linkedFromType",
+    id: "linkedFromTypes",
     sortable: true,
     width: 120,
   },
@@ -69,20 +86,45 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
   },
 ];
 
+const createColumns = (customColumns: CustomColumn[]) => {
+  const columns = [...staticColumns];
+
+  for (const customColumn of customColumns) {
+    columns.push({
+      label: customColumn.label,
+      id: customColumn.id as FieldId,
+      sortable: customColumn.sortable,
+      width: customColumn.width,
+    });
+  }
+
+  return columns;
+};
+
 type IncomingLinkRow = {
   sourceEntity: Entity;
   sourceEntityLabel: string;
   sourceEntityProperties: { [propertyTitle: string]: string };
-  sourceEntityType: EntityType;
+  sourceEntityTypes: EntityType[];
   linkEntity: Entity;
   linkEntityLabel: string;
   linkEntityProperties: { [propertyTitle: string]: string };
-  linkEntityType: EntityType;
+  linkEntityTypes: EntityType[];
   onEntityClick: (entityId: EntityId) => void;
+  customFields: { [fieldId: string]: string | number };
 };
 
 const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
   const { entityLabel } = useEntityEditor();
+
+  const customCells: ReactElement[] = [];
+  for (const [fieldId, value] of typedEntries(row.customFields)) {
+    customCells.push(
+      <TableCell key={fieldId} sx={linksTableCellSx}>
+        <Typography sx={{ fontSize: linksTableFontSize }}>{value}</Typography>
+      </TableCell>,
+    );
+  }
 
   return (
     <>
@@ -91,42 +133,30 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
           entityType="source entity"
           properties={row.sourceEntityProperties}
         >
-          <Box
-            component="button"
+          <ClickableCellChip
             onClick={() =>
               row.onEntityClick(row.sourceEntity.metadata.recordId.entityId)
             }
-            sx={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              maxWidth: "100%",
-              p: 0,
-              textAlign: "left",
-            }}
-          >
-            <ValueChip
-              sx={{
-                color: ({ palette }) => palette.blue[70],
-                fontSize: linksTableFontSize,
-              }}
-            >
-              {row.sourceEntityLabel}
-            </ValueChip>
-          </Box>
+            fontSize={linksTableFontSize}
+            label={row.sourceEntityLabel}
+          />
         </PropertiesTooltip>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
         <Stack direction="row" alignItems="center">
-          <ValueChip
-            showInFull
-            type
-            sx={{
-              fontSize: linksTableFontSize,
-            }}
-          >
-            {row.linkEntityType.title}
-          </ValueChip>
+          {row.linkEntityTypes.map((linkEntityType) => (
+            <ValueChip
+              key={linkEntityType.$id}
+              showInFull
+              type
+              sx={{
+                fontSize: linksTableFontSize,
+                mr: 1,
+              }}
+            >
+              {linkEntityType.title}
+            </ValueChip>
+          ))}
           <Typography
             sx={{
               display: "block",
@@ -136,7 +166,6 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
               fontSize: linksTableFontSize,
               color: ({ palette }) => palette.gray[50],
               maxWidth: "100%",
-              ml: 1,
             }}
           >
             {entityLabel}
@@ -144,43 +173,33 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
         </Stack>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
-        <ValueChip
-          type
-          sx={{
-            fontSize: linksTableFontSize,
-          }}
-        >
-          {row.sourceEntityType.title}
-        </ValueChip>
+        <Stack direction="row" gap={1}>
+          {row.sourceEntityTypes.map((sourceEntityType) => (
+            <ValueChip
+              key={sourceEntityType.$id}
+              type
+              sx={{
+                fontSize: linksTableFontSize,
+              }}
+            >
+              {sourceEntityType.title}
+            </ValueChip>
+          ))}
+        </Stack>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
         <PropertiesTooltip
           entityType="link entity"
           properties={row.linkEntityProperties}
         >
-          <Box
-            component="button"
+          <ClickableCellChip
             onClick={() => row.onEntityClick(row.linkEntity.entityId)}
-            sx={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              maxWidth: "100%",
-              p: 0,
-              textAlign: "left",
-            }}
-          >
-            <ValueChip
-              sx={{
-                color: ({ palette }) => palette.blue[70],
-                fontSize: linksTableFontSize,
-              }}
-            >
-              {row.linkEntityLabel}
-            </ValueChip>
-          </Box>
+            fontSize={linksTableFontSize}
+            label={row.linkEntityLabel}
+          />
         </PropertiesTooltip>
       </TableCell>
+      {customCells.map((customCell) => customCell)}
     </>
   );
 });
@@ -201,7 +220,7 @@ export const IncomingLinksTable = memo(
       direction: "asc",
     });
 
-    const { entitySubgraph, onEntityClick } = useEntityEditor();
+    const { customColumns, entitySubgraph, onEntityClick } = useEntityEditor();
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
     const [outputContainerHeight, setOutputContainerHeight] = useState(400);
@@ -226,7 +245,7 @@ export const IncomingLinksTable = memo(
       const rowData: VirtualizedTableRow<IncomingLinkRow>[] = [];
 
       const filterDefs = {
-        linkType: {
+        linkTypes: {
           header: "Type",
           initialValue: new Set<string>(),
           options: {} as VirtualizedTableFilterDefinition["options"],
@@ -238,7 +257,7 @@ export const IncomingLinksTable = memo(
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
-        linkedFromType: {
+        linkedFromTypes: {
           header: "Type",
           initialValue: new Set<string>(),
           options: {} as VirtualizedTableFilterDefinition["options"],
@@ -263,37 +282,57 @@ export const IncomingLinksTable = memo(
           throw new Error("Expected at least one link revision");
         }
 
-        const linkEntityTypeId = linkEntity.metadata.entityTypeId;
+        const linkEntityTypeIds = linkEntity.metadata.entityTypeIds;
 
-        let linkEntityType = entityTypesByVersionedUrl[linkEntityTypeId];
-
-        if (!linkEntityType) {
-          const foundType = getEntityTypeById(entitySubgraph, linkEntityTypeId);
-
-          if (!foundType) {
-            throw new Error(
-              `Could not find linkEntityType with id ${linkEntityTypeId} in subgraph`,
+        const customFields: IncomingLinkRow["customFields"] = {};
+        for (const customColumn of customColumns ?? []) {
+          if (linkEntityTypeIds.includes(customColumn.appliesToEntityTypeId)) {
+            customFields[customColumn.id] = customColumn.calculateValue(
+              linkEntity,
+              entitySubgraph,
             );
           }
-
-          linkEntityType = foundType.schema;
-
-          filterDefs.linkType.options[linkEntityTypeId] ??= {
-            label: linkEntityType.title,
-            count: 0,
-            value: linkEntityTypeId,
-          };
         }
 
-        filterDefs.linkType.options[linkEntityTypeId]!.count++;
-        filterDefs.linkType.initialValue.add(linkEntityTypeId);
+        const linkEntityTypes: EntityType[] = [];
+        for (const linkEntityTypeId of linkEntityTypeIds) {
+          let linkEntityType = entityTypesByVersionedUrl[linkEntityTypeId];
+
+          if (!linkEntityType) {
+            const foundType = getEntityTypeById(
+              entitySubgraph,
+              linkEntityTypeId,
+            );
+
+            if (!foundType) {
+              throw new Error(
+                `Could not find linkEntityType with id ${linkEntityTypeId} in subgraph`,
+              );
+            }
+
+            linkEntityType = foundType.schema;
+            linkEntityTypes.push(linkEntityType);
+
+            filterDefs.linkTypes.options[linkEntityTypeId] ??= {
+              label: linkEntityType.title,
+              count: 0,
+              value: linkEntityTypeId,
+            };
+          }
+
+          filterDefs.linkTypes.options[linkEntityTypeId]!.count++;
+          filterDefs.linkTypes.initialValue.add(linkEntityTypeId);
+        }
 
         const leftEntity = leftEntityRevisions[0];
         if (!leftEntity) {
           throw new Error("Expected at least one left entity revision");
         }
 
-        const leftEntityLabel = generateEntityLabel(entitySubgraph, leftEntity);
+        const leftEntityLabel = leftEntity.linkData
+          ? generateLinkEntityLabel(entitySubgraph, leftEntity)
+          : generateEntityLabel(entitySubgraph, leftEntity);
+
         filterDefs.linkedFrom.options[leftEntity.metadata.recordId.entityId] ??=
           {
             label: leftEntityLabel,
@@ -306,29 +345,36 @@ export const IncomingLinksTable = memo(
           leftEntity.metadata.recordId.entityId,
         );
 
-        const leftEntityTypeId = leftEntity.metadata.entityTypeId;
-        let leftEntityType = entityTypesByVersionedUrl[leftEntityTypeId];
+        const leftEntityTypeIds = leftEntity.metadata.entityTypeIds;
+        const leftEntityTypes: EntityType[] = [];
+        for (const leftEntityTypeId of leftEntityTypeIds) {
+          let leftEntityType = entityTypesByVersionedUrl[leftEntityTypeId];
 
-        if (!leftEntityType) {
-          const foundType = getEntityTypeById(entitySubgraph, leftEntityTypeId);
-
-          if (!foundType) {
-            throw new Error(
-              `Could not find leftEntityType with id ${leftEntityTypeId} in subgraph`,
+          if (!leftEntityType) {
+            const foundType = getEntityTypeById(
+              entitySubgraph,
+              leftEntityTypeId,
             );
+
+            if (!foundType) {
+              throw new Error(
+                `Could not find leftEntityType with id ${leftEntityTypeId} in subgraph`,
+              );
+            }
+
+            leftEntityType = foundType.schema;
+            leftEntityTypes.push(leftEntityType);
+
+            filterDefs.linkedFromTypes.options[leftEntityTypeId] ??= {
+              label: leftEntityType.title,
+              count: 0,
+              value: leftEntityTypeId,
+            };
           }
 
-          leftEntityType = foundType.schema;
-
-          filterDefs.linkedFromType.options[leftEntityTypeId] ??= {
-            label: leftEntityType.title,
-            count: 0,
-            value: leftEntityTypeId,
-          };
+          filterDefs.linkedFromTypes.options[leftEntityTypeId]!.count++;
+          filterDefs.linkedFromTypes.initialValue.add(leftEntityTypeId);
         }
-
-        filterDefs.linkedFromType.options[leftEntityTypeId]!.count++;
-        filterDefs.linkedFromType.initialValue.add(leftEntityTypeId);
 
         const linkEntityLabel = generateEntityLabel(entitySubgraph, linkEntity);
         filterDefs.link.options[linkEntity.metadata.recordId.entityId] ??= {
@@ -346,7 +392,7 @@ export const IncomingLinksTable = memo(
         )) {
           const { propertyType } = getPropertyTypeForEntity(
             entitySubgraph,
-            linkEntityTypeId,
+            linkEntityTypeIds,
             propertyBaseUrl,
           );
           linkEntityProperties[propertyType.title] =
@@ -360,7 +406,7 @@ export const IncomingLinksTable = memo(
         )) {
           const { propertyType } = getPropertyTypeForEntity(
             entitySubgraph,
-            leftEntityTypeId,
+            leftEntityTypeIds,
             propertyBaseUrl,
           );
           sourceEntityProperties[propertyType.title] =
@@ -370,7 +416,8 @@ export const IncomingLinksTable = memo(
         rowData.push({
           id: linkEntity.metadata.recordId.entityId,
           data: {
-            linkEntityType,
+            customFields,
+            linkEntityTypes,
             linkEntity,
             linkEntityLabel,
             linkEntityProperties,
@@ -378,7 +425,7 @@ export const IncomingLinksTable = memo(
             sourceEntity: leftEntity,
             sourceEntityLabel: leftEntityLabel,
             sourceEntityProperties,
-            sourceEntityType: leftEntityType,
+            sourceEntityTypes: leftEntityTypes,
           },
         });
       }
@@ -396,7 +443,7 @@ export const IncomingLinksTable = memo(
         ) as VirtualizedTableFilterValuesByFieldId<FieldId>,
         unsortedRows: rowData,
       };
-    }, [entitySubgraph, incomingLinksAndSources, onEntityClick]);
+    }, [customColumns, entitySubgraph, incomingLinksAndSources, onEntityClick]);
 
     const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
       defaultFilterValues: initialFilterValues,
@@ -409,11 +456,11 @@ export const IncomingLinksTable = memo(
           .filter((row) => {
             for (const [fieldId, currentValue] of typedEntries(filterValues)) {
               switch (fieldId) {
-                case "linkType": {
+                case "linkTypes": {
                   if (
                     !isValueIncludedInFilter({
                       currentValue,
-                      valueToCheck: row.data.linkEntity.metadata.entityTypeId,
+                      valueToCheck: row.data.linkEntity.metadata.entityTypeIds,
                     })
                   ) {
                     return false;
@@ -432,11 +479,12 @@ export const IncomingLinksTable = memo(
                   }
                   break;
                 }
-                case "linkedFromType": {
+                case "linkedFromTypes": {
                   if (
                     !isValueIncludedInFilter({
                       currentValue,
-                      valueToCheck: row.data.sourceEntity.metadata.entityTypeId,
+                      valueToCheck:
+                        row.data.sourceEntity.metadata.entityTypeIds,
                     })
                   ) {
                     return false;
@@ -465,17 +513,17 @@ export const IncomingLinksTable = memo(
             const direction = sort.direction === "asc" ? 1 : -1;
 
             switch (field) {
-              case "linkType": {
+              case "linkTypes": {
                 return (
-                  a.data.linkEntityType.title.localeCompare(
-                    b.data.linkEntityType.title,
+                  a.data.linkEntityTypes[0]!.title.localeCompare(
+                    b.data.linkEntityTypes[0]!.title,
                   ) * direction
                 );
               }
-              case "linkedFromType": {
+              case "linkedFromTypes": {
                 return (
-                  a.data.sourceEntityType.title.localeCompare(
-                    b.data.sourceEntityType.title,
+                  a.data.sourceEntityTypes[0]!.title.localeCompare(
+                    b.data.sourceEntityTypes[0]!.title,
                   ) * direction
                 );
               }
@@ -492,8 +540,20 @@ export const IncomingLinksTable = memo(
                   direction
                 );
               }
-              default:
-                throw new Error(`Unexpected fieldId: ${field}`);
+              default: {
+                const customFieldA = a.data.customFields[field];
+                const customFieldB = b.data.customFields[field];
+                if (
+                  typeof customFieldA === "number" &&
+                  typeof customFieldB === "number"
+                ) {
+                  return (customFieldA - customFieldB) * direction;
+                }
+                return (
+                  String(customFieldA).localeCompare(String(customFieldB)) *
+                  direction
+                );
+              }
             }
           }),
       [filterValues, sort, unsortedRows],
@@ -503,6 +563,16 @@ export const IncomingLinksTable = memo(
       maxLinksTableHeight,
       rows.length * linksTableRowHeight + virtualizedTableHeaderHeight + 2,
     );
+
+    const columns = useMemo(() => {
+      const applicableCustomColumns = customColumns?.filter(
+        (column) =>
+          typeof filterValues.linkTypes === "object" &&
+          filterValues.linkTypes.has(column.appliesToEntityTypeId),
+      );
+
+      return createColumns(applicableCustomColumns ?? []);
+    }, [filterValues, customColumns]);
 
     return (
       <Box sx={{ height }}>

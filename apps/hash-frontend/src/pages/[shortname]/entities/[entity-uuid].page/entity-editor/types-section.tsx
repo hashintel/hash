@@ -1,103 +1,66 @@
-import { useMutation } from "@apollo/client";
-import { extractVersion } from "@blockprotocol/type-system";
-import { TypeCard } from "@hashintel/design-system";
+import { useMutation, useQuery } from "@apollo/client";
+import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import { PlusIcon, TypeCard } from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import {
-  extractBaseUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
-import { Box } from "@mui/material";
-import { useEffect, useState } from "react";
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import type { EntityTypeRootType } from "@local/hash-subgraph";
+import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
+import { Box, Stack } from "@mui/material";
+import { useMemo, useState } from "react";
 
-import { useBlockProtocolQueryEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import type {
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
+import { Button } from "../../../../../shared/ui/button";
 import { Link } from "../../../../../shared/ui/link";
+import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
+import { nonAssignableTypes } from "../../../../shared/hidden-types";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
-import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
+import type { EntityTypeChangeDetails } from "./types-section/entity-type-change-modal";
+import { EntityTypeChangeModal } from "./types-section/entity-type-change-modal";
 
-export const TypesSection = () => {
-  const { entitySubgraph, onEntityUpdated, readonly } = useEntityEditor();
+export const TypeButton = ({
+  entity,
+  currentEntityType,
+  newerEntityType,
+}: {
+  entity: Entity;
+  currentEntityType: EntityTypeWithMetadata;
+  newerEntityType?: EntityTypeWithMetadata;
+}) => {
+  const { disableTypeClick, onEntityUpdated, readonly } = useEntityEditor();
 
-  const entity = getRoots(entitySubgraph)[0]!;
+  const newVersion = newerEntityType?.metadata.recordId.version;
+
+  const [changeDetails, setChangeDetails] =
+    useState<EntityTypeChangeDetails | null>(null);
+
+  const [updatingTypes, setUpdatingTypes] = useState(false);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
-  const {
-    metadata: { recordId, entityTypeId },
-  } = entity;
-
-  const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
-  const [newVersion, setNewVersion] = useState<number>();
-  const [updateModalOpen, setUpdateModalOpen] = useState(false);
-  const [updatingVersion, setUpdatingVersion] = useState(false);
-
-  useEffect(() => {
-    const init = async () => {
-      /** @todo instead of aggregating all types, use filtering by baseId when it's available to use */
-      const res = await queryEntityTypes({
-        data: {
-          graphResolveDepths: {
-            constrainsValuesOn: { outgoing: 0 },
-            constrainsPropertiesOn: { outgoing: 0 },
-            constrainsLinksOn: { outgoing: 0 },
-            constrainsLinkDestinationsOn: { outgoing: 0 },
-          },
-        },
-      });
-
-      const baseId = extractBaseUrl(entityTypeId);
-      const entityTypeWithSameBaseId = res.data?.roots.find(
-        (root) => root.baseId === baseId,
-      );
-
-      if (!entityTypeWithSameBaseId) {
-        return;
-      }
-
-      const currentEntityTypeVersion = extractVersion(entityTypeId);
-      const entityTypeWithSameBaseIdVersion = Number(
-        entityTypeWithSameBaseId.revisionId,
-      );
-
-      if (entityTypeWithSameBaseIdVersion > currentEntityTypeVersion) {
-        setNewVersion(entityTypeWithSameBaseIdVersion);
-      }
-    };
-
-    if (!readonly) {
-      void init();
-    }
-  }, [queryEntityTypes, entityTypeId, readonly]);
-
-  const entityType = getEntityTypeById(entitySubgraph, entityTypeId);
-  const entityTypeTitle = entityType?.schema.title ?? "";
-  const entityTypeBaseUrl = extractBaseUrl(entityTypeId);
-
-  const handleUpdateVersion = async () => {
-    if (!newVersion) {
-      return;
-    }
-
+  const handleUpdateTypes = async (newEntityTypeIds: VersionedUrl[]) => {
     try {
-      setUpdatingVersion(true);
+      setUpdatingTypes(true);
 
       const res = await updateEntity({
         variables: {
           entityUpdate: {
-            entityTypeId: versionedUrlFromComponents(
-              entityTypeBaseUrl,
-              newVersion,
-            ),
-            entityId: recordId.entityId,
+            entityTypeIds: newEntityTypeIds,
+            entityId: entity.metadata.recordId.entityId,
             propertyPatches: [],
           },
         },
@@ -105,51 +68,264 @@ export const TypesSection = () => {
 
       if (res.data) {
         onEntityUpdated?.(new Entity(res.data.updateEntity));
-        setNewVersion(undefined);
       }
     } finally {
-      setUpdateModalOpen(false);
-      setUpdatingVersion(false);
+      setChangeDetails(null);
+      setUpdatingTypes(false);
     }
   };
 
-  const closeModal = () => setUpdateModalOpen(false);
-  const openModal = () => setUpdateModalOpen(true);
-  const currentVersion = extractVersion(entityTypeId);
+  const onUpgradeClicked = () => {
+    if (!newerEntityType) {
+      throw new Error(`No newer entity type to upgrade to`);
+    }
+
+    const newEntityTypeIds = entity.metadata.entityTypeIds.map(
+      (entityTypeId) => {
+        if (entityTypeId === currentEntityType.schema.$id) {
+          return newerEntityType.schema.$id;
+        }
+
+        return entityTypeId;
+      },
+    );
+
+    setChangeDetails({
+      onAccept: () => handleUpdateTypes(newEntityTypeIds),
+      proposedChange: {
+        type: "Update",
+        entityTypeTitle: currentEntityType.schema.title,
+        currentVersion: currentEntityType.metadata.recordId.version,
+        newVersion: newerEntityType.metadata.recordId.version,
+      },
+      /**
+       * @todo H-3408: Calculate and show property/link changes when upgrading entity types
+       */
+      linkChanges: [],
+      propertyChanges: [],
+    });
+  };
+
+  const onDeleteClicked = () => {
+    const newEntityTypeIds = entity.metadata.entityTypeIds.filter(
+      (entityTypeId) => entityTypeId !== currentEntityType.schema.$id,
+    );
+
+    setChangeDetails({
+      onAccept: () => handleUpdateTypes(newEntityTypeIds),
+      proposedChange: {
+        type: "Remove",
+        entityTypeTitle: currentEntityType.schema.title,
+        currentVersion: currentEntityType.metadata.recordId.version,
+      },
+      /**
+       * @todo H-3408: Calculate and show property/link changes when removing entity types
+       */
+      linkChanges: [],
+      propertyChanges: [],
+    });
+  };
+
+  const closeModal = () => setChangeDetails(null);
+
+  const entityTypeId = currentEntityType.schema.$id;
+  const entityTypeTitle = currentEntityType.schema.title;
+  const currentVersion = currentEntityType.metadata.recordId.version;
+
+  /**
+   * @todo H-3379 bring changes to types into the same 'local draft changes' system as properties/links changes,
+   *    which enables the user to make type changes before the entity is persisted to the db.
+   */
+  const isNotYetInDb = entity.metadata.recordId.entityId.includes("draft");
+  const canChangeTypes = !readonly && !isNotYetInDb;
+
+  /** @todo H-3363 take account of inherited icons */
+  return (
+    <>
+      <TypeCard
+        disableClick={disableTypeClick}
+        LinkComponent={Link}
+        icon={currentEntityType.schema.icon}
+        onDelete={canChangeTypes ? onDeleteClicked : undefined}
+        url={entityTypeId}
+        title={entityTypeTitle}
+        version={currentVersion}
+        newVersionConfig={
+          canChangeTypes && newVersion
+            ? {
+                newVersion,
+                onUpdateVersion: onUpgradeClicked,
+              }
+            : undefined
+        }
+      />
+      {changeDetails && (
+        <EntityTypeChangeModal
+          changeIsProcessing={updatingTypes}
+          open
+          onReject={closeModal}
+          {...changeDetails}
+        />
+      )}
+    </>
+  );
+};
+
+export const TypesSection = () => {
+  const { entitySubgraph, readonly, onEntityUpdated } = useEntityEditor();
+
+  const entity = getRoots(entitySubgraph)[0]!;
+
+  const {
+    metadata: { entityTypeIds },
+  } = entity;
+
+  const { data: latestEntityTypesData } = useQuery<
+    QueryEntityTypesQuery,
+    QueryEntityTypesQueryVariables
+  >(queryEntityTypesQuery, {
+    fetchPolicy: "cache-and-network",
+    variables: {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn: { outgoing: 0 },
+      constrainsPropertiesOn: { outgoing: 255 },
+      constrainsLinksOn: { outgoing: 1 },
+      constrainsLinkDestinationsOn: { outgoing: 0 },
+      inheritsFrom: { outgoing: 255 },
+      latestOnly: false,
+      includeArchived: true,
+    },
+    skip: readonly,
+  });
+
+  const entityTypes = useMemo<
+    {
+      currentEntityType: EntityTypeWithMetadata;
+      newerEntityType?: EntityTypeWithMetadata;
+    }[]
+  >(() => {
+    const typedSubgraph = latestEntityTypesData
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityTypeRootType>(
+          latestEntityTypesData.queryEntityTypes,
+        )
+      : null;
+
+    const latestEntityTypes = typedSubgraph
+      ? getRoots<EntityTypeRootType>(typedSubgraph)
+      : [];
+
+    return entityTypeIds.map((entityTypeId) => {
+      const currentEntityType = getEntityTypeById(entitySubgraph, entityTypeId);
+
+      if (!currentEntityType) {
+        throw new Error(
+          `Could not find entity type with id ${entityTypeId} in subgraph`,
+        );
+      }
+
+      const newerEntityType = latestEntityTypes.find(
+        (type) =>
+          type.metadata.recordId.baseUrl ===
+            currentEntityType.metadata.recordId.baseUrl &&
+          type.metadata.recordId.version >
+            currentEntityType.metadata.recordId.version,
+      );
+
+      return { currentEntityType, newerEntityType };
+    });
+  }, [entitySubgraph, entityTypeIds, latestEntityTypesData]);
+
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
+
+  const [addingType, setAddingType] = useState(false);
+
+  const onNewTypeSelected = async (entityTypeId: VersionedUrl) => {
+    try {
+      setAddingType(true);
+
+      const res = await updateEntity({
+        variables: {
+          entityUpdate: {
+            entityTypeIds: [...entityTypeIds, entityTypeId],
+            entityId: entity.metadata.recordId.entityId,
+            propertyPatches: [],
+          },
+        },
+      });
+
+      if (res.data) {
+        onEntityUpdated?.(new Entity(res.data.updateEntity));
+      }
+    } finally {
+      setAddingType(false);
+    }
+  };
+
+  /**
+   * @todo H-3379 bring changes to types into the same 'local draft changes' system as properties/links changes,
+   *    which enables the user to make type changes before the entity is persisted to the db.
+   */
+  const isNotYetInDb = entity.metadata.recordId.entityId.includes("draft");
+  const canChangeTypes = !readonly && !isNotYetInDb;
 
   return (
     <SectionWrapper
-      title="Types"
+      title={readonly && entityTypes.length === 1 ? "Type" : "Types"}
       titleTooltip="Types describe what an entity is, allowing information to be associated with it. Entities can have an unlimited number of types."
     >
-      <Box display="flex" gap={2}>
-        <TypeCard
-          LinkComponent={Link}
-          url={entityTypeId}
-          title={entityTypeTitle}
-          version={currentVersion}
-          newVersionConfig={
-            !readonly && newVersion
-              ? {
-                  newVersion,
-                  onUpdateVersion: openModal,
-                }
-              : undefined
-          }
-        />
-      </Box>
-
-      {newVersion && (
-        <EntityTypeUpdateModal
-          open={updateModalOpen}
-          onClose={closeModal}
-          currentVersion={currentVersion}
-          newVersion={newVersion}
-          entityTypeTitle={entityTypeTitle}
-          onUpdateVersion={handleUpdateVersion}
-          updatingVersion={updatingVersion}
-        />
-      )}
+      <Stack alignItems="center" direction="row" gap={1.5}>
+        {entityTypes.map(({ currentEntityType, newerEntityType }) => (
+          <TypeButton
+            key={currentEntityType.schema.$id}
+            entity={entity}
+            currentEntityType={currentEntityType}
+            newerEntityType={newerEntityType}
+          />
+        ))}
+        {canChangeTypes &&
+          (addingType ? (
+            <Box component="form" sx={{ flexGrow: 1 }}>
+              <EntityTypeSelector
+                excludeEntityTypeIds={[
+                  ...entityTypes.flatMap(
+                    ({ currentEntityType, newerEntityType }) =>
+                      [
+                        currentEntityType.schema.$id,
+                        newerEntityType?.schema.$id ?? [],
+                      ].flat(),
+                  ),
+                  ...nonAssignableTypes,
+                ]}
+                disableCreate
+                inputHeight={40}
+                onSelect={(entityType) => {
+                  void onNewTypeSelected(entityType.schema.$id);
+                }}
+                onCancel={() => setAddingType(false)}
+                sx={{
+                  maxWidth: 600,
+                }}
+              />
+            </Box>
+          ) : (
+            <Button
+              onClick={() => setAddingType(true)}
+              variant="tertiary_quiet"
+              size="xs"
+              sx={{
+                background: "none",
+                color: ({ palette }) => palette.gray[90],
+                fontWeight: 600,
+                height: 40,
+              }}
+            >
+              ADD TYPE <PlusIcon sx={{ fontSize: 14, ml: 0.5, mb: 0.2 }} />
+            </Button>
+          ))}
+      </Stack>
     </SectionWrapper>
   );
 };

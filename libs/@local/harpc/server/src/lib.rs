@@ -15,8 +15,8 @@ use core::{
     task::{Context, Poll},
 };
 
-use error_stack::{Report, ResultExt};
-use futures::{Stream, StreamExt, stream::FusedStream};
+use error_stack::{Report, ResultExt as _};
+use futures::{Stream, StreamExt as _, stream::FusedStream};
 use harpc_net::{
     session::server::{EventStream, ListenStream, SessionConfig, SessionLayer, Transaction},
     transport::{TransportConfig, TransportLayer},

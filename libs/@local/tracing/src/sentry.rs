@@ -1,12 +1,12 @@
 use alloc::{borrow::Cow, sync::Arc};
 #[cfg(feature = "clap")]
-use core::str::FromStr;
+use core::str::FromStr as _;
 use core::{fmt, panic::Location};
 #[cfg(feature = "clap")]
 use std::ffi::OsStr;
 use std::{
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead as _, BufReader},
     path::Path,
 };
 

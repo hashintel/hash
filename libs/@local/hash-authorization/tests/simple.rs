@@ -6,7 +6,7 @@ mod schema;
 use core::error::Error;
 
 use authorization::{
-    backend::ZanzibarBackend,
+    backend::ZanzibarBackend as _,
     schema::{
         EntityEditorSubject, EntityPermission, EntityRelationAndSubject, EntityViewerSubject,
     },

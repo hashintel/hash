@@ -4,7 +4,7 @@ use alloc::sync::Arc;
 use std::collections::HashMap;
 
 use authorization::{
-    AuthorizationApi, AuthorizationApiPool,
+    AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, DataTypeViewerSubject,
@@ -18,20 +18,15 @@ use axum::{
     response::Response,
     routing::{get, post, put},
 };
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use graph::{
     ontology::{
-        domain_validator::{DomainValidator, ValidateOntologyType},
+        domain_validator::{DomainValidator, ValidateOntologyType as _},
         patch_id_and_parse,
     },
     store::{
-        DataTypeStore, OntologyVersionDoesNotExist, StorePool,
-        error::VersionedUrlAlreadyExists,
-        ontology::{
-            ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypeSubgraphParams,
-            GetDataTypesParams, GetDataTypesResponse, UnarchiveDataTypeParams,
-            UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
-        },
+        StorePool,
+        error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
     },
 };
 use graph_types::{
@@ -42,7 +37,14 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{ConflictBehavior, data_type::DataTypeQueryToken};
+use hash_graph_store::{
+    ConflictBehavior,
+    data_type::{
+        ArchiveDataTypeParams, CreateDataTypeParams, DataTypeQueryToken, DataTypeStore as _,
+        GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
+        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+    },
+};
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;

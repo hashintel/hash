@@ -1,12 +1,12 @@
 use alloc::sync::Arc;
 use core::task::{Context, Poll};
 
-use bytes::Buf;
+use bytes::Buf as _;
 use error_stack::Report;
-use futures::StreamExt;
+use futures::StreamExt as _;
 use harpc_net::session::error::ConnectionPartiallyClosedError;
 use harpc_tower::{
-    body::{Body, BodyExt},
+    body::{Body, BodyExt as _},
     net::unpack::Unpack,
     request::Request,
     response::{self, Response},

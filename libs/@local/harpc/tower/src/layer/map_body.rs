@@ -3,7 +3,7 @@ use core::{
     task::{Context, Poll},
 };
 
-use futures::{FutureExt, TryFutureExt};
+use futures::{FutureExt as _, TryFutureExt as _};
 use tower::{Layer, Service};
 
 use crate::{request::Request, response::Response};

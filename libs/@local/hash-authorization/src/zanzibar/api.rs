@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use error_stack::{ReportSink, Result, ResultExt};
-use futures::{Stream, TryStreamExt};
+use error_stack::{Report, ReportSink, ResultExt as _};
+use futures::{Stream, TryStreamExt as _};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
@@ -46,7 +46,7 @@ impl<B> AuthorizationApi for ZanzibarClient<B>
 where
     B: ZanzibarBackend + Send + Sync,
 {
-    async fn seed(&mut self) -> Result<Zookie<'static>, ModifyRelationError> {
+    async fn seed(&mut self) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(self
             .backend
             .modify_relationships([
@@ -96,7 +96,7 @@ where
         permission: AccountGroupPermission,
         account_group: AccountGroupId,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         self.backend
             .check_permission(&account_group, &permission, &actor, consistency)
             .await
@@ -113,7 +113,7 @@ where
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(self
             .backend
             .modify_relationships(relationships.into_iter().map(
@@ -134,7 +134,7 @@ where
         permission: WebPermission,
         web: OwnedById,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         self.backend
             .check_permission(&web, &permission, &actor, consistency)
             .await
@@ -151,7 +151,7 @@ where
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(self
             .backend
             .modify_relationships(
@@ -169,7 +169,7 @@ where
         &self,
         web: OwnedById,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<WebRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<WebRelationAndSubject>, Report<ReadError>> {
         self.backend
             .read_relations::<(OwnedById, WebRelationAndSubject)>(
                 RelationshipFilter::from_resource(web),
@@ -193,7 +193,7 @@ where
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(self
             .backend
             .modify_relationships(relationships.into_iter().map(
@@ -211,7 +211,7 @@ where
         permission: EntityPermission,
         entity: EntityId,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         self.backend
             .check_permission(&entity.entity_uuid, &permission, &actor, consistency)
             .await
@@ -224,7 +224,7 @@ where
         permission: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<(HashMap<EntityUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<EntityUuid, bool>, Zookie<'static>), Report<CheckError>> {
         let response = self
             .backend
             .check_permissions(
@@ -263,7 +263,7 @@ where
         &self,
         entity: EntityId,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<EntityRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<EntityRelationAndSubject>, Report<ReadError>> {
         self.backend
             .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
                 RelationshipFilter::from_resource(entity.entity_uuid),
@@ -287,7 +287,7 @@ where
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(self
             .backend
             .modify_relationships(
@@ -307,7 +307,7 @@ where
         permission: EntityTypePermission,
         entity_type: EntityTypeUuid,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         self.backend
             .check_permission(&entity_type, &permission, &actor, consistency)
             .await
@@ -320,7 +320,7 @@ where
         permission: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         let response = self
             .backend
             .check_permissions(
@@ -359,7 +359,7 @@ where
         &self,
         entity_type: EntityTypeUuid,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<EntityTypeRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<EntityTypeRelationAndSubject>, Report<ReadError>> {
         self.backend
             .read_relations::<(EntityTypeUuid, EntityTypeRelationAndSubject)>(
                 RelationshipFilter::from_resource(entity_type),
@@ -383,7 +383,7 @@ where
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(self
             .backend
             .modify_relationships(
@@ -405,7 +405,7 @@ where
         permission: PropertyTypePermission,
         property_type: PropertyTypeUuid,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         self.backend
             .check_permission(&property_type, &permission, &actor, consistency)
             .await
@@ -418,7 +418,7 @@ where
         permission: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         let response = self
             .backend
             .check_permissions(
@@ -457,7 +457,7 @@ where
         &self,
         property_type: PropertyTypeUuid,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<PropertyTypeRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<PropertyTypeRelationAndSubject>, Report<ReadError>> {
         self.backend
             .read_relations::<(PropertyTypeUuid, PropertyTypeRelationAndSubject)>(
                 RelationshipFilter::from_resource(property_type),
@@ -481,7 +481,7 @@ where
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(self
             .backend
             .modify_relationships(
@@ -501,7 +501,7 @@ where
         permission: DataTypePermission,
         data_type: DataTypeUuid,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         self.backend
             .check_permission(&data_type, &permission, &actor, consistency)
             .await
@@ -514,7 +514,7 @@ where
         permission: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         let response = self
             .backend
             .check_permissions(
@@ -553,7 +553,7 @@ where
         &self,
         data_type: DataTypeUuid,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<DataTypeRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<DataTypeRelationAndSubject>, Report<ReadError>> {
         self.backend
             .read_relations::<(DataTypeUuid, DataTypeRelationAndSubject)>(
                 RelationshipFilter::from_resource(data_type),
@@ -574,18 +574,18 @@ where
     async fn import_schema(
         &mut self,
         schema: &str,
-    ) -> Result<ImportSchemaResponse, ImportSchemaError> {
+    ) -> Result<ImportSchemaResponse, Report<ImportSchemaError>> {
         self.backend.import_schema(schema).await
     }
 
-    async fn export_schema(&self) -> Result<ExportSchemaResponse, ExportSchemaError> {
+    async fn export_schema(&self) -> Result<ExportSchemaResponse, Report<ExportSchemaError>> {
         self.backend.export_schema().await
     }
 
     async fn modify_relationships<R>(
         &mut self,
         relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, R), IntoIter: Send> + Send,
-    ) -> Result<ModifyRelationshipResponse, ModifyRelationshipError>
+    ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
     where
         R: Relationship<
                 Resource: Resource<Kind: Serialize, Id: Serialize>,
@@ -604,7 +604,7 @@ where
         permission: &R,
         subject: &S,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError>
+    ) -> Result<CheckResponse, Report<CheckError>>
     where
         O: Resource<Kind: Serialize, Id: Serialize> + Sync,
         R: Serialize + Permission<O> + Sync,
@@ -619,7 +619,10 @@ where
         &self,
         relationships: impl IntoIterator<Item = (O, R, S)> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<BulkCheckResponse<impl IntoIterator<Item = BulkCheckItem<O, R, S>>>, CheckError>
+    ) -> Result<
+        BulkCheckResponse<impl IntoIterator<Item = BulkCheckItem<O, R, S>>>,
+        Report<CheckError>,
+    >
     where
         O: Resource<Kind: Serialize + DeserializeOwned, Id: Serialize + DeserializeOwned>
             + Send
@@ -650,7 +653,7 @@ where
             impl Serialize + Send + Sync,
         >,
         consistency: Consistency<'_>,
-    ) -> Result<impl Stream<Item = Result<R, ReadError>> + Send, ReadError>
+    ) -> Result<impl Stream<Item = Result<R, Report<ReadError>>> + Send, Report<ReadError>>
     where
         for<'de> R: Relationship<
                 Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
@@ -672,7 +675,7 @@ where
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,
         >,
-    ) -> Result<DeleteRelationshipResponse, DeleteRelationshipError> {
+    ) -> Result<DeleteRelationshipResponse, Report<DeleteRelationshipError>> {
         self.backend.delete_relations(filter).await
     }
 }

@@ -14,11 +14,14 @@ mod token;
 extern crate alloc;
 
 use deer::{Context, Deserialize, error::DeserializeError};
-use error_stack::Result;
+use error_stack::Report;
 
 pub use crate::deserializer::{Deserializer, StackLimit};
 
-pub fn from_slice<'de, T>(slice: &'de [u8], context: &Context) -> Result<T, DeserializeError>
+pub fn from_slice<'de, T>(
+    slice: &'de [u8],
+    context: &Context,
+) -> Result<T, Report<DeserializeError>>
 where
     T: Deserialize<'de>,
 {
@@ -27,7 +30,7 @@ where
     T::deserialize(&mut deserializer)
 }
 
-pub fn from_str<'de, T>(value: &'de str, context: &Context) -> Result<T, DeserializeError>
+pub fn from_str<'de, T>(value: &'de str, context: &Context) -> Result<T, Report<DeserializeError>>
 where
     T: Deserialize<'de>,
 {
