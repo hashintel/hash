@@ -20,7 +20,6 @@ export type LinkRow = {
   isList: boolean;
   isUploading: boolean;
   expectedEntityTypes: EntityTypeWithMetadata[];
-  expectedEntityTypeTitles: string[];
   linkAndTargetEntities: (LinkAndTargetEntity & {
     // Adding the subgraph we found these in makes it easy to retrieve their type(s), e.g. for labelling
     sourceSubgraph: Subgraph<EntityRootType> | null;

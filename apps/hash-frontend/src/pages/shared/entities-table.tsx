@@ -50,7 +50,7 @@ import type {
 } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 import { useAuthenticatedUser } from "./auth-info-context";
 import type { ChipCellProps } from "./chip-cell";
-import { renderChipCell } from "./chip-cell";
+import { createRenderChipCell } from "./chip-cell";
 import { GridView } from "./entities-table/grid-view";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
@@ -95,6 +95,8 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
 );
 
 const noneString = "none";
+
+const firstColumnLeftPadding = 16;
 
 export const EntitiesTable: FunctionComponent<{
   customColumns?: CustomColumn[];
@@ -359,20 +361,28 @@ export const EntitiesTable: FunctionComponent<{
               copyData: row.entityLabel,
               cursor: "pointer",
               data: {
-                kind: "text-icon-cell",
-                icon: "bpAsterisk",
-                value: row.entityLabel,
-                onClick: () => {
-                  if (isViewingOnlyPages) {
-                    void router.push(
-                      `/${row.web}/${extractEntityUuidFromEntityId(
-                        row.entityId,
-                      )}`,
-                    );
-                  } else {
-                    handleEntityClick(row.entityId);
-                  }
-                },
+                kind: "chip-cell",
+                chips: [
+                  {
+                    text: row.entityLabel,
+                    icon: row.entityIcon
+                      ? { entityTypeIcon: row.entityIcon }
+                      : { inbuiltIcon: "bpAsterisk" },
+                    onClick: () => {
+                      if (isViewingOnlyPages) {
+                        void router.push(
+                          `/${row.web}/${extractEntityUuidFromEntityId(
+                            row.entityId,
+                          )}`,
+                        );
+                      } else {
+                        handleEntityClick(row.entityId);
+                      }
+                    },
+                  },
+                ],
+                color: "white",
+                variant: "outlined",
               },
             };
           } else if (columnId === "entityTypes") {
@@ -386,20 +396,19 @@ export const EntitiesTable: FunctionComponent<{
                 kind: "chip-cell",
                 chips: row.entityTypes.map((value) => ({
                   text: value.title,
-                  /**
-                   * @todo H-1978: support custom icons in cell renderers, including URLs to SVGs, and emojis
-                   */
-                  icon: undefined,
-                  onClick: () => {
-                    if (!disableTypeClick) {
-                      setSelectedEntityType({
-                        entityTypeId: value.entityTypeId,
-                      });
-                    }
-                  },
+                  icon: value.icon
+                    ? { entityTypeIcon: value.icon }
+                    : { inbuiltIcon: "bpAsterisk" },
+                  onClick: disableTypeClick
+                    ? undefined
+                    : () => {
+                        setSelectedEntityType({
+                          entityTypeId: value.entityTypeId,
+                        });
+                      },
                 })),
-                color: "gray",
-                variant: "filled",
+                color: "white",
+                variant: "outlined",
               } satisfies ChipCellProps,
             };
           } else if (columnId === "webId") {
@@ -447,12 +456,20 @@ export const EntitiesTable: FunctionComponent<{
               copyData: entity.label,
               cursor: "pointer",
               data: {
-                kind: "text-icon-cell",
-                icon: "bpAsterisk",
-                value: entity.label,
-                onClick: () => {
-                  handleEntityClick(entity.entityId);
-                },
+                kind: "chip-cell",
+                chips: [
+                  {
+                    icon: entity.icon
+                      ? { entityTypeIcon: entity.icon }
+                      : { inbuiltIcon: "bpAsterisk" },
+                    text: entity.label,
+                    onClick: () => {
+                      handleEntityClick(entity.entityId);
+                    },
+                  },
+                ],
+                color: "white",
+                variant: "outlined",
               },
             };
           }
@@ -516,13 +533,15 @@ export const EntitiesTable: FunctionComponent<{
                   ? [
                       {
                         text: actorName,
-                        icon: actorIcon,
+                        icon: actorIcon
+                          ? { inbuiltIcon: actorIcon }
+                          : undefined,
                       },
                     ]
                   : [],
                 color: "gray",
                 variant: "filled",
-              },
+              } satisfies ChipCellProps,
             };
           }
 
@@ -1126,7 +1145,7 @@ export const EntitiesTable: FunctionComponent<{
               setSelectedRows(updatedSelectedRows)
             }
             sortRows={sortRows}
-            firstColumnLeftPadding={16}
+            firstColumnLeftPadding={firstColumnLeftPadding}
             height={`
                min(
                  ${maximumTableHeight},
@@ -1137,9 +1156,9 @@ export const EntitiesTable: FunctionComponent<{
                )`}
             createGetCellContent={createGetCellContent}
             customRenderers={[
-              createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-              createRenderUrlCell({ firstColumnLeftPadding: 16 }),
-              renderChipCell,
+              createRenderTextIconCell({ firstColumnLeftPadding }),
+              createRenderUrlCell({ firstColumnLeftPadding }),
+              createRenderChipCell({ firstColumnLeftPadding }),
             ]}
             freezeColumns={1}
             currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}

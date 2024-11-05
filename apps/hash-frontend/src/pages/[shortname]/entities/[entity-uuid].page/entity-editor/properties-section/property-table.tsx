@@ -3,7 +3,7 @@ import { useMemo, useRef } from "react";
 
 import { Grid } from "../../../../../../components/grid/grid";
 import { useGridTooltip } from "../../../../../../components/grid/utils/use-grid-tooltip";
-import { renderChipCell } from "../../../../../shared/chip-cell";
+import { createRenderChipCell } from "../../../../../shared/chip-cell";
 import { useEntityEditor } from "../entity-editor-context";
 import { renderSummaryChipCell } from "../shared/summary-chip-cell";
 import { createRenderChangeTypeCell } from "./property-table/cells/change-type-cell";
@@ -36,7 +36,7 @@ export const PropertyTable = ({
   const customRenderers = useMemo(
     () => [
       renderValueCell,
-      renderChipCell,
+      createRenderChipCell(),
       createRenderPropertyNameCell(togglePropertyExpand, propertyExpandStatus),
       renderSummaryChipCell,
       createRenderChangeTypeCell(gridRef),

@@ -94,6 +94,7 @@ export interface TypeEntitiesRow {
   rowId: string;
   entityId: EntityId;
   entity: Entity;
+  entityIcon?: string;
   entityLabel: string;
   entityTypes: {
     entityTypeId: VersionedUrl;
@@ -108,10 +109,12 @@ export interface TypeEntitiesRow {
   sourceEntity?: {
     entityId: EntityId;
     label: string;
+    icon?: string;
   };
   targetEntity?: {
     entityId: EntityId;
     label: string;
+    icon?: string;
   };
   web: string;
   properties?: {
@@ -292,6 +295,8 @@ export const useEntitiesTable = (params: {
               entity.metadata.entityTypeIds.includes(type.$id),
             );
 
+            const entityIcon = currentEntitysTypes[0]?.icon;
+
             const { shortname: entityNamespace } = getOwnerForEntity({
               entityId: entity.metadata.recordId.entityId,
             });
@@ -359,9 +364,17 @@ export const useEntitiesTable = (params: {
                   ? generateLinkEntityLabel(subgraph, source)
                   : generateEntityLabel(subgraph, source);
 
+              /**
+               * @todo H-3363 use closed schema to get entity's icon
+               */
+              const sourceEntityType = source
+                ? getEntityTypeById(subgraph, source.metadata.entityTypeIds[0])
+                : undefined;
+
               sourceEntity = {
                 entityId: entity.linkData.leftEntityId,
                 label: sourceEntityLabel,
+                icon: sourceEntityType?.schema.icon,
               };
 
               const targetEntityLabel = !target
@@ -370,9 +383,17 @@ export const useEntitiesTable = (params: {
                   ? generateLinkEntityLabel(subgraph, target)
                   : generateEntityLabel(subgraph, target);
 
+              /**
+               * @todo H-3363 use closed schema to get entity's icon
+               */
+              const targetEntityType = target
+                ? getEntityTypeById(subgraph, target.metadata.entityTypeIds[0])
+                : undefined;
+
               targetEntity = {
                 entityId: entity.linkData.rightEntityId,
                 label: targetEntityLabel,
+                icon: targetEntityType?.schema.icon,
               };
             }
 
@@ -381,6 +402,7 @@ export const useEntitiesTable = (params: {
               entityId,
               entity,
               entityLabel,
+              entityIcon,
               entityTypes: currentEntitysTypes.map((entityType) => {
                 let entityTypeLabel = entityType.title;
                 if (
@@ -394,6 +416,7 @@ export const useEntitiesTable = (params: {
                 return {
                   title: entityTypeLabel,
                   entityTypeId: entityType.$id,
+                  icon: entityType.icon,
                 };
               }),
               web: `@${entityNamespace}`,

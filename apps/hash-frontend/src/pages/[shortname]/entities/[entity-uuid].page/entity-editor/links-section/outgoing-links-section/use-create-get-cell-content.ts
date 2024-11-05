@@ -32,7 +32,7 @@ export const useCreateGetCellContent = () => {
           throw new Error("columnKey not found");
         }
 
-        const expectsAnything = !row.expectedEntityTypeTitles.length;
+        const expectsAnything = !row.expectedEntityTypes.length;
 
         switch (columnKey) {
           case "linkTitle":
@@ -60,22 +60,29 @@ export const useCreateGetCellContent = () => {
                 readonly,
               },
             };
-          case "expectedEntityTypes":
+          case "expectedEntityTypes": {
+            const expectedEntityTypeTitles = row.expectedEntityTypes.map(
+              (type) => type.schema.title,
+            );
             return {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: true, // in case we have so many expected types that we need to open on click to see them all
-              copyData: String(row.expectedEntityTypeTitles),
+              copyData: String(expectedEntityTypeTitles.join(", ")),
               data: {
                 kind: "chip-cell",
                 chips: expectsAnything
                   ? [{ text: "Anything" }]
-                  : row.expectedEntityTypeTitles.map((title) => ({
-                      text: title,
+                  : row.expectedEntityTypes.map(({ schema }) => ({
+                      text: schema.title,
+                      icon: schema.icon
+                        ? { entityTypeIcon: schema.icon }
+                        : { inbuiltIcon: "bpAsterisk" },
                     })),
                 color: expectsAnything ? "blue" : "white",
               },
             };
+          }
         }
       },
     [readonly],

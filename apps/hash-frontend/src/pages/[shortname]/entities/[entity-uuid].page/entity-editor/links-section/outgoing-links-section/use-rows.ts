@@ -158,10 +158,6 @@ export const useRows = () => {
 
           linkAndTargetEntities.push(...additions);
 
-          const expectedEntityTypeTitles = expectedEntityTypes.map(
-            (val) => val.schema.title,
-          );
-
           const isFile = expectedEntityTypes.some(
             (expectedType) =>
               isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isFile,
@@ -186,7 +182,6 @@ export const useRows = () => {
             isList:
               linkSchema.maxItems === undefined || linkSchema.maxItems > 1,
             expectedEntityTypes,
-            expectedEntityTypeTitles,
             entitySubgraph,
             markLinkAsArchived: markLinkEntityToArchive,
             onEntityClick,

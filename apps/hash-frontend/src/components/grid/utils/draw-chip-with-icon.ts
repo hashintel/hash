@@ -1,4 +1,5 @@
 import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 
 import type {
   ChipCellColor,
@@ -71,6 +72,20 @@ const drawClippedImage = ({
   return width;
 };
 
+export type DrawChipWithIconProps = {
+  args: DrawArgs<CustomCell>;
+  icon?:
+    | {
+        inbuiltIcon: CustomIcon;
+      }
+    | { imageSrc: string }
+    | { entityTypeIcon: string };
+  text: string;
+  left: number;
+  color: ChipCellColor;
+  variant?: ChipCellVariant;
+};
+
 /**
  * @param args draw args of cell
  * @param text text content of chip
@@ -84,26 +99,17 @@ const drawClippedImage = ({
  */
 export const drawChipWithIcon = ({
   args,
+  icon,
   text,
-  icon = "bpAsterisk",
-  imageSrc,
   left,
   color,
   variant,
-}: {
-  args: DrawArgs<CustomCell>;
-  text: string;
-  icon?: CustomIcon;
-  imageSrc?: string;
-  left: number;
-  color: ChipCellColor;
-  variant?: ChipCellVariant;
-}) => {
+}: DrawChipWithIconProps) => {
   const { ctx, theme, imageLoader, col, row } = args;
   const yCenter = getYCenter(args);
 
   const paddingX = 12;
-  const iconHeight = imageSrc ? 24 : 12;
+  const iconHeight = icon && "imageSrc" in icon ? 24 : 12;
   const gap = 8;
 
   const iconLeft = left + paddingX;
@@ -123,8 +129,8 @@ export const drawChipWithIcon = ({
   let chipHeight;
   let chipTop;
 
-  if (imageSrc) {
-    const image = imageLoader.loadOrGetImage(imageSrc, col, row);
+  if (icon && "imageSrc" in icon) {
+    const image = imageLoader.loadOrGetImage(icon.imageSrc, col, row);
 
     if (image) {
       const maxWidth = 80;
@@ -154,7 +160,7 @@ export const drawChipWithIcon = ({
         width,
       });
     } else {
-      throw new Error(`Image not loaded: ${imageSrc}`);
+      throw new Error(`Image not loaded: ${icon.imageSrc}`);
     }
   } else {
     ({ height: chipHeight, top: chipTop } = drawChip(
@@ -165,15 +171,52 @@ export const drawChipWithIcon = ({
       borderColor,
     ));
 
-    args.spriteManager.drawSprite(
-      icon,
-      "normal",
-      ctx,
-      iconLeft,
-      iconTop,
-      iconHeight,
-      { ...theme, fgIconHeader: iconColor },
-    );
+    if (icon && "inbuiltIcon" in icon) {
+      args.spriteManager.drawSprite(
+        icon.inbuiltIcon,
+        "normal",
+        ctx,
+        iconLeft,
+        iconTop,
+        iconHeight,
+        { ...theme, fgIconHeader: iconColor },
+      );
+    } else if (icon && "entityTypeIcon" in icon) {
+      if (icon.entityTypeIcon.match(/\p{Extended_Pictographic}$/u)) {
+        /**
+         * This is an emoji icon
+         */
+        ctx.fillStyle = iconColor;
+        const currentFont = ctx.font;
+        ctx.font = `bold ${iconHeight}px Inter`;
+        ctx.fillText(icon.entityTypeIcon, iconLeft, yCenter);
+        ctx.font = currentFont;
+      } else {
+        let iconUrl;
+        if (icon.entityTypeIcon.startsWith("/")) {
+          iconUrl = new URL(icon.entityTypeIcon, frontendUrl).href;
+        } else if (icon.entityTypeIcon.startsWith("https")) {
+          iconUrl = icon.entityTypeIcon;
+        }
+
+        if (iconUrl) {
+          const image = imageLoader.loadOrGetImage(iconUrl, col, row);
+
+          if (!image) {
+            throw new Error(`Could not load icon from URL: ${iconUrl}`);
+          }
+
+          drawClippedImage({
+            ctx,
+            image,
+            left: iconLeft,
+            top: iconTop,
+            height: iconHeight,
+            width: iconHeight,
+          });
+        }
+      }
+    }
   }
 
   const textLeft = left + chipWidth - paddingX - textWidth;
