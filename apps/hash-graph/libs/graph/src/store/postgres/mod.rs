@@ -19,7 +19,7 @@ use authorization::{
         WebOwnerSubject, WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
     },
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use graph_types::{
     account::{AccountGroupId, AccountId, EditionArchivedById},
     ontology::{
@@ -41,7 +41,7 @@ use postgres_types::Json;
 use temporal_client::TemporalClient;
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
-use tokio_postgres::{GenericClient, error::SqlState};
+use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     Valid,
     schema::{
@@ -136,7 +136,7 @@ where
         base_url: &BaseUrl,
         on_conflict: ConflictBehavior,
         location: OntologyLocation,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), Report<InsertionError>> {
         match on_conflict {
             ConflictBehavior::Fail => {
                 self.as_client()
@@ -213,7 +213,7 @@ where
         &self,
         ontology_id: &VersionedUrl,
         on_conflict: ConflictBehavior,
-    ) -> Result<Option<OntologyTypeUuid>, InsertionError> {
+    ) -> Result<Option<OntologyTypeUuid>, Report<InsertionError>> {
         let query: &str = match on_conflict {
             ConflictBehavior::Skip => {
                 "
@@ -261,7 +261,7 @@ where
         &self,
         ontology_id: OntologyTypeUuid,
         provenance: &OntologyEditionProvenance,
-    ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
+    ) -> Result<LeftClosedTemporalInterval<TransactionTime>, Report<InsertionError>> {
         let query = "
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
@@ -282,7 +282,7 @@ where
         &self,
         id: &VersionedUrl,
         archived_by_id: EditionArchivedById,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let query = "
           UPDATE ontology_temporal_metadata
           SET
@@ -340,7 +340,7 @@ where
         &self,
         id: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let query = "
           INSERT INTO ontology_temporal_metadata (
             ontology_id,
@@ -382,7 +382,7 @@ where
         &self,
         ontology_id: OntologyTypeUuid,
         owned_by_id: OwnedById,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), Report<InsertionError>> {
         let query = "
                 INSERT INTO ontology_owned_metadata (
                     ontology_id,
@@ -402,7 +402,7 @@ where
         &self,
         ontology_id: OntologyTypeUuid,
         fetched_at: OffsetDateTime,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), Report<InsertionError>> {
         let query = "
               INSERT INTO ontology_external_metadata (
                 ontology_id,
@@ -433,7 +433,7 @@ where
         ontology_id: DataTypeUuid,
         data_type: &Valid<DataType>,
         closed_data_type: &Valid<ClosedDataType>,
-    ) -> Result<Option<OntologyTypeUuid>, InsertionError> {
+    ) -> Result<Option<OntologyTypeUuid>, Report<InsertionError>> {
         let ontology_id = self
             .as_client()
             .query_opt(
@@ -460,7 +460,7 @@ where
         &self,
         ontology_id: DataTypeUuid,
         metadata: &DataTypeResolveData,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), Report<InsertionError>> {
         for (target, depth) in metadata.inheritance_depths() {
             self.as_client()
                 .query(
@@ -490,7 +490,7 @@ where
         ontology_id: DataTypeUuid,
         target_data_type: &BaseUrl,
         conversions: &Conversions,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), Report<InsertionError>> {
         self.as_client()
             .query(
                 r#"
@@ -532,7 +532,7 @@ where
         &self,
         ontology_id: OntologyTypeUuid,
         property_type: &Valid<PropertyType>,
-    ) -> Result<Option<OntologyTypeUuid>, InsertionError> {
+    ) -> Result<Option<OntologyTypeUuid>, Report<InsertionError>> {
         Ok(self
             .as_client()
             .query_opt(
@@ -565,7 +565,7 @@ where
         ontology_id: EntityTypeUuid,
         entity_type: &Valid<EntityType>,
         closed_entity_type: &Valid<ClosedEntityType>,
-    ) -> Result<Option<OntologyTypeUuid>, InsertionError> {
+    ) -> Result<Option<OntologyTypeUuid>, Report<InsertionError>> {
         Ok(self
             .as_client()
             .query_opt(
@@ -590,7 +590,7 @@ where
         &self,
         property_type: &PropertyType,
         ontology_id: OntologyTypeUuid,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), Report<InsertionError>> {
         for property_type in property_type.property_type_references() {
             self.as_client()
                 .query_one(
@@ -645,7 +645,7 @@ where
         &self,
         entity_type_uuid: EntityTypeUuid,
         metadata: &EntityTypeResolveData,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), Report<InsertionError>> {
         for (target_id, depth) in metadata.inheritance_depths() {
             self.as_client()
                 .query_one(
@@ -731,7 +731,7 @@ where
     async fn entity_type_reference_ids<'p, I>(
         &self,
         referenced_entity_types: I,
-    ) -> Result<Vec<OntologyTypeUuid>, QueryError>
+    ) -> Result<Vec<OntologyTypeUuid>, Report<QueryError>>
     where
         I: IntoIterator<Item = &'p EntityTypeReference> + Send,
         I::IntoIter: Send,
@@ -748,7 +748,7 @@ where
     async fn property_type_reference_ids<'p, I>(
         &self,
         referenced_property_types: I,
-    ) -> Result<Vec<OntologyTypeUuid>, QueryError>
+    ) -> Result<Vec<OntologyTypeUuid>, Report<QueryError>>
     where
         I: IntoIterator<Item = &'p PropertyTypeReference> + Send,
         I::IntoIter: Send,
@@ -765,7 +765,7 @@ where
     async fn data_type_reference_ids<'p, I>(
         &self,
         referenced_data_types: I,
-    ) -> Result<Vec<OntologyTypeUuid>, QueryError>
+    ) -> Result<Vec<OntologyTypeUuid>, Report<QueryError>>
     where
         I: IntoIterator<Item = &'p DataTypeReference> + Send,
         I::IntoIter: Send,
@@ -784,7 +784,10 @@ where
     ///
     /// - if the entry referred to by `url` does not exist.
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn ontology_id_by_url(&self, url: &VersionedUrl) -> Result<OntologyTypeUuid, QueryError> {
+    async fn ontology_id_by_url(
+        &self,
+        url: &VersionedUrl,
+    ) -> Result<OntologyTypeUuid, Report<QueryError>> {
         Ok(self
             .client
             .as_client()
@@ -807,7 +810,7 @@ where
     /// - if the underlying client cannot start a transaction
     pub async fn transaction(
         &mut self,
-    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>, &'_ mut A>, StoreError> {
+    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>, &'_ mut A>, Report<StoreError>> {
         Ok(PostgresStore::new(
             self.client
                 .as_mut_client()
@@ -843,7 +846,7 @@ where
         classification: &OntologyTypeClassificationMetadata,
         on_conflict: ConflictBehavior,
         provenance: &OntologyProvenance,
-    ) -> Result<Option<(OntologyTypeUuid, OntologyTemporalMetadata)>, InsertionError> {
+    ) -> Result<Option<(OntologyTypeUuid, OntologyTemporalMetadata)>, Report<InsertionError>> {
         match classification {
             OntologyTypeClassificationMetadata::Owned { owned_by_id } => {
                 self.create_base_url(&ontology_id.base_url, on_conflict, OntologyLocation::Owned)
@@ -899,7 +902,7 @@ where
         &self,
         url: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
-    ) -> Result<(OntologyTypeUuid, OwnedById, OntologyTemporalMetadata), UpdateError> {
+    ) -> Result<(OntologyTypeUuid, OwnedById, OntologyTemporalMetadata), Report<UpdateError>> {
         let previous_version = OntologyTypeVersion::new(
             url.version
                 .inner()
@@ -975,14 +978,14 @@ where
     /// # Errors
     ///
     /// - if the underlying client cannot commit the transaction
-    pub async fn commit(self) -> Result<(), StoreError> {
+    pub async fn commit(self) -> Result<(), Report<StoreError>> {
         self.client.commit().await.change_context(StoreError)
     }
 
     /// # Errors
     ///
     /// - if the underlying client cannot rollback the transaction
-    pub async fn rollback(self) -> Result<(), StoreError> {
+    pub async fn rollback(self) -> Result<(), Report<StoreError>> {
         self.client.rollback().await.change_context(StoreError)
     }
 }
@@ -993,7 +996,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         &mut self,
         actor_id: AccountId,
         params: InsertAccountIdParams,
-    ) -> Result<(), AccountInsertionError> {
+    ) -> Result<(), Report<AccountInsertionError>> {
         self.as_client()
             .query("INSERT INTO accounts (account_id) VALUES ($1);", &[
                 &params.account_id
@@ -1009,7 +1012,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         &mut self,
         actor_id: AccountId,
         params: InsertAccountGroupIdParams,
-    ) -> Result<(), AccountGroupInsertionError> {
+    ) -> Result<(), Report<AccountGroupInsertionError>> {
         let transaction = self
             .transaction()
             .await
@@ -1072,7 +1075,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         &mut self,
         actor_id: AccountId,
         params: InsertWebIdParams,
-    ) -> Result<(), WebInsertionError> {
+    ) -> Result<(), Report<WebInsertionError>> {
         let transaction = self.transaction().await.change_context(WebInsertionError)?;
 
         transaction
@@ -1167,7 +1170,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     async fn identify_owned_by_id(
         &self,
         owned_by_id: OwnedById,
-    ) -> Result<WebOwnerSubject, QueryWebError> {
+    ) -> Result<WebOwnerSubject, Report<QueryWebError>> {
         let row = self
             .as_client()
             .query_one(
@@ -1210,7 +1213,10 @@ where
     A: Send + Sync,
 {
     #[tracing::instrument(level = "trace", skip(self))]
-    pub async fn delete_accounts(&mut self, actor_id: AccountId) -> Result<(), DeletionError> {
+    pub async fn delete_accounts(
+        &mut self,
+        actor_id: AccountId,
+    ) -> Result<(), Report<DeletionError>> {
         self.as_client()
             .client()
             .simple_query("DELETE FROM webs;")

@@ -1,10 +1,10 @@
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use num_traits::NumCast;
 
 use crate::{
     Context, Deserialize, Deserializer, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor,
-    Reflection, StructVisitor, Visitor,
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    Reflection as _, StructVisitor, Visitor,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant as _},
 };
 
 pub trait IntoDeserializer<'de> {
@@ -36,7 +36,7 @@ impl<'de, D> EnumUnitDeserializer<'_, D>
 where
     D: Deserializer<'de>,
 {
-    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: EnumVisitor<'de>,
     {
@@ -54,7 +54,7 @@ where
 
 macro_rules! deserialize_any {
     ($name:ident, $primitive:ty,as, $cast:ident, $visit:ident) => {
-        fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
         where
             V: Visitor<'de>,
         {
@@ -65,7 +65,7 @@ macro_rules! deserialize_any {
     };
 
     ($name:ident, $primitive:ty, $visit:ident) => {
-        fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
         where
             V: Visitor<'de>,
         {
@@ -76,7 +76,7 @@ macro_rules! deserialize_any {
 
 macro_rules! deserialize_optional {
     ($name:ident, $primitive:ty) => {
-        fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
         where
             V: OptionalVisitor<'de>,
         {
@@ -87,7 +87,7 @@ macro_rules! deserialize_optional {
 
 macro_rules! deserialize_enum {
     ($name:ident, $primitive:ty) => {
-        fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
         where
             V: EnumVisitor<'de>,
         {
@@ -101,10 +101,7 @@ macro_rules! deserialize_struct {
         deserialize_struct!($name, $primitive, error, <bool as Deserialize>::Reflection);
     };
     ($name:ident, $primitive:ty,error, $expected:ty) => {
-        fn deserialize_struct<V>(
-            self,
-            visitor: V,
-        ) -> error_stack::Result<V::Value, DeserializerError>
+        fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
         where
             V: StructVisitor<'de>,
         {
@@ -129,7 +126,10 @@ macro_rules! deserialize_identifier {
     };
 
     ($name:ident, $primitive:ty,error, $received:ty) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn deserialize_identifier<V>(
+            self,
+            visitor: V,
+        ) -> Result<V::Value, Report<DeserializerError>>
         where
             V: IdentifierVisitor<'de>,
         {
@@ -141,7 +141,10 @@ macro_rules! deserialize_identifier {
     };
 
     ($name:ident, $primitive:ty,visit,deref, $visit:ident) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn deserialize_identifier<V>(
+            self,
+            visitor: V,
+        ) -> Result<V::Value, Report<DeserializerError>>
         where
             V: IdentifierVisitor<'de>,
         {
@@ -152,7 +155,10 @@ macro_rules! deserialize_identifier {
     };
 
     ($name:ident, $primitive:ty,visit,cast, $visit:ident) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn deserialize_identifier<V>(
+            self,
+            visitor: V,
+        ) -> Result<V::Value, Report<DeserializerError>>
         where
             V: IdentifierVisitor<'de>,
         {
@@ -168,7 +174,10 @@ macro_rules! deserialize_identifier {
     };
 
     ($name:ident, $primitive:ty,visit,as, $visit:ident) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn deserialize_identifier<V>(
+            self,
+            visitor: V,
+        ) -> Result<V::Value, Report<DeserializerError>>
         where
             V: IdentifierVisitor<'de>,
         {
@@ -180,7 +189,10 @@ macro_rules! deserialize_identifier {
     };
 
     ($name:ident, $primitive:ty,visit, $visit:ident) => {
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn deserialize_identifier<V>(
+            self,
+            visitor: V,
+        ) -> Result<V::Value, Report<DeserializerError>>
         where
             V: IdentifierVisitor<'de>,
         {
@@ -192,7 +204,10 @@ macro_rules! deserialize_identifier {
 
     ($name:ident, $primitive:ty,try_visit, $visit:ident) => {
         #[cfg(any(nightly, feature = "std"))]
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn deserialize_identifier<V>(
+            self,
+            visitor: V,
+        ) -> Result<V::Value, Report<DeserializerError>>
         where
             V: IdentifierVisitor<'de>,
         {
@@ -207,7 +222,10 @@ macro_rules! deserialize_identifier {
         }
 
         #[cfg(not(any(nightly, feature = "std")))]
-        fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn deserialize_identifier<V>(
+            self,
+            visitor: V,
+        ) -> Result<V::Value, Report<DeserializerError>>
         where
             V: IdentifierVisitor<'de>,
         {
@@ -554,21 +572,21 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
         visitor.visit_none().change_context(DeserializerError)
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: OptionalVisitor<'de>,
     {
         visitor.visit_none().change_context(DeserializerError)
     }
 
-    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: EnumVisitor<'de>,
     {
@@ -581,7 +599,7 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
             .change_context(DeserializerError)
     }
 
-    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: StructVisitor<'de>,
     {
@@ -590,7 +608,7 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
             .change_context(DeserializerError))
     }
 
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: IdentifierVisitor<'de>,
     {
@@ -629,28 +647,28 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
         visitor.visit_null().change_context(DeserializerError)
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: OptionalVisitor<'de>,
     {
         visitor.visit_null().change_context(DeserializerError)
     }
 
-    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: EnumVisitor<'de>,
     {
         EnumUnitDeserializer::new(self.context, self).deserialize_enum(visitor)
     }
 
-    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: StructVisitor<'de>,
     {
@@ -660,7 +678,7 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
             .change_context(DeserializerError))
     }
 
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: IdentifierVisitor<'de>,
     {

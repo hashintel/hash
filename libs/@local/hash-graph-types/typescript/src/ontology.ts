@@ -7,6 +7,7 @@ import type {
 import { validateBaseUrl } from "@blockprotocol/type-system";
 import type {
   BaseUrl as BaseUrlBp,
+  ClosedEntityType,
   DataType,
   EntityType,
   PropertyType,
@@ -16,7 +17,6 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ActorType,
-  ClosedEntityType,
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
 } from "@local/hash-graph-client";

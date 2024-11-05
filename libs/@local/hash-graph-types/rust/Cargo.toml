@@ -31,6 +31,7 @@ time = { workspace = true, default-features = false, features = ["serde", "parsi
 url = { workspace = true, features = ["serde"] }
 utoipa = { workspace = true, optional = true }
 uuid = { workspace = true, default-features = false, features = ["serde"] }
+trait-variant = { workspace = true }
 
 [dev-dependencies]
 graph-test-data = { workspace = true }

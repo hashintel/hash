@@ -18,7 +18,7 @@ use crate::schema::{
 
 mod api;
 
-use error_stack::Result;
+use error_stack::Report;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
@@ -38,7 +38,7 @@ use crate::{
 pub struct NoAuthorization;
 
 impl AuthorizationApi for NoAuthorization {
-    async fn seed(&mut self) -> Result<Zookie<'static>, ModifyRelationError> {
+    async fn seed(&mut self) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(Zookie::empty())
     }
 
@@ -48,7 +48,7 @@ impl AuthorizationApi for NoAuthorization {
         _: AccountGroupPermission,
         _: AccountGroupId,
         _: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         Ok(CheckResponse {
             has_permission: true,
             checked_at: Zookie::empty(),
@@ -65,7 +65,7 @@ impl AuthorizationApi for NoAuthorization {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(Zookie::empty())
     }
 
@@ -75,7 +75,7 @@ impl AuthorizationApi for NoAuthorization {
         _: WebPermission,
         _: OwnedById,
         _: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         Ok(CheckResponse {
             has_permission: true,
             checked_at: Zookie::empty(),
@@ -92,7 +92,7 @@ impl AuthorizationApi for NoAuthorization {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(Zookie::empty())
     }
 
@@ -100,7 +100,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: OwnedById,
         _: Consistency<'static>,
-    ) -> Result<Vec<WebRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<WebRelationAndSubject>, Report<ReadError>> {
         Ok(Vec::new())
     }
 
@@ -110,7 +110,7 @@ impl AuthorizationApi for NoAuthorization {
         _: EntityPermission,
         _: EntityId,
         _: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         Ok(CheckResponse {
             has_permission: true,
             checked_at: Zookie::empty(),
@@ -123,7 +123,7 @@ impl AuthorizationApi for NoAuthorization {
         _: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
         _: Consistency<'_>,
-    ) -> Result<(HashMap<EntityUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<EntityUuid, bool>, Zookie<'static>), Report<CheckError>> {
         Ok((
             entities
                 .into_iter()
@@ -143,7 +143,7 @@ impl AuthorizationApi for NoAuthorization {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(Zookie::empty())
     }
 
@@ -151,7 +151,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: EntityId,
         _: Consistency<'static>,
-    ) -> Result<Vec<EntityRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<EntityRelationAndSubject>, Report<ReadError>> {
         Ok(Vec::new())
     }
 
@@ -165,7 +165,7 @@ impl AuthorizationApi for NoAuthorization {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(Zookie::empty())
     }
 
@@ -175,7 +175,7 @@ impl AuthorizationApi for NoAuthorization {
         _: EntityTypePermission,
         _: EntityTypeUuid,
         _: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         Ok(CheckResponse {
             has_permission: true,
             checked_at: Zookie::empty(),
@@ -188,7 +188,7 @@ impl AuthorizationApi for NoAuthorization {
         _: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
-    ) -> Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         Ok((
             entity_types
                 .into_iter()
@@ -202,7 +202,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: EntityTypeUuid,
         _: Consistency<'static>,
-    ) -> Result<Vec<EntityTypeRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<EntityTypeRelationAndSubject>, Report<ReadError>> {
         Ok(Vec::new())
     }
 
@@ -216,7 +216,7 @@ impl AuthorizationApi for NoAuthorization {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(Zookie::empty())
     }
 
@@ -226,7 +226,7 @@ impl AuthorizationApi for NoAuthorization {
         _: PropertyTypePermission,
         _: PropertyTypeUuid,
         _: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         Ok(CheckResponse {
             has_permission: true,
             checked_at: Zookie::empty(),
@@ -239,7 +239,7 @@ impl AuthorizationApi for NoAuthorization {
         _: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
-    ) -> Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         Ok((
             property_types
                 .into_iter()
@@ -253,7 +253,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: PropertyTypeUuid,
         _: Consistency<'static>,
-    ) -> Result<Vec<PropertyTypeRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<PropertyTypeRelationAndSubject>, Report<ReadError>> {
         Ok(Vec::new())
     }
 
@@ -267,7 +267,7 @@ impl AuthorizationApi for NoAuthorization {
             ),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
+    ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(Zookie::empty())
     }
 
@@ -277,7 +277,7 @@ impl AuthorizationApi for NoAuthorization {
         _: DataTypePermission,
         _: DataTypeUuid,
         _: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
+    ) -> Result<CheckResponse, Report<CheckError>> {
         Ok(CheckResponse {
             has_permission: true,
             checked_at: Zookie::empty(),
@@ -290,7 +290,7 @@ impl AuthorizationApi for NoAuthorization {
         _: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
-    ) -> Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         Ok((
             data_types
                 .into_iter()
@@ -304,7 +304,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: DataTypeUuid,
         _: Consistency<'static>,
-    ) -> Result<Vec<DataTypeRelationAndSubject>, ReadError> {
+    ) -> Result<Vec<DataTypeRelationAndSubject>, Report<ReadError>> {
         Ok(Vec::new())
     }
 }
@@ -316,11 +316,11 @@ where
     type Api<'pool> = Self;
     type Error = core::convert::Infallible;
 
-    async fn acquire(&self) -> Result<Self::Api<'_>, Self::Error> {
+    async fn acquire(&self) -> Result<Self::Api<'_>, Report<Self::Error>> {
         Ok(self.clone())
     }
 
-    async fn acquire_owned(&self) -> Result<Self::Api<'static>, Self::Error> {
+    async fn acquire_owned(&self) -> Result<Self::Api<'static>, Report<Self::Error>> {
         Ok(self.clone())
     }
 }

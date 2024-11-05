@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use super::{
     begin::RequestBegin,
@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
 };
 
@@ -42,7 +42,7 @@ impl RequestBody {
 impl Encode for RequestBody {
     type Error = RequestBodyEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -89,7 +89,10 @@ impl Decode for RequestBody {
     type Context = RequestBodyContext;
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, context: Self::Context) -> Result<Self, Self::Error>
+    fn decode<B>(
+        buffer: &mut Buffer<B>,
+        context: Self::Context,
+    ) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {

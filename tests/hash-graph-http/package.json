@@ -9,6 +9,6 @@
   },
   "devDependencies": {
     "@apps/hash-graph": "0.0.0-private",
-    "httpyac": "6.15.1"
+    "httpyac": "6.16.4"
   }
 }

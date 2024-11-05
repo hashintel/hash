@@ -315,7 +315,7 @@ mod tests {
 
     use crate::schema::data_type::{
         closed::ResolveClosedDataTypeError,
-        constraint::{ConstraintValidator, ValueConstraints},
+        constraint::{ConstraintValidator as _, ValueConstraints},
     };
 
     pub(crate) fn read_schema(schema: &JsonValue) -> ValueConstraints {

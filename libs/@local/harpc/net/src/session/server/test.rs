@@ -7,15 +7,15 @@ use core::{
 use std::io::{self, ErrorKind};
 
 use bytes::{Bytes, BytesMut};
-use error_stack::{Report, ResultExt};
-use futures::{SinkExt, Stream, StreamExt};
+use error_stack::{Report, ResultExt as _};
+use futures::{SinkExt as _, Stream, StreamExt as _};
 use harpc_types::{
     procedure::{ProcedureDescriptor, ProcedureId},
     service::{ServiceDescriptor, ServiceId},
     version::Version,
 };
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
@@ -198,7 +198,7 @@ impl EchoService {
     async fn handle(
         mut sink: TransactionSink,
         mut stream: TransactionStream,
-    ) -> error_stack::Result<(), EchoError> {
+    ) -> Result<(), Report<EchoError>> {
         while let Some(bytes) = stream.next().await {
             sink.send(Ok(bytes)).await.change_context(EchoError::Sink)?;
         }
@@ -268,7 +268,7 @@ async fn connect_error(client: &TransportLayer, address: Multiaddr) -> Report<Tr
 
 #[track_caller]
 async fn assert_response(
-    stream: impl Stream<Item = error_stack::Result<Response, io::Error>> + Send + Sync,
+    stream: impl Stream<Item = Result<Response, Report<io::Error>>> + Send + Sync,
     expected: impl AsRef<[u8]> + Send,
 ) {
     pin!(stream);

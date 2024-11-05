@@ -13,7 +13,7 @@ use graph::{
     Environment, load_env,
     store::{
         AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
-        PostgresStorePool, StoreMigration, StorePool,
+        PostgresStorePool, StoreMigration as _, StorePool,
         error::BaseUrlAlreadyExists,
         ontology::{
             CreateEntityTypeParams, CreatePropertyTypeParams, EntityTypeStore as _,

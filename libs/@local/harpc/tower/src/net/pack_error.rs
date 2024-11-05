@@ -6,7 +6,7 @@ use core::{
     task::{Context, Poll},
 };
 
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{BufMut as _, Bytes, BytesMut};
 use futures::Stream;
 use harpc_codec::error::NetworkError;
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};

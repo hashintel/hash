@@ -10,8 +10,8 @@ use authorization::{
     },
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Result, ResultExt};
-use futures::{StreamExt, TryStreamExt};
+use error_stack::{Report, ResultExt as _};
+use futures::{StreamExt as _, TryStreamExt as _};
 use graph_types::{
     Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
@@ -25,7 +25,7 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
-        Subgraph, SubgraphRecord,
+        Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{
@@ -38,10 +38,10 @@ use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use tokio_postgres::{GenericClient, Row};
+use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{
-    Valid, Validator,
+    Valid, Validator as _,
     schema::{
         ClosedEntityType, ClosedMultiEntityType, DataTypeUuid, EntityType, EntityTypeResolveData,
         EntityTypeToPropertyTypeEdge, EntityTypeUuid, EntityTypeValidator, InheritanceDepth,
@@ -52,7 +52,7 @@ use type_system::{
 
 use crate::store::{
     EntityTypeStore,
-    crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
+    crud::{QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
@@ -81,7 +81,7 @@ where
         actor_id: AccountId,
         authorization_api: &A,
         zookie: &Zookie<'static>,
-    ) -> Result<impl Iterator<Item = T>, QueryError>
+    ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
     where
         I: Into<EntityTypeUuid> + Send,
         T: Send,
@@ -119,8 +119,8 @@ where
         &self,
         entity_types: &[EntityTypeUuid],
     ) -> Result<
-        impl Iterator<Item = Result<(EntityTypeUuid, EntityTypeResolveData), QueryError>>,
-        QueryError,
+        impl Iterator<Item = Result<(EntityTypeUuid, EntityTypeResolveData), Report<QueryError>>>,
+        Report<QueryError>,
     > {
         Ok(self
             .as_client()
@@ -228,7 +228,7 @@ where
         actor_id: AccountId,
         params: GetEntityTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Result<(GetEntityTypesResponse, Zookie<'static>), QueryError> {
+    ) -> Result<(GetEntityTypesResponse, Zookie<'static>), Report<QueryError>> {
         let (count, web_ids, edition_created_by_ids) = if params.include_count
             || params.include_web_ids
             || params.include_edition_created_by_ids
@@ -379,7 +379,7 @@ where
         actor_id: AccountId,
         zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), Report<QueryError>> {
         let mut property_type_queue = Vec::new();
 
         while !entity_type_queue.is_empty() {
@@ -513,7 +513,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    pub async fn delete_entity_types(&mut self) -> Result<(), DeletionError> {
+    pub async fn delete_entity_types(&mut self) -> Result<(), Report<DeletionError>> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
 
         transaction
@@ -563,7 +563,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: P,
-    ) -> Result<Vec<EntityTypeMetadata>, InsertionError>
+    ) -> Result<Vec<EntityTypeMetadata>, Report<InsertionError>>
     where
         P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
@@ -710,7 +710,7 @@ where
 
                 Ok((closed_schema, closed_metadata))
             })
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, Report<_>>>()?;
 
         let entity_type_validator = EntityTypeValidator;
         for ((entity_type_id, entity_type), (closed_schema, _resolve_data)) in
@@ -799,7 +799,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: CountEntityTypesParams<'_>,
-    ) -> Result<usize, QueryError> {
+    ) -> Result<usize, Report<QueryError>> {
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -825,7 +825,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: GetEntityTypesParams<'_>,
-    ) -> Result<GetEntityTypesResponse, QueryError> {
+    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
         let include_closed = params.include_closed;
         params
             .filter
@@ -875,7 +875,7 @@ where
         &self,
         actor_id: AccountId,
         params: GetClosedMultiEntityTypeParams,
-    ) -> Result<GetClosedMultiEntityTypeResponse, QueryError> {
+    ) -> Result<GetClosedMultiEntityTypeResponse, Report<QueryError>> {
         let entity_type_ids = params
             .entity_type_ids
             .iter()
@@ -916,7 +916,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: GetEntityTypeSubgraphParams<'_>,
-    ) -> Result<GetEntityTypeSubgraphResponse, QueryError> {
+    ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -1019,7 +1019,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: UpdateEntityTypesParams<R>,
-    ) -> Result<EntityTypeMetadata, UpdateError>
+    ) -> Result<EntityTypeMetadata, Report<UpdateError>>
     where
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
@@ -1220,7 +1220,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: ArchiveEntityTypeParams<'_>,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.archive_ontology_type(&params.entity_type_id, EditionArchivedById::new(actor_id))
             .await
     }
@@ -1230,7 +1230,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: UnarchiveEntityTypeParams<'_>,
-    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+    ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         self.unarchive_ontology_type(&params.entity_type_id, &OntologyEditionProvenance {
             created_by_id: EditionCreatedById::new(actor_id),
             archived_by_id: None,
@@ -1244,7 +1244,7 @@ where
         &mut self,
         _: AccountId,
         params: UpdateEntityTypeEmbeddingParams<'_>,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<(), Report<UpdateError>> {
         #[derive(Debug, ToSql)]
         #[postgres(name = "entity_type_embeddings")]
         pub struct EntityTypeEmbeddingsRow<'a> {
@@ -1312,7 +1312,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn reindex_entity_type_cache(&mut self) -> Result<(), UpdateError> {
+    async fn reindex_entity_type_cache(&mut self) -> Result<(), Report<UpdateError>> {
         tracing::info!("Reindexing entity type cache");
         let transaction = self.transaction().await.change_context(UpdateError)?;
 

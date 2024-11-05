@@ -1,10 +1,10 @@
 use core::{
-    fmt::{self, Write},
-    str::FromStr,
+    fmt::{self, Write as _},
+    str::FromStr as _,
 };
 
 use serde::{
-    Deserialize, Serialize,
+    Deserialize, Serialize as _,
     de::{self, Deserializer, SeqAccess, Visitor},
 };
 #[cfg(feature = "utoipa")]

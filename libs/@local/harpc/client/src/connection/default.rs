@@ -2,7 +2,7 @@ use core::task::{Context, Poll};
 
 use bytes::Buf;
 use error_stack::Report;
-use futures::{Stream, StreamExt, TryFutureExt, future, stream};
+use futures::{Stream, StreamExt as _, TryFutureExt as _, future, stream};
 use harpc_net::session::error::ConnectionPartiallyClosedError;
 use harpc_tower::{
     body::{Frame, stream::StreamBody},

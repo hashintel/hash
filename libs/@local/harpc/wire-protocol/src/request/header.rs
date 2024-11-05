@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use super::{body::RequestBody, flags::RequestFlags, id::RequestId};
 use crate::{
@@ -36,7 +36,7 @@ impl RequestHeader {
 impl Encode for RequestHeader {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -52,7 +52,7 @@ impl Decode for RequestHeader {
     type Context = ();
     type Error = RequestHeaderDecodeError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {

@@ -1,9 +1,9 @@
 // This is the same example also used in the README.md. When updating this, don't forget updating
 // the README.md as well. This is mainly used to test the code and generate the output shown.
 
-use core::fmt;
+use core::{error::Error, fmt};
 
-use error_stack::{Context, Report, Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 #[derive(Debug)]
 struct ParseExperimentError;
@@ -14,13 +14,13 @@ impl fmt::Display for ParseExperimentError {
     }
 }
 
-impl Context for ParseExperimentError {}
+impl Error for ParseExperimentError {}
 
 #[expect(
     clippy::manual_try_fold,
     reason = "false-positive, try_fold is fail-fast, our implementation is fail-slow"
 )]
-fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, ParseExperimentError> {
+fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, Report<ParseExperimentError>> {
     let values = description
         .split(' ')
         .map(|value| {
@@ -57,7 +57,7 @@ impl fmt::Display for ExperimentError {
     }
 }
 
-impl Context for ExperimentError {}
+impl Error for ExperimentError {}
 
 #[expect(
     clippy::manual_try_fold,
@@ -66,7 +66,7 @@ impl Context for ExperimentError {}
 fn start_experiments(
     experiment_ids: &[usize],
     experiment_descriptions: &[&str],
-) -> Result<Vec<u64>, [ExperimentError]> {
+) -> Result<Vec<u64>, Report<[ExperimentError]>> {
     let experiments = experiment_ids
         .iter()
         .map(|exp_id| {
@@ -88,7 +88,7 @@ fn start_experiments(
         })
         .fold(
             Ok(vec![]),
-            |accum, value: Result<_, ExperimentError>| match (accum, value) {
+            |accum, value: Result<_, Report<ExperimentError>>| match (accum, value) {
                 (Ok(mut accum), Ok(value)) => {
                     accum.extend(value);
 
@@ -108,7 +108,7 @@ fn start_experiments(
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
 
-fn main() -> Result<(), [ExperimentError]> {
+fn main() -> Result<(), Report<[ExperimentError]>> {
     let experiment_ids = &[0, 2, 3];
     let experiment_descriptions = &["10", "20", "3o 4a"];
     start_experiments(experiment_ids, experiment_descriptions)?;

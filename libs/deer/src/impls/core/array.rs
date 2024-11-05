@@ -1,12 +1,12 @@
 use core::{marker::PhantomData, mem, mem::MaybeUninit, ptr};
 
-use error_stack::{Report, ReportSink, Result, ResultExt};
+use error_stack::{Report, ReportSink, ResultExt as _};
 
 use crate::{
     ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
     error::{
         ArrayAccessError, ArrayLengthError, DeserializeError, ExpectedLength, Location,
-        ReceivedLength, Variant, VisitorError,
+        ReceivedLength, Variant as _, VisitorError,
     },
 };
 
@@ -19,7 +19,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         <[T; N]>::reflection()
     }
 
-    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ArrayAccess<'de>,
     {
@@ -155,7 +155,9 @@ impl<T: Reflection + ?Sized, const N: usize> Reflection for ArrayReflection<T, N
 impl<'de, T: Deserialize<'de>, const N: usize> Deserialize<'de> for [T; N] {
     type Reflection = ArrayReflection<T::Reflection, N>;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_array(ArrayVisitor(PhantomData))
             .change_context(DeserializeError)

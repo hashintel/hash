@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 
-use error_stack::{Result, ResultExt};
-use futures::{Stream, StreamExt};
+use error_stack::{Report, ResultExt as _};
+use futures::{Stream, StreamExt as _};
 use graph_types::ontology::EntityTypeWithMetadata;
 use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
@@ -14,7 +14,7 @@ use hash_graph_store::{
 };
 use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
-use tokio_postgres::GenericClient;
+use tokio_postgres::GenericClient as _;
 use type_system::{
     schema::{ClosedEntityType, EntityTypeUuid, OntologyTypeUuid},
     url::VersionedUrl,
@@ -23,8 +23,8 @@ use type_system::{
 use crate::store::postgres::{
     AsClient, PostgresStore,
     query::{
-        Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile,
-        table::DatabaseColumn,
+        Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile as _,
+        table::DatabaseColumn as _,
     },
 };
 
@@ -63,8 +63,8 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         filter: &Filter<'f, EntityTypeWithMetadata>,
         temporal_axes: Option<&'f QueryTemporalAxes>,
     ) -> Result<
-        impl Stream<Item = Result<(EntityTypeUuid, ClosedEntityType), QueryError>>,
-        QueryError,
+        impl Stream<Item = Result<(EntityTypeUuid, ClosedEntityType), Report<QueryError>>>,
+        Report<QueryError>,
     > {
         let mut compiler = SelectCompiler::new(temporal_axes, false);
 
@@ -98,7 +98,7 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         reference_table: ReferenceTable,
     ) -> Result<
         impl Iterator<Item = (OntologyTypeUuid, OntologyEdgeTraversal<L, R>)> + 'r,
-        QueryError,
+        Report<QueryError>,
     >
     where
         L: From<VersionedUrl>,

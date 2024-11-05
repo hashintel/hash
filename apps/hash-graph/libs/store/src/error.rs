@@ -1,6 +1,4 @@
-use core::fmt;
-
-use error_stack::Context;
+use core::{error::Error, fmt};
 
 #[derive(Debug)]
 #[must_use]
@@ -12,7 +10,7 @@ impl fmt::Display for InsertionError {
     }
 }
 
-impl Context for InsertionError {}
+impl Error for InsertionError {}
 
 #[derive(Debug, Clone)]
 #[must_use]
@@ -24,7 +22,7 @@ impl fmt::Display for QueryError {
     }
 }
 
-impl Context for QueryError {}
+impl Error for QueryError {}
 
 #[derive(Debug)]
 #[must_use]
@@ -36,7 +34,7 @@ impl fmt::Display for UpdateError {
     }
 }
 
-impl Context for UpdateError {}
+impl Error for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]

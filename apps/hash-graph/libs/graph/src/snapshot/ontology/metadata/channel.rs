@@ -3,9 +3,9 @@ use core::{
     task::{Context, Poll, ready},
 };
 
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use futures::{
-    Sink, SinkExt, Stream, StreamExt,
+    Sink, SinkExt as _, Stream, StreamExt as _,
     channel::mpsc::{self, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };

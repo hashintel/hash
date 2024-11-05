@@ -12,6 +12,8 @@ use core::sync::atomic::{AtomicI128, AtomicU128};
 #[cfg(target_has_atomic = "ptr")]
 use core::sync::atomic::{AtomicIsize, AtomicUsize};
 
+use error_stack::Report;
+
 use crate::{Deserialize, Deserializer, Document, Reflection, Schema, error::DeserializeError};
 
 macro_rules! impl_atomic {
@@ -29,7 +31,7 @@ macro_rules! impl_atomic {
 
             fn deserialize<D: Deserializer<'de>>(
                 deserializer: D,
-            ) -> error_stack::Result<Self, DeserializeError> {
+            ) -> Result<Self, Report<DeserializeError>> {
                 $int::deserialize(deserializer).map(Self::new)
             }
         }

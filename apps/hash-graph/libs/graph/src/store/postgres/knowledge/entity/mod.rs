@@ -1,7 +1,7 @@
 mod query;
 mod read;
 use alloc::borrow::Cow;
-use core::{borrow::Borrow, iter::once, mem};
+use core::{borrow::Borrow as _, iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
 use authorization::{
@@ -13,8 +13,8 @@ use authorization::{
     },
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Report, ReportSink, Result, ResultExt, bail};
-use futures::{StreamExt as _, TryStreamExt, stream};
+use error_stack::{Report, ReportSink, ResultExt as _, bail};
+use futures::{StreamExt as _, TryStreamExt as _, stream};
 use graph_types::{
     Embedding,
     account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
@@ -28,10 +28,10 @@ use graph_types::{
         property::{
             Property, PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPath,
             PropertyPathError, PropertyWithMetadata, PropertyWithMetadataObject,
-            PropertyWithMetadataValue, visitor::EntityVisitor,
+            PropertyWithMetadataValue, visitor::EntityVisitor as _,
         },
     },
-    ontology::{DataTypeProvider, OntologyTypeProvider},
+    ontology::{DataTypeLookup, OntologyTypeProvider},
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
@@ -39,7 +39,7 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, Parameter},
     subgraph::{
-        Subgraph, SubgraphRecord,
+        Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
         temporal_axes::{
@@ -54,22 +54,23 @@ use postgres_types::ToSql;
 use serde_json::Value as JsonValue;
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
-    OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, TemporalTagged, Timestamp,
+    OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, TemporalTagged as _, Timestamp,
     TransactionTime,
 };
-use tokio_postgres::{GenericClient, Row, error::SqlState};
+use tokio_postgres::{GenericClient as _, Row, error::SqlState};
 use type_system::{
     schema::{
-        ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, InheritanceDepth, OntologyTypeUuid,
+        ClosedEntityType, ClosedMultiEntityType, DataTypeReference, EntityTypeUuid,
+        InheritanceDepth, OntologyTypeUuid,
     },
     url::VersionedUrl,
 };
 use uuid::Uuid;
-use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
+use validation::{EntityPreprocessor, Validate as _, ValidateEntityComponents};
 
 use crate::store::{
     AsClient, PostgresStore, StoreCache,
-    crud::{QueryResult, Read, ReadPaginated, Sorting},
+    crud::{QueryResult as _, Read, ReadPaginated, Sorting as _},
     error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
     knowledge::{
         CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore,
@@ -125,7 +126,7 @@ where
         actor_id: AccountId,
         zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), Report<QueryError>> {
         let variable_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
         let mut entity_type_queue = Vec::new();
@@ -311,7 +312,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    pub async fn delete_entities(&mut self) -> Result<(), DeletionError> {
+    pub async fn delete_entities(&mut self) -> Result<(), Report<DeletionError>> {
         tracing::debug!("Deleting all entities");
         self.as_client()
             .client()
@@ -333,7 +334,7 @@ where
         Ok(())
     }
 
-    async fn convert_entity_properties<P: DataTypeProvider + Sync>(
+    async fn convert_entity_properties<P: DataTypeLookup + Sync>(
         &self,
         provider: &P,
         entity: &mut PropertyWithMetadata,
@@ -353,7 +354,10 @@ where
         };
 
         let Ok(conversions) = provider
-            .find_conversion(source_data_type_id, target_data_type_id)
+            .find_conversion(
+                <&DataTypeReference>::from(&*source_data_type_id),
+                <&DataTypeReference>::from(target_data_type_id),
+            )
             .await
         else {
             // If no conversion is found, we can ignore the property.
@@ -375,12 +379,12 @@ where
         metadata.data_type_id = Some(target_data_type_id.clone());
     }
 
-    async fn convert_entity<P: DataTypeProvider + Sync>(
+    async fn convert_entity<P: DataTypeLookup + Sync>(
         &self,
         provider: &P,
         entity: &mut Entity,
         conversions: &[QueryConversion<'_>],
-    ) -> Result<(), PropertyPathError> {
+    ) -> Result<(), Report<PropertyPathError>> {
         let mut property = PropertyWithMetadata::Object(PropertyWithMetadataObject::from_parts(
             mem::take(&mut entity.properties),
             Some(mem::take(&mut entity.metadata.properties)),
@@ -409,7 +413,7 @@ where
         actor_id: AccountId,
         mut params: GetEntitiesImplParams<'_>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Result<(GetEntitiesResponse<'static>, Zookie<'static>), QueryError> {
+    ) -> Result<(GetEntitiesResponse<'static>, Zookie<'static>), Report<QueryError>> {
         let mut root_entities = Vec::new();
 
         let (permissions, count, web_ids, created_by_ids, edition_created_by_ids, type_ids) =
@@ -615,7 +619,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: Vec<CreateEntityParams<R>>,
-    ) -> Result<Vec<Entity>, InsertionError>
+    ) -> Result<Vec<Entity>, Report<InsertionError>>
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
@@ -1018,7 +1022,7 @@ where
         actor_id: AccountId,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
-    ) -> Result<(), ValidateEntityError> {
+    ) -> Result<(), Report<ValidateEntityError>> {
         let mut status = ReportSink::new();
 
         let validator_provider = StoreProvider {
@@ -1089,7 +1093,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: GetEntitiesParams<'_>,
-    ) -> Result<GetEntitiesResponse<'static>, QueryError> {
+    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -1142,7 +1146,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: GetEntitySubgraphParams<'_>,
-    ) -> Result<GetEntitySubgraphResponse<'static>, QueryError> {
+    ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -1262,7 +1266,7 @@ where
         &self,
         actor_id: AccountId,
         mut params: CountEntitiesParams<'_>,
-    ) -> Result<usize, QueryError> {
+    ) -> Result<usize, Report<QueryError>> {
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -1316,7 +1320,7 @@ where
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> Result<Entity, QueryError> {
+    ) -> Result<Entity, Report<QueryError>> {
         self.authorization_api
             .check_entity_permission(
                 actor_id,
@@ -1356,7 +1360,7 @@ where
         &mut self,
         actor_id: AccountId,
         mut params: PatchEntityParams,
-    ) -> Result<Entity, UpdateError> {
+    ) -> Result<Entity, Report<UpdateError>> {
         let transaction_time = Timestamp::now().remove_nanosecond();
         let decision_time = params
             .decision_time
@@ -1746,7 +1750,7 @@ where
         &mut self,
         _: AccountId,
         params: UpdateEntityEmbeddingsParams<'_>,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<(), Report<UpdateError>> {
         #[derive(Debug, ToSql)]
         #[postgres(name = "entity_embeddings")]
         pub struct EntityEmbeddingsRow<'a> {
@@ -1863,7 +1867,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn reindex_entity_cache(&mut self) -> Result<(), UpdateError> {
+    async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
         tracing::info!("Reindexing entity cache");
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
@@ -1915,7 +1919,7 @@ where
         confidence: Option<Confidence>,
         provenance: &EntityEditionProvenance,
         metadata: &PropertyMetadataObject,
-    ) -> Result<EntityEditionId, InsertionError> {
+    ) -> Result<EntityEditionId, Report<InsertionError>> {
         let edition_id: EntityEditionId = self
             .as_client()
             .query_one(
@@ -1981,7 +1985,7 @@ where
         entity_id: EntityId,
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
-    ) -> Result<Option<LockedEntityEdition>, UpdateError> {
+    ) -> Result<Option<LockedEntityEdition>, Report<UpdateError>> {
         let current_data = if let Some(draft_id) = entity_id.draft_id {
             self.as_client()
                 .query_opt(
@@ -2055,7 +2059,7 @@ where
         edition_id: EntityEditionId,
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
-    ) -> Result<EntityTemporalMetadata, InsertionError> {
+    ) -> Result<EntityTemporalMetadata, Report<InsertionError>> {
         let row = self
             .as_client()
             .query_one(
@@ -2101,7 +2105,7 @@ where
         decision_time: Timestamp<DecisionTime>,
         entity_edition_id: EntityEditionId,
         undraft: bool,
-    ) -> Result<EntityTemporalMetadata, UpdateError> {
+    ) -> Result<EntityTemporalMetadata, Report<UpdateError>> {
         let row = if let Some(draft_id) = locked_row.entity_id.draft_id {
             if undraft {
                 self.client
@@ -2261,7 +2265,7 @@ where
         locked_row: LockedEntityEdition,
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
-    ) -> Result<EntityTemporalMetadata, UpdateError> {
+    ) -> Result<EntityTemporalMetadata, Report<UpdateError>> {
         let row = if let Some(draft_id) = locked_row.entity_id.draft_id {
             self.client
                 .as_client()

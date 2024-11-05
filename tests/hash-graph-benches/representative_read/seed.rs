@@ -1,9 +1,9 @@
-use core::{iter::repeat, str::FromStr};
+use core::{iter::repeat, str::FromStr as _};
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use authorization::{AuthorizationApi, schema::WebOwnerSubject};
 use graph::store::{
-    AsClient,
+    AsClient as _,
     knowledge::{CreateEntityParams, EntityStore as _},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -16,7 +16,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::account::{AccountStore, InsertAccountIdParams, InsertWebIdParams};
+use hash_graph_store::account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams};
 use type_system::{schema::EntityType, url::VersionedUrl};
 use uuid::Uuid;
 

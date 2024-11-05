@@ -1,6 +1,6 @@
 use anstyle::Color;
 use ariadne::ColorGenerator;
-use error_stack::{Report, Result};
+use error_stack::Report;
 use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
 
 use crate::{
@@ -71,7 +71,7 @@ impl Label<SpanId> {
     pub(crate) fn resolve<S>(
         self,
         storage: &SpanStorage<S>,
-    ) -> Result<Label<SpanNode<S>>, ResolveError>
+    ) -> Result<Label<SpanNode<S>>, Report<ResolveError>>
     where
         S: Span + Clone,
     {
@@ -90,14 +90,21 @@ impl Label<SpanId> {
 }
 
 impl<S> Label<SpanNode<S>> {
+    pub(crate) fn absolute_span(
+        &self,
+        transform: &mut impl TransformSpan<S>,
+    ) -> AbsoluteDiagnosticSpan {
+        AbsoluteDiagnosticSpan::new(&self.span, transform)
+    }
+
     pub(crate) fn ariadne(
         &self,
         enable_color: bool,
         generator: &mut ColorGenerator,
         transform: &mut impl TransformSpan<S>,
     ) -> ariadne::Label<AbsoluteDiagnosticSpan> {
-        let mut label = ariadne::Label::new(AbsoluteDiagnosticSpan::new(&self.span, transform))
-            .with_message(&self.message);
+        let mut label =
+            ariadne::Label::new(self.absolute_span(transform)).with_message(&self.message);
 
         let color = self
             .color

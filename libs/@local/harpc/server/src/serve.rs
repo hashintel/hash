@@ -1,7 +1,7 @@
 use core::future::poll_fn;
 
 use bytes::Bytes;
-use futures::{Stream, StreamExt};
+use futures::{Stream, StreamExt as _};
 use harpc_codec::error::NetworkError;
 use harpc_net::session::server::Transaction;
 use harpc_tower::{
@@ -10,7 +10,7 @@ use harpc_tower::{
 };
 use tokio::pin;
 use tokio_util::task::TaskTracker;
-use tower::{MakeService, ServiceExt};
+use tower::{MakeService, ServiceExt as _};
 
 pub async fn serve<M>(
     stream: impl Stream<Item = Transaction> + Send,

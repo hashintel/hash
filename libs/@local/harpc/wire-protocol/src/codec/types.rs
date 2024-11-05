@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::Result;
+use error_stack::Report;
 use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 
 use super::{Buffer, BufferError, Decode};
@@ -8,7 +8,7 @@ use crate::codec::Encode;
 impl Encode for Version {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -23,7 +23,7 @@ impl Decode for Version {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -37,7 +37,7 @@ impl Decode for Version {
 impl Encode for ProcedureId {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -49,7 +49,7 @@ impl Decode for ProcedureId {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -60,7 +60,7 @@ impl Decode for ProcedureId {
 impl Encode for ServiceId {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -72,7 +72,7 @@ impl Decode for ServiceId {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
