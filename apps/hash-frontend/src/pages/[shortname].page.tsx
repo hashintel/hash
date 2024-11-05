@@ -211,9 +211,12 @@ const ProfilePage: NextPageWithLayout = () => {
             ({ schema }) => extractBaseUrl(schema.$id),
           );
 
-          const title = entityType?.schema.title;
-
-          const pluralTitle = title ? pluralize(title) : undefined;
+          const pluralTitle =
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+            entityType?.schema.titlePlural ||
+            (entityType?.schema.title
+              ? pluralize(entityType.schema.title)
+              : undefined);
 
           return {
             ...tab,

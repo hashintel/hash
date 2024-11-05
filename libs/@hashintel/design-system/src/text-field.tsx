@@ -3,6 +3,7 @@ import {
   Collapse,
   formHelperTextClasses,
   TextField as MuiTextField,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -34,9 +35,12 @@ export const TextField = forwardRef<HTMLDivElement, TextFieldProps>(
       InputProps,
       success,
       error,
+      errorText,
       label,
+      loading,
       showLabelCornerHint,
       autoResize,
+      tooltipText,
       ...textFieldProps
     },
     ref,
@@ -64,7 +68,13 @@ export const TextField = forwardRef<HTMLDivElement, TextFieldProps>(
         label={
           label ? (
             <>
-              {label}
+              {(tooltipText ?? (error && errorText)) ? (
+                <Tooltip title={error && errorText ? errorText : tooltipText}>
+                  <Box component="span">{label}</Box>
+                </Tooltip>
+              ) : (
+                label
+              )}
               {showLabelCornerHint && (
                 <Typography
                   component="span"
@@ -88,13 +98,17 @@ export const TextField = forwardRef<HTMLDivElement, TextFieldProps>(
           variant,
           success,
           error,
+          errorText,
+          loading,
           autoResize,
           multiline: textFieldProps.multiline,
         })}
         helperText={
-          <Collapse in={!!helperText}>
-            <Box>{frozenHelperText}</Box>
-          </Collapse>
+          helperText && (
+            <Collapse in={!!helperText}>
+              <Box>{frozenHelperText}</Box>
+            </Collapse>
+          )
         }
         FormHelperTextProps={{
           ...{ as: "div" },

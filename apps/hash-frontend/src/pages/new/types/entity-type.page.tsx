@@ -26,7 +26,8 @@ const Page: NextPageWithLayout = () => {
       typeof router.query.extends === "string"
         ? (router.query.extends as VersionedUrl)
         : undefined,
-    name: typeof router.query.name === "string" ? router.query.name : undefined,
+    title:
+      typeof router.query.name === "string" ? router.query.name : undefined,
   };
 
   const isCreateLinkEntityType =
@@ -74,6 +75,7 @@ const Page: NextPageWithLayout = () => {
         <Container>
           <CreateEntityTypeForm
             key={JSON.stringify(initialData)} // re-render the form to reset state when the initial data changes
+            isLink={isCreateLinkEntityType}
             initialData={initialData}
             onCancel={() => router.push("/")}
           />
