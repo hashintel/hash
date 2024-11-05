@@ -156,6 +156,8 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     ],
   );
 
+  const maxWidth = { lg: `max(${contentMaxWidth}, "70%")` } as const;
+
   return (
     <>
       <NextSeo title="Types" />
@@ -187,7 +189,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           backgroundColor: ({ palette }) => palette.common.white,
         }}
       >
-        <Container sx={{ maxWidth: { lg: contentMaxWidth } }}>
+        <Container sx={{ maxWidth }}>
           <Typography variant="h1" fontWeight="bold" my={3}>
             <Box display="inline-flex">
               <FilesLightIcon
@@ -222,7 +224,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           </Stack>
         </Container>
       </Box>
-      <Container sx={{ paddingTop: 5, maxWidth: { lg: contentMaxWidth } }}>
+      <Container sx={{ paddingTop: 5, maxWidth }}>
         <TypesTable kind={currentTab} types={currentTypes} />
       </Container>
     </>

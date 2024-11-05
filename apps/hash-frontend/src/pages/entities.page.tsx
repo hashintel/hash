@@ -273,6 +273,8 @@ const EntitiesPage: NextPageWithLayout = () => {
     return crumbs;
   }, [entityType, isViewAllPagesPage, pageTitle]);
 
+  const maxWidth = { lg: `max(${contentMaxWidth}, "70%")` } as const;
+
   return (
     <>
       <NextSeo title={pageTitle} />
@@ -289,7 +291,7 @@ const EntitiesPage: NextPageWithLayout = () => {
           backgroundColor: ({ palette }) => palette.common.white,
         }}
       >
-        <Container sx={{ maxWidth: { lg: contentMaxWidth } }}>
+        <Container sx={{ maxWidth }}>
           <Stack direction="row" justifyContent="space-between">
             <Typography variant="h1" fontWeight="bold" my={3}>
               <Box
@@ -345,9 +347,7 @@ const EntitiesPage: NextPageWithLayout = () => {
           </Box>
         </Container>
       </Box>
-      <Container
-        sx={{ maxWidth: { lg: `max(${contentMaxWidth}, "70%")` }, py: 5 }}
-      >
+      <Container sx={{ maxWidth, py: 5 }}>
         <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
           <EntitiesTable
             hideColumns={entityTypeId ? ["entityTypeVersion"] : []}
