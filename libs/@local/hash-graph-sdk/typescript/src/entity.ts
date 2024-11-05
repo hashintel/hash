@@ -510,11 +510,12 @@ export const getClosedMultiEntityTypesFromResponse = (
   // The first entity type ID is used to get the first level of the nested map. The rest of the entity
   // type IDs are used to traverse the nested map.
   const [firstEntityTypeId, ...restEntityTypesIds] = entityTypesIds.toSorted();
-  return restEntityTypesIds.reduce((map, entity_type_id) => {
-    return map?.inner?.[entity_type_id];
-  }, response.closedMultiEntityTypes[firstEntityTypeId!])?.schema satisfies
-    | GraphApiClosedMultiEntityType
-    | undefined as ClosedMultiEntityType | undefined;
+  return restEntityTypesIds.reduce(
+    (map, entity_type_id) => map?.inner?.[entity_type_id],
+    response.closedMultiEntityTypes[firstEntityTypeId!],
+  )?.schema satisfies GraphApiClosedMultiEntityType | undefined as
+    | ClosedMultiEntityType
+    | undefined;
 };
 
 export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
