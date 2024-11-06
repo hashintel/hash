@@ -142,7 +142,8 @@ impl<'s> Logos<'s> for TokenKind<'s> {
                                 }
                                 $lex.bump_unchecked(3);
                                 return $miss;
-                            } $lex.bump_unchecked(2);
+                            }
+                            $lex.bump_unchecked(2);
                             return $miss;
                         }
                         $lex.bump_unchecked(1);
