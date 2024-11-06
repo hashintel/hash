@@ -31,7 +31,7 @@ use hash_graph_store::account::{
 };
 use temporal_client::TemporalClient;
 
-use super::{role, session::User};
+use super::{role, session::Account};
 use crate::rest::PermissionResponse;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
@@ -292,8 +292,8 @@ where
             .change_context(AccountError)
     }
 
-    fn actor(session: &Session<User>) -> Result<AccountId, Report<AccountError>> {
-        let &User {
+    fn actor(session: &Session<Account>) -> Result<AccountId, Report<AccountError>> {
+        let &Account {
             actor_id: Some(actor_id),
         } = session.get()
         else {
@@ -318,7 +318,7 @@ where
 {
     async fn create_account(
         &self,
-        session: Session<User>,
+        session: Session<Account>,
         params: InsertAccountIdParams,
     ) -> Result<AccountId, Report<AccountError>> {
         let actor_id = Self::actor(&session)?;
@@ -336,7 +336,7 @@ where
 
     async fn create_account_group(
         &self,
-        session: Session<User>,
+        session: Session<Account>,
         params: InsertAccountGroupIdParams,
     ) -> Result<AccountGroupId, Report<AccountError>> {
         let actor_id = Self::actor(&session)?;
@@ -372,7 +372,7 @@ where
 
     async fn check_account_group_permission(
         &self,
-        session: Session<User>,
+        session: Session<Account>,
         account_group_id: AccountGroupId,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>> {
@@ -404,7 +404,7 @@ where
 
     async fn add_account_group_member(
         &self,
-        session: Session<User>,
+        session: Session<Account>,
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
@@ -456,7 +456,7 @@ where
 
     async fn remove_account_group_member(
         &self,
-        session: Session<User>,
+        session: Session<Account>,
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
@@ -523,7 +523,7 @@ impl<T> AccountDelegate<T> {
     }
 }
 
-impl<T, C> ServiceDelegate<Session<User>, C> for AccountDelegate<T>
+impl<T, C> ServiceDelegate<Session<Account>, C> for AccountDelegate<T>
 where
     T: AccountService<
             role::Server,
@@ -546,7 +546,7 @@ where
     async fn call<B>(
         self,
         request: Request<B>,
-        session: Session<User>,
+        session: Session<Account>,
         codec: C,
     ) -> Result<Response<Self::Body<B>>, Self::Error>
     where

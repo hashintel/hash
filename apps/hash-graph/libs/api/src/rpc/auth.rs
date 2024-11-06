@@ -13,7 +13,7 @@ use harpc_service::delegate::ServiceDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_types::response_kind::ResponseKind;
 
-use super::{role, session::User};
+use super::{role, session::Account};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
 #[display("unable to authenticate user")]
@@ -112,11 +112,11 @@ pub struct AuthenticationServer;
 impl AuthenticationService<role::Server> for AuthenticationServer {
     async fn authenticate(
         &self,
-        session: Session<User>,
+        session: Session<Account>,
         actor_id: AccountId,
     ) -> Result<(), Report<AuthenticationError>> {
         session
-            .update(User {
+            .update(Account {
                 actor_id: Some(actor_id),
             })
             .await;
@@ -131,7 +131,7 @@ pub struct AuthenticationDelegate<T> {
     inner: T,
 }
 
-impl<T, C> ServiceDelegate<Session<User>, C> for AuthenticationDelegate<T>
+impl<T, C> ServiceDelegate<Session<Account>, C> for AuthenticationDelegate<T>
 where
     T: AuthenticationService<role::Server, authenticate(..): Send> + Send,
     C: Encoder + ReportDecoder + Clone + Send,
@@ -147,7 +147,7 @@ where
     async fn call<B>(
         self,
         request: Request<B>,
-        session: Session<User>,
+        session: Session<Account>,
         codec: C,
     ) -> Result<Response<Self::Body<B>>, Self::Error>
     where

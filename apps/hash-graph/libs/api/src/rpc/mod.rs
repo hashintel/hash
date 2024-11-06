@@ -8,8 +8,8 @@ mod role {
     use harpc_server::session::Session;
     pub(crate) use harpc_service::role::Role;
 
-    use super::session::User;
+    use super::session::Account;
 
-    pub(crate) type Server = harpc_service::role::Server<Session<User>>;
+    pub(crate) type Server = harpc_service::role::Server<Session<Account>>;
     pub(crate) type Client<Svc, C> = harpc_service::role::Client<Connection<Svc, C>>;
 }

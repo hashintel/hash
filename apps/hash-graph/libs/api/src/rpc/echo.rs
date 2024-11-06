@@ -10,7 +10,7 @@ use harpc_service::{delegate::ServiceDelegate, role::Role};
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_types::response_kind::ResponseKind;
 
-use super::{role, session::User};
+use super::{role, session::Account};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
 #[display("unable to fullfil ping request")]
@@ -109,7 +109,7 @@ pub struct EchoServer;
 impl EchoService<role::Server> for EchoServer {
     async fn echo(
         &self,
-        _: Session<User>,
+        _: Session<Account>,
         payload: Box<str>,
     ) -> Result<Box<str>, Report<EchoError>> {
         Ok(payload)
@@ -128,7 +128,7 @@ impl<T> EchoDelegate<T> {
     }
 }
 
-impl<T, C> ServiceDelegate<Session<User>, C> for EchoDelegate<T>
+impl<T, C> ServiceDelegate<Session<Account>, C> for EchoDelegate<T>
 where
     T: EchoService<role::Server, echo(..): Send> + Send,
     C: Encoder + ReportDecoder + Clone + Send,
@@ -144,7 +144,7 @@ where
     async fn call<B>(
         self,
         request: Request<B>,
-        session: Session<User>,
+        session: Session<Account>,
         codec: C,
     ) -> Result<Response<Self::Body<B>>, Self::Error>
     where
