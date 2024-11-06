@@ -88,7 +88,7 @@ export const getBreadthFirstEntityTypesAndParents = (
   entityTypeIds: VersionedUrl[],
 ): EntityTypeWithMetadata[] => {
   const visited = new Set<VersionedUrl>();
-  const queue: VersionedUrl[] = [...entityTypeIds];
+  const queue: VersionedUrl[] = [...entityTypeIds].toSorted();
   const result: EntityTypeWithMetadata[] = [];
 
   while (queue.length > 0) {

@@ -126,7 +126,7 @@ export const createRenderChipCell = (params?: {
             id: generateUuid(),
             pos: {
               left: chipLeft,
-              right: chipLeft + width,
+              right: chipLeft + width + arrowSize + arrowSpacing,
               top,
               bottom: top + height,
             },

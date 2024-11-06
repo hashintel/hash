@@ -1,7 +1,4 @@
-import {
-  ArrowUpRegularIcon,
-  AsteriskRegularIcon,
-} from "@hashintel/design-system";
+import { ArrowUpRegularIcon, EntityOrTypeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
@@ -79,16 +76,12 @@ export const DraftEntityType: FunctionComponent<{
         }}
       >
         <Typography sx={{ fontWeight: 500, fontSize: 12 }}>
-          {entityType.schema.icon ?? (
-            <AsteriskRegularIcon
-              sx={{
-                fontSize: 12,
-                color: ({ palette }) => palette.blue[70],
-                position: "relative",
-                top: 1,
-              }}
-            />
-          )}{" "}
+          <EntityOrTypeIcon
+            entity={null}
+            fill={({ palette }) => palette.gray[50]}
+            fontSize={12}
+            icon={entityType.schema.icon}
+          />
           {entityType.schema.title}
         </Typography>
       </Box>

@@ -1,6 +1,6 @@
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { AlertModal, FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";
 
 export type EntityTypeChangeDetails = {
@@ -179,7 +179,7 @@ const ModalHeader = ({
   proposedChange: EntityTypeChangeDetails["proposedChange"];
 }) => {
   return (
-    <>
+    <Stack direction="row" alignItems="center" gap={0.6}>
       {proposedChange.type}
       <strong> {proposedChange.entityTypeTitle}</strong>
       {" entity type "}
@@ -187,12 +187,12 @@ const ModalHeader = ({
       {proposedChange.type === "Update" && (
         <>
           <FontAwesomeIcon icon={faArrowRight} sx={{ color: "gray.50" }} />
-          <Box component="span" fontWeight={600} color="gray.90">
+          <Box component="span" fontWeight={700} color="gray.90">
             v{proposedChange.newVersion}
           </Box>
         </>
       )}
-    </>
+    </Stack>
   );
 };
 

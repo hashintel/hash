@@ -1,5 +1,9 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { ArrowUpRightRegularIcon, Skeleton } from "@hashintel/design-system";
+import {
+  ArrowUpRightRegularIcon,
+  EntityOrTypeIcon,
+  Skeleton,
+} from "@hashintel/design-system";
 import {
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
@@ -17,7 +21,7 @@ import {
   extractOwnedByIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Drawer, Stack, Typography } from "@mui/material";
 import type { RefObject } from "react";
 import { memo, useCallback, useMemo, useState } from "react";
@@ -357,6 +361,28 @@ const EditEntitySlideOver = memo(
       [incompleteOnEntityClick, slideContainerRef],
     );
 
+    /**
+     * @todo H-3363 use the closed schema to get the first icon
+     */
+    const entityTypes = useMemo(
+      () =>
+        entity && localEntitySubgraph
+          ? entity.metadata.entityTypeIds.toSorted().map((entityTypeId) => {
+              const entityType = getEntityTypeById(
+                localEntitySubgraph,
+                entityTypeId,
+              );
+
+              if (!entityType) {
+                throw new Error(`Cannot find entity type ${entityTypeId}`);
+              }
+
+              return entityType;
+            })
+          : [],
+      [entity, localEntitySubgraph],
+    );
+
     return (
       <Drawer
         hideBackdrop
@@ -400,7 +426,18 @@ const EditEntitySlideOver = memo(
             />
             <Stack gap={5} px={6} pb={5} pt={1}>
               <Stack alignItems="center" direction="row">
-                <Typography variant="h2" color="gray.90" fontWeight="bold">
+                <EntityOrTypeIcon
+                  entity={entity}
+                  icon={entityTypes[0]?.schema.icon}
+                  fill={({ palette }) => palette.gray[50]}
+                  fontSize={40}
+                />
+                <Typography
+                  variant="h2"
+                  color="gray.90"
+                  fontWeight="bold"
+                  ml={2}
+                >
                   {entityLabel}
                 </Typography>
                 {entityOwningShortname && !hideOpenInNew && (

@@ -2,6 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import {
   AsteriskRegularIcon,
+  EntityOrTypeIcon,
   EyeIconSolid,
   PenToSquareIconSolid,
 } from "@hashintel/design-system";
@@ -33,7 +34,6 @@ import { useEntityTypeEntitiesContextValue } from "../shared/entity-type-entitie
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { generateLinkParameters } from "../shared/generate-link-parameters";
-import { AsteriskLightIcon } from "../shared/icons/asterisk-light-icon";
 import { CanvasNewIcon } from "../shared/icons/canvas-new-icon";
 import { FileCirclePlusRegularIcon } from "../shared/icons/file-circle-plus-regular-icon";
 import { FilesLightIcon } from "../shared/icons/files-light-icon";
@@ -281,7 +281,12 @@ const EntitiesPage: NextPageWithLayout = () => {
         icon: isViewAllPagesPage ? (
           <FilesRegularIcon />
         ) : (
-          <AsteriskRegularIcon />
+          <EntityOrTypeIcon
+            entity={null}
+            fill={({ palette }) => palette.gray[50]}
+            fontSize="inherit"
+            icon={entityType.schema.icon}
+          />
         ),
       });
     }
@@ -307,26 +312,21 @@ const EntitiesPage: NextPageWithLayout = () => {
       >
         <Container sx={{ maxWidth: { lg: contentMaxWidth } }}>
           <Stack direction="row" justifyContent="space-between">
-            <Typography variant="h1" fontWeight="bold" my={3}>
-              <Box
-                display="inline-flex"
-                sx={({ palette }) => ({
-                  svg: {
-                    fontSize: 40,
-                    mr: 2,
-                    color: palette.gray[70],
-                    verticalAlign: "middle",
-                  },
-                })}
-              >
-                {isViewAllPagesPage ? (
-                  <FilesLightIcon />
-                ) : (
-                  <AsteriskLightIcon />
-                )}
-              </Box>
-              {pageTitle}
-            </Typography>
+            <Stack direction="row" alignItems="center" gap={2} my={3}>
+              {isViewAllPagesPage ? (
+                <FilesLightIcon />
+              ) : (
+                <EntityOrTypeIcon
+                  entity={null}
+                  fill={({ palette }) => palette.gray[70]}
+                  fontSize={40}
+                  icon={entityType?.schema.icon}
+                />
+              )}
+              <Typography variant="h1" fontWeight="bold" my={3}>
+                {pageTitle}
+              </Typography>
+            </Stack>
             {entityType && (
               <Button
                 href={generateLinkParameters(entityType.schema.$id).href}

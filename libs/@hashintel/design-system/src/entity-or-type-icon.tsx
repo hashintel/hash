@@ -3,7 +3,7 @@ import { AsteriskRegularIcon, LinkTypeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 // eslint-disable-next-line no-restricted-imports -- TODO fix this to make package publishable again
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Theme } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
 import { Box, Typography } from "@mui/material";
 import type { ReactElement } from "react";
 
@@ -13,18 +13,34 @@ export const EntityOrTypeIcon = ({
   fontSize,
   icon,
   isLink,
+  sx,
 }: {
   entity: Entity | null;
   fill?: string | ((theme: Theme) => string);
   fontSize: number | string;
   icon?: string | ReactElement | null;
   isLink?: boolean;
+  sx?: SxProps<Theme>;
 }) => {
   if (!icon) {
     if (isLink) {
-      return <LinkTypeIcon sx={{ stroke: fill, fontSize }} />;
+      return (
+        <LinkTypeIcon
+          sx={[
+            { stroke: fill ?? "inherit", fontSize },
+            ...(Array.isArray(sx) ? sx : [sx]),
+          ]}
+        />
+      );
     }
-    return <AsteriskRegularIcon sx={{ fill, fontSize }} />;
+    return (
+      <AsteriskRegularIcon
+        sx={[
+          { fill: fill ?? "inherit", fontSize },
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
+      />
+    );
   }
 
   /**
@@ -45,13 +61,16 @@ export const EntityOrTypeIcon = ({
 
     return (
       <Box
-        sx={({ palette }) => ({
-          backgroundColor: fill ?? palette.gray[80],
-          "-webkit-mask": `url(${iconUrl}) no-repeat center / contain`,
-          mask: `url(${iconUrl}) no-repeat center / contain`,
-          width: fontSize,
-          height: fontSize,
-        })}
+        sx={[
+          {
+            backgroundColor: fill ?? "inherit",
+            "-webkit-mask": `url(${iconUrl}) no-repeat center / contain`,
+            mask: `url(${iconUrl}) no-repeat center / contain`,
+            width: fontSize,
+            height: fontSize,
+          },
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
       />
     );
   }
@@ -65,7 +84,10 @@ export const EntityOrTypeIcon = ({
       | undefined) ?? icon;
 
   return (
-    <Typography fontSize={fontSize} sx={{ lineHeight: 1 }}>
+    <Typography
+      fontSize={fontSize}
+      sx={[{ lineHeight: 1 }, ...(Array.isArray(sx) ? sx : [sx])]}
+    >
       {emojiIcon}
     </Typography>
   );

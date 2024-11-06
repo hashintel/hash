@@ -279,10 +279,10 @@ export const DestinationEntityTypeSelector = ({
             }}
             isOptionEqualToValue={(option, value) => option.$id === value.$id}
             options={entityTypeOptions}
-            optionToRenderData={({ $id, title, description }) => ({
+            optionToRenderData={({ $id, title, icon, description }) => ({
               uniqueId: $id,
-              icon: <EntityTypeIcon />,
-              typeIds: [$id],
+              icon: icon ?? null,
+              types: [{ $id, title, icon }],
               title,
               description,
             })}

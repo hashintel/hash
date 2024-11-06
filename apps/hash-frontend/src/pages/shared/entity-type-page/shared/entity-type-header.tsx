@@ -129,7 +129,7 @@ export const EntityTypeHeader = ({
                 );
               }}
             />
-            <Typography variant="h1" fontWeight="bold" marginLeft={3}>
+            <Typography variant="h1" fontWeight="bold" marginLeft={1.5}>
               {entityTypeSchema.title}
             </Typography>
           </Box>
