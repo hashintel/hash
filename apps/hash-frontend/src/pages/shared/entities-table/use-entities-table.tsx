@@ -207,9 +207,11 @@ export const useEntitiesTable = (params: {
           const entityType = getEntityTypeById(subgraph, entityTypeId);
 
           if (!entityType) {
-            throw new Error(
-              `Could not find entityType with id ${entityTypeId} in subgraph`,
+            // eslint-disable-next-line no-console
+            console.warn(
+              `Could not find entityType with id ${entityTypeId}, it may be loading...`,
             );
+            return [entityTypeId, []];
           }
 
           return [
