@@ -5,7 +5,6 @@ import {
   faChain,
   faList,
 } from "@fortawesome/free-solid-svg-icons";
-import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Menu } from "@mui/material";
 import type { PopupState } from "material-ui-popup-state/hooks";
@@ -23,6 +22,7 @@ type EntityTypeMenuProps = {
   isLinkType?: boolean;
   entityTypeIcon?: string | null;
   title: string;
+  titlePlural: string;
 };
 
 export const EntityMenu: FunctionComponent<EntityTypeMenuProps> = ({
@@ -31,6 +31,7 @@ export const EntityMenu: FunctionComponent<EntityTypeMenuProps> = ({
   isLinkType,
   popupState,
   title,
+  titlePlural,
 }) => {
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -40,7 +41,7 @@ export const EntityMenu: FunctionComponent<EntityTypeMenuProps> = ({
     <Menu {...bindMenu(popupState)}>
       {isLinkEntityType ? null : (
         <SidebarMenuItem
-          title={`Create new ${pluralize.singular(title)}`}
+          title={`Create new ${title}`}
           icon={faAdd}
           href={`/new/entity?entity-type-id=${entityTypeId}`}
           popupState={popupState}
@@ -51,7 +52,7 @@ export const EntityMenu: FunctionComponent<EntityTypeMenuProps> = ({
         popupState={popupState}
       />
       <SidebarMenuItem
-        title={`View all ${pluralize(title)}`}
+        title={`View all ${isLinkType ? `${title} links` : titlePlural}`}
         icon={faList}
         popupState={popupState}
         href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(entityTypeId)}`}

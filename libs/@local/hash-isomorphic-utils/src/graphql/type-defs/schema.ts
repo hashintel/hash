@@ -2,6 +2,7 @@ import { gql } from "apollo-server-express";
 
 import { blockprotocolTypedef } from "./blockprotocol.typedef.js";
 import { embedTypeDef } from "./embed.typedef.js";
+import { generationTypedef } from "./generation.typedef.js";
 import { linearTypedef } from "./integration/linear.typedef.js";
 import { blockTypedef } from "./knowledge/block.typedef.js";
 import { blockCollectionTypedef } from "./knowledge/block-collection.typedef.js";
@@ -57,6 +58,7 @@ export const schema = [
   baseSchema,
   blockprotocolTypedef,
   embedTypeDef,
+  generationTypedef,
   ...ontology,
   ...knowledge,
   linearTypedef,

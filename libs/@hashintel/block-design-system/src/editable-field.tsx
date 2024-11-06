@@ -71,7 +71,7 @@ export const EditableField = ({
       sx={{
         display: "flex",
         alignItems: "center",
-        gap: 1.5,
+        gap: 0.5,
         width: 1,
         ...wrapperSx,
       }}
@@ -89,7 +89,7 @@ export const EditableField = ({
           <Typography
             ref={inputRef}
             onClick={() => {
-              if (!value && !readonly) {
+              if (!readonly) {
                 setEditing(true);
               }
             }}
@@ -189,7 +189,7 @@ export const EditableField = ({
               inputRef.current?.focus();
             }}
             sx={{
-              padding: 1.1,
+              padding: 0.6,
             }}
           >
             <PenToSquareIcon

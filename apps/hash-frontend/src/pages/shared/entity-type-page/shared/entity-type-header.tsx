@@ -20,6 +20,8 @@ import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
 import { Button, Link, Modal } from "../../../../shared/ui";
 import { CreateEntityTypeForm } from "../../create-entity-type-form";
 import { EntityTypeDescription } from "../entity-type-description";
+import { EntityTypeInverse } from "../entity-type-inverse";
+import { EntityTypePlural } from "../entity-type-plural";
 
 interface EntityTypeHeaderProps {
   isPreviewSlide?: boolean;
@@ -79,60 +81,71 @@ export const EntityTypeHeader = ({
           alignItems="center"
           justifyContent="space-between"
         >
-          <Box display="flex" alignItems="flex-end" my={3}>
-            <Controller
-              control={control}
-              name="icon"
-              render={({ field }) => {
-                const iconImgUrl = field.value?.startsWith("/")
-                  ? new URL(field.value, window.location.origin).href
-                  : field.value;
+          <Stack direction="row" alignItems="center" gap={5}>
+            <Box display="flex" alignItems="flex-end" my={3}>
+              <Controller
+                control={control}
+                name="icon"
+                render={({ field }) => {
+                  const iconImgUrl = field.value?.startsWith("/")
+                    ? new URL(field.value, window.location.origin).href
+                    : field.value;
 
-                /**
-                 * @todo allow uploading new SVG icons
-                 */
-                if (iconImgUrl?.startsWith("http")) {
+                  /**
+                   * @todo allow uploading new SVG icons
+                   */
+                  if (iconImgUrl?.startsWith("http")) {
+                    return (
+                      <Box
+                        sx={({ palette }) => ({
+                          backgroundColor: palette.gray[50],
+                          webkitMask: `url(${iconImgUrl}) no-repeat center / contain`,
+                          mask: `url(${iconImgUrl}) no-repeat center / contain`,
+                          width: 40,
+                          height: 40,
+                        })}
+                      />
+                    );
+                  }
+
                   return (
-                    <Box
-                      sx={({ palette }) => ({
-                        backgroundColor: palette.gray[50],
-                        webkitMask: `url(${iconImgUrl}) no-repeat center / contain`,
-                        mask: `url(${iconImgUrl}) no-repeat center / contain`,
-                        width: 40,
-                        height: 40,
-                      })}
+                    <EditEmojiIconButton
+                      icon={field.value}
+                      disabled={isReadonly}
+                      onChange={(updatedIcon) => field.onChange(updatedIcon)}
+                      defaultIcon={
+                        isLink ? (
+                          <LinkTypeIcon
+                            sx={({ palette }) => ({
+                              stroke: palette.gray[50],
+                            })}
+                          />
+                        ) : (
+                          <EntityTypeIcon
+                            sx={({ palette }) => ({
+                              fill: palette.gray[50],
+                            })}
+                          />
+                        )
+                      }
                     />
                   );
-                }
-
-                return (
-                  <EditEmojiIconButton
-                    icon={field.value}
-                    disabled={isReadonly}
-                    onChange={(updatedIcon) => field.onChange(updatedIcon)}
-                    defaultIcon={
-                      isLink ? (
-                        <LinkTypeIcon
-                          sx={({ palette }) => ({
-                            stroke: palette.gray[50],
-                          })}
-                        />
-                      ) : (
-                        <EntityTypeIcon
-                          sx={({ palette }) => ({
-                            fill: palette.gray[50],
-                          })}
-                        />
-                      )
-                    }
-                  />
-                );
-              }}
-            />
-            <Typography variant="h1" fontWeight="bold" marginLeft={1.5}>
-              {entityTypeSchema.title}
-            </Typography>
-          </Box>
+                }}
+              />
+              <Typography variant="h1" fontWeight="bold" marginLeft={2}>
+                {entityTypeSchema.title}
+              </Typography>
+            </Box>
+            <Stack
+              direction="row"
+              alignItems="flex-start"
+              gap={1}
+              sx={{ position: "relative", top: 5 }}
+            >
+              <EntityTypePlural isLinkType={isLink} readonly={isReadonly} />
+              {isLink && <EntityTypeInverse readonly={isReadonly} />}
+            </Stack>
+          </Stack>
           {!isDraft && !isPreviewSlide ? (
             <Button
               onClick={() => setShowExtendTypeModal(true)}
@@ -165,6 +178,7 @@ export const EntityTypeHeader = ({
             <CreateEntityTypeForm
               afterSubmit={() => setShowExtendTypeModal(false)}
               inModal
+              isLink={isLink}
               initialData={{ extendsEntityTypeId: entityTypeSchema.$id }}
               onCancel={() => setShowExtendTypeModal(false)}
             />

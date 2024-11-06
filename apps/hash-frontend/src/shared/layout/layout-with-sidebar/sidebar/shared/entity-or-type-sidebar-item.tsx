@@ -1,5 +1,6 @@
 import type { EntityType } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon, IconButton } from "@hashintel/design-system";
+import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { BoxProps } from "@mui/material";
 import { Box, styled, Tooltip, Typography } from "@mui/material";
@@ -53,7 +54,15 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
   href?: string;
   variant: "entity" | "entity-type";
 }> = ({ entityType, href, variant }) => {
-  const { title, $id: entityTypeId, icon } = entityType;
+  const {
+    title,
+    titlePlural: maybeTitlePlural,
+    $id: entityTypeId,
+    icon,
+  } = entityType;
+
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+  const titlePlural = maybeTitlePlural || pluralize(title);
 
   const entityMenuTriggerRef = useRef(null);
 
@@ -139,6 +148,7 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
           entityTypeId={entityTypeId}
           popupState={popupState}
           title={title}
+          titlePlural={titlePlural}
           entityTypeIcon={icon}
           isLinkType={isLink}
         />
@@ -147,6 +157,7 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
           entityTypeId={entityTypeId}
           popupState={popupState}
           title={title}
+          titlePlural={titlePlural}
           url={baseUrl}
         />
       )}

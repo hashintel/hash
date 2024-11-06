@@ -40,4 +40,6 @@ export const getFormDataFromEntityType = (
         }),
       )
     : [],
+  titlePlural: schema.titlePlural,
+  inverse: schema.inverse,
 });

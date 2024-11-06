@@ -103,7 +103,7 @@ futures-core = { version = "=0.3.31", default-features = false }
 futures-io = { version = "=0.3.31", default-features = false }
 futures-sink = { version = "=0.3.31", default-features = false }
 futures-util = { version = "=0.3.31", default-features = false }
-hashbrown = { version = "=0.15.0", default-features = false, features = ["nightly", "inline-more"] }
+hashbrown = { version = "=0.15.1", default-features = false, features = ["nightly", "inline-more"] }
 http = { version = "=1.1.0", default-features = false }
 inferno = { version = "=0.11.21", default-features = false }
 iso8601-duration = { version = "=0.2.0", default-features = false }
@@ -151,7 +151,7 @@ aws-sdk-s3 = { version = "=1.59.0", default-features = false }
 bitvec = { version = "=1.0.1", default-features = false }
 bytes-utils = { version = "=0.1.4", default-features = false }
 clap = { version = "=4.5.20", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
-clap_complete = { version = "=4.5.36", default-features = false }
+clap_complete = { version = "=4.5.37", default-features = false }
 coverage-helper = { version = "=0.2.2", default-features = false }
 criterion-macro = { version = "=0.4.0", default-features = false }
 derive-where = { version = "=1.2.7", default-features = false, features = ["nightly"] }
@@ -204,7 +204,7 @@ temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "htt
 test-fuzz = { version = "=6.0.0", default-features = false }
 test-log = { version = "=0.2.16", default-features = false }
 test-strategy = { version = "=0.4.0", default-features = false }
-thiserror = { version = "=1.0.67", default-features = false }
+thiserror = { version = "=1.0.68", default-features = false }
 tokio-stream = { version = "=0.1.16", default-features = false }
 tokio-test = { version = "=0.4.4", default-features = false }
 tower = { version = "=0.5.1", default-features = false }

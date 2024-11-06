@@ -19,7 +19,6 @@ import {
   Container,
   Fade,
   Stack,
-  styled,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
@@ -47,6 +46,7 @@ import { TabLink } from "../shared/ui/tab-link";
 import { Tabs } from "../shared/ui/tabs";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
 import type { Breadcrumb } from "./shared/breadcrumbs";
+import { CreateButton } from "./shared/create-button";
 import { EntitiesTable } from "./shared/entities-table";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
@@ -57,23 +57,6 @@ const contentMaxWidth = 1000;
 type ParsedQueryParams = {
   entityTypeIdOrBaseUrl?: string;
 };
-
-export const CreateButton = styled(Button)(({ theme }) => ({
-  color: theme.palette.gray[90],
-  fontSize: 14,
-  padding: 0,
-  transition: theme.transitions.create("color"),
-  ":hover": {
-    background: "transparent",
-    color: theme.palette.blue[70],
-    [`.${buttonClasses.endIcon}`]: {
-      color: theme.palette.blue[70],
-    },
-  },
-  [`.${buttonClasses.endIcon}`]: {
-    color: theme.palette.blue[70],
-  },
-}));
 
 export const CreateButtons: FunctionComponent<{
   entityType?: EntityTypeWithMetadata;
@@ -240,7 +223,8 @@ const EntitiesPage: NextPageWithLayout = () => {
   const pageTitle = entityType
     ? entityTypeId
       ? `${entityType.schema.title} v${extractVersion(entityTypeId)}`
-      : pluralize(entityType.schema.title)
+      : // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+        entityType.schema.titlePlural || pluralize(entityType.schema.title)
     : "Entities";
 
   const { entities, loading } = entityTypeEntitiesValue;
@@ -303,6 +287,8 @@ const EntitiesPage: NextPageWithLayout = () => {
     return crumbs;
   }, [entityType, isViewAllPagesPage, pageTitle]);
 
+  const maxWidth = { lg: `max(${contentMaxWidth}, "70%")` } as const;
+
   return (
     <>
       <NextSeo title={pageTitle} />
@@ -319,7 +305,7 @@ const EntitiesPage: NextPageWithLayout = () => {
           backgroundColor: ({ palette }) => palette.common.white,
         }}
       >
-        <Container sx={{ maxWidth: { lg: contentMaxWidth } }}>
+        <Container sx={{ maxWidth }}>
           <Stack direction="row" justifyContent="space-between">
             <Stack direction="row" alignItems="center" gap={2} my={3}>
               {isViewAllPagesPage ? (
@@ -378,9 +364,7 @@ const EntitiesPage: NextPageWithLayout = () => {
           </Box>
         </Container>
       </Box>
-      <Container
-        sx={{ maxWidth: { lg: `max(${contentMaxWidth}, "70%")` }, py: 5 }}
-      >
+      <Container sx={{ maxWidth, py: 5 }}>
         <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
           <EntitiesTable
             hideColumns={entityTypeId ? ["entityTypeVersion"] : []}

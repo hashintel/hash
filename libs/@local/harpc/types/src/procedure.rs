@@ -1,3 +1,5 @@
+use core::fmt::Display;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "proptest", derive(test_strategy::Arbitrary))]
@@ -21,9 +23,23 @@ impl ProcedureId {
     }
 }
 
+impl Display for ProcedureId {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let Self(value) = self;
+
+        write!(fmt, "{value:#06x}")
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "proptest", derive(test_strategy::Arbitrary))]
 pub struct ProcedureDescriptor {
     pub id: ProcedureId,
+}
+
+impl Display for ProcedureDescriptor {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.id, fmt)
+    }
 }

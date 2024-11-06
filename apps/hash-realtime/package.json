@@ -24,7 +24,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/node": "22.8.7",
+    "@types/node": "22.9.0",
     "@types/set-interval-async": "1.0.3",
     "eslint": "8.57.0"
   }
