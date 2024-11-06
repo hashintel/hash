@@ -8,7 +8,7 @@ use harpc_service::delegate::ServiceDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use tower::Service;
 
-use crate::session::{Session, SessionStorage};
+use crate::session::{RequestInfo, Session, SessionStorage};
 
 /// Bridge between `harpc-service` and `tower`.
 ///
@@ -16,7 +16,7 @@ use crate::session::{Session, SessionStorage};
 /// for taking the incoming request, selecting the appropriate session and codec, and then
 /// delegating the request to the inner service (which is cloned).
 ///
-/// A concious decision was made not to have `ServiceDelegate` be a `Service`, as it allows for
+/// A conscious decision was made not to have `ServiceDelegate` be a `Service`, as it allows for
 /// greater ergonomics, and allows server implementation that are not based on tower in the future.
 /// For example, because of the inherit `oneshot` nature of our tower implementation, having `&mut
 /// self` as a parameter would be more confusing than helpful.
@@ -67,7 +67,12 @@ where
 
         async move {
             let storage = session;
-            let session = storage.get_or_insert(req.session()).await;
+            let session = storage
+                .get_or_insert(req.session(), RequestInfo {
+                    service: req.service(),
+                    procedure: req.procedure(),
+                })
+                .await;
 
             delegate.call(req, session, codec).await
         }

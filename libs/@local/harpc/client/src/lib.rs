@@ -3,6 +3,8 @@
 extern crate alloc;
 
 pub mod connection;
+pub mod error;
+pub mod utils;
 
 use alloc::sync::Arc;
 

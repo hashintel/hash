@@ -9,6 +9,7 @@ pub mod router;
 pub mod serve;
 
 pub mod session;
+pub mod utils;
 
 use core::{
     pin::Pin,
