@@ -1,10 +1,5 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::{
-    error::Error,
-    fmt::{self, Display},
-    num::NonZero,
-    time::Duration,
-};
+use core::{error::Error, num::NonZero, time::Duration};
 
 use bytes::Bytes;
 use harpc_codec::error::NetworkError;
@@ -436,16 +431,12 @@ async fn send_delay_empty_bytes() {
     });
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+#[display("{message}")]
+#[must_use]
 struct ExampleError {
     code: ErrorCode,
     message: Cow<'static, str>,
-}
-
-impl Display for ExampleError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.message, fmt)
-    }
 }
 
 impl Error for ExampleError {

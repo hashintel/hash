@@ -37,6 +37,7 @@ async-scoped = { workspace = true, features = ["use-tokio"] }
 bytes = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"], optional = true }
 derive-where = { workspace = true }
+derive_more = { workspace = true, features = ["display", "error"] }
 dotenv-flow = { workspace = true }
 futures = { workspace = true }
 postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"] }

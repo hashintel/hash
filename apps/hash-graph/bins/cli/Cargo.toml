@@ -32,6 +32,7 @@ validation = { workspace = true }
 axum = { workspace = true }
 clap = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = { workspace = true }
+derive_more = { workspace = true, features = ["display", "error"] }
 futures = { workspace = true }
 mimalloc = { workspace = true }
 regex = { workspace = true }

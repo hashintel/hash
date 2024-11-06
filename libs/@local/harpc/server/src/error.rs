@@ -12,6 +12,7 @@ use harpc_types::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
 #[display("service {service} not found")]
+#[must_use]
 pub struct ServiceNotFound {
     pub service: ServiceDescriptor,
 }
@@ -24,6 +25,7 @@ impl Error for ServiceNotFound {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
 #[display("procedure {procedure} not found in service {service}")]
+#[must_use]
 pub struct ProcedureNotFound {
     pub service: ServiceDescriptor,
 
@@ -37,6 +39,7 @@ impl Error for ProcedureNotFound {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[must_use]
 pub struct Forbidden {
     pub service: ServiceDescriptor,
     pub procedure: ProcedureDescriptor,
@@ -67,13 +70,13 @@ impl Error for Forbidden {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[must_use]
 pub struct RequestExpectedItemCountMismatch {
     min: Option<usize>,
     max: Option<usize>,
 }
 
 impl RequestExpectedItemCountMismatch {
-    #[must_use]
     pub const fn exactly(expected: usize) -> Self {
         Self {
             min: Some(expected),
@@ -81,7 +84,6 @@ impl RequestExpectedItemCountMismatch {
         }
     }
 
-    #[must_use]
     pub const fn at_least(min: usize) -> Self {
         Self {
             min: Some(min),
@@ -89,7 +91,6 @@ impl RequestExpectedItemCountMismatch {
         }
     }
 
-    #[must_use]
     pub const fn at_most(max: usize) -> Self {
         Self {
             min: None,
@@ -97,13 +98,11 @@ impl RequestExpectedItemCountMismatch {
         }
     }
 
-    #[must_use]
     pub const fn with_min(mut self, min: usize) -> Self {
         self.min = Some(min);
         self
     }
 
-    #[must_use]
     pub const fn with_max(mut self, max: usize) -> Self {
         self.max = Some(max);
         self
@@ -130,4 +129,5 @@ impl Error for RequestExpectedItemCountMismatch {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 #[display("unable to delegate request to service implementation")]
+#[must_use]
 pub struct DelegationError;

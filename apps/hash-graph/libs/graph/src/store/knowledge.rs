@@ -1,5 +1,4 @@
 use alloc::borrow::Cow;
-use core::{error::Error, fmt};
 use std::collections::{HashMap, HashSet};
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
@@ -55,16 +54,10 @@ impl ToSchema<'_> for EntityValidationType<'_> {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[display("entity validation failed")]
+#[must_use]
 pub struct ValidateEntityError;
-
-impl fmt::Display for ValidateEntityError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Entity validation failed")
-    }
-}
-
-impl Error for ValidateEntityError {}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct EntityQuerySortingRecord<'s> {

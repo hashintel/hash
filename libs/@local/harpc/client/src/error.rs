@@ -1,19 +1,21 @@
-use core::{
-    error::Error,
-    fmt::{self, Display},
-};
+use core::fmt::{self, Display};
 
 // H-xxxx: error-stack reports are currently not de-serializable, see: <https://github.com/orgs/hashintel/discussions/5352>
 #[derive(
-    Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, derive_more::Display,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::Display,
+    derive_more::Error,
 )]
 #[display("The remote server has encountered an error: {_0:?}")]
-pub struct RemoteError(serde_value::Value);
-
-impl Error for RemoteError {}
+#[must_use]
+pub struct RemoteError(#[error(ignore)] serde_value::Value);
 
 impl RemoteError {
-    #[must_use]
     pub const fn new(value: serde_value::Value) -> Self {
         Self(value)
     }
@@ -25,14 +27,14 @@ impl From<serde_value::Value> for RemoteError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Error)]
+#[must_use]
 pub struct ResponseExpectedItemCountMismatch {
     min: Option<usize>,
     max: Option<usize>,
 }
 
 impl ResponseExpectedItemCountMismatch {
-    #[must_use]
     pub const fn exactly(expected: usize) -> Self {
         Self {
             min: Some(expected),
@@ -40,7 +42,6 @@ impl ResponseExpectedItemCountMismatch {
         }
     }
 
-    #[must_use]
     pub const fn at_least(min: usize) -> Self {
         Self {
             min: Some(min),
@@ -48,7 +49,6 @@ impl ResponseExpectedItemCountMismatch {
         }
     }
 
-    #[must_use]
     pub const fn at_most(max: usize) -> Self {
         Self {
             min: None,
@@ -56,13 +56,11 @@ impl ResponseExpectedItemCountMismatch {
         }
     }
 
-    #[must_use]
     pub const fn with_min(mut self, min: usize) -> Self {
         self.min = Some(min);
         self
     }
 
-    #[must_use]
     pub const fn with_max(mut self, max: usize) -> Self {
         self.max = Some(max);
         self
@@ -81,10 +79,7 @@ impl Display for ResponseExpectedItemCountMismatch {
     }
 }
 
-impl Error for ResponseExpectedItemCountMismatch {}
-
-#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 #[display("The client has encountered an error while making a call to the remote server.")]
+#[must_use]
 pub struct RemoteInvocationError;
-
-impl Error for RemoteInvocationError {}

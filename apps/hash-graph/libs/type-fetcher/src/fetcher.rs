@@ -1,37 +1,22 @@
 #![expect(clippy::future_not_send)]
 
-use core::{error::Error, fmt};
-
-use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
     schema::{DataType, EntityType, PropertyType},
     url::VersionedUrl,
 };
 
-// We would really like to use error-stack for this. It's not possible because
-// we need Serialize and Deserialize for `Report`
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::Display, derive_more::Error)]
+#[display("the type fetcher encountered an error during execution: {_variant}")]
+#[must_use]
 pub enum FetcherError {
-    NetworkError(String),
-    SerializationError(String),
+    #[display("{_0}")]
+    NetworkError(#[error(ignore)] String),
+    #[display("{_0}")]
+    SerializationError(#[error(ignore)] String),
 }
 
-impl Error for FetcherError {}
-
-impl fmt::Display for FetcherError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("the type fetcher encountered an error during execution: ")?;
-
-        match self {
-            Self::NetworkError(message) | Self::SerializationError(message) => {
-                fmt.write_str(message)
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum FetchedOntologyType {
     DataType(DataType),

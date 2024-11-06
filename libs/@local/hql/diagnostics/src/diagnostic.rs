@@ -21,6 +21,7 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[must_use]
 pub struct Diagnostic<'a, S> {
     pub category: RefOrBox<'a, Category<'a>>,
     pub severity: RefOrBox<'a, Severity<'a>>,
@@ -33,7 +34,6 @@ pub struct Diagnostic<'a, S> {
 }
 
 impl<'a, S> Diagnostic<'a, S> {
-    #[must_use]
     pub fn new(
         category: impl Into<RefOrBox<'a, Category<'a>>>,
         severity: impl Into<RefOrBox<'a, Severity<'a>>>,

@@ -1,28 +1,11 @@
-use core::{error::Error, fmt};
-
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("the Graph query layer encountered an error during execution")]
 pub struct GraphError;
-impl Error for GraphError {}
 
-impl fmt::Display for GraphError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("the Graph query layer encountered an error during execution")
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum HealthcheckError {
+    #[display("healthcheck failed")]
     NotHealthy,
+    #[display("healthcheck timed out")]
     Timeout,
 }
-
-impl fmt::Display for HealthcheckError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NotHealthy => fmt.write_str("healthcheck failed"),
-            Self::Timeout => fmt.write_str("healthcheck timed out"),
-        }
-    }
-}
-
-impl Error for HealthcheckError {}

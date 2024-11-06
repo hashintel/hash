@@ -23,6 +23,7 @@ pub struct SessionError;
     "transaction limit per connection has been reached, the transaction has been dropped. The \
      limit is {limit}"
 )]
+#[must_use]
 pub struct ConnectionTransactionLimitReachedError {
     pub limit: usize,
 }
@@ -47,6 +48,7 @@ impl Error for ConnectionTransactionLimitReachedError {
     serde::Deserialize,
 )]
 #[display("transaction has been dropped, because it is unable to receive more request packets")]
+#[must_use]
 pub struct TransactionLaggingError;
 
 impl Error for TransactionLaggingError {
@@ -71,6 +73,7 @@ impl Error for TransactionLaggingError {
 #[display(
     "transaction has been dropped, because the server is unable to process more transactions"
 )]
+#[must_use]
 pub struct InstanceTransactionLimitReachedError;
 
 impl Error for InstanceTransactionLimitReachedError {
@@ -95,6 +98,7 @@ impl Error for InstanceTransactionLimitReachedError {
 #[display(
     "The connection is in the graceful shutdown state and no longer accepts any new transactions"
 )]
+#[must_use]
 pub struct ConnectionGracefulShutdownError;
 
 impl Error for ConnectionGracefulShutdownError {
@@ -108,6 +112,7 @@ impl Error for ConnectionGracefulShutdownError {
     "the underlying read and/or write connection to the server has been closed (read: {read}, \
      write: {write})"
 )]
+#[must_use]
 pub struct ConnectionPartiallyClosedError {
     pub read: bool,
     pub write: bool,

@@ -19,6 +19,7 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
 #[display("incomplete transaction error returned, message: {bytes:?}")]
+#[must_use]
 struct DecodeTransactionError {
     bytes: Bytes,
 }
@@ -29,6 +30,7 @@ impl Error for DecodeTransactionError {
     }
 }
 
+#[must_use]
 struct PartialTransactionError {
     code: ErrorCode,
     bytes: BytesMut,

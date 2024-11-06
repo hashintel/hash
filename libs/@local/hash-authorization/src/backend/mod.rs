@@ -1,6 +1,6 @@
 mod spicedb;
 
-use core::{error::Error, fmt, iter::repeat};
+use core::iter::repeat;
 
 use error_stack::Report;
 use futures::{Stream, stream};
@@ -449,16 +449,10 @@ pub struct ImportSchemaResponse {
 }
 
 /// Error returned from [`ZanzibarBackend::import_schema`].
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("failed to import schema")]
+#[must_use]
 pub struct ImportSchemaError;
-
-impl fmt::Display for ImportSchemaError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to import schema")
-    }
-}
-
-impl Error for ImportSchemaError {}
 
 /// Return value for [`ZanzibarBackend::export_schema`].
 #[derive(Debug)]
@@ -470,16 +464,10 @@ pub struct ExportSchemaResponse {
 }
 
 /// Error returned from [`ZanzibarBackend::export_schema`].
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("failed to export schema")]
+#[must_use]
 pub struct ExportSchemaError;
-
-impl fmt::Display for ExportSchemaError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to export schema")
-    }
-}
-
-impl Error for ExportSchemaError {}
 
 /// Return value for [`ZanzibarBackend::create_relationships`].
 #[derive(Debug)]
@@ -489,16 +477,10 @@ pub struct ModifyRelationshipResponse {
 }
 
 /// Error returned from [`ZanzibarBackend::create_relationships`].
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("failed to modify relationships")]
+#[must_use]
 pub struct ModifyRelationshipError;
-
-impl fmt::Display for ModifyRelationshipError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to modify relationships")
-    }
-}
-
-impl Error for ModifyRelationshipError {}
 
 /// Return value for [`ZanzibarBackend::delete_relationships`].
 #[derive(Debug)]
@@ -508,16 +490,10 @@ pub struct DeleteRelationshipResponse {
 }
 
 /// Error returned from [`ZanzibarBackend::delete_relationships`].
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("failed to delete relationships")]
+#[must_use]
 pub struct DeleteRelationshipError;
-
-impl fmt::Display for DeleteRelationshipError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to delete relationships")
-    }
-}
-
-impl Error for DeleteRelationshipError {}
 
 /// Return value for [`ZanzibarBackend::check_permission`].
 #[derive(Debug)]
@@ -568,47 +544,23 @@ pub struct BulkCheckItem<R, P, S> {
 
 /// Error returned from [`ZanzibarBackend::check_permission`] and
 /// [`ZanzibarBackend::check_permission`].
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("failed to check permission")]
+#[must_use]
 pub struct CheckError;
 
-impl fmt::Display for CheckError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to check permission")
-    }
-}
-
-impl Error for CheckError {}
-
 /// Error returned from [`ZanzibarBackend::read_relations`].
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("failed to read relationships")]
+#[must_use]
 pub struct ReadError;
 
-impl fmt::Display for ReadError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to read relationships")
-    }
-}
-
-impl Error for ReadError {}
-
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("failed to modify relation")]
+#[must_use]
 pub struct ModifyRelationError;
 
-impl fmt::Display for ModifyRelationError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to modify relation")
-    }
-}
-
-impl Error for ModifyRelationError {}
-
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("permission denied")]
+#[must_use]
 pub struct PermissionAssertion;
-
-impl fmt::Display for PermissionAssertion {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Permission denied")
-    }
-}
-
-impl Error for PermissionAssertion {}

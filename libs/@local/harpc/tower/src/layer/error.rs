@@ -118,6 +118,7 @@ pub(crate) mod test {
         response::{self, Response},
     };
 
+    #[must_use]
     pub(crate) struct BoxedError(Box<dyn Error + Send + Sync + 'static>);
 
     impl serde::Serialize for BoxedError {
@@ -169,6 +170,7 @@ pub(crate) mod test {
         serde::Serialize,
         serde::Deserialize,
     )]
+    #[must_use]
     pub(crate) struct GenericError(ErrorCode);
 
     impl GenericError {

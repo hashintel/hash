@@ -1,4 +1,3 @@
-use core::{error::Error, fmt};
 use std::io;
 
 use error_stack::{Report, ResultExt as _};
@@ -29,43 +28,25 @@ use crate::{
 )]
 struct Empty {}
 
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[must_use]
 enum InvocationError {
+    #[display("an error happened while making the request")]
     Request,
+    #[display("the response returned from the server could not be parsed")]
     Response,
+    #[display("{_0}")]
     Api(RpcError),
 }
 
-impl fmt::Display for InvocationError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Request => fmt.write_str("an error happened while making the request"),
-            Self::Response => {
-                fmt.write_str("the response returned from the server could not be parsed")
-            }
-            Self::Api(error) => fmt::Display::fmt(&error, fmt),
-        }
-    }
-}
-
-impl Error for InvocationError {}
-
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[must_use]
 enum StreamError {
+    #[display("the item returned from the server could not be parsed")]
     Parse,
+    #[display("{_0}")]
     Api(RpcError),
 }
-
-impl fmt::Display for StreamError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Parse => fmt.write_str("the item returned from the server could not be parsed"),
-            Self::Api(error) => fmt::Display::fmt(&error, fmt),
-        }
-    }
-}
-
-impl Error for StreamError {}
 
 type StreamReturn<T: DeserializeOwned, B: Serialize + Sync> =
     impl Stream<Item = Result<T, Report<StreamError>>>;

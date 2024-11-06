@@ -25,9 +25,9 @@ type-system = { workspace = true }
 # Private third-party dependencies
 bytes = { workspace = true, optional = true }
 derive-where = { workspace = true }
+derive_more = { workspace = true, features = ["display", "error"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-thiserror = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]

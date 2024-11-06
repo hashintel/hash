@@ -2,22 +2,14 @@
 
 pub mod domain_validator;
 
-use core::{error::Error, fmt};
-
 use error_stack::{Report, ResultExt as _};
 use serde::Deserialize;
 use type_system::url::VersionedUrl;
 
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("failed to patch schema's id and parse as type")]
+#[must_use]
 pub struct PatchAndParseError;
-
-impl Error for PatchAndParseError {}
-
-impl fmt::Display for PatchAndParseError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to patch schema's id and parse as type")
-    }
-}
 
 /// Takes the [`serde_json::Value`] representation of an ontology type schema (without an "$id"
 /// field), inserts the given [`VersionedUrl`] under the "$id" key, and tries to deserialize the

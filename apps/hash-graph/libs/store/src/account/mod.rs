@@ -5,7 +5,6 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 fn random_account_id() -> AccountId {
     AccountId::new(uuid::Uuid::new_v4())
@@ -15,8 +14,8 @@ fn random_account_group_id() -> AccountGroupId {
     AccountGroupId::new(uuid::Uuid::new_v4())
 }
 
-#[derive(Debug, Error)]
-#[error("Could not insert account")]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Could not insert account")]
 pub struct AccountInsertionError;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -27,8 +26,8 @@ pub struct InsertAccountIdParams {
     pub account_id: AccountId,
 }
 
-#[derive(Debug, Error)]
-#[error("Could not insert account group")]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Could not insert account group")]
 pub struct AccountGroupInsertionError;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -39,8 +38,8 @@ pub struct InsertAccountGroupIdParams {
     pub account_group_id: AccountGroupId,
 }
 
-#[derive(Debug, Error)]
-#[error("Could not insert web")]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Could not insert web")]
 pub struct WebInsertionError;
 
 #[derive(Debug, Deserialize)]
@@ -51,8 +50,8 @@ pub struct InsertWebIdParams {
     pub owner: WebOwnerSubject,
 }
 
-#[derive(Debug, Error)]
-#[error("Could not query web")]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Could not query web")]
 pub struct QueryWebError;
 
 /// Describes the API of a store implementation for accounts.

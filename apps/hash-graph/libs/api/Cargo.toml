@@ -46,8 +46,8 @@ validation = { workspace = true, features = ["utoipa"] }
 async-trait = { workspace = true }
 bytes = { workspace = true }
 derive-where = { workspace = true }
-derive_more = { version = "1.0.0", features = ["display", "error"] }
-frunk = "0.4.3"
+derive_more = { workspace = true, features = ["display", "error"] }
+frunk = { workspace = true }
 futures = { workspace = true }
 hyper = { workspace = true }
 include_dir = { workspace = true }

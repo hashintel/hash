@@ -1,19 +1,11 @@
-use core::{error::Error, fmt};
-
 use error_stack::{Report, ResultExt as _};
 use regex::{Captures, Regex};
 use type_system::schema::{DataType, EntityType, PropertyType};
 
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("URL failed to validate")]
+#[must_use]
 pub struct DomainValidationError;
-
-impl Error for DomainValidationError {}
-
-impl fmt::Display for DomainValidationError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("URL failed to validate")
-    }
-}
 
 pub trait ValidateOntologyType<T> {
     /// Checks a given type's ID against the given domain validation regex.

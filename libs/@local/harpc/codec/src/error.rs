@@ -27,6 +27,7 @@ fn report_request_error_code<C>(report: &Report<C>) -> ErrorCode {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[must_use]
 pub struct NetworkError {
     code: ErrorCode,
     bytes: Bytes,
@@ -61,7 +62,6 @@ impl NetworkError {
         buffer.freeze()
     }
 
-    #[must_use]
     pub fn capture_error<E>(error: &E) -> Self
     where
         E: core::error::Error,
@@ -72,7 +72,6 @@ impl NetworkError {
         }
     }
 
-    #[must_use]
     pub fn capture_report<C>(report: &Report<C>) -> Self {
         Self {
             code: report_request_error_code(report),

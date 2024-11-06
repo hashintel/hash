@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{error::Error, fmt, mem, str::FromStr as _};
+use core::{fmt, mem, str::FromStr as _};
 
 use error_stack::{Report, ResultExt as _, bail};
 use graph_types::{Embedding, knowledge::entity::EntityEditionId};
@@ -123,7 +123,8 @@ impl From<JsonValue> for ActualParameterType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, derive_more::Error)]
+#[must_use]
 pub enum ParameterConversionError {
     NoConversionFound {
         from: VersionedUrl,
@@ -175,8 +176,6 @@ impl fmt::Display for ParameterConversionError {
         }
     }
 }
-
-impl Error for ParameterConversionError {}
 
 impl Parameter<'_> {
     #[expect(

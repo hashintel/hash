@@ -41,12 +41,15 @@ use super::{
     ConnectionTask,
     collection::{TransactionPermit, TransactionStorage},
 };
-use crate::session::server::{
-    SessionConfig, SessionEvent, SessionId, Transaction,
-    connection::{ConnectionDelegateTask, TransactionCollection},
-    session_id::test_utils::mock_session_id,
-    test::{make_request_begin, make_request_frame},
-    transaction::ServerTransactionPermit as _,
+use crate::session::{
+    error::ConnectionTransactionLimitReachedError,
+    server::{
+        SessionConfig, SessionEvent, SessionId, Transaction,
+        connection::{ConnectionDelegateTask, TransactionCollection},
+        session_id::test_utils::mock_session_id,
+        test::{make_request_begin, make_request_frame},
+        transaction::ServerTransactionPermit as _,
+    },
 };
 
 pub(crate) async fn make_transaction_permit(
@@ -1187,10 +1190,13 @@ async fn transaction_collection_acquire_override_no_capacity() {
         .await
         .expect("should be able to acquire permit");
 
-    collection
-        .acquire(mock_request_id(0x01))
-        .await
-        .expect_err("should not be able to acquire permit");
+    assert_eq!(
+        collection
+            .acquire(mock_request_id(0x01))
+            .await
+            .expect_err("should not be able to acquire permit"),
+        ConnectionTransactionLimitReachedError { limit: 1 }
+    );
 }
 
 #[tokio::test]
@@ -1216,10 +1222,13 @@ async fn transaction_collection_acquire_full_no_insert() {
         CancellationToken::new(),
     );
 
-    collection
-        .acquire(mock_request_id(0x01))
-        .await
-        .expect_err("should not be able to acquire permit");
+    assert_eq!(
+        collection
+            .acquire(mock_request_id(0x01))
+            .await
+            .expect_err("should not be able to acquire permit"),
+        ConnectionTransactionLimitReachedError { limit: 0 }
+    );
 
     assert_eq!(collection.storage().len(), 0);
 }

@@ -1,39 +1,22 @@
-use core::{error::Error, fmt};
-
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct as _};
 
 use crate::{backend::ModifyRelationshipOperation, zanzibar};
 
 /// Error response returned from the API
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, derive_more::Display, derive_more::Error)]
 #[serde(rename_all = "camelCase")]
+#[display("error {code}: {message}")]
 #[expect(clippy::field_scoped_visibility_modifiers)]
+#[must_use]
 pub struct RpcError {
     pub(crate) code: i32,
     message: String,
     #[serde(default)]
-    #[expect(
-        dead_code,
-        reason = "Currently not used but captured from gRPC connections"
-    )]
     details: Vec<serde_json::Value>,
 }
 
-impl fmt::Display for RpcError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "Error {}: {}", self.code, self.message)
-    }
-}
-
-impl Error for RpcError {}
-
+#[derive(derive_more::From)]
 pub(crate) struct Consistency<'z>(zanzibar::Consistency<'z>);
-
-impl<'z> From<zanzibar::Consistency<'z>> for Consistency<'z> {
-    fn from(consistency: zanzibar::Consistency<'z>) -> Self {
-        Self(consistency)
-    }
-}
 
 impl Serialize for Consistency<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

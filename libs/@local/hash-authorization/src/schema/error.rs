@@ -9,6 +9,7 @@ use serde::Serialize;
 use crate::zanzibar::types::{Relationship, RelationshipParts, Resource};
 
 #[derive(Debug)]
+#[must_use]
 enum InvalidResourceKind {
     InvalidId,
 }

@@ -1,47 +1,19 @@
-use core::{error::Error, fmt};
-
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("could not insert into store")]
 #[must_use]
 pub struct InsertionError;
 
-impl fmt::Display for InsertionError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not insert into store")
-    }
-}
-
-impl Error for InsertionError {}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("could not query from store")]
 #[must_use]
 pub struct QueryError;
 
-impl fmt::Display for QueryError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not query from store")
-    }
-}
-
-impl Error for QueryError {}
-
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("could not update store")]
 #[must_use]
 pub struct UpdateError;
 
-impl fmt::Display for UpdateError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not update store")
-    }
-}
-
-impl Error for UpdateError {}
-
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("could not delete from the store")]
 #[must_use]
 pub struct DeletionError;
-
-impl fmt::Display for DeletionError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not delete from the store")
-    }
-}

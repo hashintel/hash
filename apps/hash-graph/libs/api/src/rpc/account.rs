@@ -40,6 +40,7 @@ pub struct PermissionResponse {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 #[display("account {id} does not exist in the graph")]
+#[must_use]
 pub struct AccountNotFoundError {
     id: AccountId,
 }

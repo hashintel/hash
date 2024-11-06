@@ -342,7 +342,10 @@ impl Drop for TransactionPermit {
 
 #[cfg(test)]
 mod test {
-    use crate::session::server::connection::collection::ConcurrencyLimit;
+    use crate::session::{
+        error::ConnectionTransactionLimitReachedError,
+        server::connection::collection::ConcurrencyLimit,
+    };
 
     #[test]
     fn concurrency_limit() {
@@ -364,9 +367,12 @@ mod test {
         let permit = limit.acquire().expect("should be able to acquire permit");
         assert_eq!(limit.current.available_permits(), 0);
 
-        limit
-            .acquire()
-            .expect_err("should be unable to acquire permit");
+        assert_eq!(
+            limit
+                .acquire()
+                .expect_err("should be unable to acquire permit"),
+            ConnectionTransactionLimitReachedError { limit: 0 }
+        );
 
         drop(permit);
         assert_eq!(limit.current.available_permits(), 1);

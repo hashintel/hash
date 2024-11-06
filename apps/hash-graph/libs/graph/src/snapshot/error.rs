@@ -1,45 +1,27 @@
-use core::{error::Error, fmt};
-
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[must_use]
 pub enum SnapshotDumpError {
+    #[display("could not read a snapshot record")]
     Read,
+    #[display("could not query snapshot records from the store")]
     Query,
+    #[display("could not write a snapshot record into the sink")]
     Write,
 }
 
-impl fmt::Display for SnapshotDumpError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Read => write!(fmt, "could not read a snapshot record"),
-            Self::Query => write!(fmt, "could not query snapshot records from the store"),
-            Self::Write => write!(fmt, "could not write a snapshot record into the sink"),
-        }
-    }
-}
-
-impl Error for SnapshotDumpError {}
-
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[must_use]
 pub enum SnapshotRestoreError {
+    #[display("The snapshot contains unsupported entries")]
     Unsupported,
+    #[display("The snapshot does not contain metadata")]
     MissingMetadata,
+    #[display("could not read a snapshot entry")]
     Read,
+    #[display("could not buffer a snapshot entry")]
     Buffer,
+    #[display("could not write a snapshot entry into the store")]
     Write,
+    #[display("could not validate a snapshot entry")]
     Validation,
 }
-
-impl fmt::Display for SnapshotRestoreError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Unsupported => write!(fmt, "The snapshot contains unsupported entries"),
-            Self::MissingMetadata => write!(fmt, "The snapshot does not contain metadata"),
-            Self::Read => write!(fmt, "could not read a snapshot entry"),
-            Self::Buffer => write!(fmt, "could not buffer a snapshot entry"),
-            Self::Write => write!(fmt, "could not write a snapshot entry into the store"),
-            Self::Validation => write!(fmt, "could not validate a snapshot entry"),
-        }
-    }
-}
-
-impl Error for SnapshotRestoreError {}

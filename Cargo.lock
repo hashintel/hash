@@ -374,6 +374,7 @@ version = "0.0.0"
 dependencies = [
  "codec",
  "derive-where",
+ "derive_more 1.0.0",
  "error-stack",
  "futures",
  "futures-core",
@@ -2439,6 +2440,7 @@ dependencies = [
  "deadpool",
  "deadpool-postgres",
  "derive-where",
+ "derive_more 1.0.0",
  "dotenv-flow",
  "error-stack",
  "futures",
@@ -2821,6 +2823,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "codec",
+ "derive_more 1.0.0",
  "error-stack",
  "futures",
  "graph",
@@ -2851,13 +2854,13 @@ dependencies = [
  "authorization",
  "bytes",
  "derive-where",
+ "derive_more 1.0.0",
  "error-stack",
  "graph-types",
  "postgres-types",
  "serde",
  "serde_json",
  "temporal-versioning",
- "thiserror",
  "tokio",
  "type-system",
  "utoipa",
@@ -7475,6 +7478,7 @@ dependencies = [
 name = "type-fetcher"
 version = "0.0.0"
 dependencies = [
+ "derive_more 1.0.0",
  "error-stack",
  "futures",
  "include_dir",

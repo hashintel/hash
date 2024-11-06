@@ -15,6 +15,7 @@ use crate::body::{Body, Frame};
 
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
 #[display("incomplete network error returned, message: {bytes:?}")]
+#[must_use]
 struct DecodeNetworkError {
     bytes: Bytes,
 }
@@ -25,6 +26,7 @@ impl Error for DecodeNetworkError {
     }
 }
 
+#[must_use]
 struct PartialResponseError {
     code: ErrorCode,
     bytes: BytesMut,
