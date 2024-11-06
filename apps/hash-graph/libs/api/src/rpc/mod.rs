@@ -1,6 +1,6 @@
 pub mod account;
 pub mod auth;
-pub mod ping;
+pub mod echo;
 mod session;
 
 mod role {
