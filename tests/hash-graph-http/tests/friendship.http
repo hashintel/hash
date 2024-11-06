@@ -1566,7 +1566,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   },
   "includeDrafts": true,
-    "includeClosedMultiEntityTypes": true
+  "includeEntityTypes": "resolved"
 }
 
 > {%
