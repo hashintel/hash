@@ -96,8 +96,8 @@ impl<T> AsRef<T> for Session<T> {
 
 #[derive(Debug)]
 struct Marked {
-    // We use a std mutex here, because we do not use the guard across an await point, therefore
-    // a std mutex is faster, smaller and more efficient.
+    // We use an std mutex here, because we do not use the guard across an await point, therefore
+    // an std mutex is faster, smaller and more efficient.
     inner: Mutex<HashSet<SessionId>>,
     // `SeqCst` is not needed as we don't require total ordering across all threads.
     len: AtomicUsize,
