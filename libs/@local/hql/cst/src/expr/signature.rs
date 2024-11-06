@@ -11,7 +11,7 @@ pub struct List<'arena, T> {
     pub span: SpanId,
 }
 
-impl<'arena, T> List<'arena, T> {
+impl<T> List<'_, T> {
     #[must_use]
     pub const fn len(&self) -> usize {
         self.items.len()

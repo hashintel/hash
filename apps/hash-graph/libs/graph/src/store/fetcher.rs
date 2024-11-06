@@ -238,7 +238,7 @@ enum FetchBehavior {
     ExcludeProvidedReferences,
 }
 
-impl<'t, S, A> FetchingStore<S, A>
+impl<S, A> FetchingStore<S, A>
 where
     A: ToSocketAddrs + Send + Sync,
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
