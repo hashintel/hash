@@ -988,20 +988,26 @@ where
             .get_entity_types_impl(actor_id, params, &temporal_axes)
             .await?;
 
+        let ids = (include_closed || include_resolved)
+            .then(|| {
+                response
+                    .entity_types
+                    .iter()
+                    .map(|entity_type| EntityTypeUuid::from_url(&entity_type.schema.id))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
         if include_closed {
-            let ids = response
-                .entity_types
-                .iter()
-                .map(|entity_type| EntityTypeUuid::from_url(&entity_type.schema.id))
-                .collect::<Vec<_>>();
             response.closed_entity_types = Some(self.get_closed_entity_types(&ids).await?);
-            if include_resolved {
-                response.definitions = Some(
-                    self.get_entity_type_resolve_definitions(actor_id, &ids)
-                        .await?,
-                );
-            }
-        };
+        }
+
+        if include_resolved {
+            response.definitions = Some(
+                self.get_entity_type_resolve_definitions(actor_id, &ids)
+                    .await?,
+            );
+        }
         Ok(response)
     }
 
