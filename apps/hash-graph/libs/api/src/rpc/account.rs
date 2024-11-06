@@ -32,7 +32,11 @@ use hash_graph_store::account::{
 use temporal_client::TemporalClient;
 
 use super::{role, session::Account};
-use crate::rest::PermissionResponse;
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct PermissionResponse {
+    pub has_permission: bool,
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 #[display("account {id} does not exist in the graph")]
