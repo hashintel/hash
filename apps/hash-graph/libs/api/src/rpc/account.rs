@@ -302,7 +302,7 @@ where
             return Err(Report::new(Forbidden {
                 service: request_info.service,
                 procedure: request_info.procedure,
-                reason: Cow::Borrowed("user is not authenticated"),
+                reason: Cow::Borrowed("user authentication required"),
             })
             .change_context(AccountError));
         };
