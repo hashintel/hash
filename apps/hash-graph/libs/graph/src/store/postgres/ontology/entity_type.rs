@@ -60,8 +60,8 @@ use crate::store::{
         EntityTypeResolveDefinitions, GetClosedMultiEntityTypeParams,
         GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams,
         GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
-        GetPropertyTypeSubgraphParams, PropertyTypeStore as _, UnarchiveEntityTypeParams,
-        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        GetPropertyTypeSubgraphParams, IncludeEntityTypeOption, PropertyTypeStore as _,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     postgres::{
         AsClient, PostgresStore, ResponseCountMap, TraversalContext,
@@ -473,10 +473,10 @@ where
                     None
                 },
                 entity_types,
-                closed_entity_types: params.include_closed.then(Vec::new),
-                definitions: params
-                    .include_resolved
-                    .then(EntityTypeResolveDefinitions::default),
+                closed_entity_types: params.include_entity_types.is_some().then(Vec::new),
+                definitions: (params.include_entity_types
+                    == Some(IncludeEntityTypeOption::Resolved))
+                .then(EntityTypeResolveDefinitions::default),
                 count,
                 web_ids,
                 edition_created_by_ids,
@@ -818,8 +818,7 @@ where
                 include_drafts: false,
                 after: None,
                 limit: None,
-                include_closed: false,
-                include_resolved: false,
+                include_entity_types: None,
                 include_count: false,
                 include_web_ids: false,
                 include_edition_created_by_ids: false,
@@ -971,8 +970,7 @@ where
         actor_id: AccountId,
         mut params: GetEntityTypesParams<'_>,
     ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
-        let include_closed = params.include_closed;
-        let include_resolved = params.include_resolved;
+        let include_entity_types = params.include_entity_types;
         params
             .filter
             .convert_parameters(&StoreProvider {
@@ -988,26 +986,23 @@ where
             .get_entity_types_impl(actor_id, params, &temporal_axes)
             .await?;
 
-        let ids = (include_closed || include_resolved)
-            .then(|| {
-                response
-                    .entity_types
-                    .iter()
-                    .map(|entity_type| EntityTypeUuid::from_url(&entity_type.schema.id))
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
+        if let Some(include_entity_types) = include_entity_types {
+            let ids = response
+                .entity_types
+                .iter()
+                .map(|entity_type| EntityTypeUuid::from_url(&entity_type.schema.id))
+                .collect::<Vec<_>>();
 
-        if include_closed {
             response.closed_entity_types = Some(self.get_closed_entity_types(&ids).await?);
+
+            if include_entity_types == IncludeEntityTypeOption::Resolved {
+                response.definitions = Some(
+                    self.get_entity_type_resolve_definitions(actor_id, &ids)
+                        .await?,
+                );
+            }
         }
 
-        if include_resolved {
-            response.definitions = Some(
-                self.get_entity_type_resolve_definitions(actor_id, &ids)
-                    .await?,
-            );
-        }
         Ok(response)
     }
 
@@ -1034,8 +1029,11 @@ where
                 after: None,
                 limit: None,
                 include_count: false,
-                include_closed: true,
-                include_resolved: params.include_resolved,
+                include_entity_types: Some(if params.include_resolved {
+                    IncludeEntityTypeOption::Resolved
+                } else {
+                    IncludeEntityTypeOption::Closed
+                }),
                 include_web_ids: false,
                 include_edition_created_by_ids: false,
             })
@@ -1092,8 +1090,7 @@ where
                     after: params.after,
                     limit: params.limit,
                     include_drafts: params.include_drafts,
-                    include_closed: false,
-                    include_resolved: false,
+                    include_entity_types: None,
                     include_count: params.include_count,
                     include_web_ids: params.include_web_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
@@ -1241,8 +1238,7 @@ where
                 include_drafts: false,
                 after: None,
                 limit: None,
-                include_closed: false,
-                include_resolved: false,
+                include_entity_types: None,
                 include_count: false,
                 include_web_ids: false,
                 include_edition_created_by_ids: false,

@@ -340,13 +340,19 @@ pub struct GetEntityTypesParams<'p> {
     #[serde(default)]
     pub include_count: bool,
     #[serde(default)]
-    pub include_closed: bool,
-    #[serde(default)]
-    pub include_resolved: bool,
+    pub include_entity_types: Option<IncludeEntityTypeOption>,
     #[serde(default)]
     pub include_web_ids: bool,
     #[serde(default)]
     pub include_edition_created_by_ids: bool,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum IncludeEntityTypeOption {
+    Closed,
+    Resolved,
 }
 
 #[derive(Debug, Default, Serialize)]

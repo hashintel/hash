@@ -33,7 +33,8 @@ use graph::{
             ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeResolveDefinitions,
             EntityTypeStore as _, GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
             GetEntityTypeSubgraphParams, GetEntityTypesParams, GetEntityTypesResponse,
-            UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+            IncludeEntityTypeOption, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+            UpdateEntityTypesParams,
         },
     },
 };
@@ -106,6 +107,7 @@ use crate::rest::{
             GetEntityTypesParams,
             GetEntityTypesResponse,
             GetClosedMultiEntityTypeParams,
+            IncludeEntityTypeOption,
             GetClosedMultiEntityTypeResponse,
             EntityTypeResolveDefinitions,
             GetEntityTypeSubgraphParams,

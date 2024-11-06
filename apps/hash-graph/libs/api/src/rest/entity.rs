@@ -31,7 +31,7 @@ use graph::store::{
         GetEntitySubgraphParams, PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams,
         ValidateEntityParams,
     },
-    ontology::EntityTypeResolveDefinitions,
+    ontology::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
 };
 use graph_types::{
     Embedding,
@@ -541,9 +541,7 @@ struct GetEntitiesRequest<'q, 's, 'p> {
     #[serde(default)]
     include_count: bool,
     #[serde(default)]
-    include_resolved: bool,
-    #[serde(default)]
-    include_closed_multi_entity_types: bool,
+    include_entity_types: Option<IncludeEntityTypeOption>,
     #[serde(default)]
     include_web_ids: bool,
     #[serde(default)]
@@ -616,8 +614,7 @@ where
             conversions: request.conversions,
             include_drafts: request.include_drafts,
             include_count: request.include_count,
-            include_resolved: request.include_resolved,
-            include_closed_multi_entity_types: request.include_closed_multi_entity_types,
+            include_entity_types: request.include_entity_types,
             temporal_axes: request.temporal_axes,
             include_web_ids: request.include_web_ids,
             include_created_by_ids: request.include_created_by_ids,
@@ -663,9 +660,7 @@ struct GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(default)]
     include_count: bool,
     #[serde(default)]
-    include_closed_multi_entity_types: bool,
-    #[serde(default)]
-    include_resolved: bool,
+    include_entity_types: Option<IncludeEntityTypeOption>,
     #[serde(default)]
     include_web_ids: bool,
     #[serde(default)]
@@ -766,8 +761,7 @@ where
             graph_resolve_depths: request.graph_resolve_depths,
             include_drafts: request.include_drafts,
             include_count: request.include_count,
-            include_resolved: request.include_resolved,
-            include_closed_multi_entity_types: request.include_closed_multi_entity_types,
+            include_entity_types: request.include_entity_types,
             temporal_axes: request.temporal_axes,
             include_web_ids: request.include_web_ids,
             include_created_by_ids: request.include_created_by_ids,

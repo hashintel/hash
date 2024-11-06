@@ -34,7 +34,9 @@ use utoipa::{
 use validation::ValidateEntityComponents;
 
 use crate::store::{
-    NullOrdering, Ordering, crud::Sorting, ontology::EntityTypeResolveDefinitions,
+    NullOrdering, Ordering,
+    crud::Sorting,
+    ontology::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     postgres::CursorField,
 };
 
@@ -228,8 +230,7 @@ pub struct GetEntitiesParams<'a> {
     pub limit: Option<usize>,
     pub include_drafts: bool,
     pub include_count: bool,
-    pub include_resolved: bool,
-    pub include_closed_multi_entity_types: bool,
+    pub include_entity_types: Option<IncludeEntityTypeOption>,
     pub include_web_ids: bool,
     pub include_created_by_ids: bool,
     pub include_edition_created_by_ids: bool,
@@ -283,8 +284,7 @@ pub struct GetEntitySubgraphParams<'a> {
     pub conversions: Vec<QueryConversion<'a>>,
     pub include_drafts: bool,
     pub include_count: bool,
-    pub include_resolved: bool,
-    pub include_closed_multi_entity_types: bool,
+    pub include_entity_types: Option<IncludeEntityTypeOption>,
     pub include_web_ids: bool,
     pub include_created_by_ids: bool,
     pub include_edition_created_by_ids: bool,

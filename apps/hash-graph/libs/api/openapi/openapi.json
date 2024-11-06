@@ -5313,9 +5313,6 @@
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
-          "includeClosedMultiEntityTypes": {
-            "type": "boolean"
-          },
           "includeCount": {
             "type": "boolean"
           },
@@ -5328,8 +5325,13 @@
           "includeEditionCreatedByIds": {
             "type": "boolean"
           },
-          "includeResolved": {
-            "type": "boolean"
+          "includeEntityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+              }
+            ],
+            "nullable": true
           },
           "includeTypeIds": {
             "type": "boolean"
@@ -5452,9 +5454,6 @@
           "graphResolveDepths": {
             "$ref": "#/components/schemas/GraphResolveDepths"
           },
-          "includeClosedMultiEntityTypes": {
-            "type": "boolean"
-          },
           "includeCount": {
             "type": "boolean"
           },
@@ -5467,8 +5466,13 @@
           "includeEditionCreatedByIds": {
             "type": "boolean"
           },
-          "includeResolved": {
-            "type": "boolean"
+          "includeEntityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+              }
+            ],
+            "nullable": true
           },
           "includeTypeIds": {
             "type": "boolean"
@@ -5662,9 +5666,6 @@
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
-          "includeClosed": {
-            "type": "boolean"
-          },
           "includeCount": {
             "type": "boolean"
           },
@@ -5674,8 +5675,13 @@
           "includeEditionCreatedByIds": {
             "type": "boolean"
           },
-          "includeResolved": {
-            "type": "boolean"
+          "includeEntityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+              }
+            ],
+            "nullable": true
           },
           "includeWebIds": {
             "type": "boolean"
@@ -5922,6 +5928,13 @@
           }
         },
         "additionalProperties": false
+      },
+      "IncludeEntityTypeOption": {
+        "type": "string",
+        "enum": [
+          "closed",
+          "resolved"
+        ]
       },
       "InferredEntityProvenance": {
         "type": "object",

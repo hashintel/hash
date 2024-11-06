@@ -78,6 +78,7 @@ use crate::store::{
         GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
         UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
     },
+    ontology::IncludeEntityTypeOption,
     postgres::{
         ResponseCountMap, TraversalContext,
         knowledge::entity::read::EntityEdgeTraversalData,
@@ -100,8 +101,7 @@ struct GetEntitiesImplParams<'a> {
     limit: Option<usize>,
     include_drafts: bool,
     include_count: bool,
-    include_closed_multi_entity_types: bool,
-    include_resolved: bool,
+    include_entity_types: Option<IncludeEntityTypeOption>,
     include_web_ids: bool,
     include_created_by_ids: bool,
     include_edition_created_by_ids: bool,
@@ -680,7 +680,7 @@ where
                     clippy::if_then_some_else_none,
                     reason = "False positive, use of `await`"
                 )]
-                closed_multi_entity_types: if params.include_closed_multi_entity_types {
+                closed_multi_entity_types: if params.include_entity_types.is_some() {
                     Some(
                         self.resolve_closed_multi_entity_types(
                             root_entities.iter().map(|(entity, _)| entity),
@@ -694,7 +694,9 @@ where
                     clippy::if_then_some_else_none,
                     reason = "False positive, use of `await`"
                 )]
-                definitions: if params.include_resolved {
+                definitions: if params.include_entity_types
+                    == Some(IncludeEntityTypeOption::Resolved)
+                {
                     let entity_type_uuids = root_entities
                         .iter()
                         .flat_map(|(entity, _)| {
@@ -1236,8 +1238,7 @@ where
                     limit: params.limit,
                     include_drafts: params.include_drafts,
                     include_count: params.include_count,
-                    include_resolved: params.include_resolved,
-                    include_closed_multi_entity_types: params.include_closed_multi_entity_types,
+                    include_entity_types: None,
                     include_web_ids: params.include_web_ids,
                     include_created_by_ids: params.include_created_by_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
@@ -1307,8 +1308,7 @@ where
                     limit: params.limit,
                     include_drafts: params.include_drafts,
                     include_count: false,
-                    include_closed_multi_entity_types: params.include_closed_multi_entity_types,
-                    include_resolved: params.include_resolved,
+                    include_entity_types: None,
                     include_web_ids: params.include_web_ids,
                     include_created_by_ids: params.include_created_by_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,

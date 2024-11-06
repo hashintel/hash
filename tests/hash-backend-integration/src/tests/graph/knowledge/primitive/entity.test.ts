@@ -301,8 +301,7 @@ describe("Entity CRU", () => {
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
-        includeResolved: true,
-        includeClosedMultiEntityTypes: true,
+        includeEntityTypes: "resolved",
       },
     );
 

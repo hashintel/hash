@@ -210,7 +210,7 @@ export const getEntityTypeSubgraph: ImpureGraphFunction<
 };
 
 export const getEntityTypes: ImpureGraphFunction<
-  Omit<GetEntityTypesParams, "includeDrafts" | "includeClosed"> & {
+  Omit<GetEntityTypesParams, "includeDrafts" | "includeEntityTypes"> & {
     temporalClient?: TemporalClient;
   },
   Promise<EntityTypeWithMetadata[]>
@@ -220,7 +220,6 @@ export const getEntityTypes: ImpureGraphFunction<
   return await graphApi
     .getEntityTypes(actorId, {
       includeDrafts: false,
-      includeClosed: false,
       ...request,
     })
     .then(({ data: response }) =>
@@ -229,7 +228,7 @@ export const getEntityTypes: ImpureGraphFunction<
 };
 
 export const getClosedEntityTypes: ImpureGraphFunction<
-  Omit<GetEntityTypesParams, "includeDrafts" | "includeClosed"> & {
+  Omit<GetEntityTypesParams, "includeDrafts" | "includeEntityTypes"> & {
     temporalClient?: TemporalClient;
   },
   Promise<ClosedEntityTypeWithMetadata[]>
@@ -238,7 +237,7 @@ export const getClosedEntityTypes: ImpureGraphFunction<
 
   const { data: response } = await graphApi.getEntityTypes(actorId, {
     includeDrafts: false,
-    includeClosed: true,
+    includeEntityTypes: "closed",
     ...request,
   });
   const entityTypes = mapGraphApiEntityTypesToEntityTypes(response.entityTypes);
