@@ -105,9 +105,11 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
             <EntityOrTypeIcon
               entity={null}
               icon={icon}
-              isLink={isLink}
+              isLink={!!isLink}
               fontSize={16}
-              fill={({ palette }) => palette.gray[50]}
+              fill={({ palette }) =>
+                variant === "entity-type" ? palette.blue[70] : palette.gray[50]
+              }
             />
           </Box>
           {title}

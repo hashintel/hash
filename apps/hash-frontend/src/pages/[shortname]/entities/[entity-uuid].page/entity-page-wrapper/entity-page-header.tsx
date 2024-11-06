@@ -85,6 +85,7 @@ export const EntityPageHeader = ({
               <EntityOrTypeIcon
                 entity={entity ?? null}
                 icon={entityTypes[0]?.schema.icon}
+                isLink={!!entity?.linkData}
                 fill={({ palette }) => palette.gray[50]}
                 fontSize="inherit"
               />
@@ -129,6 +130,7 @@ export const EntityPageHeader = ({
               entity={entity ?? null}
               fill={({ palette }) => palette.gray[50]}
               icon={entityTypes[0]?.schema.icon}
+              isLink={!!entity?.linkData}
               fontSize={40}
             />
             <Typography variant="h1" fontWeight="bold" sx={{ lineHeight: 1 }}>

@@ -14,6 +14,7 @@ interface TypeCardProps {
   onDelete?: () => void;
   LinkComponent?: ElementType;
   icon?: string | null;
+  isLink: boolean;
   url: string;
   title: string;
   version: number;
@@ -28,6 +29,7 @@ export const TypeCard = ({
   onDelete,
   LinkComponent,
   icon,
+  isLink,
   url,
   title,
   version,
@@ -63,7 +65,8 @@ export const TypeCard = ({
         <EntityOrTypeIcon
           entity={null}
           fontSize={14}
-          fill={({ palette }) => palette.gray[50]}
+          fill={({ palette }) => palette.blue[70]}
+          isLink={isLink}
           icon={icon}
         />
         <Typography variant="smallTextLabels" fontWeight={600} ml={1}>

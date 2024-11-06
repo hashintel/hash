@@ -257,7 +257,9 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           <EntityOrTypeIcon
             entity={entity ?? null}
             icon={entityIcon}
+            fill={({ palette }) => palette.gray[50]}
             fontSize={12}
+            isLink={!!entity?.linkData}
           />
         </Box>
       )}

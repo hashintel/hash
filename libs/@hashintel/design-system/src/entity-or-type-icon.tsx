@@ -19,7 +19,7 @@ export const EntityOrTypeIcon = ({
   fill?: string | ((theme: Theme) => string);
   fontSize: number | string;
   icon?: string | ReactElement | null;
-  isLink?: boolean;
+  isLink: boolean;
   sx?: SxProps<Theme>;
 }) => {
   if (!icon) {
@@ -64,7 +64,7 @@ export const EntityOrTypeIcon = ({
         sx={[
           {
             backgroundColor: fill ?? "inherit",
-            "-webkit-mask": `url(${iconUrl}) no-repeat center / contain`,
+            webkitMask: `url(${iconUrl}) no-repeat center / contain`,
             mask: `url(${iconUrl}) no-repeat center / contain`,
             width: fontSize,
             height: fontSize,

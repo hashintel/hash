@@ -114,9 +114,13 @@ export const SelectorAutocompleteOption = ({
                   typeof icon === "string" || !icon ? (
                     <EntityOrTypeIcon
                       entity={null}
-                      fill={({ palette }) => palette.gray[50]}
+                      fill={({ palette }) =>
+                        entityProperties ? palette.gray[50] : palette.blue[70]
+                      }
                       fontSize={12}
                       icon={icon}
+                      /* @todo H-3363 set this using closed schema */
+                      isLink={false}
                     />
                   ) : (
                     icon
@@ -166,9 +170,13 @@ export const SelectorAutocompleteOption = ({
                   {typeof icon === "string" || !icon ? (
                     <EntityOrTypeIcon
                       entity={null}
-                      fill={({ palette }) => palette.gray[50]}
+                      fill={({ palette }) =>
+                        entityProperties ? palette.gray[50] : palette.blue[70]
+                      }
                       fontSize={12}
                       icon={icon}
+                      /* @todo H-3363 set this using closed schema */
+                      isLink={false}
                     />
                   ) : (
                     icon
@@ -210,7 +218,9 @@ export const SelectorAutocompleteOption = ({
                         entity={null}
                         icon={type.icon}
                         fontSize={12}
-                        fill={({ palette }) => palette.gray[50]}
+                        fill={({ palette }) => palette.blue[70]}
+                        /* @todo H-3363 set this using closed schema */
+                        isLink={false}
                         sx={{ mr: 0.8 }}
                       />
                       {type.title}

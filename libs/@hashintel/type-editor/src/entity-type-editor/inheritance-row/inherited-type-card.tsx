@@ -4,6 +4,8 @@ import {
   extractVersion,
 } from "@blockprotocol/type-system/slim";
 import { TypeCard } from "@hashintel/design-system";
+// eslint-disable-next-line import/no-extraneous-dependencies -- TODO remove this dependency to make publishable
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
@@ -52,9 +54,13 @@ export const InheritedTypeCard = ({
     );
   };
 
+  /** @todo H-3363 take account of inheritance by using closed schema */
+  const isLink = directParentEntityTypeIds.includes(linkEntityTypeUrl);
+
   return (
     <TypeCard
       onDelete={isReadOnly ? undefined : onRemove}
+      isLink={isLink}
       LinkComponent={Link}
       newVersionConfig={
         !isReadOnly && newVersion

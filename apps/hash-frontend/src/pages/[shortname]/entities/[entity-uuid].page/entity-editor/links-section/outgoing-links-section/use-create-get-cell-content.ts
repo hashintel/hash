@@ -1,5 +1,7 @@
 import type { Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 
 import type { ChipCell } from "../../../../../../shared/chip-cell";
@@ -12,6 +14,8 @@ import type { LinkRow } from "./types";
 
 export const useCreateGetCellContent = () => {
   const { readonly } = useEntityEditor();
+
+  const theme = useTheme();
 
   const createGetCellContent = useCallback(
     (rows: LinkRow[]) =>
@@ -77,7 +81,17 @@ export const useCreateGetCellContent = () => {
                       text: schema.title,
                       icon: schema.icon
                         ? { entityTypeIcon: schema.icon }
-                        : { inbuiltIcon: "bpAsterisk" },
+                        : {
+                            /**
+                             * @todo H-3363 use closed schema to take account of indirect inheritance links
+                             */
+                            inbuiltIcon: schema.allOf?.some(
+                              (allOf) => allOf.$ref === linkEntityTypeUrl,
+                            )
+                              ? "bpLink"
+                              : "bpAsterisk",
+                          },
+                      iconFill: theme.palette.blue[70],
                     })),
                 color: expectsAnything ? "blue" : "white",
               },
@@ -85,7 +99,7 @@ export const useCreateGetCellContent = () => {
           }
         }
       },
-    [readonly],
+    [readonly, theme],
   );
 
   return createGetCellContent;

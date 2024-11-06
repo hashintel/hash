@@ -10,6 +10,7 @@ import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { SxProps, Theme } from "@mui/material";
 import {
@@ -286,6 +287,14 @@ const EntitiesPage: NextPageWithLayout = () => {
             fill={({ palette }) => palette.gray[50]}
             fontSize="inherit"
             icon={entityType.schema.icon}
+            isLink={
+              /**
+               * @todo H-3363 use closed schema to take account of indirectly inherited link status
+               */
+              !!entityType.schema.allOf?.some(
+                (allOf) => allOf.$ref === linkEntityTypeUrl,
+              )
+            }
           />
         ),
       });
@@ -321,6 +330,14 @@ const EntitiesPage: NextPageWithLayout = () => {
                   fill={({ palette }) => palette.gray[70]}
                   fontSize={40}
                   icon={entityType?.schema.icon}
+                  isLink={
+                    /**
+                     * @todo H-3363 use closed schema to take account of indirectly inherited link status
+                     */
+                    !!entityType?.schema.allOf?.some(
+                      (allOf) => allOf.$ref === linkEntityTypeUrl,
+                    )
+                  }
                 />
               )}
               <Typography variant="h1" fontWeight="bold" my={3}>

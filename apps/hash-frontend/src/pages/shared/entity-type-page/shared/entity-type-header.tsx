@@ -96,7 +96,7 @@ export const EntityTypeHeader = ({
                     <Box
                       sx={({ palette }) => ({
                         backgroundColor: palette.gray[50],
-                        "-webkit-mask": `url(${iconImgUrl}) no-repeat center / contain`,
+                        webkitMask: `url(${iconImgUrl}) no-repeat center / contain`,
                         mask: `url(${iconImgUrl}) no-repeat center / contain`,
                         width: 40,
                         height: 40,

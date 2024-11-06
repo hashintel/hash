@@ -18,6 +18,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
+  linkEntityTypeUrl,
   extractOwnedByIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
@@ -429,6 +430,12 @@ const EditEntitySlideOver = memo(
                 <EntityOrTypeIcon
                   entity={entity}
                   icon={entityTypes[0]?.schema.icon}
+                  // @todo H-3363 use closed schema to take account of indirectly inherited link status
+                  isLink={
+                    !!entityTypes[0]?.schema.allOf?.some(
+                      (allOf) => allOf.$ref === linkEntityTypeUrl,
+                    )
+                  }
                   fill={({ palette }) => palette.gray[50]}
                   fontSize={40}
                 />

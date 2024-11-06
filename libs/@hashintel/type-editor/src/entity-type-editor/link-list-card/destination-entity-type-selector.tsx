@@ -1,6 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
-  EntityTypeIcon,
   popperPlacementInputNoRadius,
   popperPlacementPopperNoRadius,
   popperPlacementSelectors,

@@ -6,7 +6,10 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import {
+  extractEntityUuidFromEntityId,
+  linkEntityTypeUrl,
+} from "@local/hash-subgraph";
 import {
   Box,
   Divider,
@@ -79,7 +82,15 @@ const EntityRow: FunctionComponent<{
             entity={null}
             icon={entityType?.schema.icon}
             fontSize={14}
-            fill={({ palette }) => palette.gray[50]}
+            fill={({ palette }) => palette.blue[70]}
+            isLink={
+              /**
+               * @todo H-3363 use closed schema to take account of indirectly inherited link status
+               */
+              !!entityType?.schema.allOf?.some(
+                (allOf) => allOf.$ref === linkEntityTypeUrl,
+              )
+            }
           />
           <Typography component="h2" sx={{ fontWeight: 700, fontSize: 14 }}>
             {label}

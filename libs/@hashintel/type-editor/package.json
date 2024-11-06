@@ -25,6 +25,7 @@
     "@fortawesome/free-regular-svg-icons": "6.6.0",
     "@fortawesome/free-solid-svg-icons": "6.6.0",
     "@hashintel/design-system": "0.0.8",
+    "@local/hash-subgraph": "0.0.0-private",
     "clsx": "1.2.1",
     "lodash.memoize": "4.1.2",
     "lodash.uniqueid": "4.0.1",

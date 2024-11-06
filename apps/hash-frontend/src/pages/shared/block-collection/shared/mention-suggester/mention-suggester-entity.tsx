@@ -132,7 +132,13 @@ export const MentionSuggesterEntity = forwardRef<
       <>
         <ListItemButton ref={buttonRef} {...listItemButtonProps}>
           <ListItemIcon sx={{ minWidth: "unset" }}>
-            <EntityOrTypeIcon entity={entity} fontSize={14} icon={entityIcon} />
+            <EntityOrTypeIcon
+              entity={entity}
+              fontSize={14}
+              isLink={!!entity.linkData}
+              icon={entityIcon}
+              fill={({ palette }) => palette.gray[50]}
+            />
           </ListItemIcon>
           <ListItemPrimaryText>
             {generateEntityLabel(entitiesSubgraph, entity)}

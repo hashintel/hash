@@ -286,7 +286,7 @@ export const EntityTypePage = ({
                     icon: (
                       <EntityOrTypeIcon
                         entity={null}
-                        fill={({ palette }) => palette.gray[50]}
+                        fill={({ palette }) => palette.blue[70]}
                         fontSize={24}
                         icon={icon}
                         isLink={isLink}

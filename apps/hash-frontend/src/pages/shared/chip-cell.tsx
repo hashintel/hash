@@ -22,6 +22,7 @@ export interface ChipCellProps {
   chips: {
     text: string;
     icon?: DrawChipWithIconProps["icon"];
+    iconFill?: DrawChipWithIconProps["iconFill"];
     onClick?: () => void;
     faIconDefinition?: Pick<IconDefinition, "icon">;
   }[];
@@ -91,7 +92,7 @@ export const createRenderChipCell = (params?: {
     const interactables: Interactable[] = [];
 
     for (let i = 0; i < chips.length; i++) {
-      const { icon, text = "", onClick } = chips[i] ?? {};
+      const { icon, iconFill, text = "", onClick } = chips[i] ?? {};
 
       const { width, height, top } = drawChipWithIcon({
         args,
@@ -99,6 +100,7 @@ export const createRenderChipCell = (params?: {
         text,
         left: chipLeft,
         icon,
+        iconFill,
         variant,
       });
 

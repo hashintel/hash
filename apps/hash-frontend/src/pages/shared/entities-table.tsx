@@ -367,7 +367,12 @@ export const EntitiesTable: FunctionComponent<{
                     text: row.entityLabel,
                     icon: row.entityIcon
                       ? { entityTypeIcon: row.entityIcon }
-                      : { inbuiltIcon: "bpAsterisk" },
+                      : {
+                          inbuiltIcon: row.sourceEntity
+                            ? "bpLink"
+                            : "bpAsterisk",
+                        },
+                    iconFill: theme.palette.gray[50],
                     onClick: () => {
                       if (isViewingOnlyPages) {
                         void router.push(
@@ -398,7 +403,8 @@ export const EntitiesTable: FunctionComponent<{
                   text: value.title,
                   icon: value.icon
                     ? { entityTypeIcon: value.icon }
-                    : { inbuiltIcon: "bpAsterisk" },
+                    : { inbuiltIcon: value.isLink ? "bpLink" : "bpAsterisk" },
+                  iconFill: theme.palette.blue[70],
                   onClick: disableTypeClick
                     ? undefined
                     : () => {
@@ -461,7 +467,10 @@ export const EntitiesTable: FunctionComponent<{
                   {
                     icon: entity.icon
                       ? { entityTypeIcon: entity.icon }
-                      : { inbuiltIcon: "bpAsterisk" },
+                      : {
+                          inbuiltIcon: entity.isLink ? "bpLink" : "bpAsterisk",
+                        },
+                    iconFill: theme.palette.gray[50],
                     text: entity.label,
                     onClick: () => {
                       handleEntityClick(entity.entityId);

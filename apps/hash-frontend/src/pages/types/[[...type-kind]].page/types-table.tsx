@@ -331,6 +331,8 @@ export const TypesTable: FunctionComponent<{
     });
   }, []);
 
+  const theme = useTheme();
+
   const createGetCellContent = useCallback(
     (rows: TypesTableRow[]) =>
       ([colIndex, rowIndex]: Item): TextCell | TextIconCell | ChipCell => {
@@ -361,11 +363,17 @@ export const TypesTable: FunctionComponent<{
                     {
                       icon: row.icon
                         ? { entityTypeIcon: row.icon }
-                        : { inbuiltIcon: "bpAsterisk" },
+                        : {
+                            inbuiltIcon:
+                              row.kind === "link-type"
+                                ? "bpLink"
+                                : "bpAsterisk",
+                          },
                       text: row.title,
                       onClick: () => {
                         setSelectedEntityType({ entityTypeId: row.typeId });
                       },
+                      iconFill: theme.palette.blue[70],
                     },
                   ],
                   color: "white",
@@ -471,10 +479,8 @@ export const TypesTable: FunctionComponent<{
           }
         }
       },
-    [typesTableColumns, router],
+    [typesTableColumns, router, theme],
   );
-
-  const theme = useTheme();
 
   const maxTableHeight = `calc(100vh - (${
     HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
