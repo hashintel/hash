@@ -1,7 +1,7 @@
 #![feature(never_type, marker_trait_attr)]
 
 use harpc_types::{
-    service::{ServiceDescriptor, ServiceId},
+    subsystem::{SubsystemDescriptor, SubsystemId},
     version::Version,
 };
 
@@ -12,18 +12,20 @@ pub mod metadata;
 pub mod procedure;
 pub mod role;
 
+pub trait SubsystemIdentifier {}
+
 pub trait Subsystem {
-    type ProcedureId: ProcedureIdentifier<Service = Self>;
+    type ProcedureId: ProcedureIdentifier<Subsystem = Self>;
     /// Heterogeneous list of procedures that are part of this service, used for type-level
     /// validation.
     type Procedures;
 
-    const ID: ServiceId;
+    const ID: SubsystemId;
     const VERSION: Version;
 
     #[must_use]
-    fn descriptor() -> ServiceDescriptor {
-        ServiceDescriptor {
+    fn descriptor() -> SubsystemDescriptor {
+        SubsystemDescriptor {
             id: Self::ID,
             version: Self::VERSION,
         }

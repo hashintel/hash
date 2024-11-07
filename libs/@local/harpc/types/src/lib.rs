@@ -3,5 +3,5 @@
 pub mod error_code;
 pub mod procedure;
 pub mod response_kind;
-pub mod service;
+pub mod subsystem;
 pub mod version;

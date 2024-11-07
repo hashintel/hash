@@ -23,7 +23,7 @@ use harpc_server::{
     session::Session,
     utils::{delegate_call_discrete, parse_procedure_id},
 };
-use harpc_service::{delegate::ServiceDelegate, role::Role};
+use harpc_service::{delegate::SubsystemDelegate, role::Role};
 use harpc_tower::{body::Body, either::Either, request::Request, response::Response};
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use hash_graph_store::account::{
@@ -103,7 +103,7 @@ pub mod meta {
         metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+    use harpc_types::{procedure::ProcedureId, subsystem::SubsystemId, version::Version};
 
     pub enum AccountProcedureId {
         CreateAccount,
@@ -114,7 +114,7 @@ pub mod meta {
     }
 
     impl ProcedureIdentifier for AccountProcedureId {
-        type Service = AccountSystem;
+        type Subsystem = AccountSystem;
 
         fn from_id(id: ProcedureId) -> Option<Self> {
             match id.value() {
@@ -150,7 +150,7 @@ pub mod meta {
             ProcedureRemoveAccountGroupMember
         ];
 
-        const ID: ServiceId = ServiceId::new(0x01);
+        const ID: SubsystemId = SubsystemId::new(0x01);
         const VERSION: Version = Version {
             major: 0x00,
             minor: 0x00,
@@ -305,7 +305,7 @@ where
             let request_info = session.request_info();
 
             return Err(Report::new(Forbidden {
-                service: request_info.service,
+                subsystem: request_info.subsystem,
                 procedure: request_info.procedure,
                 reason: Cow::Borrowed("user authentication required"),
             })
@@ -435,7 +435,7 @@ where
 
         if !check.has_permission {
             return Err(Report::new(Forbidden {
-                service: session.request_info().service,
+                subsystem: session.request_info().subsystem,
                 procedure: session.request_info().procedure,
                 reason: Cow::Borrowed("actor does not have permission to add account group member"),
             })
@@ -489,7 +489,7 @@ where
             let request_info = session.request_info();
 
             return Err(Report::new(Forbidden {
-                service: request_info.service,
+                subsystem: request_info.subsystem,
                 procedure: request_info.procedure,
                 reason: Cow::Borrowed(
                     "actor does not have permission to remove account group member",
@@ -528,7 +528,7 @@ impl<T> AccountDelegate<T> {
     }
 }
 
-impl<T, C> ServiceDelegate<Session<Account>, C> for AccountDelegate<T>
+impl<T, C> SubsystemDelegate<Session<Account>, C> for AccountDelegate<T>
 where
     T: AccountSystem<
             role::Server,
@@ -541,7 +541,7 @@ where
     C: Encoder + ReportDecoder + Clone + Send,
 {
     type Error = Report<DelegationError>;
-    type Service = meta::AccountSystem;
+    type Subsystem = meta::AccountSystem;
 
     type Body<Source>
         = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>

@@ -9,14 +9,14 @@ use harpc_tower::{
     request::Request,
     response::{Parts, Response},
 };
-use harpc_types::{response_kind::ResponseKind, service::ServiceId, version::Version};
+use harpc_types::{response_kind::ResponseKind, subsystem::SubsystemId, version::Version};
 use tower::{Service, ServiceExt as _, util::Oneshot};
 
-use crate::error::ServiceNotFound;
+use crate::error::SubsystemNotFound;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Handler<S> {
-    service: ServiceId,
+    subsystem: SubsystemId,
     version: Version,
 
     inner: S,
@@ -28,7 +28,7 @@ impl<S> Handler<S> {
         Svc: harpc_service::Subsystem,
     {
         Self {
-            service: Svc::ID,
+            subsystem: Svc::ID,
             version: Svc::VERSION,
 
             inner,
@@ -104,8 +104,8 @@ where
     {
         let requirement = self.head.version.into_requirement();
 
-        if self.head.service == request.service().id
-            && requirement.compatible(request.service().version)
+        if self.head.subsystem == request.subsystem().id
+            && requirement.compatible(request.subsystem().version)
         {
             let service = self.head.inner.clone();
 
@@ -132,8 +132,8 @@ impl<ReqBody> Route<ReqBody> for HNil {
     where
         ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
     {
-        let error = ServiceNotFound {
-            service: request.service(),
+        let error = SubsystemNotFound {
+            subsystem: request.subsystem(),
         };
 
         let session = request.session();

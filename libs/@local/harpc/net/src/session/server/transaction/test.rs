@@ -12,7 +12,7 @@ use harpc_types::{
     error_code::ErrorCode,
     procedure::{ProcedureDescriptor, ProcedureId},
     response_kind::ResponseKind,
-    service::{ServiceDescriptor, ServiceId},
+    subsystem::{SubsystemDescriptor, SubsystemId},
     version::Version,
 };
 use harpc_wire_protocol::{
@@ -1271,8 +1271,8 @@ fn make_begin(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Requ
             request_id: mock_request_id(0x01),
         },
         body: RequestBody::Begin(RequestBegin {
-            service: ServiceDescriptor {
-                id: ServiceId::new(0x00),
+            subsystem: SubsystemDescriptor {
+                id: SubsystemId::new(0x00),
                 version: Version {
                     major: 0x00,
                     minor: 0x00,

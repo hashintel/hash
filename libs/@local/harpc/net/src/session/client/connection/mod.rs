@@ -8,7 +8,7 @@ use alloc::sync::Arc;
 use bytes::Bytes;
 use error_stack::Report;
 use futures::{Sink, Stream, StreamExt as _, prelude::future::FutureExt as _};
-use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use harpc_types::{procedure::ProcedureDescriptor, subsystem::SubsystemDescriptor};
 use harpc_wire_protocol::{request::Request, response::Response};
 use scc::ebr::Guard;
 use tachyonix::SendTimeoutError;
@@ -335,7 +335,7 @@ impl Connection {
     /// connection is currently in its process of being closed.
     pub async fn call(
         &self,
-        service: ServiceDescriptor,
+        subsystem: SubsystemDescriptor,
         procedure: ProcedureDescriptor,
         payload: impl Stream<Item = Bytes> + Send + 'static,
     ) -> Result<ResponseStream, Report<ConnectionPartiallyClosedError>> {
@@ -362,7 +362,7 @@ impl Connection {
         let task = TransactionTask {
             config: self.config,
             permit,
-            service,
+            subsystem,
             procedure,
             response_rx,
             response_tx: stream_tx,

@@ -12,7 +12,7 @@ use harpc_tower::{
     response::{self, Response},
 };
 use harpc_types::{
-    procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
+    procedure::ProcedureDescriptor, response_kind::ResponseKind, subsystem::SubsystemDescriptor,
 };
 
 use crate::error::{DelegationError, ProcedureNotFound, RequestExpectedItemCountMismatch};
@@ -34,9 +34,9 @@ where
 
     P::from_id(id)
         .ok_or(ProcedureNotFound {
-            service: ServiceDescriptor {
-                id: <P::Service as Subsystem>::ID,
-                version: <P::Service as Subsystem>::VERSION,
+            subsystem: SubsystemDescriptor {
+                id: <P::Subsystem as Subsystem>::ID,
+                version: <P::Subsystem as Subsystem>::VERSION,
             },
             procedure: id,
         })

@@ -23,7 +23,7 @@ use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
 use harpc_server::{Server, ServerConfig, router::RouterBuilder, serve::serve, session::SessionId};
 use harpc_service::{
     Subsystem,
-    delegate::ServiceDelegate,
+    delegate::SubsystemDelegate,
     metadata::Metadata,
     procedure::{Procedure, ProcedureIdentifier},
     role,
@@ -40,7 +40,7 @@ use harpc_tower::{
 use harpc_types::{
     procedure::{ProcedureDescriptor, ProcedureId},
     response_kind::ResponseKind,
-    service::{ServiceDescriptor, ServiceId},
+    subsystem::{SubsystemDescriptor, SubsystemId},
     version::Version,
 };
 use multiaddr::multiaddr;
@@ -52,7 +52,7 @@ enum AccountProcedureId {
 }
 
 impl ProcedureIdentifier for AccountProcedureId {
-    type Service = Account;
+    type Subsystem = Account;
 
     fn from_id(id: ProcedureId) -> Option<Self> {
         match id.value() {
@@ -74,7 +74,7 @@ impl Subsystem for Account {
     type ProcedureId = AccountProcedureId;
     type Procedures = HList![CreateAccount];
 
-    const ID: ServiceId = ServiceId::new(0);
+    const ID: SubsystemId = SubsystemId::new(0);
     const VERSION: Version = Version {
         major: 0x00,
         minor: 0x00,
@@ -124,7 +124,7 @@ enum AccountError {
     ExpectedResponse,
 }
 
-trait AccountService<R>
+trait AccountSystem<R>
 where
     R: role::Role,
 {
@@ -136,9 +136,9 @@ where
 }
 
 #[derive(Debug, Clone)]
-struct AccountServiceImpl;
+struct AccountSystemImpl;
 
-impl<S> AccountService<role::Server<S>> for AccountServiceImpl
+impl<S> AccountSystem<role::Server<S>> for AccountSystemImpl
 where
     S: Send + Sync,
 {
@@ -152,10 +152,10 @@ where
 }
 
 #[derive(Debug, Clone)]
-struct AccountServiceClient;
+struct AccountSystemClient;
 
 impl<Svc, St, C, DecoderError, EncoderError, ServiceError, ResData, ResError>
-    AccountService<role::Client<Connection<Svc, C>>> for AccountServiceClient
+    AccountSystem<role::Client<Connection<Svc, C>>> for AccountSystemClient
 where
     // TODO: I want to get rid of the boxed stream here, the problem is just that `Output` has `<Input>`
     // as a type parameter, therefore cannot parameterize over it, unless we box or duplicate the
@@ -220,7 +220,7 @@ where
             .map_ok(|bytes: Vec<_>| {
                 Request::from_parts(
                     request::Parts {
-                        service: ServiceDescriptor {
+                        subsystem: SubsystemDescriptor {
                             id: Account::ID,
                             version: Account::VERSION,
                         },
@@ -260,17 +260,17 @@ where
 
 #[derive(Debug, Clone)]
 struct AccountServerDelegate<T> {
-    service: T,
+    subsystem: T,
 }
 
-impl<T, S, C> ServiceDelegate<S, C> for AccountServerDelegate<T>
+impl<T, S, C> SubsystemDelegate<S, C> for AccountServerDelegate<T>
 where
-    T: AccountService<role::Server<S>> + Send + Sync,
+    T: AccountSystem<role::Server<S>> + Send + Sync,
     S: Send + Sync,
     C: Encoder<Error: Debug> + Decoder<Error: Debug> + Clone + Send + Sync + 'static,
 {
     type Error = Report<AccountError>;
-    type Service = Account;
+    type Subsystem = Account;
 
     type Body<Source>
         = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>
@@ -300,7 +300,7 @@ where
 
                 let payload = stream.next().await.unwrap().unwrap();
 
-                let account_id = self.service.create_account(&session, payload).await?;
+                let account_id = self.subsystem.create_account(&session, payload).await?;
                 let data = codec.encode(stream::iter([account_id]));
 
                 Ok(Response::from_ok(Parts::new(session_id), data))
@@ -320,7 +320,7 @@ async fn server() {
                 .layer(HandleBodyReportLayer::new())
         })
         .register(AccountServerDelegate {
-            service: AccountServiceImpl,
+            subsystem: AccountSystemImpl,
         });
 
     let task = router.background_task(server.events());
@@ -342,7 +342,7 @@ async fn client() {
     let client =
         Client::new(ClientConfig::default(), JsonCodec).expect("should be able to start service");
 
-    let service = AccountServiceClient;
+    let service = AccountSystemClient;
 
     let connection = client
         .connect(multiaddr![Ip4([127, 0, 0, 1]), Tcp(10500_u16)])

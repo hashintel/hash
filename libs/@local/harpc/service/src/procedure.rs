@@ -14,7 +14,7 @@ impl<Head, Tail> IncludesProcedure<Head> for HCons<Head, Tail> where Head: Proce
 impl<Head, Tail, P> IncludesProcedure<P> for HCons<Head, Tail> where Tail: IncludesProcedure<P> {}
 
 pub trait ProcedureIdentifier: Sized {
-    type Service: Subsystem;
+    type Subsystem: Subsystem;
 
     fn from_id(id: ProcedureId) -> Option<Self>;
     fn into_id(self) -> ProcedureId;

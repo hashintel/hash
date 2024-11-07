@@ -17,9 +17,9 @@ use crate::Subsystem;
 ///
 /// The caller must verify that the version and service of the incoming request match those of
 /// [`Self::Service`].
-pub trait ServiceDelegate<S, C> {
+pub trait SubsystemDelegate<S, C> {
     /// The inner service type that this delegate wraps.
-    type Service: Subsystem;
+    type Subsystem: Subsystem;
 
     type Error;
 

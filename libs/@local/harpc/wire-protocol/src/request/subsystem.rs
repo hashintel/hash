@@ -1,13 +1,13 @@
 use bytes::{Buf, BufMut};
 use error_stack::Report;
 use harpc_types::{
-    service::{ServiceDescriptor, ServiceId},
+    subsystem::{SubsystemDescriptor, SubsystemId},
     version::Version,
 };
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
 
-impl Encode for ServiceDescriptor {
+impl Encode for SubsystemDescriptor {
     type Error = BufferError;
 
     fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
@@ -21,7 +21,7 @@ impl Encode for ServiceDescriptor {
     }
 }
 
-impl Decode for ServiceDescriptor {
+impl Decode for SubsystemDescriptor {
     type Context = ();
     type Error = BufferError;
 
@@ -29,7 +29,7 @@ impl Decode for ServiceDescriptor {
     where
         B: Buf,
     {
-        let id = ServiceId::decode(buffer, ())?;
+        let id = SubsystemId::decode(buffer, ())?;
         let version = Version::decode(buffer, ())?;
 
         Ok(Self { id, version })
@@ -40,24 +40,24 @@ impl Decode for ServiceDescriptor {
 mod test {
     #![expect(clippy::needless_raw_strings)]
     use expect_test::expect;
-    use harpc_types::{service::ServiceId, version::Version};
+    use harpc_types::{subsystem::SubsystemId, version::Version};
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
-        request::service::ServiceDescriptor,
+        request::subsystem::SubsystemDescriptor,
     };
 
     #[test]
     fn encode() {
-        let service = ServiceDescriptor {
-            id: ServiceId::new(0x01_02),
+        let subsystem = SubsystemDescriptor {
+            id: SubsystemId::new(0x01_02),
             version: Version {
                 major: 0x03,
                 minor: 0x04,
             },
         };
 
-        assert_encode(&service, expect![[r#"
+        assert_encode(&subsystem, expect![[r#"
                 0x01 0x02 0x03 0x04
             "#]]);
     }
@@ -66,8 +66,8 @@ mod test {
     fn decode() {
         assert_decode(
             &[0x12_u8, 0x34, 0x56, 0x78] as &[_],
-            &ServiceDescriptor {
-                id: ServiceId::new(0x12_34),
+            &SubsystemDescriptor {
+                id: SubsystemId::new(0x12_34),
                 version: Version {
                     major: 0x56,
                     minor: 0x78,
@@ -79,7 +79,7 @@ mod test {
 
     #[test_strategy::proptest]
     #[cfg_attr(miri, ignore)]
-    fn encode_decode(service: ServiceDescriptor) {
-        assert_codec(&service, ());
+    fn encode_decode(subsystem: SubsystemDescriptor) {
+        assert_codec(&subsystem, ());
     }
 }

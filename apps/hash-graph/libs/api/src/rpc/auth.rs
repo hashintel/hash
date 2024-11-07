@@ -9,7 +9,7 @@ use harpc_server::{
     session::Session,
     utils::{delegate_call_discrete, parse_procedure_id},
 };
-use harpc_service::delegate::ServiceDelegate;
+use harpc_service::delegate::SubsystemDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_types::response_kind::ResponseKind;
 
@@ -41,14 +41,14 @@ pub mod meta {
         metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+    use harpc_types::{procedure::ProcedureId, subsystem::SubsystemId, version::Version};
 
     pub enum AuthenticationProcedureId {
         Authenticate,
     }
 
     impl ProcedureIdentifier for AuthenticationProcedureId {
-        type Service = AuthenticationSystem;
+        type Subsystem = AuthenticationSystem;
 
         fn from_id(id: ProcedureId) -> Option<Self> {
             match id.value() {
@@ -70,7 +70,7 @@ pub mod meta {
         type ProcedureId = AuthenticationProcedureId;
         type Procedures = HList![ProcedureAuthenticate];
 
-        const ID: ServiceId = ServiceId::new(0x00);
+        const ID: SubsystemId = SubsystemId::new(0x00);
         const VERSION: Version = Version {
             major: 0x00,
             minor: 0x00,
@@ -132,13 +132,13 @@ pub struct AuthenticationDelegate<T> {
     inner: T,
 }
 
-impl<T, C> ServiceDelegate<Session<Account>, C> for AuthenticationDelegate<T>
+impl<T, C> SubsystemDelegate<Session<Account>, C> for AuthenticationDelegate<T>
 where
     T: AuthenticationSystem<role::Server, authenticate(..): Send> + Send,
     C: Encoder + ReportDecoder + Clone + Send,
 {
     type Error = Report<DelegationError>;
-    type Service = meta::AuthenticationSystem;
+    type Subsystem = meta::AuthenticationSystem;
 
     type Body<Source>
         = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>

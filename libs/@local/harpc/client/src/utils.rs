@@ -11,7 +11,7 @@ use harpc_tower::{
     Extensions,
     request::{self, Request},
 };
-use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use harpc_types::{procedure::ProcedureDescriptor, subsystem::SubsystemDescriptor};
 use tower::ServiceExt as _;
 
 use crate::{
@@ -37,9 +37,9 @@ where
 
     Ok(Request::from_parts(
         request::Parts {
-            service: ServiceDescriptor {
-                id: <P::Service as Subsystem>::ID,
-                version: <P::Service as Subsystem>::VERSION,
+            subsystem: SubsystemDescriptor {
+                id: <P::Subsystem as Subsystem>::ID,
+                version: <P::Subsystem as Subsystem>::VERSION,
             },
             procedure: ProcedureDescriptor {
                 id: procedure.into_id(),

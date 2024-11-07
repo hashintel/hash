@@ -6,7 +6,7 @@ use harpc_server::{
     session::Session,
     utils::{delegate_call_discrete, parse_procedure_id},
 };
-use harpc_service::{delegate::ServiceDelegate, role::Role};
+use harpc_service::{delegate::SubsystemDelegate, role::Role};
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_types::response_kind::ResponseKind;
 
@@ -38,14 +38,14 @@ pub mod meta {
         metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+    use harpc_types::{procedure::ProcedureId, subsystem::SubsystemId, version::Version};
 
     pub enum EchoProcedureId {
         Echo,
     }
 
     impl ProcedureIdentifier for EchoProcedureId {
-        type Service = EchoSystem;
+        type Subsystem = EchoSystem;
 
         fn from_id(id: ProcedureId) -> Option<Self> {
             match id.value() {
@@ -67,7 +67,7 @@ pub mod meta {
         type ProcedureId = EchoProcedureId;
         type Procedures = HList![ProcedureEcho];
 
-        const ID: ServiceId = ServiceId::new(0x02);
+        const ID: SubsystemId = SubsystemId::new(0x02);
         const VERSION: Version = Version {
             major: 0x00,
             minor: 0x00,
@@ -128,13 +128,13 @@ impl<T> EchoDelegate<T> {
     }
 }
 
-impl<T, C> ServiceDelegate<Session<Account>, C> for EchoDelegate<T>
+impl<T, C> SubsystemDelegate<Session<Account>, C> for EchoDelegate<T>
 where
     T: EchoSystem<role::Server, echo(..): Send> + Send,
     C: Encoder + ReportDecoder + Clone + Send,
 {
     type Error = Report<DelegationError>;
-    type Service = meta::EchoSystem;
+    type Subsystem = meta::EchoSystem;
 
     type Body<Source>
         = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>

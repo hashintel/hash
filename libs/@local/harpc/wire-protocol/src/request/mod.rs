@@ -14,8 +14,8 @@ pub mod flags;
 pub mod frame;
 pub mod header;
 pub mod id;
-pub mod procedure;
-pub mod service;
+mod procedure;
+mod subsystem;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[error("unable to encode request")]
@@ -55,8 +55,8 @@ pub struct RequestDecodeError;
 /// * Protocol Version (1 byte)
 /// * Request Id (4 bytes)
 /// * Flags (1 byte)
-/// * Service Id (2 bytes)
-/// * Service Version (2 bytes)
+/// * Subsystem Id (2 bytes)
+/// * Subsystem Version (2 bytes)
 /// * Procedure Id (2 bytes)
 /// * Reserved (13 bytes)
 /// * Payload Length (2 bytes)
@@ -137,7 +137,7 @@ mod test {
     use expect_test::expect;
     use harpc_types::{
         procedure::{ProcedureDescriptor, ProcedureId},
-        service::{ServiceDescriptor, ServiceId},
+        subsystem::{SubsystemDescriptor, SubsystemId},
         version::Version,
     };
 
@@ -170,8 +170,8 @@ mod test {
         b'h', b'a', b'r', b'p', b'c', 0x01, // protocol
         0x89, 0xAB, 0xCD, 0xEF,             // request_id
         0x80,                               // flags
-        0x01, 0x02,                         // service_id
-        0x03, 0x04,                         // service_version
+        0x01, 0x02,                         // subsystem_id
+        0x03, 0x04,                         // subsystem_version
         0x05, 0x06,                         // procedure_id
         // 13 bytes reserved
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -201,8 +201,8 @@ mod test {
                     ..EXAMPLE_HEADER
                 },
                 body: RequestBody::Begin(RequestBegin {
-                    service: ServiceDescriptor {
-                        id: ServiceId::new(0x01_02),
+                    subsystem: SubsystemDescriptor {
+                        id: SubsystemId::new(0x01_02),
                         version: Version {
                             major: 0x03,
                             minor: 0x04,
@@ -230,8 +230,8 @@ mod test {
             &Request {
                 header: EXAMPLE_HEADER,
                 body: RequestBody::Begin(RequestBegin {
-                    service: ServiceDescriptor {
-                        id: ServiceId::new(0x01_02),
+                    subsystem: SubsystemDescriptor {
+                        id: SubsystemId::new(0x01_02),
                         version: Version {
                             major: 0x03,
                             minor: 0x04,
@@ -299,8 +299,8 @@ mod test {
                     ..EXAMPLE_HEADER
                 },
                 body: RequestBody::Begin(RequestBegin {
-                    service: ServiceDescriptor {
-                        id: ServiceId::new(0x01_02),
+                    subsystem: SubsystemDescriptor {
+                        id: SubsystemId::new(0x01_02),
                         version: Version {
                             major: 0x03,
                             minor: 0x04,

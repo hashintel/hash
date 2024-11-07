@@ -109,7 +109,7 @@ mod test {
     use expect_test::expect;
     use harpc_types::{
         procedure::{ProcedureDescriptor, ProcedureId},
-        service::{ServiceDescriptor, ServiceId},
+        subsystem::{SubsystemDescriptor, SubsystemId},
         version::Version,
     };
 
@@ -121,8 +121,8 @@ mod test {
     };
 
     static EXAMPLE_BEGIN: RequestBegin = RequestBegin {
-        service: ServiceDescriptor {
-            id: ServiceId::new(0x0102),
+        subsystem: SubsystemDescriptor {
+            id: SubsystemId::new(0x0102),
             version: Version {
                 major: 0x03,
                 minor: 0x04,
