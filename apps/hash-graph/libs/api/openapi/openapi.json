@@ -3088,6 +3088,23 @@
         "type": "string",
         "format": "uri"
       },
+      "ClosedMultiEntityTypeMap": {
+        "type": "object",
+        "required": [
+          "schema"
+        ],
+        "properties": {
+          "inner": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          },
+          "schema": {
+            "$ref": "./models/closed_multi_entity_type.json"
+          }
+        }
+      },
       "ClosedTemporalBound": {
         "oneOf": [
           {
@@ -5243,6 +5260,9 @@
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
+          "includeClosedMultiEntityTypes": {
+            "type": "boolean"
+          },
           "includeCount": {
             "type": "boolean"
           },
@@ -5285,6 +5305,12 @@
           "entities"
         ],
         "properties": {
+          "closedMultiEntityTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          },
           "count": {
             "type": "integer",
             "nullable": true,
@@ -5363,6 +5389,9 @@
           "graphResolveDepths": {
             "$ref": "#/components/schemas/GraphResolveDepths"
           },
+          "includeClosedMultiEntityTypes": {
+            "type": "boolean"
+          },
           "includeCount": {
             "type": "boolean"
           },
@@ -5405,6 +5434,12 @@
           "subgraph"
         ],
         "properties": {
+          "closedMultiEntityTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          },
           "count": {
             "type": "integer",
             "nullable": true,

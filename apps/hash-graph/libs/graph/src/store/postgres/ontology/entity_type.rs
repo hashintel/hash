@@ -364,6 +364,29 @@ where
         ))
     }
 
+    pub(crate) async fn get_closed_entity_types(
+        &self,
+        entity_type_ids: &[EntityTypeUuid],
+    ) -> Result<Vec<ClosedEntityType>, Report<QueryError>> {
+        self.as_client()
+            .query_raw(
+                "
+                        SELECT closed_schema FROM entity_types
+                        JOIN unnest($1::uuid[])
+                        WITH ORDINALITY AS filter(id, idx)
+                          ON filter.id = entity_types.ontology_id
+                        ORDER BY filter.idx
+                    ",
+                &[entity_type_ids],
+            )
+            .await
+            .change_context(QueryError)?
+            .map_ok(|row| row.get::<_, Valid<ClosedEntityType>>(0).into_inner())
+            .try_collect()
+            .await
+            .change_context(QueryError)
+    }
+
     /// Internal method to read a [`EntityTypeWithMetadata`] into four [`TraversalContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
@@ -848,25 +871,7 @@ where
                 .iter()
                 .map(|entity_type| EntityTypeUuid::from_url(&entity_type.schema.id))
                 .collect::<Vec<_>>();
-            response.closed_entity_types = Some(
-                self.as_client()
-                    .query_raw(
-                        "
-                            SELECT closed_schema FROM entity_types
-                            JOIN unnest($1::uuid[])
-                            WITH ORDINALITY AS filter(id, idx)
-                              ON filter.id = entity_types.ontology_id
-                            ORDER BY filter.idx
-                        ",
-                        &[&ids],
-                    )
-                    .await
-                    .change_context(QueryError)?
-                    .map_ok(|row| row.get::<_, Valid<ClosedEntityType>>(0).into_inner())
-                    .try_collect()
-                    .await
-                    .change_context(QueryError)?,
-            );
+            response.closed_entity_types = Some(self.get_closed_entity_types(&ids).await?);
         };
         Ok(response)
     }

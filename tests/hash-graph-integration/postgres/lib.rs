@@ -10,7 +10,6 @@
 )]
 
 extern crate alloc;
-extern crate core;
 
 mod data_type;
 mod drafts;
