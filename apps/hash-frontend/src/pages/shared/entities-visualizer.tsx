@@ -25,7 +25,6 @@ import type {
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-table";
 import { GridView } from "./entities-table/grid-view";
-import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
 import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
@@ -40,6 +39,7 @@ import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { VisualizerView } from "./visualizer-views";
 import { visualizerViewIcons } from "./visualizer-views";
 import { useMemoCompare } from "../../shared/use-memo-compare";
+import { TypeEntitiesRow } from "./entities-table/use-entities-table/types";
 
 /**
  * @todo: avoid having to maintain this list, potentially by

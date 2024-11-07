@@ -41,11 +41,11 @@ import type { ChipCellProps } from "./chip-cell";
 import { createRenderChipCell } from "./chip-cell";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
-import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { UrlCellProps } from "./url-cell";
 import { createRenderUrlCell } from "./url-cell";
+import { TypeEntitiesRow } from "./entities-table/use-entities-table/types";
 
 const noneString = "none";
 

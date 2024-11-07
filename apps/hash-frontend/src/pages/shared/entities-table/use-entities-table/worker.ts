@@ -1,17 +1,7 @@
-import type {
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  BaseUrl,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   generateEntityLabel,
   generateLinkEntityLabel,
@@ -20,22 +10,22 @@ import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-enti
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getEntityTypeById,
-  getPropertyTypesForEntityType,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { format } from "date-fns";
-import { useMemo } from "react";
-import { useWhatChanged } from "@simbathesailor/use-what-changed";
 
-import { gridHeaderBaseFont } from "../../../components/grid/grid";
-import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
-import type { MinimalActor } from "../../../shared/use-actors";
-import { useActors } from "../../../shared/use-actors";
+import type { MinimalActor } from "../../../../shared/use-actors";
+import type {
+  GenerateEntitiesTableDataParams,
+  GenerateEntitiesTableDataRequestMessage,
+  GenerateEntitiesTableDataResultMessage,
+  SourceOrTargetFilterData,
+  TypeEntitiesRow,
+} from "./types";
 
 const columnDefinitionsByKey: Record<
   keyof TypeEntitiesRow,
@@ -92,76 +82,9 @@ const columnDefinitionsByKey: Record<
   },
 };
 
-export interface TypeEntitiesRow {
-  rowId: string;
-  entityId: EntityId;
-  entity: Entity;
-  entityIcon?: string;
-  entityLabel: string;
-  entityTypes: {
-    entityTypeId: VersionedUrl;
-    icon?: string;
-    isLink: boolean;
-    title: string;
-  }[];
-  archived?: boolean;
-  lastEdited: string;
-  lastEditedBy?: MinimalActor | "loading";
-  created: string;
-  createdBy?: MinimalActor | "loading";
-  sourceEntity?: {
-    entityId: EntityId;
-    label: string;
-    icon?: string;
-    isLink: boolean;
-  };
-  targetEntity?: {
-    entityId: EntityId;
-    label: string;
-    icon?: string;
-    isLink: boolean;
-  };
-  web: string;
-  properties?: {
-    [k: string]: string;
-  };
-  applicableProperties: BaseUrl[];
-  /** @todo: get rid of this by typing `columnId` */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
-
-let canvas: HTMLCanvasElement | undefined = undefined;
-
-const getTextWidth = (text: string) => {
-  canvas ??= document.createElement("canvas");
-
-  const context = canvas.getContext("2d")!;
-
-  context.font = gridHeaderBaseFont;
-
-  const metrics = context.measureText(text);
-  return metrics.width;
-};
-
-type SourceOrTargetFilterData = {
-  count: number;
-  entityId: string;
-  label: string;
-};
-
-
-const generateColumnsAndRows = (params: {
-  entities?: Entity[];
-  entityTypes?: EntityType[];
-  propertyTypes?: PropertyType[];
-  subgraph?: Subgraph<EntityRootType>;
-  hasSomeLinks?: boolean;
-  hideColumns?: (keyof TypeEntitiesRow)[];
-  hidePageArchivedColumn?: boolean;
-  hidePropertiesColumns: boolean;
-  isViewingOnlyPages?: boolean;
-}): {
+const generateTableData = (
+  params: GenerateEntitiesTableDataParams,
+): {
   columns: SizedGridColumn[];
   filterData: {
     createdByActors: MinimalActor[];
@@ -176,181 +99,98 @@ const generateColumnsAndRows = (params: {
   rows: TypeEntitiesRow[] | undefined;
 } => {
   const {
+    actors,
     entities,
+    entitiesHaveSameType,
+    entityTypesWithMultipleVersionsPresent,
     entityTypes,
+    usedPropertyTypesByEntityTypeId,
     subgraph,
     hideColumns,
-    hidePageArchivedColumn = false,
+    hidePageArchivedColumn,
     hidePropertiesColumns,
-    isViewingOnlyPages = false,
+    isViewingOnlyPages,
   } = params;
 
-  const editorActorIds = useMemo(
-    () =>
-      entities?.flatMap(({ metadata }) => [
-        metadata.provenance.edition.createdById,
-        metadata.provenance.createdById,
-      ]),
-    [entities],
-  );
+  const now = new Date();
+  console.log(`Calculating stuff at ${now.toISOString()}`);
 
-  const { actors, loading: actorsLoading } = useActors({
-    accountIds: editorActorIds,
-  });
+  const lastEditedBySet = new Set<MinimalActor>();
+  const createdBySet = new Set<MinimalActor>();
+  const entityTypeTitleCount: {
+    [entityTypeTitle: string]: number | undefined;
+  } = {};
 
-  const getOwnerForEntity = useGetOwnerForEntity();
+  let noSource = 0;
+  let noTarget = 0;
 
-  const entitiesHaveSameType = useMemo(() => {
-    if (!entities?.length) {
-      return false;
+  const sourcesByEntityId: {
+    [entityId: string]: {
+      count: number;
+      entityId: string;
+      label: string;
+    };
+  } = {};
+  const targetsByEntityId: {
+    [entityId: string]: {
+      count: number;
+      entityId: string;
+      label: string;
+    };
+  } = {};
+
+  const webCountById: { [web: string]: number } = {};
+
+  const propertyColumnsMap = new Map<string, SizedGridColumn>();
+
+  for (const { propertyType, width } of Object.values(
+    usedPropertyTypesByEntityTypeId,
+  ).flat()) {
+    const propertyTypeBaseUrl = extractBaseUrl(propertyType.schema.$id);
+
+    if (!propertyColumnsMap.has(propertyTypeBaseUrl)) {
+      propertyColumnsMap.set(propertyTypeBaseUrl, {
+        id: propertyTypeBaseUrl,
+        title: propertyType.schema.title,
+        width: width + 70,
+      });
     }
-    const seenBaseUrls = new Set<BaseUrl>();
-    for (const entity of entities) {
-      for (const entityTypeId of entity.metadata.entityTypeIds) {
-        const baseUrl = extractBaseUrl(entityTypeId);
-        if (seenBaseUrls.size > 0 && !seenBaseUrls.has(baseUrl)) {
-          return false;
-        }
-        seenBaseUrls.add(baseUrl);
-      }
-    }
-    return true;
-  }, [entities]);
+  }
+  const propertyColumns = Array.from(propertyColumnsMap.values());
 
-  const usedPropertyTypesByEntityTypeId = useMemo<{
-    [entityTypeId: VersionedUrl]: { property: PropertyTypeWithMetadata; width: number }[];
-  }>(() => {
-    if (!entities || !subgraph) {
-      return {};
-    }
-
-    for (const entity of entities) {
-      for (const entityTypeId of entity.metadata.entityTypeIds) {
-        const entityType = getEntityTypeById(subgraph, entityTypeId);
-        if (!entityType) {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `Could not find entityType with id ${entityTypeId}, it may be loading...`,
-          );
-          return {};
-        }
-      }
-    }
-
-
-    return Object.fromEntries(
-      entities.flatMap((entity) =>
-        entity.metadata.entityTypeIds.map((entityTypeId) => {
-          const entityType = getEntityTypeById(subgraph, entityTypeId);
-
-          if (!entityType) {
-            // eslint-disable-next-line no-console
-            console.warn(
-              `Could not find entityType with id ${entityTypeId}, it may be loading...`,
-            );
-            return [entityTypeId, []];
-          }
-
-          return [
-            entityType.schema.$id,
-            [
-              ...getPropertyTypesForEntityType(
-                entityType.schema,
-                subgraph,
-              ).values(),
-            ],
-          ];
-        }),
-      ),
-    );
-  }, [entities, subgraph]);
-
-  const entityTypesWithMultipleVersionsPresent = useMemo(() => {
-    const typesWithMultipleVersions: VersionedUrl[] = [];
-    const baseUrlsSeen = new Set<BaseUrl>();
-    for (const entityTypeId of typedKeys(usedPropertyTypesByEntityTypeId)) {
-      const baseUrl = extractBaseUrl(entityTypeId);
-      if (baseUrlsSeen.has(baseUrl)) {
-        typesWithMultipleVersions.push(entityTypeId);
-      } else {
-        baseUrlsSeen.add(baseUrl);
-      }
-    }
-    return typesWithMultipleVersions;
-  }, [usedPropertyTypesByEntityTypeId]);
-
-  // useWhatChanged([
-  //   actors,
-  //   actorsLoading,
-  //   entitiesHaveSameType,
-  //   entities,
-  //   entityTypes,
-  //   entityTypesWithMultipleVersionsPresent,
-  //   getOwnerForEntity,
-  //   isViewingOnlyPages,
-  //   hideColumns,
-  //   hidePageArchivedColumn,
-  //   hidePropertiesColumns,
-  //   subgraph,
-  //   usedPropertyTypesByEntityTypeId,
-  // ]);
-
-  return useMemo(() => {
-    const now = new Date();
-    console.log(`Calculating stuff at ${now.toISOString()}`);
-
-    const propertyColumnsMap = new Map<string, SizedGridColumn>();
-
-    for (const propertyType of Object.values(
-      usedPropertyTypesByEntityTypeId,
-    ).flat()) {
-      const propertyTypeBaseUrl = extractBaseUrl(propertyType.schema.$id);
-
-      if (!propertyColumnsMap.has(propertyTypeBaseUrl)) {
-        propertyColumnsMap.set(propertyTypeBaseUrl, {
-          id: propertyTypeBaseUrl,
-          title: propertyType.schema.title,
-          width: getTextWidth(propertyType.schema.title) + 70,
-        });
-      }
-    }
-    const propertyColumns = Array.from(propertyColumnsMap.values());
-
-    const columns: SizedGridColumn[] = [
-      {
-        title: entitiesHaveSameType
-          ? (entityTypes?.find(
+  const columns: SizedGridColumn[] = [
+    {
+      title: entitiesHaveSameType
+        ? (entityTypes?.find(
             ({ $id }) => $id === entities?.[0]?.metadata.entityTypeIds[0],
           )?.title ?? "Entity")
-          : "Entity",
-        id: "entityLabel",
-        width: 300,
-        grow: 1,
-      },
-    ];
+        : "Entity",
+      id: "entityLabel",
+      width: 300,
+      grow: 1,
+    },
+  ];
 
-    const columnsToHide = hideColumns ?? [];
-    if (!isViewingOnlyPages || hidePageArchivedColumn) {
-      columnsToHide.push("archived");
+  const columnsToHide = hideColumns ?? [];
+  if (!isViewingOnlyPages || hidePageArchivedColumn) {
+    columnsToHide.push("archived");
+  }
+
+  for (const [columnKey, definition] of typedEntries(columnDefinitionsByKey)) {
+    if (!columnsToHide.includes(columnKey)) {
+      columns.push(definition);
     }
+  }
 
-    for (const [columnKey, definition] of typedEntries(
-      columnDefinitionsByKey,
-    )) {
-      if (!columnsToHide.includes(columnKey)) {
-        columns.push(definition);
-      }
-    }
+  if (!hidePropertiesColumns) {
+    columns.push(
+      ...propertyColumns.sort((a, b) => a.title.localeCompare(b.title)),
+    );
+  }
 
-    if (!hidePropertiesColumns) {
-      columns.push(
-        ...propertyColumns.sort((a, b) => a.title.localeCompare(b.title)),
-      );
-    }
-
-    const rows: TypeEntitiesRow[] | undefined =
-      subgraph && entityTypes
-        ? entities?.map((entity) => {
+  const rows: TypeEntitiesRow[] | undefined =
+    subgraph && entityTypes
+      ? entities?.map((entity) => {
           const entityLabel = generateEntityLabel(subgraph, entity);
 
           const currentEntitysTypes = entityTypes.filter((type) =>
@@ -359,9 +199,11 @@ const generateColumnsAndRows = (params: {
 
           const entityIcon = currentEntitysTypes[0]?.icon;
 
-          const { shortname: entityNamespace } = getOwnerForEntity({
-            entityId: entity.metadata.recordId.entityId,
-          });
+          // const { shortname: entityNamespace } = getOwnerForEntity({
+          //   entityId: entity.metadata.recordId.entityId,
+          // });
+
+          const entityNamespace = "dummy";
 
           const entityId = entity.metadata.recordId.entityId;
 
@@ -381,30 +223,33 @@ const generateColumnsAndRows = (params: {
             "yyyy-MM-dd HH:mm",
           );
 
-          const lastEditedBy = actorsLoading
-            ? "loading"
-            : actors?.find(
-              ({ accountId }) =>
-                accountId ===
-                entity.metadata.provenance.edition.createdById,
-            );
+          const lastEditedBy = actors.find(
+            ({ accountId }) =>
+              accountId === entity.metadata.provenance.edition.createdById,
+          );
+
+          if (lastEditedBy) {
+            lastEditedBySet.add(lastEditedBy);
+          }
 
           const created = format(
             new Date(entity.metadata.provenance.createdAtDecisionTime),
             "yyyy-MM-dd HH:mm",
           );
 
-          const createdBy = actorsLoading
-            ? "loading"
-            : actors?.find(
-              ({ accountId }) =>
-                accountId === entity.metadata.provenance.createdById,
-            );
+          const createdBy = actors.find(
+            ({ accountId }) =>
+              accountId === entity.metadata.provenance.createdById,
+          );
+
+          if (createdBy) {
+            createdBySet.add(createdBy);
+          }
 
           const applicableProperties = currentEntitysTypes.flatMap(
             (entityType) =>
               usedPropertyTypesByEntityTypeId[entityType.$id]!.map(
-                (propertyType) => extractBaseUrl(propertyType.schema.$id),
+                ({ propertyType }) => extractBaseUrl(propertyType.schema.$id),
               ),
           );
 
@@ -440,6 +285,13 @@ const generateColumnsAndRows = (params: {
               isLink: !!source?.linkData,
             };
 
+            sourcesByEntityId[sourceEntity.entityId] ??= {
+              count: 0,
+              entityId: sourceEntity.entityId,
+              label: sourceEntity.label,
+            };
+            sourcesByEntityId[sourceEntity.entityId]!.count++;
+
             const targetEntityLabel = !target
               ? entity.linkData.leftEntityId
               : target.linkData
@@ -459,7 +311,26 @@ const generateColumnsAndRows = (params: {
               icon: targetEntityType?.schema.icon,
               isLink: !!target?.linkData,
             };
+
+            targetsByEntityId[targetEntity.entityId] ??= {
+              count: 0,
+              entityId: targetEntity.entityId,
+              label: targetEntity.label,
+            };
+            targetsByEntityId[targetEntity.entityId]!.count++;
+          } else {
+            noSource += 1;
+            noTarget += 1;
           }
+
+          for (const entityType of currentEntitysTypes) {
+            entityTypeTitleCount[entityType.title] ??= 0;
+            entityTypeTitleCount[entityType.title]!++;
+          }
+
+          const web = `@${entityNamespace}`;
+          webCountById[web] ??= 0;
+          webCountById[web]++;
 
           return {
             rowId: entityId,
@@ -477,9 +348,7 @@ const generateColumnsAndRows = (params: {
 
               let entityTypeLabel = entityType.title;
               if (
-                entityTypesWithMultipleVersionsPresent.includes(
-                  entityType.$id,
-                )
+                entityTypesWithMultipleVersionsPresent.includes(entityType.$id)
               ) {
                 entityTypeLabel += ` v${extractVersion(entityType.$id)}`;
               }
@@ -491,10 +360,9 @@ const generateColumnsAndRows = (params: {
                 isLink,
               };
             }),
-            web: `@${entityNamespace}`,
+            web,
             archived: isPage
-              ? simplifyProperties(entity.properties as PageProperties)
-                .archived
+              ? simplifyProperties(entity.properties as PageProperties).archived
               : undefined,
             lastEdited,
             lastEditedBy,
@@ -523,12 +391,42 @@ const generateColumnsAndRows = (params: {
             }, {}),
           };
         })
-        : undefined;
+      : undefined;
 
-    const after = new Date();
-    console.log(`Done calculating stuff at ${after.toISOString()}`);
-    console.log(`Took ${after.getTime() - now.getTime()}ms`);
+  const after = new Date();
+  console.log(`Done calculating stuff at ${after.toISOString()}`);
+  console.log(`Took ${after.getTime() - now.getTime()}ms`);
 
-    return { columns, rows };
+  return {
+    columns,
+    rows,
+    filterData: {
+      lastEditedByActors: [...lastEditedBySet],
+      createdByActors: [...createdBySet],
+      entityTypeTitles: entityTypeTitleCount,
+      webs: webCountById,
+      noSourceCount: noSource,
+      noTargetCount: noTarget,
+      sources: Object.values(sourcesByEntityId),
+      targets: Object.values(targetsByEntityId),
+    },
+  };
+};
+
+// eslint-disable-next-line no-restricted-globals
+self.onmessage = ({ data }) => {
+  if (
+    "type" in data &&
+    data.type ===
+      ("generateEntitiesTableData" satisfies GenerateEntitiesTableDataRequestMessage["type"])
+  ) {
+    const params = data as GenerateEntitiesTableDataRequestMessage["params"];
+    const result = generateTableData(params);
+
+    // eslint-disable-next-line no-restricted-globals
+    self.postMessage({
+      type: "generateEntitiesTableDataResult",
+      result,
+    } satisfies GenerateEntitiesTableDataResultMessage);
   }
 };

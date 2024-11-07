@@ -43,7 +43,6 @@ import { useCallback, useMemo, useState } from "react";
 
 import type { Row } from "../components/grid/utils/rows";
 import type { MinimalUser } from "../lib/user-and-org";
-import type { TypeEntitiesRow } from "../pages/shared/entities-table/use-entities-table";
 import type { TypesTableRow } from "../pages/types/[[...type-kind]].page/types-table";
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
@@ -53,6 +52,7 @@ import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
 import type { GenerateCsvFileFunction } from "./table-header/export-to-csv-button";
 import { ExportToCsvButton } from "./table-header/export-to-csv-button";
 import { TableHeaderButton } from "./table-header/table-header-button";
+import { TypeEntitiesRow } from "../pages/shared/entities-table/use-entities-table/types";
 
 export const tableHeaderHeight = 50;
 
