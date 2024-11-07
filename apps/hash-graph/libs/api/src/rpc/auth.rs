@@ -38,7 +38,6 @@ pub mod meta {
     use frunk::HList;
     use harpc_service::{
         Subsystem,
-        metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
     use harpc_types::{procedure::ProcedureId, version::Version};
@@ -78,16 +77,6 @@ pub mod meta {
             major: 0x00,
             minor: 0x00,
         };
-
-        fn metadata() -> Metadata {
-            Metadata {
-                since: Version {
-                    major: 0x00,
-                    minor: 0x00,
-                },
-                deprecation: None,
-            }
-        }
     }
 
     pub struct ProcedureAuthenticate;
@@ -97,16 +86,6 @@ pub mod meta {
 
         const ID: <Self::Subsystem as Subsystem>::ProcedureId =
             AuthenticationProcedureId::Authenticate;
-
-        fn metadata() -> Metadata {
-            Metadata {
-                since: Version {
-                    major: 0x00,
-                    minor: 0x00,
-                },
-                deprecation: None,
-            }
-        }
     }
 }
 

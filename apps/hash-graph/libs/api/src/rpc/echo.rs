@@ -35,7 +35,6 @@ pub mod meta {
     use frunk::HList;
     use harpc_service::{
         Subsystem,
-        metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
     use harpc_types::{procedure::ProcedureId, version::Version};
@@ -75,16 +74,6 @@ pub mod meta {
             major: 0x00,
             minor: 0x00,
         };
-
-        fn metadata() -> Metadata {
-            Metadata {
-                since: Version {
-                    major: 0x00,
-                    minor: 0x00,
-                },
-                deprecation: None,
-            }
-        }
     }
 
     pub struct ProcedureEcho;
@@ -93,16 +82,6 @@ pub mod meta {
         type Subsystem = EchoSystem;
 
         const ID: <Self::Subsystem as Subsystem>::ProcedureId = EchoProcedureId::Echo;
-
-        fn metadata() -> Metadata {
-            Metadata {
-                since: Version {
-                    major: 0x00,
-                    minor: 0x00,
-                },
-                deprecation: None,
-            }
-        }
     }
 }
 

@@ -100,7 +100,6 @@ pub mod meta {
     use frunk::HList;
     use harpc_service::{
         Subsystem,
-        metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
     use harpc_types::{procedure::ProcedureId, version::Version};
@@ -158,16 +157,6 @@ pub mod meta {
             major: 0x00,
             minor: 0x00,
         };
-
-        fn metadata() -> Metadata {
-            Metadata {
-                since: Version {
-                    major: 0x00,
-                    minor: 0x00,
-                },
-                deprecation: None,
-            }
-        }
     }
 
     pub struct ProcedureCreateAccount;
@@ -176,16 +165,6 @@ pub mod meta {
         type Subsystem = AccountSystem;
 
         const ID: <Self::Subsystem as Subsystem>::ProcedureId = AccountProcedureId::CreateAccount;
-
-        fn metadata() -> Metadata {
-            Metadata {
-                since: Version {
-                    major: 0x00,
-                    minor: 0x00,
-                },
-                deprecation: None,
-            }
-        }
     }
 
     pub struct ProcedureCreateAccountGroup;
@@ -195,16 +174,6 @@ pub mod meta {
 
         const ID: <Self::Subsystem as Subsystem>::ProcedureId =
             AccountProcedureId::CreateAccountGroup;
-
-        fn metadata() -> Metadata {
-            Metadata {
-                since: Version {
-                    major: 0x00,
-                    minor: 0x00,
-                },
-                deprecation: None,
-            }
-        }
     }
 
     pub struct ProcedureCheckAccountGroupPermission;
@@ -214,16 +183,6 @@ pub mod meta {
 
         const ID: <Self::Subsystem as Subsystem>::ProcedureId =
             AccountProcedureId::CheckAccountGroupPermission;
-
-        fn metadata() -> Metadata {
-            Metadata {
-                since: Version {
-                    major: 0x00,
-                    minor: 0x00,
-                },
-                deprecation: None,
-            }
-        }
     }
 
     pub struct ProcedureAddAccountGroupMember;
@@ -233,16 +192,6 @@ pub mod meta {
 
         const ID: <Self::Subsystem as Subsystem>::ProcedureId =
             AccountProcedureId::AddAccountGroupMember;
-
-        fn metadata() -> Metadata {
-            Metadata {
-                since: Version {
-                    major: 0x00,
-                    minor: 0x00,
-                },
-                deprecation: None,
-            }
-        }
     }
 
     pub struct ProcedureRemoveAccountGroupMember;
@@ -252,16 +201,6 @@ pub mod meta {
 
         const ID: <Self::Subsystem as Subsystem>::ProcedureId =
             AccountProcedureId::RemoveAccountGroupMember;
-
-        fn metadata() -> Metadata {
-            Metadata {
-                since: Version {
-                    major: 0x00,
-                    minor: 0x00,
-                },
-                deprecation: None,
-            }
-        }
     }
 }
 

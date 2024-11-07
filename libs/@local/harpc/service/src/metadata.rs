@@ -10,13 +10,3 @@ pub struct Deprecation {
     /// The reason for deprecation.
     pub reason: Option<&'static str>,
 }
-
-/// Metadata containing version information for procedures and services.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Metadata {
-    /// The version at which the procedure/service was introduced.
-    pub since: Version,
-
-    /// The deprecation information for the procedure/service.
-    pub deprecation: Option<Deprecation>,
-}
