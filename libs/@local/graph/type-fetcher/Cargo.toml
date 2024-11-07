@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "type-fetcher"
+name = "hash-graph-type-fetcher"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

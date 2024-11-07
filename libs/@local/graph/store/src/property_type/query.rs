@@ -83,8 +83,8 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```
     ///
     /// [`PropertyType`]: type_system::schema::PropertyType
-    /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
-    /// [`PropertyTypeMetadata`]: graph_types::ontology::PropertyTypeMetadata
+    /// [`OwnedById`]: hash_graph_types::owned_by_id::OwnedById
+    /// [`PropertyTypeMetadata`]: hash_graph_types::ontology::PropertyTypeMetadata
     OwnedById,
     /// Corresponds to [`PropertyType::title()`].
     ///

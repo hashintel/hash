@@ -62,8 +62,8 @@ use hash_graph_types::{
     owned_by_id::OwnedById,
 };
 use hash_graph_validation::ValidateEntityComponents;
+use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
-use temporal_client::TemporalClient;
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 

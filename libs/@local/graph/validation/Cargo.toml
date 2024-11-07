@@ -29,7 +29,7 @@ utoipa = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["std"] }
 
 [dev-dependencies]
-graph-test-data = { workspace = true }
+hash-graph-test-data = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true }
 
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

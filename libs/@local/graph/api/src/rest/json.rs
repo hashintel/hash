@@ -12,7 +12,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::{BufMut as _, BytesMut};
-use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
+use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use hash_status::StatusCode;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::error::Category;

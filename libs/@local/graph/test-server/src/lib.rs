@@ -16,9 +16,8 @@ use graph::{
     snapshot::SnapshotStore,
     store::{PostgresStorePool, StorePool as _},
 };
-use graph_api::rest::{middleware::span_trace_layer, status::status_to_response};
-use graph_type_defs::error::{ErrorInfo, StatusPayloads};
 use hash_codec::bytes::JsonLinesDecoder;
+use hash_graph_api::rest::{middleware::span_trace_layer, status::status_to_response};
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ZanzibarBackend,
@@ -28,6 +27,7 @@ use hash_graph_authorization::{
     },
     zanzibar::types::{RelationshipFilter, ResourceFilter},
 };
+use hash_graph_type_defs::error::{ErrorInfo, StatusPayloads};
 use hash_graph_types::account::AccountId;
 use hash_status::{Status, StatusCode};
 use tokio::io;

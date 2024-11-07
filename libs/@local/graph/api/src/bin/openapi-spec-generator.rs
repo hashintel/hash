@@ -1,7 +1,7 @@
 use std::{fs, io};
 
 use error_stack::{Report, ResultExt as _};
-use graph_api::rest::OpenApiDocumentation;
+use hash_graph_api::rest::OpenApiDocumentation;
 
 fn main() -> Result<(), Report<io::Error>> {
     let openapi_path = std::path::Path::new("openapi");

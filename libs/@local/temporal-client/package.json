@@ -1,5 +1,5 @@
 {
-  "name": "@rust/temporal-client",
+  "name": "@rust/hash-temporal-client",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",

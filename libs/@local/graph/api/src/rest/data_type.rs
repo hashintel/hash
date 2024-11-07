@@ -46,8 +46,8 @@ use hash_graph_types::{
     owned_by_id::OwnedById,
 };
 use hash_status::Status;
+use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
-use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
     schema::{

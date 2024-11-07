@@ -14,15 +14,15 @@ use graph::{
         DatabaseConnectionInfo, DatabasePoolConfig, FetchingPool, PostgresStorePool, StorePool as _,
     },
 };
-use graph_api::rest::{RestRouterDependencies, rest_api_router};
+use hash_graph_api::rest::{RestRouterDependencies, rest_api_router};
 use hash_graph_authorization::{
     AuthorizationApi as _, NoAuthorization,
     backend::{SpiceDbOpenApi, ZanzibarBackend as _},
     zanzibar::ZanzibarClient,
 };
+use hash_temporal_client::TemporalClientConfig;
 use regex::Regex;
 use reqwest::{Client, Url};
-use temporal_client::TemporalClientConfig;
 use tokio::{net::TcpListener, time::timeout};
 use tokio_postgres::NoTls;
 

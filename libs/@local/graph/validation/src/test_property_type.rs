@@ -13,14 +13,14 @@ use crate::{ValidateEntityComponents, tests::validate_property};
 async fn address_line_1() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("123 Fake Street"),
         None,
-        graph_test_data::property_type::ADDRESS_LINE_1_V1,
+        hash_graph_test_data::property_type::ADDRESS_LINE_1_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -33,14 +33,14 @@ async fn address_line_1() {
 async fn age() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::NUMBER_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::NUMBER_V1,
     ];
 
     validate_property(
         json!(42),
         None,
-        graph_test_data::property_type::AGE_V1,
+        hash_graph_test_data::property_type::AGE_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -53,14 +53,14 @@ async fn age() {
 async fn blurb() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("blurb"),
         None,
-        graph_test_data::property_type::BLURB_V1,
+        hash_graph_test_data::property_type::BLURB_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -73,14 +73,14 @@ async fn blurb() {
 async fn city() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("Bielefeld"),
         None,
-        graph_test_data::property_type::CITY_V1,
+        hash_graph_test_data::property_type::CITY_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -92,12 +92,12 @@ async fn city() {
 #[tokio::test]
 async fn contact_information() {
     let property_types = [
-        graph_test_data::property_type::EMAIL_V1,
-        graph_test_data::property_type::PHONE_NUMBER_V1,
+        hash_graph_test_data::property_type::EMAIL_V1,
+        hash_graph_test_data::property_type::PHONE_NUMBER_V1,
     ];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
@@ -106,7 +106,7 @@ async fn contact_information() {
             "https://blockprotocol.org/@alice/types/property-type/phone-number/": "+0123456789",
         }),
         None,
-        graph_test_data::property_type::CONTACT_INFORMATION_V1,
+        hash_graph_test_data::property_type::CONTACT_INFORMATION_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -119,14 +119,14 @@ async fn contact_information() {
 async fn contrived_information() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::NUMBER_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::NUMBER_V1,
     ];
 
     validate_property(
         json!([12, 34, 56, 78]),
         None,
-        graph_test_data::property_type::CONTRIVED_PROPERTY_V1,
+        hash_graph_test_data::property_type::CONTRIVED_PROPERTY_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -137,7 +137,7 @@ async fn contrived_information() {
     validate_property(
         json!(12_34_56_78),
         None,
-        graph_test_data::property_type::CONTRIVED_PROPERTY_V1,
+        hash_graph_test_data::property_type::CONTRIVED_PROPERTY_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -148,7 +148,7 @@ async fn contrived_information() {
     _ = validate_property(
         json!([10, 20, 30, 40, 50]),
         None,
-        graph_test_data::property_type::CONTRIVED_PROPERTY_V1,
+        hash_graph_test_data::property_type::CONTRIVED_PROPERTY_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -161,14 +161,14 @@ async fn contrived_information() {
 async fn email() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("alice@example.com"),
         None,
-        graph_test_data::property_type::EMAIL_V1,
+        hash_graph_test_data::property_type::EMAIL_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -181,14 +181,14 @@ async fn email() {
 async fn favorite_film() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("Teletubbies"),
         None,
-        graph_test_data::property_type::FAVORITE_FILM_V1,
+        hash_graph_test_data::property_type::FAVORITE_FILM_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -201,14 +201,14 @@ async fn favorite_film() {
 async fn favorite_quote() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("hold my beer"),
         None,
-        graph_test_data::property_type::FAVORITE_QUOTE_V1,
+        hash_graph_test_data::property_type::FAVORITE_QUOTE_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -221,14 +221,14 @@ async fn favorite_quote() {
 async fn favorite_song() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("Never gonna give you up"),
         None,
-        graph_test_data::property_type::FAVORITE_SONG_V1,
+        hash_graph_test_data::property_type::FAVORITE_SONG_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -241,14 +241,14 @@ async fn favorite_song() {
 async fn favorite_hobby() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("Programming in Rust"),
         None,
-        graph_test_data::property_type::HOBBY_V1,
+        hash_graph_test_data::property_type::HOBBY_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -261,14 +261,14 @@ async fn favorite_hobby() {
 async fn numbers() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::NUMBER_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::NUMBER_V1,
     ];
 
     validate_property(
         json!([1, 2, 3, 4, 5]),
         None,
-        graph_test_data::property_type::NUMBERS_V1,
+        hash_graph_test_data::property_type::NUMBERS_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -281,14 +281,14 @@ async fn numbers() {
 async fn phone_number() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("+0123456789"),
         None,
-        graph_test_data::property_type::PHONE_NUMBER_V1,
+        hash_graph_test_data::property_type::PHONE_NUMBER_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -301,14 +301,14 @@ async fn phone_number() {
 async fn postcode() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("12345"),
         None,
-        graph_test_data::property_type::POSTCODE_NUMBER_V1,
+        hash_graph_test_data::property_type::POSTCODE_NUMBER_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -321,14 +321,14 @@ async fn postcode() {
 async fn published_on() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("2021-01-01T00:00:00Z"),
         None,
-        graph_test_data::property_type::PUBLISHED_ON_V1,
+        hash_graph_test_data::property_type::PUBLISHED_ON_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -341,14 +341,14 @@ async fn published_on() {
 async fn text() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
     ];
 
     validate_property(
         json!("lorem ipsum"),
         None,
-        graph_test_data::property_type::TEXT_V1,
+        hash_graph_test_data::property_type::TEXT_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -361,15 +361,15 @@ async fn text() {
 async fn user_id() {
     let property_types = [];
     let data_types = [
-        graph_test_data::data_type::VALUE_V1,
-        graph_test_data::data_type::TEXT_V1,
-        graph_test_data::data_type::NUMBER_V1,
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::TEXT_V1,
+        hash_graph_test_data::data_type::NUMBER_V1,
     ];
 
     validate_property(
         json!("1"),
         None,
-        graph_test_data::property_type::USER_ID_V1,
+        hash_graph_test_data::property_type::USER_ID_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -380,7 +380,7 @@ async fn user_id() {
     _ = validate_property(
         json!(1),
         None,
-        graph_test_data::property_type::USER_ID_V1,
+        hash_graph_test_data::property_type::USER_ID_V1,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -403,7 +403,7 @@ async fn user_id() {
                 canonical: HashMap::default(),
             },
         }),
-        graph_test_data::property_type::USER_ID_V2,
+        hash_graph_test_data::property_type::USER_ID_V2,
         property_types,
         data_types,
         ValidateEntityComponents::full(),
@@ -427,7 +427,7 @@ async fn user_id() {
                 canonical: HashMap::default(),
             },
         }),
-        graph_test_data::property_type::USER_ID_V2,
+        hash_graph_test_data::property_type::USER_ID_V2,
         property_types,
         data_types,
         ValidateEntityComponents::full(),

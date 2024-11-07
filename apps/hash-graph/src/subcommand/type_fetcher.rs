@@ -4,15 +4,15 @@ use std::collections::HashMap;
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, future};
+use hash_graph_type_fetcher::{
+    fetcher::{Fetcher as _, FetcherRequest, FetcherResponse},
+    fetcher_server::FetchServer,
+};
 use tarpc::{
     serde_transport::Transport,
     server::{self, Channel as _},
 };
 use tokio::time::timeout;
-use type_fetcher::{
-    fetcher::{Fetcher as _, FetcherRequest, FetcherResponse},
-    fetcher_server::FetchServer,
-};
 
 use crate::{
     error::{GraphError, HealthcheckError},

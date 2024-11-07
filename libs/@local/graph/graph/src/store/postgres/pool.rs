@@ -5,7 +5,7 @@ use deadpool_postgres::{
 };
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::AuthorizationApi;
-use temporal_client::TemporalClient;
+use hash_temporal_client::TemporalClient;
 use tokio_postgres::{
     Client, GenericClient, Socket, Transaction,
     tls::{MakeTlsConnect, TlsConnect},

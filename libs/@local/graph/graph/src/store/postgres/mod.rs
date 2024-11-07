@@ -38,8 +38,8 @@ use hash_graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_temporal_client::TemporalClient;
 use postgres_types::Json;
-use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{

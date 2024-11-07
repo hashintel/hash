@@ -3,7 +3,7 @@ use core::error::Error;
 
 use error_stack::Report;
 use hash_graph_authorization::AuthorizationApi;
-use temporal_client::TemporalClient;
+use hash_temporal_client::TemporalClient;
 
 use crate::store::Store;
 

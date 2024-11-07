@@ -28,7 +28,6 @@ use graph::{
         },
     },
 };
-use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -40,6 +39,7 @@ use hash_graph_authorization::{
     zanzibar::Consistency,
 };
 use hash_graph_store::{ConflictBehavior, entity_type::EntityTypeQueryToken};
+use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use hash_graph_types::{
     account::EditionCreatedById,
     ontology::{
@@ -50,8 +50,8 @@ use hash_graph_types::{
     owned_by_id::OwnedById,
 };
 use hash_map::HashMap;
+use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
-use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
     schema::{EntityType, EntityTypeUuid},

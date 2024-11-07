@@ -23,8 +23,8 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::account::{AccountStore as _, InsertWebIdParams};
 use hash_graph_types::owned_by_id::OwnedById;
+use hash_temporal_client::TemporalClient;
 use serde::Deserialize;
-use temporal_client::TemporalClient;
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;

@@ -65,7 +65,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # use serde_json::json;
     /// # use hash_graph_store::{filter::{Filter, FilterExpression, Parameter}};
     /// # use hash_graph_store::data_type::DataTypeQueryPath;
-    /// # use graph_types::ontology::DataTypeWithMetadata;
+    /// # use hash_graph_types::ontology::DataTypeWithMetadata;
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
     /// let path = Filter::<DataTypeWithMetadata>::deserialize(filter_value)?;
     /// assert_eq!(path, Filter::Equal(
@@ -110,8 +110,8 @@ pub enum DataTypeQueryPath<'p> {
     /// ```
     ///
     /// [`DataType`]: type_system::schema::DataType
-    /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
-    /// [`DataTypeMetadata`]: graph_types::ontology::DataTypeMetadata
+    /// [`OwnedById`]: hash_graph_types::owned_by_id::OwnedById
+    /// [`DataTypeMetadata`]: hash_graph_types::ontology::DataTypeMetadata
     OwnedById,
     /// Corresponds to [`DataType::title()`].
     ///

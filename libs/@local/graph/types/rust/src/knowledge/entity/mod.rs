@@ -336,42 +336,42 @@ mod tests {
 
     #[test]
     fn book() {
-        test_entity(graph_test_data::entity::BOOK_V1);
+        test_entity(hash_graph_test_data::entity::BOOK_V1);
     }
 
     #[test]
     fn address() {
-        test_entity(graph_test_data::entity::ADDRESS_V1);
+        test_entity(hash_graph_test_data::entity::ADDRESS_V1);
     }
 
     #[test]
     fn organization() {
-        test_entity(graph_test_data::entity::ORGANIZATION_V1);
+        test_entity(hash_graph_test_data::entity::ORGANIZATION_V1);
     }
 
     #[test]
     fn building() {
-        test_entity(graph_test_data::entity::BUILDING_V1);
+        test_entity(hash_graph_test_data::entity::BUILDING_V1);
     }
 
     #[test]
     fn person() {
-        test_entity(graph_test_data::entity::PERSON_ALICE_V1);
+        test_entity(hash_graph_test_data::entity::PERSON_ALICE_V1);
     }
 
     #[test]
     fn playlist() {
-        test_entity(graph_test_data::entity::PLAYLIST_V1);
+        test_entity(hash_graph_test_data::entity::PLAYLIST_V1);
     }
 
     #[test]
     fn song() {
-        test_entity(graph_test_data::entity::SONG_V1);
+        test_entity(hash_graph_test_data::entity::SONG_V1);
     }
 
     #[test]
     fn page() {
-        test_entity(graph_test_data::entity::PAGE_V1);
+        test_entity(hash_graph_test_data::entity::PAGE_V1);
     }
 
     mod diff {

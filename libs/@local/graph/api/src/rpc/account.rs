@@ -29,7 +29,7 @@ use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     owned_by_id::OwnedById,
 };
-use temporal_client::TemporalClient;
+use hash_temporal_client::TemporalClient;
 
 use super::{role, session::Account};
 

@@ -28,9 +28,9 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
-    /// [`EntityUuid`]: graph_types::knowledge::entity::EntityUuid
-    /// [`EntityId`]: graph_types::knowledge::entity::EntityId
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`EntityUuid`]: hash_graph_types::knowledge::entity::EntityUuid
+    /// [`EntityId`]: hash_graph_types::knowledge::entity::EntityId
     Uuid,
     /// The [`OwnedById`] of the [`EntityId`] belonging to the [`Entity`].
     ///
@@ -43,9 +43,9 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
-    /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
-    /// [`EntityId`]: graph_types::knowledge::entity::EntityId
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`OwnedById`]: hash_graph_types::owned_by_id::OwnedById
+    /// [`EntityId`]: hash_graph_types::knowledge::entity::EntityId
     OwnedById,
     /// The [`DraftId`] of the [`EntityId`] belonging to the [`Entity`].
     ///
@@ -58,9 +58,9 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
-    /// [`DraftId`]: graph_types::knowledge::entity::DraftId
-    /// [`EntityId`]: graph_types::knowledge::entity::EntityId
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`DraftId`]: hash_graph_types::knowledge::entity::DraftId
+    /// [`EntityId`]: hash_graph_types::knowledge::entity::EntityId
     DraftId,
     /// The [`EntityEditionId`] of the [`EntityRecordId`] belonging to the [`Entity`].
     ///
@@ -73,9 +73,9 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
-    /// [`EntityEditionId`]: graph_types::knowledge::entity::EntityEditionId
-    /// [`EntityRecordId`]: graph_types::knowledge::entity::EntityRecordId
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`EntityEditionId`]: hash_graph_types::knowledge::entity::EntityEditionId
+    /// [`EntityRecordId`]: hash_graph_types::knowledge::entity::EntityRecordId
     EditionId,
     /// The decision time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
@@ -83,9 +83,9 @@ pub enum EntityQueryPath<'p> {
     /// `temporalAxes` parameter on the request. The decision time is returned as part of
     /// [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
-    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
-    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`EntityMetadata`]: hash_graph_types::knowledge::entity::EntityMetadata
+    /// [`EntityTemporalMetadata`]: hash_graph_types::knowledge::entity::EntityTemporalMetadata
     DecisionTime,
     /// The transaction time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
@@ -93,16 +93,16 @@ pub enum EntityQueryPath<'p> {
     /// `temporalAxes` parameter on the request. The transaction time is returned as part
     /// of [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
-    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
-    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`EntityMetadata`]: hash_graph_types::knowledge::entity::EntityMetadata
+    /// [`EntityTemporalMetadata`]: hash_graph_types::knowledge::entity::EntityTemporalMetadata
     TransactionTime,
     /// The list of [`EntityType`]s' [`BaseUrl`]s belonging to the [`Entity`].
     ///
     /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
     /// instead.
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     /// [`BaseUrl`]: type_system::url::BaseUrl
     /// [`EntityType`]: type_system::schema::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
@@ -112,7 +112,7 @@ pub enum EntityQueryPath<'p> {
     /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
     /// instead.
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     /// [`EntityType`]: type_system::schema::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeVersions,
@@ -120,31 +120,31 @@ pub enum EntityQueryPath<'p> {
     ///
     /// It's currently not possible to query for the entity confidence value directly.
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     EntityConfidence,
     /// The confidence value for the [`Entity`]'s left entity link.
     ///
     /// It's currently not possible to query for the entity confidence value directly.
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     LeftEntityConfidence,
     /// The provenance for the [`Entity`]'s left entity link.
     ///
     /// It's currently not possible to query for the link provenance value directly.
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     LeftEntityProvenance,
     /// The confidence value for the [`Entity`]'s right entity link.
     ///
     /// It's currently not possible to query for the entity confidence value directly.
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     RightEntityConfidence,
     /// The list of all property pointers of an [`Entity`].
     ///
     /// It's currently not possible to query for the list of property pointers directly.
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     RightEntityProvenance,
     /// Whether or not the [`Entity`] is in a draft state.
     ///
@@ -157,7 +157,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     Archived,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
@@ -195,7 +195,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     /// [`EntityType`]: type_system::schema::PropertyType
     EntityTypeEdge {
         edge_kind: SharedEdgeKind,
@@ -225,7 +225,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::left_entity_id()`]: graph_types::knowledge::link::LinkData::left_entity_id
+    /// [`LinkData::left_entity_id()`]: hash_graph_types::knowledge::link::LinkData::left_entity_id
     ///
     ///
     /// # Right entity
@@ -248,7 +248,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::right_entity_id()`]: graph_types::knowledge::link::LinkData::right_entity_id
+    /// [`LinkData::right_entity_id()`]: hash_graph_types::knowledge::link::LinkData::right_entity_id
     ///
     ///
     /// # Incoming links
@@ -294,7 +294,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     EntityEdge {
         edge_kind: KnowledgeGraphEdgeKind,
         path: Box<Self>,
@@ -349,8 +349,8 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
-    /// [`Entity::properties`]: graph_types::knowledge::entity::Entity::properties
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`Entity::properties`]: hash_graph_types::knowledge::entity::Entity::properties
     Properties(Option<JsonPath<'p>>),
     /// The property defined as [`label_property`] in the corresponding entity type metadata.
     ///
@@ -394,7 +394,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     Provenance(Option<JsonPath<'p>>),
     /// Corresponds to the provenance data of the [`Entity`].
     ///
@@ -410,13 +410,13 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     EditionProvenance(Option<JsonPath<'p>>),
     /// Corresponds to the metadata data of the properties of the [`Entity`].
     ///
     /// It's currently not possible to query for the list of property provenance values directly.
     ///
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     PropertyMetadata(Option<JsonPath<'p>>),
     /// The embedding for the whole entity blob.
     ///

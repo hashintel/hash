@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "temporal-client"
+name = "hash-temporal-client"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

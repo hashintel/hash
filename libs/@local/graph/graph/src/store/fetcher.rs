@@ -33,6 +33,7 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
+use hash_graph_type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
 use hash_graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
@@ -44,10 +45,9 @@ use hash_graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_temporal_client::TemporalClient;
 use tarpc::context;
-use temporal_client::TemporalClient;
 use tokio::net::ToSocketAddrs;
-use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
 use type_system::{
     schema::{DataType, EntityType, EntityTypeReference, PropertyType},
     url::VersionedUrl,

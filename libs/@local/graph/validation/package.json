@@ -14,7 +14,7 @@
     "@rust/hash-graph-types": "0.0.0-private"
   },
   "devDependencies": {
-    "@rust/graph-test-data": "0.0.0-private",
-    "@rust/hash-graph-temporal-versioning": "0.0.0-private"
+    "@rust/hash-graph-temporal-versioning": "0.0.0-private",
+    "@rust/hash-graph-test-data": "0.0.0-private"
   }
 }
