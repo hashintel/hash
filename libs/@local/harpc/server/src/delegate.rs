@@ -12,9 +12,9 @@ use crate::session::{RequestInfo, Session, SessionStorage};
 
 /// Bridge between `harpc-system` and `tower`.
 ///
-/// This is a very thin layer between the `harpc-system` and `tower` services. It is responsible
+/// This is a very thin layer between the `harpc-system` subsystem and `tower` service. It is responsible
 /// for taking the incoming request, selecting the appropriate session and codec, and then
-/// delegating the request to the inner system (which is cloned).
+/// delegating the request to the inner subsystem (which is cloned).
 ///
 /// A conscious decision was made not to have `ServiceDelegate` be a `Service`, as it allows for
 /// greater ergonomics, and allows server implementation that are not based on tower in the future.
