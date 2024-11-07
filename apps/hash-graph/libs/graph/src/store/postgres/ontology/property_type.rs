@@ -31,8 +31,8 @@ use hash_graph_store::{
         temporal_axes::{QueryTemporalAxes, VariableAxis},
     },
 };
+use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use postgres_types::{Json, ToSql};
-use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{

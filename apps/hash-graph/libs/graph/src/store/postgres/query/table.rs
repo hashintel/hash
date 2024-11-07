@@ -8,8 +8,8 @@ use hash_graph_store::{
     filter::{JsonPath, ParameterType},
     subgraph::edges::EdgeDirection,
 };
+use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
-use temporal_versioning::TimeAxis;
 
 use crate::store::postgres::query::{
     Condition, Constant, Expression, Transpile, expression::JoinType,

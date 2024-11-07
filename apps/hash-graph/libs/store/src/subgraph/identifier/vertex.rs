@@ -4,8 +4,8 @@ use graph_types::{
     knowledge::entity::{Entity, EntityId},
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
+use hash_graph_temporal_versioning::Timestamp;
 use serde::{Deserialize, Serialize};
-use temporal_versioning::Timestamp;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;

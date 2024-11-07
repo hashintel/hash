@@ -23,8 +23,8 @@ use hash_graph_store::{
     filter::Filter,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
+use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use serde::{Deserialize, Serialize};
-use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::{schema::ClosedMultiEntityType, url::VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{

@@ -4,10 +4,10 @@ use std::collections::HashSet;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
+use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
-use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use url::Url;
 #[cfg(feature = "utoipa")]

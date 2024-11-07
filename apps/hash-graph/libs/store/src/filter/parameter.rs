@@ -3,9 +3,9 @@ use core::{error::Error, fmt, mem, str::FromStr as _};
 
 use error_stack::{Report, ResultExt as _, bail};
 use graph_types::{Embedding, knowledge::entity::EntityEditionId};
+use hash_graph_temporal_versioning::Timestamp;
 use serde::Deserialize;
 use serde_json::{Number as JsonNumber, Value as JsonValue};
-use temporal_versioning::Timestamp;
 use type_system::{
     schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
     url::{OntologyTypeVersion, VersionedUrl},

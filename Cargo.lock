@@ -2430,6 +2430,7 @@ dependencies = [
  "graph-types",
  "hash-codec",
  "hash-graph-store",
+ "hash-graph-temporal-versioning",
  "hash-status",
  "postgres-types",
  "refinery",
@@ -2439,7 +2440,6 @@ dependencies = [
  "serde_json",
  "tarpc",
  "temporal-client 0.0.0",
- "temporal-versioning",
  "time",
  "tokio",
  "tokio-postgres",
@@ -2475,6 +2475,7 @@ dependencies = [
  "harpc-tower",
  "harpc-types",
  "hash-graph-store",
+ "hash-graph-temporal-versioning",
  "hash-status",
  "http 1.1.0",
  "hyper 1.5.0",
@@ -2486,7 +2487,6 @@ dependencies = [
  "serde",
  "serde_json",
  "temporal-client 0.0.0",
- "temporal-versioning",
  "time",
  "tower 0.5.1",
  "tower-http",
@@ -2509,10 +2509,10 @@ dependencies = [
  "graph-test-data",
  "graph-types",
  "hash-graph-store",
+ "hash-graph-temporal-versioning",
  "rand",
  "repo-chores",
  "serde_json",
- "temporal-versioning",
  "tokio",
  "tokio-postgres",
  "tracing",
@@ -2532,10 +2532,10 @@ dependencies = [
  "graph-test-data",
  "graph-types",
  "hash-graph-store",
+ "hash-graph-temporal-versioning",
  "hash-tracing",
  "pretty_assertions",
  "serde_json",
- "temporal-versioning",
  "time",
  "tokio",
  "tokio-postgres",
@@ -2566,11 +2566,11 @@ dependencies = [
  "futures",
  "graph-test-data",
  "hash-codec",
+ "hash-graph-temporal-versioning",
  "postgres-types",
  "semver",
  "serde",
  "serde_json",
- "temporal-versioning",
  "thiserror",
  "time",
  "tokio",
@@ -2853,15 +2853,30 @@ dependencies = [
  "derive-where",
  "error-stack",
  "graph-types",
+ "hash-graph-temporal-versioning",
  "postgres-types",
  "serde",
  "serde_json",
- "temporal-versioning",
  "thiserror",
  "tokio",
  "type-system",
  "utoipa",
  "uuid",
+]
+
+[[package]]
+name = "hash-graph-temporal-versioning"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "derive-where",
+ "hash-codec",
+ "postgres-protocol",
+ "postgres-types",
+ "serde",
+ "time",
+ "tracing",
+ "utoipa",
 ]
 
 [[package]]
@@ -6727,21 +6742,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "temporal-versioning"
-version = "0.0.0"
-dependencies = [
- "bytes",
- "derive-where",
- "hash-codec",
- "postgres-protocol",
- "postgres-types",
- "serde",
- "time",
- "tracing",
- "utoipa",
-]
-
-[[package]]
 name = "termcolor"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7746,10 +7746,10 @@ dependencies = [
  "futures",
  "graph-test-data",
  "graph-types",
+ "hash-graph-temporal-versioning",
  "regex",
  "serde",
  "serde_json",
- "temporal-versioning",
  "thiserror",
  "tokio",
  "type-system",

@@ -14,7 +14,7 @@ use hash_graph_store::{
         temporal_axes::{PinnedAxis, VariableAxis},
     },
 };
-use temporal_versioning::{
+use hash_graph_temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
 };
 use tokio_postgres::GenericClient as _;

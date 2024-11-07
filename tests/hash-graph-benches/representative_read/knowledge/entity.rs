@@ -17,8 +17,8 @@ use hash_graph_store::{
         },
     },
 };
+use hash_graph_temporal_versioning::TemporalBound;
 use rand::{prelude::IteratorRandom as _, thread_rng};
-use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
 
 use crate::util::Store;

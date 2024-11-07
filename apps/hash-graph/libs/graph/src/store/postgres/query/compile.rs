@@ -8,8 +8,8 @@ use hash_graph_store::{
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
+use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
-use temporal_versioning::TimeAxis;
 use tracing::instrument;
 
 use crate::store::{

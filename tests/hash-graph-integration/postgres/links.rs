@@ -26,7 +26,7 @@ use hash_graph_store::{
         },
     },
 };
-use temporal_versioning::TemporalBound;
+use hash_graph_temporal_versioning::TemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;

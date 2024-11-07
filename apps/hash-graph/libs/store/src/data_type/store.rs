@@ -12,8 +12,8 @@ use graph_types::{
         OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance,
     },
 };
+use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use serde::{Deserialize, Serialize};
-use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
     schema::{Conversions, DataType},
     url::{BaseUrl, VersionedUrl},

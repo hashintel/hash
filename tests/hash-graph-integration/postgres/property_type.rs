@@ -14,7 +14,7 @@ use hash_graph_store::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
-use temporal_versioning::TemporalBound;
+use hash_graph_temporal_versioning::TemporalBound;
 use type_system::schema::PropertyType;
 
 use crate::{DatabaseTestWrapper, property_type_relationships};

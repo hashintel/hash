@@ -8,8 +8,8 @@ use hash_graph_store::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
+use hash_graph_temporal_versioning::TemporalBound;
 use rand::{prelude::IteratorRandom as _, thread_rng};
-use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
 use type_system::url::VersionedUrl;
 

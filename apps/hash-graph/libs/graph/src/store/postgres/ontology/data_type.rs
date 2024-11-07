@@ -37,9 +37,9 @@ use hash_graph_store::{
         },
     },
 };
+use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
-use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{

@@ -3,7 +3,7 @@ use core::hash::{BuildHasher, Hash};
 use std::collections::{HashMap, HashSet};
 
 use graph_types::knowledge::entity::EntityId;
-use temporal_versioning::LeftClosedTemporalInterval;
+use hash_graph_temporal_versioning::LeftClosedTemporalInterval;
 
 use crate::subgraph::{
     identifier::{EdgeEndpoint, EntityIdWithInterval},

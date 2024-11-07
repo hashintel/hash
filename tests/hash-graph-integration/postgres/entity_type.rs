@@ -13,7 +13,7 @@ use hash_graph_store::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
-use temporal_versioning::TemporalBound;
+use hash_graph_temporal_versioning::TemporalBound;
 use type_system::schema::EntityType;
 
 use crate::{DatabaseTestWrapper, entity_type_relationships};

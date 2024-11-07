@@ -82,8 +82,8 @@ use hash_graph_store::{
     },
     error::{InsertionError, QueryError, UpdateError},
 };
+use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_tracing::logging::env_filter;
-use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio_postgres::{NoTls, Transaction};
 use type_system::schema::{DataType, EntityType, PropertyType};
 use uuid::Uuid;

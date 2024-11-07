@@ -38,7 +38,7 @@ harpc-service = { workspace = true }
 harpc-tower = { workspace = true }
 harpc-types = { workspace = true }
 hash-status = { workspace = true }
-temporal-versioning = { workspace = true }
+hash-graph-temporal-versioning = { workspace = true }
 type-system = { workspace = true, features = ["utoipa"] }
 validation = { workspace = true, features = ["utoipa"] }
 

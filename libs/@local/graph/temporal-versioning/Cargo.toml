@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "temporal-versioning"
+name = "hash-graph-temporal-versioning"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

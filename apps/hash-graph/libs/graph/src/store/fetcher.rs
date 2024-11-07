@@ -43,9 +43,9 @@ use hash_graph_store::{
         VariableTemporalAxisUnresolved,
     },
 };
+use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tarpc::context;
 use temporal_client::TemporalClient;
-use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio::net::ToSocketAddrs;
 use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
 use type_system::{

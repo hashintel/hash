@@ -13,8 +13,8 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_temporal_versioning::ClosedTemporalBound;
 use pretty_assertions::assert_eq;
-use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};

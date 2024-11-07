@@ -5,10 +5,10 @@ use core::{fmt, str::FromStr as _};
 use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _};
+use hash_graph_temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
-use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
 use type_system::url::{BaseUrl, VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};

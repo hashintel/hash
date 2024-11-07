@@ -31,8 +31,8 @@ use hash_graph_store::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
+use hash_graph_temporal_versioning::TemporalBound;
 use serde_json::json;
-use temporal_versioning::TemporalBound;
 use time::OffsetDateTime;
 use type_system::{
     schema::{DataType, DataTypeUuid},

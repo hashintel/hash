@@ -20,8 +20,8 @@ use hash_graph_store::{
     filter::Filter,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
+use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use serde::{Deserialize, Serialize};
-use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
     schema::{
         ClosedDataType, ClosedEntityType, ClosedMultiEntityType, EntityType, PartialEntityType,

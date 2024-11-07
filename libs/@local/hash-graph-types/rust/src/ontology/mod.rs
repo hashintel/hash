@@ -6,8 +6,8 @@ mod provenance;
 use core::{borrow::Borrow, error::Error, fmt};
 
 use error_stack::Report;
+use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use serde::{Deserialize, Serialize};
-use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
     schema::{

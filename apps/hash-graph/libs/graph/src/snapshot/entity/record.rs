@@ -7,8 +7,8 @@ use graph_types::{
         property::PropertyObject,
     },
 };
+use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use serde::{Deserialize, Serialize};
-use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::url::BaseUrl;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

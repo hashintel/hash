@@ -37,9 +37,9 @@ use hash_graph_store::{
     },
     error::{InsertionError, QueryError, UpdateError},
 };
+use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use postgres_types::Json;
 use temporal_client::TemporalClient;
-use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{

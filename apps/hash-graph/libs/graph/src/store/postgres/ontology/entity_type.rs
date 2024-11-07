@@ -34,10 +34,10 @@ use hash_graph_store::{
         },
     },
 };
+use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;
-use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{

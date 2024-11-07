@@ -10,7 +10,7 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-temporal-versioning = { workspace = true, public = true }
+hash-graph-temporal-versioning = { workspace = true, public = true }
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
@@ -38,8 +38,8 @@ graph-test-data = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [features]
-postgres = ["dep:postgres-types", "temporal-versioning/postgres"]
-utoipa = ["dep:utoipa", "temporal-versioning/utoipa"]
+postgres = ["dep:postgres-types", "hash-graph-temporal-versioning/postgres"]
+utoipa = ["dep:utoipa", "hash-graph-temporal-versioning/utoipa"]
 
 [lints]
 workspace = true

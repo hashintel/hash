@@ -118,8 +118,10 @@ mod tests {
         },
         owned_by_id::OwnedById,
     };
+    use hash_graph_temporal_versioning::{
+        ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp,
+    };
     use serde_json::Value as JsonValue;
-    use temporal_versioning::{ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp};
     use thiserror::Error;
     use type_system::{
         schema::{

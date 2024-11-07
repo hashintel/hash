@@ -11,8 +11,10 @@ use graph_types::{
     ontology::OntologyEditionProvenance,
     owned_by_id::OwnedById,
 };
+use hash_graph_temporal_versioning::{
+    DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime,
+};
 use postgres_types::ToSql;
-use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
     Valid,

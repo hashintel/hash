@@ -21,7 +21,7 @@ use hash_graph_store::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
-use temporal_versioning::{ClosedTemporalBound, LimitedTemporalBound, TemporalBound};
+use hash_graph_temporal_versioning::{ClosedTemporalBound, LimitedTemporalBound, TemporalBound};
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;

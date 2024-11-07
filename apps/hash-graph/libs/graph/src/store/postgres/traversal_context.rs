@@ -17,7 +17,7 @@ use hash_graph_store::{
         Subgraph, SubgraphRecord as _, edges::GraphResolveDepths, temporal_axes::VariableAxis,
     },
 };
-use temporal_versioning::RightBoundedTemporalInterval;
+use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
 use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
 
 use crate::store::{

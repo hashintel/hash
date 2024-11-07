@@ -29,7 +29,7 @@ hash-codec = { workspace = true }
 error-stack = { workspace = true, features = ["std", "serde", "unstable"] }
 graph-types = { workspace = true, features = ["postgres"] }
 hash-status = { workspace = true }
-temporal-versioning = { workspace = true, features = ["postgres"] }
+hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 type-system = { workspace = true, features = ["postgres"] }
 
 # Private third-party dependencies
@@ -60,7 +60,7 @@ utoipa = [
     "dep:utoipa",
     "hash-graph-store/utoipa",
     "graph-types/utoipa",
-    "temporal-versioning/utoipa",
+    "hash-graph-temporal-versioning/utoipa",
     "authorization/utoipa",
 ]
 

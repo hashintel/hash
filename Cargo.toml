@@ -6,6 +6,7 @@ members = [
     "apps/hash-graph/libs/*",
     "libs/@blockprotocol/type-system/rust",
     "libs/@local/codec",
+    "libs/@local/graph/temporal-versioning",
     "libs/@local/harpc/client",
     "libs/@local/harpc/codec",
     "libs/@local/harpc/net",
@@ -21,7 +22,6 @@ members = [
     "libs/@local/repo-chores/rust",
     "libs/@local/status/rust",
     "libs/@local/temporal-client",
-    "libs/@local/temporal-versioning",
     "libs/@local/tracing",
     "libs/antsi",
     "libs/chonky",
@@ -52,6 +52,7 @@ publish = false
 # Workspace members
 authorization.path = "libs/@local/hash-authorization"
 hash-codec.path = "libs/@local/codec"
+hash-graph-temporal-versioning.path = "libs/@local/graph/temporal-versioning"
 graph-api.path = "apps/hash-graph/libs/api"
 graph-test-data.path = "tests/hash-graph-test-data/rust"
 graph-types.path = "libs/@local/hash-graph-types/rust"
@@ -73,7 +74,6 @@ hql-diagnostics.path = "libs/@local/hql/diagnostics"
 hql-span.path = "libs/@local/hql/span"
 repo-chores.path = "libs/@local/repo-chores/rust"
 temporal-client.path = "libs/@local/temporal-client"
-temporal-versioning.path = "libs/@local/temporal-versioning"
 test-server.path = "apps/hash-graph/libs/test-server"
 type-fetcher.path = "apps/hash-graph/libs/type-fetcher"
 type-system.path = "libs/@blockprotocol/type-system/rust"

@@ -49,14 +49,14 @@ use hash_graph_store::{
         },
     },
 };
-use hash_status::StatusCode;
-use postgres_types::ToSql;
-use serde_json::Value as JsonValue;
-use temporal_versioning::{
+use hash_graph_temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, TemporalTagged as _, Timestamp,
     TransactionTime,
 };
+use hash_status::StatusCode;
+use postgres_types::ToSql;
+use serde_json::Value as JsonValue;
 use tokio_postgres::{GenericClient as _, Row, error::SqlState};
 use type_system::{
     schema::{

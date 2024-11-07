@@ -12,8 +12,8 @@ use hash_graph_store::{
         temporal_axes::{QueryTemporalAxes, VariableAxis},
     },
 };
+use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
 use postgres_types::Json;
-use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient as _;
 use type_system::{
     schema::{ClosedEntityType, EntityTypeUuid, OntologyTypeUuid},

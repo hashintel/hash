@@ -26,10 +26,10 @@ use hash_graph_store::{
     filter::{ParameterConversionError, QueryRecord},
     subgraph::temporal_axes::QueryTemporalAxes,
 };
+use hash_graph_temporal_versioning::{TemporalInterval, Timestamp};
 use postgres_types::{FromSql, IsNull, ToSql, Type, WasNull};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use temporal_versioning::{TemporalInterval, Timestamp};
 use tokio_postgres::Row;
 use uuid::Uuid;
 

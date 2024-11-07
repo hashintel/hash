@@ -1,6 +1,6 @@
 use core::ops::Bound;
 
-use temporal_versioning::*;
+use hash_graph_temporal_versioning::*;
 
 fn assert_equality(
     actual: impl IntoIterator<Item = Interval<u32, Bound<u32>, Bound<u32>>>,

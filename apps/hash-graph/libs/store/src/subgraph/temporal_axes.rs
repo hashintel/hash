@@ -1,9 +1,9 @@
 use derive_where::derive_where;
-use serde::{Deserialize, Serialize};
-use temporal_versioning::{
+use hash_graph_temporal_versioning::{
     DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
     TemporalBound, TemporalInterval, TemporalTagged as _, TimeAxis, Timestamp, TransactionTime,
 };
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};
 

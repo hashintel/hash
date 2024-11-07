@@ -10,8 +10,8 @@ use hash_graph_store::subgraph::{
     },
     temporal_axes::VariableAxis,
 };
+use hash_graph_temporal_versioning::Timestamp;
 use serde::Serialize;
-use temporal_versioning::Timestamp;
 use type_system::url::{BaseUrl, OntologyTypeVersion};
 use utoipa::{
     ToSchema,
@@ -246,7 +246,7 @@ mod tests {
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
     };
-    use temporal_versioning::{
+    use hash_graph_temporal_versioning::{
         ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
     };
     use type_system::url::{BaseUrl, OntologyTypeVersion};

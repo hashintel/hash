@@ -59,15 +59,15 @@ use hash_graph_store::{
         },
     },
 };
+use hash_graph_temporal_versioning::{
+    ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
+    OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
+};
 use hash_status::Status;
 use include_dir::{Dir, include_dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
-use temporal_versioning::{
-    ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
-    OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
-};
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use utoipa::{
     Modify, OpenApi, ToSchema,
