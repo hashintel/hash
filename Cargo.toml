@@ -8,7 +8,6 @@ members = [
     "libs/@local/graph/api",
     "libs/@local/graph/authorization",
     "libs/@local/graph/graph",
-    "libs/@local/graph/query-builder-derive",
     "libs/@local/graph/store",
     "libs/@local/graph/temporal-versioning",
     "libs/@local/graph/test-server",
