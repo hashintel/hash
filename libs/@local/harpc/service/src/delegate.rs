@@ -1,7 +1,7 @@
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_types::response_kind::ResponseKind;
 
-use crate::Service;
+use crate::Subsystem;
 
 /// Delegates service calls to an inner typed service.
 ///
@@ -16,10 +16,10 @@ use crate::Service;
 /// operation will be repeated for each request and add latency.
 ///
 /// The caller must verify that the version and service of the incoming request match those of
-/// [`Self::Service`].
-pub trait ServiceDelegate<S, C> {
+/// [`Self::Subsystem`].
+pub trait SubsystemDelegate<S, C> {
     /// The inner service type that this delegate wraps.
-    type Service: Service;
+    type Subsystem: Subsystem;
 
     type Error;
 

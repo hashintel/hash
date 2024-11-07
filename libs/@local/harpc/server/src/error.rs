@@ -7,25 +7,25 @@ use core::{
 use harpc_types::{
     error_code::ErrorCode,
     procedure::{ProcedureDescriptor, ProcedureId},
-    service::ServiceDescriptor,
+    subsystem::SubsystemDescriptor,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
-#[display("service {service} not found")]
-pub struct ServiceNotFound {
-    pub service: ServiceDescriptor,
+#[display("subsystem {subsystem} not found")]
+pub struct SubsystemNotFound {
+    pub subsystem: SubsystemDescriptor,
 }
 
-impl Error for ServiceNotFound {
+impl Error for SubsystemNotFound {
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
-        request.provide_value(ErrorCode::SERVICE_NOT_FOUND);
+        request.provide_value(ErrorCode::SUBSYSTEM_NOT_FOUND);
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
-#[display("procedure {procedure} not found in service {service}")]
+#[display("procedure {procedure} not found in subsystem {subsystem}")]
 pub struct ProcedureNotFound {
-    pub service: ServiceDescriptor,
+    pub subsystem: SubsystemDescriptor,
 
     pub procedure: ProcedureId,
 }
@@ -38,7 +38,7 @@ impl Error for ProcedureNotFound {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Forbidden {
-    pub service: ServiceDescriptor,
+    pub subsystem: SubsystemDescriptor,
     pub procedure: ProcedureDescriptor,
 
     pub reason: Cow<'static, str>,
@@ -49,7 +49,7 @@ impl Display for Forbidden {
         write!(
             fmt,
             "forbidden to call {}::{}",
-            self.service, self.procedure
+            self.subsystem, self.procedure
         )?;
 
         if !self.reason.is_empty() {
@@ -129,5 +129,5 @@ impl Error for RequestExpectedItemCountMismatch {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
-#[display("unable to delegate request to service implementation")]
+#[display("unable to delegate request to subsystem implementation")]
 pub struct DelegationError;

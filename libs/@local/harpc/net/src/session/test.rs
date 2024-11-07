@@ -6,7 +6,7 @@ use error_stack::{Report, ResultExt as _};
 use futures::{prelude::stream, sink::SinkExt as _, stream::StreamExt as _};
 use harpc_types::{
     procedure::{ProcedureDescriptor, ProcedureId},
-    service::{ServiceDescriptor, ServiceId},
+    subsystem::{SubsystemDescriptor, SubsystemId},
     version::Version,
 };
 use humansize::ISizeFormatter;
@@ -25,15 +25,15 @@ use crate::transport::{Transport, TransportConfig, TransportLayer, test::memory_
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct Descriptor {
-    pub service: ServiceDescriptor,
+    pub subsystem: SubsystemDescriptor,
     pub procedure: ProcedureDescriptor,
 }
 
 impl Default for Descriptor {
     fn default() -> Self {
         Self {
-            service: ServiceDescriptor {
-                id: ServiceId::new(0x00),
+            subsystem: SubsystemDescriptor {
+                id: SubsystemId::new(0x00),
                 version: Version { major: 1, minor: 1 },
             },
             procedure: ProcedureDescriptor {
@@ -51,13 +51,13 @@ enum PingError {
     Sink,
 }
 
-/// Simple Echo Service
+/// Simple Echo Subsystem
 ///
-/// Unlike the `EchoService` in `server/test.rs` this one doesn't keep track of statistics, to
+/// Unlike the `EchoSystem` in `server/test.rs` this one doesn't keep track of statistics, to
 /// remove as many variables as possible from RTT measurements.
-struct SimpleEchoService;
+struct SimpleEchoSystem;
 
-impl SimpleEchoService {
+impl SimpleEchoSystem {
     async fn handle(
         mut sink: TransactionSink,
         mut stream: TransactionStream,
@@ -152,7 +152,7 @@ where
             .pop()
             .expect("should have at least one external address");
 
-        SimpleEchoService::spawn(server_stream);
+        SimpleEchoSystem::spawn(server_stream);
 
         address
     };
@@ -178,7 +178,7 @@ where
 
     let mut stream = connection
         .call(
-            descriptor.service,
+            descriptor.subsystem,
             descriptor.procedure,
             stream::iter(iter::once(payload)),
         )
@@ -252,7 +252,7 @@ async fn echo_client<const VERIFY: bool>(
 
     let mut stream = connection
         .call(
-            descriptor.service,
+            descriptor.subsystem,
             descriptor.procedure,
             stream::iter(iter::once(payload)),
         )
@@ -311,7 +311,7 @@ async fn echo_concurrent<T>(
             .pop()
             .expect("should have at least one external address");
 
-        SimpleEchoService::spawn(server_stream);
+        SimpleEchoSystem::spawn(server_stream);
 
         address
     };

@@ -85,7 +85,7 @@ define_error_code_consts! {
         /// The combination of service and version requirement could not be found on the server.
         ///
         /// The HTTP equivalent is 404 Not Found.
-        SERVICE_NOT_FOUND,
+        SUBSYSTEM_NOT_FOUND,
         /// The service was found, but the procedure was not.
         ///
         /// The HTTP equivalent is 404 Not Found.

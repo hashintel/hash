@@ -5,15 +5,13 @@ use core::{array, pin::pin};
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, stream};
 use harpc_codec::{decode::ReportDecoder, encode::Encoder};
-use harpc_service::{Service, procedure::ProcedureIdentifier};
+use harpc_service::{Subsystem, procedure::ProcedureIdentifier};
 use harpc_tower::{
     body::{Body, BodyExt as _, Frame, controlled::Controlled, stream::StreamBody},
     request::Request,
     response::{self, Response},
 };
-use harpc_types::{
-    procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
-};
+use harpc_types::{procedure::ProcedureDescriptor, response_kind::ResponseKind};
 
 use crate::error::{DelegationError, ProcedureNotFound, RequestExpectedItemCountMismatch};
 
@@ -33,11 +31,8 @@ where
     let ProcedureDescriptor { id } = request.procedure();
 
     P::from_id(id)
-        .ok_or(ProcedureNotFound {
-            service: ServiceDescriptor {
-                id: <P::Service as Service>::ID,
-                version: <P::Service as Service>::VERSION,
-            },
+        .ok_or_else(|| ProcedureNotFound {
+            subsystem: <P::Subsystem as Subsystem>::descriptor(),
             procedure: id,
         })
         .change_context(DelegationError)
