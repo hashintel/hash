@@ -16,7 +16,7 @@ use crate::Subsystem;
 /// operation will be repeated for each request and add latency.
 ///
 /// The caller must verify that the version and service of the incoming request match those of
-/// [`Self::Service`].
+/// [`Self::Subsystem`].
 pub trait SubsystemDelegate<S, C> {
     /// The inner service type that this delegate wraps.
     type Subsystem: Subsystem;
