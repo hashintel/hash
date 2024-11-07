@@ -18,7 +18,7 @@ postgres-types = { workspace = true, public = true, features = ["with-time-0_3"]
 utoipa = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
-codec = { workspace = true, features = ["serde"] }
+hash-codec = { workspace = true, features = ["serde"] }
 
 # Private third-party dependencies
 derive-where = { workspace = true }

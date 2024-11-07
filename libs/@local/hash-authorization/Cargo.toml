@@ -16,7 +16,7 @@ graph-types = { workspace = true, public = true }
 futures-core = { workspace = true, public = true }
 
 # Private workspace dependencies
-codec = { workspace = true }
+hash-codec = { workspace = true }
 type-system = { workspace = true }
 error-stack = { workspace = true, features = ["unstable"] }
 

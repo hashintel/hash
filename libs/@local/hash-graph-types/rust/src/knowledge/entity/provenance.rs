@@ -82,7 +82,7 @@ pub struct SourceProvenance {
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        with = "codec::serde::time::option"
+        with = "hash_codec::serde::time::option"
     )]
     pub first_published: Option<OffsetDateTime>,
 
@@ -91,7 +91,7 @@ pub struct SourceProvenance {
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        with = "codec::serde::time::option"
+        with = "hash_codec::serde::time::option"
     )]
     pub last_updated: Option<OffsetDateTime>,
 
@@ -100,7 +100,7 @@ pub struct SourceProvenance {
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        with = "codec::serde::time::option"
+        with = "hash_codec::serde::time::option"
     )]
     pub loaded_at: Option<OffsetDateTime>,
 }

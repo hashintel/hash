@@ -16,7 +16,7 @@ description = "HASH Graph test server"
 
 # Private workspace dependencies
 authorization = { workspace = true }
-codec = { workspace = true }
+hash-codec = { workspace = true }
 error-stack = { workspace = true }
 graph = { workspace = true, features = ["utoipa"] }
 graph-api = { workspace = true }

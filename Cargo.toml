@@ -51,7 +51,7 @@ publish = false
 [workspace.dependencies]
 # Workspace members
 authorization.path = "libs/@local/hash-authorization"
-codec.path = "libs/@local/codec"
+hash-codec.path = "libs/@local/codec"
 graph-api.path = "apps/hash-graph/libs/api"
 graph-test-data.path = "tests/hash-graph-test-data/rust"
 graph-types.path = "libs/@local/hash-graph-types/rust"

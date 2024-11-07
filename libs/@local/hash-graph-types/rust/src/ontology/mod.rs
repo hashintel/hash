@@ -81,7 +81,7 @@ pub enum OntologyTypeClassificationMetadata {
     Owned { owned_by_id: OwnedById },
     #[serde(rename_all = "camelCase")]
     External {
-        #[serde(with = "codec::serde::time")]
+        #[serde(with = "hash_codec::serde::time")]
         fetched_at: OffsetDateTime,
     },
 }

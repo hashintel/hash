@@ -27,7 +27,7 @@ use crate::TemporalTagged;
 pub struct Timestamp<A> {
     #[serde(skip)]
     axis: PhantomData<A>,
-    #[serde(with = "codec::serde::time")]
+    #[serde(with = "hash_codec::serde::time")]
     time: OffsetDateTime,
 }
 

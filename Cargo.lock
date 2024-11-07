@@ -372,12 +372,12 @@ dependencies = [
 name = "authorization"
 version = "0.0.0"
 dependencies = [
- "codec",
  "derive-where",
  "error-stack",
  "futures",
  "futures-core",
  "graph-types",
+ "hash-codec",
  "reqwest",
  "serde",
  "serde_json",
@@ -1242,21 +1242,6 @@ name = "clap_lex"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
-
-[[package]]
-name = "codec"
-version = "0.0.0"
-dependencies = [
- "bytes",
- "derive-where",
- "error-stack",
- "harpc-wire-protocol",
- "regex",
- "serde",
- "serde_json",
- "time",
- "tokio-util",
-]
 
 [[package]]
 name = "colorchoice"
@@ -2435,7 +2420,6 @@ dependencies = [
  "authorization",
  "bytes",
  "clap",
- "codec",
  "deadpool",
  "deadpool-postgres",
  "derive-where",
@@ -2444,6 +2428,7 @@ dependencies = [
  "futures",
  "futures-sink",
  "graph-types",
+ "hash-codec",
  "hash-graph-store",
  "hash-status",
  "postgres-types",
@@ -2577,10 +2562,10 @@ name = "graph-types"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "codec",
  "error-stack",
  "futures",
  "graph-test-data",
+ "hash-codec",
  "postgres-types",
  "semver",
  "serde",
@@ -2689,7 +2674,6 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "bytes-utils",
- "codec",
  "derive_more 1.0.0",
  "error-stack",
  "futures",
@@ -2700,6 +2684,7 @@ dependencies = [
  "harpc-codec",
  "harpc-types",
  "harpc-wire-protocol",
+ "hash-codec",
  "humansize",
  "insta",
  "libp2p",
@@ -2813,6 +2798,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-codec"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "derive-where",
+ "error-stack",
+ "harpc-wire-protocol",
+ "regex",
+ "serde",
+ "serde_json",
+ "time",
+ "tokio-util",
+]
+
+[[package]]
 name = "hash-graph"
 version = "0.0.0"
 dependencies = [
@@ -2820,12 +2820,12 @@ dependencies = [
  "axum 0.7.7",
  "clap",
  "clap_complete",
- "codec",
  "error-stack",
  "futures",
  "graph",
  "graph-api",
  "graph-types",
+ "hash-codec",
  "hash-graph-store",
  "hash-tracing",
  "mimalloc",
@@ -6731,8 +6731,8 @@ name = "temporal-versioning"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "codec",
  "derive-where",
+ "hash-codec",
  "postgres-protocol",
  "postgres-types",
  "serde",
@@ -6839,13 +6839,13 @@ version = "0.0.0"
 dependencies = [
  "authorization",
  "axum 0.7.7",
- "codec",
  "error-stack",
  "futures",
  "graph",
  "graph-api",
  "graph-type-defs",
  "graph-types",
+ "hash-codec",
  "hash-status",
  "tokio",
  "tokio-util",
@@ -7492,12 +7492,12 @@ name = "type-system"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "codec",
  "console_error_panic_hook",
  "email_address",
  "error-stack",
  "futures",
  "graph-test-data",
+ "hash-codec",
  "iso8601-duration",
  "itertools 0.13.0",
  "postgres-types",

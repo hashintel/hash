@@ -15,7 +15,7 @@ package-name = "@apps/hash-graph"
 [dependencies]
 # Workspace dependencies
 authorization = { workspace = true }
-codec = { workspace = true }
+hash-codec = { workspace = true }
 error-stack = { workspace = true }
 graph = { workspace = true, features = ["clap"] }
 graph-api = { workspace = true }

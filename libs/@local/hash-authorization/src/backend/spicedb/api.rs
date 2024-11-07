@@ -3,6 +3,7 @@ use std::io;
 
 use error_stack::{Report, ResultExt as _};
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
+use hash_codec::bytes::JsonLinesDecoder;
 use reqwest::Response;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tokio::time::sleep;
@@ -132,10 +133,8 @@ impl SpiceDbOpenApi {
                 .bytes_stream()
                 .map_err(|request_error| io::Error::new(io::ErrorKind::Other, request_error)),
         );
-        let framed_stream = FramedRead::new(
-            stream_reader,
-            codec::bytes::JsonLinesDecoder::<StreamResult<R>>::new(),
-        );
+        let framed_stream =
+            FramedRead::new(stream_reader, JsonLinesDecoder::<StreamResult<R>>::new());
 
         Ok(framed_stream.map(
             |io_result| match io_result.change_context(StreamError::Parse)? {

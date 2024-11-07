@@ -9,6 +9,7 @@ use graph::{
     snapshot::{SnapshotDumpSettings, SnapshotEntry, SnapshotStore},
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool as _},
 };
+use hash_codec::bytes::{JsonLinesDecoder, JsonLinesEncoder};
 use tokio::io;
 use tokio_postgres::NoTls;
 use tokio_util::codec::{FramedRead, FramedWrite};
@@ -140,7 +141,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
         SnapshotCommand::Dump(args) => {
             let write = FramedWrite::new(
                 io::BufWriter::new(io::stdout()),
-                codec::bytes::JsonLinesEncoder::default(),
+                JsonLinesEncoder::default(),
             );
             let settings = SnapshotDumpSettings {
                 chunk_size: 10_000,
@@ -166,10 +167,8 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(args) => {
-            let read = FramedRead::new(
-                io::BufReader::new(io::stdin()),
-                codec::bytes::JsonLinesDecoder::default(),
-            );
+            let read =
+                FramedRead::new(io::BufReader::new(io::stdin()), JsonLinesDecoder::default());
             if let Some(authorization) = authorization {
                 SnapshotStore::new(
                     pool.acquire(authorization, None)
