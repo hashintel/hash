@@ -13,7 +13,7 @@ use graph_types::{
 };
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    schema::DataTypeUuid,
+    schema::{DataTypeReference, DataTypeUuid, PropertyTypeUuid},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
