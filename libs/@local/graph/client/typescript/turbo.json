@@ -10,8 +10,8 @@
     },
     "codegen": {
       "inputs": [
-        "../../graph/api/openapi/openapi.json",
-        "../../graph/api/openapi/models/**",
+        "../../api/openapi/openapi.json",
+        "../../api/openapi/models/**",
         "opeenapitools.json"
       ],
       "outputs": [
