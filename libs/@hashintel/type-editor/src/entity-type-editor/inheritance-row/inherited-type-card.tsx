@@ -4,7 +4,7 @@ import {
   extractVersion,
 } from "@blockprotocol/type-system/slim";
 import { TypeCard } from "@hashintel/design-system";
-// eslint-disable-next-line import/no-extraneous-dependencies -- TODO remove this dependency to make publishable
+// eslint-disable-next-line no-restricted-imports -- TODO remove this dependency to make package publishable
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { useFormContext, useWatch } from "react-hook-form";
 

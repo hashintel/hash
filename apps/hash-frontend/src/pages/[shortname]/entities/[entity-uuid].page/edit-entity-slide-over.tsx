@@ -18,8 +18,8 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
-  linkEntityTypeUrl,
   extractOwnedByIdFromEntityId,
+  linkEntityTypeUrl,
   splitEntityId,
 } from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
@@ -427,18 +427,20 @@ const EditEntitySlideOver = memo(
             />
             <Stack gap={5} px={6} pb={5} pt={1}>
               <Stack alignItems="center" direction="row">
-                <EntityOrTypeIcon
-                  entity={entity}
-                  icon={entityTypes[0]?.schema.icon}
-                  // @todo H-3363 use closed schema to take account of indirectly inherited link status
-                  isLink={
-                    !!entityTypes[0]?.schema.allOf?.some(
-                      (allOf) => allOf.$ref === linkEntityTypeUrl,
-                    )
-                  }
-                  fill={({ palette }) => palette.gray[50]}
-                  fontSize={40}
-                />
+                <Box sx={{ minWidth: 40 }}>
+                  <EntityOrTypeIcon
+                    entity={entity}
+                    icon={entityTypes[0]?.schema.icon}
+                    // @todo H-3363 use closed schema to take account of indirectly inherited link status
+                    isLink={
+                      !!entityTypes[0]?.schema.allOf?.some(
+                        (allOf) => allOf.$ref === linkEntityTypeUrl,
+                      )
+                    }
+                    fill={({ palette }) => palette.gray[50]}
+                    fontSize={40}
+                  />
+                </Box>
                 <Typography
                   variant="h2"
                   color="gray.90"

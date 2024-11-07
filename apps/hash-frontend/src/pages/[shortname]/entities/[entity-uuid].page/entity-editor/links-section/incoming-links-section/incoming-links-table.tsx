@@ -158,20 +158,21 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
             <ValueChip
               key={linkEntityType.$id}
               showInFull
+              icon={
+                <EntityOrTypeIcon
+                  entity={null}
+                  fontSize={linksTableFontSize}
+                  fill={({ palette }) => palette.blue[70]}
+                  icon={linkEntityType.icon}
+                  isLink
+                />
+              }
               type
               sx={{
                 fontSize: linksTableFontSize,
                 mr: 1,
               }}
             >
-              <EntityOrTypeIcon
-                entity={null}
-                fontSize={linksTableFontSize}
-                fill={({ palette }) => palette.blue[70]}
-                icon={linkEntityType.icon}
-                isLink
-                sx={{ mr: 1 }}
-              />
               {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */}
               {linkEntityType.inverse?.title || linkEntityType.title}
             </ValueChip>
@@ -197,19 +198,20 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
             <ValueChip
               key={sourceEntityType.$id}
               type
+              icon={
+                <EntityOrTypeIcon
+                  entity={null}
+                  fontSize={linksTableFontSize}
+                  fill={({ palette }) => palette.blue[70]}
+                  icon={sourceEntityType.icon}
+                  /* @todo H-3363 use closed entity type schema to check link status */
+                  isLink={!!row.sourceEntity.linkData}
+                />
+              }
               sx={{
                 fontSize: linksTableFontSize,
               }}
             >
-              <EntityOrTypeIcon
-                entity={null}
-                fontSize={linksTableFontSize}
-                fill={({ palette }) => palette.blue[70]}
-                icon={sourceEntityType.icon}
-                /* @todo H-3363 use closed entity type schema to check link status */
-                isLink={!!row.sourceEntity.linkData}
-                sx={{ mr: 1 }}
-              />
               {sourceEntityType.title}
             </ValueChip>
           ))}
