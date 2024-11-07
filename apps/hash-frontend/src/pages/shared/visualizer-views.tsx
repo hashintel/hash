@@ -5,11 +5,14 @@ import type { ReactElement } from "react";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
 import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
 
-const tableViews = ["Table", "Graph", "Grid"] as const;
+const visualizerViews = ["Table", "Graph", "Grid"] as const;
 
-export type TableView = (typeof tableViews)[number];
+export type VisualizerView = (typeof visualizerViews)[number];
 
-export const tableViewIcons: Record<TableView, ReactElement<SvgIconProps>> = {
+export const visualizerViewIcons: Record<
+  VisualizerView,
+  ReactElement<SvgIconProps>
+> = {
   Table: (
     <ListRegularIcon
       sx={{

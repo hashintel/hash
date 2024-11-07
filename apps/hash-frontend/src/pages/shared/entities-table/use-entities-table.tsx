@@ -5,7 +5,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
@@ -143,6 +143,19 @@ const getTextWidth = (text: string) => {
   return metrics.width;
 };
 
+type SourceOrTargetFilterData = {
+  count: number;
+  entityId: string;
+  label: string;
+};
+
+type PropertiesByEntityTypeId = {
+  [entityTypeId: VersionedUrl]: {
+    propertyType: PropertyTypeWithMetadata;
+    width: number;
+  }[];
+};
+
 export const useEntitiesTable = (params: {
   entities?: Entity[];
   entityTypes?: EntityType[];
@@ -153,7 +166,20 @@ export const useEntitiesTable = (params: {
   hidePageArchivedColumn?: boolean;
   hidePropertiesColumns: boolean;
   isViewingOnlyPages?: boolean;
-}) => {
+}): {
+  columns: SizedGridColumn[];
+  filterData: {
+    createdByActors: MinimalActor[];
+    lastEditedByActors: MinimalActor[];
+    entityTypeTitles: { [entityTypeTitle: string]: number | undefined };
+    noSourceCount: number;
+    noTargetCount: number;
+    sources: SourceOrTargetFilterData[];
+    targets: SourceOrTargetFilterData[];
+    webs: { [web: string]: number | undefined };
+  };
+  rows: TypeEntitiesRow[] | undefined;
+} => {
   const {
     entities,
     entityTypes,
@@ -179,77 +205,109 @@ export const useEntitiesTable = (params: {
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
-  const entitiesHaveSameType = useMemo(() => {
-    if (!entities?.length) {
-      return false;
-    }
-    const seenBaseUrls = new Set<BaseUrl>();
-    for (const entity of entities) {
-      for (const entityTypeId of entity.metadata.entityTypeIds) {
-        const baseUrl = extractBaseUrl(entityTypeId);
-        if (seenBaseUrls.size > 0 && !seenBaseUrls.has(baseUrl)) {
-          return false;
-        }
-        seenBaseUrls.add(baseUrl);
-      }
-    }
-    return true;
-  }, [entities]);
-
-  const usedPropertyTypesByEntityTypeId = useMemo<{
-    [entityTypeId: VersionedUrl]: PropertyTypeWithMetadata[];
+  const {
+    entitiesHaveSameType,
+    entityTypesWithMultipleVersionsPresent,
+    usedPropertyTypesByEntityTypeId,
+  } = useMemo<{
+    entitiesHaveSameType: boolean;
+    entityTypesWithMultipleVersionsPresent: VersionedUrl[];
+    usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
   }>(() => {
     if (!entities || !subgraph) {
-      return {};
+      return {
+        entitiesHaveSameType: false,
+        entityTypesWithMultipleVersionsPresent: [],
+        usedPropertyTypesByEntityTypeId: {},
+      };
     }
 
-    return Object.fromEntries(
-      entities.flatMap((entity) =>
-        entity.metadata.entityTypeIds.map((entityTypeId) => {
-          const entityType = getEntityTypeById(subgraph, entityTypeId);
+    const propertyMap: PropertiesByEntityTypeId = {};
 
-          if (!entityType) {
-            // eslint-disable-next-line no-console
-            console.warn(
-              `Could not find entityType with id ${entityTypeId}, it may be loading...`,
-            );
-            return [entityTypeId, []];
-          }
-
-          return [
-            entityType.schema.$id,
-            [
-              ...getPropertyTypesForEntityType(
-                entityType.schema,
-                subgraph,
-              ).values(),
-            ],
-          ];
-        }),
-      ),
-    );
-  }, [entities, subgraph]);
-
-  const entityTypesWithMultipleVersionsPresent = useMemo(() => {
     const typesWithMultipleVersions: VersionedUrl[] = [];
-    const baseUrlsSeen = new Set<BaseUrl>();
-    for (const entityTypeId of typedKeys(usedPropertyTypesByEntityTypeId)) {
-      const baseUrl = extractBaseUrl(entityTypeId);
-      if (baseUrlsSeen.has(baseUrl)) {
-        typesWithMultipleVersions.push(entityTypeId);
-      } else {
-        baseUrlsSeen.add(baseUrl);
+    const firstSeenTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
+
+    for (const entity of entities) {
+      for (const entityTypeId of entity.metadata.entityTypeIds) {
+        if (propertyMap[entityTypeId]) {
+          continue;
+        }
+
+        const baseUrl = extractBaseUrl(entityTypeId);
+        if (firstSeenTypeByBaseUrl[baseUrl]) {
+          typesWithMultipleVersions.push(entityTypeId);
+          typesWithMultipleVersions.push(firstSeenTypeByBaseUrl[baseUrl]);
+        } else {
+          firstSeenTypeByBaseUrl[baseUrl] = entityTypeId;
+        }
+
+        const entityType = getEntityTypeById(subgraph, entityTypeId);
+        if (!entityType) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `Could not find entityType with id ${entityTypeId}, it may be loading...`,
+          );
+          continue;
+        }
+
+        const propertyTypes = getPropertyTypesForEntityType(
+          entityType.schema,
+          subgraph,
+        );
+
+        propertyMap[entityTypeId] ??= [];
+
+        for (const propertyType of propertyTypes.values()) {
+          propertyMap[entityTypeId].push({
+            propertyType,
+            width: getTextWidth(propertyType.schema.title) + 70,
+          });
+        }
       }
     }
-    return typesWithMultipleVersions;
-  }, [usedPropertyTypesByEntityTypeId]);
+
+    return {
+      entitiesHaveSameType: Object.keys(firstSeenTypeByBaseUrl).length === 1,
+      entityTypesWithMultipleVersionsPresent: typesWithMultipleVersions,
+      usedPropertyTypesByEntityTypeId: propertyMap,
+    };
+  }, [entities, subgraph]);
+
+  console.log({ usedPropertyTypesByEntityTypeId });
 
   return useMemo(() => {
-    console.log("Calculating stuff");
+    const now = new Date();
+    console.log(`Calculating stuff at ${now.toISOString()}`);
+
+    const lastEditedBySet = new Set<MinimalActor>();
+    const createdBySet = new Set<MinimalActor>();
+    const entityTypeTitleCount: {
+      [entityTypeTitle: string]: number | undefined;
+    } = {};
+
+    let noSource = 0;
+    let noTarget = 0;
+
+    const sourcesByEntityId: {
+      [entityId: string]: {
+        count: number;
+        entityId: string;
+        label: string;
+      };
+    } = {};
+    const targetsByEntityId: {
+      [entityId: string]: {
+        count: number;
+        entityId: string;
+        label: string;
+      };
+    } = {};
+
+    const webCountById: { [web: string]: number } = {};
 
     const propertyColumnsMap = new Map<string, SizedGridColumn>();
 
-    for (const propertyType of Object.values(
+    for (const { propertyType, width } of Object.values(
       usedPropertyTypesByEntityTypeId,
     ).flat()) {
       const propertyTypeBaseUrl = extractBaseUrl(propertyType.schema.$id);
@@ -258,7 +316,7 @@ export const useEntitiesTable = (params: {
         propertyColumnsMap.set(propertyTypeBaseUrl, {
           id: propertyTypeBaseUrl,
           title: propertyType.schema.title,
-          width: getTextWidth(propertyType.schema.title) + 70,
+          width: width + 70,
         });
       }
     }
@@ -337,6 +395,10 @@ export const useEntitiesTable = (params: {
                     entity.metadata.provenance.edition.createdById,
                 );
 
+            if (lastEditedBy && lastEditedBy !== "loading") {
+              lastEditedBySet.add(lastEditedBy);
+            }
+
             const created = format(
               new Date(entity.metadata.provenance.createdAtDecisionTime),
               "yyyy-MM-dd HH:mm",
@@ -349,10 +411,14 @@ export const useEntitiesTable = (params: {
                     accountId === entity.metadata.provenance.createdById,
                 );
 
+            if (createdBy && createdBy !== "loading") {
+              createdBySet.add(createdBy);
+            }
+
             const applicableProperties = currentEntitysTypes.flatMap(
               (entityType) =>
                 usedPropertyTypesByEntityTypeId[entityType.$id]!.map(
-                  (propertyType) => extractBaseUrl(propertyType.schema.$id),
+                  ({ propertyType }) => extractBaseUrl(propertyType.schema.$id),
                 ),
             );
 
@@ -388,6 +454,13 @@ export const useEntitiesTable = (params: {
                 isLink: !!source?.linkData,
               };
 
+              sourcesByEntityId[sourceEntity.entityId] ??= {
+                count: 0,
+                entityId: sourceEntity.entityId,
+                label: sourceEntity.label,
+              };
+              sourcesByEntityId[sourceEntity.entityId]!.count++;
+
               const targetEntityLabel = !target
                 ? entity.linkData.leftEntityId
                 : target.linkData
@@ -407,7 +480,26 @@ export const useEntitiesTable = (params: {
                 icon: targetEntityType?.schema.icon,
                 isLink: !!target?.linkData,
               };
+
+              targetsByEntityId[targetEntity.entityId] ??= {
+                count: 0,
+                entityId: targetEntity.entityId,
+                label: targetEntity.label,
+              };
+              targetsByEntityId[targetEntity.entityId]!.count++;
+            } else {
+              noSource += 1;
+              noTarget += 1;
             }
+
+            for (const entityType of currentEntitysTypes) {
+              entityTypeTitleCount[entityType.title] ??= 0;
+              entityTypeTitleCount[entityType.title]!++;
+            }
+
+            const web = `@${entityNamespace}`;
+            webCountById[web] ??= 0;
+            webCountById[web]++;
 
             return {
               rowId: entityId,
@@ -439,7 +531,7 @@ export const useEntitiesTable = (params: {
                   isLink,
                 };
               }),
-              web: `@${entityNamespace}`,
+              web,
               archived: isPage
                 ? simplifyProperties(entity.properties as PageProperties)
                     .archived
@@ -473,7 +565,24 @@ export const useEntitiesTable = (params: {
           })
         : undefined;
 
-    return { columns, rows };
+    const after = new Date();
+    console.log(`Done calculating stuff at ${after.toISOString()}`);
+    console.log(`Took ${after.getTime() - now.getTime()}ms`);
+
+    return {
+      columns,
+      rows,
+      filterData: {
+        lastEditedByActors: [...lastEditedBySet],
+        createdByActors: [...createdBySet],
+        entityTypeTitles: entityTypeTitleCount,
+        webs: webCountById,
+        noSourceCount: noSource,
+        noTargetCount: noTarget,
+        sources: Object.values(sourcesByEntityId),
+        targets: Object.values(targetsByEntityId),
+      },
+    };
   }, [
     actors,
     actorsLoading,

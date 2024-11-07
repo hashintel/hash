@@ -125,10 +125,11 @@ export const Grid = <T extends GridRow>({
   }, []);
 
   const [sorts, setSorts] = useState<ColumnSort<Extract<keyof T, string>>[]>(
-    columns.map((column) => ({
-      columnKey: column.id as Extract<keyof T, string>,
-      direction: "asc",
-    })),
+    () =>
+      columns.map((column) => ({
+        columnKey: column.id as Extract<keyof T, string>,
+        direction: "asc",
+      })),
   );
 
   const [previousSortedColumnKey, setPreviousSortedColumnKey] = useState<
@@ -137,6 +138,19 @@ export const Grid = <T extends GridRow>({
   const [currentSortedColumnKey, setCurrentSortedColumnKey] = useState<
     string | undefined
   >(initialSortedColumnKey ?? columns[0]?.id);
+
+  useEffect(() => {
+    setSorts(
+      columns.map((column) => ({
+        columnKey: column.id as Extract<keyof T, string>,
+        direction: "asc",
+      })),
+    );
+
+    if (initialSortedColumnKey) {
+      setCurrentSortedColumnKey(initialSortedColumnKey);
+    }
+  }, [columns, initialSortedColumnKey]);
 
   const [openFilterColumnKey, setOpenFilterColumnKey] = useState<string>();
 

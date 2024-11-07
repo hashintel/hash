@@ -45,8 +45,8 @@ import type { TextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { TypeSlideOverStack } from "../../shared/entity-type-page/type-slide-over-stack";
 import { TableHeaderToggle } from "../../shared/table-header-toggle";
-import type { TableView } from "../../shared/table-views";
-import { tableViewIcons } from "../../shared/table-views";
+import type { VisualizerView } from "../../shared/visualizer-views";
+import { visualizerViewIcons } from "../../shared/visualizer-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
 
@@ -115,7 +115,7 @@ export const TypesTable: FunctionComponent<{
 }> = ({ types, kind }) => {
   const router = useRouter();
 
-  const [view, setView] = useState<TableView>("Table");
+  const [view, setView] = useState<VisualizerView>("Table");
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
@@ -512,13 +512,13 @@ export const TypesTable: FunctionComponent<{
             <TableHeaderToggle
               value={view}
               setValue={setView}
-              options={(["Table", "Graph"] as const satisfies TableView[]).map(
-                (optionValue) => ({
-                  icon: tableViewIcons[optionValue],
-                  label: `${optionValue} view`,
-                  value: optionValue,
-                }),
-              )}
+              options={(
+                ["Table", "Graph"] as const satisfies VisualizerView[]
+              ).map((optionValue) => ({
+                icon: visualizerViewIcons[optionValue],
+                label: `${optionValue} view`,
+                value: optionValue,
+              }))}
             />
           }
           internalWebIds={internalWebIds}

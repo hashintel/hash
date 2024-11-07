@@ -36,9 +36,10 @@ import type {
 } from "./graph-visualizer";
 import { generateEntityRootedSubgraph } from "./subgraphs";
 import { TableHeaderToggle } from "./table-header-toggle";
-import type { TableView } from "./table-views";
-import { tableViewIcons } from "./table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
+import type { VisualizerView } from "./visualizer-views";
+import { visualizerViewIcons } from "./visualizer-views";
+import { useMemoCompare } from "../../shared/use-memo-compare";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -62,12 +63,12 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
   ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
 );
 
-export const EntityVisualizer: FunctionComponent<{
+export const EntitiesVisualizer: FunctionComponent<{
   customColumns?: CustomColumn[];
   defaultFilter?: FilterState;
   defaultGraphConfig?: GraphVizConfig<DynamicNodeSizing>;
   defaultGraphFilters?: GraphVizFilters;
-  defaultView?: TableView;
+  defaultView?: VisualizerView;
   disableEntityOpenInNew?: boolean;
   disableTypeClick?: boolean;
   /**
@@ -144,7 +145,7 @@ export const EntityVisualizer: FunctionComponent<{
 
   const supportGridView = isDisplayingFilesOnly;
 
-  const [view, setView] = useState<TableView>(
+  const [view, setView] = useState<VisualizerView>(
     isDisplayingFilesOnly ? "Grid" : defaultView,
   );
 
@@ -211,36 +212,42 @@ export const EntityVisualizer: FunctionComponent<{
     }
   }, [isViewingOnlyPages, filterState]);
 
-  const internalWebIds = useMemo(() => {
-    return [
-      authenticatedUser.accountId,
-      ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
-    ];
-  }, [authenticatedUser]);
-
-  const filteredEntities = useMemo(
-    () =>
-      entities?.filter(
-        (entity) =>
-          (filterState.includeGlobal
-            ? true
-            : internalWebIds.includes(
-                extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
-              )) &&
-          (filterState.includeArchived === undefined ||
-          filterState.includeArchived ||
-          !includesPageEntityTypeId(entity.metadata.entityTypeIds)
-            ? true
-            : simplifyProperties(entity.properties as PageProperties)
-                .archived !== true) &&
-          (filterState.limitToWebs
-            ? filterState.limitToWebs.includes(
-                extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
-              )
-            : true),
-      ),
-    [entities, filterState, internalWebIds],
+  const internalWebIds = useMemoCompare(
+    () => {
+      return [
+        authenticatedUser.accountId,
+        ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
+      ];
+    },
+    [authenticatedUser],
+    (oldValue, newValue) => {
+      const oldSet = new Set(oldValue);
+      const newSet = new Set(newValue);
+      return oldSet.size === newSet.size && oldSet.isSubsetOf(newSet);
+    },
   );
+
+  const filteredEntities = useMemo(() => {
+    return entities?.filter(
+      (entity) =>
+        (filterState.includeGlobal
+          ? true
+          : internalWebIds.includes(
+              extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+            )) &&
+        (filterState.includeArchived === undefined ||
+        filterState.includeArchived ||
+        !includesPageEntityTypeId(entity.metadata.entityTypeIds)
+          ? true
+          : simplifyProperties(entity.properties as PageProperties).archived !==
+            true) &&
+        (filterState.limitToWebs
+          ? filterState.limitToWebs.includes(
+              extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+            )
+          : true),
+    );
+  }, [entities, filterState, internalWebIds]);
 
   const [selectedEntity, setSelectedEntity] = useState<{
     entityId: EntityId;
@@ -291,6 +298,12 @@ export const EntityVisualizer: FunctionComponent<{
     [entityTypeId, entityTypeBaseUrl],
   );
 
+  const [showTableSearch, setShowTableSearch] = useState(false);
+
+  const [selectedTableRows, setSelectedTableRows] = useState<TypeEntitiesRow[]>(
+    [],
+  );
+
   return (
     <>
       {selectedEntityType && (
@@ -338,20 +351,17 @@ export const EntityVisualizer: FunctionComponent<{
           itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
           items={entities}
           selectedItems={
-            []
-            // entities?.filter((entity) =>
-            //   selectedRows.some(
-            //     ({ entityId }) =>
-            //       entity.metadata.recordId.entityId === entityId,
-            //   ),
-            // ) ?? []
+            entities?.filter((entity) =>
+              selectedTableRows.some(
+                ({ entityId }) =>
+                  entity.metadata.recordId.entityId === entityId,
+              ),
+            ) ?? []
           }
           title="Entities"
           columns={[]}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          // getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
-          // hideExportToCsv={view !== "Table"}
-          hideExportToCsv
+          hideExportToCsv={view !== "Table"}
           endAdornment={
             <TableHeaderToggle
               value={view}
@@ -361,9 +371,9 @@ export const EntityVisualizer: FunctionComponent<{
                   "Table",
                   ...(supportGridView ? (["Grid"] as const) : []),
                   "Graph",
-                ] as const satisfies TableView[]
+                ] as const satisfies VisualizerView[]
               ).map((optionValue) => ({
-                icon: tableViewIcons[optionValue],
+                icon: visualizerViewIcons[optionValue],
                 label: `${optionValue} view`,
                 value: optionValue,
               }))}
@@ -371,9 +381,9 @@ export const EntityVisualizer: FunctionComponent<{
           }
           filterState={filterState}
           setFilterState={setFilterState}
-          // toggleSearch={
-          //   // view === "Table" ? () => setShowSearch(true) : undefined
-          // }
+          toggleSearch={
+            view === "Table" ? () => setShowTableSearch(true) : undefined
+          }
           onBulkActionCompleted={() => null}
         />
         {!subgraph ? null : view === "Graph" ? (
@@ -393,6 +403,7 @@ export const EntityVisualizer: FunctionComponent<{
           <GridView entities={entities} />
         ) : (
           <EntitiesTable
+            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
             entities={filteredEntities ?? []}
             entityTypes={entityTypes ?? []}
             filterState={filterState}
@@ -405,6 +416,10 @@ export const EntityVisualizer: FunctionComponent<{
             propertyTypes={propertyTypes ?? []}
             readonly={readonly}
             setSelectedEntityType={setSelectedEntityType}
+            setSelectedRows={setSelectedTableRows}
+            selectedRows={selectedTableRows}
+            showSearch={showTableSearch}
+            setShowSearch={setShowTableSearch}
             subgraph={subgraph}
           />
         )}

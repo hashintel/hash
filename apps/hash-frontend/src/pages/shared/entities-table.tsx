@@ -20,7 +20,7 @@ import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import type { FunctionComponent, RefObject } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { GridProps } from "../../components/grid/grid";
 import {
@@ -37,6 +37,7 @@ import type { FilterState } from "../../shared/table-header";
 import { tableHeaderHeight } from "../../shared/table-header";
 import type { MinimalActor } from "../../shared/use-actors";
 import { isAiMachineActor } from "../../shared/use-actors";
+import type { ChipCellProps } from "./chip-cell";
 import { createRenderChipCell } from "./chip-cell";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
@@ -51,6 +52,7 @@ const noneString = "none";
 const firstColumnLeftPadding = 16;
 
 export const EntitiesTable: FunctionComponent<{
+  currentlyDisplayedRowsRef: RefObject<TypeEntitiesRow[]>;
   disableTypeClick?: boolean;
   entities: Entity[];
   entityTypes: EntityType[];
@@ -67,9 +69,14 @@ export const EntitiesTable: FunctionComponent<{
   maxHeight?: string | number;
   propertyTypes: PropertyType[];
   readonly?: boolean;
+  selectedRows: TypeEntitiesRow[];
+  setSelectedRows: (rows: TypeEntitiesRow[]) => void;
   setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
+  setShowSearch: (showSearch: boolean) => void;
+  showSearch: boolean;
   subgraph: Subgraph<EntityRootType>;
 }> = ({
+  currentlyDisplayedRowsRef,
   disableTypeClick,
   entities,
   entityTypes,
@@ -83,13 +90,29 @@ export const EntitiesTable: FunctionComponent<{
   maxHeight,
   propertyTypes,
   readonly,
+  selectedRows,
+  setSelectedRows,
+  showSearch,
+  setShowSearch,
   setSelectedEntityType,
   subgraph,
 }) => {
   const router = useRouter();
-  const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const { columns, rows } = useEntitiesTable({
+  const {
+    columns,
+    rows,
+    filterData: {
+      createdByActors,
+      lastEditedByActors,
+      entityTypeTitles,
+      noSourceCount,
+      noTargetCount,
+      sources,
+      targets,
+      webs,
+    },
+  } = useEntitiesTable({
     entities,
     entityTypes,
     propertyTypes,
@@ -100,8 +123,6 @@ export const EntitiesTable: FunctionComponent<{
     hidePropertiesColumns,
     isViewingOnlyPages,
   });
-
-  const [selectedRows, setSelectedRows] = useState<TypeEntitiesRow[]>([]);
 
   const theme = useTheme();
 
@@ -194,7 +215,7 @@ export const EntitiesTable: FunctionComponent<{
                 })),
                 color: "white",
                 variant: "outlined",
-              },
+              } satisfies ChipCellProps,
             };
           } else if (columnId === "webId") {
             const shortname = row[columnId];
@@ -329,7 +350,7 @@ export const EntitiesTable: FunctionComponent<{
                   : [],
                 color: "gray",
                 variant: "filled",
-              },
+              } satisfies ChipCellProps,
             };
           }
 
@@ -421,6 +442,7 @@ export const EntitiesTable: FunctionComponent<{
   const sortRows = useCallback<
     NonNullable<GridProps<TypeEntitiesRow>["sortRows"]>
   >((unsortedRows, sort, previousSort) => {
+    console.log("Sorting rows");
     return unsortedRows.toSorted((a, b) => {
       const value1 = a[sort.columnKey];
       const value2 = b[sort.columnKey];
@@ -488,91 +510,6 @@ export const EntitiesTable: FunctionComponent<{
   const [selectedArchivedStatus, setSelectedArchivedStatus] = useState<
     Set<"archived" | "not-archived">
   >(new Set(["archived", "not-archived"]));
-
-  const {
-    createdByActors,
-    lastEditedByActors,
-    entityTypeTitles,
-    noSourceCount,
-    noTargetCount,
-    sources,
-    targets,
-    webs,
-  } = useMemo(() => {
-    const lastEditedBySet = new Set<MinimalActor>();
-    const createdBySet = new Set<MinimalActor>();
-    const entityTypeTitleCount: {
-      [entityTypeTitle: string]: number | undefined;
-    } = {};
-
-    let noSource = 0;
-    let noTarget = 0;
-
-    const sourcesByEntityId: {
-      [entityId: string]: {
-        count: number;
-        entityId: string;
-        label: string;
-      };
-    } = {};
-    const targetsByEntityId: {
-      [entityId: string]: {
-        count: number;
-        entityId: string;
-        label: string;
-      };
-    } = {};
-
-    const webCountById: { [web: string]: number } = {};
-    for (const row of rows ?? []) {
-      if (row.lastEditedBy && row.lastEditedBy !== "loading") {
-        lastEditedBySet.add(row.lastEditedBy);
-      }
-      if (row.createdBy && row.createdBy !== "loading") {
-        createdBySet.add(row.createdBy);
-      }
-
-      if (row.sourceEntity) {
-        sourcesByEntityId[row.sourceEntity.entityId] ??= {
-          count: 0,
-          entityId: row.sourceEntity.entityId,
-          label: row.sourceEntity.label,
-        };
-        sourcesByEntityId[row.sourceEntity.entityId]!.count++;
-      } else {
-        noSource++;
-      }
-
-      if (row.targetEntity) {
-        targetsByEntityId[row.targetEntity.entityId] ??= {
-          count: 0,
-          entityId: row.targetEntity.entityId,
-          label: row.targetEntity.label,
-        };
-        targetsByEntityId[row.targetEntity.entityId]!.count++;
-      } else {
-        noTarget++;
-      }
-
-      for (const entityType of row.entityTypes) {
-        entityTypeTitleCount[entityType.title] ??= 0;
-        entityTypeTitleCount[entityType.title]!++;
-      }
-
-      webCountById[row.web] ??= 0;
-      webCountById[row.web]!++;
-    }
-    return {
-      lastEditedByActors: [...lastEditedBySet],
-      createdByActors: [...createdBySet],
-      entityTypeTitles: entityTypeTitleCount,
-      webs: webCountById,
-      noSourceCount: noSource,
-      noTargetCount: noTarget,
-      sources: Object.values(sourcesByEntityId),
-      targets: Object.values(targetsByEntityId),
-    };
-  }, [rows]);
 
   const [selectedEntityTypeTitles, setSelectedEntityTypeTitles] = useState<
     Set<string>
@@ -801,8 +738,6 @@ export const EntitiesTable: FunctionComponent<{
       targets,
     ],
   );
-
-  const currentlyDisplayedRowsRef = useRef<TypeEntitiesRow[] | null>(null);
 
   const maximumTableHeight =
     maxHeight ??
