@@ -1,7 +1,7 @@
 import { createReadStream } from "node:fs";
 
 import { StatusCode } from "@local/status";
-import type { GraphStatus } from "@rust/graph-type-defs/typescript/status";
+import type { GraphStatus } from "@rust/hash-graph-type-defs/typescript/status";
 import fetch from "node-fetch";
 
 const port = 4001;
