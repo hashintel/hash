@@ -2,8 +2,8 @@ use alloc::collections::BTreeSet;
 use core::hash::{BuildHasher, Hash};
 use std::collections::{HashMap, HashSet};
 
-use hash_graph_types::knowledge::entity::EntityId;
 use hash_graph_temporal_versioning::LeftClosedTemporalInterval;
+use hash_graph_types::knowledge::entity::EntityId;
 
 use crate::subgraph::{
     identifier::{EdgeEndpoint, EntityIdWithInterval},

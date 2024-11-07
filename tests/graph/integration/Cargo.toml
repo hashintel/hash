@@ -37,4 +37,6 @@ name = "postgres"
 path = "postgres/lib.rs"
 
 [package.metadata.sync.turborepo]
-extra-dev-dependencies = [{ name = "@apps/hash-graph", version = "0.0.0-private" }]
+extra-dev-dependencies = [
+    { name = "@apps/hash-graph", version = "0.0.0-private" },
+]

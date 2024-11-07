@@ -2,8 +2,8 @@ use alloc::borrow::Cow;
 use core::{error::Error, fmt, mem, str::FromStr as _};
 
 use error_stack::{Report, ResultExt as _, bail};
-use hash_graph_types::{Embedding, knowledge::entity::EntityEditionId};
 use hash_graph_temporal_versioning::Timestamp;
+use hash_graph_types::{Embedding, knowledge::entity::EntityEditionId};
 use serde::Deserialize;
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{

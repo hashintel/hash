@@ -36,7 +36,13 @@ futures = { workspace = true }
 mimalloc = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls"] }
-tarpc = { workspace = true, features = ["serde1", "tokio1", "serde-transport", "serde-transport-json", "tcp"] }
+tarpc = { workspace = true, features = [
+    "serde1",
+    "tokio1",
+    "serde-transport",
+    "serde-transport-json",
+    "tcp",
+] }
 time = { workspace = true }
 tokio = { workspace = true }
 tokio-postgres = { workspace = true }
