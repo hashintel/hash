@@ -1,14 +1,17 @@
 import { ArrowUpRightIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
+import type { ReactElement } from "react";
 
 import { ValueChip } from "./value-chip";
 
 export const ClickableCellChip = ({
   fontSize,
+  icon,
   label,
   onClick,
 }: {
   fontSize: number;
+  icon?: ReactElement;
   label: string;
   onClick: () => void;
 }) => {
@@ -28,6 +31,7 @@ export const ClickableCellChip = ({
       }}
     >
       <ValueChip
+        icon={icon}
         sx={{
           fontSize,
           fontWeight: 500,

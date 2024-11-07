@@ -3,8 +3,8 @@ import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import type { ElementType } from "react";
 import { useState } from "react";
 
+import { EntityOrTypeIcon } from "./entity-or-type-icon";
 import { FontAwesomeIcon } from "./fontawesome-icon";
-import { AsteriskRegularIcon } from "./icon-asterisk-regular";
 import { IconButton } from "./icon-button";
 import { CloseIcon } from "./icon-close";
 import { WhiteCard } from "./white-card";
@@ -14,6 +14,7 @@ interface TypeCardProps {
   onDelete?: () => void;
   LinkComponent?: ElementType;
   icon?: string | null;
+  isLink: boolean;
   url: string;
   title: string;
   version: number;
@@ -23,26 +24,12 @@ interface TypeCardProps {
   };
 }
 
-const TypeIcon = ({ icon }: { icon?: string | null }) => {
-  if (!icon) {
-    return <AsteriskRegularIcon sx={{ fontSize: 16 }} />;
-  }
-  if (
-    icon.startsWith("http://") ||
-    icon.startsWith("https://") ||
-    icon.startsWith("/")
-  ) {
-    return <img alt="" src={icon} style={{ width: 16, height: 16 }} />;
-  }
-
-  return icon;
-};
-
 export const TypeCard = ({
   disableClick,
   onDelete,
   LinkComponent,
   icon,
+  isLink,
   url,
   title,
   version,
@@ -75,8 +62,14 @@ export const TypeCard = ({
           whiteSpace: "nowrap",
         }}
       >
-        <TypeIcon icon={icon} />
-        <Typography variant="smallTextLabels" fontWeight={600} ml={1.5}>
+        <EntityOrTypeIcon
+          entity={null}
+          fontSize={14}
+          fill={({ palette }) => palette.blue[70]}
+          isLink={isLink}
+          icon={icon}
+        />
+        <Typography variant="smallTextLabels" fontWeight={600} ml={1}>
           {title}
           <Typography variant="microText" color="gray.50" ml={0.5}>
             {` v${version}`}

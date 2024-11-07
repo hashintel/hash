@@ -178,7 +178,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
          * The traversal depths will not be accurate, because the actual traversal was rooted at the block collection.
          * This data is only used briefly – we fetch the block's subgraph from the API further on this effect.
          */
-        const latestEditionId = Object.keys(entityEditionMap).sort().pop()!;
+        const latestEditionId = Object.keys(entityEditionMap)
+          .toSorted()
+          .at(-1)!;
         subgraphToRewrite = {
           ...blockCollectionSubgraph,
           roots: [
@@ -231,8 +233,8 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
        *    doing so only for the latest edition is an optimization which assumes blocks only care about the latest value.
        */
       const latestSubgraphEditionTimestamp = Object.keys(entityOrTypeEditionMap)
-        .sort()
-        .pop() as EntityRevisionId;
+        .toSorted()
+        .at(-1) as EntityRevisionId;
 
       /**
        * Check if we have a version of this entity in the local store, if provided, and if it's newer than in the subgraph.

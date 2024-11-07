@@ -1,5 +1,7 @@
 import type { Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 
 import type { ChipCell } from "../../../../../../shared/chip-cell";
@@ -12,6 +14,8 @@ import type { LinkRow } from "./types";
 
 export const useCreateGetCellContent = () => {
   const { readonly } = useEntityEditor();
+
+  const theme = useTheme();
 
   const createGetCellContent = useCallback(
     (rows: LinkRow[]) =>
@@ -32,7 +36,7 @@ export const useCreateGetCellContent = () => {
           throw new Error("columnKey not found");
         }
 
-        const expectsAnything = !row.expectedEntityTypeTitles.length;
+        const expectsAnything = !row.expectedEntityTypes.length;
 
         switch (columnKey) {
           case "linkTitle":
@@ -60,25 +64,42 @@ export const useCreateGetCellContent = () => {
                 readonly,
               },
             };
-          case "expectedEntityTypes":
+          case "expectedEntityTypes": {
+            const expectedEntityTypeTitles = row.expectedEntityTypes.map(
+              (type) => type.schema.title,
+            );
             return {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: true, // in case we have so many expected types that we need to open on click to see them all
-              copyData: String(row.expectedEntityTypeTitles),
+              copyData: String(expectedEntityTypeTitles.join(", ")),
               data: {
                 kind: "chip-cell",
                 chips: expectsAnything
                   ? [{ text: "Anything" }]
-                  : row.expectedEntityTypeTitles.map((title) => ({
-                      text: title,
+                  : row.expectedEntityTypes.map(({ schema }) => ({
+                      text: schema.title,
+                      icon: schema.icon
+                        ? { entityTypeIcon: schema.icon }
+                        : {
+                            /**
+                             * @todo H-3363 use closed schema to take account of indirect inheritance links
+                             */
+                            inbuiltIcon: schema.allOf?.some(
+                              (allOf) => allOf.$ref === linkEntityTypeUrl,
+                            )
+                              ? "bpLink"
+                              : "bpAsterisk",
+                          },
+                      iconFill: theme.palette.blue[70],
                     })),
                 color: expectsAnything ? "blue" : "white",
               },
             };
+          }
         }
       },
-    [readonly],
+    [readonly, theme],
   );
 
   return createGetCellContent;

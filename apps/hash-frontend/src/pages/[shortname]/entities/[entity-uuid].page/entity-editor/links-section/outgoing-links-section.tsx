@@ -10,7 +10,7 @@ import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 
 import { Grid } from "../../../../../../components/grid/grid";
-import { renderChipCell } from "../../../../../shared/chip-cell";
+import { createRenderChipCell } from "../../../../../shared/chip-cell";
 import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
 import { useEntityEditor } from "../entity-editor-context";
@@ -107,7 +107,7 @@ export const OutgoingLinksSection = ({
               renderLinkCell,
               renderLinkedWithCell,
               renderSummaryChipCell,
-              renderChipCell,
+              createRenderChipCell(),
             ]}
           />
         </Paper>

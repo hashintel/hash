@@ -29,7 +29,6 @@ import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
 import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import type { FilterState } from "../../../shared/table-header";
@@ -41,7 +40,7 @@ import {
 } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import type { ChipCell } from "../../shared/chip-cell";
-import { renderChipCell } from "../../shared/chip-cell";
+import { createRenderChipCell } from "../../shared/chip-cell";
 import type { TextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { TypeSlideOverStack } from "../../shared/entity-type-page/type-slide-over-stack";
@@ -71,6 +70,7 @@ export type TypesTableRow = {
   kind: "entity-type" | "property-type" | "link-type" | "data-type";
   lastEdited: string;
   lastEditedBy?: MinimalActor;
+  icon?: string;
   typeId: VersionedUrl;
   title: string;
   external: boolean;
@@ -102,6 +102,8 @@ const typesTablesToTitle: Record<TypeTableKind, string> = {
   "link-type": "Link Types",
   "data-type": "Data Types",
 };
+
+const firstColumnLeftPadding = 16;
 
 export const TypesTable: FunctionComponent<{
   types?: (
@@ -267,6 +269,7 @@ export const TypesTable: FunctionComponent<{
           rowId: type.schema.$id,
           typeId: type.schema.$id,
           title: type.schema.title,
+          icon: "icon" in type.schema ? type.schema.icon : undefined,
           lastEdited,
           lastEditedBy,
           kind:
@@ -328,6 +331,8 @@ export const TypesTable: FunctionComponent<{
     });
   }, []);
 
+  const theme = useTheme();
+
   const createGetCellContent = useCallback(
     (rows: TypesTableRow[]) =>
       ([colIndex, rowIndex]: Item): TextCell | TextIconCell | ChipCell => {
@@ -344,26 +349,51 @@ export const TypesTable: FunctionComponent<{
         }
 
         switch (column.id) {
-          case "title":
-            return {
-              kind: GridCellKind.Custom,
-              readonly: true,
-              allowOverlay: false,
-              copyData: row.title,
-              cursor: "pointer",
-              data: {
-                kind: "text-icon-cell",
-                icon: "bpAsterisk",
-                value: row.title,
-                onClick: () => {
-                  if (row.kind === "entity-type") {
-                    setSelectedEntityType({ entityTypeId: row.typeId });
-                  } else {
-                    void router.push(generateLinkParameters(row.typeId).href);
-                  }
+          case "title": {
+            if (row.kind === "entity-type" || row.kind === "link-type") {
+              return {
+                kind: GridCellKind.Custom,
+                readonly: true,
+                allowOverlay: false,
+                copyData: row.title,
+                cursor: "pointer",
+                data: {
+                  kind: "chip-cell",
+                  chips: [
+                    {
+                      icon: row.icon
+                        ? { entityTypeIcon: row.icon }
+                        : {
+                            inbuiltIcon:
+                              row.kind === "link-type"
+                                ? "bpLink"
+                                : "bpAsterisk",
+                          },
+                      text: row.title,
+                      onClick: () => {
+                        setSelectedEntityType({ entityTypeId: row.typeId });
+                      },
+                      iconFill: theme.palette.blue[70],
+                    },
+                  ],
+                  color: "white",
+                  variant: "outlined",
                 },
-              },
-            };
+              };
+            } else {
+              return {
+                kind: GridCellKind.Custom,
+                readonly: true,
+                allowOverlay: false,
+                copyData: row.title,
+                data: {
+                  kind: "text-icon-cell",
+                  icon: "bpAsterisk",
+                  value: row.title,
+                },
+              };
+            }
+          }
           case "kind":
             return {
               kind: GridCellKind.Text,
@@ -436,7 +466,9 @@ export const TypesTable: FunctionComponent<{
                   ? [
                       {
                         text: actorName,
-                        icon: actorIcon,
+                        icon: actorIcon
+                          ? { inbuiltIcon: actorIcon }
+                          : undefined,
                       },
                     ]
                   : [],
@@ -447,10 +479,8 @@ export const TypesTable: FunctionComponent<{
           }
         }
       },
-    [typesTableColumns, router],
+    [typesTableColumns, router, theme],
   );
-
-  const theme = useTheme();
 
   const maxTableHeight = `calc(100vh - (${
     HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
@@ -519,7 +549,7 @@ export const TypesTable: FunctionComponent<{
             }
             sortable
             sortRows={sortRows}
-            firstColumnLeftPadding={16}
+            firstColumnLeftPadding={firstColumnLeftPadding}
             createGetCellContent={createGetCellContent}
             // define max height if there are lots of rows
             height={`
@@ -534,8 +564,8 @@ export const TypesTable: FunctionComponent<{
             )
           )`}
             customRenderers={[
-              createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-              renderChipCell,
+              createRenderTextIconCell({ firstColumnLeftPadding }),
+              createRenderChipCell({ firstColumnLeftPadding }),
             ]}
             freezeColumns={1}
           />

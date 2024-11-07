@@ -1,9 +1,5 @@
 import type { EntityType } from "@blockprotocol/type-system";
-import {
-  EntityTypeIcon,
-  IconButton,
-  LinkTypeIcon,
-} from "@hashintel/design-system";
+import { EntityOrTypeIcon, IconButton } from "@hashintel/design-system";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { BoxProps } from "@mui/material";
@@ -100,7 +96,8 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
         <Typography
           variant="smallTextLabels"
           sx={{
-            display: "block",
+            alignItems: "center",
+            display: "flex",
             color: ({ palette }) => palette.gray[70],
             fontWeight: 500,
           }}
@@ -114,26 +111,15 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
               justifyContent: "center",
             }}
           >
-            {icon ??
-              (isLink ? (
-                <LinkTypeIcon
-                  sx={({ palette }) => ({
-                    position: "relative",
-                    top: 2,
-                    fontSize: 16,
-                    stroke: palette.gray[50],
-                  })}
-                />
-              ) : (
-                <EntityTypeIcon
-                  sx={({ palette }) => ({
-                    position: "relative",
-                    top: 2,
-                    fontSize: 16,
-                    fill: palette.gray[50],
-                  })}
-                />
-              ))}
+            <EntityOrTypeIcon
+              entity={null}
+              icon={icon}
+              isLink={!!isLink}
+              fontSize={16}
+              fill={({ palette }) =>
+                variant === "entity-type" ? palette.blue[70] : palette.gray[50]
+              }
+            />
           </Box>
           {title}
         </Typography>

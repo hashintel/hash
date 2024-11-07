@@ -86,28 +86,51 @@ export const EntityTypeHeader = ({
               <Controller
                 control={control}
                 name="icon"
-                render={({ field }) => (
-                  <EditEmojiIconButton
-                    icon={field.value}
-                    disabled={isReadonly}
-                    onChange={(updatedIcon) => field.onChange(updatedIcon)}
-                    defaultIcon={
-                      isLink ? (
-                        <LinkTypeIcon
-                          sx={({ palette }) => ({
-                            stroke: palette.gray[50],
-                          })}
-                        />
-                      ) : (
-                        <EntityTypeIcon
-                          sx={({ palette }) => ({
-                            fill: palette.gray[50],
-                          })}
-                        />
-                      )
-                    }
-                  />
-                )}
+                render={({ field }) => {
+                  const iconImgUrl = field.value?.startsWith("/")
+                    ? new URL(field.value, window.location.origin).href
+                    : field.value;
+
+                  /**
+                   * @todo allow uploading new SVG icons
+                   */
+                  if (iconImgUrl?.startsWith("http")) {
+                    return (
+                      <Box
+                        sx={({ palette }) => ({
+                          backgroundColor: palette.gray[50],
+                          webkitMask: `url(${iconImgUrl}) no-repeat center / contain`,
+                          mask: `url(${iconImgUrl}) no-repeat center / contain`,
+                          width: 40,
+                          height: 40,
+                        })}
+                      />
+                    );
+                  }
+
+                  return (
+                    <EditEmojiIconButton
+                      icon={field.value}
+                      disabled={isReadonly}
+                      onChange={(updatedIcon) => field.onChange(updatedIcon)}
+                      defaultIcon={
+                        isLink ? (
+                          <LinkTypeIcon
+                            sx={({ palette }) => ({
+                              stroke: palette.gray[50],
+                            })}
+                          />
+                        ) : (
+                          <EntityTypeIcon
+                            sx={({ palette }) => ({
+                              fill: palette.gray[50],
+                            })}
+                          />
+                        )
+                      }
+                    />
+                  );
+                }}
               />
               <Typography variant="h1" fontWeight="bold" marginLeft={2}>
                 {entityTypeSchema.title}

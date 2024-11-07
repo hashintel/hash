@@ -26,7 +26,7 @@ export const drawCellFadeOutGradient = (
     ctx.fillRect(rectLeft, rect.y, extraWidth, rect.height);
   }
 
-  const grdWidth = 50;
+  const grdWidth = 20;
   const grdLeft = rectLeft - grdWidth;
   const grd = ctx.createLinearGradient(rectLeft - grdWidth, 0, rectLeft, 0);
   grd.addColorStop(0, "#ffffff00");

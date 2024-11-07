@@ -33,6 +33,7 @@ export const VersionUpgradeIndicator = ({
         fontSize: 11,
         fontWeight: 700,
         textTransform: "uppercase",
+        width: "auto",
         gap: 0.625,
         lineHeight: "18px",
         ":hover": {

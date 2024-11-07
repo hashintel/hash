@@ -18,7 +18,7 @@ export const getYCenter = (
  * @returns cell horizontal padding
  */
 export const getCellHorizontalPadding = (atFirstColumn?: boolean) =>
-  atFirstColumn ? 36 : 22;
+  atFirstColumn ? 42 : 22;
 
 export type BlankCell = CustomCell<{ kind: "blank-cell" }>;
 
