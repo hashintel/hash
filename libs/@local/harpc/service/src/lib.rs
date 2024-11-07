@@ -12,7 +12,7 @@ pub mod metadata;
 pub mod procedure;
 pub mod role;
 
-pub trait Service {
+pub trait Subsystem {
     type ProcedureId: ProcedureIdentifier<Service = Self>;
     /// Heterogeneous list of procedures that are part of this service, used for type-level
     /// validation.

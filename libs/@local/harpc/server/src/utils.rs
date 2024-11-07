@@ -5,7 +5,7 @@ use core::{array, pin::pin};
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, stream};
 use harpc_codec::{decode::ReportDecoder, encode::Encoder};
-use harpc_service::{Service, procedure::ProcedureIdentifier};
+use harpc_service::{Subsystem, procedure::ProcedureIdentifier};
 use harpc_tower::{
     body::{Body, BodyExt as _, Frame, controlled::Controlled, stream::StreamBody},
     request::Request,
@@ -35,8 +35,8 @@ where
     P::from_id(id)
         .ok_or(ProcedureNotFound {
             service: ServiceDescriptor {
-                id: <P::Service as Service>::ID,
-                version: <P::Service as Service>::VERSION,
+                id: <P::Service as Subsystem>::ID,
+                version: <P::Service as Subsystem>::VERSION,
             },
             procedure: id,
         })

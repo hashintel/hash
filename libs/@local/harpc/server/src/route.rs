@@ -25,7 +25,7 @@ pub struct Handler<S> {
 impl<S> Handler<S> {
     pub(crate) const fn new<Svc>(inner: S) -> Self
     where
-        Svc: harpc_service::Service,
+        Svc: harpc_service::Subsystem,
     {
         Self {
             service: Svc::ID,

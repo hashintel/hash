@@ -16,7 +16,7 @@ use super::{role, session::Account};
 #[display("unable to fullfil ping request")]
 pub struct EchoError;
 
-pub trait EchoService<R>
+pub trait EchoSystem<R>
 where
     R: Role,
 {
@@ -34,7 +34,7 @@ pub mod meta {
 
     use frunk::HList;
     use harpc_service::{
-        Service,
+        Subsystem,
         metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
@@ -45,7 +45,7 @@ pub mod meta {
     }
 
     impl ProcedureIdentifier for EchoProcedureId {
-        type Service = EchoService;
+        type Service = EchoSystem;
 
         fn from_id(id: ProcedureId) -> Option<Self> {
             match id.value() {
@@ -61,9 +61,9 @@ pub mod meta {
         }
     }
 
-    pub struct EchoService;
+    pub struct EchoSystem;
 
-    impl Service for EchoService {
+    impl Subsystem for EchoSystem {
         type ProcedureId = EchoProcedureId;
         type Procedures = HList![ProcedureEcho];
 
@@ -87,9 +87,9 @@ pub mod meta {
     pub struct ProcedureEcho;
 
     impl Procedure for ProcedureEcho {
-        type Service = EchoService;
+        type Subsystem = EchoSystem;
 
-        const ID: <Self::Service as Service>::ProcedureId = EchoProcedureId::Echo;
+        const ID: <Self::Subsystem as Subsystem>::ProcedureId = EchoProcedureId::Echo;
 
         fn metadata() -> Metadata {
             Metadata {
@@ -106,7 +106,7 @@ pub mod meta {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct EchoServer;
 
-impl EchoService<role::Server> for EchoServer {
+impl EchoSystem<role::Server> for EchoServer {
     async fn echo(
         &self,
         _: Session<Account>,
@@ -130,11 +130,11 @@ impl<T> EchoDelegate<T> {
 
 impl<T, C> ServiceDelegate<Session<Account>, C> for EchoDelegate<T>
 where
-    T: EchoService<role::Server, echo(..): Send> + Send,
+    T: EchoSystem<role::Server, echo(..): Send> + Send,
     C: Encoder + ReportDecoder + Clone + Send,
 {
     type Error = Report<DelegationError>;
-    type Service = meta::EchoService;
+    type Service = meta::EchoSystem;
 
     type Body<Source>
         = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>
@@ -166,7 +166,7 @@ where
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct EchoClient;
 
-impl<Svc, C> EchoService<role::Client<Svc, C>> for EchoClient
+impl<Svc, C> EchoSystem<role::Client<Svc, C>> for EchoClient
 where
     Svc: harpc_client::connection::ConnectionService<C>,
     C: harpc_client::connection::ConnectionCodec,

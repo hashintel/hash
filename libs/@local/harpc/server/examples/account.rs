@@ -22,7 +22,7 @@ use harpc_client::{Client, ClientConfig, connection::Connection};
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
 use harpc_server::{Server, ServerConfig, router::RouterBuilder, serve::serve, session::SessionId};
 use harpc_service::{
-    Service,
+    Subsystem,
     delegate::ServiceDelegate,
     metadata::Metadata,
     procedure::{Procedure, ProcedureIdentifier},
@@ -70,7 +70,7 @@ impl ProcedureIdentifier for AccountProcedureId {
 
 struct Account;
 
-impl Service for Account {
+impl Subsystem for Account {
     type ProcedureId = AccountProcedureId;
     type Procedures = HList![CreateAccount];
 
@@ -97,9 +97,9 @@ struct CreateAccount {
 }
 
 impl Procedure for CreateAccount {
-    type Service = Account;
+    type Subsystem = Account;
 
-    const ID: <Self::Service as Service>::ProcedureId = AccountProcedureId::CreateAccount;
+    const ID: <Self::Subsystem as Subsystem>::ProcedureId = AccountProcedureId::CreateAccount;
 
     fn metadata() -> Metadata {
         Metadata {
