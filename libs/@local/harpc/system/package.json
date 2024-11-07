@@ -1,5 +1,5 @@
 {
-  "name": "@rust/harpc-service",
+  "name": "@rust/harpc-system",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",

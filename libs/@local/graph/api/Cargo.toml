@@ -33,7 +33,7 @@ error-stack = { workspace = true, features = ["futures", "spantrace", "unstable"
 
 # Private workspace dependencies
 harpc-codec = { workspace = true }
-harpc-service = { workspace = true }
+harpc-system = { workspace = true }
 harpc-tower = { workspace = true }
 harpc-types = { workspace = true }
 hash-status = { workspace = true }

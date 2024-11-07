@@ -6,7 +6,7 @@ use error_stack::{Report, ResultExt as _, TryReportStreamExt as _};
 use futures::{StreamExt as _, stream};
 use harpc_codec::encode::Encoder;
 use harpc_net::session::server::SessionId;
-use harpc_service::{Subsystem, procedure::ProcedureIdentifier};
+use harpc_system::{Subsystem, procedure::ProcedureIdentifier};
 use harpc_tower::{
     Extensions,
     request::{self, Request},

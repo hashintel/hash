@@ -7,7 +7,7 @@ use core::{
 use frunk::{HCons, HNil};
 use futures::{FutureExt as _, Stream};
 use harpc_net::session::server::SessionEvent;
-use harpc_service::{Subsystem, delegate::SubsystemDelegate};
+use harpc_system::{Subsystem, delegate::SubsystemDelegate};
 use harpc_tower::{
     body::Body,
     net::pack::{PackLayer, PackService},

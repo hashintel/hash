@@ -11,7 +11,7 @@ publish.workspace = true
 [dependencies]
 # Public workspace dependencies
 harpc-tower = { workspace = true, public = true }
-harpc-service = { workspace = true, public = true }
+harpc-system = { workspace = true, public = true }
 
 # Public third-party dependencies
 tower = { workspace = true, public = true }
