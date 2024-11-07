@@ -23,7 +23,6 @@ use harpc_server::{Server, ServerConfig, router::RouterBuilder, serve::serve, se
 use harpc_service::{
     Subsystem, SubsystemIdentifier,
     delegate::SubsystemDelegate,
-    metadata::Metadata,
     procedure::{Procedure, ProcedureIdentifier},
     role,
 };
@@ -103,16 +102,6 @@ impl Subsystem for Account {
         major: 0x00,
         minor: 0x00,
     };
-
-    fn metadata() -> Metadata {
-        Metadata {
-            since: Version {
-                major: 0x00,
-                minor: 0x00,
-            },
-            deprecation: None,
-        }
-    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -124,16 +113,6 @@ impl Procedure for CreateAccount {
     type Subsystem = Account;
 
     const ID: <Self::Subsystem as Subsystem>::ProcedureId = AccountProcedureId::CreateAccount;
-
-    fn metadata() -> Metadata {
-        Metadata {
-            since: Version {
-                major: 0x00,
-                minor: 0x00,
-            },
-            deprecation: None,
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, thiserror::Error)]
