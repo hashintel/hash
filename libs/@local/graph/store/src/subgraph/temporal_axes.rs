@@ -386,7 +386,7 @@ where
 /// [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].
 ///
 /// [`Subgraph`]: crate::subgraph::Subgraph
-/// [`Interval`]: temporal_versioning::Interval
+/// [`Interval`]: hash_graph_temporal_versioning::Interval
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(untagged)]

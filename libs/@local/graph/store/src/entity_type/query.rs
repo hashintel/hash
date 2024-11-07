@@ -105,8 +105,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::schema::EntityType
-    /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
-    /// [`EntityTypeMetadata`]: graph_types::ontology::EntityTypeMetadata
+    /// [`OwnedById`]: hash_graph_types::owned_by_id::OwnedById
+    /// [`EntityTypeMetadata`]: hash_graph_types::ontology::EntityTypeMetadata
     OwnedById,
     /// Corresponds to [`EntityType::title()`].
     ///
@@ -401,7 +401,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// Only used internally and not available for deserialization.
     ///
     /// [`EntityType`]: type_system::schema::PropertyType
-    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     EntityEdge {
         edge_kind: SharedEdgeKind,
         path: Box<EntityQueryPath<'p>>,
