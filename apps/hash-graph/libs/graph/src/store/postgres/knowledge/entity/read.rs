@@ -2,10 +2,6 @@ use alloc::borrow::Cow;
 use core::mem::swap;
 
 use error_stack::{Report, ResultExt as _};
-use graph_types::{
-    knowledge::entity::{EntityEditionId, EntityId, EntityUuid},
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     error::QueryError,
     subgraph::{
@@ -16,6 +12,10 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
+};
+use hash_graph_types::{
+    knowledge::entity::{EntityEditionId, EntityId, EntityUuid},
+    owned_by_id::OwnedById,
 };
 use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;

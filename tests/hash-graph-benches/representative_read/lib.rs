@@ -45,10 +45,10 @@ use core::str::FromStr as _;
 use authorization::NoAuthorization;
 use criterion::{BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
-use graph_types::account::AccountId;
 use hash_graph_store::subgraph::edges::{
     EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth,
 };
+use hash_graph_types::account::AccountId;
 use uuid::Uuid;
 
 use self::seed::setup_and_extract_samples;

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use graph::store::knowledge::{CreateEntityParams, EntityStore as _};
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::{
+use hash_graph_types::{
     knowledge::{
         entity::{EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,

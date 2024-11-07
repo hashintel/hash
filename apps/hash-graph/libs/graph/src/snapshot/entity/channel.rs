@@ -10,7 +10,7 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::knowledge::entity::EntityUuid;
+use hash_graph_types::knowledge::entity::EntityUuid;
 use type_system::schema::{EntityTypeUuid, InheritanceDepth};
 
 use crate::{

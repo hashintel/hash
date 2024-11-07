@@ -2,7 +2,6 @@ use alloc::borrow::Cow;
 
 use error_stack::{Report, ResultExt as _};
 use futures::{Stream, StreamExt as _};
-use graph_types::ontology::EntityTypeWithMetadata;
 use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
     error::QueryError,
@@ -13,6 +12,7 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
+use hash_graph_types::ontology::EntityTypeWithMetadata;
 use postgres_types::Json;
 use tokio_postgres::GenericClient as _;
 use type_system::{

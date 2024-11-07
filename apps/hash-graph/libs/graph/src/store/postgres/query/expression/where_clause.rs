@@ -122,12 +122,12 @@ impl Transpile for WhereExpression {
 mod tests {
     use alloc::borrow::Cow;
 
-    use graph_types::ontology::DataTypeWithMetadata;
     use hash_graph_store::{
         data_type::DataTypeQueryPath,
         filter::{Filter, FilterExpression, Parameter},
         subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
+    use hash_graph_types::ontology::DataTypeWithMetadata;
 
     use super::*;
     use crate::store::postgres::query::{SelectCompiler, test_helper::trim_whitespace};

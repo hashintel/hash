@@ -2,7 +2,6 @@ use alloc::collections::BTreeMap;
 use core::hash::Hash;
 use std::collections::{HashMap, hash_map::Entry};
 
-use graph_types::knowledge::entity::EntityId;
 use hash_graph_store::subgraph::{
     edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
     identifier::{
@@ -11,6 +10,7 @@ use hash_graph_store::subgraph::{
     temporal_axes::VariableAxis,
 };
 use hash_graph_temporal_versioning::Timestamp;
+use hash_graph_types::knowledge::entity::EntityId;
 use serde::Serialize;
 use type_system::url::{BaseUrl, OntologyTypeVersion};
 use utoipa::{
@@ -238,16 +238,16 @@ impl ToSchema<'_> for Edges {
 
 #[cfg(test)]
 mod tests {
-    use graph_types::{
-        knowledge::entity::{EntityId, EntityUuid},
-        owned_by_id::OwnedById,
-    };
     use hash_graph_store::subgraph::{
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
     };
     use hash_graph_temporal_versioning::{
         ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
+    };
+    use hash_graph_types::{
+        knowledge::entity::{EntityId, EntityUuid},
+        owned_by_id::OwnedById,
     };
     use type_system::url::{BaseUrl, OntologyTypeVersion};
     use uuid::Uuid;

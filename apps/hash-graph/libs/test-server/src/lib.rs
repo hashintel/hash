@@ -28,7 +28,6 @@ use graph::{
 use graph_api::rest::{middleware::span_trace_layer, status::status_to_response};
 use graph_type_defs::error::{ErrorInfo, StatusPayloads};
 use graph_types::account::AccountId;
-use hash_codec::bytes::JsonLinesDecoder;
 use hash_status::{Status, StatusCode};
 use tokio::io;
 use tokio_util::{codec::FramedRead, io::StreamReader};

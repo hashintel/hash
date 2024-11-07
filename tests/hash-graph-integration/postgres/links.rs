@@ -6,14 +6,6 @@ use graph::store::knowledge::{
     GetEntitiesParams, PatchEntityParams,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::{
-    knowledge::{
-        entity::ProvidedEntityEditionProvenance,
-        link::LinkData,
-        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
-    },
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     entity::EntityQueryPath,
     entity_type::EntityTypeQueryPath,
@@ -27,6 +19,14 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
+use hash_graph_types::{
+    knowledge::{
+        entity::ProvidedEntityEditionProvenance,
+        link::LinkData,
+        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
+    },
+    owned_by_id::OwnedById,
+};
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;

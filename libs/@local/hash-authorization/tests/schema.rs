@@ -1,6 +1,6 @@
 #![allow(unreachable_pub, reason = "his file is used as module in other tests")]
 
-use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
+use hash_graph_types::{account::AccountId, knowledge::entity::EntityUuid};
 use uuid::Uuid;
 
 pub const ALICE: AccountId = AccountId::new(Uuid::from_fields(1, 0, 0, &[0; 8]));

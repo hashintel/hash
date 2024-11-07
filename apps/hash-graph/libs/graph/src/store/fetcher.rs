@@ -12,17 +12,6 @@ use authorization::{
     zanzibar::Consistency,
 };
 use error_stack::{Report, ResultExt as _};
-use graph_types::{
-    account::AccountId,
-    knowledge::entity::{Entity, EntityId},
-    ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
-        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
-        PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     ConflictBehavior,
     account::{
@@ -44,6 +33,17 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
+use hash_graph_types::{
+    account::AccountId,
+    knowledge::entity::{Entity, EntityId},
+    ontology::{
+        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
+        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
+        PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
+    },
+    owned_by_id::OwnedById,
+};
 use tarpc::context;
 use temporal_client::TemporalClient;
 use tokio::net::ToSocketAddrs;

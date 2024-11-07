@@ -1,14 +1,14 @@
-use graph_types::{
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
+};
+use hash_graph_types::{
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityProvenance, EntityRecordId, EntityUuid},
         link::LinkData,
         property::PropertyMetadataObject,
     },
     owned_by_id::OwnedById,
-};
-use hash_graph_store::{
-    entity::EntityQueryPath,
-    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
 };
 use serde::Deserialize as _;
 use tokio_postgres::Row;
@@ -157,7 +157,7 @@ impl QueryRecordDecode for Entity {
                     entity_id,
                     edition_id: row.get(indices.edition_id),
                 },
-                temporal_versioning: graph_types::knowledge::entity::EntityTemporalMetadata {
+                temporal_versioning: hash_graph_types::knowledge::entity::EntityTemporalMetadata {
                     decision_time: row.get(indices.decision_time),
                     transaction_time: row.get(indices.transaction_time),
                 },

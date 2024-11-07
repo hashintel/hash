@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
-use graph_types::{
+use hash_graph_types::{
     knowledge::entity::{Entity, EntityId},
     ontology::{DataTypeLookup, DataTypeWithMetadata, PropertyTypeWithMetadata},
 };
@@ -536,7 +536,7 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
 #[cfg(test)]
 mod tests {
 
-    use graph_types::{
+    use hash_graph_types::{
         knowledge::entity::{DraftId, EntityUuid},
         ontology::{DataTypeLookup, DataTypeWithMetadata},
         owned_by_id::OwnedById,

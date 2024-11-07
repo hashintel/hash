@@ -1,4 +1,4 @@
-use graph_types::knowledge::entity::EntityId;
+use hash_graph_types::knowledge::entity::EntityId;
 use hash_graph_temporal_versioning::LeftClosedTemporalInterval;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]

@@ -21,14 +21,14 @@ use graph::{
         },
     },
 };
-use graph_types::{
-    account::AccountId,
-    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     ConflictBehavior,
     data_type::{CreateDataTypeParams, DataTypeStore as _, UpdateDataTypesParams},
+};
+use hash_graph_types::{
+    account::AccountId,
+    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
+    owned_by_id::OwnedById,
 };
 use repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;

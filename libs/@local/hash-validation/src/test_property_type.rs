@@ -3,7 +3,7 @@
 use core::str::FromStr as _;
 use std::collections::HashMap;
 
-use graph_types::knowledge::property::{PropertyMetadata, PropertyProvenance, ValueMetadata};
+use hash_graph_types::knowledge::property::{PropertyMetadata, PropertyProvenance, ValueMetadata};
 use serde_json::json;
 use type_system::url::VersionedUrl;
 

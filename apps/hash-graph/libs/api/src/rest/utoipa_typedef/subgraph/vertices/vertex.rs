@@ -1,9 +1,9 @@
-use graph_types::{
-    knowledge::entity::Entity,
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-};
 use hash_graph_store::subgraph::identifier::{
     DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId,
+};
+use hash_graph_types::{
+    knowledge::entity::Entity,
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use serde::Serialize;
 use type_system::url::{BaseUrl, OntologyTypeVersion};

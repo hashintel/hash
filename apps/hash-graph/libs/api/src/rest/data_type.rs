@@ -29,14 +29,6 @@ use graph::{
         error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
     },
 };
-use graph_types::{
-    ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     ConflictBehavior,
     data_type::{
@@ -44,6 +36,14 @@ use hash_graph_store::{
         GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
+};
+use hash_graph_types::{
+    ontology::{
+        DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        ProvidedOntologyEditionProvenance,
+    },
+    owned_by_id::OwnedById,
 };
 use hash_status::Status;
 use serde::{Deserialize, Serialize};

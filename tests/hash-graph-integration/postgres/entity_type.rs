@@ -2,10 +2,6 @@ use graph::store::ontology::{
     CreateEntityTypeParams, EntityTypeStore as _, GetEntityTypesParams, UpdateEntityTypesParams,
 };
 use graph_test_data::{data_type, entity_type, property_type};
-use graph_types::{
-    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     ConflictBehavior,
     filter::Filter,
@@ -14,6 +10,10 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
+use hash_graph_types::{
+    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
+    owned_by_id::OwnedById,
+};
 use type_system::schema::EntityType;
 
 use crate::{DatabaseTestWrapper, entity_type_relationships};

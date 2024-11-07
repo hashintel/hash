@@ -39,7 +39,8 @@ use graph::{
     },
 };
 use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
-use graph_types::{
+use hash_graph_store::{ConflictBehavior, entity_type::EntityTypeQueryToken};
+use hash_graph_types::{
     account::EditionCreatedById,
     ontology::{
         EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
@@ -48,7 +49,6 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{ConflictBehavior, entity_type::EntityTypeQueryToken};
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;

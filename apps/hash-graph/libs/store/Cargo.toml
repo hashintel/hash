@@ -12,7 +12,7 @@ authors.workspace = true
 # Public workspace dependencies
 authorization = { workspace = true, public = true }
 error-stack = { workspace = true }
-graph-types = { workspace = true }
+hash-graph-types = { workspace = true }
 
 # Public third-party dependencies
 utoipa = { workspace = true, public = true, optional = true }

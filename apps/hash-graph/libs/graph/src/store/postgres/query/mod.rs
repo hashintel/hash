@@ -21,12 +21,12 @@ use core::{
 };
 
 use bytes::BytesMut;
-use graph_types::knowledge::entity::Entity;
 use hash_graph_store::{
     filter::{ParameterConversionError, QueryRecord},
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 use hash_graph_temporal_versioning::{TemporalInterval, Timestamp};
+use hash_graph_types::knowledge::entity::Entity;
 use postgres_types::{FromSql, IsNull, ToSql, Type, WasNull};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

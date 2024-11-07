@@ -12,10 +12,6 @@ use authorization::{
 };
 use error_stack::{Report, ResultExt as _};
 use graph::store::StorePool;
-use graph_types::{
-    account::{AccountGroupId, AccountId},
-    owned_by_id::OwnedById,
-};
 use harpc_client::{connection::Connection, utils::invoke_call_discrete};
 use harpc_codec::{decode::ReportDecoder, encode::Encoder};
 use harpc_server::{
@@ -28,6 +24,10 @@ use harpc_tower::{body::Body, either::Either, request::Request, response::Respon
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use hash_graph_store::account::{
     AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams,
+};
+use hash_graph_types::{
+    account::{AccountGroupId, AccountId},
+    owned_by_id::OwnedById,
 };
 use temporal_client::TemporalClient;
 

@@ -11,7 +11,7 @@ use futures::{
     channel::mpsc::{self, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::account::AccountGroupId;
+use hash_graph_types::account::AccountGroupId;
 
 use crate::snapshot::{
     SnapshotRestoreError,
@@ -23,8 +23,8 @@ use crate::snapshot::{
 /// An `AccountSender` with the corresponding [`OwnerReceiver`] are created using the [`channel`]
 /// function.
 ///
-/// [`AccountId`]: graph_types::account::AccountId
-/// [`AccountGroupId`]: graph_types::account::AccountGroupId
+/// [`AccountId`]: hash_graph_types::account::AccountId
+/// [`AccountGroupId`]: hash_graph_types::account::AccountGroupId
 #[derive(Debug, Clone)]
 #[expect(clippy::struct_field_names)]
 pub struct OwnerSender {

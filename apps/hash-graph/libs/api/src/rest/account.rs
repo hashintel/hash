@@ -19,12 +19,12 @@ use axum::{
     routing::{get, post},
 };
 use graph::store::StorePool;
-use graph_types::{
-    account::{AccountGroupId, AccountId},
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::account::{
     AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams,
+};
+use hash_graph_types::{
+    account::{AccountGroupId, AccountId},
+    owned_by_id::OwnedById,
 };
 use temporal_client::TemporalClient;
 use utoipa::OpenApi;

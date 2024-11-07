@@ -11,7 +11,7 @@ use futures::{
     channel::mpsc::{self, Sender, UnboundedReceiver, UnboundedSender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::knowledge::entity::EntityUuid;
+use hash_graph_types::knowledge::entity::EntityUuid;
 use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
 
 use crate::{

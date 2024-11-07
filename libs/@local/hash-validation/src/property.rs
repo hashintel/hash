@@ -1,5 +1,5 @@
 use error_stack::{Report, ReportSink};
-use graph_types::knowledge::property::{PropertyMetadataObject, PropertyObject};
+use hash_graph_types::knowledge::property::{PropertyMetadataObject, PropertyObject};
 
 use crate::{EntityValidationError, Validate, ValidateEntityComponents};
 

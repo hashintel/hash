@@ -5,7 +5,14 @@ use graph::store::knowledge::{
     GetEntitiesParams, PatchEntityParams,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::{
+use hash_graph_store::{
+    filter::Filter,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
+};
+use hash_graph_temporal_versioning::{ClosedTemporalBound, LimitedTemporalBound, TemporalBound};
+use hash_graph_types::{
     knowledge::{
         entity::ProvidedEntityEditionProvenance,
         property::{
@@ -15,13 +22,6 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{
-    filter::Filter,
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
-};
-use hash_graph_temporal_versioning::{ClosedTemporalBound, LimitedTemporalBound, TemporalBound};
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;

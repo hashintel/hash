@@ -2,10 +2,6 @@ use core::hash::Hash;
 use std::collections::HashMap;
 
 use error_stack::Report;
-use graph_types::{
-    knowledge::entity::{Entity, EntityEditionId},
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-};
 use hash_graph_store::{
     data_type::DataTypeQueryPath,
     entity::EntityQueryPath,
@@ -18,6 +14,10 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
+use hash_graph_types::{
+    knowledge::entity::{Entity, EntityEditionId},
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+};
 use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
 
 use crate::store::{

@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use authorization::AuthorizationApi;
 use graph::store::knowledge::{CreateEntityParams, EntityStore as _, PatchEntityParams};
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::{
+use hash_graph_temporal_versioning::ClosedTemporalBound;
+use hash_graph_types::{
     knowledge::{
         entity::{EntityId, ProvidedEntityEditionProvenance},
         property::{
@@ -13,7 +14,6 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_temporal_versioning::ClosedTemporalBound;
 use pretty_assertions::assert_eq;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 

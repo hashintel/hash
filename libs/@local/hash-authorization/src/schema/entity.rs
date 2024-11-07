@@ -1,6 +1,6 @@
 use core::error::Error;
 
-use graph_types::{
+use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityUuid,
     owned_by_id::OwnedById,

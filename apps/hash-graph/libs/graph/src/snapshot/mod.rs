@@ -38,15 +38,15 @@ use futures::{
     Sink, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _,
     channel::mpsc, stream,
 };
-use graph_types::{
+use hash_graph_store::{
+    error::InsertionError,
+    filter::{Filter, QueryRecord},
+};
+use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityId, EntityUuid},
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     owned_by_id::OwnedById,
-};
-use hash_graph_store::{
-    error::InsertionError,
-    filter::{Filter, QueryRecord},
 };
 use hash_status::StatusCode;
 use postgres_types::ToSql;

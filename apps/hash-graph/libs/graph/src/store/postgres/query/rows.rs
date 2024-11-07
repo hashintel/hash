@@ -1,4 +1,7 @@
-use graph_types::{
+use hash_graph_temporal_versioning::{
+    DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime,
+};
+use hash_graph_types::{
     Embedding,
     account::{AccountGroupId, AccountId},
     knowledge::{
@@ -10,9 +13,6 @@ use graph_types::{
     },
     ontology::OntologyEditionProvenance,
     owned_by_id::OwnedById,
-};
-use hash_graph_temporal_versioning::{
-    DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime,
 };
 use postgres_types::ToSql;
 use time::OffsetDateTime;

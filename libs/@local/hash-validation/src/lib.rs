@@ -13,7 +13,7 @@ mod test_property_type;
 use core::{borrow::Borrow, error::Error};
 
 use error_stack::Report;
-use graph_types::knowledge::entity::{Entity, EntityId};
+use hash_graph_types::knowledge::entity::{Entity, EntityId};
 use serde::Deserialize;
 
 pub trait Schema<V: ?Sized, P: Sync> {
@@ -102,7 +102,10 @@ mod tests {
     use std::collections::HashMap;
 
     use error_stack::ResultExt as _;
-    use graph_types::{
+    use hash_graph_temporal_versioning::{
+        ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp,
+    };
+    use hash_graph_types::{
         account::{AccountId, EditionCreatedById},
         knowledge::property::{
             Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
@@ -117,9 +120,6 @@ mod tests {
             PropertyTypeProvider, ProvidedOntologyEditionProvenance,
         },
         owned_by_id::OwnedById,
-    };
-    use hash_graph_temporal_versioning::{
-        ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp,
     };
     use serde_json::Value as JsonValue;
     use thiserror::Error;

@@ -1,9 +1,9 @@
 use alloc::collections::BTreeMap;
 use std::collections::{HashMap, hash_map::Entry};
 
-use graph_types::knowledge::entity::EntityId;
 use hash_graph_store::subgraph::temporal_axes::VariableAxis;
 use hash_graph_temporal_versioning::Timestamp;
+use hash_graph_types::knowledge::entity::EntityId;
 use serde::Serialize;
 use type_system::url::{BaseUrl, OntologyTypeVersion};
 use utoipa::{

@@ -10,19 +10,19 @@ use graph::store::{
     },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::{
-    knowledge::{
-        entity::{EntityUuid, ProvidedEntityEditionProvenance},
-        property::{PropertyObject, PropertyWithMetadataObject},
-    },
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     entity::EntityQueryPath,
     filter::{Filter, JsonPath, PathToken},
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
+};
+use hash_graph_types::{
+    knowledge::{
+        entity::{EntityUuid, ProvidedEntityEditionProvenance},
+        property::{PropertyObject, PropertyWithMetadataObject},
+    },
+    owned_by_id::OwnedById,
 };
 use pretty_assertions::assert_eq;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};

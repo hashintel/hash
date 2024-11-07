@@ -149,11 +149,11 @@ impl Transpile for Condition {
 mod tests {
     use alloc::borrow::Cow;
 
-    use graph_types::ontology::DataTypeWithMetadata;
     use hash_graph_store::{
         data_type::DataTypeQueryPath,
         filter::{Filter, FilterExpression, Parameter},
     };
+    use hash_graph_types::ontology::DataTypeWithMetadata;
     use postgres_types::ToSql;
 
     use crate::store::postgres::query::{SelectCompiler, Transpile as _};

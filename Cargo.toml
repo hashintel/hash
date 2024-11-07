@@ -7,6 +7,7 @@ members = [
     "libs/@blockprotocol/type-system/rust",
     "libs/@local/codec",
     "libs/@local/graph/temporal-versioning",
+    "libs/@local/graph/types/rust",
     "libs/@local/harpc/client",
     "libs/@local/harpc/codec",
     "libs/@local/harpc/net",
@@ -16,7 +17,6 @@ members = [
     "libs/@local/harpc/types",
     "libs/@local/harpc/wire-protocol",
     "libs/@local/hash-authorization",
-    "libs/@local/hash-graph-types/rust",
     "libs/@local/hash-validation",
     "libs/@local/hql/*",
     "libs/@local/repo-chores/rust",
@@ -53,9 +53,9 @@ publish = false
 authorization.path = "libs/@local/hash-authorization"
 hash-codec.path = "libs/@local/codec"
 hash-graph-temporal-versioning.path = "libs/@local/graph/temporal-versioning"
+hash-graph-types.path = "libs/@local/graph/types/rust"
 graph-api.path = "apps/hash-graph/libs/api"
 graph-test-data.path = "tests/hash-graph-test-data/rust"
-graph-types.path = "libs/@local/hash-graph-types/rust"
 graph-type-defs.path = "apps/hash-graph/libs/type-defs"
 graph.path = "apps/hash-graph/libs/graph"
 harpc-net.path = "libs/@local/harpc/net"

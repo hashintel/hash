@@ -7,7 +7,8 @@ use graph::store::{
     knowledge::{CreateEntityParams, EntityStore as _},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::{
+use hash_graph_store::account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams};
+use hash_graph_types::{
     account::AccountId,
     knowledge::{
         entity::{EntityUuid, ProvidedEntityEditionProvenance},
@@ -16,7 +17,6 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams};
 use type_system::{schema::EntityType, url::VersionedUrl};
 use uuid::Uuid;
 

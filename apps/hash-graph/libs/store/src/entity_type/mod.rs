@@ -3,7 +3,7 @@ pub use self::query::{EntityTypeQueryPath, EntityTypeQueryToken};
 
 mod query;
 
-use graph_types::ontology::EntityTypeWithMetadata;
+use hash_graph_types::ontology::EntityTypeWithMetadata;
 
 use crate::filter::QueryRecord;
 

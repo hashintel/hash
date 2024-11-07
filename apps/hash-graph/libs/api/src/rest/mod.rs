@@ -33,15 +33,6 @@ use graph::{
     ontology::domain_validator::DomainValidator,
     store::{Store, StorePool, TypeFetcher, error::VersionedUrlAlreadyExists},
 };
-use graph_types::{
-    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
-    ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
-        OntologyTypeReference, PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     filter::{ParameterConversion, Selector},
     subgraph::{
@@ -62,6 +53,15 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
+};
+use hash_graph_types::{
+    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
+    ontology::{
+        DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
+        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
+        OntologyTypeReference, PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
+    },
+    owned_by_id::OwnedById,
 };
 use hash_status::Status;
 use include_dir::{Dir, include_dir};

@@ -1,8 +1,8 @@
 use authorization::schema::{
     DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
 };
-use graph_types::{Embedding, ontology::OntologyType};
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
+use hash_graph_types::{Embedding, ontology::OntologyType};
 use serde::{Deserialize, Serialize};
 use type_system::{
     schema::{DataType, EntityType, PropertyType},

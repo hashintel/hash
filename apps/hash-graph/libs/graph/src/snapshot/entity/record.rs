@@ -1,5 +1,6 @@
 use authorization::schema::EntityRelationAndSubject;
-use graph_types::{
+use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
+use hash_graph_types::{
     Embedding,
     knowledge::{
         entity::{EntityId, EntityMetadata, EntityUuid},
@@ -7,7 +8,6 @@ use graph_types::{
         property::PropertyObject,
     },
 };
-use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use serde::{Deserialize, Serialize};
 use type_system::url::BaseUrl;
 

@@ -23,7 +23,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 fn main() -> Result<(), Report<GraphError>> {
     load_env(None);
-    graph_types::knowledge::property::error::install_error_stack_hooks();
+    hash_graph_types::knowledge::property::error::install_error_stack_hooks();
 
     let Args {
         subcommand,

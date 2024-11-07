@@ -1,4 +1,4 @@
-use graph_types::account::AccountId;
+use hash_graph_types::account::AccountId;
 use serde::{Deserialize, Serialize};
 
 use crate::zanzibar::types::{Resource, Subject};

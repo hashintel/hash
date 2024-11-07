@@ -1,4 +1,4 @@
-use graph_types::account::AccountId;
+use hash_graph_types::account::AccountId;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Account {

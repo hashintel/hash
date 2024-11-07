@@ -11,7 +11,7 @@ use futures::{
     channel::mpsc::{self, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::owned_by_id::OwnedById;
+use hash_graph_types::owned_by_id::OwnedById;
 
 use crate::{
     snapshot::{SnapshotRestoreError, Web, web::WebBatch},

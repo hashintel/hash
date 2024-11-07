@@ -1,4 +1,4 @@
-use graph_types::account::{AccountGroupId, AccountId};
+use hash_graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

@@ -9,7 +9,7 @@ use futures::{
     channel::mpsc::{self, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::ontology::{
+use hash_graph_types::ontology::{
     OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
     OntologyTypeRecordId,
 };

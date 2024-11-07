@@ -12,14 +12,6 @@ use authorization::{
 };
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
-use graph_types::{
-    Embedding,
-    account::{AccountId, EditionArchivedById, EditionCreatedById},
-    ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
-    },
-};
 use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
     error::{InsertionError, QueryError, UpdateError},
@@ -35,6 +27,14 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
+use hash_graph_types::{
+    Embedding,
+    account::{AccountId, EditionArchivedById, EditionCreatedById},
+    ontology::{
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+    },
+};
 use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;

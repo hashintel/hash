@@ -5,7 +5,14 @@ use std::collections::{HashMap, HashSet};
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
 use futures::TryFutureExt as _;
-use graph_types::{
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    error::{InsertionError, QueryError, UpdateError},
+    filter::Filter,
+    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+};
+use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
+use hash_graph_types::{
     account::{AccountId, CreatedById, EditionCreatedById},
     knowledge::{
         Confidence, EntityTypeIdDiff,
@@ -17,13 +24,6 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{
-    entity::EntityQueryPath,
-    error::{InsertionError, QueryError, UpdateError},
-    filter::Filter,
-    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
-};
-use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use serde::{Deserialize, Serialize};
 use type_system::{schema::ClosedMultiEntityType, url::VersionedUrl};
 #[cfg(feature = "utoipa")]

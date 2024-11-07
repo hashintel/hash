@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use authorization::AuthorizationApi;
 use graph::store::knowledge::{CreateEntityParams, EntityStore as _, PatchEntityParams};
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::{
+use hash_graph_types::{
     knowledge::{
         Confidence,
         entity::{Location, ProvidedEntityEditionProvenance, SourceProvenance, SourceType},

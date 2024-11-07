@@ -115,11 +115,6 @@ impl Transpile for SelectStatement {
 mod tests {
     use alloc::borrow::Cow;
 
-    use graph_types::{
-        Embedding,
-        knowledge::entity::Entity,
-        ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    };
     use hash_graph_store::{
         data_type::DataTypeQueryPath,
         entity::EntityQueryPath,
@@ -130,6 +125,11 @@ mod tests {
             edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
             temporal_axes::QueryTemporalAxesUnresolved,
         },
+    };
+    use hash_graph_types::{
+        Embedding,
+        knowledge::entity::Entity,
+        ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     };
     use postgres_types::ToSql;
     use uuid::Uuid;
@@ -1193,7 +1193,7 @@ mod tests {
     }
 
     mod predefined {
-        use graph_types::{
+        use hash_graph_types::{
             knowledge::entity::{EntityId, EntityUuid},
             owned_by_id::OwnedById,
         };

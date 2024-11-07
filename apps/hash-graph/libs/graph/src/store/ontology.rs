@@ -4,7 +4,14 @@ use std::collections::HashMap;
 
 use authorization::schema::{EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject};
 use error_stack::Report;
-use graph_types::{
+use hash_graph_store::{
+    ConflictBehavior,
+    error::{InsertionError, QueryError, UpdateError},
+    filter::Filter,
+    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+};
+use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
+use hash_graph_types::{
     Embedding,
     account::{AccountId, EditionCreatedById},
     ontology::{
@@ -14,13 +21,6 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{
-    ConflictBehavior,
-    error::{InsertionError, QueryError, UpdateError},
-    filter::Filter,
-    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
-};
-use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use serde::{Deserialize, Serialize};
 use type_system::{
     schema::{

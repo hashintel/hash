@@ -33,7 +33,13 @@ use graph::store::{
     },
     ontology::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
 };
-use graph_types::{
+use hash_graph_store::{
+    account::AccountStore as _,
+    entity::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
+    filter::Filter,
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+};
+use hash_graph_types::{
     Embedding,
     account::{CreatedById, EditionCreatedById},
     knowledge::{
@@ -54,12 +60,6 @@ use graph_types::{
         },
     },
     owned_by_id::OwnedById,
-};
-use hash_graph_store::{
-    account::AccountStore as _,
-    entity::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
-    filter::Filter,
-    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;

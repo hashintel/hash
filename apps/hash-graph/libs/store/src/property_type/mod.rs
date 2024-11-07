@@ -3,7 +3,7 @@ pub use self::query::{PropertyTypeQueryPath, PropertyTypeQueryToken};
 
 mod query;
 
-use graph_types::ontology::PropertyTypeWithMetadata;
+use hash_graph_types::ontology::PropertyTypeWithMetadata;
 
 use crate::filter::QueryRecord;
 

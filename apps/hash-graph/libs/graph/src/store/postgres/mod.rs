@@ -20,14 +20,6 @@ use authorization::{
     },
 };
 use error_stack::{Report, ResultExt as _};
-use graph_types::{
-    account::{AccountGroupId, AccountId, EditionArchivedById},
-    ontology::{
-        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata,
-    },
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     ConflictBehavior,
     account::{
@@ -38,6 +30,14 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
+use hash_graph_types::{
+    account::{AccountGroupId, AccountId, EditionArchivedById},
+    ontology::{
+        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata,
+    },
+    owned_by_id::OwnedById,
+};
 use postgres_types::Json;
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
@@ -421,7 +421,7 @@ where
     /// Inserts a [`DataType`] identified by [`OntologyTypeUuid`], and associated with an
     /// [`OwnedById`], and [`EditionCreatedById`] into the database.
     ///
-    /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
+    /// [`EditionCreatedById`]: hash_graph_types::account::EditionCreatedById
     /// [`DataType`]: type_system::schema::DataType
     ///
     /// # Errors
@@ -522,7 +522,7 @@ where
     /// Inserts a [`PropertyType`] identified by [`OntologyTypeUuid`], and associated with an
     /// [`OwnedById`], and [`EditionCreatedById`] into the database.
     ///
-    /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
+    /// [`EditionCreatedById`]: hash_graph_types::account::EditionCreatedById
     ///
     /// # Errors
     ///
@@ -554,7 +554,7 @@ where
     /// Inserts a [`EntityType`] identified by [`OntologyTypeUuid`], and associated with an
     /// [`OwnedById`], [`EditionCreatedById`], and the optional label property, into the database.
     ///
-    /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
+    /// [`EditionCreatedById`]: hash_graph_types::account::EditionCreatedById
     ///
     /// # Errors
     ///

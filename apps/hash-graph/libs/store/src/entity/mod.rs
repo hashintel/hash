@@ -2,7 +2,7 @@ pub use self::query::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken
 
 mod query;
 
-use graph_types::knowledge::entity::Entity;
+use hash_graph_types::knowledge::entity::Entity;
 
 use crate::filter::QueryRecord;
 

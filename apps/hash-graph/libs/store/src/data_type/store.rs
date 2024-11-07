@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use authorization::schema::DataTypeRelationAndSubject;
 use error_stack::Report;
-use graph_types::{
+use hash_graph_types::{
     Embedding,
     account::AccountId,
     ontology::{

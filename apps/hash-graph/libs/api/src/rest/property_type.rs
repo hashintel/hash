@@ -36,7 +36,8 @@ use graph::{
         },
     },
 };
-use graph_types::{
+use hash_graph_store::{ConflictBehavior, property_type::PropertyTypeQueryToken};
+use hash_graph_types::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
         OntologyTypeReference, PropertyTypeEmbedding, PropertyTypeMetadata,
@@ -44,7 +45,6 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{ConflictBehavior, property_type::PropertyTypeQueryToken};
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;

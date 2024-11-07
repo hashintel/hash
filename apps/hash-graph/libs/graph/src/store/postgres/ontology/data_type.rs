@@ -10,14 +10,6 @@ use authorization::{
 };
 use error_stack::{Report, ResultExt as _};
 use futures::StreamExt as _;
-use graph_types::{
-    Embedding,
-    account::{AccountId, EditionArchivedById, EditionCreatedById},
-    ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
-    },
-};
 use hash_graph_store::{
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeQueryPath,
@@ -38,6 +30,14 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
+use hash_graph_types::{
+    Embedding,
+    account::{AccountId, EditionArchivedById, EditionCreatedById},
+    ontology::{
+        DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+    },
+};
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use tokio_postgres::{GenericClient as _, Row};

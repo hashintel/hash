@@ -1,7 +1,7 @@
 use authorization::{backend::ZanzibarBackend, schema::WebRelationAndSubject};
 use error_stack::{Report, ResultExt as _};
-use graph_types::owned_by_id::OwnedById;
 use hash_graph_store::error::InsertionError;
+use hash_graph_types::owned_by_id::OwnedById;
 use tokio_postgres::GenericClient as _;
 
 use crate::{

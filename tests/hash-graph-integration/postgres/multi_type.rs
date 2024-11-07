@@ -6,19 +6,19 @@ use graph::store::knowledge::{
     CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams, PatchEntityParams,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::{
-    knowledge::{
-        entity::{Entity, ProvidedEntityEditionProvenance},
-        property::{PropertyObject, PropertyWithMetadataObject},
-    },
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     error::InsertionError,
     filter::Filter,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
+};
+use hash_graph_types::{
+    knowledge::{
+        entity::{Entity, ProvidedEntityEditionProvenance},
+        property::{PropertyObject, PropertyWithMetadataObject},
+    },
+    owned_by_id::OwnedById,
 };
 use pretty_assertions::assert_eq;
 use type_system::url::VersionedUrl;

@@ -10,7 +10,7 @@ use authorization::{
 };
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::TryStreamExt as _;
-use graph_types::{
+use hash_graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
     ontology::{

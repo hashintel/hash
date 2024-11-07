@@ -10,7 +10,7 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-graph-types = { workspace = true, public = true }
+hash-graph-types = { workspace = true, public = true }
 
 # Public third-party dependencies
 

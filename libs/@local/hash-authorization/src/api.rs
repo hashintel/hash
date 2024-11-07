@@ -2,7 +2,7 @@ use core::error::Error;
 use std::collections::HashMap;
 
 use error_stack::Report;
-use graph_types::{
+use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
     owned_by_id::OwnedById,

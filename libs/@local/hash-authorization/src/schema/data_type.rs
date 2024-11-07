@@ -1,6 +1,6 @@
 use core::error::Error;
 
-use graph_types::owned_by_id::OwnedById;
+use hash_graph_types::owned_by_id::OwnedById;
 use serde::{Deserialize, Serialize};
 use type_system::schema::DataTypeUuid;
 use uuid::Uuid;

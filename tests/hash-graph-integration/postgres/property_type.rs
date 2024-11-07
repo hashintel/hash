@@ -3,10 +3,6 @@ use graph::store::ontology::{
     UpdatePropertyTypesParams,
 };
 use graph_test_data::{data_type, property_type};
-use graph_types::{
-    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     ConflictBehavior,
     filter::Filter,
@@ -15,6 +11,10 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
+use hash_graph_types::{
+    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
+    owned_by_id::OwnedById,
+};
 use type_system::schema::PropertyType;
 
 use crate::{DatabaseTestWrapper, property_type_relationships};

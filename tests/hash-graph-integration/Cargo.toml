@@ -14,9 +14,9 @@ authorization = { workspace = true }
 error-stack = { workspace = true, features = ["spantrace"] }
 graph = { workspace = true }
 graph-test-data = { workspace = true }
-graph-types = { workspace = true }
 hash-graph-store = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true }
+hash-graph-types = { workspace = true }
 hash-tracing = { workspace = true }
 type-system = { workspace = true }
 

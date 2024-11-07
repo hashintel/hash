@@ -1,7 +1,6 @@
 use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::store::ontology::{EntityTypeStore as _, GetEntityTypesParams};
-use graph_types::account::AccountId;
 use hash_graph_store::{
     filter::Filter,
     subgraph::temporal_axes::{
@@ -9,6 +8,7 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
+use hash_graph_types::account::AccountId;
 use rand::{prelude::IteratorRandom as _, thread_rng};
 use tokio::runtime::Runtime;
 use type_system::url::VersionedUrl;

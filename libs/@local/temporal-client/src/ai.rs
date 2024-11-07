@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
-use graph_types::{
+use hash_graph_types::{
     account::AccountId,
     knowledge::entity::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},

@@ -8,7 +8,18 @@ use graph::store::{
     },
     knowledge::{CreateEntityParams, EntityStore as _},
 };
-use graph_types::{
+use hash_graph_store::{
+    ConflictBehavior,
+    data_type::{
+        CreateDataTypeParams, DataTypeStore as _, GetDataTypesParams, UpdateDataTypesParams,
+    },
+    filter::Filter,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
+};
+use hash_graph_temporal_versioning::TemporalBound;
+use hash_graph_types::{
     knowledge::{
         entity::ProvidedEntityEditionProvenance,
         property::{
@@ -21,17 +32,6 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{
-    ConflictBehavior,
-    data_type::{
-        CreateDataTypeParams, DataTypeStore as _, GetDataTypesParams, UpdateDataTypesParams,
-    },
-    filter::Filter,
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
-};
-use hash_graph_temporal_versioning::TemporalBound;
 use serde_json::json;
 use time::OffsetDateTime;
 use type_system::{

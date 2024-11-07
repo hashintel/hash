@@ -12,15 +12,6 @@ use authorization::{
 };
 use error_stack::{Report, ResultExt as _};
 use futures::StreamExt as _;
-use graph_types::{
-    Embedding,
-    account::{AccountId, EditionArchivedById, EditionCreatedById},
-    ontology::{
-        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeMetadata,
-        PropertyTypeWithMetadata,
-    },
-};
 use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     property_type::PropertyTypeQueryPath,
@@ -32,6 +23,15 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
+use hash_graph_types::{
+    Embedding,
+    account::{AccountId, EditionArchivedById, EditionCreatedById},
+    ontology::{
+        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeMetadata,
+        PropertyTypeWithMetadata,
+    },
+};
 use postgres_types::{Json, ToSql};
 use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;

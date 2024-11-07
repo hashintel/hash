@@ -7,16 +7,16 @@ use alloc::borrow::Cow;
 use core::convert::identity;
 
 use error_stack::{Report, ResultExt as _};
-use graph_types::{
+use hash_graph_store::{
+    data_type::DataTypeQueryPath, entity_type::EntityTypeQueryPath, filter::Parameter,
+    property_type::PropertyTypeQueryPath, subgraph::temporal_axes::QueryTemporalAxes,
+};
+use hash_graph_types::{
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeClassificationMetadata,
         PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
-};
-use hash_graph_store::{
-    data_type::DataTypeQueryPath, entity_type::EntityTypeQueryPath, filter::Parameter,
-    property_type::PropertyTypeQueryPath, subgraph::temporal_axes::QueryTemporalAxes,
 };
 use serde::Deserialize;
 use time::OffsetDateTime;

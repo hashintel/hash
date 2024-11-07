@@ -21,7 +21,7 @@ error-stack = { workspace = true }
 graph = { workspace = true, features = ["utoipa"] }
 graph-api = { workspace = true }
 graph-type-defs = { workspace = true }
-graph-types = { workspace = true, features = ["utoipa"] }
+hash-graph-types = { workspace = true, features = ["utoipa"] }
 hash-status = { workspace = true }
 
 # Private third-party dependencies

@@ -1,7 +1,7 @@
 use authorization::{backend::ZanzibarBackend, schema::AccountGroupRelationAndSubject};
 use error_stack::{Report, ResultExt as _};
-use graph_types::account::AccountGroupId;
 use hash_graph_store::error::InsertionError;
+use hash_graph_types::account::AccountGroupId;
 use tokio_postgres::GenericClient as _;
 
 use crate::{

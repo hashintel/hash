@@ -19,9 +19,9 @@ autobenches = false
 authorization = { workspace = true }
 graph = { workspace = true }
 graph-test-data = { workspace = true }
-graph-types = { workspace = true }
 hash-graph-store = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true }
+hash-graph-types = { workspace = true }
 repo-chores = { workspace = true }
 type-system = { workspace = true }
 

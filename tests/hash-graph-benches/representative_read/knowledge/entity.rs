@@ -5,7 +5,6 @@ use criterion::{BatchSize::SmallInput, Bencher};
 use graph::store::knowledge::{
     EntityQuerySorting, EntityStore as _, GetEntitiesParams, GetEntitySubgraphParams,
 };
-use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
 use hash_graph_store::{
     entity::EntityQueryPath,
     filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
@@ -18,6 +17,7 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
+use hash_graph_types::{account::AccountId, knowledge::entity::EntityUuid};
 use rand::{prelude::IteratorRandom as _, thread_rng};
 use tokio::runtime::Runtime;
 

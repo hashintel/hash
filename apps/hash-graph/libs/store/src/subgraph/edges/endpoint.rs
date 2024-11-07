@@ -2,7 +2,7 @@ use alloc::collections::BTreeSet;
 use core::hash::{BuildHasher, Hash};
 use std::collections::{HashMap, HashSet};
 
-use graph_types::knowledge::entity::EntityId;
+use hash_graph_types::knowledge::entity::EntityId;
 use hash_graph_temporal_versioning::LeftClosedTemporalInterval;
 
 use crate::subgraph::{

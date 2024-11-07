@@ -15,25 +15,6 @@ use authorization::{
 };
 use error_stack::{Report, ReportSink, ResultExt as _, bail};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
-use graph_types::{
-    Embedding,
-    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
-    knowledge::{
-        Confidence,
-        entity::{
-            DraftId, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
-            EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
-            InferredEntityProvenance,
-        },
-        property::{
-            Property, PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPath,
-            PropertyPathError, PropertyWithMetadata, PropertyWithMetadataObject,
-            PropertyWithMetadataValue, visitor::EntityVisitor as _,
-        },
-    },
-    ontology::{DataTypeLookup, OntologyTypeProvider},
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     entity::EntityQueryPath,
     error::{InsertionError, QueryError, UpdateError},
@@ -53,6 +34,25 @@ use hash_graph_temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, TemporalTagged as _, Timestamp,
     TransactionTime,
+};
+use hash_graph_types::{
+    Embedding,
+    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
+    knowledge::{
+        Confidence,
+        entity::{
+            DraftId, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
+            EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
+            InferredEntityProvenance,
+        },
+        property::{
+            Property, PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPath,
+            PropertyPathError, PropertyWithMetadata, PropertyWithMetadataObject,
+            PropertyWithMetadataValue, visitor::EntityVisitor as _,
+        },
+    },
+    ontology::{DataTypeLookup, OntologyTypeProvider},
+    owned_by_id::OwnedById,
 };
 use hash_status::StatusCode;
 use postgres_types::ToSql;

@@ -1,7 +1,6 @@
 use core::fmt::Debug;
 
 use error_stack::{Report, ResultExt as _};
-use graph_types::account::AccountId;
 use harpc_client::{connection::Connection, utils::invoke_call_discrete};
 use harpc_codec::{decode::ReportDecoder, encode::Encoder};
 use harpc_server::{
@@ -12,6 +11,7 @@ use harpc_server::{
 use harpc_service::delegate::SubsystemDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_types::response_kind::ResponseKind;
+use hash_graph_types::account::AccountId;
 
 use super::{role, session::Account};
 

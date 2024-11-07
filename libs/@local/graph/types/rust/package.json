@@ -1,5 +1,5 @@
 {
-  "name": "@rust/graph-types",
+  "name": "@rust/hash-graph-types",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",

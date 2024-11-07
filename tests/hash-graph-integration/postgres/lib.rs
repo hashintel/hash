@@ -61,16 +61,6 @@ use graph::{
         },
     },
 };
-use graph_types::{
-    account::AccountId,
-    knowledge::entity::{Entity, EntityId},
-    ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, PropertyTypeMetadata,
-        ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
-};
 use hash_graph_store::{
     ConflictBehavior,
     account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
@@ -83,6 +73,16 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
+use hash_graph_types::{
+    account::AccountId,
+    knowledge::entity::{Entity, EntityId},
+    ontology::{
+        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, PropertyTypeMetadata,
+        ProvidedOntologyEditionProvenance,
+    },
+    owned_by_id::OwnedById,
+};
 use hash_tracing::logging::env_filter;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::schema::{DataType, EntityType, PropertyType};
