@@ -12,7 +12,7 @@ use crate::session::{RequestInfo, Session, SessionStorage};
 
 /// Bridge between `harpc-system` and `tower`.
 ///
-/// This is a very thin layer between the `harpc-system` and `tower` systems. It is responsible
+/// This is a very thin layer between the `harpc-system` and `tower` services. It is responsible
 /// for taking the incoming request, selecting the appropriate session and codec, and then
 /// delegating the request to the inner system (which is cloned).
 ///
