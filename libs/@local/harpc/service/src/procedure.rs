@@ -1,7 +1,7 @@
 use frunk::HCons;
 use harpc_types::procedure::{ProcedureDescriptor, ProcedureId};
 
-use crate::{Service, metadata::Metadata};
+use crate::{Subsystem, metadata::Metadata};
 
 /// A marker trait for procedures that are included in a service.
 ///
@@ -14,16 +14,16 @@ impl<Head, Tail> IncludesProcedure<Head> for HCons<Head, Tail> where Head: Proce
 impl<Head, Tail, P> IncludesProcedure<P> for HCons<Head, Tail> where Tail: IncludesProcedure<P> {}
 
 pub trait ProcedureIdentifier: Sized {
-    type Service: Service;
+    type Subsystem: Subsystem;
 
     fn from_id(id: ProcedureId) -> Option<Self>;
     fn into_id(self) -> ProcedureId;
 }
 
 pub trait Procedure: Sized {
-    type Service: Service<Procedures: IncludesProcedure<Self>>;
+    type Subsystem: Subsystem<Procedures: IncludesProcedure<Self>>;
 
-    const ID: <Self::Service as Service>::ProcedureId;
+    const ID: <Self::Subsystem as Subsystem>::ProcedureId;
 
     #[must_use]
     fn descriptor() -> ProcedureDescriptor {

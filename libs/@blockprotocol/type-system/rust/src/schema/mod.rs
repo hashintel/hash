@@ -35,7 +35,7 @@ pub use self::{
         ClosedEntityType, ClosedEntityTypeMetadata, ClosedMultiEntityType, EntityConstraints,
         EntityType, EntityTypeReference, EntityTypeResolveData, EntityTypeSchemaMetadata,
         EntityTypeToEntityTypeEdge, EntityTypeToPropertyTypeEdge, EntityTypeValidationError,
-        EntityTypeValidator, InverseEntityTypeMetadata,
+        EntityTypeValidator, InverseEntityTypeMetadata, PartialEntityType,
     },
     identifier::{DataTypeUuid, EntityTypeUuid, OntologyTypeUuid, PropertyTypeUuid},
     object::{

@@ -121,7 +121,7 @@ impl ToSchema<'static> for DataTypeWithMetadata {
         (
             "DataTypeWithMetadata",
             schema::ObjectBuilder::new()
-                .property("schema", Ref::from_schema_name("VAR_DATA_TYPE"))
+                .property("schema", Ref::from_schema_name("DataType"))
                 .required("schema")
                 .property(
                     "metadata",

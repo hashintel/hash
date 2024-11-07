@@ -6,7 +6,7 @@ use harpc_server::{
     session::Session,
     utils::{delegate_call_discrete, parse_procedure_id},
 };
-use harpc_service::{delegate::ServiceDelegate, role::Role};
+use harpc_service::{delegate::SubsystemDelegate, role::Role};
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_types::response_kind::ResponseKind;
 
@@ -16,7 +16,7 @@ use super::{role, session::Account};
 #[display("unable to fullfil ping request")]
 pub struct EchoError;
 
-pub trait EchoService<R>
+pub trait EchoSystem<R>
 where
     R: Role,
 {
@@ -34,18 +34,20 @@ pub mod meta {
 
     use frunk::HList;
     use harpc_service::{
-        Service,
+        Subsystem,
         metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+    use harpc_types::{procedure::ProcedureId, version::Version};
+
+    use crate::rpc::GraphSubsystemId;
 
     pub enum EchoProcedureId {
         Echo,
     }
 
     impl ProcedureIdentifier for EchoProcedureId {
-        type Service = EchoService;
+        type Subsystem = EchoSystem;
 
         fn from_id(id: ProcedureId) -> Option<Self> {
             match id.value() {
@@ -61,13 +63,14 @@ pub mod meta {
         }
     }
 
-    pub struct EchoService;
+    pub struct EchoSystem;
 
-    impl Service for EchoService {
+    impl Subsystem for EchoSystem {
         type ProcedureId = EchoProcedureId;
         type Procedures = HList![ProcedureEcho];
+        type SubsystemId = GraphSubsystemId;
 
-        const ID: ServiceId = ServiceId::new(0x02);
+        const ID: GraphSubsystemId = GraphSubsystemId::Echo;
         const VERSION: Version = Version {
             major: 0x00,
             minor: 0x00,
@@ -87,9 +90,9 @@ pub mod meta {
     pub struct ProcedureEcho;
 
     impl Procedure for ProcedureEcho {
-        type Service = EchoService;
+        type Subsystem = EchoSystem;
 
-        const ID: <Self::Service as Service>::ProcedureId = EchoProcedureId::Echo;
+        const ID: <Self::Subsystem as Subsystem>::ProcedureId = EchoProcedureId::Echo;
 
         fn metadata() -> Metadata {
             Metadata {
@@ -106,7 +109,7 @@ pub mod meta {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct EchoServer;
 
-impl EchoService<role::Server> for EchoServer {
+impl EchoSystem<role::Server> for EchoServer {
     async fn echo(
         &self,
         _: Session<Account>,
@@ -128,13 +131,13 @@ impl<T> EchoDelegate<T> {
     }
 }
 
-impl<T, C> ServiceDelegate<Session<Account>, C> for EchoDelegate<T>
+impl<T, C> SubsystemDelegate<Session<Account>, C> for EchoDelegate<T>
 where
-    T: EchoService<role::Server, echo(..): Send> + Send,
+    T: EchoSystem<role::Server, echo(..): Send> + Send,
     C: Encoder + ReportDecoder + Clone + Send,
 {
     type Error = Report<DelegationError>;
-    type Service = meta::EchoService;
+    type Subsystem = meta::EchoSystem;
 
     type Body<Source>
         = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>
@@ -166,7 +169,7 @@ where
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct EchoClient;
 
-impl<Svc, C> EchoService<role::Client<Svc, C>> for EchoClient
+impl<Svc, C> EchoSystem<role::Client<Svc, C>> for EchoClient
 where
     Svc: harpc_client::connection::ConnectionService<C>,
     C: harpc_client::connection::ConnectionCodec,

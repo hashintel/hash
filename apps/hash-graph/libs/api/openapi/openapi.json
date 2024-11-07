@@ -1657,7 +1657,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "./models/status.json"
+                  "$ref": "#/components/schemas/Status"
                 }
               }
             }
@@ -1667,7 +1667,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "./models/status.json"
+                  "$ref": "#/components/schemas/Status"
                 }
               }
             }
@@ -1677,7 +1677,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "./models/status.json"
+                  "$ref": "#/components/schemas/Status"
                 }
               }
             }
@@ -1894,7 +1894,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "./models/status.json"
+                  "$ref": "#/components/schemas/Status"
                 }
               }
             }
@@ -1904,7 +1904,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "./models/status.json"
+                  "$ref": "#/components/schemas/Status"
                 }
               }
             }
@@ -1914,7 +1914,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "./models/status.json"
+                  "$ref": "#/components/schemas/Status"
                 }
               }
             }
@@ -3088,6 +3088,32 @@
         "type": "string",
         "format": "uri"
       },
+      "ClosedDataType": {
+        "$ref": "./models/closed_data_type.json"
+      },
+      "ClosedEntityType": {
+        "$ref": "./models/closed_entity_type.json"
+      },
+      "ClosedMultiEntityType": {
+        "$ref": "./models/closed_multi_entity_type.json"
+      },
+      "ClosedMultiEntityTypeMap": {
+        "type": "object",
+        "required": [
+          "schema"
+        ],
+        "properties": {
+          "inner": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          },
+          "schema": {
+            "$ref": "#/components/schemas/ClosedMultiEntityType"
+          }
+        }
+      },
       "ClosedTemporalBound": {
         "oneOf": [
           {
@@ -3242,12 +3268,12 @@
           "schema": {
             "oneOf": [
               {
-                "$ref": "./models/data_type.json"
+                "$ref": "#/components/schemas/DataType"
               },
               {
                 "type": "array",
                 "items": {
-                  "$ref": "./models/data_type.json"
+                  "$ref": "#/components/schemas/DataType"
                 }
               }
             ]
@@ -3343,12 +3369,12 @@
           "schema": {
             "oneOf": [
               {
-                "$ref": "./models/entity_type.json"
+                "$ref": "#/components/schemas/EntityType"
               },
               {
                 "type": "array",
                 "items": {
-                  "$ref": "./models/entity_type.json"
+                  "$ref": "#/components/schemas/EntityType"
                 }
               }
             ]
@@ -3379,12 +3405,12 @@
           "schema": {
             "oneOf": [
               {
-                "$ref": "./models/property_type.json"
+                "$ref": "#/components/schemas/PropertyType"
               },
               {
                 "type": "array",
                 "items": {
-                  "$ref": "./models/property_type.json"
+                  "$ref": "#/components/schemas/PropertyType"
                 }
               }
             ]
@@ -3395,6 +3421,9 @@
       "CreatedById": {
         "type": "string",
         "format": "uuid"
+      },
+      "DataType": {
+        "$ref": "./models/data_type.json"
       },
       "DataTypeMetadata": {
         "oneOf": [
@@ -3596,7 +3625,7 @@
             "$ref": "#/components/schemas/DataTypeMetadata"
           },
           "schema": {
-            "$ref": "./models/data_type.json"
+            "$ref": "#/components/schemas/DataType"
           }
         }
       },
@@ -4254,6 +4283,9 @@
         },
         "additionalProperties": false
       },
+      "EntityType": {
+        "$ref": "./models/entity_type.json"
+      },
       "EntityTypeEditorSubject": {
         "oneOf": [
           {
@@ -4615,6 +4647,34 @@
           "propertyName": "relation"
         }
       },
+      "EntityTypeResolveDefinitions": {
+        "type": "object",
+        "required": [
+          "dataTypes",
+          "propertyTypes",
+          "entityTypes"
+        ],
+        "properties": {
+          "dataTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedDataType"
+            }
+          },
+          "entityTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PartialEntityType"
+            }
+          },
+          "propertyTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyType"
+            }
+          }
+        }
+      },
       "EntityTypeSetting": {
         "type": "string",
         "enum": [
@@ -4690,7 +4750,7 @@
             "$ref": "#/components/schemas/EntityTypeMetadata"
           },
           "schema": {
-            "$ref": "./models/entity_type.json"
+            "$ref": "#/components/schemas/EntityType"
           }
         }
       },
@@ -5079,6 +5139,9 @@
           "includeDrafts": {
             "type": "boolean"
           },
+          "includeResolved": {
+            "type": "boolean"
+          },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
           }
@@ -5091,8 +5154,15 @@
           "entityType"
         ],
         "properties": {
+          "definitions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
+              }
+            ]
+          },
           "entityType": {
-            "$ref": "./models/closed_multi_entity_type.json"
+            "$ref": "#/components/schemas/ClosedMultiEntityType"
           }
         }
       },
@@ -5255,6 +5325,14 @@
           "includeEditionCreatedByIds": {
             "type": "boolean"
           },
+          "includeEntityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+              }
+            ],
+            "nullable": true
+          },
           "includeTypeIds": {
             "type": "boolean"
           },
@@ -5285,6 +5363,12 @@
           "entities"
         ],
         "properties": {
+          "closedMultiEntityTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          },
           "count": {
             "type": "integer",
             "nullable": true,
@@ -5304,6 +5388,13 @@
               }
             ],
             "nullable": true
+          },
+          "definitions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
+              }
+            ]
           },
           "editionCreatedByIds": {
             "type": "object",
@@ -5375,6 +5466,14 @@
           "includeEditionCreatedByIds": {
             "type": "boolean"
           },
+          "includeEntityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+              }
+            ],
+            "nullable": true
+          },
           "includeTypeIds": {
             "type": "boolean"
           },
@@ -5405,6 +5504,12 @@
           "subgraph"
         ],
         "properties": {
+          "closedMultiEntityTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          },
           "count": {
             "type": "integer",
             "nullable": true,
@@ -5424,6 +5529,13 @@
               }
             ],
             "nullable": true
+          },
+          "definitions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
+              }
+            ]
           },
           "editionCreatedByIds": {
             "type": "object",
@@ -5554,9 +5666,6 @@
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
-          "includeClosed": {
-            "type": "boolean"
-          },
           "includeCount": {
             "type": "boolean"
           },
@@ -5565,6 +5674,14 @@
           },
           "includeEditionCreatedByIds": {
             "type": "boolean"
+          },
+          "includeEntityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+              }
+            ],
+            "nullable": true
           },
           "includeWebIds": {
             "type": "boolean"
@@ -5589,7 +5706,7 @@
           "closedEntityTypes": {
             "type": "array",
             "items": {
-              "$ref": "./models/closed_entity_type.json"
+              "$ref": "#/components/schemas/ClosedEntityType"
             }
           },
           "count": {
@@ -5604,6 +5721,13 @@
               }
             ],
             "nullable": true
+          },
+          "definitions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
+              }
+            ]
           },
           "editionCreatedByIds": {
             "type": "object",
@@ -5804,6 +5928,13 @@
           }
         },
         "additionalProperties": false
+      },
+      "IncludeEntityTypeOption": {
+        "type": "string",
+        "enum": [
+          "closed",
+          "resolved"
+        ]
       },
       "InferredEntityProvenance": {
         "type": "object",
@@ -6093,7 +6224,7 @@
                 }
               },
               "schema": {
-                "$ref": "./models/data_type.json"
+                "$ref": "#/components/schemas/DataType"
               }
             }
           }
@@ -6129,7 +6260,7 @@
                 }
               },
               "schema": {
-                "$ref": "./models/entity_type.json"
+                "$ref": "#/components/schemas/EntityType"
               }
             }
           }
@@ -6165,7 +6296,7 @@
                 }
               },
               "schema": {
-                "$ref": "./models/property_type.json"
+                "$ref": "#/components/schemas/PropertyType"
               }
             }
           }
@@ -6892,6 +7023,9 @@
         "type": "string",
         "format": "uuid"
       },
+      "PartialEntityType": {
+        "$ref": "./models/partial_entity_type.json"
+      },
       "PatchEntityParams": {
         "type": "object",
         "required": [
@@ -7206,6 +7340,9 @@
         },
         "additionalProperties": false
       },
+      "PropertyType": {
+        "$ref": "./models/property_type.json"
+      },
       "PropertyTypeEditorSubject": {
         "oneOf": [
           {
@@ -7518,7 +7655,7 @@
             "$ref": "#/components/schemas/PropertyTypeMetadata"
           },
           "schema": {
-            "$ref": "./models/property_type.json"
+            "$ref": "#/components/schemas/PropertyType"
           }
         }
       },
@@ -7917,6 +8054,9 @@
           "document"
         ]
       },
+      "Status": {
+        "$ref": "./models/status.json"
+      },
       "Subgraph": {
         "type": "object",
         "required": [
@@ -8103,6 +8243,9 @@
           }
         }
       },
+      "UpdateDataType": {
+        "$ref": "./models/update_data_type.json"
+      },
       "UpdateDataTypeEmbeddingParams": {
         "type": "object",
         "required": [
@@ -8152,7 +8295,7 @@
             }
           },
           "schema": {
-            "$ref": "./models/update_data_type.json"
+            "$ref": "#/components/schemas/UpdateDataType"
           },
           "typeToUpdate": {
             "$ref": "#/components/schemas/VersionedUrl"
@@ -8190,6 +8333,9 @@
           }
         },
         "additionalProperties": false
+      },
+      "UpdateEntityType": {
+        "$ref": "./models/update_entity_type.json"
       },
       "UpdateEntityTypeEmbeddingParams": {
         "type": "object",
@@ -8233,13 +8379,16 @@
             }
           },
           "schema": {
-            "$ref": "./models/update_entity_type.json"
+            "$ref": "#/components/schemas/UpdateEntityType"
           },
           "typeToUpdate": {
             "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
+      },
+      "UpdatePropertyType": {
+        "$ref": "./models/update_property_type.json"
       },
       "UpdatePropertyTypeEmbeddingParams": {
         "type": "object",
@@ -8283,7 +8432,7 @@
             }
           },
           "schema": {
-            "$ref": "./models/update_property_type.json"
+            "$ref": "#/components/schemas/UpdatePropertyType"
           },
           "typeToUpdate": {
             "$ref": "#/components/schemas/VersionedUrl"

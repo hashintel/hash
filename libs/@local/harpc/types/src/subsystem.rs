@@ -5,9 +5,9 @@ use crate::version::Version;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "proptest", derive(test_strategy::Arbitrary))]
-pub struct ServiceId(u16);
+pub struct SubsystemId(u16);
 
-impl ServiceId {
+impl SubsystemId {
     #[must_use]
     pub const fn new(value: u16) -> Self {
         Self(value)
@@ -25,7 +25,7 @@ impl ServiceId {
     }
 }
 
-impl Display for ServiceId {
+impl Display for SubsystemId {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let Self(value) = self;
 
@@ -36,12 +36,12 @@ impl Display for ServiceId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "proptest", derive(test_strategy::Arbitrary))]
-pub struct ServiceDescriptor {
-    pub id: ServiceId,
+pub struct SubsystemDescriptor {
+    pub id: SubsystemId,
     pub version: Version,
 }
 
-impl Display for ServiceDescriptor {
+impl Display for SubsystemDescriptor {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let &Self { id, version } = self;
 

@@ -9,7 +9,7 @@ use harpc_server::{
     session::Session,
     utils::{delegate_call_discrete, parse_procedure_id},
 };
-use harpc_service::delegate::ServiceDelegate;
+use harpc_service::delegate::SubsystemDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_types::response_kind::ResponseKind;
 
@@ -19,7 +19,7 @@ use super::{role, session::Account};
 #[display("unable to authenticate user")]
 pub struct AuthenticationError;
 
-pub trait AuthenticationService<R>
+pub trait AuthenticationSystem<R>
 where
     R: role::Role,
 {
@@ -37,18 +37,20 @@ pub mod meta {
 
     use frunk::HList;
     use harpc_service::{
-        Service,
+        Subsystem,
         metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+    use harpc_types::{procedure::ProcedureId, version::Version};
+
+    use crate::rpc::GraphSubsystemId;
 
     pub enum AuthenticationProcedureId {
         Authenticate,
     }
 
     impl ProcedureIdentifier for AuthenticationProcedureId {
-        type Service = AuthenticationService;
+        type Subsystem = AuthenticationSystem;
 
         fn from_id(id: ProcedureId) -> Option<Self> {
             match id.value() {
@@ -64,13 +66,14 @@ pub mod meta {
         }
     }
 
-    pub struct AuthenticationService;
+    pub struct AuthenticationSystem;
 
-    impl Service for AuthenticationService {
+    impl Subsystem for AuthenticationSystem {
         type ProcedureId = AuthenticationProcedureId;
         type Procedures = HList![ProcedureAuthenticate];
+        type SubsystemId = GraphSubsystemId;
 
-        const ID: ServiceId = ServiceId::new(0x00);
+        const ID: GraphSubsystemId = GraphSubsystemId::Authentication;
         const VERSION: Version = Version {
             major: 0x00,
             minor: 0x00,
@@ -90,9 +93,10 @@ pub mod meta {
     pub struct ProcedureAuthenticate;
 
     impl Procedure for ProcedureAuthenticate {
-        type Service = AuthenticationService;
+        type Subsystem = AuthenticationSystem;
 
-        const ID: <Self::Service as Service>::ProcedureId = AuthenticationProcedureId::Authenticate;
+        const ID: <Self::Subsystem as Subsystem>::ProcedureId =
+            AuthenticationProcedureId::Authenticate;
 
         fn metadata() -> Metadata {
             Metadata {
@@ -109,7 +113,7 @@ pub mod meta {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct AuthenticationServer;
 
-impl AuthenticationService<role::Server> for AuthenticationServer {
+impl AuthenticationSystem<role::Server> for AuthenticationServer {
     async fn authenticate(
         &self,
         session: Session<Account>,
@@ -131,13 +135,13 @@ pub struct AuthenticationDelegate<T> {
     inner: T,
 }
 
-impl<T, C> ServiceDelegate<Session<Account>, C> for AuthenticationDelegate<T>
+impl<T, C> SubsystemDelegate<Session<Account>, C> for AuthenticationDelegate<T>
 where
-    T: AuthenticationService<role::Server, authenticate(..): Send> + Send,
+    T: AuthenticationSystem<role::Server, authenticate(..): Send> + Send,
     C: Encoder + ReportDecoder + Clone + Send,
 {
     type Error = Report<DelegationError>;
-    type Service = meta::AuthenticationService;
+    type Subsystem = meta::AuthenticationSystem;
 
     type Body<Source>
         = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>
@@ -170,7 +174,7 @@ where
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct AuthenticationClient;
 
-impl<Svc, C> AuthenticationService<role::Client<Svc, C>> for AuthenticationClient
+impl<Svc, C> AuthenticationSystem<role::Client<Svc, C>> for AuthenticationClient
 where
     Svc: harpc_client::connection::ConnectionService<C>,
     C: harpc_client::connection::ConnectionCodec,

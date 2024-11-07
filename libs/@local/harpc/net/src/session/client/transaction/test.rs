@@ -745,7 +745,7 @@ fn setup_send_mapped<T>(
 
     let task = TransactionSendTask {
         config,
-        service: descriptor.service,
+        subsystem: descriptor.subsystem,
         procedure: descriptor.procedure,
         rx: ReceiverStream::new(bytes_rx),
         tx: request_tx,
@@ -790,10 +790,10 @@ async fn send_drop_sender() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && payload.is_empty()
     );
@@ -879,10 +879,10 @@ async fn send_no_delay() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && *payload.as_bytes() == Bytes::from_static(b"apple")
     );
@@ -922,10 +922,10 @@ async fn send_no_delay_flush_empty() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && payload.is_empty()
     );
@@ -968,10 +968,10 @@ async fn send_delay() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && payload.len() == Payload::MAX_SIZE
     );
@@ -1020,10 +1020,10 @@ async fn send_delay_flush_partial() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && payload.len() == Payload::MAX_SIZE
     );
@@ -1053,10 +1053,10 @@ async fn send_delay_flush_empty() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && payload.is_empty()
     );

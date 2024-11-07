@@ -1,6 +1,6 @@
 mod query;
 mod read;
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, collections::BTreeSet};
 use core::{borrow::Borrow as _, iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
@@ -73,11 +73,12 @@ use crate::store::{
     crud::{QueryResult as _, Read, ReadPaginated, Sorting as _},
     error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
     knowledge::{
-        CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore,
-        EntityValidationType, GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams,
-        GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
+        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, EntityQuerySorting,
+        EntityStore, EntityValidationType, GetEntitiesParams, GetEntitiesResponse,
+        GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
         UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
     },
+    ontology::IncludeEntityTypeOption,
     postgres::{
         ResponseCountMap, TraversalContext,
         knowledge::entity::read::EntityEdgeTraversalData,
@@ -100,6 +101,7 @@ struct GetEntitiesImplParams<'a> {
     limit: Option<usize>,
     include_drafts: bool,
     include_count: bool,
+    include_entity_types: Option<IncludeEntityTypeOption>,
     include_web_ids: bool,
     include_created_by_ids: bool,
     include_edition_created_by_ids: bool,
@@ -407,6 +409,92 @@ where
         Ok(())
     }
 
+    // #[tracing::instrument(level = "info", skip(self, entities))]
+    async fn resolve_closed_multi_entity_types(
+        &self,
+        entities: impl IntoIterator<Item = &Entity> + Send,
+    ) -> Result<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>, Report<QueryError>> {
+        let mut entity_type_ids_to_resolve = HashSet::<&VersionedUrl>::new();
+        let all_multi_entity_type_ids = entities
+            .into_iter()
+            .map(|entity| {
+                entity_type_ids_to_resolve.extend(entity.metadata.entity_type_ids.iter());
+                entity
+                    .metadata
+                    .entity_type_ids
+                    .iter()
+                    .collect::<BTreeSet<_>>()
+            })
+            .collect::<Vec<_>>();
+
+        let (entity_type_references, entity_type_uuids): (Vec<_>, Vec<_>) =
+            entity_type_ids_to_resolve
+                .into_iter()
+                .map(|entity_type_id| (EntityTypeUuid::from_url(entity_type_id), entity_type_id))
+                .unzip();
+
+        let closed_types = entity_type_uuids
+            .into_iter()
+            .zip(
+                self.get_closed_entity_types(&entity_type_references)
+                    .await?,
+            )
+            .collect::<HashMap<_, _>>();
+
+        let mut resolved_entity_types = HashMap::<VersionedUrl, ClosedMultiEntityTypeMap>::new();
+        for entity_multi_type_ids in &all_multi_entity_type_ids {
+            let mut entity_type_id_iter = entity_multi_type_ids.iter();
+            let Some(first_entity_type_id) = entity_type_id_iter.next() else {
+                continue;
+            };
+            let (_, ref mut map) = resolved_entity_types
+                .raw_entry_mut()
+                .from_key(*first_entity_type_id)
+                .or_insert_with(|| {
+                    ((*first_entity_type_id).clone(), ClosedMultiEntityTypeMap {
+                        schema: ClosedMultiEntityType::from_closed_schema(
+                            closed_types
+                                .get(*first_entity_type_id)
+                                .expect(
+                                    "The entity type was already resolved, so it should be \
+                                     present in the closed types",
+                                )
+                                .clone(),
+                        ),
+                        inner: HashMap::new(),
+                    })
+                });
+
+            for entity_type_id in entity_type_id_iter {
+                let (_, new_map) = map
+                    .inner
+                    .raw_entry_mut()
+                    .from_key(*entity_type_id)
+                    .or_insert_with(|| {
+                        let mut closed_parent = map.schema.clone();
+                        closed_parent
+                            .add_closed_entity_type(
+                                closed_types
+                                    .get(*entity_type_id)
+                                    .expect(
+                                        "The entity type was already resolved, so it should be \
+                                         present in the closed types",
+                                    )
+                                    .clone(),
+                            )
+                            .expect("The entity type was constructed before so it has to be valid");
+                        ((*entity_type_id).clone(), ClosedMultiEntityTypeMap {
+                            schema: closed_parent,
+                            inner: HashMap::new(),
+                        })
+                    });
+                *map = new_map;
+            }
+        }
+
+        Ok(resolved_entity_types)
+    }
+
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn get_entities_impl(
         &self,
@@ -561,14 +649,9 @@ where
                 )
             };
 
-            root_entities.extend(
-                entities
-                    .into_iter()
-                    .filter(|(entity, _)| {
-                        permitted_ids.contains(&entity.metadata.record_id.entity_id.entity_uuid)
-                    })
-                    .take(params.limit.unwrap_or(usize::MAX) - root_entities.len()),
-            );
+            root_entities.extend(entities.into_iter().filter(|(entity, _)| {
+                permitted_ids.contains(&entity.metadata.record_id.entity_id.entity_uuid)
+            }));
 
             if let Some(limit) = params.limit {
                 if num_returned_entities < limit {
@@ -593,6 +676,46 @@ where
 
         Ok((
             GetEntitiesResponse {
+                #[expect(
+                    clippy::if_then_some_else_none,
+                    reason = "False positive, use of `await`"
+                )]
+                closed_multi_entity_types: if params.include_entity_types.is_some() {
+                    Some(
+                        self.resolve_closed_multi_entity_types(
+                            root_entities.iter().map(|(entity, _)| entity),
+                        )
+                        .await?,
+                    )
+                } else {
+                    None
+                },
+                #[expect(
+                    clippy::if_then_some_else_none,
+                    reason = "False positive, use of `await`"
+                )]
+                definitions: if params.include_entity_types
+                    == Some(IncludeEntityTypeOption::Resolved)
+                {
+                    let entity_type_uuids = root_entities
+                        .iter()
+                        .flat_map(|(entity, _)| {
+                            entity
+                                .metadata
+                                .entity_type_ids
+                                .iter()
+                                .map(EntityTypeUuid::from_url)
+                        })
+                        .collect::<HashSet<_>>()
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    Some(
+                        self.get_entity_type_resolve_definitions(actor_id, &entity_type_uuids)
+                            .await?,
+                    )
+                } else {
+                    None
+                },
                 entities: root_entities
                     .into_iter()
                     .map(|(entity, _)| entity)
@@ -1115,6 +1238,7 @@ where
                     limit: params.limit,
                     include_drafts: params.include_drafts,
                     include_count: params.include_count,
+                    include_entity_types: params.include_entity_types,
                     include_web_ids: params.include_web_ids,
                     include_created_by_ids: params.include_created_by_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
@@ -1167,6 +1291,8 @@ where
                 entities: root_entities,
                 cursor,
                 count,
+                closed_multi_entity_types: _,
+                definitions: _,
                 web_ids,
                 created_by_ids,
                 edition_created_by_ids,
@@ -1182,6 +1308,7 @@ where
                     limit: params.limit,
                     include_drafts: params.include_drafts,
                     include_count: false,
+                    include_entity_types: None,
                     include_web_ids: params.include_web_ids,
                     include_created_by_ids: params.include_created_by_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
@@ -1252,6 +1379,44 @@ where
         }
 
         Ok(GetEntitySubgraphResponse {
+            #[expect(
+                clippy::if_then_some_else_none,
+                reason = "False positive, use of `await`"
+            )]
+            closed_multi_entity_types: if params.include_entity_types.is_some() {
+                Some(
+                    self.resolve_closed_multi_entity_types(subgraph.vertices.entities.values())
+                        .await?,
+                )
+            } else {
+                None
+            },
+            #[expect(
+                clippy::if_then_some_else_none,
+                reason = "False positive, use of `await`"
+            )]
+            definitions: if params.include_entity_types == Some(IncludeEntityTypeOption::Resolved) {
+                let entity_type_uuids = subgraph
+                    .vertices
+                    .entities
+                    .values()
+                    .flat_map(|entity| {
+                        entity
+                            .metadata
+                            .entity_type_ids
+                            .iter()
+                            .map(EntityTypeUuid::from_url)
+                    })
+                    .collect::<HashSet<_>>()
+                    .into_iter()
+                    .collect::<Vec<_>>();
+                Some(
+                    self.get_entity_type_resolve_definitions(actor_id, &entity_type_uuids)
+                        .await?,
+                )
+            } else {
+                None
+            },
             subgraph,
             cursor,
             count,

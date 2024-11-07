@@ -33,7 +33,12 @@ use utoipa::{
 };
 use validation::ValidateEntityComponents;
 
-use crate::store::{NullOrdering, Ordering, crud::Sorting, postgres::CursorField};
+use crate::store::{
+    NullOrdering, Ordering,
+    crud::Sorting,
+    ontology::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
+    postgres::CursorField,
+};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
@@ -225,6 +230,7 @@ pub struct GetEntitiesParams<'a> {
     pub limit: Option<usize>,
     pub include_drafts: bool,
     pub include_count: bool,
+    pub include_entity_types: Option<IncludeEntityTypeOption>,
     pub include_web_ids: bool,
     pub include_created_by_ids: bool,
     pub include_edition_created_by_ids: bool,
@@ -234,10 +240,25 @@ pub struct GetEntitiesParams<'a> {
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
+pub struct ClosedMultiEntityTypeMap {
+    pub schema: ClosedMultiEntityType,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub inner: HashMap<VersionedUrl, Self>,
+}
+
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
 pub struct GetEntitiesResponse<'r> {
     pub entities: Vec<Entity>,
     pub cursor: Option<EntityQueryCursor<'r>>,
     pub count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub definitions: Option<EntityTypeResolveDefinitions>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub web_ids: Option<HashMap<OwnedById, usize>>,
@@ -263,6 +284,7 @@ pub struct GetEntitySubgraphParams<'a> {
     pub conversions: Vec<QueryConversion<'a>>,
     pub include_drafts: bool,
     pub include_count: bool,
+    pub include_entity_types: Option<IncludeEntityTypeOption>,
     pub include_web_ids: bool,
     pub include_created_by_ids: bool,
     pub include_edition_created_by_ids: bool,
@@ -274,6 +296,8 @@ pub struct GetEntitySubgraphResponse<'r> {
     pub subgraph: Subgraph,
     pub cursor: Option<EntityQueryCursor<'r>>,
     pub count: Option<usize>,
+    pub closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
+    pub definitions: Option<EntityTypeResolveDefinitions>,
     pub web_ids: Option<HashMap<OwnedById, usize>>,
     pub created_by_ids: Option<HashMap<CreatedById, usize>>,
     pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,

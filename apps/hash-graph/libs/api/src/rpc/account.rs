@@ -23,7 +23,7 @@ use harpc_server::{
     session::Session,
     utils::{delegate_call_discrete, parse_procedure_id},
 };
-use harpc_service::{delegate::ServiceDelegate, role::Role};
+use harpc_service::{delegate::SubsystemDelegate, role::Role};
 use harpc_tower::{body::Body, either::Either, request::Request, response::Response};
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use hash_graph_store::account::{
@@ -54,7 +54,7 @@ impl Error for AccountNotFoundError {
 #[display("unable to fullfil account request")]
 pub struct AccountError;
 
-pub trait AccountService<R>
+pub trait AccountSystem<R>
 where
     R: Role,
 {
@@ -99,11 +99,13 @@ pub mod meta {
 
     use frunk::HList;
     use harpc_service::{
-        Service,
+        Subsystem,
         metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+    use harpc_types::{procedure::ProcedureId, version::Version};
+
+    use crate::rpc::GraphSubsystemId;
 
     pub enum AccountProcedureId {
         CreateAccount,
@@ -114,7 +116,7 @@ pub mod meta {
     }
 
     impl ProcedureIdentifier for AccountProcedureId {
-        type Service = AccountService;
+        type Subsystem = AccountSystem;
 
         fn from_id(id: ProcedureId) -> Option<Self> {
             match id.value() {
@@ -138,9 +140,9 @@ pub mod meta {
         }
     }
 
-    pub struct AccountService;
+    pub struct AccountSystem;
 
-    impl Service for AccountService {
+    impl Subsystem for AccountSystem {
         type ProcedureId = AccountProcedureId;
         type Procedures = HList![
             ProcedureCreateAccount,
@@ -149,8 +151,9 @@ pub mod meta {
             ProcedureAddAccountGroupMember,
             ProcedureRemoveAccountGroupMember
         ];
+        type SubsystemId = GraphSubsystemId;
 
-        const ID: ServiceId = ServiceId::new(0x01);
+        const ID: GraphSubsystemId = GraphSubsystemId::Account;
         const VERSION: Version = Version {
             major: 0x00,
             minor: 0x00,
@@ -170,9 +173,9 @@ pub mod meta {
     pub struct ProcedureCreateAccount;
 
     impl Procedure for ProcedureCreateAccount {
-        type Service = AccountService;
+        type Subsystem = AccountSystem;
 
-        const ID: <Self::Service as Service>::ProcedureId = AccountProcedureId::CreateAccount;
+        const ID: <Self::Subsystem as Subsystem>::ProcedureId = AccountProcedureId::CreateAccount;
 
         fn metadata() -> Metadata {
             Metadata {
@@ -188,9 +191,10 @@ pub mod meta {
     pub struct ProcedureCreateAccountGroup;
 
     impl Procedure for ProcedureCreateAccountGroup {
-        type Service = AccountService;
+        type Subsystem = AccountSystem;
 
-        const ID: <Self::Service as Service>::ProcedureId = AccountProcedureId::CreateAccountGroup;
+        const ID: <Self::Subsystem as Subsystem>::ProcedureId =
+            AccountProcedureId::CreateAccountGroup;
 
         fn metadata() -> Metadata {
             Metadata {
@@ -206,9 +210,9 @@ pub mod meta {
     pub struct ProcedureCheckAccountGroupPermission;
 
     impl Procedure for ProcedureCheckAccountGroupPermission {
-        type Service = AccountService;
+        type Subsystem = AccountSystem;
 
-        const ID: <Self::Service as Service>::ProcedureId =
+        const ID: <Self::Subsystem as Subsystem>::ProcedureId =
             AccountProcedureId::CheckAccountGroupPermission;
 
         fn metadata() -> Metadata {
@@ -225,9 +229,9 @@ pub mod meta {
     pub struct ProcedureAddAccountGroupMember;
 
     impl Procedure for ProcedureAddAccountGroupMember {
-        type Service = AccountService;
+        type Subsystem = AccountSystem;
 
-        const ID: <Self::Service as Service>::ProcedureId =
+        const ID: <Self::Subsystem as Subsystem>::ProcedureId =
             AccountProcedureId::AddAccountGroupMember;
 
         fn metadata() -> Metadata {
@@ -244,9 +248,9 @@ pub mod meta {
     pub struct ProcedureRemoveAccountGroupMember;
 
     impl Procedure for ProcedureRemoveAccountGroupMember {
-        type Service = AccountService;
+        type Subsystem = AccountSystem;
 
-        const ID: <Self::Service as Service>::ProcedureId =
+        const ID: <Self::Subsystem as Subsystem>::ProcedureId =
             AccountProcedureId::RemoveAccountGroupMember;
 
         fn metadata() -> Metadata {
@@ -304,7 +308,7 @@ where
             let request_info = session.request_info();
 
             return Err(Report::new(Forbidden {
-                service: request_info.service,
+                subsystem: request_info.subsystem,
                 procedure: request_info.procedure,
                 reason: Cow::Borrowed("user authentication required"),
             })
@@ -315,7 +319,7 @@ where
     }
 }
 
-impl<S, A> AccountService<role::Server> for AccountServer<S, A>
+impl<S, A> AccountSystem<role::Server> for AccountServer<S, A>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -434,7 +438,7 @@ where
 
         if !check.has_permission {
             return Err(Report::new(Forbidden {
-                service: session.request_info().service,
+                subsystem: session.request_info().subsystem,
                 procedure: session.request_info().procedure,
                 reason: Cow::Borrowed("actor does not have permission to add account group member"),
             })
@@ -488,7 +492,7 @@ where
             let request_info = session.request_info();
 
             return Err(Report::new(Forbidden {
-                service: request_info.service,
+                subsystem: request_info.subsystem,
                 procedure: request_info.procedure,
                 reason: Cow::Borrowed(
                     "actor does not have permission to remove account group member",
@@ -527,9 +531,9 @@ impl<T> AccountDelegate<T> {
     }
 }
 
-impl<T, C> ServiceDelegate<Session<Account>, C> for AccountDelegate<T>
+impl<T, C> SubsystemDelegate<Session<Account>, C> for AccountDelegate<T>
 where
-    T: AccountService<
+    T: AccountSystem<
             role::Server,
             create_account(..): Send,
             create_account_group(..): Send,
@@ -540,7 +544,7 @@ where
     C: Encoder + ReportDecoder + Clone + Send,
 {
     type Error = Report<DelegationError>;
-    type Service = meta::AccountService;
+    type Subsystem = meta::AccountSystem;
 
     type Body<Source>
         = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>
@@ -636,7 +640,7 @@ where
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct AccountClient;
 
-impl<Svc, C> AccountService<role::Client<Svc, C>> for AccountClient
+impl<Svc, C> AccountSystem<role::Client<Svc, C>> for AccountClient
 where
     Svc: harpc_client::connection::ConnectionService<C>,
     C: harpc_client::connection::ConnectionCodec,

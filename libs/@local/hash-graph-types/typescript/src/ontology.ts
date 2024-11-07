@@ -7,16 +7,20 @@ import type {
 import { validateBaseUrl } from "@blockprotocol/type-system";
 import type {
   BaseUrl as BaseUrlBp,
+  ClosedDataType,
   ClosedEntityType,
   DataType,
   EntityType,
+  PartialEntityType,
   PropertyType,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ActorType,
+  EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
 } from "@local/hash-graph-client";
@@ -122,3 +126,12 @@ export type ClosedEntityTypeWithMetadata = {
   schema: ClosedEntityType;
   metadata: EntityTypeMetadata;
 };
+
+export type EntityTypeResolveDefinitions = Subtype<
+  EntityTypeResolveDefinitionsGraphApi,
+  {
+    dataTypes: Record<VersionedUrl, ClosedDataType>;
+    propertyTypes: Record<VersionedUrl, PropertyType>;
+    entityTypes: Record<VersionedUrl, PartialEntityType>;
+  }
+>;

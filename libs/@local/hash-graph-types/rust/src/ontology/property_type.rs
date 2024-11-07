@@ -114,7 +114,7 @@ impl ToSchema<'static> for PropertyTypeWithMetadata {
         (
             "PropertyTypeWithMetadata",
             schema::ObjectBuilder::new()
-                .property("schema", Ref::from_schema_name("VAR_PROPERTY_TYPE"))
+                .property("schema", Ref::from_schema_name("PropertyType"))
                 .required("schema")
                 .property(
                     "metadata",

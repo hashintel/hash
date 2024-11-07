@@ -6,12 +6,12 @@ use error_stack::{Report, ResultExt as _, TryReportStreamExt as _};
 use futures::{StreamExt as _, stream};
 use harpc_codec::encode::Encoder;
 use harpc_net::session::server::SessionId;
-use harpc_service::{Service, procedure::ProcedureIdentifier};
+use harpc_service::{Subsystem, procedure::ProcedureIdentifier};
 use harpc_tower::{
     Extensions,
     request::{self, Request},
 };
-use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use harpc_types::procedure::ProcedureDescriptor;
 use tower::ServiceExt as _;
 
 use crate::{
@@ -37,10 +37,7 @@ where
 
     Ok(Request::from_parts(
         request::Parts {
-            service: ServiceDescriptor {
-                id: <P::Service as Service>::ID,
-                version: <P::Service as Service>::VERSION,
-            },
+            subsystem: <P::Subsystem as Subsystem>::descriptor(),
             procedure: ProcedureDescriptor {
                 id: procedure.into_id(),
             },

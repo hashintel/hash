@@ -1,7 +1,14 @@
+import type {
+  ClosedMultiEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
+  ClosedMultiEntityType as GraphApiClosedMultiEntityType,
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
+  GetEntitiesResponse,
+  GetEntitySubgraphResponse,
   GraphApi,
   OriginProvenance,
   PatchEntityParams as GraphApiPatchEntityParams,
@@ -461,6 +468,54 @@ export const flattenPropertyMetadata = (
   visitElement([], metadata);
 
   return flattened;
+};
+
+/**
+ * Retrieves a `ClosedMultiEntityType` from a given response based on a list of entity type IDs.
+ *
+ * @param response - The response object returned from the Graph API which contains the closed multi-entity types.
+ * @param entityTypesIds - An array of entity type IDs.
+ * @returns Returns a `ClosedMultiEntityType` if found, otherwise returns `undefined`.
+ */
+export const getClosedMultiEntityTypesFromResponse = (
+  response: GetEntitySubgraphResponse | GetEntitiesResponse,
+  entityTypesIds: [VersionedUrl, ...VersionedUrl[]],
+): ClosedMultiEntityType | undefined => {
+  // A response does not necessarily include closed multi-entity types.
+  if (!response.closedMultiEntityTypes) {
+    return;
+  }
+
+  // The `closedMultiEntityTypes` field contains a nested map of closed entity types.
+  // At each depth the map contains a `schema` field which contains the closed multi-entity type
+  // up to that depth. The `inner` field contains the next level of nested maps.
+  // The nested keys are always sorted after the keys of the current depth.
+  //
+  // For example: If an entity type ID is `["https://example.com/1", "https://example.com/2"]`
+  // the nested map would look like this:
+  // {
+  //    "https://example.com/1": {
+  //      "schema": <Closed schema of "https://example.com/1">
+  //      "inner": {
+  //        "https://example.com/2": {
+  //          "schema": <Closed schema of "https://example.com/1" and "https://example.com/2">
+  //          "inner": {
+  //            ...
+  //         }
+  //       }
+  //    }
+  // }
+  //
+  // Thus, we sort the entity type IDs and traverse the nested map to find the closed multi-entity type.
+  // The first entity type ID is used to get the first level of the nested map. The rest of the entity
+  // type IDs are used to traverse the nested map.
+  const [firstEntityTypeId, ...restEntityTypesIds] = entityTypesIds.toSorted();
+  return restEntityTypesIds.reduce(
+    (map, entity_type_id) => map?.inner?.[entity_type_id],
+    response.closedMultiEntityTypes[firstEntityTypeId!],
+  )?.schema satisfies GraphApiClosedMultiEntityType | undefined as
+    | ClosedMultiEntityType
+    | undefined;
 };
 
 export class Entity<PropertyMap extends EntityProperties = EntityProperties> {

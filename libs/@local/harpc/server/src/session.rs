@@ -5,14 +5,14 @@ use std::{collections::HashSet, sync::Mutex};
 use futures::{Stream, StreamExt as _};
 pub use harpc_net::session::server::SessionId;
 use harpc_net::session::server::{SessionEvent, SessionEventError};
-use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use harpc_types::{procedure::ProcedureDescriptor, subsystem::SubsystemDescriptor};
 use scc::{ebr::Guard, hash_index::Entry};
 use tokio::pin;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RequestInfo {
-    pub service: ServiceDescriptor,
+    pub subsystem: SubsystemDescriptor,
     pub procedure: ProcedureDescriptor,
 }
 

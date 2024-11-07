@@ -1,12 +1,12 @@
 use harpc_net::session::server::{SessionId, transaction::TransactionContext};
-use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use harpc_types::{procedure::ProcedureDescriptor, subsystem::SubsystemDescriptor};
 
 use crate::extensions::Extensions;
 
 /// Component parts of a harpc `Request`.
 #[derive(Debug, Clone)]
 pub struct Parts {
-    pub service: ServiceDescriptor,
+    pub subsystem: SubsystemDescriptor,
     pub procedure: ProcedureDescriptor,
 
     pub session: SessionId,
@@ -18,7 +18,7 @@ impl Parts {
     #[must_use]
     pub fn from_transaction(context: &TransactionContext) -> Self {
         Self {
-            service: context.service(),
+            subsystem: context.subsystem(),
             procedure: context.procedure(),
             session: context.session(),
             extensions: Extensions::new(),
@@ -43,8 +43,8 @@ impl<B> Request<B> {
         (self.head, self.body)
     }
 
-    pub const fn service(&self) -> ServiceDescriptor {
-        self.head.service
+    pub const fn subsystem(&self) -> SubsystemDescriptor {
+        self.head.subsystem
     }
 
     pub const fn procedure(&self) -> ProcedureDescriptor {
