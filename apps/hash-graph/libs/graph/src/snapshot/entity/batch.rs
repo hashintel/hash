@@ -9,9 +9,9 @@ use hash_graph_types::{
     },
     ontology::OntologyTypeProvider,
 };
+use hash_graph_validation::{EntityPreprocessor, Validate as _, ValidateEntityComponents};
 use tokio_postgres::GenericClient as _;
 use type_system::schema::{ClosedEntityType, ClosedMultiEntityType};
-use validation::{EntityPreprocessor, Validate as _, ValidateEntityComponents};
 
 use crate::{
     snapshot::WriteBatch,

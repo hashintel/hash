@@ -54,6 +54,9 @@ use hash_graph_types::{
     ontology::{DataTypeLookup, OntologyTypeProvider},
     owned_by_id::OwnedById,
 };
+use hash_graph_validation::{
+    EntityPreprocessor, EntityValidationError, Validate as _, ValidateEntityComponents,
+};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde_json::Value as JsonValue;
@@ -66,7 +69,6 @@ use type_system::{
     url::VersionedUrl,
 };
 use uuid::Uuid;
-use validation::{EntityPreprocessor, Validate as _, ValidateEntityComponents};
 
 use crate::store::{
     AsClient, PostgresStore, StoreCache,
@@ -1177,7 +1179,7 @@ where
             };
 
             if schema.all_of.is_empty() {
-                let error = Report::new(validation::EntityValidationError::EmptyEntityTypes);
+                let error = Report::new(EntityValidationError::EmptyEntityTypes);
                 status.append(error);
             };
 
@@ -1190,7 +1192,7 @@ where
                 &validator_provider,
             )
             .await
-            .change_context(validation::EntityValidationError::InvalidProperties);
+            .change_context(EntityValidationError::InvalidProperties);
             if let Err(error) = pre_process_result {
                 status.append(error);
             }

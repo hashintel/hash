@@ -61,11 +61,11 @@ use hash_graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_validation::ValidateEntityComponents;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
-use validation::ValidateEntityComponents;
 
 use crate::rest::{
     AuthenticatedUserHeader, PermissionResponse, api_resource::RoutedResource, json::Json,

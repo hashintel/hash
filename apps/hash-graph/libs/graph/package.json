@@ -14,10 +14,10 @@
     "@rust/hash-graph-store": "0.0.0-private",
     "@rust/hash-graph-temporal-versioning": "0.0.0-private",
     "@rust/hash-graph-types": "0.0.0-private",
+    "@rust/hash-graph-validation": "0.0.0-private",
     "@rust/hash-status": "0.0.0-private",
     "@rust/temporal-client": "0.0.0-private",
-    "@rust/type-fetcher": "0.0.0-private",
-    "@rust/validation": "0.0.0-private"
+    "@rust/type-fetcher": "0.0.0-private"
   },
   "devDependencies": {
     "tsx": "4.19.2"

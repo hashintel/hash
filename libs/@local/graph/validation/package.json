@@ -1,5 +1,5 @@
 {
-  "name": "@rust/validation",
+  "name": "@rust/hash-graph-validation",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",

@@ -24,6 +24,7 @@ use hash_graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_validation::ValidateEntityComponents;
 use serde::{Deserialize, Serialize};
 use type_system::{schema::ClosedMultiEntityType, url::VersionedUrl};
 #[cfg(feature = "utoipa")]
@@ -31,7 +32,6 @@ use utoipa::{
     ToSchema,
     openapi::{self, Ref, RefOr, Schema, schema},
 };
-use validation::ValidateEntityComponents;
 
 use crate::store::{
     NullOrdering, Ordering,

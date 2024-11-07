@@ -21,12 +21,12 @@ graph = { workspace = true, features = ["clap"] }
 graph-api = { workspace = true }
 hash-graph-store = { workspace = true }
 hash-graph-types = { workspace = true }
+hash-graph-validation = { workspace = true }
 hash-tracing = { workspace = true, features = ["clap"] }
 temporal-client = { workspace = true }
 test-server = { workspace = true, optional = true }
 type-fetcher = { workspace = true }
 type-system = { workspace = true }
-validation = { workspace = true }
 
 # Third party dependencies
 axum = { workspace = true }

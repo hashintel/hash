@@ -39,8 +39,8 @@ harpc-tower = { workspace = true }
 harpc-types = { workspace = true }
 hash-status = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true }
+hash-graph-validation = { workspace = true, features = ["utoipa"] }
 type-system = { workspace = true, features = ["utoipa"] }
-validation = { workspace = true, features = ["utoipa"] }
 
 # Private third-party dependencies
 async-trait = { workspace = true }

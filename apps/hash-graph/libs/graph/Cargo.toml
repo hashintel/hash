@@ -13,9 +13,9 @@ description = "HASH Graph API"
 # Public workspace dependencies
 authorization = { workspace = true, public = true }
 hash-graph-store = { workspace = true, public = true, features = ["postgres"] }
+hash-graph-validation = { workspace = true, public = true }
 temporal-client = { workspace = true, public = true }
 type-fetcher = { workspace = true, public = true }
-validation = { workspace = true, public = true }
 
 # Public third-party dependencies
 deadpool = { workspace = true, public = true }

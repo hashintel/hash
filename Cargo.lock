@@ -2431,6 +2431,7 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-types",
+ "hash-graph-validation",
  "hash-status",
  "postgres-types",
  "refinery",
@@ -2448,7 +2449,6 @@ dependencies = [
  "type-system",
  "utoipa",
  "uuid",
- "validation",
 ]
 
 [[package]]
@@ -2476,6 +2476,7 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-types",
+ "hash-graph-validation",
  "hash-status",
  "http 1.1.0",
  "hyper 1.5.0",
@@ -2495,7 +2496,6 @@ dependencies = [
  "type-system",
  "utoipa",
  "uuid",
- "validation",
 ]
 
 [[package]]
@@ -2803,6 +2803,7 @@ dependencies = [
  "hash-codec",
  "hash-graph-store",
  "hash-graph-types",
+ "hash-graph-validation",
  "hash-tracing",
  "mimalloc",
  "regex",
@@ -2817,7 +2818,6 @@ dependencies = [
  "tracing",
  "type-fetcher",
  "type-system",
- "validation",
 ]
 
 [[package]]
@@ -2873,6 +2873,26 @@ dependencies = [
  "time",
  "tokio",
  "trait-variant",
+ "type-system",
+ "url",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
+name = "hash-graph-validation"
+version = "0.0.0"
+dependencies = [
+ "error-stack",
+ "futures",
+ "graph-test-data",
+ "hash-graph-temporal-versioning",
+ "hash-graph-types",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
  "type-system",
  "url",
  "utoipa",
@@ -7736,26 +7756,6 @@ dependencies = [
  "outref",
  "uuid",
  "vsimd",
-]
-
-[[package]]
-name = "validation"
-version = "0.0.0"
-dependencies = [
- "error-stack",
- "futures",
- "graph-test-data",
- "hash-graph-temporal-versioning",
- "hash-graph-types",
- "regex",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "type-system",
- "url",
- "utoipa",
- "uuid",
 ]
 
 [[package]]

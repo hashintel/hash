@@ -10,6 +10,13 @@ use authorization::{
 };
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::TryStreamExt as _;
+use hash_graph_store::{
+    error::QueryError,
+    filter::Filter,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
+};
 use hash_graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
@@ -18,13 +25,7 @@ use hash_graph_types::{
         OntologyTypeProvider, PropertyTypeProvider, PropertyTypeWithMetadata,
     },
 };
-use hash_graph_store::{
-    error::QueryError,
-    filter::Filter,
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
-};
+use hash_graph_validation::EntityProvider;
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient as _;
 use type_system::{
@@ -35,7 +36,6 @@ use type_system::{
     },
     url::{BaseUrl, VersionedUrl},
 };
-use validation::EntityProvider;
 
 use crate::store::{
     crud::Read as _,
