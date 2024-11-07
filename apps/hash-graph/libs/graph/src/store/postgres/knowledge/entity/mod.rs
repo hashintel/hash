@@ -1291,8 +1291,8 @@ where
                 entities: root_entities,
                 cursor,
                 count,
-                closed_multi_entity_types,
-                definitions,
+                closed_multi_entity_types: _,
+                definitions: _,
                 web_ids,
                 created_by_ids,
                 edition_created_by_ids,
@@ -1308,7 +1308,7 @@ where
                     limit: params.limit,
                     include_drafts: params.include_drafts,
                     include_count: false,
-                    include_entity_types: params.include_entity_types,
+                    include_entity_types: None,
                     include_web_ids: params.include_web_ids,
                     include_created_by_ids: params.include_created_by_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
@@ -1379,11 +1379,47 @@ where
         }
 
         Ok(GetEntitySubgraphResponse {
+            #[expect(
+                clippy::if_then_some_else_none,
+                reason = "False positive, use of `await`"
+            )]
+            closed_multi_entity_types: if params.include_entity_types.is_some() {
+                Some(
+                    self.resolve_closed_multi_entity_types(subgraph.vertices.entities.values())
+                        .await?,
+                )
+            } else {
+                None
+            },
+            #[expect(
+                clippy::if_then_some_else_none,
+                reason = "False positive, use of `await`"
+            )]
+            definitions: if params.include_entity_types == Some(IncludeEntityTypeOption::Resolved) {
+                let entity_type_uuids = subgraph
+                    .vertices
+                    .entities
+                    .values()
+                    .flat_map(|entity| {
+                        entity
+                            .metadata
+                            .entity_type_ids
+                            .iter()
+                            .map(EntityTypeUuid::from_url)
+                    })
+                    .collect::<HashSet<_>>()
+                    .into_iter()
+                    .collect::<Vec<_>>();
+                Some(
+                    self.get_entity_type_resolve_definitions(actor_id, &entity_type_uuids)
+                        .await?,
+                )
+            } else {
+                None
+            },
             subgraph,
             cursor,
             count,
-            closed_multi_entity_types,
-            definitions,
             web_ids,
             created_by_ids,
             edition_created_by_ids,
