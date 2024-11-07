@@ -38,7 +38,9 @@ pub mod meta {
         metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
-    use harpc_types::{procedure::ProcedureId, subsystem::SubsystemId, version::Version};
+    use harpc_types::{procedure::ProcedureId, version::Version};
+
+    use crate::rpc::GraphSubsystemId;
 
     pub enum EchoProcedureId {
         Echo,
@@ -66,8 +68,9 @@ pub mod meta {
     impl Subsystem for EchoSystem {
         type ProcedureId = EchoProcedureId;
         type Procedures = HList![ProcedureEcho];
+        type SubsystemId = GraphSubsystemId;
 
-        const ID: SubsystemId = SubsystemId::new(0x02);
+        const ID: GraphSubsystemId = GraphSubsystemId::Echo;
         const VERSION: Version = Version {
             major: 0x00,
             minor: 0x00,

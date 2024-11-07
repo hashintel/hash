@@ -103,7 +103,9 @@ pub mod meta {
         metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
-    use harpc_types::{procedure::ProcedureId, subsystem::SubsystemId, version::Version};
+    use harpc_types::{procedure::ProcedureId, version::Version};
+
+    use crate::rpc::GraphSubsystemId;
 
     pub enum AccountProcedureId {
         CreateAccount,
@@ -149,8 +151,9 @@ pub mod meta {
             ProcedureAddAccountGroupMember,
             ProcedureRemoveAccountGroupMember
         ];
+        type SubsystemId = GraphSubsystemId;
 
-        const ID: SubsystemId = SubsystemId::new(0x01);
+        const ID: GraphSubsystemId = GraphSubsystemId::Account;
         const VERSION: Version = Version {
             major: 0x00,
             minor: 0x00,

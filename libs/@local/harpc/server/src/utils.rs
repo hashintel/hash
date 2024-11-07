@@ -11,9 +11,7 @@ use harpc_tower::{
     request::Request,
     response::{self, Response},
 };
-use harpc_types::{
-    procedure::ProcedureDescriptor, response_kind::ResponseKind, subsystem::SubsystemDescriptor,
-};
+use harpc_types::{procedure::ProcedureDescriptor, response_kind::ResponseKind};
 
 use crate::error::{DelegationError, ProcedureNotFound, RequestExpectedItemCountMismatch};
 
@@ -33,11 +31,8 @@ where
     let ProcedureDescriptor { id } = request.procedure();
 
     P::from_id(id)
-        .ok_or(ProcedureNotFound {
-            subsystem: SubsystemDescriptor {
-                id: <P::Subsystem as Subsystem>::ID,
-                version: <P::Subsystem as Subsystem>::VERSION,
-            },
+        .ok_or_else(|| ProcedureNotFound {
+            subsystem: <P::Subsystem as Subsystem>::descriptor(),
             procedure: id,
         })
         .change_context(DelegationError)

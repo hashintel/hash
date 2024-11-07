@@ -7,7 +7,7 @@ use core::{
 use frunk::{HCons, HNil};
 use futures::{FutureExt as _, Stream};
 use harpc_net::session::server::SessionEvent;
-use harpc_service::delegate::SubsystemDelegate;
+use harpc_service::{Subsystem, delegate::SubsystemDelegate};
 use harpc_tower::{
     body::Body,
     net::pack::{PackLayer, PackService},
@@ -56,7 +56,10 @@ impl<S, C> RouterBuilder<HNil, Identity, S, C> {
     }
 }
 
-type ServiceHandler<D, L, S, C> = Handler<<L as Layer<SubsystemDelegateService<D, S, C>>>::Service>;
+type ServiceHandler<D, L, S, C> = Handler<
+    <L as Layer<SubsystemDelegateService<D, S, C>>>::Service,
+    <<D as SubsystemDelegate<S, C>>::Subsystem as Subsystem>::SubsystemId,
+>;
 
 impl<R, L, S, C> RouterBuilder<R, L, S, C> {
     pub fn with_builder<L2>(

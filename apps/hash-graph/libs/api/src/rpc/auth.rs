@@ -41,7 +41,9 @@ pub mod meta {
         metadata::Metadata,
         procedure::{Procedure, ProcedureIdentifier},
     };
-    use harpc_types::{procedure::ProcedureId, subsystem::SubsystemId, version::Version};
+    use harpc_types::{procedure::ProcedureId, version::Version};
+
+    use crate::rpc::GraphSubsystemId;
 
     pub enum AuthenticationProcedureId {
         Authenticate,
@@ -69,8 +71,9 @@ pub mod meta {
     impl Subsystem for AuthenticationSystem {
         type ProcedureId = AuthenticationProcedureId;
         type Procedures = HList![ProcedureAuthenticate];
+        type SubsystemId = GraphSubsystemId;
 
-        const ID: SubsystemId = SubsystemId::new(0x00);
+        const ID: GraphSubsystemId = GraphSubsystemId::Authentication;
         const VERSION: Version = Version {
             major: 0x00,
             minor: 0x00,

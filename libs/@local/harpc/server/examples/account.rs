@@ -22,7 +22,7 @@ use harpc_client::{Client, ClientConfig, connection::Connection};
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
 use harpc_server::{Server, ServerConfig, router::RouterBuilder, serve::serve, session::SessionId};
 use harpc_service::{
-    Subsystem,
+    Subsystem, SubsystemIdentifier,
     delegate::SubsystemDelegate,
     metadata::Metadata,
     procedure::{Procedure, ProcedureIdentifier},
@@ -40,12 +40,35 @@ use harpc_tower::{
 use harpc_types::{
     procedure::{ProcedureDescriptor, ProcedureId},
     response_kind::ResponseKind,
-    subsystem::{SubsystemDescriptor, SubsystemId},
+    subsystem::SubsystemId,
     version::Version,
 };
 use multiaddr::multiaddr;
 use tower::ServiceExt as _;
 use uuid::Uuid;
+
+#[derive(Debug, Copy, Clone)]
+enum System {
+    Account,
+}
+
+impl SubsystemIdentifier for System {
+    fn from_id(id: SubsystemId) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        match id.value() {
+            0x00 => Some(Self::Account),
+            _ => None,
+        }
+    }
+
+    fn into_id(self) -> SubsystemId {
+        match self {
+            Self::Account => SubsystemId::new(0x00),
+        }
+    }
+}
 
 enum AccountProcedureId {
     CreateAccount,
@@ -73,8 +96,9 @@ struct Account;
 impl Subsystem for Account {
     type ProcedureId = AccountProcedureId;
     type Procedures = HList![CreateAccount];
+    type SubsystemId = System;
 
-    const ID: SubsystemId = SubsystemId::new(0);
+    const ID: System = System::Account;
     const VERSION: Version = Version {
         major: 0x00,
         minor: 0x00,
@@ -220,10 +244,7 @@ where
             .map_ok(|bytes: Vec<_>| {
                 Request::from_parts(
                     request::Parts {
-                        subsystem: SubsystemDescriptor {
-                            id: Account::ID,
-                            version: Account::VERSION,
-                        },
+                        subsystem: Account::descriptor(),
                         procedure: ProcedureDescriptor {
                             id: CreateAccount::ID.into_id(),
                         },
