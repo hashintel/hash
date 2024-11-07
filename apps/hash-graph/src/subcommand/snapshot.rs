@@ -127,7 +127,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
         .change_context(GraphError)?;
         spicedb_client
             .import_schema(include_str!(
-                "../../../../../../libs/@local/graph/authorization/schemas/v1__initial_schema.zed"
+                "../../../../libs/@local/graph/authorization/schemas/v1__initial_schema.zed"
             ))
             .await
             .change_context(GraphError)?;
