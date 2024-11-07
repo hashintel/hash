@@ -15,7 +15,7 @@ pub enum ChonkyError {
 }
 
 pub mod pdf_segmentation {
-    use error_stack::{Report, ResultExt};
+    use error_stack::{Report, ResultExt as _};
     use image::{DynamicImage, GrayImage, RgbaImage};
     use pdfium_render::prelude::{
         PdfBitmap, PdfBitmapFormat, PdfDocument, PdfPoints, PdfRenderConfig, Pdfium,
@@ -154,39 +154,32 @@ pub mod pdf_segmentation {
     /// Errors#
     ///
     /// [`PdfiumError::ImageError`] when the image had an error being processed
-    fn as_image(bitmap: &PdfBitmap) -> Result<DynamicImage, ChonkyError> {
+    fn as_image(bitmap: &PdfBitmap) -> Result<DynamicImage, Report<ChonkyError>> {
         let bytes = bitmap.as_rgba_bytes();
 
         // clippy complains if we directly cast into u32 from i32 because of sign loss
         // since we assume dimensions must be positive this is not as issue
-        let width = bitmap
-            .width()
-            .try_into()
-            .map_err(|_foo| ChonkyError::Pdfium)?;
+        let width = u32::try_from(bitmap.width()).change_context(ChonkyError::Pdfium)?;
 
-        let height = bitmap
-            .height()
-            .try_into()
-            .map_err(|_foo| ChonkyError::Pdfium)?;
+        let height = u32::try_from(bitmap.height()).change_context(ChonkyError::Pdfium)?;
 
         Ok(match bitmap.format().map_err(|_foo| ChonkyError::Pdfium)? {
-            #[expect(deprecated)]
-            PdfBitmapFormat::BGRA
-            | PdfBitmapFormat::BRGx
-            | PdfBitmapFormat::BGRx
-            | PdfBitmapFormat::BGR => RgbaImage::from_raw(width, height, bytes)
-                .map(DynamicImage::ImageRgba8)
-                .ok_or(ChonkyError::Pdfium)?,
+            PdfBitmapFormat::BGRA | PdfBitmapFormat::BGRx | PdfBitmapFormat::BGR => {
+                RgbaImage::from_raw(width, height, bytes)
+                    .map(DynamicImage::ImageRgba8)
+                    .ok_or(ChonkyError::Pdfium)?
+            }
             PdfBitmapFormat::Gray => GrayImage::from_raw(width, height, bytes)
                 .map(DynamicImage::ImageLuma8)
                 .ok_or(ChonkyError::Pdfium)?,
+            _ => return Err(Report::new(ChonkyError::Pdfium)),
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use error_stack::{Report, ResultExt};
+    use error_stack::{Report, ResultExt as _};
     use insta::assert_binary_snapshot;
     use pdfium_render::prelude::Pdfium;
 
@@ -226,6 +219,7 @@ mod tests {
     #[test]
     fn pdf_image_conversion() -> Result<(), Report<ChonkyError>> {
         //create the pdfium instance and bind to static library
+
         let pdfium = Pdfium::default();
 
         let test_pdf_string = "tests/docs/test-doc.pdf";
@@ -240,12 +234,10 @@ mod tests {
             pdf_segmentation::pdf_to_images(&pdf).change_context(ChonkyError::Pdfium)?;
 
         //start by checking if proper amount of images are converted
-        match preprocessed_pdf.len() {
-            x if x == num_pages => (),
-            _ => {
-                return Err(Report::new(ChonkyError::Pdfium)
-                    .attach_printable("The length of vector should be number of pages"));
-            }
+
+        if preprocessed_pdf.len() != num_pages {
+            return Err(Report::new(ChonkyError::Pdfium)
+                .attach_printable("The length of vector should be number of pages"));
         }
 
         // now check if the image contents are the same using insta snapshots

@@ -1,7 +1,7 @@
 use std::env;
 
 use chonky::{ChonkyError, pdf_segmentation};
-use error_stack::{Report, ResultExt, ensure};
+use error_stack::{Report, ResultExt as _, ensure};
 use pdfium_render::prelude::Pdfium;
 
 fn main() -> Result<(), Report<ChonkyError>> {
