@@ -1,4 +1,5 @@
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -130,6 +131,16 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
           {row.linkEntityTypes.map((linkEntityType) => (
             <ValueChip
               key={linkEntityType.$id}
+              icon={
+                <EntityOrTypeIcon
+                  entity={null}
+                  fontSize={linksTableFontSize}
+                  fill={({ palette }) => palette.blue[70]}
+                  icon={linkEntityType.icon}
+                  /* @todo H-3363 use closed entity type schema to check link status */
+                  isLink
+                />
+              }
               showInFull
               type
               sx={{
@@ -151,6 +162,15 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
               row.onEntityClick(row.targetEntity.metadata.recordId.entityId)
             }
             fontSize={linksTableFontSize}
+            icon={
+              <EntityOrTypeIcon
+                entity={row.targetEntity}
+                fontSize={linksTableFontSize}
+                fill={({ palette }) => palette.gray[50]}
+                icon={row.targetEntityTypes[0]!.icon}
+                isLink={!!row.targetEntity.linkData}
+              />
+            }
             label={row.targetEntityLabel}
           />
         </PropertiesTooltip>
@@ -160,6 +180,16 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
           {row.targetEntityTypes.map((targetEntityType) => (
             <ValueChip
               key={targetEntityType.$id}
+              icon={
+                <EntityOrTypeIcon
+                  entity={null}
+                  fontSize={linksTableFontSize}
+                  fill={({ palette }) => palette.blue[70]}
+                  icon={targetEntityType.icon}
+                  /* @todo H-3363 use closed entity type schema to check link status */
+                  isLink={!!row.targetEntity.linkData}
+                />
+              }
               type
               sx={{
                 fontSize: linksTableFontSize,
@@ -180,6 +210,15 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
               row.onEntityClick(row.linkEntity.metadata.recordId.entityId)
             }
             fontSize={linksTableFontSize}
+            icon={
+              <EntityOrTypeIcon
+                entity={row.linkEntity}
+                fontSize={linksTableFontSize}
+                fill={({ palette }) => palette.gray[50]}
+                icon={row.linkEntityTypes[0]!.icon}
+                isLink
+              />
+            }
             label={row.linkEntityLabel}
           />
         </PropertiesTooltip>

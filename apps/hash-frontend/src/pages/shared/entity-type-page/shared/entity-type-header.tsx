@@ -82,7 +82,7 @@ export const EntityTypeHeader = ({
           justifyContent="space-between"
         >
           <Stack direction="row" alignItems="center" gap={5}>
-            <Box display="flex" alignItems="flex-end" my={3}>
+            <Box display="flex" alignItems="center" my={3}>
               <Controller
                 control={control}
                 name="icon"

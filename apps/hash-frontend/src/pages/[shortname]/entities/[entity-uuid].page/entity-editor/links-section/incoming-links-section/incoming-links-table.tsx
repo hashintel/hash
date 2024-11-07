@@ -1,4 +1,5 @@
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -139,6 +140,15 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
             }
             fontSize={linksTableFontSize}
             label={row.sourceEntityLabel}
+            icon={
+              <EntityOrTypeIcon
+                entity={row.sourceEntity}
+                fontSize={linksTableFontSize}
+                fill={({ palette }) => palette.gray[50]}
+                icon={row.sourceEntityTypes[0]!.icon}
+                isLink={!!row.sourceEntity.linkData}
+              />
+            }
           />
         </PropertiesTooltip>
       </TableCell>
@@ -154,6 +164,14 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
                 mr: 1,
               }}
             >
+              <EntityOrTypeIcon
+                entity={null}
+                fontSize={linksTableFontSize}
+                fill={({ palette }) => palette.blue[70]}
+                icon={linkEntityType.icon}
+                isLink
+                sx={{ mr: 1 }}
+              />
               {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */}
               {linkEntityType.inverse?.title || linkEntityType.title}
             </ValueChip>
@@ -183,6 +201,15 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
                 fontSize: linksTableFontSize,
               }}
             >
+              <EntityOrTypeIcon
+                entity={null}
+                fontSize={linksTableFontSize}
+                fill={({ palette }) => palette.blue[70]}
+                icon={sourceEntityType.icon}
+                /* @todo H-3363 use closed entity type schema to check link status */
+                isLink={!!row.sourceEntity.linkData}
+                sx={{ mr: 1 }}
+              />
               {sourceEntityType.title}
             </ValueChip>
           ))}
@@ -196,6 +223,15 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
           <ClickableCellChip
             onClick={() => row.onEntityClick(row.linkEntity.entityId)}
             fontSize={linksTableFontSize}
+            icon={
+              <EntityOrTypeIcon
+                entity={row.linkEntity}
+                fontSize={linksTableFontSize}
+                fill={({ palette }) => palette.gray[50]}
+                icon={row.linkEntityTypes[0]!.icon}
+                isLink
+              />
+            }
             label={row.linkEntityLabel}
           />
         </PropertiesTooltip>
