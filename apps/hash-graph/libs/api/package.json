@@ -17,7 +17,7 @@
     "@rust/harpc-client": "0.0.0-private",
     "@rust/harpc-codec": "0.0.0-private",
     "@rust/harpc-server": "0.0.0-private",
-    "@rust/harpc-service": "0.0.0-private",
+    "@rust/harpc-system": "0.0.0-private",
     "@rust/harpc-tower": "0.0.0-private",
     "@rust/harpc-types": "0.0.0-private",
     "@rust/hash-graph-store": "0.0.0-private",

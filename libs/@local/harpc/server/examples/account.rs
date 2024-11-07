@@ -21,7 +21,7 @@ use graph_types::account::AccountId;
 use harpc_client::{Client, ClientConfig, connection::Connection};
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
 use harpc_server::{Server, ServerConfig, router::RouterBuilder, serve::serve, session::SessionId};
-use harpc_service::{
+use harpc_system::{
     Subsystem, SubsystemIdentifier,
     delegate::SubsystemDelegate,
     procedure::{Procedure, ProcedureIdentifier},

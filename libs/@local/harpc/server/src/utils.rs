@@ -5,7 +5,7 @@ use core::{array, pin::pin};
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, stream};
 use harpc_codec::{decode::ReportDecoder, encode::Encoder};
-use harpc_service::{Subsystem, procedure::ProcedureIdentifier};
+use harpc_system::{Subsystem, procedure::ProcedureIdentifier};
 use harpc_tower::{
     body::{Body, BodyExt as _, Frame, controlled::Controlled, stream::StreamBody},
     request::Request,

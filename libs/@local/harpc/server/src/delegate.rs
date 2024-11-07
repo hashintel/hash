@@ -4,17 +4,17 @@ use core::{
     task::{Context, Poll},
 };
 
-use harpc_service::delegate::SubsystemDelegate;
+use harpc_system::delegate::SubsystemDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use tower::Service;
 
 use crate::session::{RequestInfo, Session, SessionStorage};
 
-/// Bridge between `harpc-service` and `tower`.
+/// Bridge between `harpc-system` and `tower`.
 ///
-/// This is a very thin layer between the `harpc-service` and `tower` services. It is responsible
+/// This is a very thin layer between the `harpc-system` and `tower` systems. It is responsible
 /// for taking the incoming request, selecting the appropriate session and codec, and then
-/// delegating the request to the inner service (which is cloned).
+/// delegating the request to the inner system (which is cloned).
 ///
 /// A conscious decision was made not to have `ServiceDelegate` be a `Service`, as it allows for
 /// greater ergonomics, and allows server implementation that are not based on tower in the future.
