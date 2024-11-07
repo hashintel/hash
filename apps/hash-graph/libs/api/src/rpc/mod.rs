@@ -3,18 +3,18 @@ pub mod auth;
 pub mod echo;
 mod session;
 
-use harpc_service::SubsystemIdentifier;
+use harpc_system::SubsystemIdentifier;
 use harpc_types::subsystem::SubsystemId;
 
 mod role {
     use harpc_client::connection::Connection;
     use harpc_server::session::Session;
-    pub(crate) use harpc_service::role::Role;
+    pub(crate) use harpc_system::role::Role;
 
     use super::session::Account;
 
-    pub(crate) type Server = harpc_service::role::Server<Session<Account>>;
-    pub(crate) type Client<Svc, C> = harpc_service::role::Client<Connection<Svc, C>>;
+    pub(crate) type Server = harpc_system::role::Server<Session<Account>>;
+    pub(crate) type Client<Svc, C> = harpc_system::role::Client<Connection<Svc, C>>;
 }
 
 #[derive(Debug, Copy, Clone)]

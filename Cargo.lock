@@ -2486,7 +2486,7 @@ dependencies = [
  "harpc-client",
  "harpc-codec",
  "harpc-server",
- "harpc-service",
+ "harpc-system",
  "harpc-tower",
  "harpc-types",
  "hash-graph-store",
@@ -2655,7 +2655,7 @@ dependencies = [
  "futures",
  "harpc-codec",
  "harpc-net",
- "harpc-service",
+ "harpc-system",
  "harpc-tower",
  "harpc-types",
  "multiaddr",
@@ -2739,7 +2739,7 @@ dependencies = [
  "harpc-client",
  "harpc-codec",
  "harpc-net",
- "harpc-service",
+ "harpc-system",
  "harpc-tower",
  "harpc-types",
  "multiaddr",
@@ -2754,7 +2754,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "harpc-service"
+name = "harpc-system"
 version = "0.0.0"
 dependencies = [
  "frunk",
