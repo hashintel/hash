@@ -68,7 +68,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
         export RUSTFLAGS="$RUSTFLAGS -C debuginfo=line-tables-only"; \
     fi; \
     FEATURES=${FEATURES[@]}; \
-    cargo install --features "${FEATURES// /,}" --profile $PROFILE --locked;
+    cargo install --path . --features "${FEATURES// /,}" --profile $PROFILE --locked;
 
 RUN mkdir -p /out/etc/ \
  && echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd \
