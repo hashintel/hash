@@ -1,15 +1,6 @@
 use alloc::{borrow::Cow, sync::Arc};
 use core::error::{self, Error};
 
-use authorization::{
-    AuthorizationApi as _, AuthorizationApiPool,
-    backend::ModifyRelationshipOperation,
-    schema::{
-        AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
-        WebOwnerSubject,
-    },
-    zanzibar::Consistency,
-};
 use error_stack::{Report, ResultExt as _};
 use graph::store::StorePool;
 use harpc_client::{connection::Connection, utils::invoke_call_discrete};
@@ -22,6 +13,15 @@ use harpc_server::{
 use harpc_service::{delegate::SubsystemDelegate, role::Role};
 use harpc_tower::{body::Body, either::Either, request::Request, response::Response};
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
+use hash_graph_authorization::{
+    AuthorizationApi as _, AuthorizationApiPool,
+    backend::ModifyRelationshipOperation,
+    schema::{
+        AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
+        WebOwnerSubject,
+    },
+    zanzibar::Consistency,
+};
 use hash_graph_store::account::{
     AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams,
 };

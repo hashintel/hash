@@ -3,14 +3,6 @@
 use alloc::sync::Arc;
 use std::collections::HashMap;
 
-use authorization::{
-    AuthorizationApi as _, AuthorizationApiPool,
-    backend::{ModifyRelationshipOperation, PermissionAssertion},
-    schema::{
-        DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, DataTypeViewerSubject,
-    },
-    zanzibar::Consistency,
-};
 use axum::{
     Extension, Router,
     extract::Path,
@@ -28,6 +20,14 @@ use graph::{
         StorePool,
         error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
     },
+};
+use hash_graph_authorization::{
+    AuthorizationApi as _, AuthorizationApiPool,
+    backend::{ModifyRelationshipOperation, PermissionAssertion},
+    schema::{
+        DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, DataTypeViewerSubject,
+    },
+    zanzibar::Consistency,
 };
 use hash_graph_store::{
     ConflictBehavior,

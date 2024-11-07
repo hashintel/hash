@@ -10,7 +10,8 @@ use alloc::sync::Arc;
 use core::{fmt::Debug, hash::Hash};
 use std::collections::HashMap;
 
-use authorization::{
+use error_stack::{Report, ResultExt as _};
+use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
@@ -19,7 +20,6 @@ use authorization::{
         WebOwnerSubject, WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
     },
 };
-use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{
     ConflictBehavior,
     account::{

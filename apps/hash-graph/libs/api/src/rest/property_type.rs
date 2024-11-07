@@ -2,16 +2,6 @@
 
 use alloc::sync::Arc;
 
-use authorization::{
-    AuthorizationApi as _, AuthorizationApiPool,
-    backend::{ModifyRelationshipOperation, PermissionAssertion},
-    schema::{
-        PropertyTypeEditorSubject, PropertyTypeOwnerSubject, PropertyTypePermission,
-        PropertyTypeRelationAndSubject, PropertyTypeSetting, PropertyTypeSettingSubject,
-        PropertyTypeViewerSubject,
-    },
-    zanzibar::Consistency,
-};
 use axum::{
     Extension, Router,
     extract::Path,
@@ -35,6 +25,16 @@ use graph::{
             UpdatePropertyTypesParams,
         },
     },
+};
+use hash_graph_authorization::{
+    AuthorizationApi as _, AuthorizationApiPool,
+    backend::{ModifyRelationshipOperation, PermissionAssertion},
+    schema::{
+        PropertyTypeEditorSubject, PropertyTypeOwnerSubject, PropertyTypePermission,
+        PropertyTypeRelationAndSubject, PropertyTypeSetting, PropertyTypeSettingSubject,
+        PropertyTypeViewerSubject,
+    },
+    zanzibar::Consistency,
 };
 use hash_graph_store::{ConflictBehavior, property_type::PropertyTypeQueryToken};
 use hash_graph_types::{

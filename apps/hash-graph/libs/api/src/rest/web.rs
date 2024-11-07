@@ -2,16 +2,6 @@
 
 use alloc::sync::Arc;
 
-use authorization::{
-    AuthorizationApi as _, AuthorizationApiPool,
-    backend::{ModifyRelationshipOperation, PermissionAssertion},
-    schema::{
-        WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
-        WebEntityTypeViewerSubject, WebEntityViewerSubject, WebOwnerSubject, WebPermission,
-        WebPropertyTypeViewerSubject, WebRelationAndSubject,
-    },
-    zanzibar::Consistency,
-};
 use axum::{
     Extension, Json, Router,
     extract::Path,
@@ -21,6 +11,16 @@ use axum::{
 };
 use error_stack::Report;
 use graph::store::StorePool;
+use hash_graph_authorization::{
+    AuthorizationApi as _, AuthorizationApiPool,
+    backend::{ModifyRelationshipOperation, PermissionAssertion},
+    schema::{
+        WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
+        WebEntityTypeViewerSubject, WebEntityViewerSubject, WebOwnerSubject, WebPermission,
+        WebPropertyTypeViewerSubject, WebRelationAndSubject,
+    },
+    zanzibar::Consistency,
+};
 use hash_graph_store::account::{AccountStore as _, InsertWebIdParams};
 use hash_graph_types::owned_by_id::OwnedById;
 use serde::Deserialize;

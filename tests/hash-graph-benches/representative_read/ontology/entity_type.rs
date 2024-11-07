@@ -1,6 +1,6 @@
-use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::store::ontology::{EntityTypeStore as _, GetEntityTypesParams};
+use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
     filter::Filter,
     subgraph::temporal_axes::{

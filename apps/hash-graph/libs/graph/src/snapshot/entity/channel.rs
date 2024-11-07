@@ -3,13 +3,13 @@ use core::{
     task::{Context, Poll, ready},
 };
 
-use authorization::schema::EntityRelationAndSubject;
 use error_stack::{Report, ResultExt as _};
 use futures::{
     Sink, SinkExt as _, Stream, StreamExt as _,
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
+use hash_graph_authorization::schema::EntityRelationAndSubject;
 use hash_graph_types::knowledge::entity::EntityUuid;
 use type_system::schema::{EntityTypeUuid, InheritanceDepth};
 

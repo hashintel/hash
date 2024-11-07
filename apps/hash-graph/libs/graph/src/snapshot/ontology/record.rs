@@ -1,4 +1,4 @@
-use authorization::schema::{
+use hash_graph_authorization::schema::{
     DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
 };
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};

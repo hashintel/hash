@@ -1,8 +1,3 @@
-use authorization::{
-    AuthorizationApi as _, NoAuthorization,
-    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
-    zanzibar::ZanzibarClient,
-};
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use graph::{
@@ -10,6 +5,11 @@ use graph::{
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool as _},
 };
 use hash_codec::bytes::{JsonLinesDecoder, JsonLinesEncoder};
+use hash_graph_authorization::{
+    AuthorizationApi as _, NoAuthorization,
+    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
+    zanzibar::ZanzibarClient,
+};
 use tokio::io;
 use tokio_postgres::NoTls;
 use tokio_util::codec::{FramedRead, FramedWrite};
@@ -127,7 +127,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
         .change_context(GraphError)?;
         spicedb_client
             .import_schema(include_str!(
-                "../../../../../../libs/@local/hash-authorization/schemas/v1__initial_schema.zed"
+                "../../../../../../libs/@local/graph/authorization/schemas/v1__initial_schema.zed"
             ))
             .await
             .change_context(GraphError)?;

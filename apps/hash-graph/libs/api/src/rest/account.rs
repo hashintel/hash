@@ -2,15 +2,6 @@
 
 use alloc::sync::Arc;
 
-use authorization::{
-    AuthorizationApi as _, AuthorizationApiPool,
-    backend::ModifyRelationshipOperation,
-    schema::{
-        AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
-        WebOwnerSubject,
-    },
-    zanzibar::Consistency,
-};
 use axum::{
     Extension, Router,
     extract::Path,
@@ -19,6 +10,15 @@ use axum::{
     routing::{get, post},
 };
 use graph::store::StorePool;
+use hash_graph_authorization::{
+    AuthorizationApi as _, AuthorizationApiPool,
+    backend::ModifyRelationshipOperation,
+    schema::{
+        AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
+        WebOwnerSubject,
+    },
+    zanzibar::Consistency,
+};
 use hash_graph_store::account::{
     AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams,
 };

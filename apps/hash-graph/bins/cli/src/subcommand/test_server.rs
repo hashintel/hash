@@ -1,15 +1,15 @@
 use core::{net::SocketAddr, time::Duration};
 
-use authorization::{
-    AuthorizationApi as _,
-    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
-    zanzibar::ZanzibarClient,
-};
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use graph::{
     snapshot::SnapshotEntry,
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool},
+};
+use hash_graph_authorization::{
+    AuthorizationApi as _,
+    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
+    zanzibar::ZanzibarClient,
 };
 use reqwest::Client;
 use tokio::{net::TcpListener, time::timeout};
@@ -86,7 +86,7 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), Report<GraphError>>
     .change_context(GraphError)?;
     spicedb_client
         .import_schema(include_str!(
-            "../../../../../../libs/@local/hash-authorization/schemas/v1__initial_schema.zed"
+            "../../../../../../libs/@local/graph/authorization/schemas/v1__initial_schema.zed"
         ))
         .await
         .change_context(GraphError)?;

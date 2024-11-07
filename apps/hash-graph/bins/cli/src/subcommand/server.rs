@@ -6,11 +6,6 @@ use core::{
     time::Duration,
 };
 
-use authorization::{
-    AuthorizationApi as _, NoAuthorization,
-    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
-    zanzibar::ZanzibarClient,
-};
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use graph::{
@@ -20,6 +15,11 @@ use graph::{
     },
 };
 use graph_api::rest::{RestRouterDependencies, rest_api_router};
+use hash_graph_authorization::{
+    AuthorizationApi as _, NoAuthorization,
+    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
+    zanzibar::ZanzibarClient,
+};
 use regex::Regex;
 use reqwest::{Client, Url};
 use temporal_client::TemporalClientConfig;
@@ -178,7 +178,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
     .change_context(GraphError)?;
     spicedb_client
         .import_schema(include_str!(
-            "../../../../../../libs/@local/hash-authorization/schemas/v1__initial_schema.zed"
+            "../../../../../../libs/@local/graph/authorization/schemas/v1__initial_schema.zed"
         ))
         .await
         .change_context(GraphError)?;

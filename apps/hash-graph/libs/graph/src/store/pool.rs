@@ -1,8 +1,8 @@
 use alloc::sync::Arc;
 use core::error::Error;
 
-use authorization::AuthorizationApi;
 use error_stack::Report;
+use hash_graph_authorization::AuthorizationApi;
 use temporal_client::TemporalClient;
 
 use crate::store::Store;

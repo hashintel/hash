@@ -4,15 +4,6 @@ use alloc::sync::Arc;
 use core::error::Error;
 use std::collections::HashMap;
 
-use authorization::{
-    AuthorizationApi,
-    backend::ZanzibarBackend,
-    schema::{
-        AccountGroupNamespace, DataTypeNamespace, EntityNamespace, EntityTypeNamespace,
-        PropertyTypeNamespace, WebNamespace,
-    },
-    zanzibar::types::{RelationshipFilter, ResourceFilter},
-};
 use axum::{
     Extension, Router,
     body::Body,
@@ -28,6 +19,15 @@ use graph::{
 use graph_api::rest::{middleware::span_trace_layer, status::status_to_response};
 use graph_type_defs::error::{ErrorInfo, StatusPayloads};
 use hash_codec::bytes::JsonLinesDecoder;
+use hash_graph_authorization::{
+    AuthorizationApi,
+    backend::ZanzibarBackend,
+    schema::{
+        AccountGroupNamespace, DataTypeNamespace, EntityNamespace, EntityTypeNamespace,
+        PropertyTypeNamespace, WebNamespace,
+    },
+    zanzibar::types::{RelationshipFilter, ResourceFilter},
+};
 use hash_graph_types::account::AccountId;
 use hash_status::{Status, StatusCode};
 use tokio::io;

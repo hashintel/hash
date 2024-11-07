@@ -3,16 +3,6 @@
 use alloc::sync::Arc;
 use std::collections::hash_map;
 
-use authorization::{
-    AuthorizationApi as _, AuthorizationApiPool,
-    backend::{ModifyRelationshipOperation, PermissionAssertion},
-    schema::{
-        EntityTypeEditorSubject, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject,
-        EntityTypePermission, EntityTypeRelationAndSubject, EntityTypeSetting,
-        EntityTypeSettingSubject, EntityTypeViewerSubject,
-    },
-    zanzibar::Consistency,
-};
 use axum::{
     Extension, Router,
     extract::Path,
@@ -39,6 +29,16 @@ use graph::{
     },
 };
 use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
+use hash_graph_authorization::{
+    AuthorizationApi as _, AuthorizationApiPool,
+    backend::{ModifyRelationshipOperation, PermissionAssertion},
+    schema::{
+        EntityTypeEditorSubject, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject,
+        EntityTypePermission, EntityTypeRelationAndSubject, EntityTypeSetting,
+        EntityTypeSettingSubject, EntityTypeViewerSubject,
+    },
+    zanzibar::Consistency,
+};
 use hash_graph_store::{ConflictBehavior, entity_type::EntityTypeQueryToken};
 use hash_graph_types::{
     account::EditionCreatedById,

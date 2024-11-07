@@ -1,6 +1,6 @@
-use authorization::AuthorizationApiPool;
 use axum::Router;
 use graph::store::StorePool;
+use hash_graph_authorization::AuthorizationApiPool;
 
 use crate::rest::RestApiStore;
 

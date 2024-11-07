@@ -1,6 +1,8 @@
-use authorization::{AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject};
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
+use hash_graph_authorization::{
+    AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject,
+};
 use hash_graph_store::{error::InsertionError, filter::Filter};
 use hash_graph_types::{
     knowledge::{

@@ -2,8 +2,9 @@ use alloc::borrow::Cow;
 use core::iter;
 use std::collections::HashMap;
 
-use authorization::schema::DataTypeRelationAndSubject;
 use error_stack::Report;
+use hash_graph_authorization::schema::DataTypeRelationAndSubject;
+use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::{
     Embedding,
     account::AccountId,
@@ -12,7 +13,6 @@ use hash_graph_types::{
         OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance,
     },
 };
-use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use serde::{Deserialize, Serialize};
 use type_system::{
     schema::{Conversions, DataType},

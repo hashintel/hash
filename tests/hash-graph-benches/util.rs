@@ -1,14 +1,6 @@
 use core::mem::ManuallyDrop;
 use std::{collections::HashMap, fs, path::Path};
 
-use authorization::{
-    AuthorizationApi, NoAuthorization,
-    schema::{
-        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeInstantiatorSubject,
-        EntityTypeRelationAndSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
-        PropertyTypeViewerSubject,
-    },
-};
 use graph::{
     Environment, load_env,
     store::{
@@ -19,6 +11,14 @@ use graph::{
             CreateEntityTypeParams, CreatePropertyTypeParams, EntityTypeStore as _,
             PropertyTypeStore as _, UpdateEntityTypesParams, UpdatePropertyTypesParams,
         },
+    },
+};
+use hash_graph_authorization::{
+    AuthorizationApi, NoAuthorization,
+    schema::{
+        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeInstantiatorSubject,
+        EntityTypeRelationAndSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
+        PropertyTypeViewerSubject,
     },
 };
 use hash_graph_store::{

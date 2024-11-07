@@ -11,7 +11,7 @@ description = "HASH Graph API"
 
 [dependencies]
 # Public workspace dependencies
-authorization = { workspace = true, public = true }
+hash-graph-authorization = { workspace = true, public = true }
 hash-graph-store = { workspace = true, public = true, features = ["postgres"] }
 hash-graph-validation = { workspace = true, public = true }
 temporal-client = { workspace = true, public = true }
@@ -61,7 +61,7 @@ utoipa = [
     "hash-graph-store/utoipa",
     "hash-graph-types/utoipa",
     "hash-graph-temporal-versioning/utoipa",
-    "authorization/utoipa",
+    "hash-graph-authorization/utoipa",
 ]
 
 [lints]

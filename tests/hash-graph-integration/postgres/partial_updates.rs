@@ -1,11 +1,11 @@
 use core::{iter::once, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
 
-use authorization::AuthorizationApi;
 use graph::store::knowledge::{
     CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams, PatchEntityParams,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
+use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
     filter::Filter,
     subgraph::temporal_axes::{

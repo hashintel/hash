@@ -1,5 +1,5 @@
 {
-  "name": "@rust/authorization",
+  "name": "@rust/hash-graph-authorization",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",

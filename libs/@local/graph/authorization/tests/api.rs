@@ -1,6 +1,6 @@
 #![allow(dead_code, reason = "Only used in a few tests")]
 
-use authorization::backend::{SpiceDbOpenApi, ZanzibarBackend};
+use hash_graph_authorization::backend::{SpiceDbOpenApi, ZanzibarBackend};
 
 /// Connects to the `SpiceDB` instance specified by the environment variables.
 ///

@@ -2,14 +2,14 @@ use alloc::sync::Arc;
 use core::{iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
-use authorization::{
+use error_stack::{Report, ResultExt as _};
+use futures::StreamExt as _;
+use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Report, ResultExt as _};
-use futures::StreamExt as _;
 use hash_graph_store::{
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeQueryPath,

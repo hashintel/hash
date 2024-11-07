@@ -4,13 +4,13 @@ use core::{
     task::{Context, Poll, ready},
 };
 
-use authorization::schema::PropertyTypeRelationAndSubject;
 use error_stack::{Report, ResultExt as _};
 use futures::{
     Sink, SinkExt as _, Stream, StreamExt as _,
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
+use hash_graph_authorization::schema::PropertyTypeRelationAndSubject;
 use type_system::{
     Validator as _,
     schema::{DataTypeUuid, PropertyTypeUuid, PropertyTypeValidator},

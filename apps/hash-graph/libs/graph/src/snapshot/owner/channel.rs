@@ -4,13 +4,13 @@ use core::{
     task::{Context, Poll, ready},
 };
 
-use authorization::schema::AccountGroupRelationAndSubject;
 use error_stack::{Report, ResultExt as _};
 use futures::{
     Sink, SinkExt as _, Stream, StreamExt as _,
     channel::mpsc::{self, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
+use hash_graph_authorization::schema::AccountGroupRelationAndSubject;
 use hash_graph_types::account::AccountGroupId;
 
 use crate::snapshot::{

@@ -2,7 +2,8 @@ use alloc::sync::Arc;
 use core::mem;
 use std::collections::{HashMap, HashSet};
 
-use authorization::{
+use error_stack::{Report, ResultExt as _};
+use hash_graph_authorization::{
     AuthorizationApi,
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
@@ -11,7 +12,6 @@ use authorization::{
     },
     zanzibar::Consistency,
 };
-use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{
     ConflictBehavior,
     account::{

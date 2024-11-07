@@ -1,4 +1,4 @@
-use authorization::schema::EntityRelationAndSubject;
+use hash_graph_authorization::schema::EntityRelationAndSubject;
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     Embedding,

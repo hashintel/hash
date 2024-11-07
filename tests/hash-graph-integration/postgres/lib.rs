@@ -25,17 +25,6 @@ mod sorting;
 
 use std::collections::HashMap;
 
-use authorization::{
-    AuthorizationApi, NoAuthorization,
-    schema::{
-        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
-        EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeSetting,
-        EntityTypeSettingSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
-        PropertyTypeSetting, PropertyTypeSettingSubject, PropertyTypeViewerSubject,
-        WebOwnerSubject,
-    },
-    zanzibar::Consistency,
-};
 use error_stack::Report;
 use graph::{
     Environment, load_env,
@@ -60,6 +49,17 @@ use graph::{
             UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
     },
+};
+use hash_graph_authorization::{
+    AuthorizationApi, NoAuthorization,
+    schema::{
+        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
+        EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeSetting,
+        EntityTypeSettingSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
+        PropertyTypeSetting, PropertyTypeSettingSubject, PropertyTypeViewerSubject,
+        WebOwnerSubject,
+    },
+    zanzibar::Consistency,
 };
 use hash_graph_store::{
     ConflictBehavior,

@@ -1,10 +1,10 @@
 use alloc::borrow::Cow;
 
-use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::store::knowledge::{
     EntityQuerySorting, EntityStore as _, GetEntitiesParams, GetEntitySubgraphParams,
 };
+use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
     entity::EntityQueryPath,
     filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},

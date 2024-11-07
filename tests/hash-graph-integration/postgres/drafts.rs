@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use authorization::AuthorizationApi;
 use graph::store::knowledge::{CreateEntityParams, EntityStore as _, PatchEntityParams};
 use graph_test_data::{data_type, entity, entity_type, property_type};
+use hash_graph_authorization::AuthorizationApi;
 use hash_graph_temporal_versioning::ClosedTemporalBound;
 use hash_graph_types::{
     knowledge::{

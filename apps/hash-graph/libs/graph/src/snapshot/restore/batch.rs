@@ -1,5 +1,5 @@
-use authorization::{AuthorizationApi, backend::ZanzibarBackend};
 use error_stack::Report;
+use hash_graph_authorization::{AuthorizationApi, backend::ZanzibarBackend};
 use hash_graph_store::error::InsertionError;
 
 use crate::{

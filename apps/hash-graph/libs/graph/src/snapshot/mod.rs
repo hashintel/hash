@@ -20,7 +20,12 @@ mod web;
 use core::{error::Error, future::ready};
 
 use async_scoped::TokioScope;
-use authorization::{
+use error_stack::{Report, ResultExt as _, ensure};
+use futures::{
+    Sink, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _,
+    channel::mpsc, stream,
+};
+use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
     backend::ZanzibarBackend,
     schema::{
@@ -32,11 +37,6 @@ use authorization::{
         Consistency,
         types::{RelationshipFilter, ResourceFilter},
     },
-};
-use error_stack::{Report, ResultExt as _, ensure};
-use futures::{
-    Sink, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _,
-    channel::mpsc, stream,
 };
 use hash_graph_store::{
     error::InsertionError,

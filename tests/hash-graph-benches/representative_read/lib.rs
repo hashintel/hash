@@ -42,9 +42,9 @@ mod seed;
 
 use core::str::FromStr as _;
 
-use authorization::NoAuthorization;
 use criterion::{BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
+use hash_graph_authorization::NoAuthorization;
 use hash_graph_store::subgraph::edges::{
     EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth,
 };

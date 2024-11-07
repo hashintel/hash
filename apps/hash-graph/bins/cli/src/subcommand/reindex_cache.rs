@@ -1,10 +1,10 @@
-use authorization::NoAuthorization;
 use clap::Parser;
 use error_stack::{Report, ResultExt as _, ensure};
 use graph::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool as _,
     knowledge::EntityStore as _, ontology::EntityTypeStore as _,
 };
+use hash_graph_authorization::NoAuthorization;
 use hash_graph_store::data_type::DataTypeStore as _;
 use tokio_postgres::NoTls;
 

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use authorization::{
+use error_stack::{Report, ResultExt as _};
+use hash_graph_authorization::{
     AuthorizationApi, backend::ZanzibarBackend, schema::EntityTypeRelationAndSubject,
 };
-use error_stack::{Report, ResultExt as _};
 use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient as _;
 use type_system::schema::EntityTypeUuid;

@@ -1,10 +1,10 @@
 use alloc::sync::Arc;
 
-use authorization::AuthorizationApi;
 use deadpool_postgres::{
     Hook, ManagerConfig, Object, Pool, PoolConfig, PoolError, RecyclingMethod, Timeouts,
 };
 use error_stack::{Report, ResultExt as _};
+use hash_graph_authorization::AuthorizationApi;
 use temporal_client::TemporalClient;
 use tokio_postgres::{
     Client, GenericClient, Socket, Transaction,

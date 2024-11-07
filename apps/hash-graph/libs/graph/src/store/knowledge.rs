@@ -2,9 +2,9 @@ use alloc::borrow::Cow;
 use core::{error::Error, fmt};
 use std::collections::{HashMap, HashSet};
 
-use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
 use futures::TryFutureExt as _;
+use hash_graph_authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use hash_graph_store::{
     entity::EntityQueryPath,
     error::{InsertionError, QueryError, UpdateError},

@@ -1,7 +1,9 @@
 use core::iter::once;
 use std::collections::{HashMap, HashSet};
 
-use authorization::{
+use error_stack::{Report, ResultExt as _};
+use futures::StreamExt as _;
+use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
@@ -10,8 +12,6 @@ use authorization::{
     },
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Report, ResultExt as _};
-use futures::StreamExt as _;
 use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     property_type::PropertyTypeQueryPath,

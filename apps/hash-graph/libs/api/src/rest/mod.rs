@@ -20,7 +20,6 @@ use core::str::FromStr as _;
 use std::{fs, io};
 
 use async_trait::async_trait;
-use authorization::AuthorizationApiPool;
 use axum::{
     Extension, Json, Router,
     extract::{FromRequestParts, Path},
@@ -33,6 +32,7 @@ use graph::{
     ontology::domain_validator::DomainValidator,
     store::{Store, StorePool, TypeFetcher, error::VersionedUrlAlreadyExists},
 };
+use hash_graph_authorization::AuthorizationApiPool;
 use hash_graph_store::{
     filter::{ParameterConversion, Selector},
     subgraph::{

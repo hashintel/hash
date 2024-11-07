@@ -2,8 +2,10 @@ use alloc::borrow::Cow;
 use core::iter;
 use std::collections::HashMap;
 
-use authorization::schema::{EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject};
 use error_stack::Report;
+use hash_graph_authorization::schema::{
+    EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
+};
 use hash_graph_store::{
     ConflictBehavior,
     error::{InsertionError, QueryError, UpdateError},

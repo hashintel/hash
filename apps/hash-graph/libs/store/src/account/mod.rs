@@ -1,5 +1,5 @@
-use authorization::schema::WebOwnerSubject;
 use error_stack::Report;
+use hash_graph_authorization::schema::WebOwnerSubject;
 use hash_graph_types::{
     account::{AccountGroupId, AccountId},
     owned_by_id::OwnedById,

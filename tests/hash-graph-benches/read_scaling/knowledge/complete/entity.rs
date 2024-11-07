@@ -1,13 +1,13 @@
 use core::{iter::repeat, str::FromStr as _};
 use std::collections::HashSet;
 
-use authorization::{AuthorizationApi, NoAuthorization, schema::WebOwnerSubject};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
 use graph::store::knowledge::{
     CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitySubgraphParams,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
+use hash_graph_authorization::{AuthorizationApi, NoAuthorization, schema::WebOwnerSubject};
 use hash_graph_store::{
     account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
     filter::Filter,

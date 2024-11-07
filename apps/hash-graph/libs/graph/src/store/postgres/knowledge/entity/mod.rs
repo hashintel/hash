@@ -4,7 +4,9 @@ use alloc::{borrow::Cow, collections::BTreeSet};
 use core::{borrow::Borrow as _, iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
-use authorization::{
+use error_stack::{Report, ReportSink, ResultExt as _, bail};
+use futures::{StreamExt as _, TryStreamExt as _, stream};
+use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
@@ -13,8 +15,6 @@ use authorization::{
     },
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Report, ReportSink, ResultExt as _, bail};
-use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_store::{
     entity::EntityQueryPath,
     error::{InsertionError, QueryError, UpdateError},
