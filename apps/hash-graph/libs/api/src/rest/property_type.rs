@@ -263,7 +263,6 @@ enum LoadExternalPropertyTypeRequest {
     Fetch { property_type_id: VersionedUrl },
     #[serde(rename_all = "camelCase")]
     Create {
-        #[schema(value_type = VAR_PROPERTY_TYPE)]
         schema: PropertyType,
         relationships: Vec<PropertyTypeRelationAndSubject>,
         #[serde(
@@ -499,7 +498,7 @@ where
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdatePropertyTypeRequest {
-    #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
+    #[schema(value_type = UpdatePropertyType)]
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
     relationships: Vec<PropertyTypeRelationAndSubject>,

@@ -272,7 +272,6 @@ enum LoadExternalDataTypeRequest {
     Fetch { data_type_id: VersionedUrl },
     #[serde(rename_all = "camelCase")]
     Create {
-        #[schema(value_type = VAR_DATA_TYPE)]
         schema: Box<DataType>,
         relationships: Vec<DataTypeRelationAndSubject>,
         #[serde(
@@ -510,7 +509,7 @@ where
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdateDataTypeRequest {
-    #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
+    #[schema(value_type = UpdateDataType)]
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
     relationships: Vec<DataTypeRelationAndSubject>,

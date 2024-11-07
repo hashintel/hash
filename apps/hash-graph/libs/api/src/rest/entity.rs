@@ -31,6 +31,7 @@ use graph::store::{
         GetEntitySubgraphParams, PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams,
         ValidateEntityParams,
     },
+    ontology::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
 };
 use graph_types::{
     Embedding,
@@ -540,7 +541,7 @@ struct GetEntitiesRequest<'q, 's, 'p> {
     #[serde(default)]
     include_count: bool,
     #[serde(default)]
-    include_closed_multi_entity_types: bool,
+    include_entity_types: Option<IncludeEntityTypeOption>,
     #[serde(default)]
     include_web_ids: bool,
     #[serde(default)]
@@ -613,7 +614,7 @@ where
             conversions: request.conversions,
             include_drafts: request.include_drafts,
             include_count: request.include_count,
-            include_closed_multi_entity_types: request.include_closed_multi_entity_types,
+            include_entity_types: request.include_entity_types,
             temporal_axes: request.temporal_axes,
             include_web_ids: request.include_web_ids,
             include_created_by_ids: request.include_created_by_ids,
@@ -627,6 +628,7 @@ where
                 cursor: response.cursor.map(EntityQueryCursor::into_owned),
                 count: response.count,
                 closed_multi_entity_types: response.closed_multi_entity_types,
+                definitions: response.definitions,
                 web_ids: response.web_ids,
                 created_by_ids: response.created_by_ids,
                 edition_created_by_ids: response.edition_created_by_ids,
@@ -658,7 +660,7 @@ struct GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(default)]
     include_count: bool,
     #[serde(default)]
-    include_closed_multi_entity_types: bool,
+    include_entity_types: Option<IncludeEntityTypeOption>,
     #[serde(default)]
     include_web_ids: bool,
     #[serde(default)]
@@ -676,8 +678,12 @@ struct GetEntitySubgraphResponse<'r> {
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'r>>,
     count: Option<usize>,
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    closed_multi_entity_types: HashMap<VersionedUrl, ClosedMultiEntityTypeMap>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    definitions: Option<EntityTypeResolveDefinitions>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     web_ids: Option<HashMap<OwnedById, usize>>,
@@ -755,7 +761,7 @@ where
             graph_resolve_depths: request.graph_resolve_depths,
             include_drafts: request.include_drafts,
             include_count: request.include_count,
-            include_closed_multi_entity_types: request.include_closed_multi_entity_types,
+            include_entity_types: request.include_entity_types,
             temporal_axes: request.temporal_axes,
             include_web_ids: request.include_web_ids,
             include_created_by_ids: request.include_created_by_ids,
@@ -769,6 +775,7 @@ where
                 cursor: response.cursor.map(EntityQueryCursor::into_owned),
                 count: response.count,
                 closed_multi_entity_types: response.closed_multi_entity_types,
+                definitions: response.definitions,
                 web_ids: response.web_ids,
                 created_by_ids: response.created_by_ids,
                 edition_created_by_ids: response.edition_created_by_ids,

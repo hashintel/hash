@@ -426,78 +426,29 @@ impl Modify for MergeAddon {
     }
 }
 
-/// Addon to allow external references in schemas.
-///
-/// Any component that starts with `VAR_` will transform into a relative URL in the schema and
-/// receive a `.json` ending.
-///
-/// Any component that starts with `SHARED_` will transform into a relative URL into the
-/// `./models/shared.json` file.
-///
-/// For example the `VAR_Entity` component will be transformed into `./models/Entity.json`
 struct ExternalRefAddon;
 
 impl Modify for ExternalRefAddon {
     fn modify(&self, openapi: &mut openapi::OpenApi) {
-        for path_item in openapi.paths.paths.values_mut() {
-            for operation in path_item.operations.values_mut() {
-                if let Some(request_body) = &mut operation.request_body {
-                    modify_component(request_body.content.values_mut());
-                }
-
-                for response in &mut operation.responses.responses.values_mut() {
-                    match response {
-                        RefOr::Ref(reference) => modify_reference(reference),
-                        RefOr::T(response) => modify_component(response.content.values_mut()),
-                    }
-                }
+        if let Some(ref mut components) = openapi.components {
+            for (name, model) in [
+                ("DataType", "data_type"),
+                ("UpdateDataType", "update_data_type"),
+                ("ClosedDataType", "closed_data_type"),
+                ("PropertyType", "property_type"),
+                ("UpdatePropertyType", "update_property_type"),
+                ("EntityType", "entity_type"),
+                ("UpdateEntityType", "update_entity_type"),
+                ("ClosedEntityType", "closed_entity_type"),
+                ("PartialEntityType", "partial_entity_type"),
+                ("ClosedMultiEntityType", "closed_multi_entity_type"),
+                ("Status", "status"),
+            ] {
+                *components.schemas.entry(name.to_owned()).or_default() =
+                    Ref::new(format!("./models/{model}.json")).into();
             }
         }
-
-        if let Some(components) = &mut openapi.components {
-            for component in &mut components.schemas.values_mut() {
-                modify_schema_references(component);
-            }
-        }
     }
-}
-
-fn modify_component<'a>(content_iter: impl IntoIterator<Item = &'a mut openapi::Content>) {
-    for content in content_iter {
-        modify_schema_references(&mut content.schema);
-    }
-}
-
-fn modify_schema_references(schema_component: &mut RefOr<openapi::Schema>) {
-    match schema_component {
-        RefOr::Ref(reference) => modify_reference(reference),
-        RefOr::T(schema) => match schema {
-            openapi::Schema::Object(object) => object
-                .properties
-                .values_mut()
-                .for_each(modify_schema_references),
-            openapi::Schema::Array(array) => modify_schema_references(array.items.as_mut()),
-            openapi::Schema::OneOf(one_of) => {
-                one_of.items.iter_mut().for_each(modify_schema_references);
-            }
-            openapi::Schema::AllOf(all_of) => {
-                all_of.items.iter_mut().for_each(modify_schema_references);
-            }
-            _ => (),
-        },
-    }
-}
-
-fn modify_reference(reference: &mut openapi::Ref) {
-    static REF_PREFIX_MODELS: &str = "#/components/schemas/VAR_";
-
-    if reference.ref_location.starts_with(REF_PREFIX_MODELS) {
-        reference
-            .ref_location
-            .replace_range(0..REF_PREFIX_MODELS.len(), "./models/");
-        reference.ref_location.make_ascii_lowercase();
-        reference.ref_location.push_str(".json");
-    };
 }
 
 /// Append a `Graph` tag wherever a tag appears in individual routes.

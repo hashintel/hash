@@ -8,12 +8,6 @@ use utoipa::{
     openapi::{OneOfBuilder, Ref, RefOr, Schema},
 };
 
-#[derive(Debug, Copy, Clone)]
-enum Action {
-    Load,
-    Reference,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub(crate) enum ListOrValue<T> {
@@ -24,14 +18,9 @@ pub(crate) enum ListOrValue<T> {
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
 // the generic
 impl<T> ListOrValue<T> {
-    fn generate_schema(schema_name: &'static str, action: Action) -> RefOr<Schema> {
-        let schema_name = match action {
-            Action::Load => format!("VAR_{schema_name}"),
-            Action::Reference => schema_name.to_owned(),
-        };
-
+    fn generate_schema(schema_name: &'static str) -> RefOr<Schema> {
         OneOfBuilder::new()
-            .item(Ref::from_schema_name(&schema_name))
+            .item(Ref::from_schema_name(schema_name))
             .item(Ref::from_schema_name(schema_name).to_array_builder())
             .into()
     }
@@ -42,7 +31,7 @@ impl ToSchema<'_> for MaybeListOfDataTypeMetadata {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOfDataTypeMetadata",
-            Self::generate_schema(DataTypeMetadata::schema().0, Action::Reference),
+            Self::generate_schema(DataTypeMetadata::schema().0),
         )
     }
 }
@@ -52,7 +41,7 @@ impl ToSchema<'_> for MaybeListOfPropertyTypeMetadata {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOfPropertyTypeMetadata",
-            Self::generate_schema(PropertyTypeMetadata::schema().0, Action::Reference),
+            Self::generate_schema(PropertyTypeMetadata::schema().0),
         )
     }
 }
@@ -62,7 +51,7 @@ impl ToSchema<'_> for MaybeListOfEntityTypeMetadata {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOfEntityTypeMetadata",
-            Self::generate_schema(EntityTypeMetadata::schema().0, Action::Reference),
+            Self::generate_schema(EntityTypeMetadata::schema().0),
         )
     }
 }
@@ -70,10 +59,7 @@ impl ToSchema<'_> for MaybeListOfEntityTypeMetadata {
 pub(crate) type MaybeListOfDataType = ListOrValue<DataType>;
 impl ToSchema<'_> for MaybeListOfDataType {
     fn schema() -> (&'static str, RefOr<Schema>) {
-        (
-            "MaybeListOf",
-            Self::generate_schema("data_type", Action::Load),
-        )
+        ("MaybeListOf", Self::generate_schema("DataType"))
     }
 }
 
@@ -82,7 +68,7 @@ impl ToSchema<'_> for MaybeListOfPropertyType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "MaybeListOfPropertyType",
-            Self::generate_schema("property_type", Action::Load),
+            Self::generate_schema("PropertyType"),
         )
     }
 }
@@ -90,10 +76,7 @@ impl ToSchema<'_> for MaybeListOfPropertyType {
 pub(crate) type MaybeListOfEntityType = ListOrValue<EntityType>;
 impl ToSchema<'_> for MaybeListOfEntityType {
     fn schema() -> (&'static str, RefOr<Schema>) {
-        (
-            "MaybeListOfEntityType",
-            Self::generate_schema("entity_type", Action::Load),
-        )
+        ("MaybeListOfEntityType", Self::generate_schema("EntityType"))
     }
 }
 

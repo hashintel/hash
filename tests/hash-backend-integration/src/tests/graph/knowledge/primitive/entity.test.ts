@@ -301,7 +301,7 @@ describe("Entity CRU", () => {
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
-        includeClosedMultiEntityTypes: true,
+        includeEntityTypes: "resolved",
       },
     );
 
@@ -320,13 +320,17 @@ describe("Entity CRU", () => {
       );
       expect(entityTypeFromResponse).toBeDefined();
 
-      const entityTypeFromGraph = await getClosedMultiEntityType(
+      const {
+        entityType: entityTypeFromGraph,
+        definitions: definitionsFromGraph,
+      } = await getClosedMultiEntityType(
         graphContext,
         { actorId: testUser.accountId },
         {
           entityTypeIds: entity.metadata.entityTypeIds,
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: false,
+          includeResolved: true,
         },
       );
       if (entityTypeFromResponse?.required && entityTypeFromGraph.required) {
@@ -336,6 +340,22 @@ describe("Entity CRU", () => {
         entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
       }
       expect(entityTypeFromResponse).toEqual(entityTypeFromGraph);
+
+      for (const [id, schema] of Object.entries(
+        definitionsFromGraph!.dataTypes,
+      )) {
+        expect(response.definitions?.dataTypes[id]).toEqual(schema);
+      }
+      for (const [id, schema] of Object.entries(
+        definitionsFromGraph!.propertyTypes,
+      )) {
+        expect(response.definitions?.propertyTypes[id]).toEqual(schema);
+      }
+      for (const [id, schema] of Object.entries(
+        definitionsFromGraph!.entityTypes,
+      )) {
+        expect(response.definitions?.entityTypes[id]).toEqual(schema);
+      }
     }
   });
 

@@ -9,11 +9,11 @@ use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
 use graph_types::{
     knowledge::entity::{Entity, EntityId},
-    ontology::{DataTypeLookup, DataTypeWithMetadata},
+    ontology::{DataTypeLookup, DataTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    schema::{DataTypeReference, DataTypeUuid},
+    schema::{DataTypeReference, DataTypeUuid, PropertyTypeUuid},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
@@ -26,6 +26,7 @@ use crate::{
     entity::EntityQueryPath,
     entity_type::EntityTypeQueryPath,
     filter::parameter::ActualParameterType,
+    property_type::PropertyTypeQueryPath,
     subgraph::{
         SubgraphRecord,
         edges::{EdgeDirection, OntologyEdgeKind, SharedEdgeKind},
@@ -210,6 +211,18 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
                 parameter: Parameter::Uuid(data_type_id.into_uuid()),
                 convert: None,
             }),
+        )
+    }
+}
+
+impl<'p> Filter<'p, PropertyTypeWithMetadata> {
+    #[must_use]
+    pub const fn for_property_type_uuids(property_type_ids: &'p [PropertyTypeUuid]) -> Self {
+        Filter::In(
+            FilterExpression::Path {
+                path: PropertyTypeQueryPath::OntologyId,
+            },
+            ParameterList::PropertyTypeIds(property_type_ids),
         )
     }
 }

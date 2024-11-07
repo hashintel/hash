@@ -112,7 +112,7 @@ impl ToSchema<'static> for EntityTypeWithMetadata {
         (
             "EntityTypeWithMetadata",
             schema::ObjectBuilder::new()
-                .property("schema", Ref::from_schema_name("VAR_ENTITY_TYPE"))
+                .property("schema", Ref::from_schema_name("EntityType"))
                 .required("schema")
                 .property(
                     "metadata",
