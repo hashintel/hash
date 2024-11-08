@@ -7,9 +7,16 @@ use alloc::sync::Arc;
 
 use graph::store::StorePool;
 use harpc_codec::{decode::ReportDecoder, encode::ReportEncoder};
-use harpc_server::{boxed::BoxedRouter, router::RouterBuilder, session::Task};
+use harpc_server::{
+    route::Route,
+    router::{Router, RouterBuilder},
+    session::Task,
+};
 use harpc_system::SubsystemIdentifier;
-use harpc_tower::layer::{body_report::HandleBodyReportLayer, report::HandleReportLayer};
+use harpc_tower::{
+    body::server::request::RequestBody,
+    layer::{body_report::HandleBodyReportLayer, report::HandleReportLayer},
+};
 use harpc_types::subsystem::SubsystemId;
 use hash_graph_authorization::AuthorizationApiPool;
 use hash_temporal_client::TemporalClient;
@@ -57,9 +64,6 @@ pub struct Dependencies<S, A, C> {
     pub codec: C,
 }
 
-// TODO: do we instead want to return a typed router?
-// In theory it could give a tiny bit of speedup, but it's not clear if it's worth it.
-// Considering that axum makes a lot more use of boxing than we do, it should be fine.
 #[expect(
     clippy::significant_drop_tightening,
     reason = "false-positive in `AccountServer`"
@@ -67,7 +71,7 @@ pub struct Dependencies<S, A, C> {
 pub fn rpc_router<S, A, C, N>(
     dependencies: Dependencies<S, A, C>,
     notifications: N,
-) -> (BoxedRouter, Task<Account, N>)
+) -> (Router<impl Route<RequestBody>>, Task<Account, N>)
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
@@ -89,7 +93,7 @@ where
 
     let task = builder.background_task(notifications);
 
-    let router = builder.build().boxed();
+    let router = builder.build();
 
     (router, task)
 }
