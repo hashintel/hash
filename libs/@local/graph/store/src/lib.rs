@@ -15,5 +15,6 @@ pub mod property_type;
 pub mod error;
 pub mod filter;
 pub mod migration;
+pub mod pool;
 pub mod query;
 pub mod subgraph;

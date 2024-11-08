@@ -38,6 +38,7 @@ use hash_graph_store::{
     },
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
+    pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
         GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
@@ -74,7 +75,6 @@ use type_system::{
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
-        StorePool,
         crud::{QueryResult, Read, ReadPaginated},
         error::StoreError,
     },

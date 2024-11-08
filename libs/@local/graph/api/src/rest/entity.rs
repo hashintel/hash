@@ -11,10 +11,7 @@ use axum::{
     routing::{get, post},
 };
 use error_stack::{Report, ResultExt as _};
-use graph::store::{
-    StorePool,
-    error::{EntityDoesNotExist, RaceConditionOnUpdate},
-};
+use graph::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -37,6 +34,7 @@ use hash_graph_store::{
     },
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     filter::Filter,
+    pool::StorePool,
     query::{NullOrdering, Ordering},
     subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };

@@ -2,7 +2,6 @@ pub mod crud;
 pub mod error;
 
 mod config;
-mod pool;
 mod validation;
 
 mod fetcher;
@@ -16,7 +15,6 @@ use hash_graph_store::{
 pub use self::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
     fetcher::{FetchingPool, FetchingStore, TypeFetcher},
-    pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
     validation::{StoreCache, StoreProvider},
 };

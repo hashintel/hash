@@ -9,7 +9,6 @@ use axum::{
     response::Response,
     routing::{get, post},
 };
-use graph::store::StorePool;
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::ModifyRelationshipOperation,
@@ -19,8 +18,9 @@ use hash_graph_authorization::{
     },
     zanzibar::Consistency,
 };
-use hash_graph_store::account::{
-    AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams,
+use hash_graph_store::{
+    account::{AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams},
+    pool::StorePool,
 };
 use hash_graph_types::{
     account::{AccountGroupId, AccountId},

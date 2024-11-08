@@ -10,9 +10,7 @@ use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use graph::{
     ontology::domain_validator::DomainValidator,
-    store::{
-        DatabaseConnectionInfo, DatabasePoolConfig, FetchingPool, PostgresStorePool, StorePool as _,
-    },
+    store::{DatabaseConnectionInfo, DatabasePoolConfig, FetchingPool, PostgresStorePool},
 };
 use hash_graph_api::rest::{RestRouterDependencies, rest_api_router};
 use hash_graph_authorization::{
@@ -20,6 +18,7 @@ use hash_graph_authorization::{
     backend::{SpiceDbOpenApi, ZanzibarBackend as _},
     zanzibar::ZanzibarClient,
 };
+use hash_graph_store::pool::StorePool as _;
 use hash_temporal_client::TemporalClientConfig;
 use regex::Regex;
 use reqwest::{Client, Url};

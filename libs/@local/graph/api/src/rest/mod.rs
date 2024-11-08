@@ -30,11 +30,12 @@ use axum::{
 use error_stack::{Report, ResultExt as _};
 use graph::{
     ontology::domain_validator::DomainValidator,
-    store::{Store, StorePool, TypeFetcher, error::VersionedUrlAlreadyExists},
+    store::{Store, TypeFetcher, error::VersionedUrlAlreadyExists},
 };
 use hash_graph_authorization::AuthorizationApiPool;
 use hash_graph_store::{
     filter::{ParameterConversion, Selector},
+    pool::StorePool,
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,

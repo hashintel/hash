@@ -41,6 +41,7 @@ use hash_graph_authorization::{
 use hash_graph_store::{
     error::InsertionError,
     filter::{Filter, QueryRecord},
+    pool::StorePool,
 };
 use hash_graph_types::{
     account::{AccountGroupId, AccountId},
@@ -66,7 +67,6 @@ use crate::{
         restore::SnapshotRecordBatch,
     },
     store::{
-        StorePool,
         crud::Read,
         postgres::{AsClient, PostgresStore, PostgresStorePool},
     },

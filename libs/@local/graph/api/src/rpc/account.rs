@@ -2,7 +2,6 @@ use alloc::{borrow::Cow, sync::Arc};
 use core::error::{self, Error};
 
 use error_stack::{Report, ResultExt as _};
-use graph::store::StorePool;
 use harpc_client::{connection::Connection, utils::invoke_call_discrete};
 use harpc_codec::{decode::ReportDecoder, encode::Encoder};
 use harpc_server::{
@@ -22,8 +21,9 @@ use hash_graph_authorization::{
     },
     zanzibar::Consistency,
 };
-use hash_graph_store::account::{
-    AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams,
+use hash_graph_store::{
+    account::{AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams},
+    pool::StorePool,
 };
 use hash_graph_types::{
     account::{AccountGroupId, AccountId},

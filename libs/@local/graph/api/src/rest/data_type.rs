@@ -16,10 +16,7 @@ use graph::{
         domain_validator::{DomainValidator, ValidateOntologyType as _},
         patch_id_and_parse,
     },
-    store::{
-        StorePool,
-        error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-    },
+    store::error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
 };
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
@@ -35,6 +32,7 @@ use hash_graph_store::{
         GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
+    pool::StorePool,
     query::ConflictBehavior,
 };
 use hash_graph_types::{

@@ -12,7 +12,7 @@ authors.workspace = true
 # Public workspace dependencies
 error-stack = { workspace = true }
 hash-graph-authorization = { workspace = true, public = true }
-hash-graph-types = { workspace = true }
+hash-temporal-client = { workspace = true, public = true }
 
 # Public third-party dependencies
 utoipa = { workspace = true, public = true, optional = true }
@@ -23,6 +23,7 @@ tokio-postgres = { workspace = true, public = true, optional = true}
 derive_more = { workspace = true, features = ["display", "error"] }
 hash-graph-temporal-versioning = { workspace = true }
 type-system = { workspace = true }
+hash-graph-types = { workspace = true }
 
 # Private third-party dependencies
 bytes = { workspace = true, optional = true }

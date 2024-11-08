@@ -30,7 +30,6 @@ use graph::{
     Environment, load_env,
     store::{
         DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
-        StorePool,
     },
 };
 use hash_graph_authorization::{
@@ -65,6 +64,7 @@ use hash_graph_store::{
         UpdateEntityTypesParams,
     },
     error::{InsertionError, QueryError, UpdateError},
+    pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
         GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,

@@ -20,6 +20,7 @@ graph = { workspace = true, features = ["utoipa"] }
 hash-codec = { workspace = true }
 hash-graph-authorization = { workspace = true }
 hash-graph-api = { workspace = true }
+hash-graph-store = { workspace = true }
 hash-graph-type-defs = { workspace = true }
 hash-graph-types = { workspace = true, features = ["utoipa"] }
 hash-status = { workspace = true }

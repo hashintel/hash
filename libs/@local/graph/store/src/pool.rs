@@ -5,7 +5,10 @@ use error_stack::Report;
 use hash_graph_authorization::AuthorizationApi;
 use hash_temporal_client::TemporalClient;
 
-use crate::store::Store;
+use crate::{
+    account::AccountStore, data_type::DataTypeStore, entity::EntityStore,
+    entity_type::EntityTypeStore, property_type::PropertyTypeStore,
+};
 
 /// Managed pool to keep track about [`Store`]s.
 pub trait StorePool {
@@ -13,7 +16,13 @@ pub trait StorePool {
     type Error: Error + Send + Sync + 'static;
 
     /// The store returned when acquiring.
-    type Store<'pool, A: AuthorizationApi>: Store + Send + Sync;
+    type Store<'pool, A: AuthorizationApi>: AccountStore
+        + DataTypeStore
+        + PropertyTypeStore
+        + EntityTypeStore
+        + EntityStore
+        + Send
+        + Sync;
 
     /// Retrieves a [`Store`] from the pool.
     fn acquire<A: AuthorizationApi>(
