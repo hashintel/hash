@@ -19,13 +19,6 @@ use graph::{
     store::{
         StorePool,
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-        ontology::{
-            ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeResolveDefinitions,
-            EntityTypeStore as _, GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
-            GetEntityTypeSubgraphParams, GetEntityTypesParams, GetEntityTypesResponse,
-            IncludeEntityTypeOption, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-            UpdateEntityTypesParams,
-        },
     },
 };
 use hash_graph_authorization::{
@@ -38,7 +31,16 @@ use hash_graph_authorization::{
     },
     zanzibar::Consistency,
 };
-use hash_graph_store::{ConflictBehavior, entity_type::EntityTypeQueryToken};
+use hash_graph_store::{
+    ConflictBehavior,
+    entity_type::{
+        ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeQueryToken,
+        EntityTypeResolveDefinitions, EntityTypeStore as _, GetClosedMultiEntityTypeParams,
+        GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams, GetEntityTypesParams,
+        GetEntityTypesResponse, IncludeEntityTypeOption, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+    },
+};
 use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use hash_graph_types::{
     account::EditionCreatedById,

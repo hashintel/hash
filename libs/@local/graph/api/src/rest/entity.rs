@@ -21,7 +21,6 @@ use graph::store::{
         GetEntitySubgraphParams, PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams,
         ValidateEntityParams,
     },
-    ontology::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
 };
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
@@ -36,6 +35,7 @@ use hash_graph_authorization::{
 use hash_graph_store::{
     account::AccountStore as _,
     entity::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
+    entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     filter::Filter,
     subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };

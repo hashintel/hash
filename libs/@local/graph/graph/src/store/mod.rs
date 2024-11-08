@@ -1,7 +1,6 @@
 pub mod crud;
 pub mod error;
 pub mod knowledge;
-pub mod ontology;
 
 mod config;
 mod pool;
@@ -11,7 +10,8 @@ mod fetcher;
 pub(crate) mod postgres;
 
 use hash_graph_store::{
-    account::AccountStore, data_type::DataTypeStore, property_type::PropertyTypeStore,
+    account::AccountStore, data_type::DataTypeStore, entity_type::EntityTypeStore,
+    property_type::PropertyTypeStore,
 };
 use serde::Deserialize;
 #[cfg(feature = "utoipa")]
@@ -24,7 +24,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
     validation::{StoreCache, StoreProvider},
 };
-use crate::store::{knowledge::EntityStore, ontology::EntityTypeStore};
+use crate::store::knowledge::EntityStore;
 
 /// Describes the API of a store implementation.
 ///

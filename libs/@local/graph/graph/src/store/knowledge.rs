@@ -7,6 +7,7 @@ use futures::TryFutureExt as _;
 use hash_graph_authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use hash_graph_store::{
     entity::EntityQueryPath,
+    entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     error::{InsertionError, QueryError, UpdateError},
     filter::Filter,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
@@ -33,12 +34,7 @@ use utoipa::{
     openapi::{self, Ref, RefOr, Schema, schema},
 };
 
-use crate::store::{
-    NullOrdering, Ordering,
-    crud::Sorting,
-    ontology::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
-    postgres::CursorField,
-};
+use crate::store::{NullOrdering, Ordering, crud::Sorting, postgres::CursorField};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]

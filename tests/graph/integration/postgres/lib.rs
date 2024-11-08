@@ -37,13 +37,6 @@ use graph::{
             PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityError,
             ValidateEntityParams,
         },
-        ontology::{
-            ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
-            EntityTypeStore, GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
-            GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-            GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-            UpdateEntityTypesParams,
-        },
     },
 };
 use hash_graph_authorization::{
@@ -65,6 +58,13 @@ use hash_graph_store::{
         GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
         GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
+    },
+    entity_type::{
+        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
+        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
+        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
+        GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
     },
     error::{InsertionError, QueryError, UpdateError},
     property_type::{

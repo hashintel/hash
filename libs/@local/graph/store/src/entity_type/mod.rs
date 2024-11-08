@@ -1,7 +1,18 @@
 pub(crate) use self::query::EntityTypeQueryPathVisitor;
-pub use self::query::{EntityTypeQueryPath, EntityTypeQueryToken};
+pub use self::{
+    query::{EntityTypeQueryPath, EntityTypeQueryToken},
+    store::{
+        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
+        EntityTypeResolveDefinitions, EntityTypeStore, GetClosedMultiEntityTypeParams,
+        GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams,
+        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
+        IncludeEntityTypeOption, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
+    },
+};
 
 mod query;
+mod store;
 
 use hash_graph_types::ontology::EntityTypeWithMetadata;
 

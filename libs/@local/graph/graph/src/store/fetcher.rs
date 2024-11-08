@@ -25,6 +25,13 @@ use hash_graph_store::{
         GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
     },
+    entity_type::{
+        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
+        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
+        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
+        GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
+    },
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
     property_type::{
@@ -69,13 +76,6 @@ use crate::{
             CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
             GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
             UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
-        },
-        ontology::{
-            ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
-            GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
-            GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-            GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-            UpdateEntityTypesParams,
         },
     },
 };

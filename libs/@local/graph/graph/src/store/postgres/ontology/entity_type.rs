@@ -13,7 +13,14 @@ use hash_graph_authorization::{
     zanzibar::{Consistency, Zookie},
 };
 use hash_graph_store::{
-    entity_type::EntityTypeQueryPath,
+    entity_type::{
+        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
+        EntityTypeQueryPath, EntityTypeResolveDefinitions, GetClosedMultiEntityTypeParams,
+        GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams,
+        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
+        IncludeEntityTypeOption, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
+    },
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     property_type::{GetPropertyTypeSubgraphParams, PropertyTypeStore as _},
@@ -56,14 +63,6 @@ use crate::store::{
     EntityTypeStore,
     crud::{QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
-    ontology::{
-        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
-        EntityTypeResolveDefinitions, GetClosedMultiEntityTypeParams,
-        GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams,
-        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
-        IncludeEntityTypeOption, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-        UpdateEntityTypesParams,
-    },
     postgres::{
         AsClient, PostgresStore, ResponseCountMap, TraversalContext,
         crud::QueryRecordDecode,

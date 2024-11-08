@@ -17,6 +17,7 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::{
     entity::EntityQueryPath,
+    entity_type::IncludeEntityTypeOption,
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, Parameter},
     subgraph::{
@@ -80,7 +81,6 @@ use crate::store::{
         GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
         UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
     },
-    ontology::IncludeEntityTypeOption,
     postgres::{
         ResponseCountMap, TraversalContext,
         knowledge::entity::read::EntityEdgeTraversalData,

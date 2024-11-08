@@ -4,12 +4,6 @@ use std::collections::HashMap;
 
 use error_stack::Report;
 use hash_graph_authorization::schema::EntityTypeRelationAndSubject;
-use hash_graph_store::{
-    ConflictBehavior,
-    error::{InsertionError, QueryError, UpdateError},
-    filter::Filter,
-    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
-};
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::{
     Embedding,
@@ -27,6 +21,13 @@ use type_system::{
         PropertyType,
     },
     url::VersionedUrl,
+};
+
+use crate::{
+    ConflictBehavior,
+    error::{InsertionError, QueryError, UpdateError},
+    filter::Filter,
+    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 
 #[derive(Debug, Deserialize)]
