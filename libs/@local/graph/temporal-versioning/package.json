@@ -1,0 +1,14 @@
+{
+  "name": "@rust/hash-graph-temporal-versioning",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
+  },
+  "dependencies": {
+    "@rust/hash-codec": "0.0.0-private"
+  }
+}

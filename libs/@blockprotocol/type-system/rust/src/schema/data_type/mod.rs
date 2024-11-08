@@ -484,7 +484,7 @@ mod tests {
     #[tokio::test]
     async fn value() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::VALUE_V1,
+            hash_graph_test_data::data_type::VALUE_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -494,7 +494,7 @@ mod tests {
     #[tokio::test]
     async fn text() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::TEXT_V1,
+            hash_graph_test_data::data_type::TEXT_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -504,7 +504,7 @@ mod tests {
     #[tokio::test]
     async fn number() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::NUMBER_V1,
+            hash_graph_test_data::data_type::NUMBER_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -514,7 +514,7 @@ mod tests {
     #[tokio::test]
     async fn boolean() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::BOOLEAN_V1,
+            hash_graph_test_data::data_type::BOOLEAN_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -524,7 +524,7 @@ mod tests {
     #[tokio::test]
     async fn null() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::NULL_V1,
+            hash_graph_test_data::data_type::NULL_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -534,7 +534,7 @@ mod tests {
     #[tokio::test]
     async fn object() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::OBJECT_V1,
+            hash_graph_test_data::data_type::OBJECT_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -544,7 +544,7 @@ mod tests {
     #[tokio::test]
     async fn list() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::LIST_V1,
+            hash_graph_test_data::data_type::LIST_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )

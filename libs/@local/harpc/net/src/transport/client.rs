@@ -1,9 +1,9 @@
 use std::io;
 
 use bytes::BytesMut;
-use codec::harpc::wire::{RequestCodec, ResponseCodec};
 use error_stack::Report;
 use harpc_wire_protocol::{request::Request, response::Response};
+use hash_codec::harpc::wire::{RequestCodec, ResponseCodec};
 use tokio_util::codec::{Decoder, Encoder};
 
 #[derive(Debug)]

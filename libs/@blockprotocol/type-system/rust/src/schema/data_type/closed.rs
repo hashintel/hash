@@ -245,7 +245,7 @@ mod tests {
     #[expect(clippy::too_many_lines, reason = "Test seeding")]
     async fn seed() -> DataTypeDefinitions {
         let value = ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::VALUE_V1,
+            hash_graph_test_data::data_type::VALUE_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -253,7 +253,7 @@ mod tests {
         .into_inner();
 
         let mut number = ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::NUMBER_V1,
+            hash_graph_test_data::data_type::NUMBER_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )

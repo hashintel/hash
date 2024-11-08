@@ -376,14 +376,14 @@ mod tests {
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
         let building = ensure_serialization_from_str::<EntityType>(
-            graph_test_data::entity_type::BUILDING_V1,
+            hash_graph_test_data::entity_type::BUILDING_V1,
             JsonEqualityCheck::Yes,
         );
         ontology_type_resolver
             .add_unresolved_entity_type(EntityTypeUuid::from_url(&building.id), Arc::new(building));
 
         let church: EntityType = ensure_serialization_from_str::<EntityType>(
-            graph_test_data::entity_type::CHURCH_V1,
+            hash_graph_test_data::entity_type::CHURCH_V1,
             JsonEqualityCheck::Yes,
         );
         let church_id = EntityTypeUuid::from_url(&church.id);

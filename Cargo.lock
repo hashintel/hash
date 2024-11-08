@@ -369,28 +369,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "authorization"
-version = "0.0.0"
-dependencies = [
- "codec",
- "derive-where",
- "error-stack",
- "futures",
- "futures-core",
- "graph-types",
- "reqwest",
- "serde",
- "serde_json",
- "serde_plain",
- "tokio",
- "tokio-util",
- "tracing",
- "type-system",
- "utoipa",
- "uuid",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1242,21 +1220,6 @@ name = "clap_lex"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
-
-[[package]]
-name = "codec"
-version = "0.0.0"
-dependencies = [
- "bytes",
- "derive-where",
- "error-stack",
- "harpc-wire-protocol",
- "regex",
- "serde",
- "serde_json",
- "time",
- "tokio-util",
-]
 
 [[package]]
 name = "colorchoice"
@@ -2432,10 +2395,8 @@ name = "graph"
 version = "0.0.0"
 dependencies = [
  "async-scoped",
- "authorization",
  "bytes",
  "clap",
- "codec",
  "deadpool",
  "deadpool-postgres",
  "derive-where",
@@ -2443,9 +2404,15 @@ dependencies = [
  "error-stack",
  "futures",
  "futures-sink",
- "graph-types",
+ "hash-codec",
+ "hash-graph-authorization",
  "hash-graph-store",
+ "hash-graph-temporal-versioning",
+ "hash-graph-type-fetcher",
+ "hash-graph-types",
+ "hash-graph-validation",
  "hash-status",
+ "hash-temporal-client",
  "postgres-types",
  "refinery",
  "regex",
@@ -2453,145 +2420,11 @@ dependencies = [
  "serde",
  "serde_json",
  "tarpc",
- "temporal-client 0.0.0",
- "temporal-versioning",
  "time",
  "tokio",
  "tokio-postgres",
  "tracing",
- "type-fetcher",
  "type-system",
- "utoipa",
- "uuid",
- "validation",
-]
-
-[[package]]
-name = "graph-api"
-version = "0.0.0"
-dependencies = [
- "async-trait",
- "authorization",
- "axum 0.7.7",
- "axum-core 0.4.5",
- "bytes",
- "derive-where",
- "derive_more 1.0.0",
- "error-stack",
- "frunk",
- "futures",
- "graph",
- "graph-type-defs",
- "graph-types",
- "harpc-client",
- "harpc-codec",
- "harpc-server",
- "harpc-system",
- "harpc-tower",
- "harpc-types",
- "hash-graph-store",
- "hash-status",
- "http 1.1.0",
- "hyper 1.5.0",
- "include_dir",
- "mime",
- "opentelemetry 0.26.0",
- "opentelemetry_sdk",
- "sentry",
- "serde",
- "serde_json",
- "temporal-client 0.0.0",
- "temporal-versioning",
- "time",
- "tower 0.5.1",
- "tower-http",
- "tracing",
- "tracing-opentelemetry",
- "type-system",
- "utoipa",
- "uuid",
- "validation",
-]
-
-[[package]]
-name = "graph-benches"
-version = "0.0.0"
-dependencies = [
- "authorization",
- "criterion",
- "criterion-macro",
- "graph",
- "graph-test-data",
- "graph-types",
- "hash-graph-store",
- "rand",
- "repo-chores",
- "serde_json",
- "temporal-versioning",
- "tokio",
- "tokio-postgres",
- "tracing",
- "tracing-flame",
- "tracing-subscriber",
- "type-system",
- "uuid",
-]
-
-[[package]]
-name = "graph-integration"
-version = "0.0.0"
-dependencies = [
- "authorization",
- "error-stack",
- "graph",
- "graph-test-data",
- "graph-types",
- "hash-graph-store",
- "hash-tracing",
- "pretty_assertions",
- "serde_json",
- "temporal-versioning",
- "time",
- "tokio",
- "tokio-postgres",
- "tracing-subscriber",
- "type-system",
- "uuid",
-]
-
-[[package]]
-name = "graph-test-data"
-version = "0.0.0"
-
-[[package]]
-name = "graph-type-defs"
-version = "0.0.0"
-dependencies = [
- "hash-status",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "graph-types"
-version = "0.0.0"
-dependencies = [
- "bytes",
- "codec",
- "error-stack",
- "futures",
- "graph-test-data",
- "postgres-types",
- "semver",
- "serde",
- "serde_json",
- "temporal-versioning",
- "thiserror",
- "time",
- "tokio",
- "trait-variant",
- "type-system",
- "url",
  "utoipa",
  "uuid",
 ]
@@ -2689,7 +2522,6 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "bytes-utils",
- "codec",
  "derive_more 1.0.0",
  "error-stack",
  "futures",
@@ -2700,6 +2532,7 @@ dependencies = [
  "harpc-codec",
  "harpc-types",
  "harpc-wire-protocol",
+ "hash-codec",
  "humansize",
  "insta",
  "libp2p",
@@ -2735,13 +2568,13 @@ dependencies = [
  "frunk",
  "frunk_core",
  "futures",
- "graph-types",
  "harpc-client",
  "harpc-codec",
  "harpc-net",
  "harpc-system",
  "harpc-tower",
  "harpc-types",
+ "hash-graph-types",
  "multiaddr",
  "scc",
  "serde",
@@ -2813,50 +2646,180 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-codec"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "derive-where",
+ "error-stack",
+ "harpc-wire-protocol",
+ "regex",
+ "serde",
+ "serde_json",
+ "time",
+ "tokio-util",
+]
+
+[[package]]
 name = "hash-graph"
 version = "0.0.0"
 dependencies = [
- "authorization",
  "axum 0.7.7",
  "clap",
  "clap_complete",
- "codec",
  "error-stack",
  "futures",
  "graph",
- "graph-api",
- "graph-types",
+ "hash-codec",
+ "hash-graph-api",
+ "hash-graph-authorization",
  "hash-graph-store",
+ "hash-graph-test-server",
+ "hash-graph-type-fetcher",
+ "hash-graph-types",
+ "hash-graph-validation",
+ "hash-temporal-client",
  "hash-tracing",
  "mimalloc",
  "regex",
  "reqwest",
  "tarpc",
- "temporal-client 0.0.0",
- "test-server",
  "time",
  "tokio",
  "tokio-postgres",
  "tokio-util",
  "tracing",
- "type-fetcher",
  "type-system",
- "validation",
+]
+
+[[package]]
+name = "hash-graph-api"
+version = "0.0.0"
+dependencies = [
+ "async-trait",
+ "axum 0.7.7",
+ "axum-core 0.4.5",
+ "bytes",
+ "derive-where",
+ "derive_more 1.0.0",
+ "error-stack",
+ "frunk",
+ "futures",
+ "graph",
+ "harpc-client",
+ "harpc-codec",
+ "harpc-server",
+ "harpc-system",
+ "harpc-tower",
+ "harpc-types",
+ "hash-graph-authorization",
+ "hash-graph-store",
+ "hash-graph-temporal-versioning",
+ "hash-graph-type-defs",
+ "hash-graph-types",
+ "hash-graph-validation",
+ "hash-status",
+ "hash-temporal-client",
+ "http 1.1.0",
+ "hyper 1.5.0",
+ "include_dir",
+ "mime",
+ "opentelemetry 0.26.0",
+ "opentelemetry_sdk",
+ "sentry",
+ "serde",
+ "serde_json",
+ "time",
+ "tower 0.5.1",
+ "tower-http",
+ "tracing",
+ "tracing-opentelemetry",
+ "type-system",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
+name = "hash-graph-authorization"
+version = "0.0.0"
+dependencies = [
+ "derive-where",
+ "error-stack",
+ "futures",
+ "futures-core",
+ "hash-codec",
+ "hash-graph-types",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_plain",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "type-system",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
+name = "hash-graph-benches"
+version = "0.0.0"
+dependencies = [
+ "criterion",
+ "criterion-macro",
+ "graph",
+ "hash-graph-authorization",
+ "hash-graph-store",
+ "hash-graph-temporal-versioning",
+ "hash-graph-test-data",
+ "hash-graph-types",
+ "hash-repo-chores",
+ "rand",
+ "serde_json",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-flame",
+ "tracing-subscriber",
+ "type-system",
+ "uuid",
+]
+
+[[package]]
+name = "hash-graph-integration"
+version = "0.0.0"
+dependencies = [
+ "error-stack",
+ "graph",
+ "hash-graph-authorization",
+ "hash-graph-store",
+ "hash-graph-temporal-versioning",
+ "hash-graph-test-data",
+ "hash-graph-types",
+ "hash-tracing",
+ "pretty_assertions",
+ "serde_json",
+ "time",
+ "tokio",
+ "tokio-postgres",
+ "tracing-subscriber",
+ "type-system",
+ "uuid",
 ]
 
 [[package]]
 name = "hash-graph-store"
 version = "0.0.0"
 dependencies = [
- "authorization",
  "bytes",
  "derive-where",
  "error-stack",
- "graph-types",
+ "hash-graph-authorization",
+ "hash-graph-temporal-versioning",
+ "hash-graph-types",
  "postgres-types",
  "serde",
  "serde_json",
- "temporal-versioning",
  "thiserror",
  "tokio",
  "type-system",
@@ -2865,10 +2828,153 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-graph-temporal-versioning"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "derive-where",
+ "hash-codec",
+ "postgres-protocol",
+ "postgres-types",
+ "serde",
+ "time",
+ "tracing",
+ "utoipa",
+]
+
+[[package]]
+name = "hash-graph-test-data"
+version = "0.0.0"
+
+[[package]]
+name = "hash-graph-test-server"
+version = "0.0.0"
+dependencies = [
+ "axum 0.7.7",
+ "error-stack",
+ "futures",
+ "graph",
+ "hash-codec",
+ "hash-graph-api",
+ "hash-graph-authorization",
+ "hash-graph-type-defs",
+ "hash-graph-types",
+ "hash-status",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "hash-graph-type-defs"
+version = "0.0.0"
+dependencies = [
+ "hash-status",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "hash-graph-type-fetcher"
+version = "0.0.0"
+dependencies = [
+ "error-stack",
+ "futures",
+ "include_dir",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tarpc",
+ "time",
+ "tracing",
+ "type-system",
+]
+
+[[package]]
+name = "hash-graph-types"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "error-stack",
+ "futures",
+ "hash-codec",
+ "hash-graph-temporal-versioning",
+ "hash-graph-test-data",
+ "postgres-types",
+ "semver",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "time",
+ "tokio",
+ "trait-variant",
+ "type-system",
+ "url",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
+name = "hash-graph-validation"
+version = "0.0.0"
+dependencies = [
+ "error-stack",
+ "futures",
+ "hash-graph-temporal-versioning",
+ "hash-graph-test-data",
+ "hash-graph-types",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "type-system",
+ "url",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
+name = "hash-repo-chores"
+version = "0.0.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-s3",
+ "aws-types",
+ "bytes",
+ "clap",
+ "clap_complete",
+ "criterion",
+ "error-stack",
+ "inferno",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "walkdir",
+]
+
+[[package]]
 name = "hash-status"
 version = "0.0.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "hash-temporal-client"
+version = "0.0.0"
+dependencies = [
+ "error-stack",
+ "hash-graph-types",
+ "serde",
+ "serde_json",
+ "temporal-client",
+ "temporal-sdk-core-protos",
+ "thiserror",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -5288,14 +5394,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "query-builder-derive"
-version = "0.0.0"
-dependencies = [
- "trybuild",
- "virtue",
-]
-
-[[package]]
 name = "quick-error"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5601,26 +5699,6 @@ name = "regex-syntax"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
-
-[[package]]
-name = "repo-chores"
-version = "0.0.0"
-dependencies = [
- "aws-config",
- "aws-sdk-s3",
- "aws-types",
- "bytes",
- "clap",
- "clap_complete",
- "criterion",
- "error-stack",
- "inferno",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "walkdir",
-]
 
 [[package]]
 name = "reqwest"
@@ -6646,21 +6724,6 @@ dependencies = [
 
 [[package]]
 name = "temporal-client"
-version = "0.0.0"
-dependencies = [
- "error-stack",
- "graph-types",
- "serde",
- "serde_json",
- "temporal-client 0.1.0",
- "temporal-sdk-core-protos",
- "thiserror",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "temporal-client"
 version = "0.1.0"
 source = "git+https://github.com/temporalio/sdk-core?rev=7e3c23f#7e3c23fd90daae19c8d8305f20b3530d6d2cd252"
 dependencies = [
@@ -6724,21 +6787,6 @@ dependencies = [
  "thiserror",
  "tonic 0.9.2",
  "tonic-build",
-]
-
-[[package]]
-name = "temporal-versioning"
-version = "0.0.0"
-dependencies = [
- "bytes",
- "codec",
- "derive-where",
- "postgres-protocol",
- "postgres-types",
- "serde",
- "time",
- "tracing",
- "utoipa",
 ]
 
 [[package]]
@@ -6831,26 +6879,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.87",
-]
-
-[[package]]
-name = "test-server"
-version = "0.0.0"
-dependencies = [
- "authorization",
- "axum 0.7.7",
- "codec",
- "error-stack",
- "futures",
- "graph",
- "graph-api",
- "graph-type-defs",
- "graph-types",
- "hash-status",
- "tokio",
- "tokio-util",
- "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -7472,32 +7500,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "type-fetcher"
-version = "0.0.0"
-dependencies = [
- "error-stack",
- "futures",
- "include_dir",
- "reqwest",
- "serde",
- "serde_json",
- "tarpc",
- "time",
- "tracing",
- "type-system",
-]
-
-[[package]]
 name = "type-system"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "codec",
  "console_error_panic_hook",
  "email_address",
  "error-stack",
  "futures",
- "graph-test-data",
+ "hash-codec",
+ "hash-graph-test-data",
  "iso8601-duration",
  "itertools 0.13.0",
  "postgres-types",
@@ -7739,26 +7751,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "validation"
-version = "0.0.0"
-dependencies = [
- "error-stack",
- "futures",
- "graph-test-data",
- "graph-types",
- "regex",
- "serde",
- "serde_json",
- "temporal-versioning",
- "thiserror",
- "tokio",
- "type-system",
- "url",
- "utoipa",
- "uuid",
-]
-
-[[package]]
 name = "valuable"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7769,12 +7761,6 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
-
-[[package]]
-name = "virtue"
-version = "0.0.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7302ac74a033bf17b6e609ceec0f891ca9200d502d31f02dc7908d3d98767c9d"
 
 [[package]]
 name = "void"

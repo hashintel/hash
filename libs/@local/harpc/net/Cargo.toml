@@ -29,7 +29,7 @@ multistream-select = { workspace = true, public = true }
 tokio = { workspace = true, public = true, features = ["io-util", "macros"] }
 
 # Private workspace dependencies
-codec = { workspace = true, features = ["harpc"] }
+hash-codec = { workspace = true, features = ["harpc"] }
 error-stack = { workspace = true }
 harpc-wire-protocol = { workspace = true }
 harpc-types = { workspace = true }

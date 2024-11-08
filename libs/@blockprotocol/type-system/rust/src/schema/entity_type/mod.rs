@@ -351,7 +351,7 @@ mod tests {
     #[tokio::test]
     async fn book() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::BOOK_V1,
+            hash_graph_test_data::entity_type::BOOK_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -372,7 +372,7 @@ mod tests {
     #[tokio::test]
     async fn address() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::UK_ADDRESS_V1,
+            hash_graph_test_data::entity_type::UK_ADDRESS_V1,
             EntityTypeValidator,
             JsonEqualityCheck::No,
         )
@@ -390,7 +390,7 @@ mod tests {
     #[tokio::test]
     async fn organization() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::ORGANIZATION_V1,
+            hash_graph_test_data::entity_type::ORGANIZATION_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -406,7 +406,7 @@ mod tests {
     #[tokio::test]
     async fn building() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::BUILDING_V1,
+            hash_graph_test_data::entity_type::BUILDING_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -431,7 +431,7 @@ mod tests {
     #[tokio::test]
     async fn person() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::PERSON_V1,
+            hash_graph_test_data::entity_type::PERSON_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -458,7 +458,7 @@ mod tests {
     #[tokio::test]
     async fn playlist() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::PLAYLIST_V1,
+            hash_graph_test_data::entity_type::PLAYLIST_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -477,7 +477,7 @@ mod tests {
     #[tokio::test]
     async fn song() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::SONG_V1,
+            hash_graph_test_data::entity_type::SONG_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -493,7 +493,7 @@ mod tests {
     #[tokio::test]
     async fn page() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::PAGE_V2,
+            hash_graph_test_data::entity_type::PAGE_V2,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
