@@ -11,7 +11,7 @@ use futures::{Stream, TryFutureExt as _, TryStreamExt};
 use hash_graph_store::{
     error::QueryError,
     filter::{Filter, QueryRecord},
-    subgraph::{SubgraphRecord, temporal_axes::QueryTemporalAxes},
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 use tracing::instrument;
 use type_system::url::VersionedUrl;
@@ -44,105 +44,6 @@ impl Sorting for VersionedUrlSorting {
 
     fn set_cursor(&mut self, cursor: Self::Cursor) {
         self.cursor = Some(cursor);
-    }
-}
-
-pub struct ReadParameter<'f, R: QueryRecord, S> {
-    filters: Option<&'f Filter<'f, R>>,
-    temporal_axes: Option<&'f QueryTemporalAxes>,
-    include_drafts: bool,
-    sorting: Option<S>,
-    limit: Option<usize>,
-}
-
-impl<R: QueryRecord> Default for ReadParameter<'_, R, ()> {
-    fn default() -> Self {
-        Self {
-            filters: None,
-            temporal_axes: None,
-            include_drafts: false,
-            sorting: None,
-            limit: None,
-        }
-    }
-}
-
-impl<'f, R: QueryRecord, S> ReadParameter<'f, R, S> {
-    #[must_use]
-    pub const fn filter(mut self, filter: &'f Filter<'f, R>) -> Self {
-        self.filters = Some(filter);
-        self
-    }
-
-    #[must_use]
-    pub const fn temporal_axes(mut self, temporal_axes: &'f QueryTemporalAxes) -> Self {
-        self.temporal_axes = Some(temporal_axes);
-        self
-    }
-
-    #[must_use]
-    pub const fn include_drafts(mut self) -> Self {
-        self.include_drafts = true;
-        self
-    }
-}
-
-impl<'f, R: SubgraphRecord + QueryRecord, S> ReadParameter<'f, R, S> {
-    #[must_use]
-    pub fn sort_by_vertex_id(self) -> ReadParameter<'f, R, VersionedUrlSorting> {
-        ReadParameter {
-            filters: self.filters,
-            temporal_axes: self.temporal_axes,
-            include_drafts: self.include_drafts,
-            sorting: Some(VersionedUrlSorting { cursor: None }),
-            limit: self.limit,
-        }
-    }
-}
-
-impl<R: QueryRecord> ReadParameter<'_, R, ()> {
-    /// # Errors
-    ///
-    /// Returns an error if reading the records fails.
-    pub async fn read(
-        &self,
-        store: &impl Read<R>,
-    ) -> Result<impl Stream<Item = Result<R, Report<QueryError>>>, Report<QueryError>> {
-        store
-            .read(
-                self.filters.unwrap_or(&Filter::All(Vec::new())),
-                self.temporal_axes,
-                self.include_drafts,
-            )
-            .await
-    }
-
-    /// # Errors
-    ///
-    /// Returns an error if reading the records fails.
-    pub async fn read_vec(&self, store: &impl Read<R>) -> Result<Vec<R>, Report<QueryError>> {
-        self.read(store).await?.try_collect().await
-    }
-}
-
-impl<R: QueryRecord, S: Sorting> ReadParameter<'_, R, S> {
-    #[must_use]
-    pub const fn limit(mut self, limit: usize) -> Self {
-        self.limit = Some(limit);
-        self
-    }
-
-    #[must_use]
-    #[expect(
-        clippy::missing_panics_doc,
-        reason = "It's not possible to get `S` as parameter without setting `sorting`"
-    )]
-    pub fn cursor(mut self, cursor: S::Cursor) -> Self {
-        self.sorting
-            .as_mut()
-            .expect("sorting is not set")
-            .set_cursor(cursor);
-        self
     }
 }
 
