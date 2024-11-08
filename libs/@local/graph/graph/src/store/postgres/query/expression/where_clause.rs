@@ -1,8 +1,9 @@
 use core::fmt;
 
-use crate::store::{
-    NullOrdering, Ordering,
-    postgres::query::{Condition, Expression, Transpile, expression::conditional::Transpiler},
+use hash_graph_store::query::{NullOrdering, Ordering};
+
+use crate::store::postgres::query::{
+    Condition, Expression, Transpile, expression::conditional::Transpiler,
 };
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]

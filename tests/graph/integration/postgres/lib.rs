@@ -31,12 +31,6 @@ use graph::{
     store::{
         DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
         StorePool,
-        knowledge::{
-            CountEntitiesParams, CreateEntityParams, EntityStore, GetEntitiesParams,
-            GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-            PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityError,
-            ValidateEntityParams,
-        },
     },
 };
 use hash_graph_authorization::{
@@ -51,13 +45,17 @@ use hash_graph_authorization::{
     zanzibar::Consistency,
 };
 use hash_graph_store::{
-    ConflictBehavior,
     account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
         GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
         GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
+    },
+    entity::{
+        CountEntitiesParams, CreateEntityParams, EntityStore, GetEntitiesParams,
+        GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
+        UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
@@ -73,6 +71,7 @@ use hash_graph_store::{
         GetPropertyTypesResponse, PropertyTypeStore, UnarchivePropertyTypeParams,
         UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
+    query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{

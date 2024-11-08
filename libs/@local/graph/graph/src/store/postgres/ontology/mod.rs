@@ -8,8 +8,12 @@ use core::convert::identity;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{
-    data_type::DataTypeQueryPath, entity_type::EntityTypeQueryPath, filter::Parameter,
-    property_type::PropertyTypeQueryPath, subgraph::temporal_axes::QueryTemporalAxes,
+    data_type::DataTypeQueryPath,
+    entity_type::EntityTypeQueryPath,
+    filter::Parameter,
+    property_type::PropertyTypeQueryPath,
+    query::{Ordering, Sorting as _, VersionedUrlSorting},
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 use hash_graph_types::{
     ontology::{
@@ -27,8 +31,6 @@ use type_system::{
 };
 
 use crate::store::{
-    Ordering,
-    crud::{Sorting as _, VersionedUrlSorting},
     error::DeletionError,
     postgres::{
         AsClient as _, PostgresStore,

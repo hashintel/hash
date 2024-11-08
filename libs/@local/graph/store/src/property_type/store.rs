@@ -16,9 +16,9 @@ use serde::{Deserialize, Serialize};
 use type_system::{schema::PropertyType, url::VersionedUrl};
 
 use crate::{
-    ConflictBehavior,
     error::{InsertionError, QueryError, UpdateError},
     filter::Filter,
+    query::ConflictBehavior,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 

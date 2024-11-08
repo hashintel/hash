@@ -11,40 +11,16 @@ use futures::{Stream, TryFutureExt as _, TryStreamExt};
 use hash_graph_store::{
     error::QueryError,
     filter::{Filter, QueryRecord},
+    query::Sorting,
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 use tracing::instrument;
-use type_system::url::VersionedUrl;
 
 pub trait QueryResult<R, S: Sorting> {
     type Indices: Send;
 
     fn decode_record(&self, indices: &Self::Indices) -> R;
     fn decode_cursor(&self, indices: &Self::Indices) -> <S as Sorting>::Cursor;
-}
-
-pub trait Sorting {
-    type Cursor;
-
-    fn cursor(&self) -> Option<&Self::Cursor>;
-
-    fn set_cursor(&mut self, cursor: Self::Cursor);
-}
-
-pub struct VersionedUrlSorting {
-    pub cursor: Option<VersionedUrl>,
-}
-
-impl Sorting for VersionedUrlSorting {
-    type Cursor = VersionedUrl;
-
-    fn cursor(&self) -> Option<&Self::Cursor> {
-        self.cursor.as_ref()
-    }
-
-    fn set_cursor(&mut self, cursor: Self::Cursor) {
-        self.cursor = Some(cursor);
-    }
 }
 
 /// Read access to a [`Store`].

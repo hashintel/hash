@@ -3,7 +3,11 @@ use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_authorization::{
     AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject,
 };
-use hash_graph_store::{error::InsertionError, filter::Filter};
+use hash_graph_store::{
+    entity::{EntityStore as _, ValidateEntityComponents},
+    error::InsertionError,
+    filter::Filter,
+};
 use hash_graph_types::{
     knowledge::{
         entity::{Entity, EntityUuid},
@@ -11,7 +15,7 @@ use hash_graph_types::{
     },
     ontology::OntologyTypeProvider,
 };
-use hash_graph_validation::{EntityPreprocessor, Validate as _, ValidateEntityComponents};
+use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use tokio_postgres::GenericClient as _;
 use type_system::schema::{ClosedEntityType, ClosedMultiEntityType};
 
@@ -20,7 +24,6 @@ use crate::{
     store::{
         StoreCache, StoreProvider,
         crud::Read,
-        knowledge::EntityStore as _,
         postgres::{
             AsClient, PostgresStore,
             query::rows::{

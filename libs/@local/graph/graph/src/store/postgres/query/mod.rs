@@ -13,25 +13,21 @@ pub(crate) mod rows;
 mod statement;
 pub(crate) mod table;
 
-use alloc::borrow::Cow;
 use core::{
     convert::identity,
     error::Error,
     fmt::{self, Display, Formatter},
 };
 
-use bytes::BytesMut;
 use hash_graph_store::{
+    entity::{EntityQueryCursor, EntityQuerySorting},
     filter::{ParameterConversionError, QueryRecord},
+    query::{CursorField, Sorting},
     subgraph::temporal_axes::QueryTemporalAxes,
 };
-use hash_graph_temporal_versioning::{TemporalInterval, Timestamp};
 use hash_graph_types::knowledge::entity::Entity;
-use postgres_types::{FromSql, IsNull, ToSql, Type, WasNull};
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio_postgres::Row;
-use uuid::Uuid;
 
 pub use self::{
     compile::SelectCompiler,
@@ -45,13 +41,9 @@ pub use self::{
     },
     table::{Alias, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table},
 };
-use crate::store::{
-    crud::Sorting,
-    knowledge::{EntityQueryCursor, EntityQuerySorting},
-    postgres::{
-        crud::QueryRecordDecode,
-        query::table::{JsonField, Relation},
-    },
+use crate::store::postgres::{
+    crud::QueryRecordDecode,
+    query::table::{JsonField, Relation},
 };
 
 pub trait PostgresRecord: QueryRecord + QueryRecordDecode<Output = Self> {
@@ -116,101 +108,6 @@ pub trait PostgresSorting<'s, R: QueryRecord>:
     ) -> Self::Indices
     where
         's: 'q;
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum CursorField<'a> {
-    Bool(bool),
-    I32(i32),
-    F64(f64),
-    #[serde(borrow)]
-    String(Cow<'a, str>),
-    Timestamp(Timestamp<()>),
-    TimeInterval(TemporalInterval<()>),
-    Json(serde_json::Value),
-    Uuid(Uuid),
-}
-
-impl CursorField<'_> {
-    pub fn into_owned(self) -> CursorField<'static> {
-        match self {
-            Self::Bool(value) => CursorField::Bool(value),
-            Self::I32(value) => CursorField::I32(value),
-            Self::F64(value) => CursorField::F64(value),
-            Self::String(value) => CursorField::String(Cow::Owned(value.into_owned())),
-            Self::Timestamp(value) => CursorField::Timestamp(value),
-            Self::TimeInterval(value) => CursorField::TimeInterval(value),
-            Self::Json(value) => CursorField::Json(value),
-            Self::Uuid(value) => CursorField::Uuid(value),
-        }
-    }
-}
-
-impl FromSql<'_> for CursorField<'static> {
-    tokio_postgres::types::accepts!(
-        BOOL,
-        INT4,
-        FLOAT8,
-        TEXT,
-        VARCHAR,
-        TIMESTAMPTZ,
-        TSTZ_RANGE,
-        JSONB,
-        UUID
-    );
-
-    fn from_sql(ty: &Type, raw: &[u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        match *ty {
-            Type::BOOL => Ok(Self::Bool(bool::from_sql(ty, raw)?)),
-            Type::INT4 => Ok(Self::I32(i32::from_sql(ty, raw)?)),
-            Type::FLOAT8 => Ok(Self::F64(f64::from_sql(ty, raw)?)),
-            Type::TEXT | Type::VARCHAR => Ok(Self::String(Cow::Owned(String::from_sql(ty, raw)?))),
-            Type::TIMESTAMPTZ => Ok(Self::Timestamp(Timestamp::from_sql(ty, raw)?)),
-            Type::TSTZ_RANGE => Ok(Self::TimeInterval(TemporalInterval::from_sql(ty, raw)?)),
-            Type::JSONB => Ok(Self::Json(serde_json::Value::from_sql(ty, raw)?)),
-            Type::UUID => Ok(Self::Uuid(Uuid::from_sql(ty, raw)?)),
-            _ => Err(format!("Unsupported type: {ty}").into()),
-        }
-    }
-
-    fn from_sql_null(ty: &Type) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        match *ty {
-            Type::JSONB => Ok(Self::Json(serde_json::Value::Null)),
-            _ => Err(Box::new(WasNull)),
-        }
-    }
-}
-
-impl ToSql for CursorField<'_> {
-    tokio_postgres::types::accepts!(
-        BOOL,
-        INT4,
-        FLOAT8,
-        TEXT,
-        VARCHAR,
-        TIMESTAMPTZ,
-        TSTZ_RANGE,
-        JSONB,
-        UUID
-    );
-
-    postgres_types::to_sql_checked!();
-
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        match self {
-            Self::Bool(value) => value.to_sql(ty, out),
-            Self::I32(value) => value.to_sql(ty, out),
-            Self::F64(value) => value.to_sql(ty, out),
-            Self::String(value) => value.to_sql(ty, out),
-            Self::Timestamp(value) => value.to_sql(ty, out),
-            Self::TimeInterval(value) => value.to_sql(ty, out),
-            Self::Json(value) => value.to_sql(ty, out),
-            Self::Uuid(value) => value.to_sql(ty, out),
-        }
-    }
 }
 
 impl<'s> QueryRecordDecode for EntityQuerySorting<'s> {

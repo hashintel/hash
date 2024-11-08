@@ -1,17 +1,14 @@
 use alloc::borrow::Cow;
 use std::collections::HashSet;
 
-use graph::store::{
-    NullOrdering, Ordering,
-    knowledge::{
-        CreateEntityParams, EntityQuerySorting, EntityQuerySortingRecord, EntityStore as _,
-        GetEntitiesParams, GetEntitiesResponse,
-    },
-};
 use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
-    entity::EntityQueryPath,
+    entity::{
+        CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
+        EntityStore as _, GetEntitiesParams, GetEntitiesResponse,
+    },
     filter::{Filter, JsonPath, PathToken},
+    query::{NullOrdering, Ordering},
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },

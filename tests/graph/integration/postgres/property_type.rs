@@ -1,10 +1,10 @@
 use hash_graph_store::{
-    ConflictBehavior,
     filter::Filter,
     property_type::{
         CreatePropertyTypeParams, GetPropertyTypesParams, PropertyTypeStore as _,
         UpdatePropertyTypesParams,
     },
+    query::ConflictBehavior,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },

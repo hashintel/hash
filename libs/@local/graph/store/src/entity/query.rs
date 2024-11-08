@@ -2,16 +2,20 @@ use alloc::borrow::Cow;
 use core::{fmt, str::FromStr as _};
 
 use serde::{
-    Deserialize, Deserializer,
+    Deserialize, Deserializer, Serialize,
     de::{self, SeqAccess, Visitor},
 };
 use type_system::url::BaseUrl;
 #[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
+use utoipa::{
+    ToSchema,
+    openapi::{self, Ref, RefOr, Schema, schema},
+};
 
 use crate::{
     entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     filter::{JsonPath, ParameterType, PathToken, QueryPath, parse_query_token},
+    query::{CursorField, NullOrdering, Ordering, Sorting},
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
 };
 
@@ -901,6 +905,97 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
                 EntityQueryPath::PropertyMetadata(path.map(JsonPath::into_owned))
             }
         }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct EntityQuerySortingRecord<'s> {
+    #[serde(
+        borrow,
+        deserialize_with = "EntityQueryPath::deserialize_from_sorting_tokens"
+    )]
+    pub path: EntityQueryPath<'s>,
+    pub ordering: Ordering,
+    pub nulls: Option<NullOrdering>,
+}
+
+#[cfg(feature = "utoipa")]
+impl ToSchema<'_> for EntityQuerySortingRecord<'_> {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "EntityQuerySortingRecord",
+            Schema::Object(
+                schema::ObjectBuilder::new()
+                    .property("path", Ref::from_schema_name("EntityQuerySortingPath"))
+                    .required("path")
+                    .property("ordering", Ref::from_schema_name("Ordering"))
+                    .required("ordering")
+                    .property("nulls", Ref::from_schema_name("NullOrdering"))
+                    .required("nulls")
+                    .build(),
+            )
+            .into(),
+        )
+    }
+}
+
+impl EntityQuerySortingRecord<'_> {
+    #[must_use]
+    pub fn into_owned(self) -> EntityQuerySortingRecord<'static> {
+        EntityQuerySortingRecord {
+            path: self.path.into_owned(),
+            ordering: self.ordering,
+            nulls: self.nulls,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EntityQuerySorting<'s> {
+    #[serde(borrow)]
+    pub paths: Vec<EntityQuerySortingRecord<'s>>,
+    #[serde(borrow)]
+    pub cursor: Option<EntityQueryCursor<'s>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct EntityQueryCursor<'s> {
+    #[serde(borrow)]
+    pub values: Vec<CursorField<'s>>,
+}
+
+#[cfg(feature = "utoipa")]
+impl ToSchema<'_> for EntityQueryCursor<'_> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "EntityQueryCursor",
+            openapi::Schema::Array(openapi::schema::Array::default()).into(),
+        )
+    }
+}
+
+impl EntityQueryCursor<'_> {
+    pub fn into_owned(self) -> EntityQueryCursor<'static> {
+        EntityQueryCursor {
+            values: self
+                .values
+                .into_iter()
+                .map(CursorField::into_owned)
+                .collect(),
+        }
+    }
+}
+
+impl<'s> Sorting for EntityQuerySorting<'s> {
+    type Cursor = EntityQueryCursor<'s>;
+
+    fn cursor(&self) -> Option<&Self::Cursor> {
+        self.cursor.as_ref()
+    }
+
+    fn set_cursor(&mut self, cursor: Self::Cursor) {
+        self.cursor = Some(cursor);
     }
 }
 

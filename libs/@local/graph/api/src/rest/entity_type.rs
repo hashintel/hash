@@ -32,7 +32,6 @@ use hash_graph_authorization::{
     zanzibar::Consistency,
 };
 use hash_graph_store::{
-    ConflictBehavior,
     entity_type::{
         ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeQueryToken,
         EntityTypeResolveDefinitions, EntityTypeStore as _, GetClosedMultiEntityTypeParams,
@@ -40,6 +39,7 @@ use hash_graph_store::{
         GetEntityTypesResponse, IncludeEntityTypeOption, UnarchiveEntityTypeParams,
         UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
+    query::ConflictBehavior,
 };
 use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use hash_graph_types::{

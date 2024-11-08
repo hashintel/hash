@@ -20,6 +20,7 @@ use hash_graph_store::{
         GetPropertyTypesResponse, PropertyTypeQueryPath, PropertyTypeStore,
         UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
+    query::VersionedUrlSorting,
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -47,7 +48,7 @@ use type_system::{
 };
 
 use crate::store::{
-    crud::{QueryResult as _, Read as _, ReadPaginated, VersionedUrlSorting},
+    crud::{QueryResult as _, Read as _, ReadPaginated},
     error::DeletionError,
     postgres::{
         AsClient, PostgresStore, TraversalContext,

@@ -1,19 +1,17 @@
 use core::str::FromStr as _;
 use std::collections::{HashMap, HashSet};
 
-use graph::store::{
-    error::{
-        BaseUrlAlreadyExists, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
-        VersionedUrlAlreadyExists,
-    },
-    knowledge::{CreateEntityParams, EntityStore as _},
+use graph::store::error::{
+    BaseUrlAlreadyExists, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
+    VersionedUrlAlreadyExists,
 };
 use hash_graph_store::{
-    ConflictBehavior,
     data_type::{
         CreateDataTypeParams, DataTypeStore as _, GetDataTypesParams, UpdateDataTypesParams,
     },
+    entity::{CreateEntityParams, EntityStore as _},
     filter::Filter,
+    query::ConflictBehavior,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },

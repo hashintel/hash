@@ -1,6 +1,5 @@
 pub mod crud;
 pub mod error;
-pub mod knowledge;
 
 mod config;
 mod pool;
@@ -10,12 +9,9 @@ mod fetcher;
 pub(crate) mod postgres;
 
 use hash_graph_store::{
-    account::AccountStore, data_type::DataTypeStore, entity_type::EntityTypeStore,
-    property_type::PropertyTypeStore,
+    account::AccountStore, data_type::DataTypeStore, entity::EntityStore,
+    entity_type::EntityTypeStore, property_type::PropertyTypeStore,
 };
-use serde::Deserialize;
-#[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
 
 pub use self::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
@@ -24,7 +20,6 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
     validation::{StoreCache, StoreProvider},
 };
-use crate::store::knowledge::EntityStore;
 
 /// Describes the API of a store implementation.
 ///
@@ -40,20 +35,4 @@ pub trait Store:
 impl<S> Store for S where
     S: AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore
 {
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub enum Ordering {
-    Ascending,
-    Descending,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub enum NullOrdering {
-    First,
-    Last,
 }

@@ -17,6 +17,7 @@ hash-graph-types = { workspace = true }
 # Public third-party dependencies
 utoipa = { workspace = true, public = true, optional = true }
 postgres-types = { workspace = true, public = true, optional = true, features = ["derive", "with-serde_json-1"] }
+tokio-postgres = { workspace = true, public = true, optional = true}
 
 # Private workspace dependencies
 derive_more = { workspace = true, features = ["display", "error"] }
@@ -26,6 +27,7 @@ type-system = { workspace = true }
 # Private third-party dependencies
 bytes = { workspace = true, optional = true }
 derive-where = { workspace = true }
+futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
@@ -36,7 +38,7 @@ tokio = { workspace = true, features = ["macros"] }
 
 [features]
 utoipa = ["dep:utoipa", "hash-graph-temporal-versioning/utoipa"]
-postgres = ["dep:postgres-types", "dep:bytes"]
+postgres = ["dep:postgres-types", "dep:tokio-postgres", "dep:bytes"]
 
 [lints]
 workspace = true

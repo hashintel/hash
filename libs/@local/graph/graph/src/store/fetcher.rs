@@ -13,7 +13,6 @@ use hash_graph_authorization::{
     zanzibar::Consistency,
 };
 use hash_graph_store::{
-    ConflictBehavior,
     account::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore,
         InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
@@ -25,8 +24,13 @@ use hash_graph_store::{
         GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
     },
+    entity::{
+        CountEntitiesParams, CreateEntityParams, EntityStore, GetEntitiesParams,
+        GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
+        UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
+    },
     entity_type::{
-        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
+        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
         GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
         GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
         GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
@@ -40,6 +44,7 @@ use hash_graph_store::{
         GetPropertyTypesResponse, PropertyTypeStore, UnarchivePropertyTypeParams,
         UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
+    query::{ConflictBehavior, Sorting},
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
         VariableTemporalAxisUnresolved,
@@ -69,14 +74,9 @@ use type_system::{
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
-        EntityStore, EntityTypeStore, StorePool,
-        crud::{QueryResult, Read, ReadPaginated, Sorting},
+        StorePool,
+        crud::{QueryResult, Read, ReadPaginated},
         error::StoreError,
-        knowledge::{
-            CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
-            GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
-            UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
-        },
     },
 };
 

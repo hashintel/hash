@@ -16,10 +16,17 @@ use hash_graph_authorization::{
     zanzibar::{Consistency, Zookie},
 };
 use hash_graph_store::{
-    entity::EntityQueryPath,
+    entity::{
+        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, EntityQueryPath,
+        EntityQuerySorting, EntityStore, EntityValidationType, GetEntitiesParams,
+        GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
+        QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
+        ValidateEntityError, ValidateEntityParams,
+    },
     entity_type::IncludeEntityTypeOption,
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, Parameter},
+    query::Sorting as _,
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -55,9 +62,7 @@ use hash_graph_types::{
     ontology::{DataTypeLookup, OntologyTypeProvider},
     owned_by_id::OwnedById,
 };
-use hash_graph_validation::{
-    EntityPreprocessor, EntityValidationError, Validate as _, ValidateEntityComponents,
-};
+use hash_graph_validation::{EntityPreprocessor, EntityValidationError, Validate as _};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde_json::Value as JsonValue;
@@ -73,14 +78,8 @@ use uuid::Uuid;
 
 use crate::store::{
     AsClient, PostgresStore, StoreCache,
-    crud::{QueryResult as _, Read, ReadPaginated, Sorting as _},
+    crud::{QueryResult as _, Read, ReadPaginated},
     error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
-    knowledge::{
-        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, EntityQuerySorting,
-        EntityStore, EntityValidationType, GetEntitiesParams, GetEntitiesResponse,
-        GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
-        UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
-    },
     postgres::{
         ResponseCountMap, TraversalContext,
         knowledge::entity::read::EntityEdgeTraversalData,

@@ -121,6 +121,7 @@ mod tests {
         entity_type::EntityTypeQueryPath,
         filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         property_type::PropertyTypeQueryPath,
+        query::{NullOrdering, Ordering},
         subgraph::{
             edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
             temporal_axes::QueryTemporalAxesUnresolved,
@@ -134,11 +135,8 @@ mod tests {
     use postgres_types::ToSql;
     use uuid::Uuid;
 
-    use crate::store::{
-        NullOrdering, Ordering,
-        postgres::query::{
-            Distinctness, PostgresRecord, SelectCompiler, test_helper::trim_whitespace,
-        },
+    use crate::store::postgres::query::{
+        Distinctness, PostgresRecord, SelectCompiler, test_helper::trim_whitespace,
     };
 
     fn test_compilation<'p, 'q: 'p, T: PostgresRecord + 'static>(

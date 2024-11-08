@@ -2815,6 +2815,7 @@ dependencies = [
  "derive-where",
  "derive_more 1.0.0",
  "error-stack",
+ "futures",
  "hash-graph-authorization",
  "hash-graph-temporal-versioning",
  "hash-graph-types",
@@ -2823,6 +2824,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+ "tokio-postgres",
  "type-system",
  "utoipa",
  "uuid",
@@ -2922,6 +2924,7 @@ version = "0.0.0"
 dependencies = [
  "error-stack",
  "futures",
+ "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
  "hash-graph-types",

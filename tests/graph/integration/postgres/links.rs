@@ -1,12 +1,11 @@
 use alloc::borrow::Cow;
 use std::collections::HashSet;
 
-use graph::store::knowledge::{
-    CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore as _,
-    GetEntitiesParams, PatchEntityParams,
-};
 use hash_graph_store::{
-    entity::EntityQueryPath,
+    entity::{
+        CountEntitiesParams, CreateEntityParams, EntityQueryPath, EntityQuerySorting,
+        EntityStore as _, GetEntitiesParams, PatchEntityParams,
+    },
     entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, Parameter},
     subgraph::{

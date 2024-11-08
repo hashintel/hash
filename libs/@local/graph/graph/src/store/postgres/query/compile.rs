@@ -6,26 +6,23 @@ use hash_graph_store::{
     filter::{
         Filter, FilterExpression, Parameter, ParameterList, ParameterType, PathToken, QueryRecord,
     },
+    query::{NullOrdering, Ordering},
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 use tracing::instrument;
 
-use crate::store::{
-    NullOrdering, Ordering,
-    postgres::query::{
-        Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression,
-        Function, JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord,
-        SelectExpression, SelectStatement, Table, Transpile as _, WhereExpression, WindowStatement,
-        WithExpression,
-        expression::{GroupByExpression, PostgresType},
-        statement::FromItem,
-        table::{
-            DataTypeEmbeddings, DatabaseColumn as _, EntityEmbeddings, EntityTemporalMetadata,
-            EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds, OntologyTemporalMetadata,
-            PropertyTypeEmbeddings,
-        },
+use crate::store::postgres::query::{
+    Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression, Function,
+    JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord, SelectExpression,
+    SelectStatement, Table, Transpile as _, WhereExpression, WindowStatement, WithExpression,
+    expression::{GroupByExpression, PostgresType},
+    statement::FromItem,
+    table::{
+        DataTypeEmbeddings, DatabaseColumn as _, EntityEmbeddings, EntityTemporalMetadata,
+        EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds, OntologyTemporalMetadata,
+        PropertyTypeEmbeddings,
     },
 };
 

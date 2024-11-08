@@ -1,14 +1,14 @@
 use error_stack::{Report, ResultExt as _};
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
 use hash_graph_store::{
-    error::QueryError, filter::Filter, subgraph::temporal_axes::QueryTemporalAxes,
+    error::QueryError, filter::Filter, query::Sorting, subgraph::temporal_axes::QueryTemporalAxes,
 };
 use tokio_postgres::{GenericClient as _, Row};
 use tracing::Instrument as _;
 
 use crate::store::{
     AsClient, PostgresStore,
-    crud::{QueryResult, Read, ReadPaginated, Sorting},
+    crud::{QueryResult, Read, ReadPaginated},
     postgres::query::{PostgresQueryPath, PostgresRecord, PostgresSorting, SelectCompiler},
 };
 

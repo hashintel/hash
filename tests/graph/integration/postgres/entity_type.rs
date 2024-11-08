@@ -1,9 +1,9 @@
 use hash_graph_store::{
-    ConflictBehavior,
     entity_type::{
         CreateEntityTypeParams, EntityTypeStore as _, GetEntityTypesParams, UpdateEntityTypesParams,
     },
     filter::Filter,
+    query::ConflictBehavior,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },

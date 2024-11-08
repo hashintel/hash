@@ -1,9 +1,8 @@
 use core::fmt;
 
-use crate::store::{
-    NullOrdering, Ordering,
-    postgres::query::{Expression, Transpile},
-};
+use hash_graph_store::query::{NullOrdering, Ordering};
+
+use crate::store::postgres::query::{Expression, Transpile};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct OrderByExpression {

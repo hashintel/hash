@@ -31,13 +31,13 @@ use hash_graph_authorization::{
     zanzibar::Consistency,
 };
 use hash_graph_store::{
-    ConflictBehavior,
     property_type::{
         ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,
         GetPropertyTypesParams, GetPropertyTypesResponse, PropertyTypeQueryToken,
         PropertyTypeStore as _, UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
         UpdatePropertyTypesParams,
     },
+    query::ConflictBehavior,
 };
 use hash_graph_types::{
     ontology::{

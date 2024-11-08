@@ -21,13 +21,13 @@ use hash_graph_authorization::{
     },
 };
 use hash_graph_store::{
-    ConflictBehavior,
     account::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore,
         InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
         WebInsertionError,
     },
     error::{InsertionError, QueryError, UpdateError},
+    query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use hash_graph_types::{
@@ -54,7 +54,6 @@ use type_system::{
 
 pub use self::{
     pool::{AsClient, PostgresStorePool},
-    query::CursorField,
     traversal_context::TraversalContext,
 };
 use crate::store::error::{

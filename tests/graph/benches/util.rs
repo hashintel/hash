@@ -17,11 +17,11 @@ use hash_graph_authorization::{
     },
 };
 use hash_graph_store::{
-    ConflictBehavior,
     data_type::{CreateDataTypeParams, DataTypeStore as _, UpdateDataTypesParams},
     entity_type::{CreateEntityTypeParams, EntityTypeStore as _, UpdateEntityTypesParams},
     migration::StoreMigration as _,
     property_type::{CreatePropertyTypeParams, PropertyTypeStore as _, UpdatePropertyTypesParams},
+    query::ConflictBehavior,
 };
 use hash_graph_types::{
     account::AccountId,

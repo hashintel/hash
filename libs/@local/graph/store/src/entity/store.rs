@@ -1,17 +1,9 @@
 use alloc::borrow::Cow;
-use core::{error::Error, fmt};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
 use futures::TryFutureExt as _;
 use hash_graph_authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
-use hash_graph_store::{
-    entity::EntityQueryPath,
-    entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
-    error::{InsertionError, QueryError, UpdateError},
-    filter::Filter,
-    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
-};
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     account::{AccountId, CreatedById, EditionCreatedById},
@@ -25,16 +17,21 @@ use hash_graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_validation::ValidateEntityComponents;
 use serde::{Deserialize, Serialize};
 use type_system::{schema::ClosedMultiEntityType, url::VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     ToSchema,
-    openapi::{self, Ref, RefOr, Schema, schema},
+    openapi::{self, Ref},
 };
 
-use crate::store::{NullOrdering, Ordering, crud::Sorting, postgres::CursorField};
+use crate::{
+    entity::{EntityQueryCursor, EntityQuerySorting},
+    entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
+    error::{InsertionError, QueryError, UpdateError},
+    filter::Filter,
+    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
@@ -56,105 +53,53 @@ impl ToSchema<'_> for EntityValidationType<'_> {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[display("entity validation failed")]
+#[must_use]
 pub struct ValidateEntityError;
 
-impl fmt::Display for ValidateEntityError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Entity validation failed")
-    }
+const fn default_true() -> bool {
+    true
 }
 
-impl Error for ValidateEntityError {}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct EntityQuerySortingRecord<'s> {
-    #[serde(
-        borrow,
-        deserialize_with = "EntityQueryPath::deserialize_from_sorting_tokens"
-    )]
-    pub path: EntityQueryPath<'s>,
-    pub ordering: Ordering,
-    pub nulls: Option<NullOrdering>,
+#[derive(Debug, Copy, Clone, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ValidateEntityComponents {
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default = "default_true")]
+    pub link_data: bool,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default = "default_true")]
+    pub required_properties: bool,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default = "default_true")]
+    pub num_items: bool,
 }
 
-#[cfg(feature = "utoipa")]
-impl ToSchema<'_> for EntityQuerySortingRecord<'_> {
-    fn schema() -> (&'static str, RefOr<Schema>) {
-        (
-            "EntityQuerySortingRecord",
-            Schema::Object(
-                schema::ObjectBuilder::new()
-                    .property("path", Ref::from_schema_name("EntityQuerySortingPath"))
-                    .required("path")
-                    .property("ordering", Ref::from_schema_name("Ordering"))
-                    .required("ordering")
-                    .property("nulls", Ref::from_schema_name("NullOrdering"))
-                    .required("nulls")
-                    .build(),
-            )
-            .into(),
-        )
-    }
-}
-
-impl EntityQuerySortingRecord<'_> {
+impl ValidateEntityComponents {
     #[must_use]
-    pub fn into_owned(self) -> EntityQuerySortingRecord<'static> {
-        EntityQuerySortingRecord {
-            path: self.path.into_owned(),
-            ordering: self.ordering,
-            nulls: self.nulls,
+    pub const fn full() -> Self {
+        Self {
+            link_data: true,
+            required_properties: true,
+            num_items: true,
+        }
+    }
+
+    #[must_use]
+    pub const fn draft() -> Self {
+        Self {
+            num_items: false,
+            required_properties: false,
+            ..Self::full()
         }
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct EntityQuerySorting<'s> {
-    #[serde(borrow)]
-    pub paths: Vec<EntityQuerySortingRecord<'s>>,
-    #[serde(borrow)]
-    pub cursor: Option<EntityQueryCursor<'s>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct EntityQueryCursor<'s> {
-    #[serde(borrow)]
-    pub values: Vec<CursorField<'s>>,
-}
-
-#[cfg(feature = "utoipa")]
-impl ToSchema<'_> for EntityQueryCursor<'_> {
-    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
-        (
-            "EntityQueryCursor",
-            openapi::Schema::Array(openapi::schema::Array::default()).into(),
-        )
-    }
-}
-
-impl EntityQueryCursor<'_> {
-    pub fn into_owned(self) -> EntityQueryCursor<'static> {
-        EntityQueryCursor {
-            values: self
-                .values
-                .into_iter()
-                .map(CursorField::into_owned)
-                .collect(),
-        }
-    }
-}
-
-impl<'s> Sorting for EntityQuerySorting<'s> {
-    type Cursor = EntityQueryCursor<'s>;
-
-    fn cursor(&self) -> Option<&Self::Cursor> {
-        self.cursor.as_ref()
-    }
-
-    fn set_cursor(&mut self, cursor: Self::Cursor) {
-        self.cursor = Some(cursor);
+impl Default for ValidateEntityComponents {
+    fn default() -> Self {
+        Self::full()
     }
 }
 

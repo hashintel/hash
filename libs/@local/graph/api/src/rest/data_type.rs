@@ -30,12 +30,12 @@ use hash_graph_authorization::{
     zanzibar::Consistency,
 };
 use hash_graph_store::{
-    ConflictBehavior,
     data_type::{
         ArchiveDataTypeParams, CreateDataTypeParams, DataTypeQueryToken, DataTypeStore as _,
         GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
+    query::ConflictBehavior,
 };
 use hash_graph_types::{
     ontology::{

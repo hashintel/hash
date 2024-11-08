@@ -1,7 +1,7 @@
 use core::str::FromStr as _;
 use std::collections::HashSet;
 
-use graph::store::knowledge::{CreateEntityParams, EntityStore as _};
+use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     knowledge::{

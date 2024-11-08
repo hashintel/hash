@@ -3,6 +3,7 @@ use std::collections::{HashSet, hash_map::RawEntryMut};
 
 use error_stack::{Report, ReportSink, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
+use hash_graph_store::entity::ValidateEntityComponents;
 use hash_graph_types::{
     knowledge::{
         entity::{Entity, EntityId},
@@ -32,7 +33,7 @@ use type_system::{
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
-use crate::{EntityProvider, Schema, Validate, ValidateEntityComponents};
+use crate::{EntityProvider, Schema, Validate};
 
 #[derive(Debug, Error)]
 pub enum EntityValidationError {
@@ -681,7 +682,9 @@ impl EntityVisitor for EntityPreprocessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ValidateEntityComponents, tests::validate_entity};
+    use hash_graph_store::entity::ValidateEntityComponents;
+
+    use crate::tests::validate_entity;
 
     #[tokio::test]
     async fn address() {
