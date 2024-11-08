@@ -20,7 +20,7 @@ use tower::{Layer, Service, ServiceBuilder, layer::util::Identity};
 use crate::{
     delegate::SubsystemDelegateService,
     route::{Handler, Route},
-    session::{self, SessionStorage},
+    session::{self, Session, SessionStorage},
 };
 
 pub struct RouterBuilder<R, L, S, C> {
@@ -58,7 +58,7 @@ impl<S, C> RouterBuilder<HNil, Identity, S, C> {
 
 type ServiceHandler<D, L, S, C> = Handler<
     <L as Layer<SubsystemDelegateService<D, S, C>>>::Service,
-    <<D as SubsystemDelegate<S, C>>::Subsystem as Subsystem>::SubsystemId,
+    <<D as SubsystemDelegate<C>>::Subsystem as Subsystem>::SubsystemId,
 >;
 
 impl<R, L, S, C> RouterBuilder<R, L, S, C> {
@@ -87,7 +87,7 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
         delegate: D,
     ) -> RouterBuilder<HCons<ServiceHandler<D, L, S, C>, R>, L, S, C>
     where
-        D: SubsystemDelegate<S, C> + Clone + Send,
+        D: SubsystemDelegate<C, ExecutionScope = Session<S>> + Clone + Send,
         L: Layer<SubsystemDelegateService<D, S, C>>,
         S: Default + Send + Sync + 'static,
         C: Clone + Send + 'static,

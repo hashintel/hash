@@ -10,7 +10,6 @@ use self::{metadata::Deprecation, procedure::ProcedureIdentifier};
 pub mod delegate;
 pub mod metadata;
 pub mod procedure;
-pub mod role;
 
 pub trait SubsystemIdentifier: Copy {
     fn from_id(id: SubsystemId) -> Option<Self>

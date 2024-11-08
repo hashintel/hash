@@ -43,7 +43,7 @@ impl<D, S, C> SubsystemDelegateService<D, S, C> {
 
 impl<D, S, C, ReqBody> Service<Request<ReqBody>> for SubsystemDelegateService<D, S, C>
 where
-    D: SubsystemDelegate<Session<S>, C> + Clone + Send,
+    D: SubsystemDelegate<C, ExecutionScope = Session<S>> + Clone + Send,
     S: Default + Clone + Send + Sync + 'static,
     C: Clone + Send + 'static,
     ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,

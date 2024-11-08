@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use error_stack::{Report, ResultExt as _};
 use harpc_client::{connection::Connection, utils::invoke_call_discrete};
 use harpc_codec::{decode::ReportDecoder, encode::Encoder};
@@ -6,23 +8,23 @@ use harpc_server::{
     session::Session,
     utils::{delegate_call_discrete, parse_procedure_id},
 };
-use harpc_system::{delegate::SubsystemDelegate, role::Role};
+use harpc_system::delegate::SubsystemDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_types::response_kind::ResponseKind;
 
-use super::{role, session::Account};
+use super::session::Account;
 
+#[must_use]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
 #[display("unable to fullfil ping request")]
 pub struct EchoError;
 
-pub trait EchoSystem<R>
-where
-    R: Role,
-{
+pub trait EchoSystem {
+    type ExecutionScope;
+
     async fn echo(
         &self,
-        session: R::Session,
+        scope: Self::ExecutionScope,
         payload: Box<str>,
     ) -> Result<Box<str>, Report<EchoError>>;
 }
@@ -88,7 +90,9 @@ pub mod meta {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct EchoServer;
 
-impl EchoSystem<role::Server> for EchoServer {
+impl EchoSystem for EchoServer {
+    type ExecutionScope = Session<Account>;
+
     async fn echo(
         &self,
         _: Session<Account>,
@@ -105,17 +109,19 @@ pub struct EchoDelegate<T> {
 }
 
 impl<T> EchoDelegate<T> {
+    #[must_use]
     pub const fn new(inner: T) -> Self {
         Self { inner }
     }
 }
 
-impl<T, C> SubsystemDelegate<Session<Account>, C> for EchoDelegate<T>
+impl<T, C> SubsystemDelegate<C> for EchoDelegate<T>
 where
-    T: EchoSystem<role::Server, echo(..): Send> + Send,
+    T: EchoSystem<echo(..): Send, ExecutionScope: Send> + Send,
     C: Encoder + ReportDecoder + Clone + Send,
 {
     type Error = Report<DelegationError>;
+    type ExecutionScope = T::ExecutionScope;
     type Subsystem = meta::EchoSystem;
 
     type Body<Source>
@@ -126,7 +132,7 @@ where
     async fn call<B>(
         self,
         request: Request<B>,
-        session: Session<Account>,
+        scope: T::ExecutionScope,
         codec: C,
     ) -> Result<Response<Self::Body<B>>, Self::Error>
     where
@@ -137,7 +143,7 @@ where
         match id {
             meta::EchoProcedureId::Echo => {
                 delegate_call_discrete(request, codec, |payload| async move {
-                    self.inner.echo(session, payload).await
+                    self.inner.echo(scope, payload).await
                 })
                 .await
             }
@@ -145,20 +151,41 @@ where
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct EchoClient;
+#[derive_where::derive_where(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct EchoClient<S, C> {
+    _service: PhantomData<fn() -> *const S>,
+    _codec: PhantomData<fn() -> *const C>,
+}
 
-impl<Svc, C> EchoSystem<role::Client<Svc, C>> for EchoClient
+impl<S, C> EchoClient<S, C> {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            _service: PhantomData,
+            _codec: PhantomData,
+        }
+    }
+}
+
+impl<S, C> Default for EchoClient<S, C> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<S, C> EchoSystem for EchoClient<S, C>
 where
-    Svc: harpc_client::connection::ConnectionService<C>,
+    S: harpc_client::connection::ConnectionService<C>,
     C: harpc_client::connection::ConnectionCodec,
 {
+    type ExecutionScope = Connection<S, C>;
+
     async fn echo(
         &self,
-        session: Connection<Svc, C>,
+        scope: Connection<S, C>,
         payload: Box<str>,
     ) -> Result<Box<str>, Report<EchoError>> {
-        invoke_call_discrete(session, meta::EchoProcedureId::Echo, [payload])
+        invoke_call_discrete(scope, meta::EchoProcedureId::Echo, [payload])
             .await
             .change_context(EchoError)
     }

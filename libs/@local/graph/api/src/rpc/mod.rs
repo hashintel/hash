@@ -6,17 +6,6 @@ mod session;
 use harpc_system::SubsystemIdentifier;
 use harpc_types::subsystem::SubsystemId;
 
-mod role {
-    use harpc_client::connection::Connection;
-    use harpc_server::session::Session;
-    pub(crate) use harpc_system::role::Role;
-
-    use super::session::Account;
-
-    pub(crate) type Server = harpc_system::role::Server<Session<Account>>;
-    pub(crate) type Client<Svc, C> = harpc_system::role::Client<Connection<Svc, C>>;
-}
-
 #[derive(Debug, Copy, Clone)]
 pub enum GraphSubsystemId {
     Echo,
