@@ -78,7 +78,6 @@ export const useActors = (params: {
   });
 
   const actors = useMemo(() => {
-    console.log("Calculating actors");
     if (accountIds && accountIds.length === 0) {
       return [];
     }

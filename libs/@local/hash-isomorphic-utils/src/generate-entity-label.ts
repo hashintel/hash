@@ -51,7 +51,7 @@ const getFallbackLabel = ({
 
   return `${entityTypeName}${
     includeHexChars
-      ? `-${extractEntityUuidFromEntityId(entityId).slice(0, 3)}`
+      ? `-${extractEntityUuidFromEntityId(entityId).slice(-4, -1)}`
       : ""
   }`;
 };
@@ -94,9 +94,7 @@ export function generateEntityLabel(
   const entityToLabel = entity ?? getRoots(entitySubgraph!)[0]!;
 
   if (!("properties" in entityToLabel)) {
-    throw new Error(
-      `Either one of 'entity' or an entity rooted subgraph must be provided`,
-    );
+    throw new Error("No 'properties' object found in entity to label");
   }
 
   let entityType: EntityTypeWithMetadata | undefined;

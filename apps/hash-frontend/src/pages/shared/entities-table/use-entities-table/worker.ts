@@ -1,14 +1,16 @@
-import type { BaseUrl } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   generateEntityLabel,
   generateLinkEntityLabel,
 } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
@@ -18,14 +20,14 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { format } from "date-fns";
 
-import type { MinimalActor } from "../../../../shared/use-actors";
 import type {
+  ActorTableData,
+  EntitiesTableData,
   GenerateEntitiesTableDataParams,
-  GenerateEntitiesTableDataRequestMessage,
   GenerateEntitiesTableDataResultMessage,
-  SourceOrTargetFilterData,
   TypeEntitiesRow,
 } from "./types";
+import { isGenerateEntitiesTableDataRequestMessage } from "./types";
 
 const columnDefinitionsByKey: Record<
   keyof TypeEntitiesRow,
@@ -82,22 +84,12 @@ const columnDefinitionsByKey: Record<
   },
 };
 
+let activeRequestId: string | null;
+
 const generateTableData = (
   params: GenerateEntitiesTableDataParams,
-): {
-  columns: SizedGridColumn[];
-  filterData: {
-    createdByActors: MinimalActor[];
-    lastEditedByActors: MinimalActor[];
-    entityTypeTitles: { [entityTypeTitle: string]: number | undefined };
-    noSourceCount: number;
-    noTargetCount: number;
-    sources: SourceOrTargetFilterData[];
-    targets: SourceOrTargetFilterData[];
-    webs: { [web: string]: number | undefined };
-  };
-  rows: TypeEntitiesRow[] | undefined;
-} => {
+  requestId: string,
+): EntitiesTableData | "cancelled" => {
   const {
     actors,
     entities,
@@ -105,18 +97,21 @@ const generateTableData = (
     entityTypesWithMultipleVersionsPresent,
     entityTypes,
     usedPropertyTypesByEntityTypeId,
-    subgraph,
+    subgraph: serializedSubgraph,
     hideColumns,
     hidePageArchivedColumn,
     hidePropertiesColumns,
     isViewingOnlyPages,
   } = params;
 
-  const now = new Date();
-  console.log(`Calculating stuff at ${now.toISOString()}`);
+  if (activeRequestId !== requestId) {
+    return "cancelled";
+  }
 
-  const lastEditedBySet = new Set<MinimalActor>();
-  const createdBySet = new Set<MinimalActor>();
+  const subgraph = deserializeSubgraph(serializedSubgraph);
+
+  const lastEditedBySet = new Set<ActorTableData>();
+  const createdBySet = new Set<ActorTableData>();
   const entityTypeTitleCount: {
     [entityTypeTitle: string]: number | undefined;
   } = {};
@@ -161,8 +156,8 @@ const generateTableData = (
   const columns: SizedGridColumn[] = [
     {
       title: entitiesHaveSameType
-        ? (entityTypes?.find(
-            ({ $id }) => $id === entities?.[0]?.metadata.entityTypeIds[0],
+        ? (entityTypes.find(
+            ({ $id }) => $id === entities[0]?.metadata.entityTypeIds[0],
           )?.title ?? "Entity")
         : "Entity",
       id: "entityLabel",
@@ -188,214 +183,200 @@ const generateTableData = (
     );
   }
 
-  const rows: TypeEntitiesRow[] | undefined =
-    subgraph && entityTypes
-      ? entities?.map((entity) => {
-          const entityLabel = generateEntityLabel(subgraph, entity);
+  const rows: TypeEntitiesRow[] = [];
+  for (const entity of entities) {
+    if (activeRequestId !== requestId) {
+      return "cancelled";
+    }
 
-          const currentEntitysTypes = entityTypes.filter((type) =>
-            entity.metadata.entityTypeIds.includes(type.$id),
-          );
+    const entityLabel = generateEntityLabel(subgraph, entity);
 
-          const entityIcon = currentEntitysTypes[0]?.icon;
+    const currentEntitysTypes = entityTypes.filter((type) =>
+      entity.metadata.entityTypeIds.includes(type.$id),
+    );
 
-          // const { shortname: entityNamespace } = getOwnerForEntity({
-          //   entityId: entity.metadata.recordId.entityId,
-          // });
+    const entityIcon = currentEntitysTypes[0]?.icon;
 
-          const entityNamespace = "dummy";
+    // const { shortname: entityNamespace } = getOwnerForEntity({
+    //   entityId: entity.metadata.recordId.entityId,
+    // });
 
-          const entityId = entity.metadata.recordId.entityId;
+    const entityNamespace = "dummy";
 
-          const isPage = includesPageEntityTypeId(
-            entity.metadata.entityTypeIds,
-          );
+    const entityId = entity.metadata.recordId.entityId;
 
-          /**
-           * @todo: consider displaying handling this differently for pages, where
-           * updates on nested blocks/text entities may be a better indicator of
-           * when a page has been last edited.
-           */
-          const lastEdited = format(
-            new Date(
-              entity.metadata.temporalVersioning.decisionTime.start.limit,
-            ),
-            "yyyy-MM-dd HH:mm",
-          );
+    const isPage = includesPageEntityTypeId(entity.metadata.entityTypeIds);
 
-          const lastEditedBy = actors.find(
-            ({ accountId }) =>
-              accountId === entity.metadata.provenance.edition.createdById,
-          );
+    /**
+     * @todo: consider displaying handling this differently for pages, where
+     * updates on nested blocks/text entities may be a better indicator of
+     * when a page has been last edited.
+     */
+    const lastEdited = format(
+      new Date(entity.metadata.temporalVersioning.decisionTime.start.limit),
+      "yyyy-MM-dd HH:mm",
+    );
 
-          if (lastEditedBy) {
-            lastEditedBySet.add(lastEditedBy);
-          }
+    const lastEditedBy = actors.find(
+      ({ accountId }) =>
+        accountId === entity.metadata.provenance.edition.createdById,
+    );
 
-          const created = format(
-            new Date(entity.metadata.provenance.createdAtDecisionTime),
-            "yyyy-MM-dd HH:mm",
-          );
+    if (lastEditedBy) {
+      lastEditedBySet.add({
+        accountId: lastEditedBy.accountId,
+        displayName: lastEditedBy.displayName,
+      });
+    }
 
-          const createdBy = actors.find(
-            ({ accountId }) =>
-              accountId === entity.metadata.provenance.createdById,
-          );
+    const created = format(
+      new Date(entity.metadata.provenance.createdAtDecisionTime),
+      "yyyy-MM-dd HH:mm",
+    );
 
-          if (createdBy) {
-            createdBySet.add(createdBy);
-          }
+    const createdBy = actors.find(
+      ({ accountId }) => accountId === entity.metadata.provenance.createdById,
+    );
 
-          const applicableProperties = currentEntitysTypes.flatMap(
-            (entityType) =>
-              usedPropertyTypesByEntityTypeId[entityType.$id]!.map(
-                ({ propertyType }) => extractBaseUrl(propertyType.schema.$id),
-              ),
-          );
+    if (createdBy) {
+      createdBySet.add(createdBy);
+    }
 
-          let sourceEntity: TypeEntitiesRow["sourceEntity"];
-          let targetEntity: TypeEntitiesRow["targetEntity"];
-          if (entity.linkData) {
-            const source = getEntityRevision(
-              subgraph,
-              entity.linkData.leftEntityId,
-            );
-            const target = getEntityRevision(
-              subgraph,
-              entity.linkData.rightEntityId,
-            );
+    const applicableProperties = currentEntitysTypes.flatMap((entityType) =>
+      usedPropertyTypesByEntityTypeId[entityType.$id]!.map(({ propertyType }) =>
+        extractBaseUrl(propertyType.schema.$id),
+      ),
+    );
 
-            const sourceEntityLabel = !source
-              ? entity.linkData.leftEntityId
-              : source.linkData
-                ? generateLinkEntityLabel(subgraph, source)
-                : generateEntityLabel(subgraph, source);
+    let sourceEntity: TypeEntitiesRow["sourceEntity"];
+    let targetEntity: TypeEntitiesRow["targetEntity"];
+    if (entity.linkData) {
+      const source = getEntityRevision(subgraph, entity.linkData.leftEntityId);
+      const target = getEntityRevision(subgraph, entity.linkData.rightEntityId);
 
-            /**
-             * @todo H-3363 use closed schema to get entity's icon
-             */
-            const sourceEntityType = source
-              ? getEntityTypeById(subgraph, source.metadata.entityTypeIds[0])
-              : undefined;
+      const sourceEntityLabel = !source
+        ? entity.linkData.leftEntityId
+        : source.linkData
+          ? generateLinkEntityLabel(subgraph, source)
+          : generateEntityLabel(subgraph, source);
 
-            sourceEntity = {
-              entityId: entity.linkData.leftEntityId,
-              label: sourceEntityLabel,
-              icon: sourceEntityType?.schema.icon,
-              isLink: !!source?.linkData,
-            };
+      /**
+       * @todo H-3363 use closed schema to get entity's icon
+       */
+      const sourceEntityType = source
+        ? getEntityTypeById(subgraph, source.metadata.entityTypeIds[0])
+        : undefined;
 
-            sourcesByEntityId[sourceEntity.entityId] ??= {
-              count: 0,
-              entityId: sourceEntity.entityId,
-              label: sourceEntity.label,
-            };
-            sourcesByEntityId[sourceEntity.entityId]!.count++;
+      sourceEntity = {
+        entityId: entity.linkData.leftEntityId,
+        label: sourceEntityLabel,
+        icon: sourceEntityType?.schema.icon,
+        isLink: !!source?.linkData,
+      };
 
-            const targetEntityLabel = !target
-              ? entity.linkData.leftEntityId
-              : target.linkData
-                ? generateLinkEntityLabel(subgraph, target)
-                : generateEntityLabel(subgraph, target);
+      sourcesByEntityId[sourceEntity.entityId] ??= {
+        count: 0,
+        entityId: sourceEntity.entityId,
+        label: sourceEntity.label,
+      };
+      sourcesByEntityId[sourceEntity.entityId]!.count++;
 
-            /**
-             * @todo H-3363 use closed schema to get entity's icon
-             */
-            const targetEntityType = target
-              ? getEntityTypeById(subgraph, target.metadata.entityTypeIds[0])
-              : undefined;
+      const targetEntityLabel = !target
+        ? entity.linkData.leftEntityId
+        : target.linkData
+          ? generateLinkEntityLabel(subgraph, target)
+          : generateEntityLabel(subgraph, target);
 
-            targetEntity = {
-              entityId: entity.linkData.rightEntityId,
-              label: targetEntityLabel,
-              icon: targetEntityType?.schema.icon,
-              isLink: !!target?.linkData,
-            };
+      /**
+       * @todo H-3363 use closed schema to get entity's icon
+       */
+      const targetEntityType = target
+        ? getEntityTypeById(subgraph, target.metadata.entityTypeIds[0])
+        : undefined;
 
-            targetsByEntityId[targetEntity.entityId] ??= {
-              count: 0,
-              entityId: targetEntity.entityId,
-              label: targetEntity.label,
-            };
-            targetsByEntityId[targetEntity.entityId]!.count++;
-          } else {
-            noSource += 1;
-            noTarget += 1;
-          }
+      targetEntity = {
+        entityId: entity.linkData.rightEntityId,
+        label: targetEntityLabel,
+        icon: targetEntityType?.schema.icon,
+        isLink: !!target?.linkData,
+      };
 
-          for (const entityType of currentEntitysTypes) {
-            entityTypeTitleCount[entityType.title] ??= 0;
-            entityTypeTitleCount[entityType.title]!++;
-          }
+      targetsByEntityId[targetEntity.entityId] ??= {
+        count: 0,
+        entityId: targetEntity.entityId,
+        label: targetEntity.label,
+      };
+      targetsByEntityId[targetEntity.entityId]!.count++;
+    } else {
+      noSource += 1;
+      noTarget += 1;
+    }
 
-          const web = `@${entityNamespace}`;
-          webCountById[web] ??= 0;
-          webCountById[web]++;
+    for (const entityType of currentEntitysTypes) {
+      entityTypeTitleCount[entityType.title] ??= 0;
+      entityTypeTitleCount[entityType.title]!++;
+    }
 
-          return {
-            rowId: entityId,
-            entityId,
-            entity,
-            entityLabel,
-            entityIcon,
-            entityTypes: currentEntitysTypes.map((entityType) => {
-              /**
-               * @todo H-3363 use closed schema to take account of indirectly inherited link entity types
-               */
-              const isLink = !!entityType.allOf?.some(
-                (allOf) => allOf.$ref === linkEntityTypeUrl,
-              );
+    const web = `@${entityNamespace}`;
+    webCountById[web] ??= 0;
+    webCountById[web]++;
 
-              let entityTypeLabel = entityType.title;
-              if (
-                entityTypesWithMultipleVersionsPresent.includes(entityType.$id)
-              ) {
-                entityTypeLabel += ` v${extractVersion(entityType.$id)}`;
-              }
+    rows.push({
+      rowId: entityId,
+      entityId,
+      entityLabel,
+      entityIcon,
+      entityTypes: currentEntitysTypes.map((entityType) => {
+        /**
+         * @todo H-3363 use closed schema to take account of indirectly inherited link entity types
+         */
+        const isLink = !!entityType.allOf?.some(
+          (allOf) => allOf.$ref === linkEntityTypeUrl,
+        );
 
-              return {
-                title: entityTypeLabel,
-                entityTypeId: entityType.$id,
-                icon: entityType.icon,
-                isLink,
-              };
-            }),
-            web,
-            archived: isPage
-              ? simplifyProperties(entity.properties as PageProperties).archived
-              : undefined,
-            lastEdited,
-            lastEditedBy,
-            created,
-            createdBy,
-            /** @todo: uncomment this when we have additional types for entities */
-            // additionalTypes: "",
-            sourceEntity,
-            targetEntity,
-            applicableProperties,
-            ...propertyColumns.reduce((fields, column) => {
-              if (column.id) {
-                const propertyValue = entity.properties[column.id as BaseUrl];
+        let entityTypeLabel = entityType.title;
+        if (entityTypesWithMultipleVersionsPresent.includes(entityType.$id)) {
+          entityTypeLabel += ` v${extractVersion(entityType.$id)}`;
+        }
 
-                const value =
-                  typeof propertyValue === "undefined"
-                    ? ""
-                    : typeof propertyValue === "number"
-                      ? propertyValue
-                      : stringifyPropertyValue(propertyValue);
+        return {
+          title: entityTypeLabel,
+          entityTypeId: entityType.$id,
+          icon: entityType.icon,
+          isLink,
+        };
+      }),
+      web,
+      archived: isPage
+        ? simplifyProperties(entity.properties as PageProperties).archived
+        : undefined,
+      lastEdited,
+      lastEditedBy,
+      created,
+      createdBy,
+      /** @todo: uncomment this when we have additional types for entities */
+      // additionalTypes: "",
+      sourceEntity,
+      targetEntity,
+      applicableProperties,
+      ...propertyColumns.reduce((fields, column) => {
+        if (column.id) {
+          const propertyValue = entity.properties[column.id as BaseUrl];
 
-                return { ...fields, [column.id]: value };
-              }
+          const value =
+            typeof propertyValue === "undefined"
+              ? ""
+              : typeof propertyValue === "number"
+                ? propertyValue
+                : stringifyPropertyValue(propertyValue);
 
-              return fields;
-            }, {}),
-          };
-        })
-      : undefined;
+          return { ...fields, [column.id]: value };
+        }
 
-  const after = new Date();
-  console.log(`Done calculating stuff at ${after.toISOString()}`);
-  console.log(`Took ${after.getTime() - now.getTime()}ms`);
+        return fields;
+      }, {}),
+    });
+  }
 
   return {
     columns,
@@ -415,18 +396,39 @@ const generateTableData = (
 
 // eslint-disable-next-line no-restricted-globals
 self.onmessage = ({ data }) => {
-  if (
-    "type" in data &&
-    data.type ===
-      ("generateEntitiesTableData" satisfies GenerateEntitiesTableDataRequestMessage["type"])
-  ) {
-    const params = data as GenerateEntitiesTableDataRequestMessage["params"];
-    const result = generateTableData(params);
+  if (isGenerateEntitiesTableDataRequestMessage(data)) {
+    const params = data.params;
 
-    // eslint-disable-next-line no-restricted-globals
-    self.postMessage({
-      type: "generateEntitiesTableDataResult",
-      result,
-    } satisfies GenerateEntitiesTableDataResultMessage);
+    const requestId = generateUuid();
+    activeRequestId = requestId;
+
+    const result = generateTableData(params, requestId);
+
+    if (result !== "cancelled") {
+      /**
+       * Split the rows into chunks to avoid the message being too large.
+       */
+      const chunkSize = 20_000;
+      const chunkedRows: TypeEntitiesRow[][] = [];
+      for (let i = 0; i < result.rows.length; i += chunkSize) {
+        chunkedRows.push(result.rows.slice(i, i + chunkSize));
+      }
+
+      for (const [index, rows] of chunkedRows.entries()) {
+        // eslint-disable-next-line no-restricted-globals
+        self.postMessage({
+          type: "generateEntitiesTableDataResult",
+          requestId,
+          done: index === chunkedRows.length - 1,
+          result: {
+            ...result,
+            rows,
+          },
+        } satisfies GenerateEntitiesTableDataResultMessage);
+      }
+    } else {
+      // eslint-disable-next-line no-console
+      console.info(`Request ${requestId} cancelled`);
+    }
   }
 };

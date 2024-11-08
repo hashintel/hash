@@ -202,8 +202,9 @@ const PathFinderPanel: FunctionComponent<{
         setSimplePaths((data as GenerateSimplePathsResultMessage).result);
         setWaitingSimplePathResult(false);
       }
-      return () => worker.terminate();
     };
+
+    return () => worker.terminate();
   }, [worker]);
 
   useEffect(() => {

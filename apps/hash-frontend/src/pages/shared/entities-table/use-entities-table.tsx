@@ -4,23 +4,26 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
 import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getPropertyTypesForEntityType,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { gridHeaderBaseFont } from "../../../components/grid/grid";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { useActors } from "../../../shared/use-actors";
 import type {
   EntitiesTableData,
-  GenerateEntitiesTableDataResultMessage,
+  GenerateEntitiesTableDataRequestMessage,
   TypeEntitiesRow,
 } from "./use-entities-table/types";
+import { isGenerateEntitiesTableDataResultMessage } from "./use-entities-table/types";
 
 let canvas: HTMLCanvasElement | undefined = undefined;
 
@@ -67,36 +70,36 @@ export const useEntitiesTable = (params: {
 
   const worker = useMemo(
     () =>
-      new Worker(new URL("./path-finder-control/worker.ts", import.meta.url)),
+      new Worker(new URL("./use-entities-table/worker.ts", import.meta.url)),
     [],
   );
 
-  const editorActorIds = useMemo(
-    () =>
-      entities?.flatMap(({ metadata }) => [
-        metadata.provenance.edition.createdById,
-        metadata.provenance.createdById,
-      ]),
-    [entities],
-  );
+  useEffect(() => {
+    return () => {
+      console.log("Terminating worker");
+      worker.terminate();
+    };
+  }, [worker]);
 
-  const { actors, loading: actorsLoading } = useActors({
-    accountIds: editorActorIds,
-  });
-
-  const getOwnerForEntity = useGetOwnerForEntity();
+  /**
+   * *********** @TODO RESTORE THIS *************
+   */
+  // const getOwnerForEntity = useGetOwnerForEntity();
 
   const {
+    editorActorIds,
     entitiesHaveSameType,
     entityTypesWithMultipleVersionsPresent,
     usedPropertyTypesByEntityTypeId,
   } = useMemo<{
+    editorActorIds: AccountId[];
     entitiesHaveSameType: boolean;
     entityTypesWithMultipleVersionsPresent: VersionedUrl[];
     usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
   }>(() => {
     if (!entities || !subgraph) {
       return {
+        editorActorIds: [],
         entitiesHaveSameType: false,
         entityTypesWithMultipleVersionsPresent: [],
         usedPropertyTypesByEntityTypeId: {},
@@ -107,8 +110,14 @@ export const useEntitiesTable = (params: {
 
     const typesWithMultipleVersions: VersionedUrl[] = [];
     const firstSeenTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
+    const actorIds: AccountId[] = [];
 
     for (const entity of entities) {
+      actorIds.push(
+        entity.metadata.provenance.edition.createdById,
+        entity.metadata.provenance.createdById,
+      );
+
       for (const entityTypeId of entity.metadata.entityTypeIds) {
         if (propertyMap[entityTypeId]) {
           continue;
@@ -148,31 +157,53 @@ export const useEntitiesTable = (params: {
     }
 
     return {
+      editorActorIds: actorIds,
       entitiesHaveSameType: Object.keys(firstSeenTypeByBaseUrl).length === 1,
       entityTypesWithMultipleVersionsPresent: typesWithMultipleVersions,
       usedPropertyTypesByEntityTypeId: propertyMap,
     };
   }, [entities, subgraph]);
 
+  const { actors, loading: actorsLoading } = useActors({
+    accountIds: editorActorIds,
+  });
+
   const [tableData, setTableData] = useState<EntitiesTableData | null>(null);
   const [waitingTableData, setWaitingTableData] = useState(true);
 
+  const accumulatedDataRef = useRef<{
+    requestId: string;
+    rows: TypeEntitiesRow[];
+  }>({ requestId: "none", rows: [] });
+
   useEffect(() => {
     worker.onmessage = ({ data }) => {
-      if (
-        "type" in data &&
-        data.type ===
-          ("generateEntitiesTableDataResult" satisfies GenerateEntitiesTableDataResultMessage["type"])
-      ) {
-        setTableData((data as GenerateEntitiesTableDataResultMessage).result);
+      if (isGenerateEntitiesTableDataResultMessage(data)) {
+        const { done, requestId, result } = data;
         setWaitingTableData(false);
+
+        if (accumulatedDataRef.current.requestId !== requestId) {
+          accumulatedDataRef.current = { requestId, rows: result.rows };
+        } else {
+          accumulatedDataRef.current.rows.push(...result.rows);
+        }
+
+        if (done) {
+          setTableData({
+            ...result,
+            rows: accumulatedDataRef.current.rows,
+          });
+          accumulatedDataRef.current.rows = [];
+        }
       }
-      return () => worker.terminate();
     };
   }, [worker]);
 
   useEffect(() => {
     if (entities && entityTypes && subgraph && !actorsLoading) {
+      setWaitingTableData(true);
+      const serializedSubgraph = serializeSubgraph(subgraph);
+
       worker.postMessage({
         type: "generateEntitiesTableData",
         params: {
@@ -182,7 +213,7 @@ export const useEntitiesTable = (params: {
           entityTypesWithMultipleVersionsPresent,
           entityTypes,
           propertyTypes,
-          subgraph,
+          subgraph: serializedSubgraph,
           hasSomeLinks,
           hideColumns,
           hidePageArchivedColumn,
@@ -190,7 +221,7 @@ export const useEntitiesTable = (params: {
           isViewingOnlyPages,
           usedPropertyTypesByEntityTypeId,
         },
-      });
+      } satisfies GenerateEntitiesTableDataRequestMessage);
     }
   }, [
     actors,

@@ -7,6 +7,7 @@ import type {
   CustomCell,
   Item,
   NumberCell,
+  SizedGridColumn,
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
@@ -17,9 +18,14 @@ import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { useTheme } from "@mui/material";
+import { Box, Stack, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent, RefObject } from "react";
+import type {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  RefObject,
+} from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { GridProps } from "../../components/grid/grid";
@@ -35,23 +41,38 @@ import type { ColumnFilter } from "../../components/grid/utils/filtering";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import type { FilterState } from "../../shared/table-header";
 import { tableHeaderHeight } from "../../shared/table-header";
-import type { MinimalActor } from "../../shared/use-actors";
 import { isAiMachineActor } from "../../shared/use-actors";
 import type { ChipCellProps } from "./chip-cell";
 import { createRenderChipCell } from "./chip-cell";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
+import type { TypeEntitiesRow } from "./entities-table/use-entities-table/types";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { UrlCellProps } from "./url-cell";
 import { createRenderUrlCell } from "./url-cell";
-import { TypeEntitiesRow } from "./entities-table/use-entities-table/types";
 
 const noneString = "none";
 
 const firstColumnLeftPadding = 16;
 
+const emptyTableData = {
+  columns: [],
+  rows: [],
+  filterData: {
+    createdByActors: [],
+    lastEditedByActors: [],
+    entityTypeTitles: {},
+    noSourceCount: 0,
+    noTargetCount: 0,
+    sources: [],
+    targets: [],
+    webs: {},
+  },
+};
+
 export const EntitiesTable: FunctionComponent<{
+  currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
   currentlyDisplayedRowsRef: RefObject<TypeEntitiesRow[]>;
   disableTypeClick?: boolean;
   entities: Entity[];
@@ -65,6 +86,7 @@ export const EntitiesTable: FunctionComponent<{
   hidePropertiesColumns?: boolean;
   hideColumns?: (keyof TypeEntitiesRow)[];
   loading: boolean;
+  loadingComponent: ReactElement;
   isViewingOnlyPages: boolean;
   maxHeight?: string | number;
   propertyTypes: PropertyType[];
@@ -76,6 +98,7 @@ export const EntitiesTable: FunctionComponent<{
   showSearch: boolean;
   subgraph: Subgraph<EntityRootType>;
 }> = ({
+  currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
   disableTypeClick,
   entities,
@@ -85,7 +108,8 @@ export const EntitiesTable: FunctionComponent<{
   handleEntityClick,
   hideColumns,
   hidePropertiesColumns = false,
-  loading,
+  loading: entityDataLoading,
+  loadingComponent,
   isViewingOnlyPages,
   maxHeight,
   propertyTypes,
@@ -98,6 +122,18 @@ export const EntitiesTable: FunctionComponent<{
   subgraph,
 }) => {
   const router = useRouter();
+
+  const { tableData, loading: tableDataCalculating } = useEntitiesTable({
+    entities,
+    entityTypes,
+    propertyTypes,
+    subgraph,
+    hasSomeLinks,
+    hideColumns,
+    hidePageArchivedColumn: !filterState.includeArchived,
+    hidePropertiesColumns,
+    isViewingOnlyPages,
+  });
 
   const {
     columns,
@@ -112,17 +148,10 @@ export const EntitiesTable: FunctionComponent<{
       targets,
       webs,
     },
-  } = useEntitiesTable({
-    entities,
-    entityTypes,
-    propertyTypes,
-    subgraph,
-    hasSomeLinks,
-    hideColumns,
-    hidePageArchivedColumn: !filterState.includeArchived,
-    hidePropertiesColumns,
-    isViewingOnlyPages,
-  });
+  } = tableData ?? emptyTableData;
+
+  // eslint-disable-next-line no-param-reassign
+  currentlyDisplayedColumnsRef.current = columns;
 
   const theme = useTheme();
 
@@ -442,7 +471,6 @@ export const EntitiesTable: FunctionComponent<{
   const sortRows = useCallback<
     NonNullable<GridProps<TypeEntitiesRow>["sortRows"]>
   >((unsortedRows, sort, previousSort) => {
-    console.log("Sorting rows");
     return unsortedRows.toSorted((a, b) => {
       const value1 = a[sort.columnKey];
       const value2 = b[sort.columnKey];
@@ -451,6 +479,21 @@ export const EntitiesTable: FunctionComponent<{
         const difference =
           (value1 - value2) * (sort.direction === "asc" ? 1 : -1);
         return difference;
+      }
+
+      if (sort.columnKey === "entityTypes") {
+        const entityType1 = a.entityTypes
+          .map(({ title }) => title)
+          .sort()
+          .join(", ");
+        const entityType2 = b.entityTypes
+          .map(({ title }) => title)
+          .sort()
+          .join(", ");
+        return (
+          entityType1.localeCompare(entityType2) *
+          (sort.direction === "asc" ? 1 : -1)
+        );
       }
 
       const isActorSort = ["lastEditedBy", "createdBy"].includes(
@@ -745,13 +788,25 @@ export const EntitiesTable: FunctionComponent<{
       HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 185 + tableHeaderHeight
     }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
 
+  if (entityDataLoading || tableDataCalculating) {
+    return (
+      <Stack
+        alignItems="center"
+        justifyContent="center"
+        sx={{ height: maximumTableHeight, width: "100%" }}
+      >
+        <Box>{loadingComponent}</Box>
+      </Stack>
+    );
+  }
+
   return (
     <Grid
       showSearch={showSearch}
       onSearchClose={() => setShowSearch(false)}
       columns={columns}
       columnFilters={columnFilters}
-      dataLoading={loading}
+      dataLoading={false}
       rows={rows}
       enableCheckboxSelection={!readonly}
       selectedRows={selectedRows}
@@ -765,7 +820,7 @@ export const EntitiesTable: FunctionComponent<{
                  ${maximumTableHeight},
                 calc(
                  ${gridHeaderHeightWithBorder}px +
-                 (${rows?.length ? rows.length : 1} * ${gridRowHeight}px) +
+                 (${rows.length ? rows.length : 1} * ${gridRowHeight}px) +
                  ${gridHorizontalScrollbarHeight}px)
                )`}
       createGetCellContent={createGetCellContent}

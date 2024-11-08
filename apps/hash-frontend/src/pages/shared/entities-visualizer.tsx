@@ -1,4 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import { LoadingSpinner } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -18,6 +20,7 @@ import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-heade
 import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
+import { useMemoCompare } from "../../shared/use-memo-compare";
 import type {
   CustomColumn,
   EntityEditorProps,
@@ -25,6 +28,7 @@ import type {
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-table";
 import { GridView } from "./entities-table/grid-view";
+import type { TypeEntitiesRow } from "./entities-table/use-entities-table/types";
 import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
@@ -38,8 +42,6 @@ import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { VisualizerView } from "./visualizer-views";
 import { visualizerViewIcons } from "./visualizer-views";
-import { useMemoCompare } from "../../shared/use-memo-compare";
-import { TypeEntitiesRow } from "./entities-table/use-entities-table/types";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -92,10 +94,12 @@ export const EntitiesVisualizer: FunctionComponent<{
   fullScreenMode,
   hideColumns,
   hideFilters,
-  loadingComponent,
+  loadingComponent: customLoadingComponent,
   maxHeight,
   readonly,
 }) => {
+  const theme = useTheme();
+
   const { authenticatedUser } = useAuthenticatedUser();
 
   const [filterState, setFilterState] = useState<FilterState>(
@@ -103,6 +107,10 @@ export const EntitiesVisualizer: FunctionComponent<{
       includeGlobal: false,
       limitToWebs: false,
     },
+  );
+
+  const loadingComponent = customLoadingComponent ?? (
+    <LoadingSpinner size={42} color={theme.palette.blue[30]} />
   );
 
   const [selectedEntityType, setSelectedEntityType] = useState<{
@@ -276,8 +284,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     [subgraph],
   );
 
-  const theme = useTheme();
-
+  const currentlyDisplayedColumnsRef = useRef<SizedGridColumn[] | null>(null);
   const currentlyDisplayedRowsRef = useRef<TypeEntitiesRow[] | null>(null);
 
   const maximumTableHeight =
@@ -359,7 +366,7 @@ export const EntitiesVisualizer: FunctionComponent<{
             ) ?? []
           }
           title="Entities"
-          columns={[]}
+          currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           hideExportToCsv={view !== "Table"}
           endAdornment={
@@ -403,6 +410,7 @@ export const EntitiesVisualizer: FunctionComponent<{
           <GridView entities={entities} />
         ) : (
           <EntitiesTable
+            currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
             currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
             entities={filteredEntities ?? []}
             entityTypes={entityTypes ?? []}
@@ -411,6 +419,7 @@ export const EntitiesVisualizer: FunctionComponent<{
             hasSomeLinks={hasSomeLinks}
             hideColumns={hideColumns}
             loading={loading}
+            loadingComponent={loadingComponent}
             isViewingOnlyPages={isViewingOnlyPages}
             maxHeight={maxHeight}
             propertyTypes={propertyTypes ?? []}

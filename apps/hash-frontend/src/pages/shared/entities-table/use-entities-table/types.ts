@@ -3,21 +3,21 @@ import type {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { SerializedSubgraph } from "@local/hash-subgraph";
 
 import type { MinimalActor } from "../../../../shared/use-actors";
 
 export interface TypeEntitiesRow {
   rowId: string;
   entityId: EntityId;
-  entity: Entity;
   entityIcon?: string;
   entityLabel: string;
   entityTypes: {
@@ -69,12 +69,12 @@ export type PropertiesByEntityTypeId = {
 
 export type GenerateEntitiesTableDataParams = {
   actors: MinimalActor[];
-  entities?: Entity[];
+  entities: Entity[];
   entitiesHaveSameType: boolean;
   entityTypesWithMultipleVersionsPresent: VersionedUrl[];
-  entityTypes?: EntityType[];
+  entityTypes: EntityType[];
   propertyTypes?: PropertyType[];
-  subgraph?: Subgraph<EntityRootType>;
+  subgraph: SerializedSubgraph;
   hasSomeLinks?: boolean;
   hideColumns?: (keyof TypeEntitiesRow)[];
   hidePageArchivedColumn?: boolean;
@@ -83,11 +83,13 @@ export type GenerateEntitiesTableDataParams = {
   usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
 };
 
+export type ActorTableData = { accountId: AccountId; displayName?: string };
+
 export type EntitiesTableData = {
   columns: SizedGridColumn[];
   filterData: {
-    createdByActors: MinimalActor[];
-    lastEditedByActors: MinimalActor[];
+    createdByActors: ActorTableData[];
+    lastEditedByActors: ActorTableData[];
     entityTypeTitles: { [entityTypeTitle: string]: number | undefined };
     noSourceCount: number;
     noTargetCount: number;
@@ -95,7 +97,7 @@ export type EntitiesTableData = {
     targets: SourceOrTargetFilterData[];
     webs: { [web: string]: number | undefined };
   };
-  rows: TypeEntitiesRow[] | undefined;
+  rows: TypeEntitiesRow[];
 };
 
 export type GenerateEntitiesTableDataRequestMessage = {
@@ -103,7 +105,25 @@ export type GenerateEntitiesTableDataRequestMessage = {
   params: GenerateEntitiesTableDataParams;
 };
 
+export const isGenerateEntitiesTableDataRequestMessage = (
+  message: unknown,
+): message is GenerateEntitiesTableDataRequestMessage =>
+  typeof message === "object" &&
+  message !== null &&
+  (message as Record<string, unknown>).type ===
+    ("generateEntitiesTableData" satisfies GenerateEntitiesTableDataRequestMessage["type"]);
+
 export type GenerateEntitiesTableDataResultMessage = {
+  done: boolean;
   type: "generateEntitiesTableDataResult";
+  requestId: string;
   result: EntitiesTableData;
 };
+
+export const isGenerateEntitiesTableDataResultMessage = (
+  message: unknown,
+): message is GenerateEntitiesTableDataResultMessage =>
+  typeof message === "object" &&
+  message !== null &&
+  (message as Record<string, unknown>).type ===
+    ("generateEntitiesTableDataResult" satisfies GenerateEntitiesTableDataResultMessage["type"]);
