@@ -14,6 +14,7 @@ use harpc_types::response_kind::ResponseKind;
 
 use super::session::Account;
 
+#[must_use]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
 #[display("unable to fullfil ping request")]
 pub struct EchoError;
@@ -108,6 +109,7 @@ pub struct EchoDelegate<T> {
 }
 
 impl<T> EchoDelegate<T> {
+    #[must_use]
     pub const fn new(inner: T) -> Self {
         Self { inner }
     }
@@ -153,6 +155,22 @@ where
 pub struct EchoClient<S, C> {
     _service: PhantomData<fn() -> *const S>,
     _codec: PhantomData<fn() -> *const C>,
+}
+
+impl<S, C> EchoClient<S, C> {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            _service: PhantomData,
+            _codec: PhantomData,
+        }
+    }
+}
+
+impl<S, C> Default for EchoClient<S, C> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<S, C> EchoSystem for EchoClient<S, C>

@@ -53,6 +53,7 @@ impl Error for AccountNotFoundError {
     }
 }
 
+#[must_use]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
 #[display("unable to fullfil account request")]
 pub struct AccountError;
@@ -469,6 +470,7 @@ pub struct AccountDelegate<T> {
 }
 
 impl<T> AccountDelegate<T> {
+    #[must_use]
     pub const fn new(inner: T) -> Self {
         Self { inner }
     }

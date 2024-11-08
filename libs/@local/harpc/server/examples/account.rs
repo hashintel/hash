@@ -17,7 +17,9 @@ use core::{fmt::Debug, marker::PhantomData};
 use std::time::Instant;
 
 use error_stack::{Report, ResultExt as _};
-use frunk::HList;;    Client, ClientConfig,
+use frunk::HList;
+use harpc_client::{
+    Client, ClientConfig,
     connection::{Connection, ConnectionCodec, ConnectionService},
     utils::invoke_call_discrete,
 };
@@ -118,6 +120,7 @@ impl Procedure for CreateAccount {
     const ID: <Self::Subsystem as Subsystem>::ProcedureId = AccountProcedureId::CreateAccount;
 }
 
+#[must_use]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
 #[display("unable to fullfil account request")]
 pub struct AccountError;
@@ -138,7 +141,8 @@ struct AccountSystemImpl<S> {
 }
 
 impl<S> AccountSystemImpl<S> {
-    fn new() -> Self {
+    #[must_use]
+    const fn new() -> Self {
         Self {
             _scope: PhantomData,
         }
@@ -167,11 +171,17 @@ struct AccountSystemClient<S, C> {
 }
 
 impl<S, C> AccountSystemClient<S, C> {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             _service: PhantomData,
             _codec: PhantomData,
         }
+    }
+}
+
+impl<S, C> Default for AccountSystemClient<S, C> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -196,6 +206,13 @@ where
 #[derive(Debug, Clone)]
 struct AccountServerDelegate<T> {
     subsystem: T,
+}
+
+impl<T> AccountServerDelegate<T> {
+    #[must_use]
+    const fn new(subsystem: T) -> Self {
+        Self { subsystem }
+    }
 }
 
 impl<T, C> SubsystemDelegate<C> for AccountServerDelegate<T>
@@ -244,9 +261,7 @@ async fn server() {
                 .layer(HandleReportLayer::new())
                 .layer(HandleBodyReportLayer::new())
         })
-        .register(AccountServerDelegate {
-            subsystem: AccountSystemImpl::new(),
-        });
+        .register(AccountServerDelegate::new(AccountSystemImpl::new()));
 
     let task = router.background_task(server.events());
     tokio::spawn(task.into_future());

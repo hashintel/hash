@@ -15,6 +15,7 @@ use hash_graph_types::account::AccountId;
 
 use super::session::Account;
 
+#[must_use]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
 #[display("unable to authenticate user")]
 pub struct AuthenticationError;
@@ -115,6 +116,13 @@ pub struct AuthenticationDelegate<T> {
     inner: T,
 }
 
+impl<T> AuthenticationDelegate<T> {
+    #[must_use]
+    pub const fn new(inner: T) -> Self {
+        Self { inner }
+    }
+}
+
 impl<T, C> SubsystemDelegate<C> for AuthenticationDelegate<T>
 where
     T: AuthenticationSystem<authenticate(..): Send, ExecutionScope: Send> + Send,
@@ -160,7 +168,7 @@ pub struct AuthenticationClient<S, C> {
 
 impl<S, C> AuthenticationClient<S, C> {
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             _service: PhantomData,
             _codec: PhantomData,
