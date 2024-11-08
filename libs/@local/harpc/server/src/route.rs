@@ -75,7 +75,7 @@ pub trait Route<ReqBody> {
 
     fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
-        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync;
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send;
 }
 
 // The clone requirement might seem odd here, but is the same as in axum's router implementation.
@@ -104,7 +104,7 @@ where
 
     fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
-        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send,
     {
         let requirement = self.head.version.into_requirement();
 
@@ -135,7 +135,7 @@ impl<ReqBody> Route<ReqBody> for HNil {
 
     fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
-        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send,
     {
         let error = SubsystemNotFound {
             subsystem: request.subsystem(),

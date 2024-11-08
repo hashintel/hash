@@ -8,6 +8,7 @@ pub mod route;
 pub mod router;
 pub mod serve;
 
+pub mod boxed;
 pub mod session;
 pub mod utils;
 

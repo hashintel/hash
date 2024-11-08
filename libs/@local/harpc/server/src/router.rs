@@ -18,6 +18,7 @@ use tokio_util::sync::CancellationToken;
 use tower::{Layer, Service, ServiceBuilder, layer::util::Identity};
 
 use crate::{
+    boxed::{BoxReqBody, BoxedRoute, BoxedRouter},
     delegate::SubsystemDelegateService,
     route::{Handler, Route},
     session::{self, Session, SessionStorage},
@@ -167,6 +168,34 @@ pub struct Router<R> {
     routes: Arc<R>,
 }
 
+impl<R> Router<R> {
+    /// Boxes the router, allowing it to be used as a dynamic trait object.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if called after any requests have been serviced.
+    #[expect(
+        clippy::arc_with_non_send_sync,
+        reason = "false positive, the router may still be Send + Sync, we just don't enforce it \
+                  on boxing"
+    )]
+    #[must_use]
+    pub fn boxed(self) -> BoxedRouter
+    where
+        R: Route<BoxReqBody, Future: Send + 'static, ResponseBody: Send + 'static> + 'static,
+    {
+        let routes = Arc::try_unwrap(self.routes).unwrap_or_else(|_routes| {
+            panic!("`Router::boxed()` should be called before any requests have been serviced")
+        });
+
+        let routes = BoxedRoute::new(routes);
+
+        Router {
+            routes: Arc::new(routes),
+        }
+    }
+}
+
 impl<R> Service<()> for Router<R> {
     type Error = !;
     type Future = Ready<Result<Self::Response, !>>;
@@ -184,5 +213,3 @@ impl<R> Service<()> for Router<R> {
         future::ready(Ok(layer.layer(RouterService { routes })))
     }
 }
-
-// TODO: boxed variant
