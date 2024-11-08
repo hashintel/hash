@@ -154,7 +154,7 @@ export const GraphContainer = memo(
               <PathFinderControl nodes={nodes} />
               <SearchControl nodes={nodes} />
               <ConfigControl />
-              <FilterControl nodes={nodes} />
+              <FilterControl defaultFilters={defaultFilters} nodes={nodes} />
               <Stack
                 direction="row"
                 gap={1}
