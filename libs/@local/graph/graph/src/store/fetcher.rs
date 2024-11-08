@@ -27,6 +27,12 @@ use hash_graph_store::{
     },
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
+    property_type::{
+        ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
+        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
+        GetPropertyTypesResponse, PropertyTypeStore, UnarchivePropertyTypeParams,
+        UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+    },
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
         VariableTemporalAxisUnresolved,
@@ -56,7 +62,7 @@ use type_system::{
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
-        EntityStore, EntityTypeStore, PropertyTypeStore, StorePool,
+        EntityStore, EntityTypeStore, StorePool,
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         error::StoreError,
         knowledge::{
@@ -65,14 +71,11 @@ use crate::{
             UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
-            ArchiveEntityTypeParams, ArchivePropertyTypeParams, CountEntityTypesParams,
-            CountPropertyTypesParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
             GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
             GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-            GetEntityTypesResponse, GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse,
-            GetPropertyTypesParams, GetPropertyTypesResponse, UnarchiveEntityTypeParams,
-            UnarchivePropertyTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
-            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+            GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+            UpdateEntityTypesParams,
         },
     },
 };

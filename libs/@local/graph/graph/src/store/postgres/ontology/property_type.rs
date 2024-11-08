@@ -14,7 +14,12 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
-    property_type::PropertyTypeQueryPath,
+    property_type::{
+        ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
+        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
+        GetPropertyTypesResponse, PropertyTypeQueryPath, PropertyTypeStore,
+        UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+    },
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -42,15 +47,8 @@ use type_system::{
 };
 
 use crate::store::{
-    PropertyTypeStore,
     crud::{QueryResult as _, Read as _, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
-    ontology::{
-        ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
-        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
-        GetPropertyTypesResponse, UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
-        UpdatePropertyTypesParams,
-    },
     postgres::{
         AsClient, PostgresStore, TraversalContext,
         crud::QueryRecordDecode,

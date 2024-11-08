@@ -16,6 +16,7 @@ use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
+    property_type::{GetPropertyTypeSubgraphParams, PropertyTypeStore as _},
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
@@ -60,8 +61,8 @@ use crate::store::{
         EntityTypeResolveDefinitions, GetClosedMultiEntityTypeParams,
         GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams,
         GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
-        GetPropertyTypeSubgraphParams, IncludeEntityTypeOption, PropertyTypeStore as _,
-        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        IncludeEntityTypeOption, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
     },
     postgres::{
         AsClient, PostgresStore, ResponseCountMap, TraversalContext,

@@ -10,7 +10,9 @@ mod validation;
 mod fetcher;
 pub(crate) mod postgres;
 
-use hash_graph_store::{account::AccountStore, data_type::DataTypeStore};
+use hash_graph_store::{
+    account::AccountStore, data_type::DataTypeStore, property_type::PropertyTypeStore,
+};
 use serde::Deserialize;
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
@@ -22,10 +24,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
     validation::{StoreCache, StoreProvider},
 };
-use crate::store::{
-    knowledge::EntityStore,
-    ontology::{EntityTypeStore, PropertyTypeStore},
-};
+use crate::store::{knowledge::EntityStore, ontology::EntityTypeStore};
 
 /// Describes the API of a store implementation.
 ///

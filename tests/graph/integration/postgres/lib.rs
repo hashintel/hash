@@ -38,15 +38,11 @@ use graph::{
             ValidateEntityParams,
         },
         ontology::{
-            ArchiveEntityTypeParams, ArchivePropertyTypeParams, CountEntityTypesParams,
-            CountPropertyTypesParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
             EntityTypeStore, GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
             GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-            GetEntityTypesResponse, GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse,
-            GetPropertyTypesParams, GetPropertyTypesResponse, PropertyTypeStore,
-            UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
-            UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
-            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+            GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+            UpdateEntityTypesParams,
         },
     },
 };
@@ -71,6 +67,12 @@ use hash_graph_store::{
         UpdateDataTypesParams,
     },
     error::{InsertionError, QueryError, UpdateError},
+    property_type::{
+        ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
+        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
+        GetPropertyTypesResponse, PropertyTypeStore, UnarchivePropertyTypeParams,
+        UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+    },
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{

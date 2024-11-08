@@ -18,12 +18,6 @@ use graph::{
     store::{
         StorePool,
         error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-        ontology::{
-            ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,
-            GetPropertyTypesParams, GetPropertyTypesResponse, PropertyTypeStore as _,
-            UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
-            UpdatePropertyTypesParams,
-        },
     },
 };
 use hash_graph_authorization::{
@@ -36,7 +30,15 @@ use hash_graph_authorization::{
     },
     zanzibar::Consistency,
 };
-use hash_graph_store::{ConflictBehavior, property_type::PropertyTypeQueryToken};
+use hash_graph_store::{
+    ConflictBehavior,
+    property_type::{
+        ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,
+        GetPropertyTypesParams, GetPropertyTypesResponse, PropertyTypeQueryToken,
+        PropertyTypeStore as _, UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
+        UpdatePropertyTypesParams,
+    },
+};
 use hash_graph_types::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,

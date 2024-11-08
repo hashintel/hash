@@ -1,10 +1,10 @@
-use graph::store::ontology::{
-    CreatePropertyTypeParams, GetPropertyTypesParams, PropertyTypeStore as _,
-    UpdatePropertyTypesParams,
-};
 use hash_graph_store::{
     ConflictBehavior,
     filter::Filter,
+    property_type::{
+        CreatePropertyTypeParams, GetPropertyTypesParams, PropertyTypeStore as _,
+        UpdatePropertyTypesParams,
+    },
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
