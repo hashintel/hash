@@ -106,36 +106,41 @@ const PathFinderPanel: FunctionComponent<{
 
   const sigma = useSigma();
 
-  const { visibleNodesByTypeId, visibleTypesByTypeId } = useMemo(() => {
-    const { includeByNodeTypeId } = filters;
+  const { visibleNodesByTypeId, visibleTypesByTypeId, visibleNodeIds } =
+    useMemo(() => {
+      const { includeByNodeTypeId } = filters;
 
-    const visibleNodes: NodesByTypeId = {};
-    const visibleTypes: TypesByTypeId = {};
+      const visibleNodes: NodesByTypeId = {};
+      const visibleTypes: TypesByTypeId = {};
+      const visibleIds = new Set<string>();
 
-    for (const node of nodes) {
-      const { nodeTypeId, nodeTypeLabel, nodeId } = node;
+      for (const node of nodes) {
+        const { nodeTypeId, nodeTypeLabel, nodeId } = node;
 
-      if (!node.nodeTypeId || !includeByNodeTypeId?.[node.nodeTypeId]) {
-        continue;
+        if (!node.nodeTypeId || !includeByNodeTypeId?.[node.nodeTypeId]) {
+          continue;
+        }
+
+        visibleIds.add(nodeId);
+
+        if (nodeTypeId && nodeTypeLabel) {
+          visibleTypes[nodeTypeId] ??= {
+            label: nodeTypeLabel,
+            typeId: nodeTypeId,
+            valueForSelector: nodeTypeId,
+          };
+
+          visibleNodes[nodeTypeId] ??= [];
+          visibleNodes[nodeTypeId].push({ ...node, valueForSelector: nodeId });
+        }
       }
 
-      if (nodeTypeId && nodeTypeLabel) {
-        visibleTypes[nodeTypeId] ??= {
-          label: nodeTypeLabel,
-          typeId: nodeTypeId,
-          valueForSelector: nodeTypeId,
-        };
-
-        visibleNodes[nodeTypeId] ??= [];
-        visibleNodes[nodeTypeId].push({ ...node, valueForSelector: nodeId });
-      }
-    }
-
-    return {
-      visibleNodesByTypeId: visibleNodes,
-      visibleTypesByTypeId: visibleTypes,
-    };
-  }, [filters, nodes]);
+      return {
+        visibleNodeIds: visibleIds,
+        visibleNodesByTypeId: visibleNodes,
+        visibleTypesByTypeId: visibleTypes,
+      };
+    }, [filters, nodes]);
 
   const [startNode, setStartNode] = useState<NodeData | null>(null);
   const [startType, setStartType] = useState<TypeData | null>(
@@ -148,6 +153,38 @@ const PathFinderPanel: FunctionComponent<{
 
   const [viaNode, setViaNode] = useState<NodeData | null>(null);
   const [viaType, setViaType] = useState<TypeData | null>(null);
+
+  useEffect(() => {
+    if (!visibleTypesByTypeId[startType?.typeId ?? ""]) {
+      setStartType(null);
+      setStartNode(null);
+    } else if (!visibleNodeIds.has(startNode?.nodeId ?? "")) {
+      setStartNode(null);
+    }
+
+    if (!visibleTypesByTypeId[endType?.typeId ?? ""]) {
+      setEndType(null);
+      setEndNode(null);
+    } else if (!visibleNodeIds.has(endNode?.nodeId ?? "")) {
+      setEndNode(null);
+    }
+
+    if (!visibleTypesByTypeId[viaType?.typeId ?? ""]) {
+      setViaType(null);
+      setViaNode(null);
+    } else if (!visibleNodeIds.has(viaNode?.nodeId ?? "")) {
+      setViaNode(null);
+    }
+  }, [
+    startNode,
+    startType,
+    endType,
+    endNode,
+    viaType,
+    viaNode,
+    visibleTypesByTypeId,
+    visibleNodeIds,
+  ]);
 
   const [maxSimplePathDepth, setMaxSimplePathDepth] = useState(3);
   const [allowRepeatedNodeTypes, setAllowRepeatedNodeTypes] = useState(false);
@@ -186,13 +223,24 @@ const PathFinderPanel: FunctionComponent<{
     [highlightPath],
   );
 
-  const worker = useMemo(
-    () =>
-      new Worker(new URL("./path-finder-control/worker.ts", import.meta.url)),
-    [],
-  );
+  const [worker, setWorker] = useState<Worker | null>(null);
 
   useEffect(() => {
+    const webWorker = new Worker(
+      new URL("./path-finder-control/worker.ts", import.meta.url),
+    );
+    setWorker(webWorker);
+
+    return () => {
+      webWorker.terminate();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!worker) {
+      return;
+    }
+
     worker.onmessage = ({ data }) => {
       if (
         "type" in data &&
@@ -203,8 +251,6 @@ const PathFinderPanel: FunctionComponent<{
         setWaitingSimplePathResult(false);
       }
     };
-
-    return () => worker.terminate();
   }, [worker]);
 
   useEffect(() => {
@@ -227,6 +273,9 @@ const PathFinderPanel: FunctionComponent<{
       },
     };
 
+    if (!worker) {
+      throw new Error("No worker available");
+    }
     worker.postMessage(request);
   }, [
     allowRepeatedNodeTypes,

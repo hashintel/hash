@@ -68,18 +68,18 @@ export const useEntitiesTable = (params: {
     propertyTypes,
   } = params;
 
-  const worker = useMemo(
-    () =>
-      new Worker(new URL("./use-entities-table/worker.ts", import.meta.url)),
-    [],
-  );
+  const [worker, setWorker] = useState<Worker | null>(null);
 
   useEffect(() => {
+    const webWorker = new Worker(
+      new URL("./use-entities-table/worker.ts", import.meta.url),
+    );
+    setWorker(webWorker);
+
     return () => {
-      console.log("Terminating worker");
-      worker.terminate();
+      webWorker.terminate();
     };
-  }, [worker]);
+  }, []);
 
   /**
    * *********** @TODO RESTORE THIS *************
@@ -177,6 +177,10 @@ export const useEntitiesTable = (params: {
   }>({ requestId: "none", rows: [] });
 
   useEffect(() => {
+    if (!worker) {
+      return;
+    }
+
     worker.onmessage = ({ data }) => {
       if (isGenerateEntitiesTableDataResultMessage(data)) {
         const { done, requestId, result } = data;
@@ -203,6 +207,10 @@ export const useEntitiesTable = (params: {
     if (entities && entityTypes && subgraph && !actorsLoading) {
       setWaitingTableData(true);
       const serializedSubgraph = serializeSubgraph(subgraph);
+
+      if (!worker) {
+        throw new Error("No worker available");
+      }
 
       worker.postMessage({
         type: "generateEntitiesTableData",
