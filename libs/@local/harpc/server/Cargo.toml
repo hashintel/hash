@@ -24,7 +24,7 @@ harpc-types = { workspace = true }
 # Private third-party dependencies
 bytes = { workspace = true }
 derive-where = { workspace = true }
-derive_more = { version = "1.0.0", features = ["debug", "display", "error"] }
+derive_more = { workspace = true, features = ["debug", "display", "error"] }
 error-stack = { workspace = true }
 frunk = "0.4.3"
 futures = { workspace = true }

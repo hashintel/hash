@@ -1,6 +1,9 @@
 use error_stack::Report;
 
-use super::error::MigrationError;
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("the store encountered a migration error")]
+#[must_use]
+pub struct MigrationError;
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum MigrationState {

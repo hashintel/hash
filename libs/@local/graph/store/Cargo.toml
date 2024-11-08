@@ -19,6 +19,7 @@ utoipa = { workspace = true, public = true, optional = true }
 postgres-types = { workspace = true, public = true, optional = true, features = ["derive", "with-serde_json-1"] }
 
 # Private workspace dependencies
+derive_more = { workspace = true, features = ["display", "error"] }
 hash-graph-temporal-versioning = { workspace = true }
 type-system = { workspace = true }
 

@@ -160,6 +160,7 @@ clap = { version = "=4.5.20", features = ["std", "color", "help", "usage", "erro
 clap_complete = { version = "=4.5.37", default-features = false }
 coverage-helper = { version = "=0.2.2", default-features = false }
 criterion-macro = { version = "=0.4.0", default-features = false }
+derive_more = { version = "=1.0.0", default-features = false }
 derive-where = { version = "=1.2.7", default-features = false, features = ["nightly"] }
 dotenv-flow = { version = "=0.16.2", default-features = false }
 expect-test = { version = "=1.5.0", default-features = false }

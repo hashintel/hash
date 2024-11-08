@@ -5,7 +5,7 @@ use graph::{
     Environment, load_env,
     store::{
         AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
-        PostgresStorePool, StoreMigration as _, StorePool,
+        PostgresStorePool, StorePool,
         error::BaseUrlAlreadyExists,
         ontology::{
             CreateEntityTypeParams, CreatePropertyTypeParams, EntityTypeStore as _,
@@ -24,6 +24,7 @@ use hash_graph_authorization::{
 use hash_graph_store::{
     ConflictBehavior,
     data_type::{CreateDataTypeParams, DataTypeStore as _, UpdateDataTypesParams},
+    migration::StoreMigration as _,
 };
 use hash_graph_types::{
     account::AccountId,

@@ -94,14 +94,3 @@ impl fmt::Display for OntologyTypeIsNotOwned {
 }
 
 impl Error for OntologyTypeIsNotOwned {}
-
-#[derive(Debug)]
-pub struct MigrationError;
-
-impl Error for MigrationError {}
-
-impl fmt::Display for MigrationError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("The store encountered a migration error")
-    }
-}

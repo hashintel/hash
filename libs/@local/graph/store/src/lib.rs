@@ -16,6 +16,7 @@ pub mod property_type;
 
 pub mod error;
 pub mod filter;
+pub mod migration;
 pub mod subgraph;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

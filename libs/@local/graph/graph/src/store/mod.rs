@@ -4,7 +4,6 @@ pub mod knowledge;
 pub mod ontology;
 
 mod config;
-mod migration;
 mod pool;
 mod validation;
 
@@ -19,7 +18,6 @@ use utoipa::ToSchema;
 pub use self::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
     fetcher::{FetchingPool, FetchingStore, TypeFetcher},
-    migration::{Migration, MigrationState, StoreMigration},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
     validation::{StoreCache, StoreProvider},
