@@ -19,9 +19,10 @@ use core::{
 
 use error_stack::{Report, ResultExt as _};
 use futures::{Stream, StreamExt as _, stream::FusedStream};
+pub use harpc_net::{session::server::SessionConfig, transport::TransportConfig};
 use harpc_net::{
-    session::server::{EventStream, ListenStream, SessionConfig, SessionLayer, Transaction},
-    transport::{TransportConfig, TransportLayer},
+    session::server::{EventStream, ListenStream, SessionLayer, Transaction},
+    transport::TransportLayer,
 };
 use multiaddr::Multiaddr;
 use tokio_util::sync::{CancellationToken, DropGuard};

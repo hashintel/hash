@@ -71,7 +71,10 @@ pub struct Dependencies<S, A, C> {
 pub fn rpc_router<S, A, C, N>(
     dependencies: Dependencies<S, A, C>,
     notifications: N,
-) -> (Router<impl Route<RequestBody>>, Task<Account, N>)
+) -> (
+    Router<impl Route<RequestBody, ResponseBody: Send, Future: Send> + Send>,
+    Task<Account, N>,
+)
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,

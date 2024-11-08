@@ -48,6 +48,9 @@ tokio = { workspace = true }
 tokio-postgres = { workspace = true }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing = { workspace = true }
+harpc-server.workspace = true
+multiaddr.workspace = true
+harpc-codec = { workspace = true, features = ["json"] }
 
 [features]
 test-server = ["dep:hash-graph-test-server"]
