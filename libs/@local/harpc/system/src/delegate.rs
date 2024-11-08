@@ -17,9 +17,10 @@ use crate::Subsystem;
 ///
 /// The caller must verify that the version and service of the incoming request match those of
 /// [`Self::Subsystem`].
-pub trait SubsystemDelegate<S, C> {
+pub trait SubsystemDelegate<C> {
     /// The inner service type that this delegate wraps.
     type Subsystem: Subsystem;
+    type ExecutionScope;
 
     type Error;
 
@@ -41,7 +42,7 @@ pub trait SubsystemDelegate<S, C> {
     fn call<B>(
         self,
         request: Request<B>,
-        session: S,
+        scope: Self::ExecutionScope,
         codec: C,
     ) -> impl Future<Output = Result<Response<Self::Body<B>>, Self::Error>> + Send
     where

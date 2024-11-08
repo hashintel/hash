@@ -1,5 +1,8 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::error::{self, Error};
+use core::{
+    error::{self, Error},
+    marker::PhantomData,
+};
 
 use error_stack::{Report, ResultExt as _};
 use graph::store::StorePool;
@@ -10,7 +13,7 @@ use harpc_server::{
     session::Session,
     utils::{delegate_call_discrete, parse_procedure_id},
 };
-use harpc_system::{delegate::SubsystemDelegate, role::Role};
+use harpc_system::delegate::SubsystemDelegate;
 use harpc_tower::{body::Body, either::Either, request::Request, response::Response};
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use hash_graph_authorization::{
@@ -31,7 +34,7 @@ use hash_graph_types::{
 };
 use hash_temporal_client::TemporalClient;
 
-use super::{role, session::Account};
+use super::session::Account;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PermissionResponse {
@@ -54,39 +57,38 @@ impl Error for AccountNotFoundError {
 #[display("unable to fullfil account request")]
 pub struct AccountError;
 
-pub trait AccountSystem<R>
-where
-    R: Role,
-{
+pub trait AccountSystem {
+    type ExecutionScope;
+
     async fn create_account(
         &self,
-        session: R::Session,
+        scope: Self::ExecutionScope,
         params: InsertAccountIdParams,
     ) -> Result<AccountId, Report<AccountError>>;
 
     async fn create_account_group(
         &self,
-        session: R::Session,
+        scope: Self::ExecutionScope,
         params: InsertAccountGroupIdParams,
     ) -> Result<AccountGroupId, Report<AccountError>>;
 
     async fn check_account_group_permission(
         &self,
-        session: R::Session,
+        scope: Self::ExecutionScope,
         account_group_id: AccountGroupId,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>>;
 
     async fn add_account_group_member(
         &self,
-        session: R::Session,
+        scope: Self::ExecutionScope,
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>>;
 
     async fn remove_account_group_member(
         &self,
-        session: R::Session,
+        scope: Self::ExecutionScope,
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>>;
@@ -258,17 +260,19 @@ where
     }
 }
 
-impl<S, A> AccountSystem<role::Server> for AccountServer<S, A>
+impl<S, A> AccountSystem for AccountServer<S, A>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    type ExecutionScope = Session<Account>;
+
     async fn create_account(
         &self,
-        session: Session<Account>,
+        scope: Session<Account>,
         params: InsertAccountIdParams,
     ) -> Result<AccountId, Report<AccountError>> {
-        let actor_id = Self::actor(&session)?;
+        let actor_id = Self::actor(&scope)?;
 
         let mut store = self.store().await?;
 
@@ -283,10 +287,10 @@ where
 
     async fn create_account_group(
         &self,
-        session: Session<Account>,
+        scope: Session<Account>,
         params: InsertAccountGroupIdParams,
     ) -> Result<AccountGroupId, Report<AccountError>> {
-        let actor_id = Self::actor(&session)?;
+        let actor_id = Self::actor(&scope)?;
 
         let mut store = self.store().await?;
 
@@ -319,11 +323,11 @@ where
 
     async fn check_account_group_permission(
         &self,
-        session: Session<Account>,
+        scope: Session<Account>,
         account_group_id: AccountGroupId,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>> {
-        let actor_id = Self::actor(&session)?;
+        let actor_id = Self::actor(&scope)?;
 
         let auth = self.authorization_api().await?;
 
@@ -351,11 +355,11 @@ where
 
     async fn add_account_group_member(
         &self,
-        session: Session<Account>,
+        scope: Session<Account>,
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
-        let actor_id = Self::actor(&session)?;
+        let actor_id = Self::actor(&scope)?;
 
         let mut auth = self.authorization_api().await?;
 
@@ -377,8 +381,8 @@ where
 
         if !check.has_permission {
             return Err(Report::new(Forbidden {
-                subsystem: session.request_info().subsystem,
-                procedure: session.request_info().procedure,
+                subsystem: scope.request_info().subsystem,
+                procedure: scope.request_info().procedure,
                 reason: Cow::Borrowed("actor does not have permission to add account group member"),
             })
             .change_context(AccountError));
@@ -403,11 +407,11 @@ where
 
     async fn remove_account_group_member(
         &self,
-        session: Session<Account>,
+        scope: Session<Account>,
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
-        let actor_id = Self::actor(&session)?;
+        let actor_id = Self::actor(&scope)?;
 
         let mut auth = self.authorization_api().await?;
 
@@ -428,7 +432,7 @@ where
             .change_context(AccountError)?;
 
         if !check.has_permission {
-            let request_info = session.request_info();
+            let request_info = scope.request_info();
 
             return Err(Report::new(Forbidden {
                 subsystem: request_info.subsystem,
@@ -470,19 +474,20 @@ impl<T> AccountDelegate<T> {
     }
 }
 
-impl<T, C> SubsystemDelegate<Session<Account>, C> for AccountDelegate<T>
+impl<T, C> SubsystemDelegate<C> for AccountDelegate<T>
 where
     T: AccountSystem<
-            role::Server,
             create_account(..): Send,
             create_account_group(..): Send,
             check_account_group_permission(..): Send,
             add_account_group_member(..): Send,
             remove_account_group_member(..): Send,
+            ExecutionScope: Send,
         > + Send,
     C: Encoder + ReportDecoder + Clone + Send,
 {
     type Error = Report<DelegationError>;
+    type ExecutionScope = T::ExecutionScope;
     type Subsystem = meta::AccountSystem;
 
     type Body<Source>
@@ -493,7 +498,7 @@ where
     async fn call<B>(
         self,
         request: Request<B>,
-        session: Session<Account>,
+        scope: T::ExecutionScope,
         codec: C,
     ) -> Result<Response<Self::Body<B>>, Self::Error>
     where
@@ -509,14 +514,14 @@ where
         match id {
             meta::AccountProcedureId::CreateAccount => {
                 delegate_call_discrete(request, codec, |params| async move {
-                    self.inner.create_account(session, params).await
+                    self.inner.create_account(scope, params).await
                 })
                 .await
                 .map(|response| response.map_body(Either::Left))
             }
             meta::AccountProcedureId::CreateAccountGroup => {
                 delegate_call_discrete(request, codec, |params| async move {
-                    self.inner.create_account_group(session, params).await
+                    self.inner.create_account_group(scope, params).await
                 })
                 .await
                 .map(|response| response.map_body(Either::Left).map_body(Either::Right))
@@ -526,7 +531,7 @@ where
                 codec,
                 |(account_group_id, permission)| async move {
                     self.inner
-                        .check_account_group_permission(session, account_group_id, permission)
+                        .check_account_group_permission(scope, account_group_id, permission)
                         .await
                 },
             )
@@ -542,7 +547,7 @@ where
                 codec,
                 |(account_group_id, account_id)| async move {
                     self.inner
-                        .add_account_group_member(session, account_group_id, account_id)
+                        .add_account_group_member(scope, account_group_id, account_id)
                         .await
                 },
             )
@@ -559,7 +564,7 @@ where
                 codec,
                 |(account_group_id, account_id)| async move {
                     self.inner
-                        .remove_account_group_member(session, account_group_id, account_id)
+                        .remove_account_group_member(scope, account_group_id, account_id)
                         .await
                 },
             )
@@ -576,30 +581,51 @@ where
 }
 
 // TODO: this can be auto generated by the `harpc` crate
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct AccountClient;
+#[derive_where::derive_where(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct AccountClient<S, C> {
+    _session: PhantomData<fn() -> *const S>,
+    _codec: PhantomData<fn() -> *const C>,
+}
 
-impl<Svc, C> AccountSystem<role::Client<Svc, C>> for AccountClient
+impl<S, C> AccountClient<S, C> {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            _session: PhantomData,
+            _codec: PhantomData,
+        }
+    }
+}
+
+impl<S, C> Default for AccountClient<S, C> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<S, C> AccountSystem for AccountClient<S, C>
 where
-    Svc: harpc_client::connection::ConnectionService<C>,
+    S: harpc_client::connection::ConnectionService<C>,
     C: harpc_client::connection::ConnectionCodec,
 {
+    type ExecutionScope = Connection<S, C>;
+
     async fn create_account(
         &self,
-        session: Connection<Svc, C>,
+        scope: Connection<S, C>,
         params: InsertAccountIdParams,
     ) -> Result<AccountId, Report<AccountError>> {
-        invoke_call_discrete(session, meta::AccountProcedureId::CreateAccount, [params])
+        invoke_call_discrete(scope, meta::AccountProcedureId::CreateAccount, [params])
             .await
             .change_context(AccountError)
     }
 
     async fn create_account_group(
         &self,
-        session: Connection<Svc, C>,
+        scope: Connection<S, C>,
         params: InsertAccountGroupIdParams,
     ) -> Result<AccountGroupId, Report<AccountError>> {
-        invoke_call_discrete(session, meta::AccountProcedureId::CreateAccountGroup, [
+        invoke_call_discrete(scope, meta::AccountProcedureId::CreateAccountGroup, [
             params,
         ])
         .await
@@ -608,12 +634,12 @@ where
 
     async fn check_account_group_permission(
         &self,
-        session: Connection<Svc, C>,
+        scope: Connection<S, C>,
         account_group_id: AccountGroupId,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>> {
         invoke_call_discrete(
-            session,
+            scope,
             meta::AccountProcedureId::CheckAccountGroupPermission,
             [(account_group_id, permission)],
         )
@@ -623,28 +649,27 @@ where
 
     async fn add_account_group_member(
         &self,
-        session: Connection<Svc, C>,
+        scope: Connection<S, C>,
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
-        invoke_call_discrete(session, meta::AccountProcedureId::AddAccountGroupMember, [
-            (account_group_id, account_id),
-        ])
+        invoke_call_discrete(scope, meta::AccountProcedureId::AddAccountGroupMember, [(
+            account_group_id,
+            account_id,
+        )])
         .await
         .change_context(AccountError)
     }
 
     async fn remove_account_group_member(
         &self,
-        session: Connection<Svc, C>,
+        scope: Connection<S, C>,
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
-        invoke_call_discrete(
-            session,
-            meta::AccountProcedureId::RemoveAccountGroupMember,
-            [(account_group_id, account_id)],
-        )
+        invoke_call_discrete(scope, meta::AccountProcedureId::RemoveAccountGroupMember, [
+            (account_group_id, account_id),
+        ])
         .await
         .change_context(AccountError)
     }
