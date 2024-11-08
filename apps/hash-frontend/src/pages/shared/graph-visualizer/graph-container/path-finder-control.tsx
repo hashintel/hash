@@ -460,7 +460,13 @@ const PathFinderPanel: FunctionComponent<{
       position="left"
       title="Path finder"
     >
-      <Stack direction="row" spacing={1} px={1} mt={1} sx={{ width: 700 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        px={1}
+        mt={1}
+        sx={{ width: config.pathfinding?.hideVia ? 500 : 700 }}
+      >
         <PathTerminusSelector
           label="Start at"
           node={startNode}
@@ -482,16 +488,18 @@ const PathFinderPanel: FunctionComponent<{
           type={endType}
           typeOptions={sortedTypes}
         />
-        <PathTerminusSelector
-          label="Go via"
-          suffixKey="shortestPathVia"
-          node={viaNode}
-          nodeOptions={viaNodeOptions}
-          setNode={selectViaNode}
-          setType={selectViaType}
-          type={viaType}
-          typeOptions={sortedTypes}
-        />
+        {!config.pathfinding?.hideVia && (
+          <PathTerminusSelector
+            label="Go via"
+            suffixKey="shortestPathVia"
+            node={viaNode}
+            nodeOptions={viaNodeOptions}
+            setNode={selectViaNode}
+            setType={selectViaType}
+            type={viaType}
+            typeOptions={sortedTypes}
+          />
+        )}
       </Stack>
       <ControlSectionContainer
         label={`Simple paths${simplePaths.length ? ` (${formatNumber(simplePaths.length)})` : ""}`}

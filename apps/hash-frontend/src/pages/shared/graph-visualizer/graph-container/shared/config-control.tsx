@@ -102,6 +102,7 @@ export type GraphVizConfig<
   pathfinding?: {
     startTypeId?: string;
     endTypeId?: string;
+    hideVia?: boolean;
   };
 };
 
