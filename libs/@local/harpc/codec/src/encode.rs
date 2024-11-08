@@ -1,4 +1,7 @@
+use core::error::Error;
+
 use bytes::Buf;
+use error_stack::Report;
 use futures_core::Stream;
 
 pub trait Encoder {
@@ -13,4 +16,16 @@ pub trait Encoder {
     where
         S: Stream<Item = T> + Send,
         T: serde::Serialize;
+}
+
+pub trait ReportEncoder: Encoder<Error = Report<Self::Context>> {
+    type Context: Error + Send + Sync + 'static;
+}
+
+impl<T, C> ReportEncoder for T
+where
+    T: Encoder<Error = Report<C>>,
+    C: Error + Send + Sync + 'static,
+{
+    type Context = C;
 }

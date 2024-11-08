@@ -5,8 +5,7 @@ use core::{
 };
 
 use frunk::{HCons, HNil};
-use futures::{FutureExt as _, Stream};
-use harpc_net::session::server::SessionEvent;
+use futures::FutureExt as _;
 use harpc_system::{Subsystem, delegate::SubsystemDelegate};
 use harpc_tower::{
     body::Body,
@@ -121,11 +120,7 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
     ///
     /// It is not necessary to spawn the task if the router is spawned, but it is **highly**
     /// recommended, as otherwise sessions will not be cleaned up, which will lead to memory leaks.
-    pub fn background_task<St, E>(&self, stream: St) -> session::Task<S, St>
-    where
-        S: Send + Sync + 'static,
-        St: Stream<Item = Result<SessionEvent, E>> + Send + 'static,
-    {
+    pub fn background_task<St>(&self, stream: St) -> session::Task<S, St> {
         Arc::clone(&self.session)
             .task(stream)
             .with_cancellation_token(self.cancel.child_token())

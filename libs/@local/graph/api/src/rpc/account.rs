@@ -210,9 +210,9 @@ pub mod meta {
 #[derive(Debug)]
 #[derive_where::derive_where(Clone)]
 pub struct AccountServer<S, A> {
-    authorization_api_pool: Arc<A>,
-    temporal_client: Option<Arc<TemporalClient>>,
-    store_pool: Arc<S>,
+    pub authorization_api_pool: Arc<A>,
+    pub temporal_client: Option<Arc<TemporalClient>>,
+    pub store_pool: Arc<S>,
 }
 
 impl<S, A> AccountServer<S, A>
@@ -495,7 +495,7 @@ where
     type Body<Source>
         = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>
     where
-        Source: Body<Control = !, Error: Send + Sync> + Send + Sync;
+        Source: Body<Control = !, Error: Send + Sync> + Send;
 
     async fn call<B>(
         self,
@@ -504,7 +504,7 @@ where
         codec: C,
     ) -> Result<Response<Self::Body<B>>, Self::Error>
     where
-        B: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        B: Body<Control = !, Error: Send + Sync> + Send,
     {
         let id = parse_procedure_id(&request)?;
 

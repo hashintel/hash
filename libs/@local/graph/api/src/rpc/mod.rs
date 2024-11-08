@@ -3,8 +3,23 @@ pub mod auth;
 pub mod echo;
 mod session;
 
+use alloc::sync::Arc;
+
+use graph::store::StorePool;
+use harpc_codec::{decode::ReportDecoder, encode::ReportEncoder};
+use harpc_server::{boxed::BoxedRouter, router::RouterBuilder, session::Task};
 use harpc_system::SubsystemIdentifier;
+use harpc_tower::layer::{body_report::HandleBodyReportLayer, report::HandleReportLayer};
 use harpc_types::subsystem::SubsystemId;
+use hash_graph_authorization::AuthorizationApiPool;
+use hash_temporal_client::TemporalClient;
+
+use self::{
+    account::{AccountDelegate, AccountServer},
+    auth::{AuthenticationDelegate, AuthenticationServer},
+    echo::{EchoDelegate, EchoServer},
+    session::Account,
+};
 
 #[derive(Debug, Copy, Clone)]
 pub enum GraphSubsystemId {
@@ -33,4 +48,48 @@ impl SubsystemIdentifier for GraphSubsystemId {
             Self::Account => SubsystemId::new(0x02),
         }
     }
+}
+
+pub struct Dependencies<S, A, C> {
+    pub store: Arc<S>,
+    pub authorization_api: Arc<A>,
+    pub temporal_client: Option<TemporalClient>,
+    pub codec: C,
+}
+
+// TODO: do we instead want to return a typed router?
+// In theory it could give a tiny bit of speedup, but it's not clear if it's worth it.
+// Considering that axum makes a lot more use of boxing than we do, it should be fine.
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "false-positive in `AccountServer`"
+)]
+pub fn rpc_router<S, A, C, N>(
+    dependencies: Dependencies<S, A, C>,
+    notifications: N,
+) -> (BoxedRouter, Task<Account, N>)
+where
+    S: StorePool + Send + Sync + 'static,
+    A: AuthorizationApiPool + Send + Sync + 'static,
+    C: ReportEncoder + ReportDecoder + Clone + Send + Sync + 'static,
+{
+    let builder = RouterBuilder::new(dependencies.codec)
+        .with_builder(|builder| {
+            builder
+                .layer(HandleReportLayer::new())
+                .layer(HandleBodyReportLayer::new())
+        })
+        .register(AuthenticationDelegate::new(AuthenticationServer))
+        .register(AccountDelegate::new(AccountServer {
+            store_pool: dependencies.store,
+            authorization_api_pool: dependencies.authorization_api,
+            temporal_client: dependencies.temporal_client.map(Arc::new),
+        }))
+        .register(EchoDelegate::new(EchoServer));
+
+    let task = builder.background_task(notifications);
+
+    let router = builder.build().boxed();
+
+    (router, task)
 }
