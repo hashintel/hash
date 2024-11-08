@@ -1,4 +1,3 @@
-pub mod crud;
 pub mod error;
 
 mod config;

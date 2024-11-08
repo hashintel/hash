@@ -7,6 +7,7 @@ use hash_graph_store::{
     entity::{EntityStore as _, ValidateEntityComponents},
     error::InsertionError,
     filter::Filter,
+    query::Read,
 };
 use hash_graph_types::{
     knowledge::{
@@ -23,7 +24,6 @@ use crate::{
     snapshot::WriteBatch,
     store::{
         StoreCache, StoreProvider,
-        crud::Read,
         postgres::{
             AsClient, PostgresStore,
             query::rows::{

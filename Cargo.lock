@@ -2826,6 +2826,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-postgres",
+ "tracing",
  "type-system",
  "utoipa",
  "uuid",

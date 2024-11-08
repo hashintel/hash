@@ -19,7 +19,7 @@ use hash_graph_store::{
     },
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
-    query::VersionedUrlSorting,
+    query::{QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -54,7 +54,6 @@ use type_system::{
 };
 
 use crate::store::{
-    crud::{QueryResult as _, Read, ReadPaginated},
     error::DeletionError,
     postgres::{
         AsClient, PostgresStore, TraversalContext,

@@ -13,6 +13,7 @@ use hash_graph_authorization::{
 use hash_graph_store::{
     error::QueryError,
     filter::Filter,
+    query::Read as _,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
@@ -37,10 +38,7 @@ use type_system::{
     url::{BaseUrl, VersionedUrl},
 };
 
-use crate::store::{
-    crud::Read as _,
-    postgres::{AsClient, PostgresStore},
-};
+use crate::store::postgres::{AsClient, PostgresStore};
 
 #[derive(Debug, Clone)]
 enum Access<T> {

@@ -45,7 +45,7 @@ use hash_graph_store::{
         GetPropertyTypesResponse, PropertyTypeStore, UnarchivePropertyTypeParams,
         UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
-    query::{ConflictBehavior, Sorting},
+    query::{ConflictBehavior, QueryResult, Read, ReadPaginated, Sorting},
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
         VariableTemporalAxisUnresolved,
@@ -72,13 +72,7 @@ use type_system::{
     url::VersionedUrl,
 };
 
-use crate::{
-    ontology::domain_validator::DomainValidator,
-    store::{
-        crud::{QueryResult, Read, ReadPaginated},
-        error::StoreError,
-    },
-};
+use crate::{ontology::domain_validator::DomainValidator, store::error::StoreError};
 
 pub trait TypeFetcher {
     /// Fetches the provided type reference and inserts it to the Graph.

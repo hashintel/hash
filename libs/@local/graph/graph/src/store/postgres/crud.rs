@@ -1,14 +1,18 @@
+use core::marker::PhantomData;
+
 use error_stack::{Report, ResultExt as _};
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
 use hash_graph_store::{
-    error::QueryError, filter::Filter, query::Sorting, subgraph::temporal_axes::QueryTemporalAxes,
+    error::QueryError,
+    filter::Filter,
+    query::{QueryResult, Read, ReadPaginated, Sorting},
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 use tokio_postgres::{GenericClient as _, Row};
 use tracing::Instrument as _;
 
 use crate::store::{
     AsClient, PostgresStore,
-    crud::{QueryResult, Read, ReadPaginated},
     postgres::query::{PostgresQueryPath, PostgresRecord, PostgresSorting, SelectCompiler},
 };
 
@@ -24,7 +28,24 @@ pub trait QueryRecordDecode {
     fn decode(row: &Row, indices: &Self::Indices) -> Self::Output;
 }
 
-impl<R, S> QueryResult<R, S> for Row
+// A row which can be used to decode both, a record and a cursor.
+pub struct TypedRow<R, C> {
+    row: Row,
+    record: PhantomData<R>,
+    cursor: PhantomData<C>,
+}
+
+impl<R, C> From<Row> for TypedRow<R, C> {
+    fn from(row: Row) -> Self {
+        Self {
+            row,
+            record: PhantomData,
+            cursor: PhantomData,
+        }
+    }
+}
+
+impl<R, S> QueryResult<R, S> for TypedRow<R, S::Cursor>
 where
     R: QueryRecordDecode<Output = R>,
     S: Sorting + QueryRecordDecode<Output = S::Cursor>,
@@ -32,11 +53,11 @@ where
     type Indices = QueryIndices<R, S>;
 
     fn decode_record(&self, indices: &Self::Indices) -> R {
-        R::decode(self, &indices.record_indices)
+        R::decode(&self.row, &indices.record_indices)
     }
 
     fn decode_cursor(&self, indices: &Self::Indices) -> S::Cursor {
-        S::decode(self, &indices.cursor_indices)
+        S::decode(&self.row, &indices.cursor_indices)
     }
 }
 
@@ -45,9 +66,10 @@ where
     Cl: AsClient,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
     for<'s> S: PostgresSorting<'s, R> + Sync,
+    S::Cursor: Send,
     A: Send + Sync,
 {
-    type QueryResult = Row;
+    type QueryResult = TypedRow<R, S::Cursor>;
 
     type ReadPaginatedStream =
         impl Stream<Item = Result<Self::QueryResult, Report<QueryError>>> + Send + Sync;
@@ -91,7 +113,9 @@ where
             .change_context(QueryError)?;
 
         Ok((
-            stream.map(|row| row.change_context(QueryError)),
+            stream
+                .map(|row| row.change_context(QueryError))
+                .map_ok(TypedRow::from),
             QueryIndices {
                 record_indices,
                 cursor_indices,

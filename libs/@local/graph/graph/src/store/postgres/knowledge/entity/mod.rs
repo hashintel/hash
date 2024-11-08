@@ -26,7 +26,7 @@ use hash_graph_store::{
     entity_type::IncludeEntityTypeOption,
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, Parameter},
-    query::Sorting as _,
+    query::{QueryResult as _, Read, ReadPaginated, Sorting as _},
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -66,7 +66,7 @@ use hash_graph_validation::{EntityPreprocessor, EntityValidationError, Validate 
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde_json::Value as JsonValue;
-use tokio_postgres::{GenericClient as _, Row, error::SqlState};
+use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     schema::{
         ClosedEntityType, ClosedMultiEntityType, DataTypeReference, EntityTypeUuid,
@@ -78,7 +78,6 @@ use uuid::Uuid;
 
 use crate::store::{
     AsClient, PostgresStore, StoreCache,
-    crud::{QueryResult as _, Read, ReadPaginated},
     error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
     postgres::{
         ResponseCountMap, TraversalContext,
@@ -599,11 +598,11 @@ where
                 .await?;
             let entities = rows
                 .into_iter()
-                .map(|row: Row| (row.decode_record(&artifacts), row))
+                .map(|row| (row.decode_record(&artifacts), row))
                 .collect::<Vec<_>>();
             if let Some(cursor) = entities
                 .last()
-                .map(|(_, row): &(Entity, Row)| row.decode_cursor(&artifacts))
+                .map(|(_, row)| row.decode_cursor(&artifacts))
             {
                 params.sorting.set_cursor(cursor);
             }

@@ -9,6 +9,7 @@ use hash_graph_store::{
     error::QueryError,
     filter::{Filter, FilterExpression, ParameterList},
     property_type::PropertyTypeQueryPath,
+    query::Read,
     subgraph::{
         Subgraph, SubgraphRecord as _, edges::GraphResolveDepths, temporal_axes::VariableAxis,
     },
@@ -20,10 +21,7 @@ use hash_graph_types::{
 };
 use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
 
-use crate::store::{
-    crud::Read,
-    postgres::{AsClient, PostgresStore},
-};
+use crate::store::postgres::{AsClient, PostgresStore};
 
 impl<C, A> PostgresStore<C, A>
 where
