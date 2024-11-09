@@ -3,7 +3,6 @@ pub mod error;
 mod config;
 mod validation;
 
-mod fetcher;
 pub(crate) mod postgres;
 
 use hash_graph_store::{
@@ -13,7 +12,6 @@ use hash_graph_store::{
 
 pub use self::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
-    fetcher::{FetchingPool, FetchingStore, TypeFetcher},
     postgres::{AsClient, PostgresStore, PostgresStorePool},
     validation::{StoreCache, StoreProvider},
 };

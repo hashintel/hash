@@ -18,6 +18,7 @@ path = "src/bin/openapi-spec-generator.rs"
 graph = { workspace = true, public = true, features = ["utoipa"] }
 hash-graph-authorization = { workspace = true, public = true }
 hash-graph-store = { workspace = true, features = ["utoipa"] }
+hash-graph-type-fetcher = { workspace = true, public = true }
 hash-graph-types = { workspace = true, public = true, features = ["utoipa"] }
 hash-temporal-client = { workspace = true, public = true }
 harpc-server = { workspace = true, public = true }

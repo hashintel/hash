@@ -1,7 +1,5 @@
 //! TODO: DOC
 
-pub mod domain_validator;
-
 use core::{error::Error, fmt};
 
 use error_stack::{Report, ResultExt as _};

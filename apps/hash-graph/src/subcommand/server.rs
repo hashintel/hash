@@ -8,10 +8,7 @@ use core::{
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use graph::{
-    ontology::domain_validator::DomainValidator,
-    store::{DatabaseConnectionInfo, DatabasePoolConfig, FetchingPool, PostgresStorePool},
-};
+use graph::store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool};
 use hash_graph_api::rest::{RestRouterDependencies, rest_api_router};
 use hash_graph_authorization::{
     AuthorizationApi as _, NoAuthorization,
@@ -19,11 +16,13 @@ use hash_graph_authorization::{
     zanzibar::ZanzibarClient,
 };
 use hash_graph_store::pool::StorePool as _;
+use hash_graph_type_fetcher::FetchingPool;
 use hash_temporal_client::TemporalClientConfig;
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{net::TcpListener, time::timeout};
 use tokio_postgres::NoTls;
+use type_system::schema::DomainValidator;
 
 use crate::{
     error::{GraphError, HealthcheckError},

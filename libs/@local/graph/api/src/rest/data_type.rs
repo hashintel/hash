@@ -12,10 +12,7 @@ use axum::{
 };
 use error_stack::{Report, ResultExt as _};
 use graph::{
-    ontology::{
-        domain_validator::{DomainValidator, ValidateOntologyType as _},
-        patch_id_and_parse,
-    },
+    ontology::patch_id_and_parse,
     store::error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
 };
 use hash_graph_authorization::{
@@ -50,7 +47,7 @@ use time::OffsetDateTime;
 use type_system::{
     schema::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeUuid, Operator, Variable,
+        DataTypeUuid, DomainValidator, Operator, ValidateOntologyType as _, Variable,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };

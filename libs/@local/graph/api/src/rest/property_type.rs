@@ -11,10 +11,7 @@ use axum::{
 };
 use error_stack::{Report, ResultExt as _};
 use graph::{
-    ontology::{
-        domain_validator::{DomainValidator, ValidateOntologyType as _},
-        patch_id_and_parse,
-    },
+    ontology::patch_id_and_parse,
     store::error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
 };
 use hash_graph_authorization::{
@@ -50,7 +47,7 @@ use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
-    schema::{PropertyType, PropertyTypeUuid},
+    schema::{DomainValidator, PropertyType, PropertyTypeUuid, ValidateOntologyType as _},
     url::{OntologyTypeVersion, VersionedUrl},
 };
 use utoipa::{OpenApi, ToSchema};

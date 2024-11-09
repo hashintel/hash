@@ -2716,6 +2716,7 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-type-defs",
+ "hash-graph-type-fetcher",
  "hash-graph-types",
  "hash-graph-validation",
  "hash-status",
@@ -2885,14 +2886,21 @@ dependencies = [
 name = "hash-graph-type-fetcher"
 version = "0.0.0"
 dependencies = [
+ "derive_more 1.0.0",
  "error-stack",
  "futures",
+ "hash-graph-authorization",
+ "hash-graph-store",
+ "hash-graph-temporal-versioning",
+ "hash-graph-types",
+ "hash-temporal-client",
  "include_dir",
  "reqwest",
  "serde",
  "serde_json",
  "tarpc",
  "time",
+ "tokio",
  "tracing",
  "type-system",
 ]
