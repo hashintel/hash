@@ -31,9 +31,7 @@ pub trait QueryResult<R, S: Sorting> {
     fn decode_cursor(&self, indices: &Self::Indices) -> <S as Sorting>::Cursor;
 }
 
-/// Read access to a [`Store`].
-///
-/// [`Store`]: crate::store::Store
+/// Paginated read access to a store.
 pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
     type QueryResult: QueryResult<R, S> + Send;
 
@@ -92,9 +90,7 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
     }
 }
 
-/// Read access to a [`Store`].
-///
-/// [`Store`]: crate::store::Store
+/// Read access to a store.
 pub trait Read<R: QueryRecord>: Sync {
     type ReadStream: Stream<Item = Result<R, Report<QueryError>>> + Send + Sync;
 
