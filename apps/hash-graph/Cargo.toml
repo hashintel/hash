@@ -22,7 +22,6 @@ hash-graph-authorization = { workspace = true }
 hash-graph-store = { workspace = true }
 hash-graph-type-fetcher = { workspace = true }
 hash-graph-types = { workspace = true }
-hash-graph-validation = { workspace = true }
 hash-graph-test-server = { workspace = true, optional = true }
 hash-temporal-client = { workspace = true }
 hash-tracing = { workspace = true, features = ["clap"] }
