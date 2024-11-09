@@ -72,7 +72,7 @@ pub struct RpcAddress {
     pub rpc_host: String,
 
     /// The port the RPC client is listening at.
-    #[clap(long, default_value_t = 25489, env = "HASH_GRAPH_RPC_PORT")]
+    #[clap(long, default_value_t = 4002, env = "HASH_GRAPH_RPC_PORT")]
     pub rpc_port: u16,
 }
 
