@@ -1,7 +1,7 @@
-diff --git a/node_modules/@sigma/edge-curve/dist/sigma-edge-curve.esm.js b/node_modules/@sigma/edge-curve/dist/sigma-edge-curve.esm.js
-index 7bbaeef..4809bb6 100644
---- a/node_modules/@sigma/edge-curve/dist/sigma-edge-curve.esm.js
-+++ b/node_modules/@sigma/edge-curve/dist/sigma-edge-curve.esm.js
+diff --git a/dist/sigma-edge-curve.esm.js b/dist/sigma-edge-curve.esm.js
+index 7bbaeefb9262d9f2a766524c4152930d04132762..4809bb666244f28b076e8a90c6962ba903e5b7f6 100644
+--- a/dist/sigma-edge-curve.esm.js
++++ b/dist/sigma-edge-curve.esm.js
 @@ -302,8 +302,87 @@ function createDrawCurvedEdgeLabel(_ref) {
  
  function getFragmentShader(_ref) {

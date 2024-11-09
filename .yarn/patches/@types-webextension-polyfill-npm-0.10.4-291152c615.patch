@@ -1,7 +1,7 @@
-diff --git a/node_modules/@types/webextension-polyfill/namespaces/runtime.d.ts b/node_modules/@types/webextension-polyfill/namespaces/runtime.d.ts
-index eaeaf91..54b2b4e 100644
---- a/node_modules/@types/webextension-polyfill/namespaces/runtime.d.ts
-+++ b/node_modules/@types/webextension-polyfill/namespaces/runtime.d.ts
+diff --git a/namespaces/runtime.d.ts b/namespaces/runtime.d.ts
+index eaeaf9110a189d77894844591c5d575f10585f97..54b2b4ea914139affa3d772a49a60b057df41b76 100644
+--- a/namespaces/runtime.d.ts
++++ b/namespaces/runtime.d.ts
 @@ -448,7 +448,7 @@ export namespace Runtime {
           * will keep the message channel open to the other end until <code>sendResponse</code> is called).
           */

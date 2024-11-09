@@ -1,7 +1,7 @@
-diff --git a/node_modules/prosemirror-view/dist/index.d.ts b/node_modules/prosemirror-view/dist/index.d.ts
-index 713cdab..b6b752f 100644
---- a/node_modules/prosemirror-view/dist/index.d.ts
-+++ b/node_modules/prosemirror-view/dist/index.d.ts
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 713cdabbf51346c2c42b4f93b43dc7a425d3603b..b6b752f50c196f22f2c8188f438d4d1e6aec3c6c 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
 @@ -543,7 +543,7 @@ declare class EditorView {
      This method is bound to the view instance, so that it can be
      easily passed around.

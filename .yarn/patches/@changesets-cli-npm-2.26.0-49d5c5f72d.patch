@@ -1,7 +1,7 @@
-diff --git a/node_modules/@changesets/cli/dist/cli.cjs.dev.js b/node_modules/@changesets/cli/dist/cli.cjs.dev.js
-index b158219..0da127e 100644
---- a/node_modules/@changesets/cli/dist/cli.cjs.dev.js
-+++ b/node_modules/@changesets/cli/dist/cli.cjs.dev.js
+diff --git a/dist/cli.cjs.dev.js b/dist/cli.cjs.dev.js
+index b1582198d3d2631569ff59f27170354a932d3ad0..0da127e040352b530af89a1ce2d8b29ab6bec9c1 100644
+--- a/dist/cli.cjs.dev.js
++++ b/dist/cli.cjs.dev.js
 @@ -1176,7 +1176,8 @@ async function getStatus(cwd, {
    if (changedPackages.length > 0 && changesets.length === 0) {
      logger.error("Some packages have been changed but no changesets were found. Run `changeset add` to resolve this error.");
@@ -12,10 +12,10 @@ index b158219..0da127e 100644
    }
  
    if (output) {
-diff --git a/node_modules/@changesets/cli/dist/cli.cjs.prod.js b/node_modules/@changesets/cli/dist/cli.cjs.prod.js
-index 5b1b7dd..94ea167 100644
---- a/node_modules/@changesets/cli/dist/cli.cjs.prod.js
-+++ b/node_modules/@changesets/cli/dist/cli.cjs.prod.js
+diff --git a/dist/cli.cjs.prod.js b/dist/cli.cjs.prod.js
+index 5b1b7dd6439be4f0b721a17e683b1435c254f5b8..94ea1672f1dc5ec661b0e71d285d1b68d69d48d1 100644
+--- a/dist/cli.cjs.prod.js
++++ b/dist/cli.cjs.prod.js
 @@ -635,7 +635,8 @@ async function getStatus(cwd, {sinceMaster: sinceMaster, since: since, verbose:
      changedFilePatterns: config.changedFilePatterns
    })).length > 0 && 0 === changesets.length && (logger.error("Some packages have been changed but no changesets were found. Run `changeset add` to resolve this error."), 
@@ -26,10 +26,10 @@ index 5b1b7dd..94ea167 100644
    const print = verbose ? verbosePrint : SimplePrint;
    return print("patch", releases), logger.log("---"), print("minor", releases), logger.log("---"), 
    print("major", releases), releasePlan;
-diff --git a/node_modules/@changesets/cli/dist/cli.esm.js b/node_modules/@changesets/cli/dist/cli.esm.js
-index ced46d2..cf14334 100644
---- a/node_modules/@changesets/cli/dist/cli.esm.js
-+++ b/node_modules/@changesets/cli/dist/cli.esm.js
+diff --git a/dist/cli.esm.js b/dist/cli.esm.js
+index ced46d2520d4bff71b94e4023b1841373a55712b..cf14334e20f96b52c5b63f4c61933ab25c4b7de8 100644
+--- a/dist/cli.esm.js
++++ b/dist/cli.esm.js
 @@ -1153,7 +1153,8 @@ async function getStatus(cwd, {
    if (changedPackages.length > 0 && changesets.length === 0) {
      error("Some packages have been changed but no changesets were found. Run `changeset add` to resolve this error.");

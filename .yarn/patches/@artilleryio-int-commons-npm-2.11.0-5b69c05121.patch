@@ -1,7 +1,7 @@
-diff --git a/node_modules/@artilleryio/int-commons/engine_util.js b/node_modules/@artilleryio/int-commons/engine_util.js
-index 8e5dc73..31a9a01 100644
---- a/node_modules/@artilleryio/int-commons/engine_util.js
-+++ b/node_modules/@artilleryio/int-commons/engine_util.js
+diff --git a/engine_util.js b/engine_util.js
+index 8e5dc732ada44f9b17e177bf8cb684af5f55ae37..31a9a0100491fa153ff00eeac89ce74695eb9a12 100644
+--- a/engine_util.js
++++ b/engine_util.js
 @@ -6,7 +6,6 @@
  
  const async = require('async');
