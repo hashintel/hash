@@ -7,7 +7,7 @@ members = [
     "libs/@local/codec",
     "libs/@local/graph/api",
     "libs/@local/graph/authorization",
-    "libs/@local/graph/graph",
+    "libs/@local/graph/postgres-store",
     "libs/@local/graph/store",
     "libs/@local/graph/temporal-versioning",
     "libs/@local/graph/test-server",
@@ -54,15 +54,12 @@ license = "AGPL-3"
 publish = false
 
 [workspace.dependencies]
-# TODO: Split into other crates
-#   see https://linear.app/hash/issue/H-1000/split-the-graph-into-multiple-lib-modules
-graph.path = "libs/@local/graph/graph"
-
 # Workspace members
 error-stack = { path = "./libs/error-stack", default-features = false }
 hash-codec.path = "libs/@local/codec"
 hash-graph-authorization.path = "libs/@local/graph/authorization"
 hash-graph-api.path = "libs/@local/graph/api"
+hash-graph-postgres-store.path = "libs/@local/graph/postgres-store"
 hash-graph-store.path = "libs/@local/graph/store"
 hash-graph-temporal-versioning.path = "libs/@local/graph/temporal-versioning"
 hash-graph-test-data.path = "tests/graph/test-data/rust"

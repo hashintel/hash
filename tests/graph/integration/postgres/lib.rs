@@ -26,12 +26,6 @@ mod sorting;
 use std::collections::HashMap;
 
 use error_stack::Report;
-use graph::{
-    Environment, load_env,
-    store::{
-        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
-    },
-};
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
     schema::{
@@ -42,6 +36,12 @@ use hash_graph_authorization::{
         WebOwnerSubject,
     },
     zanzibar::Consistency,
+};
+use hash_graph_postgres_store::{
+    Environment, load_env,
+    store::{
+        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
+    },
 };
 use hash_graph_store::{
     account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},

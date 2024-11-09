@@ -16,7 +16,7 @@ package-name = "@apps/hash-graph"
 # Workspace dependencies
 hash-codec = { workspace = true }
 error-stack = { workspace = true }
-graph = { workspace = true, features = ["clap"] }
+hash-graph-postgres-store = { workspace = true, features = ["clap"] }
 hash-graph-api = { workspace = true }
 hash-graph-authorization = { workspace = true }
 hash-graph-store = { workspace = true }

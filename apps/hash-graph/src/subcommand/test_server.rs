@@ -2,14 +2,14 @@ use core::{net::SocketAddr, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use graph::{
-    snapshot::SnapshotEntry,
-    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool},
-};
 use hash_graph_authorization::{
     AuthorizationApi as _,
     backend::{SpiceDbOpenApi, ZanzibarBackend as _},
     zanzibar::ZanzibarClient,
+};
+use hash_graph_postgres_store::{
+    snapshot::SnapshotEntry,
+    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool},
 };
 use reqwest::Client;
 use tokio::{net::TcpListener, time::timeout};

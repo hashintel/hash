@@ -9,8 +9,8 @@
   },
   "devDependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@rust/graph": "0.0.0-private",
     "@rust/hash-graph-authorization": "0.0.0-private",
+    "@rust/hash-graph-postgres-store": "0.0.0-private",
     "@rust/hash-graph-store": "0.0.0-private",
     "@rust/hash-graph-temporal-versioning": "0.0.0-private",
     "@rust/hash-graph-test-data": "0.0.0-private",

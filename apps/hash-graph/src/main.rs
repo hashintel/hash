@@ -12,7 +12,7 @@ mod error;
 mod subcommand;
 
 use error_stack::Report;
-use graph::load_env;
+use hash_graph_postgres_store::load_env;
 use hash_tracing::sentry::{init, release_name};
 
 use self::{args::Args, error::GraphError};

@@ -16,7 +16,7 @@ description = "HASH Graph test server"
 
 # Private workspace dependencies
 error-stack = { workspace = true }
-graph = { workspace = true, features = ["utoipa"] }
+hash-graph-postgres-store = { workspace = true, features = ["utoipa"] }
 hash-codec = { workspace = true }
 hash-graph-authorization = { workspace = true }
 hash-graph-api = { workspace = true }

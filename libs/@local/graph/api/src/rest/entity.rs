@@ -11,7 +11,6 @@ use axum::{
     routing::{get, post},
 };
 use error_stack::{Report, ResultExt as _};
-use graph::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -22,6 +21,7 @@ use hash_graph_authorization::{
     },
     zanzibar::Consistency,
 };
+use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
 use hash_graph_store::{
     account::AccountStore as _,
     entity::{

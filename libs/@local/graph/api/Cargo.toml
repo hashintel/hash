@@ -15,7 +15,7 @@ path = "src/bin/openapi-spec-generator.rs"
 
 [dependencies]
 # Public workspace dependencies
-graph = { workspace = true, public = true, features = ["utoipa"] }
+hash-graph-postgres-store = { workspace = true, public = true, features = ["utoipa"] }
 hash-graph-authorization = { workspace = true, public = true }
 hash-graph-store = { workspace = true, features = ["utoipa"] }
 hash-graph-type-fetcher = { workspace = true, public = true }

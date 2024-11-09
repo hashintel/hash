@@ -27,8 +27,8 @@ use axum::{
     routing::get,
 };
 use error_stack::{Report, ResultExt as _};
-use graph::store::error::VersionedUrlAlreadyExists;
 use hash_graph_authorization::AuthorizationApiPool;
+use hash_graph_postgres_store::store::error::VersionedUrlAlreadyExists;
 use hash_graph_store::{
     account::AccountStore,
     data_type::DataTypeStore,

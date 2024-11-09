@@ -1,5 +1,5 @@
 {
-  "name": "@rust/graph",
+  "name": "@rust/hash-graph-postgres-store",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",

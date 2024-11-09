@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "graph"
+name = "hash-graph-postgres-store"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -10,10 +10,6 @@ use axum::{
     routing::{get, post, put},
 };
 use error_stack::{Report, ResultExt as _};
-use graph::{
-    ontology::patch_id_and_parse,
-    store::error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-};
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -23,6 +19,10 @@ use hash_graph_authorization::{
         PropertyTypeViewerSubject,
     },
     zanzibar::Consistency,
+};
+use hash_graph_postgres_store::{
+    ontology::patch_id_and_parse,
+    store::error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
 };
 use hash_graph_store::{
     pool::StorePool,

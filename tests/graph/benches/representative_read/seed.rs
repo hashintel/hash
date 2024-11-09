@@ -1,8 +1,8 @@
 use core::{iter::repeat, str::FromStr as _};
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use graph::store::AsClient as _;
 use hash_graph_authorization::{AuthorizationApi, schema::WebOwnerSubject};
+use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::{
     account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
     entity::{CreateEntityParams, EntityStore as _},

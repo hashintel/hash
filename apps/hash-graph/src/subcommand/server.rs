@@ -8,12 +8,14 @@ use core::{
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use graph::store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool};
 use hash_graph_api::rest::{RestRouterDependencies, rest_api_router};
 use hash_graph_authorization::{
     AuthorizationApi as _, NoAuthorization,
     backend::{SpiceDbOpenApi, ZanzibarBackend as _},
     zanzibar::ZanzibarClient,
+};
+use hash_graph_postgres_store::store::{
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool,
 };
 use hash_graph_store::pool::StorePool as _;
 use hash_graph_type_fetcher::FetchingPool;

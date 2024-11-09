@@ -1,19 +1,19 @@
 use core::mem::ManuallyDrop;
 use std::{collections::HashMap, fs, path::Path};
 
-use graph::{
-    Environment, load_env,
-    store::{
-        AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
-        PostgresStorePool, error::BaseUrlAlreadyExists,
-    },
-};
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeInstantiatorSubject,
         EntityTypeRelationAndSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
         PropertyTypeViewerSubject,
+    },
+};
+use hash_graph_postgres_store::{
+    Environment, load_env,
+    store::{
+        AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
+        PostgresStorePool, error::BaseUrlAlreadyExists,
     },
 };
 use hash_graph_store::{

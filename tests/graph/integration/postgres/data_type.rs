@@ -1,7 +1,7 @@
 use core::str::FromStr as _;
 use std::collections::{HashMap, HashSet};
 
-use graph::store::error::{
+use hash_graph_postgres_store::store::error::{
     BaseUrlAlreadyExists, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
     VersionedUrlAlreadyExists,
 };

@@ -2391,43 +2391,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "graph"
-version = "0.0.0"
-dependencies = [
- "async-scoped",
- "bytes",
- "clap",
- "deadpool",
- "deadpool-postgres",
- "derive-where",
- "dotenv-flow",
- "error-stack",
- "futures",
- "futures-sink",
- "hash-codec",
- "hash-graph-authorization",
- "hash-graph-store",
- "hash-graph-temporal-versioning",
- "hash-graph-types",
- "hash-graph-validation",
- "hash-status",
- "hash-temporal-client",
- "postgres-types",
- "refinery",
- "regex",
- "semver",
- "serde",
- "serde_json",
- "time",
- "tokio",
- "tokio-postgres",
- "tracing",
- "type-system",
- "utoipa",
- "uuid",
-]
-
-[[package]]
 name = "h2"
 version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2667,10 +2630,10 @@ dependencies = [
  "clap_complete",
  "error-stack",
  "futures",
- "graph",
  "hash-codec",
  "hash-graph-api",
  "hash-graph-authorization",
+ "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-test-server",
  "hash-graph-type-fetcher",
@@ -2703,7 +2666,6 @@ dependencies = [
  "error-stack",
  "frunk",
  "futures",
- "graph",
  "harpc-client",
  "harpc-codec",
  "harpc-server",
@@ -2711,6 +2673,7 @@ dependencies = [
  "harpc-tower",
  "harpc-types",
  "hash-graph-authorization",
+ "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-type-defs",
@@ -2766,8 +2729,8 @@ version = "0.0.0"
 dependencies = [
  "criterion",
  "criterion-macro",
- "graph",
  "hash-graph-authorization",
+ "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
@@ -2789,8 +2752,8 @@ name = "hash-graph-integration"
 version = "0.0.0"
 dependencies = [
  "error-stack",
- "graph",
  "hash-graph-authorization",
+ "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
@@ -2803,6 +2766,43 @@ dependencies = [
  "tokio-postgres",
  "tracing-subscriber",
  "type-system",
+ "uuid",
+]
+
+[[package]]
+name = "hash-graph-postgres-store"
+version = "0.0.0"
+dependencies = [
+ "async-scoped",
+ "bytes",
+ "clap",
+ "deadpool",
+ "deadpool-postgres",
+ "derive-where",
+ "dotenv-flow",
+ "error-stack",
+ "futures",
+ "futures-sink",
+ "hash-codec",
+ "hash-graph-authorization",
+ "hash-graph-store",
+ "hash-graph-temporal-versioning",
+ "hash-graph-types",
+ "hash-graph-validation",
+ "hash-status",
+ "hash-temporal-client",
+ "postgres-types",
+ "refinery",
+ "regex",
+ "semver",
+ "serde",
+ "serde_json",
+ "time",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "type-system",
+ "utoipa",
  "uuid",
 ]
 
@@ -2857,10 +2857,10 @@ dependencies = [
  "axum 0.7.7",
  "error-stack",
  "futures",
- "graph",
  "hash-codec",
  "hash-graph-api",
  "hash-graph-authorization",
+ "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-type-defs",
  "hash-graph-types",
