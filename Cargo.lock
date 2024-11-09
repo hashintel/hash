@@ -2419,7 +2419,6 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "tarpc",
  "time",
  "tokio",
  "tokio-postgres",

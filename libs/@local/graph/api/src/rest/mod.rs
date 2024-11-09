@@ -27,11 +27,16 @@ use axum::{
     routing::get,
 };
 use error_stack::{Report, ResultExt as _};
-use graph::store::{Store, error::VersionedUrlAlreadyExists};
+use graph::store::error::VersionedUrlAlreadyExists;
 use hash_graph_authorization::AuthorizationApiPool;
 use hash_graph_store::{
+    account::AccountStore,
+    data_type::DataTypeStore,
+    entity::EntityStore,
+    entity_type::EntityTypeStore,
     filter::{ParameterConversion, Selector},
     pool::StorePool,
+    property_type::PropertyTypeStore,
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
@@ -122,7 +127,9 @@ pub struct PermissionResponse {
     pub has_permission: bool,
 }
 
-pub trait RestApiStore: Store + TypeFetcher {
+pub trait RestApiStore:
+    AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + TypeFetcher
+{
     fn load_external_type(
         &mut self,
         actor_id: AccountId,
@@ -133,7 +140,13 @@ pub trait RestApiStore: Store + TypeFetcher {
 
 impl<S> RestApiStore for S
 where
-    S: Store + TypeFetcher + Send,
+    S: AccountStore
+        + DataTypeStore
+        + PropertyTypeStore
+        + EntityTypeStore
+        + EntityStore
+        + TypeFetcher
+        + Send,
 {
     async fn load_external_type(
         &mut self,

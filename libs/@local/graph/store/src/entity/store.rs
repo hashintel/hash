@@ -105,9 +105,9 @@ impl Default for ValidateEntityComponents {
 
 #[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(
-feature = "utoipa",
-derive(utoipa::ToSchema),
-aliases(CreateEntityRequest = CreateEntityParams < Vec < EntityRelationAndSubject >>),
+    feature = "utoipa",
+    derive(utoipa::ToSchema),
+    aliases(CreateEntityRequest = CreateEntityParams<Vec<EntityRelationAndSubject>>),
 )]
 #[serde(
     rename_all = "camelCase",

@@ -16,7 +16,7 @@ hash-temporal-client = { workspace = true, public = true }
 
 # Public third-party dependencies
 utoipa = { workspace = true, public = true, optional = true }
-postgres-types = { workspace = true, public = true, optional = true, features = ["derive", "with-serde_json-1"] }
+postgres-types = { workspace = true, public = true, optional = true, features = ["derive", "with-serde_json-1", "with-uuid-1"] }
 tokio-postgres = { workspace = true, public = true, optional = true}
 
 # Private workspace dependencies
@@ -39,8 +39,8 @@ uuid = { workspace = true, features = ["v4"] }
 tokio = { workspace = true, features = ["macros"] }
 
 [features]
-utoipa = ["dep:utoipa", "hash-graph-temporal-versioning/utoipa"]
-postgres = ["dep:postgres-types", "dep:tokio-postgres", "dep:bytes"]
+utoipa = ["hash-graph-temporal-versioning/utoipa", "dep:utoipa"]
+postgres = ["hash-graph-temporal-versioning/postgres", "dep:postgres-types", "dep:tokio-postgres", "dep:bytes"]
 
 [lints]
 workspace = true

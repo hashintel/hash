@@ -1,11 +1,13 @@
+#[cfg(feature = "utoipa")]
+pub use self::store::CreateEntityRequest;
 pub use self::{
     query::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
         EntityQuerySortingToken, EntityQueryToken,
     },
     store::{
-        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, CreateEntityRequest,
-        DiffEntityParams, DiffEntityResult, EntityStore, EntityValidationType, GetEntitiesParams,
+        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, DiffEntityParams,
+        DiffEntityResult, EntityStore, EntityValidationType, GetEntitiesParams,
         GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
         QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
         ValidateEntityError, ValidateEntityParams,

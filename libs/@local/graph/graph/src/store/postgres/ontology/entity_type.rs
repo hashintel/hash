@@ -15,11 +15,11 @@ use hash_graph_authorization::{
 use hash_graph_store::{
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
-        EntityTypeQueryPath, EntityTypeResolveDefinitions, GetClosedMultiEntityTypeParams,
-        GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams,
-        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
-        IncludeEntityTypeOption, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-        UpdateEntityTypesParams,
+        EntityTypeQueryPath, EntityTypeResolveDefinitions, EntityTypeStore,
+        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
+        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
+        GetEntityTypesResponse, IncludeEntityTypeOption, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
@@ -61,7 +61,6 @@ use type_system::{
 };
 
 use crate::store::{
-    EntityTypeStore,
     error::DeletionError,
     postgres::{
         AsClient, PostgresStore, ResponseCountMap, TraversalContext,
