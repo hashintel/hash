@@ -2408,7 +2408,6 @@ dependencies = [
  "hash-graph-authorization",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
- "hash-graph-type-fetcher",
  "hash-graph-types",
  "hash-graph-validation",
  "hash-status",

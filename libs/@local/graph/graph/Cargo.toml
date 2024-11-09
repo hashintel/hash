@@ -13,7 +13,6 @@ description = "HASH Graph API"
 # Public workspace dependencies
 hash-graph-authorization = { workspace = true, public = true }
 hash-graph-store = { workspace = true, public = true, features = ["postgres"] }
-hash-graph-type-fetcher = { workspace = true, public = true }
 hash-graph-validation = { workspace = true, public = true }
 hash-temporal-client = { workspace = true, public = true }
 
