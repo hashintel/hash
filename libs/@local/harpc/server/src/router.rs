@@ -5,8 +5,7 @@ use core::{
 };
 
 use frunk::{HCons, HNil};
-use futures::{FutureExt as _, Stream};
-use harpc_net::session::server::SessionEvent;
+use futures::FutureExt as _;
 use harpc_system::{Subsystem, delegate::SubsystemDelegate};
 use harpc_tower::{
     body::Body,
@@ -18,9 +17,10 @@ use tokio_util::sync::CancellationToken;
 use tower::{Layer, Service, ServiceBuilder, layer::util::Identity};
 
 use crate::{
+    boxed::{BoxReqBody, BoxedRoute, BoxedRouter},
     delegate::SubsystemDelegateService,
     route::{Handler, Route},
-    session::{self, SessionStorage},
+    session::{self, Session, SessionStorage},
 };
 
 pub struct RouterBuilder<R, L, S, C> {
@@ -58,7 +58,7 @@ impl<S, C> RouterBuilder<HNil, Identity, S, C> {
 
 type ServiceHandler<D, L, S, C> = Handler<
     <L as Layer<SubsystemDelegateService<D, S, C>>>::Service,
-    <<D as SubsystemDelegate<S, C>>::Subsystem as Subsystem>::SubsystemId,
+    <<D as SubsystemDelegate<C>>::Subsystem as Subsystem>::SubsystemId,
 >;
 
 impl<R, L, S, C> RouterBuilder<R, L, S, C> {
@@ -87,7 +87,7 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
         delegate: D,
     ) -> RouterBuilder<HCons<ServiceHandler<D, L, S, C>, R>, L, S, C>
     where
-        D: SubsystemDelegate<S, C> + Clone + Send,
+        D: SubsystemDelegate<C, ExecutionScope = Session<S>> + Clone + Send,
         L: Layer<SubsystemDelegateService<D, S, C>>,
         S: Default + Send + Sync + 'static,
         C: Clone + Send + 'static,
@@ -120,11 +120,7 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
     ///
     /// It is not necessary to spawn the task if the router is spawned, but it is **highly**
     /// recommended, as otherwise sessions will not be cleaned up, which will lead to memory leaks.
-    pub fn background_task<St, E>(&self, stream: St) -> session::Task<S, St>
-    where
-        S: Send + Sync + 'static,
-        St: Stream<Item = Result<SessionEvent, E>> + Send + 'static,
-    {
+    pub fn background_task<St>(&self, stream: St) -> session::Task<S, St> {
         Arc::clone(&self.session)
             .task(stream)
             .with_cancellation_token(self.cancel.child_token())
@@ -167,6 +163,34 @@ pub struct Router<R> {
     routes: Arc<R>,
 }
 
+impl<R> Router<R> {
+    /// Boxes the router, allowing it to be used as a dynamic trait object.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if called after any requests have been serviced.
+    #[expect(
+        clippy::arc_with_non_send_sync,
+        reason = "false positive, the router may still be Send + Sync, we just don't enforce it \
+                  on boxing"
+    )]
+    #[must_use]
+    pub fn boxed(self) -> BoxedRouter
+    where
+        R: Route<BoxReqBody, Future: Send + 'static, ResponseBody: Send + 'static> + 'static,
+    {
+        let routes = Arc::try_unwrap(self.routes).unwrap_or_else(|_routes| {
+            panic!("`Router::boxed()` should be called before any requests have been serviced")
+        });
+
+        let routes = BoxedRoute::new(routes);
+
+        Router {
+            routes: Arc::new(routes),
+        }
+    }
+}
+
 impl<R> Service<()> for Router<R> {
     type Error = !;
     type Future = Ready<Result<Self::Response, !>>;
@@ -184,5 +208,3 @@ impl<R> Service<()> for Router<R> {
         future::ready(Ok(layer.layer(RouterService { routes })))
     }
 }
-
-// TODO: boxed variant

@@ -26,6 +26,8 @@ hash-graph-test-server = { workspace = true, optional = true }
 hash-temporal-client = { workspace = true }
 hash-tracing = { workspace = true, features = ["clap"] }
 type-system = { workspace = true }
+harpc-codec = { workspace = true, features = ["json"] }
+harpc-server = { workspace = true }
 
 # Third party dependencies
 axum = { workspace = true }
@@ -47,6 +49,7 @@ tokio = { workspace = true }
 tokio-postgres = { workspace = true }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing = { workspace = true }
+multiaddr = { workspace = true }
 
 [features]
 test-server = ["dep:hash-graph-test-server"]

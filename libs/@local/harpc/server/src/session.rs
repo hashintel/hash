@@ -3,8 +3,7 @@ use core::{fmt::Debug, sync::atomic::AtomicUsize, time::Duration};
 use std::{collections::HashSet, sync::Mutex};
 
 use futures::{Stream, StreamExt as _};
-pub use harpc_net::session::server::SessionId;
-use harpc_net::session::server::{SessionEvent, SessionEventError};
+pub use harpc_net::session::server::{SessionEvent, SessionEventError, SessionId};
 use harpc_types::{procedure::ProcedureDescriptor, subsystem::SubsystemDescriptor};
 use scc::{ebr::Guard, hash_index::Entry};
 use tokio::pin;
