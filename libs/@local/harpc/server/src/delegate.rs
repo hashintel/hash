@@ -46,7 +46,7 @@ where
     D: SubsystemDelegate<C, ExecutionScope = Session<S>> + Clone + Send,
     S: Default + Clone + Send + Sync + 'static,
     C: Clone + Send + 'static,
-    ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
+    ReqBody: Body<Control = !, Error: Send + Sync> + Send,
 {
     type Error = D::Error;
     type Response = Response<D::Body<ReqBody>>;

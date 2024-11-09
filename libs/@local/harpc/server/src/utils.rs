@@ -60,7 +60,7 @@ pub async fn delegate_call_discrete<B, I, O, C, Fut>(
     Report<DelegationError>,
 >
 where
-    B: Body<Control = !, Error: Send + Sync> + Send + Sync,
+    B: Body<Control = !, Error: Send + Sync> + Send,
     I: serde::de::DeserializeOwned,
     O: serde::Serialize + Send,
     C: Encoder + ReportDecoder + Clone + Send,

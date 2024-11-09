@@ -227,7 +227,7 @@ where
     type Body<Source>
         = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>
     where
-        Source: Body<Control = !, Error: Send + Sync> + Send + Sync;
+        Source: Body<Control = !, Error: Send + Sync> + Send;
 
     async fn call<B>(
         self,
@@ -236,7 +236,7 @@ where
         codec: C,
     ) -> Result<Response<Self::Body<B>>, Self::Error>
     where
-        B: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        B: Body<Control = !, Error: Send + Sync> + Send,
     {
         let id = parse_procedure_id(&request)?;
 

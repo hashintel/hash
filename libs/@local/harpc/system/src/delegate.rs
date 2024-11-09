@@ -26,7 +26,7 @@ pub trait SubsystemDelegate<C> {
 
     type Body<Source>: Body<Control: AsRef<ResponseKind>>
     where
-        Source: Body<Control = !, Error: Send + Sync> + Send + Sync;
+        Source: Body<Control = !, Error: Send + Sync> + Send;
 
     /// Delegates an incoming request to the appropriate method of the inner service.
     ///
@@ -46,5 +46,5 @@ pub trait SubsystemDelegate<C> {
         codec: C,
     ) -> impl Future<Output = Result<Response<Self::Body<B>>, Self::Error>> + Send
     where
-        B: Body<Control = !, Error: Send + Sync> + Send + Sync;
+        B: Body<Control = !, Error: Send + Sync> + Send;
 }
