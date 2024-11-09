@@ -18,7 +18,7 @@ members = [
     "libs/@local/graph/type-fetcher",
     "libs/@local/graph/types/rust",
     "libs/@local/graph/validation",
-    "libs/@local/harpc/client",
+    "libs/@local/harpc/client/rust",
     "libs/@local/harpc/codec",
     "libs/@local/harpc/net",
     "libs/@local/harpc/server",
