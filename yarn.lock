@@ -31415,10 +31415,10 @@ vite-plugin-wasm-pack@0.1.12:
     fs-extra "^10.0.0"
     narrowing "^1.4.0"
 
-vite-tsconfig-paths@5.1.0:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/vite-tsconfig-paths/-/vite-tsconfig-paths-5.1.0.tgz#b449b6749eb69e635ad4b5fcf4f4181b92d512c9"
-  integrity sha512-Y1PLGHCJfAq1Zf4YIGEsmuU/NCX1epoZx9zwSr32Gjn3aalwQHRKr5aUmbo6r0JHeHkqmWpmDg7WOynhYXw1og==
+vite-tsconfig-paths@5.1.1:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/vite-tsconfig-paths/-/vite-tsconfig-paths-5.1.1.tgz#c7e73fac6d6c541252742a9f9eda556d0751e669"
+  integrity sha512-0nLY3qQI4GlYw3We4rps16ntW+nAZYCUrJwsuvqxIUCY9Bk3VnSeJDm/VPCmjOcAJ9Kud4k+CK2ZEnf9pbzK9Q==
   dependencies:
     debug "^4.1.1"
     globrex "^0.1.2"
