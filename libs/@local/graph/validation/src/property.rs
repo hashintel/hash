@@ -1,7 +1,8 @@
 use error_stack::{Report, ReportSink};
+use hash_graph_store::entity::ValidateEntityComponents;
 use hash_graph_types::knowledge::property::{PropertyMetadataObject, PropertyObject};
 
-use crate::{EntityValidationError, Validate, ValidateEntityComponents};
+use crate::{EntityValidationError, Validate};
 
 impl<P> Validate<PropertyObject, P> for PropertyMetadataObject
 where

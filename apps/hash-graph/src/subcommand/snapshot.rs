@@ -1,15 +1,16 @@
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use graph::{
-    snapshot::{SnapshotDumpSettings, SnapshotEntry, SnapshotStore},
-    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool as _},
-};
 use hash_codec::bytes::{JsonLinesDecoder, JsonLinesEncoder};
 use hash_graph_authorization::{
     AuthorizationApi as _, NoAuthorization,
     backend::{SpiceDbOpenApi, ZanzibarBackend as _},
     zanzibar::ZanzibarClient,
 };
+use hash_graph_postgres_store::{
+    snapshot::{SnapshotDumpSettings, SnapshotEntry, SnapshotStore},
+    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool},
+};
+use hash_graph_store::pool::StorePool as _;
 use tokio::io;
 use tokio_postgres::NoTls;
 use tokio_util::codec::{FramedRead, FramedWrite};

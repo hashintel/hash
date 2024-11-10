@@ -1,11 +1,13 @@
 use clap::Parser;
 use error_stack::{Report, ResultExt as _, ensure};
-use graph::store::{
-    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool as _,
-    knowledge::EntityStore as _, ontology::EntityTypeStore as _,
-};
 use hash_graph_authorization::NoAuthorization;
-use hash_graph_store::data_type::DataTypeStore as _;
+use hash_graph_postgres_store::store::{
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool,
+};
+use hash_graph_store::{
+    data_type::DataTypeStore as _, entity::EntityStore as _, entity_type::EntityTypeStore as _,
+    pool::StorePool as _,
+};
 use tokio_postgres::NoTls;
 
 use crate::error::GraphError;

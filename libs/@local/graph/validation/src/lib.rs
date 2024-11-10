@@ -13,8 +13,8 @@ mod test_property_type;
 use core::{borrow::Borrow, error::Error};
 
 use error_stack::Report;
+use hash_graph_store::entity::ValidateEntityComponents;
 use hash_graph_types::knowledge::entity::{Entity, EntityId};
-use serde::Deserialize;
 
 pub trait Schema<V: ?Sized, P: Sync> {
     type Error: Error + Send + Sync + 'static;
@@ -25,51 +25,6 @@ pub trait Schema<V: ?Sized, P: Sync> {
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> impl Future<Output = Result<(), Report<[Self::Error]>>> + Send + 'a;
-}
-
-const fn default_true() -> bool {
-    true
-}
-
-#[derive(Debug, Copy, Clone, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ValidateEntityComponents {
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default = "default_true")]
-    pub link_data: bool,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default = "default_true")]
-    pub required_properties: bool,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default = "default_true")]
-    pub num_items: bool,
-}
-
-impl ValidateEntityComponents {
-    #[must_use]
-    pub const fn full() -> Self {
-        Self {
-            link_data: true,
-            required_properties: true,
-            num_items: true,
-        }
-    }
-
-    #[must_use]
-    pub const fn draft() -> Self {
-        Self {
-            num_items: false,
-            required_properties: false,
-            ..Self::full()
-        }
-    }
-}
-
-impl Default for ValidateEntityComponents {
-    fn default() -> Self {
-        Self::full()
-    }
 }
 
 pub trait Validate<S, C> {
@@ -102,6 +57,7 @@ mod tests {
     use std::collections::HashMap;
 
     use error_stack::ResultExt as _;
+    use hash_graph_store::entity::ValidateEntityComponents;
     use hash_graph_temporal_versioning::{
         ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp,
     };
@@ -121,6 +77,7 @@ mod tests {
         },
         owned_by_id::OwnedById,
     };
+    use serde::Deserialize as _;
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{

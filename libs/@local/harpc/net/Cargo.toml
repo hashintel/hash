@@ -37,7 +37,7 @@ harpc-types = { workspace = true }
 # Private third-party dependencies
 bytes = { workspace = true }
 bytes-utils = { workspace = true }
-derive_more = { version = "1.0.0", features = ["display"] }
+derive_more = { workspace = true, features = ["display"] }
 futures = { workspace = true }
 libp2p = { workspace = true, features = ["metrics", "macros", "tcp", "noise", "yamux", "ping", "tokio", "identify"] }
 libp2p-stream = { workspace = true }

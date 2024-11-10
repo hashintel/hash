@@ -26,30 +26,6 @@ mod sorting;
 use std::collections::HashMap;
 
 use error_stack::Report;
-use graph::{
-    Environment, load_env,
-    store::{
-        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
-        StorePool,
-        knowledge::{
-            CountEntitiesParams, CreateEntityParams, EntityStore, GetEntitiesParams,
-            GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-            PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityError,
-            ValidateEntityParams,
-        },
-        ontology::{
-            ArchiveEntityTypeParams, ArchivePropertyTypeParams, CountEntityTypesParams,
-            CountPropertyTypesParams, CreateEntityTypeParams, CreatePropertyTypeParams,
-            EntityTypeStore, GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
-            GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-            GetEntityTypesResponse, GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse,
-            GetPropertyTypesParams, GetPropertyTypesResponse, PropertyTypeStore,
-            UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
-            UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
-            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
-        },
-    },
-};
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
     schema::{
@@ -61,8 +37,13 @@ use hash_graph_authorization::{
     },
     zanzibar::Consistency,
 };
+use hash_graph_postgres_store::{
+    Environment, load_env,
+    store::{
+        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
+    },
+};
 use hash_graph_store::{
-    ConflictBehavior,
     account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
@@ -70,7 +51,27 @@ use hash_graph_store::{
         GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
     },
+    entity::{
+        CountEntitiesParams, CreateEntityParams, EntityStore, GetEntitiesParams,
+        GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
+        UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
+    },
+    entity_type::{
+        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
+        GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
+        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
+        GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
+    },
     error::{InsertionError, QueryError, UpdateError},
+    pool::StorePool,
+    property_type::{
+        ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
+        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
+        GetPropertyTypesResponse, PropertyTypeStore, UnarchivePropertyTypeParams,
+        UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+    },
+    query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{

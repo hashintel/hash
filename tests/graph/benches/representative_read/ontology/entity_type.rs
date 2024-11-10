@@ -1,7 +1,7 @@
 use criterion::{BatchSize::SmallInput, Bencher};
-use graph::store::ontology::{EntityTypeStore as _, GetEntityTypesParams};
 use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
+    entity_type::{EntityTypeStore as _, GetEntityTypesParams},
     filter::Filter,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,

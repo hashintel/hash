@@ -11,6 +11,7 @@ mod entity_type;
 mod property_type;
 
 mod array;
+mod domain_validator;
 mod object;
 mod one_of;
 
@@ -31,6 +32,7 @@ pub use self::{
         StringTypeTag, StringValidationError, TupleConstraints, ValidateDataTypeError, ValueLabel,
         ValueSchemaMetadata, Variable,
     },
+    domain_validator::{DomainValidationError, DomainValidator, ValidateOntologyType},
     entity_type::{
         ClosedEntityType, ClosedEntityTypeMetadata, ClosedMultiEntityType, EntityConstraints,
         EntityType, EntityTypeReference, EntityTypeResolveData, EntityTypeSchemaMetadata,

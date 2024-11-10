@@ -14,7 +14,6 @@ mod entity;
 mod entity_type;
 mod property_type;
 mod web;
-
 use alloc::{borrow::Cow, sync::Arc};
 use core::str::FromStr as _;
 use std::{fs, io};
@@ -28,13 +27,16 @@ use axum::{
     routing::get,
 };
 use error_stack::{Report, ResultExt as _};
-use graph::{
-    ontology::domain_validator::DomainValidator,
-    store::{Store, StorePool, TypeFetcher, error::VersionedUrlAlreadyExists},
-};
 use hash_graph_authorization::AuthorizationApiPool;
+use hash_graph_postgres_store::store::error::VersionedUrlAlreadyExists;
 use hash_graph_store::{
+    account::AccountStore,
+    data_type::DataTypeStore,
+    entity::EntityStore,
+    entity_type::EntityTypeStore,
     filter::{ParameterConversion, Selector},
+    pool::StorePool,
+    property_type::PropertyTypeStore,
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
@@ -54,6 +56,7 @@ use hash_graph_temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
 };
+use hash_graph_type_fetcher::TypeFetcher;
 use hash_graph_types::{
     account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
     ontology::{
@@ -68,7 +71,10 @@ use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
-use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
+use type_system::{
+    schema::DomainValidator,
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+};
 use utoipa::{
     Modify, OpenApi, ToSchema,
     openapi::{
@@ -121,7 +127,9 @@ pub struct PermissionResponse {
     pub has_permission: bool,
 }
 
-pub trait RestApiStore: Store + TypeFetcher {
+pub trait RestApiStore:
+    AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + TypeFetcher
+{
     fn load_external_type(
         &mut self,
         actor_id: AccountId,
@@ -132,7 +140,13 @@ pub trait RestApiStore: Store + TypeFetcher {
 
 impl<S> RestApiStore for S
 where
-    S: Store + TypeFetcher + Send,
+    S: AccountStore
+        + DataTypeStore
+        + PropertyTypeStore
+        + EntityTypeStore
+        + EntityStore
+        + TypeFetcher
+        + Send,
 {
     async fn load_external_type(
         &mut self,

@@ -8,12 +8,6 @@ use core::{
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use graph::{
-    ontology::domain_validator::DomainValidator,
-    store::{
-        DatabaseConnectionInfo, DatabasePoolConfig, FetchingPool, PostgresStorePool, StorePool,
-    },
-};
 use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
 use hash_graph_api::{
@@ -25,12 +19,18 @@ use hash_graph_authorization::{
     backend::{SpiceDbOpenApi, ZanzibarBackend as _},
     zanzibar::ZanzibarClient,
 };
+use hash_graph_postgres_store::store::{
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool,
+};
+use hash_graph_store::pool::StorePool;
+use hash_graph_type_fetcher::FetchingPool;
 use hash_temporal_client::TemporalClientConfig;
 use multiaddr::{Multiaddr, Protocol};
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{net::TcpListener, time::timeout};
 use tokio_postgres::NoTls;
+use type_system::schema::DomainValidator;
 
 use crate::{
     error::{GraphError, HealthcheckError},

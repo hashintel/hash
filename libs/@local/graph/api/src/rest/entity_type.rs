@@ -11,23 +11,6 @@ use axum::{
     routing::{get, post, put},
 };
 use error_stack::{Report, ResultExt as _};
-use graph::{
-    ontology::{
-        domain_validator::{DomainValidator, ValidateOntologyType as _},
-        patch_id_and_parse,
-    },
-    store::{
-        StorePool,
-        error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-        ontology::{
-            ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeResolveDefinitions,
-            EntityTypeStore as _, GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
-            GetEntityTypeSubgraphParams, GetEntityTypesParams, GetEntityTypesResponse,
-            IncludeEntityTypeOption, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-            UpdateEntityTypesParams,
-        },
-    },
-};
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -38,7 +21,21 @@ use hash_graph_authorization::{
     },
     zanzibar::Consistency,
 };
-use hash_graph_store::{ConflictBehavior, entity_type::EntityTypeQueryToken};
+use hash_graph_postgres_store::{
+    ontology::patch_id_and_parse,
+    store::error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+};
+use hash_graph_store::{
+    entity_type::{
+        ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeQueryToken,
+        EntityTypeResolveDefinitions, EntityTypeStore as _, GetClosedMultiEntityTypeParams,
+        GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams, GetEntityTypesParams,
+        GetEntityTypesResponse, IncludeEntityTypeOption, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+    },
+    pool::StorePool,
+    query::ConflictBehavior,
+};
 use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use hash_graph_types::{
     account::EditionCreatedById,
@@ -54,7 +51,7 @@ use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
-    schema::{EntityType, EntityTypeUuid},
+    schema::{DomainValidator, EntityType, EntityTypeUuid, ValidateOntologyType as _},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 use utoipa::{OpenApi, ToSchema};

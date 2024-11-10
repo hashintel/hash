@@ -11,16 +11,6 @@ use axum::{
     routing::{get, post, put},
 };
 use error_stack::{Report, ResultExt as _};
-use graph::{
-    ontology::{
-        domain_validator::{DomainValidator, ValidateOntologyType as _},
-        patch_id_and_parse,
-    },
-    store::{
-        StorePool,
-        error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-    },
-};
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -29,13 +19,18 @@ use hash_graph_authorization::{
     },
     zanzibar::Consistency,
 };
+use hash_graph_postgres_store::{
+    ontology::patch_id_and_parse,
+    store::error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+};
 use hash_graph_store::{
-    ConflictBehavior,
     data_type::{
         ArchiveDataTypeParams, CreateDataTypeParams, DataTypeQueryToken, DataTypeStore as _,
         GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
+    pool::StorePool,
+    query::ConflictBehavior,
 };
 use hash_graph_types::{
     ontology::{
@@ -52,7 +47,7 @@ use time::OffsetDateTime;
 use type_system::{
     schema::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeUuid, Operator, Variable,
+        DataTypeUuid, DomainValidator, Operator, ValidateOntologyType as _, Variable,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };

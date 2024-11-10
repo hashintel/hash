@@ -3,12 +3,10 @@ use std::collections::HashSet;
 
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
-use graph::store::knowledge::{
-    CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
-};
 use hash_graph_authorization::{AuthorizationApi, NoAuthorization, schema::WebOwnerSubject};
 use hash_graph_store::{
     account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
+    entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams},
     filter::Filter,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,

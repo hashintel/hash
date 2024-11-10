@@ -5,8 +5,8 @@ use axum::{
     response::{IntoResponse as _, Response},
 };
 use error_stack::Report;
-use graph::store::error::BaseUrlAlreadyExists;
 use hash_graph_authorization::backend::PermissionAssertion;
+use hash_graph_postgres_store::store::error::BaseUrlAlreadyExists;
 use hash_status::{Status, StatusCode};
 use serde::Serialize;
 

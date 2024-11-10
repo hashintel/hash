@@ -1,12 +1,12 @@
 use alloc::borrow::Cow;
 
 use criterion::{BatchSize::SmallInput, Bencher};
-use graph::store::knowledge::{
-    EntityQuerySorting, EntityStore as _, GetEntitiesParams, GetEntitySubgraphParams,
-};
 use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
-    entity::EntityQueryPath,
+    entity::{
+        EntityQueryPath, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
+        GetEntitySubgraphParams,
+    },
     filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},

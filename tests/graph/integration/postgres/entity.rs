@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
-use graph::store::knowledge::{
-    CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore as _,
-    GetEntitiesParams, PatchEntityParams,
-};
 use hash_graph_store::{
+    entity::{
+        CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore as _,
+        GetEntitiesParams, PatchEntityParams,
+    },
     filter::Filter,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,

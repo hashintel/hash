@@ -20,9 +20,9 @@ use type_system::{
 };
 
 use crate::{
-    ConflictBehavior,
     error::{InsertionError, QueryError, UpdateError},
     filter::Filter,
+    query::ConflictBehavior,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 

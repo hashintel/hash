@@ -15,7 +15,7 @@ harpc-system = { workspace = true, public = true }
 
 # Public third-party dependencies
 tower = { workspace = true, public = true }
-serde-value = {version = "0.7.0", public = true }
+serde-value = { version = "0.7.0", public = true }
 
 # Private workspace dependencies
 error-stack = { workspace = true, features = ["unstable", "futures"] }
@@ -31,7 +31,7 @@ multiaddr = { workspace = true }
 thiserror = { workspace = true }
 tokio-util = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-derive_more = { version = "1.0.0", features = ["display"] }
+derive_more = { workspace = true, features = ["display"] }
 
 [lints]
 workspace = true

@@ -1,11 +1,12 @@
 use core::{assert_matches::assert_matches, str::FromStr as _};
 use std::collections::HashSet;
 
-use graph::store::knowledge::{
-    CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams, PatchEntityParams,
-};
 use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
+    entity::{
+        CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
+        PatchEntityParams,
+    },
     error::InsertionError,
     filter::Filter,
     subgraph::temporal_axes::{

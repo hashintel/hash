@@ -10,7 +10,6 @@ use axum::{
     routing::{get, post},
 };
 use error_stack::Report;
-use graph::store::StorePool;
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -21,7 +20,10 @@ use hash_graph_authorization::{
     },
     zanzibar::Consistency,
 };
-use hash_graph_store::account::{AccountStore as _, InsertWebIdParams};
+use hash_graph_store::{
+    account::{AccountStore as _, InsertWebIdParams},
+    pool::StorePool,
+};
 use hash_graph_types::owned_by_id::OwnedById;
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize;

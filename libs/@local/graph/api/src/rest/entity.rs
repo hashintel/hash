@@ -11,18 +11,6 @@ use axum::{
     routing::{get, post},
 };
 use error_stack::{Report, ResultExt as _};
-use graph::store::{
-    NullOrdering, Ordering, StorePool,
-    error::{EntityDoesNotExist, RaceConditionOnUpdate},
-    knowledge::{
-        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityRequest, DiffEntityParams,
-        DiffEntityResult, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord,
-        EntityStore as _, EntityValidationType, GetEntitiesParams, GetEntitiesResponse,
-        GetEntitySubgraphParams, PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams,
-        ValidateEntityParams,
-    },
-    ontology::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
-};
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -33,10 +21,21 @@ use hash_graph_authorization::{
     },
     zanzibar::Consistency,
 };
+use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
 use hash_graph_store::{
     account::AccountStore as _,
-    entity::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
+    entity::{
+        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityRequest, DiffEntityParams,
+        DiffEntityResult, EntityQueryCursor, EntityQueryPath, EntityQuerySorting,
+        EntityQuerySortingRecord, EntityQuerySortingToken, EntityQueryToken, EntityStore as _,
+        EntityValidationType, GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams,
+        PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
+        ValidateEntityParams,
+    },
+    entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     filter::Filter,
+    pool::StorePool,
+    query::{NullOrdering, Ordering},
     subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use hash_graph_types::{
@@ -61,7 +60,6 @@ use hash_graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_validation::ValidateEntityComponents;
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use type_system::url::VersionedUrl;

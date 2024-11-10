@@ -11,6 +11,7 @@ authors.workspace = true
 [dependencies]
 # Public workspace dependencies
 hash-graph-types = { workspace = true, public = true }
+hash-graph-store = { workspace = true, public = true }
 
 # Public third-party dependencies
 

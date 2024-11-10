@@ -3,11 +3,12 @@
 use core::str::FromStr as _;
 use std::collections::HashMap;
 
+use hash_graph_store::entity::ValidateEntityComponents;
 use hash_graph_types::knowledge::property::{PropertyMetadata, PropertyProvenance, ValueMetadata};
 use serde_json::json;
 use type_system::url::VersionedUrl;
 
-use crate::{ValidateEntityComponents, tests::validate_property};
+use crate::tests::validate_property;
 
 #[tokio::test]
 async fn address_line_1() {

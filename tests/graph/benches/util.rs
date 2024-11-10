@@ -1,18 +1,6 @@
 use core::mem::ManuallyDrop;
 use std::{collections::HashMap, fs, path::Path};
 
-use graph::{
-    Environment, load_env,
-    store::{
-        AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
-        PostgresStorePool, StoreMigration as _, StorePool,
-        error::BaseUrlAlreadyExists,
-        ontology::{
-            CreateEntityTypeParams, CreatePropertyTypeParams, EntityTypeStore as _,
-            PropertyTypeStore as _, UpdateEntityTypesParams, UpdatePropertyTypesParams,
-        },
-    },
-};
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
     schema::{
@@ -21,9 +9,20 @@ use hash_graph_authorization::{
         PropertyTypeViewerSubject,
     },
 };
+use hash_graph_postgres_store::{
+    Environment, load_env,
+    store::{
+        AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
+        PostgresStorePool, error::BaseUrlAlreadyExists,
+    },
+};
 use hash_graph_store::{
-    ConflictBehavior,
     data_type::{CreateDataTypeParams, DataTypeStore as _, UpdateDataTypesParams},
+    entity_type::{CreateEntityTypeParams, EntityTypeStore as _, UpdateEntityTypesParams},
+    migration::StoreMigration as _,
+    pool::StorePool,
+    property_type::{CreatePropertyTypeParams, PropertyTypeStore as _, UpdatePropertyTypesParams},
+    query::ConflictBehavior,
 };
 use hash_graph_types::{
     account::AccountId,

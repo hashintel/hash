@@ -5,7 +5,6 @@ mod session;
 
 use alloc::sync::Arc;
 
-use graph::store::StorePool;
 use harpc_codec::{decode::ReportDecoder, encode::ReportEncoder};
 use harpc_server::{
     route::Route,
@@ -19,6 +18,7 @@ use harpc_tower::{
 };
 use harpc_types::subsystem::SubsystemId;
 use hash_graph_authorization::AuthorizationApiPool;
+use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 
 use self::{

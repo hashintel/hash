@@ -1,10 +1,10 @@
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use graph::store::{
-    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StoreMigration as _,
-    StorePool as _,
-};
 use hash_graph_authorization::NoAuthorization;
+use hash_graph_postgres_store::store::{
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool,
+};
+use hash_graph_store::{migration::StoreMigration as _, pool::StorePool as _};
 use tokio_postgres::NoTls;
 
 use crate::error::GraphError;
