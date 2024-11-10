@@ -1,6 +1,6 @@
 # HASH Graph
 
-This directory contains the code pertaining to the HASH Graph. Every folder in this directory contains a separate crate and is responsible for a different part of the graph. All crates are designed as libraries, which can either be consumed by other libraries. In `/apps/hash-graph` you can find the application that ties all the crates together and provides a binary to run the graph.
+This directory contains the code pertaining to the HASH Graph. Every folder in this directory contains a separate crate and is responsible for a different part of the graph. All crates are designed as libraries, which can either be consumed by other libraries. In [`apps/hash-graph`](../../apps/hash-graph) you can find the application that ties all the crates together and provides a binary to run the graph.
 
 ## Overview
 
