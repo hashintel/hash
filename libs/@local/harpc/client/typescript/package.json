@@ -1,9 +1,9 @@
 {
-  "name": "@local/harpc",
+  "name": "@local/harpc-client",
   "version": "0.0.0-private",
   "private": true,
   "description": "A collection of helper types",
-  "license": "AGPL-3.0-only",
+  "license": "AGPL-3",
   "type": "module",
   "exports": {
     ".": {
