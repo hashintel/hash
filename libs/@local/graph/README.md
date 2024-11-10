@@ -23,7 +23,7 @@ Each crate has a `hash-graph-` prefix and the following crates are part of the H
 For a detailed view of each create use the in-code documentation. The documentation for each crate can be generated using `rustdoc`:
 
 ```shell
-cargo doc --package --no-deps --open < SPEC > --all-features
+cargo doc --package SPEC --no-deps --open --all-features
 ```
 
 for example
