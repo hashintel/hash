@@ -17,7 +17,9 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "effect": "3.10.13"
+  },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
@@ -25,3 +27,4 @@
     "typescript": "5.6.3"
   }
 }
+
