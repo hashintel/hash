@@ -20,6 +20,7 @@
   "dependencies": {},
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private"
+    "@local/tsconfig": "0.0.0-private",
+    "tsup": "8.3.5"
   }
 }
