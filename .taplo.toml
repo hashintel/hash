@@ -1,3 +1,4 @@
+exclude = ["node_modules/**"]
 include = ["**/Cargo.toml", ".taplo.toml"]
 
 [formatting]
