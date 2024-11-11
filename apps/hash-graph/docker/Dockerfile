@@ -11,11 +11,11 @@ COPY . .
 RUN turbo prune --scope='@apps/hash-graph' --docker && \
     yq --version && \
     find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
-      [ -f "/app/out/full/$1" ] || ( \
-        mkdir -p "/app/out/full/$(dirname "$1")/src" &&  \
-        echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
-        echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
-      )' _ {} \; && \
+    [ -f "/app/out/full/$1" ] || ( \
+    mkdir -p "/app/out/full/$(dirname "$1")/src" &&  \
+    echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
+    echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
+    )' _ {} \; && \
     cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
 
@@ -68,7 +68,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
         export RUSTFLAGS="$RUSTFLAGS -C debuginfo=line-tables-only"; \
     fi; \
     FEATURES=${FEATURES[@]}; \
-    cargo install --path bins/cli --features "${FEATURES// /,}" --profile $PROFILE --locked;
+    cargo install --path . --features "${FEATURES// /,}" --profile $PROFILE --locked;
 
 RUN mkdir -p /out/etc/ \
  && echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd \

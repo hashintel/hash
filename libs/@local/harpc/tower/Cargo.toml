@@ -19,12 +19,12 @@ tower-service = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack = { workspace = true }
-harpc-types = { workspace = true, features = ["serde"] }
 harpc-codec = { workspace = true }
+harpc-types = { workspace = true, features = ["serde"] }
 
 # Private third-party dependencies
 bytes = { workspace = true }
-derive_more = { version = "1.0.0", features = ["display"] }
+derive_more = { workspace = true, features = ["display"] }
 futures = { workspace = true }
 pin-project = { workspace = true }
 pin-project-lite = { workspace = true }

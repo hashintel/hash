@@ -1,0 +1,28 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    // "build": {
+    //   @todo - this introduces a dependency on building the graph to `yarn install` this causes problems in Vercel deployment builds
+    //   "dependsOn": ["@apps/hash-graph#codegen:generate-openapi-specs"]
+    // },
+    "build": {
+      "outputs": ["./dist/**"]
+    },
+    "codegen": {
+      "inputs": [
+        "../../api/openapi/openapi.json",
+        "../../api/openapi/models/**",
+        "opeenapitools.json"
+      ],
+      "outputs": [
+        ".npmignore",
+        "api.ts",
+        "base.ts",
+        "common.ts",
+        "configuration.ts",
+        "git_push.sh",
+        "index.ts"
+      ]
+    }
+  }
+}

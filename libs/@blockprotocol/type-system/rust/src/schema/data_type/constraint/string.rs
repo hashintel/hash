@@ -428,7 +428,7 @@ pub struct StringConstraints {
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        with = "codec::serde::regex::option"
+        with = "hash_codec::serde::regex::option"
     )]
     #[cfg_attr(target_arch = "wasm32", tsify(type = "string"))]
     pub pattern: Option<Regex>,

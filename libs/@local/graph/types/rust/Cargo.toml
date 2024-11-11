@@ -1,0 +1,45 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "hash-graph-types"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+hash-graph-temporal-versioning = { workspace = true, public = true }
+type-system = { workspace = true, public = true }
+
+# Public third-party dependencies
+semver = { workspace = true, public = true, features = ["serde"] }
+
+# Private workspace dependencies
+error-stack = { workspace = true }
+hash-codec = { workspace = true, features = ["bytes"] }
+
+# Private third-party dependencies
+bytes = { workspace = true }
+futures = { workspace = true }
+postgres-types = { workspace = true, features = ["derive", "with-uuid-1", "with-serde_json-1"], optional = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true, default-features = false, features = ["serde", "parsing", "formatting", "macros"] }
+trait-variant = { workspace = true }
+url = { workspace = true, features = ["serde"] }
+utoipa = { workspace = true, optional = true }
+uuid = { workspace = true, default-features = false, features = ["serde"] }
+
+[dev-dependencies]
+hash-graph-test-data = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[features]
+postgres = ["dep:postgres-types", "hash-graph-temporal-versioning/postgres"]
+utoipa = ["dep:utoipa", "hash-graph-temporal-versioning/utoipa"]
+
+[lints]
+workspace = true

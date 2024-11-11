@@ -38,6 +38,7 @@
     "@TODO.1": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.2)",
     "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-dep=@blockprotocol/graph --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "fix:eslint": "turbo --continue fix:eslint --",
+    "fix:taplo": "taplo fmt",
     "fix:markdownlint": "markdownlint --dot --fix .",
     "fix:prettier": "prettier --write  --ignore-unknown .",
     "fix:yarn-deduplicate": "yarn install && yarn-deduplicate --strategy=fewer && yarn install",
@@ -49,6 +50,7 @@
     "lint:lockfile-lint": "lockfile-lint --path yarn.lock --allowed-hosts registry.yarnpkg.com --allowed-schemes \"https:\"",
     "lint:markdownlint": "markdownlint --dot .",
     "lint:prettier": "prettier --check --ignore-unknown .",
+    "lint:taplo": "taplo fmt --check",
     "lint:tsc": "turbo --continue lint:tsc --",
     "lint:yarn-deduplicate": "yarn-deduplicate --fail --list --strategy=fewer",
     "postinstall": "turbo run postinstall; patch-package --error-on-warn && husky install .config/husky",
@@ -87,12 +89,12 @@
     ]
   },
   "resolutions": {
-    "@opentelemetry/exporter-metrics-otlp-grpc": "0.54.1",
-    "@opentelemetry/exporter-metrics-otlp-http": "0.54.1",
-    "@opentelemetry/exporter-metrics-otlp-proto": "0.54.1",
-    "@opentelemetry/exporter-trace-otlp-grpc": "0.54.1",
-    "@opentelemetry/exporter-trace-otlp-http": "0.54.1",
-    "@opentelemetry/exporter-trace-otlp-proto": "0.54.1",
+    "@opentelemetry/exporter-metrics-otlp-grpc": "0.54.2",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.54.2",
+    "@opentelemetry/exporter-metrics-otlp-proto": "0.54.2",
+    "@opentelemetry/exporter-trace-otlp-grpc": "0.54.2",
+    "@opentelemetry/exporter-trace-otlp-http": "0.54.2",
+    "@opentelemetry/exporter-trace-otlp-proto": "0.54.2",
     "@types/react": "18.2.68",
     "react": "18.2.0",
     "react-dom": "18.2.0"
@@ -100,6 +102,7 @@
   "devDependencies": {
     "@changesets/changelog-github": "0.4.8",
     "@changesets/cli": "2.26.0",
+    "@taplo/cli": "0.7.0",
     "check-dependency-version-consistency": "3.0.3",
     "concurrently": "7.6.0",
     "cross-env": "7.0.3",

@@ -4,7 +4,7 @@ use bytes::Bytes;
 use frunk::{HCons, HNil};
 use futures::FutureExt as _;
 use harpc_codec::error::NetworkError;
-use harpc_service::{RefinedSubsystemIdentifier, SubsystemIdentifier};
+use harpc_system::{RefinedSubsystemIdentifier, SubsystemIdentifier};
 use harpc_tower::{
     body::{Body, controlled::Controlled, full::Full},
     request::Request,
@@ -26,7 +26,7 @@ pub struct Handler<S, I> {
 impl<Svc> Handler<Svc, !> {
     pub(crate) const fn new<Sys>(inner: Svc) -> Handler<Svc, Sys::SubsystemId>
     where
-        Sys: harpc_service::Subsystem,
+        Sys: harpc_system::Subsystem,
     {
         Handler {
             subsystem: Sys::ID,
@@ -75,7 +75,7 @@ pub trait Route<ReqBody> {
 
     fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
-        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync;
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send;
 }
 
 // The clone requirement might seem odd here, but is the same as in axum's router implementation.
@@ -104,7 +104,7 @@ where
 
     fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
-        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send,
     {
         let requirement = self.head.version.into_requirement();
 
@@ -135,7 +135,7 @@ impl<ReqBody> Route<ReqBody> for HNil {
 
     fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
-        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send,
     {
         let error = SubsystemNotFound {
             subsystem: request.subsystem(),

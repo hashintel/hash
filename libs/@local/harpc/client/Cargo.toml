@@ -10,12 +10,12 @@ publish.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+harpc-system = { workspace = true, public = true }
 harpc-tower = { workspace = true, public = true }
-harpc-service = { workspace = true, public = true }
 
 # Public third-party dependencies
+serde-value = { version = "0.7.0", public = true }
 tower = { workspace = true, public = true }
-serde-value = {version = "0.7.0", public = true }
 
 # Private workspace dependencies
 error-stack = { workspace = true, features = ["unstable", "futures"] }
@@ -26,12 +26,12 @@ harpc-types = { workspace = true }
 # Private third-party dependencies
 bytes = { workspace = true }
 derive-where = { workspace = true }
+derive_more = { workspace = true, features = ["display"] }
 futures = { workspace = true }
 multiaddr = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 tokio-util = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-derive_more = { version = "1.0.0", features = ["display"] }
 
 [lints]
 workspace = true

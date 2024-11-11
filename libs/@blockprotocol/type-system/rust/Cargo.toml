@@ -17,7 +17,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 # Public workspace dependencies
 error-stack = { workspace = true, public = true, features = ["unstable"] }
-codec = { workspace = true, public = true, features = ["serde"] }
+hash-codec = { workspace = true, public = true, features = ["serde"] }
 
 # Public third-party dependencies
 bytes = { workspace = true, public = true }
@@ -34,6 +34,7 @@ futures = { workspace = true }
 itertools = { workspace = true, features = ["use_alloc"] }
 
 # Private third-party dependencies
+derive_more = { workspace = true, features = ["display", "error", "from"] }
 regex = { workspace = true, features = ["std"] }
 serde = { workspace = true, features = ["derive", "rc"] }
 thiserror = { workspace = true }
@@ -41,7 +42,7 @@ tsify = { workspace = true, features = ["json"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }
-graph-test-data = { workspace = true }
+hash-graph-test-data = { workspace = true }
 pretty_assertions = { workspace = true }
 
 [features]
