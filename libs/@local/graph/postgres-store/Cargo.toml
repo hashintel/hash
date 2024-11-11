@@ -24,11 +24,11 @@ tokio = { workspace = true, public = true, features = ["macros"] }
 tokio-postgres = { workspace = true, public = true }
 
 # Private workspace dependencies
-hash-codec = { workspace = true }
 error-stack = { workspace = true, features = ["std", "serde", "unstable"] }
-hash-status = { workspace = true }
+hash-codec = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types = { workspace = true, features = ["postgres"] }
+hash-status = { workspace = true }
 type-system = { workspace = true, features = ["postgres"] }
 
 # Private third-party dependencies

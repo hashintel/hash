@@ -16,9 +16,9 @@ hash-graph-types = { workspace = true, public = true }
 futures-core = { workspace = true, public = true }
 
 # Private workspace dependencies
+error-stack = { workspace = true, features = ["unstable"] }
 hash-codec = { workspace = true }
 type-system = { workspace = true }
-error-stack = { workspace = true, features = ["unstable"] }
 
 # Private third-party dependencies
 derive-where = { workspace = true }
