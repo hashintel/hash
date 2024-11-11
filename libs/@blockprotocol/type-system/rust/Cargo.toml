@@ -34,10 +34,11 @@ futures   = { workspace = true }
 itertools = { workspace = true, features = ["use_alloc"] }
 
 # Private third-party dependencies
-regex     = { workspace = true, features = ["std"] }
-serde     = { workspace = true, features = ["derive", "rc"] }
-thiserror = { workspace = true }
-tsify     = { workspace = true, features = ["json"] }
+derive_more = { workspace = true, features = ["display", "error", "from"] }
+regex       = { workspace = true, features = ["std"] }
+serde       = { workspace = true, features = ["derive", "rc"] }
+thiserror   = { workspace = true }
+tsify       = { workspace = true, features = ["json"] }
 
 [dev-dependencies]
 hash-graph-test-data = { workspace = true }
