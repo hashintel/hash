@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "harpc-codec"
+name              = "harpc-codec"
 authors.workspace = true
 version.workspace = true
 edition.workspace = true
@@ -14,18 +14,18 @@ error-stack = { workspace = true, public = true, features = ["serde"] }
 harpc-types = { workspace = true, public = true }
 
 # Public third-party dependencies
-bytes = { workspace = true, public = true }
+bytes        = { workspace = true, public = true }
 futures-core = { workspace = true, public = true }
 futures-util = { workspace = true, public = true, optional = true }
-serde = { workspace = true, public = true, features = ["derive"] }
-serde_json = { workspace = true, public = true, optional = true }
+serde        = { workspace = true, public = true, features = ["derive"] }
+serde_json   = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-memchr = { workspace = true, optional = true }
+memchr           = { workspace = true, optional = true }
 pin-project-lite = { workspace = true, optional = true }
-thiserror = { workspace = true }
+thiserror        = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

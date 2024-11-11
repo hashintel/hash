@@ -1,5 +1,5 @@
 [package]
-name = "deer-desert"
+name    = "deer-desert"
 version = "0.0.0"
 edition = "2021"
 # NOTE: THIS PACKAGE IS NEVER INTENDED TO BE PUBLISHED
@@ -18,15 +18,15 @@ serde_json = { workspace = true, public = true }
 error-stack = { workspace = true, default-features = false }
 
 # Private third-party dependencies
-bitvec = { workspace = true, features = ["alloc", "atomic"] }
-num-traits = { workspace = true }
-serde = { workspace = true, features = ['alloc'] }
+bitvec          = { workspace = true, features = ["alloc", "atomic"] }
+num-traits      = { workspace = true }
+serde           = { workspace = true, features = ['alloc'] }
 similar-asserts = { workspace = true, optional = true, features = ["serde"] }
 
 [features]
-std = ['deer/std']
+std     = ['deer/std']
 default = ['pretty']
-pretty = ['std', 'dep:similar-asserts']
+pretty  = ['std', 'dep:similar-asserts']
 
 [lints]
 workspace = true

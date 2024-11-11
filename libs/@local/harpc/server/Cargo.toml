@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "harpc-server"
+name              = "harpc-server"
 authors.workspace = true
 version.workspace = true
 edition.workspace = true
@@ -10,39 +10,39 @@ publish.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-harpc-net = { workspace = true, public = true }
+harpc-net    = { workspace = true, public = true }
 harpc-system = { workspace = true, public = true }
 
 # Public third-party dependencies
 frunk_core = { workspace = true, public = true }
-tower = { workspace = true, public = true, features = ["make"] }
+tower      = { workspace = true, public = true, features = ["make"] }
 
 # Private workspace dependencies
 harpc-tower = { workspace = true }
 harpc-types = { workspace = true }
 
 # Private third-party dependencies
-bytes = { workspace = true }
+bytes        = { workspace = true }
 derive-where = { workspace = true }
-derive_more = { workspace = true, features = ["debug", "display", "error"] }
-error-stack = { workspace = true }
-frunk = { workspace = true }
-futures = { workspace = true }
-harpc-codec = { workspace = true }
-multiaddr = { workspace = true }
-scc = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-tokio = { workspace = true, features = ["macros"] }
-tokio-util = { workspace = true, features = ["rt"] }
-tracing = { workspace = true }
+derive_more  = { workspace = true, features = ["debug", "display", "error"] }
+error-stack  = { workspace = true }
+frunk        = { workspace = true }
+futures      = { workspace = true }
+harpc-codec  = { workspace = true }
+multiaddr    = { workspace = true }
+scc          = { workspace = true }
+serde        = { workspace = true, features = ["derive"] }
+tokio        = { workspace = true, features = ["macros"] }
+tokio-util   = { workspace = true, features = ["rt"] }
+tracing      = { workspace = true }
 
 [lints]
 workspace = true
 
 [dev-dependencies]
-harpc-client = { workspace = true }
-harpc-codec = { workspace = true, features = ["json"] }
+harpc-client     = { workspace = true }
+harpc-codec      = { workspace = true, features = ["json"] }
 hash-graph-types = { workspace = true }
-thiserror = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
-uuid = { workspace = true, features = ["v4"] }
+thiserror        = { workspace = true }
+tokio            = { workspace = true, features = ["macros", "rt-multi-thread"] }
+uuid             = { workspace = true, features = ["v4"] }
