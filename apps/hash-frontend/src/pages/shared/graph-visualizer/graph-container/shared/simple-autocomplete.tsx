@@ -5,6 +5,7 @@ import { createContext, forwardRef, useContext, useMemo } from "react";
 import { VariableSizeList } from "react-window";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
+import { useGraphContext } from "./graph-context";
 
 const Row = ({
   data,
@@ -94,6 +95,8 @@ export const SimpleAutocomplete = <
 }) => {
   const listComponent = options.length > 200 ? VirtualizedListComp : undefined;
 
+  const { graphContainerRef } = useGraphContext();
+
   return (
     <Autocomplete<T, false, false, false>
       autoFocus={!!autoFocus}
@@ -107,6 +110,7 @@ export const SimpleAutocomplete = <
           },
         },
         popper: {
+          container: graphContainerRef.current,
           sx: {
             "& > div:first-of-type": {
               boxShadow: "none",
@@ -156,7 +160,7 @@ export const SimpleAutocomplete = <
           option.label +
           (suffixKey && option[suffixKey] ? ` ${option[suffixKey]}` : "");
 
-        const regex = /(\[[0-9]+]|\([0-9]+\)|[^[\]()]+)/g;
+        const regex = /(\[[0-9]+]|\([0-9]+\)|\(None\)|\[None]|[^[\]()]+)/g;
 
         const parts = label.match(regex);
 

@@ -177,6 +177,10 @@ export const FilterControl = ({
     );
   }, [filters.includeByNodeTypeId, nodeTypesInData]);
 
+  if (!Object.keys(nodeTypesInData).length) {
+    return null;
+  }
+
   return (
     <>
       <FilterPanel
@@ -188,7 +192,7 @@ export const FilterControl = ({
       />
       <IconButton
         onClick={() => setFilterPanelOpen(true)}
-        sx={[controlButtonSx, { position: "absolute", top: 8, right: 13 }]}
+        sx={[controlButtonSx, { position: "absolute", top: 8, right: 46 }]}
       >
         <FilterLightIcon
           sx={{

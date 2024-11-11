@@ -452,7 +452,7 @@ export const ConfigControl = () => {
       />
       <IconButton
         onClick={() => setConfigPanelOpen(true)}
-        sx={[controlButtonSx, { position: "absolute", top: 8, right: 46 }]}
+        sx={[controlButtonSx, { position: "absolute", top: 8, right: 13 }]}
       >
         <GearIcon />
       </IconButton>

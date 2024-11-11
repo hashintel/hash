@@ -36,7 +36,7 @@ const Search = ({
     for (const node of nodes) {
       const { nodeId } = node;
 
-      if (!node.nodeTypeId || !includeByNodeTypeId?.[node.nodeTypeId]) {
+      if (node.nodeTypeId && !includeByNodeTypeId?.[node.nodeTypeId]) {
         continue;
       }
 
@@ -70,18 +70,38 @@ const Search = ({
   };
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (open && inputRef.current) {
-      inputRef.current.focus();
+    const panel = panelRef.current;
+
+    if (open && inputRef.current && panel) {
+      /**
+       * Once the panel is fully transitioned in, focus the input.
+       * Doing so any earlier will cause the dropdn
+       */
+      panel.ontransitionend = () => {
+        inputRef.current?.focus();
+      };
     }
+
+    return () => {
+      if (panel) {
+        panel.ontransitionend = null;
+      }
+    };
   }, [open]);
 
   return (
-    <ControlPanel onClose={onClose} open={open} position="left" title="Search">
+    <ControlPanel
+      onClose={onClose}
+      open={open}
+      panelRef={panelRef}
+      position="left"
+      title="Search"
+    >
       <Box sx={{ width: 460, px: 1.5, mt: 1 }}>
         <SimpleAutocomplete
-          autoFocus
           endAdornment={
             <SearchIcon
               sx={{ fontSize: 16, color: ({ palette }) => palette.gray[30] }}
