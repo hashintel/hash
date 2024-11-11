@@ -1,5 +1,3 @@
-use thiserror::Error;
-
 use crate::{
     Valid, Validator,
     schema::{
@@ -9,15 +7,16 @@ use crate::{
     url::BaseUrl,
 };
 
-#[derive(Debug, Error)]
+#[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub enum EntityTypeValidationError {
-    #[error("The property reference {} does not match the base URL {base_url}", reference.url)]
+    #[display("The property reference {} does not match the base URL {base_url}", reference.url)]
     InvalidPropertyReference {
         base_url: BaseUrl,
         reference: PropertyTypeReference,
     },
-    #[error("Property object validation failed: {0}")]
-    ObjectValidationFailed(#[from] ObjectSchemaValidationError),
+    #[display("Property object validation failed: {_0}")]
+    #[from]
+    ObjectValidationFailed(ObjectSchemaValidationError),
 }
 
 #[derive(Debug)]
