@@ -378,11 +378,11 @@ mod tests {
         let intersection = intersect_schemas(schemas).expect("Failed to intersect schemas");
         let expected = expected.into_iter().collect::<Vec<_>>();
         assert_eq!(
-            intersection,
             expected,
+            intersection,
             "Schemas do not match: expected: {:#}, actual: {:#}",
+            json!(expected),
             json!(intersection),
-            json!(expected)
         );
     }
 

@@ -1,5 +1,8 @@
+use core::cmp;
+
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail};
 use hash_codec::serde::constant::ConstBool;
+use itertools::{EitherOrBoth, Itertools};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
@@ -97,6 +100,33 @@ pub struct ArrayItemsSchema {
     pub constraints: ArrayItemConstraints,
 }
 
+impl Constraint for ArrayItemsSchema {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        let (combined, remainder) = self.constraints.intersection(other.constraints)?;
+        let (description, label) = if self.description.is_none() && self.label.is_empty() {
+            (other.description, other.label)
+        } else {
+            (self.description, self.label)
+        };
+
+        Ok((
+            Self {
+                description,
+                label,
+                constraints: combined,
+            },
+            remainder.map(|remainder| Self {
+                constraints: remainder,
+                description: None,
+                label: ValueLabel::default(),
+            }),
+        ))
+    }
+}
+
 #[cfg(target_arch = "wasm32")]
 #[expect(
     dead_code,
@@ -141,13 +171,11 @@ impl Constraint for ArraySchema {
                 )
             }
             (Self::Tuple(lhs), Self::Constrained(rhs)) => {
-                // TODO: Implement folding for array constraints
-                //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
+                // Combining tuple and array constraints is not supported, yet
                 (Self::Tuple(lhs), Some(Self::Constrained(rhs)))
             }
             (Self::Constrained(lhs), Self::Tuple(rhs)) => {
-                // TODO: Implement folding for array constraints
-                //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
+                // Combining tuple and array constraints is not supported, yet
                 (Self::Constrained(lhs), Some(Self::Tuple(rhs)))
             }
             (Self::Tuple(lhs), Self::Tuple(rhs)) => {
@@ -217,9 +245,22 @@ impl Constraint for ArrayConstraints {
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
-        // TODO: Implement folding for array constraints
-        //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
-        Ok((self, Some(other)))
+        match (self.items, other.items) {
+            (Some(lhs), Some(rhs)) => {
+                let (combined, remainder) = lhs.intersection(rhs)?;
+
+                Ok((
+                    Self {
+                        items: Some(combined),
+                    },
+                    remainder.map(|remainder| Self {
+                        items: Some(remainder),
+                    }),
+                ))
+            }
+            (Some(items), None) | (None, Some(items)) => Ok((Self { items: Some(items) }, None)),
+            (None, None) => Ok((Self { items: None }, None)),
+        }
     }
 }
 
@@ -268,9 +309,35 @@ impl Constraint for TupleConstraints {
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
-        // TODO: Implement folding for array constraints
-        //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
-        Ok((self, Some(other)))
+        let mut prefix_items =
+            Vec::with_capacity(cmp::max(self.prefix_items.len(), other.prefix_items.len()));
+
+        for zipped in self.prefix_items.iter().zip_longest(&other.prefix_items) {
+            match zipped {
+                EitherOrBoth::Both(lhs, rhs) => {
+                    // We need to clone the constraints to fall back to the original values in case
+                    // the intersection has a remainder. With a remainder it's not possible to
+                    // create a combined value.
+                    let (combined, None) = lhs.clone().intersection(rhs.clone())? else {
+                        // With a remainder we can't create a combined value.
+                        return Ok((self, Some(other)));
+                    };
+
+                    prefix_items.push(combined);
+                }
+                EitherOrBoth::Left(item) | EitherOrBoth::Right(item) => {
+                    prefix_items.push(item.clone());
+                }
+            }
+        }
+
+        Ok((
+            Self {
+                items: ConstBool,
+                prefix_items,
+            },
+            None,
+        ))
     }
 }
 
@@ -331,7 +398,9 @@ mod tests {
         NumberValidationError,
         data_type::constraint::{
             ValueConstraints,
-            tests::{check_constraints, check_constraints_error, read_schema},
+            tests::{
+                check_constraints, check_constraints_error, check_schema_intersection, read_schema,
+            },
         },
     };
 
@@ -483,5 +552,284 @@ mod tests {
             "prefixItems": [{"type": "number"}],
         }))
         .expect_err("Deserialized array schema with mixed properties");
+    }
+
+    #[test]
+    fn intersect_combinable_arrays() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 8,
+                        "description": "A string with a minimum length of 8 characters",
+                    },
+                }),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "maxLength": 12,
+                        "description": "A string with a maximum length of 12 characters",
+                    },
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 12,
+                    "description": "A string with a minimum length of 8 characters",
+                },
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_non_combinable_arrays() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "ipv4",
+                        "description": "An IPv4 address",
+                    },
+                }),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "hostname",
+                        "description": "A hostname",
+                    },
+                }),
+            ],
+            [
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "ipv4",
+                        "description": "An IPv4 address",
+                    },
+                }),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "hostname"
+                    },
+                }),
+            ],
+        );
+    }
+
+    #[test]
+    fn intersect_array_and_tuple() {
+        let array = json!({
+            "type": "array",
+            "items": {
+                "type": "string",
+                "minLength": 8,
+                "description": "A string with a minimum length of 8 characters",
+            },
+        });
+        let tuple = json!({
+            "type": "array",
+            "items": false,
+            "prefixItems": [{
+                "type": "string",
+                "maxLength": 12,
+                "description": "A string with a maximum length of 12 characters",
+            }],
+        });
+        check_schema_intersection([array.clone(), tuple.clone()], [
+            array.clone(),
+            tuple.clone(),
+        ]);
+        check_schema_intersection([tuple.clone(), array.clone()], [
+            tuple.clone(),
+            array.clone(),
+        ]);
+    }
+
+    #[test]
+    fn intersect_combinable_tuples() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "minLength": 8,
+                        "description": "A string with a minimum length of 8 characters",
+                    }],
+                }),
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "maxLength": 12,
+                        "description": "A string with a maximum length of 12 characters",
+                    }],
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "items": false,
+                "prefixItems": [{
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 12,
+                    "description": "A string with a minimum length of 8 characters",
+                }],
+            })],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [
+                        {
+                            "type": "string",
+                            "minLength": 8,
+                            "description": "A string with a minimum length of 8 characters",
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 8,
+                            "description": "A string with a minimum length of 8 characters",
+                        }
+                    ],
+                }),
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "maxLength": 12,
+                        "description": "A string with a maximum length of 12 characters",
+                    }],
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "items": false,
+                "prefixItems": [
+                    {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 12,
+                        "description": "A string with a minimum length of 8 characters",
+                    },
+                    {
+                        "type": "string",
+                        "minLength": 8,
+                        "description": "A string with a minimum length of 8 characters",
+                    }
+                ],
+            })],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "minLength": 8,
+                        "description": "A string with a minimum length of 8 characters",
+                    }],
+                }),
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [
+                        {
+                            "type": "string",
+                            "maxLength": 12,
+                            "description": "A string with a maximum length of 12 characters",
+                        },
+                        {
+                            "type": "string",
+                            "maxLength": 12,
+                            "description": "A string with a maximum length of 12 characters",
+                        }
+                    ],
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "items": false,
+                "prefixItems": [
+                    {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 12,
+                        "description": "A string with a minimum length of 8 characters",
+                    },
+                    {
+                        "type": "string",
+                        "maxLength": 12,
+                        "description": "A string with a maximum length of 12 characters",
+                    }
+                ],
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_non_combinable_tuples() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "pattern": "ipv4",
+                        "description": "An IPv4 address",
+                    }],
+                }),
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "pattern": "hostname",
+                        "description": "A hostname",
+                    }],
+                }),
+            ],
+            [
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "pattern": "ipv4",
+                        "description": "An IPv4 address",
+                    }],
+                }),
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "pattern": "hostname",
+                        "description": "A hostname",
+                    }],
+                }),
+            ],
+        );
     }
 }
