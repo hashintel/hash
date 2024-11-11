@@ -15,19 +15,19 @@ hash-graph-authorization = { workspace = true, public = true }
 hash-temporal-client = { workspace = true, public = true }
 
 # Public third-party dependencies
-utoipa = { workspace = true, public = true, optional = true }
 postgres-types = { workspace = true, public = true, optional = true, features = ["derive", "with-serde_json-1", "with-uuid-1"] }
-tokio-postgres = { workspace = true, public = true, optional = true}
+tokio-postgres = { workspace = true, public = true, optional = true }
+utoipa = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
 hash-graph-temporal-versioning = { workspace = true }
-type-system = { workspace = true }
 hash-graph-types = { workspace = true }
+type-system = { workspace = true }
 
 # Private third-party dependencies
 bytes = { workspace = true, optional = true }
-derive_more = { workspace = true, features = ["display", "error"] }
 derive-where = { workspace = true }
+derive_more = { workspace = true, features = ["display", "error"] }
 futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

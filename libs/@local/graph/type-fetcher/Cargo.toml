@@ -11,13 +11,13 @@ description = "RPC service definition to fetch external BP types"
 
 [dependencies]
 # Public workspace dependencies
-type-system = { workspace = true, public = true }
 hash-graph-store = { workspace = true, public = true }
+type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
+serde_json = { workspace = true, public = true }
 tarpc = { workspace = true, public = true, features = ["serde-transport", "serde-transport-json", "tcp", "tokio1"] }
 time = { workspace = true, public = true, features = ["serde", "std"] }
-serde_json = { workspace = true, public = true }
 tokio = { workspace = true, public = true }
 
 # Private workspace dependencies

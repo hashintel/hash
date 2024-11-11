@@ -17,8 +17,8 @@ type-system = { workspace = true, public = true }
 semver = { workspace = true, public = true, features = ["serde"] }
 
 # Private workspace dependencies
-hash-codec = { workspace = true, features = ["bytes"] }
 error-stack = { workspace = true }
+hash-codec = { workspace = true, features = ["bytes"] }
 
 # Private third-party dependencies
 bytes = { workspace = true }
@@ -28,10 +28,10 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 time = { workspace = true, default-features = false, features = ["serde", "parsing", "formatting", "macros"] }
+trait-variant = { workspace = true }
 url = { workspace = true, features = ["serde"] }
 utoipa = { workspace = true, optional = true }
 uuid = { workspace = true, default-features = false, features = ["serde"] }
-trait-variant = { workspace = true }
 
 [dev-dependencies]
 hash-graph-test-data = { workspace = true }
