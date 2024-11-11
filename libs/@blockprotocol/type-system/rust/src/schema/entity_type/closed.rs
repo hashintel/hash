@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::cmp;
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use error_stack::{Report, ensure};
+use error_stack::{Report, bail, ensure};
 use itertools::Itertools as _;
 use serde_json::json;
 use thiserror::Error;
@@ -137,6 +137,21 @@ pub struct ClosedMultiEntityType {
 }
 
 impl ClosedMultiEntityType {
+    #[must_use]
+    pub fn from_closed_schema(closed_schemas: ClosedEntityType) -> Self {
+        Self {
+            all_of: vec![ClosedEntityTypeMetadata {
+                id: closed_schemas.id.clone(),
+                title: closed_schemas.title.clone(),
+                title_plural: closed_schemas.title_plural.clone(),
+                description: closed_schemas.description.clone(),
+                inverse: closed_schemas.inverse.clone(),
+                all_of: closed_schemas.all_of,
+            }],
+            constraints: closed_schemas.constraints,
+        }
+    }
+
     /// Creates a closed entity type from multiple closed entity types.
     ///
     /// This results in a closed entity type which is used for entities with multiple types.
@@ -147,49 +162,54 @@ impl ClosedMultiEntityType {
     pub fn from_multi_type_closed_schema(
         closed_schemas: impl IntoIterator<Item = ClosedEntityType>,
     ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
-        let mut this = Self {
-            constraints: EntityConstraints {
-                properties: HashMap::new(),
-                required: HashSet::new(),
-                links: HashMap::new(),
-            },
-            all_of: Vec::new(),
+        let mut closed_schemas = closed_schemas.into_iter();
+        let Some(mut closed_schema) = closed_schemas.next().map(Self::from_closed_schema) else {
+            bail!(ResolveClosedEntityTypeError::EmptySchema);
         };
 
         for schema in closed_schemas {
-            for (base_url, property) in schema.constraints.properties {
-                match this.constraints.properties.entry(base_url) {
-                    Entry::Occupied(entry) => {
-                        ensure!(
-                            property == *entry.get(),
-                            ResolveClosedEntityTypeError::IncompatibleProperty(entry.key().clone())
-                        );
-                    }
-                    Entry::Vacant(entry) => {
-                        entry.insert(property);
-                    }
-                }
-            }
-            this.constraints
-                .required
-                .extend(schema.constraints.required);
-            extend_links(&mut this.constraints.links, schema.constraints.links);
-            this.all_of.push(ClosedEntityTypeMetadata {
-                id: schema.id,
-                title: schema.title,
-                title_plural: schema.title_plural,
-                description: schema.description,
-                inverse: schema.inverse,
-                all_of: schema.all_of,
-            });
+            closed_schema.add_closed_entity_type(schema)?;
         }
 
-        ensure!(
-            !this.all_of.is_empty(),
-            ResolveClosedEntityTypeError::EmptySchema
-        );
+        Ok(closed_schema)
+    }
 
-        Ok(this)
+    /// Adds a new closed entity type to the multi entity type.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the entity types have incompatible properties.
+    pub fn add_closed_entity_type(
+        &mut self,
+        schema: ClosedEntityType,
+    ) -> Result<(), Report<ResolveClosedEntityTypeError>> {
+        for (base_url, property) in schema.constraints.properties {
+            match self.constraints.properties.entry(base_url) {
+                Entry::Occupied(entry) => {
+                    ensure!(
+                        property == *entry.get(),
+                        ResolveClosedEntityTypeError::IncompatibleProperty(entry.key().clone())
+                    );
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(property);
+                }
+            }
+        }
+        self.constraints
+            .required
+            .extend(schema.constraints.required);
+        extend_links(&mut self.constraints.links, schema.constraints.links);
+        self.all_of.push(ClosedEntityTypeMetadata {
+            id: schema.id,
+            title: schema.title,
+            title_plural: schema.title_plural,
+            description: schema.description,
+            inverse: schema.inverse,
+            all_of: schema.all_of,
+        });
+
+        Ok(())
     }
 }
 
@@ -356,14 +376,14 @@ mod tests {
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
         let building = ensure_serialization_from_str::<EntityType>(
-            graph_test_data::entity_type::BUILDING_V1,
+            hash_graph_test_data::entity_type::BUILDING_V1,
             JsonEqualityCheck::Yes,
         );
         ontology_type_resolver
             .add_unresolved_entity_type(EntityTypeUuid::from_url(&building.id), Arc::new(building));
 
         let church: EntityType = ensure_serialization_from_str::<EntityType>(
-            graph_test_data::entity_type::CHURCH_V1,
+            hash_graph_test_data::entity_type::CHURCH_V1,
             JsonEqualityCheck::Yes,
         );
         let church_id = EntityTypeUuid::from_url(&church.id);

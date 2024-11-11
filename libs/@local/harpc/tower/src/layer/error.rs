@@ -102,7 +102,7 @@ pub(crate) mod test {
         error_code::ErrorCode,
         procedure::{ProcedureDescriptor, ProcedureId},
         response_kind::ResponseKind,
-        service::{ServiceDescriptor, ServiceId},
+        subsystem::{SubsystemDescriptor, SubsystemId},
         version::Version,
     };
     use tokio_test::{assert_pending, assert_ready};
@@ -194,8 +194,8 @@ pub(crate) mod test {
     pub(crate) fn request() -> Request<Full<Bytes>> {
         Request::from_parts(
             request::Parts {
-                service: ServiceDescriptor {
-                    id: ServiceId::new(0x00),
+                subsystem: SubsystemDescriptor {
+                    id: SubsystemId::new(0x00),
                     version: Version {
                         major: 0x00,
                         minor: 0x00,

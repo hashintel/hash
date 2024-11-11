@@ -1,0 +1,39 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "hash-graph-type-fetcher"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+description = "RPC service definition to fetch external BP types"
+
+[dependencies]
+# Public workspace dependencies
+type-system = { workspace = true, public = true }
+hash-graph-store = { workspace = true, public = true }
+
+# Public third-party dependencies
+tarpc = { workspace = true, public = true, features = ["serde-transport", "serde-transport-json", "tcp", "tokio1"] }
+time = { workspace = true, public = true, features = ["serde", "std"] }
+serde_json = { workspace = true, public = true }
+tokio = { workspace = true, public = true }
+
+# Private workspace dependencies
+error-stack = { workspace = true }
+hash-graph-authorization = { workspace = true }
+hash-graph-temporal-versioning = { workspace = true }
+hash-graph-types = { workspace = true }
+hash-temporal-client = { workspace = true }
+
+# Private third-party dependencies
+derive_more = { workspace = true, features = ["display", "error"] }
+futures = { workspace = true }
+include_dir = { workspace = true, features = ["glob"] }
+reqwest = { workspace = true, features = ["json"] }
+serde = { workspace = true, features = ["derive"] }
+tracing = { workspace = true }
+
+[lints]
+workspace = true

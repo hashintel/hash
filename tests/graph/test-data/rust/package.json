@@ -1,0 +1,10 @@
+{
+  "name": "@rust/hash-graph-test-data",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy"
+  }
+}

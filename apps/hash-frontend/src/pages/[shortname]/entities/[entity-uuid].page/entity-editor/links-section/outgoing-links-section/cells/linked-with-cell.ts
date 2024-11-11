@@ -144,7 +144,10 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       const { width: chipWidth } = drawChipWithIcon({
         args,
         color: "white",
-        imageSrc,
+        /**
+         * @todo H-1978 use entity type icon if present in its schema
+         */
+        icon: imageSrc ? { imageSrc } : { inbuiltIcon: "bpAsterisk" },
         text: label,
         left: accumulatedLeft,
       });

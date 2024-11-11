@@ -8,6 +8,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityTypeRootType } from "@local/hash-subgraph";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Stack } from "@mui/material";
 import { useMemo, useState } from "react";
@@ -139,6 +140,10 @@ export const TypeButton = ({
   const isNotYetInDb = entity.metadata.recordId.entityId.includes("draft");
   const canChangeTypes = !readonly && !isNotYetInDb;
 
+  const isLink = !!currentEntityType.schema.allOf?.some(
+    (allOf) => allOf.$ref === linkEntityTypeUrl,
+  );
+
   /** @todo H-3363 take account of inherited icons */
   return (
     <>
@@ -146,6 +151,7 @@ export const TypeButton = ({
         disableClick={disableTypeClick}
         LinkComponent={Link}
         icon={currentEntityType.schema.icon}
+        isLink={isLink}
         onDelete={canChangeTypes ? onDeleteClicked : undefined}
         url={entityTypeId}
         title={entityTypeTitle}

@@ -1,6 +1,10 @@
-#![feature(never_type, impl_trait_in_assoc_type, result_flattening)]
+#![feature(
+    never_type,
+    impl_trait_in_assoc_type,
+    result_flattening,
+    return_type_notation
+)]
 #![expect(
-    clippy::unwrap_used,
     clippy::print_stdout,
     clippy::use_debug,
     unused_variables,
@@ -9,50 +13,74 @@
 
 extern crate alloc;
 
-use alloc::vec;
-use core::{error::Error, fmt::Debug};
+use core::{fmt::Debug, marker::PhantomData};
 use std::time::Instant;
 
-use bytes::Buf;
-use error_stack::{FutureExt as _, Report, ResultExt as _};
+use error_stack::{Report, ResultExt as _};
 use frunk::HList;
-use futures::{Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _, pin_mut, stream};
-use graph_types::account::AccountId;
-use harpc_client::{Client, ClientConfig, connection::Connection};
-use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
-use harpc_net::session::server::SessionId;
-use harpc_server::{Server, ServerConfig, router::RouterBuilder, serve::serve};
-use harpc_service::{
-    Service,
-    delegate::ServiceDelegate,
-    metadata::Metadata,
+use harpc_client::{
+    Client, ClientConfig,
+    connection::{Connection, ConnectionCodec, ConnectionService},
+    utils::invoke_call_discrete,
+};
+use harpc_codec::{decode::ReportDecoder, encode::Encoder, json::JsonCodec};
+use harpc_server::{
+    Server, ServerConfig,
+    error::DelegationError,
+    router::RouterBuilder,
+    serve::serve,
+    utils::{delegate_call_discrete, parse_procedure_id},
+};
+use harpc_system::{
+    Subsystem, SubsystemIdentifier,
+    delegate::SubsystemDelegate,
     procedure::{Procedure, ProcedureIdentifier},
-    role,
 };
 use harpc_tower::{
-    Extensions,
-    body::{Body, BodyExt as _},
+    body::Body,
     layer::{
         body_report::HandleBodyReportLayer, boxed::BoxedResponseLayer, report::HandleReportLayer,
     },
-    request::{self, Request},
-    response::{Parts, Response},
+    request::Request,
+    response::Response,
 };
 use harpc_types::{
-    procedure::{ProcedureDescriptor, ProcedureId},
-    response_kind::ResponseKind,
-    service::{ServiceDescriptor, ServiceId},
-    version::Version,
+    procedure::ProcedureId, response_kind::ResponseKind, subsystem::SubsystemId, version::Version,
 };
+use hash_graph_types::account::AccountId;
 use multiaddr::multiaddr;
-use tower::ServiceExt as _;
 use uuid::Uuid;
+
+#[derive(Debug, Copy, Clone)]
+enum System {
+    Account,
+}
+
+impl SubsystemIdentifier for System {
+    fn from_id(id: SubsystemId) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        match id.value() {
+            0x00 => Some(Self::Account),
+            _ => None,
+        }
+    }
+
+    fn into_id(self) -> SubsystemId {
+        match self {
+            Self::Account => SubsystemId::new(0x00),
+        }
+    }
+}
 
 enum AccountProcedureId {
     CreateAccount,
 }
 
 impl ProcedureIdentifier for AccountProcedureId {
+    type Subsystem = Account;
+
     fn from_id(id: ProcedureId) -> Option<Self> {
         match id.value() {
             0 => Some(Self::CreateAccount),
@@ -69,25 +97,16 @@ impl ProcedureIdentifier for AccountProcedureId {
 
 struct Account;
 
-impl Service for Account {
+impl Subsystem for Account {
     type ProcedureId = AccountProcedureId;
     type Procedures = HList![CreateAccount];
+    type SubsystemId = System;
 
-    const ID: ServiceId = ServiceId::new(0);
+    const ID: System = System::Account;
     const VERSION: Version = Version {
         major: 0x00,
         minor: 0x00,
     };
-
-    fn metadata() -> Metadata {
-        Metadata {
-            since: Version {
-                major: 0x00,
-                minor: 0x00,
-            },
-            deprecation: None,
-        }
-    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -96,54 +115,49 @@ struct CreateAccount {
 }
 
 impl Procedure for CreateAccount {
-    type Service = Account;
+    type Subsystem = Account;
 
-    const ID: <Self::Service as Service>::ProcedureId = AccountProcedureId::CreateAccount;
+    const ID: <Self::Subsystem as Subsystem>::ProcedureId = AccountProcedureId::CreateAccount;
+}
 
-    fn metadata() -> Metadata {
-        Metadata {
-            since: Version {
-                major: 0x00,
-                minor: 0x00,
-            },
-            deprecation: None,
+#[must_use]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
+#[display("unable to fullfil account request")]
+pub struct AccountError;
+
+trait AccountSystem {
+    type ExecutionScope;
+
+    async fn create_account(
+        &self,
+        scope: Self::ExecutionScope,
+        payload: CreateAccount,
+    ) -> Result<AccountId, Report<AccountError>>;
+}
+
+#[derive_where::derive_where(Debug, Clone)]
+struct AccountSystemImpl<S> {
+    _scope: PhantomData<fn() -> *const S>,
+}
+
+impl<S> AccountSystemImpl<S> {
+    #[must_use]
+    const fn new() -> Self {
+        Self {
+            _scope: PhantomData,
         }
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, thiserror::Error)]
-enum AccountError {
-    #[error("unable to establish connection to server")]
-    Connection,
-    #[error("unable to encode request")]
-    Encode,
-    #[error("unable to decode response")]
-    Decode,
-    #[error("expected at least a single response")]
-    ExpectedResponse,
-}
-
-trait AccountService<R>
-where
-    R: role::Role,
-{
-    fn create_account(
-        &self,
-        session: &R::Session,
-        payload: CreateAccount,
-    ) -> impl Future<Output = Result<AccountId, Report<AccountError>>> + Send;
-}
-
-#[derive(Debug, Clone)]
-struct AccountServiceImpl;
-
-impl<S> AccountService<role::Server<S>> for AccountServiceImpl
+impl<S> AccountSystem for AccountSystemImpl<S>
 where
     S: Send + Sync,
 {
+    type ExecutionScope = S;
+
     async fn create_account(
         &self,
-        session: &S,
+        scope: Self::ExecutionScope,
         payload: CreateAccount,
     ) -> Result<AccountId, Report<AccountError>> {
         Ok(AccountId::new(Uuid::new_v4()))
@@ -151,158 +165,87 @@ where
 }
 
 #[derive(Debug, Clone)]
-struct AccountServiceClient;
+struct AccountSystemClient<S, C> {
+    _service: PhantomData<fn() -> *const S>,
+    _codec: PhantomData<fn() -> *const C>,
+}
 
-impl<Svc, St, C, DecoderError, EncoderError, ServiceError, ResData, ResError>
-    AccountService<role::Client<Connection<Svc, C>>> for AccountServiceClient
+impl<S, C> AccountSystemClient<S, C> {
+    const fn new() -> Self {
+        Self {
+            _service: PhantomData,
+            _codec: PhantomData,
+        }
+    }
+}
+
+impl<S, C> Default for AccountSystemClient<S, C> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<S, C> AccountSystem for AccountSystemClient<S, C>
 where
-    // TODO: I want to get rid of the boxed stream here, the problem is just that `Output` has `<Input>`
-    // as a type parameter, therefore cannot parameterize over it, unless we box or duplicate the
-    // trait requirement. both are not great solutions.
-    Svc: tower::Service<
-            Request<stream::Iter<vec::IntoIter<C::Buf>>>,
-            Response = Response<St>,
-            Error = Report<ServiceError>,
-            Future: Send,
-        > + Clone
-        + Send
-        + Sync,
-    St: Stream<Item = Result<ResData, ResError>> + Send + Sync,
-    ResData: Buf,
-    C: Encoder<Error = Report<EncoderError>, Buf: Send + 'static>
-        + Decoder<Error = Report<DecoderError>>
-        + Clone
-        + Send
-        + Sync,
-    DecoderError: Error + Send + Sync + 'static,
-    EncoderError: Error + Send + Sync + 'static,
-    ServiceError: Error + Send + Sync + 'static,
+    S: ConnectionService<C>,
+    C: ConnectionCodec,
 {
-    fn create_account(
+    type ExecutionScope = Connection<S, C>;
+
+    async fn create_account(
         &self,
-        session: &Connection<Svc, C>,
+        scope: Connection<S, C>,
         payload: CreateAccount,
-    ) -> impl Future<Output = Result<AccountId, Report<AccountError>>> {
-        let codec = session.codec().clone();
-        let connection = session.clone();
-
-        // In theory we could also skip the allocation here, but the problem is that in that case we
-        // would send data that *might* be malformed, or is missing data. Instead of skipping said
-        // data we allocate. In future we might want to instead have something like
-        // tracing::error or a panic instead, but this is sufficient for now.
-        // (more importantly it also opt us out of having a stream as input that we then encode,
-        // which should be fine?)
-        //
-        // In theory we'd need to be able to propagate the error into the transport layer, while
-        // possible we would await yet another challenge, what happens if the transport layer
-        // encounters an error? We can't very well send that error to the server just for us to
-        // return it, the server might already be processing things and now suddenly needs to stop?
-        // So we'd need to panic or filter on the client and would have partially committed data on
-        // the server.
-        //
-        // This circumvents the problem because we just return an error early, in the future - if
-        // the need arises - we might want to investigate request cancellation (which should be
-        // possible in the protocol).
-        //
-        // That'd allow us to cancel the request but would make response handling *a lot* more
-        // complex.
-        //
-        // This isn't a solved problem at all in e.g. rust in general, because there are some things
-        // you can't just cancel. How do you roll back a potentially already committed transaction?
-        // The current hypothesis is that the overhead required for one less allocation simply isn't
-        // worth it, but in the future we might want to revisit this.
-        codec
-            .clone()
-            .encode(stream::iter([payload]))
-            .try_collect()
-            .change_context(AccountError::Encode)
-            .map_ok(|bytes: Vec<_>| {
-                Request::from_parts(
-                    request::Parts {
-                        service: ServiceDescriptor {
-                            id: Account::ID,
-                            version: Account::VERSION,
-                        },
-                        procedure: ProcedureDescriptor {
-                            id: CreateAccount::ID.into_id(),
-                        },
-                        session: SessionId::CLIENT,
-                        extensions: Extensions::new(),
-                    },
-                    stream::iter(bytes),
-                )
-            })
-            .and_then(move |request| {
-                connection
-                    .oneshot(request)
-                    .change_context(AccountError::Connection)
-            })
-            .and_then(move |response| {
-                let (parts, body) = response.into_parts();
-
-                let data = codec.decode(body);
-
-                async move {
-                    tokio::pin!(data);
-
-                    let data = data
-                        .next()
-                        .await
-                        .ok_or_else(|| Report::new(AccountError::ExpectedResponse))?
-                        .change_context(AccountError::Decode)?;
-
-                    Ok(data)
-                }
-            })
+    ) -> Result<AccountId, Report<AccountError>> {
+        invoke_call_discrete(scope, AccountProcedureId::CreateAccount, [payload])
+            .await
+            .change_context(AccountError)
     }
 }
 
 #[derive(Debug, Clone)]
 struct AccountServerDelegate<T> {
-    service: T,
+    subsystem: T,
 }
 
-impl<T, S, C> ServiceDelegate<S, C> for AccountServerDelegate<T>
+impl<T> AccountServerDelegate<T> {
+    #[must_use]
+    const fn new(subsystem: T) -> Self {
+        Self { subsystem }
+    }
+}
+
+impl<T, C> SubsystemDelegate<C> for AccountServerDelegate<T>
 where
-    T: AccountService<role::Server<S>> + Send + Sync,
-    S: Send + Sync,
-    C: Encoder<Error: Debug> + Decoder<Error: Debug> + Clone + Send + Sync + 'static,
+    T: AccountSystem<create_account(..): Send, ExecutionScope: Send> + Send + Sync,
+    C: Encoder + ReportDecoder + Clone + Send,
 {
-    type Error = Report<AccountError>;
-    type Service = Account;
+    type Error = Report<DelegationError>;
+    type ExecutionScope = T::ExecutionScope;
+    type Subsystem = Account;
 
     type Body<Source>
         = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>
     where
-        Source: Body<Control = !, Error: Send + Sync> + Send + Sync;
+        Source: Body<Control = !, Error: Send + Sync> + Send;
 
     async fn call<B>(
         self,
         request: Request<B>,
-        session: S,
+        scope: T::ExecutionScope,
         codec: C,
     ) -> Result<Response<Self::Body<B>>, Self::Error>
     where
-        B: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        B: Body<Control = !, Error: Send + Sync> + Send,
     {
-        let session_id = request.session();
-        let ProcedureDescriptor { id } = request.procedure();
-        let id = AccountProcedureId::from_id(id).unwrap();
+        let id = parse_procedure_id(&request)?;
 
         match id {
             AccountProcedureId::CreateAccount => {
-                let body = request.into_body();
-                let data = body.into_stream().into_data_stream();
-
-                let stream = codec.clone().decode(data);
-                pin_mut!(stream);
-
-                let payload = stream.next().await.unwrap().unwrap();
-
-                let account_id = self.service.create_account(&session, payload).await?;
-                let data = codec.encode(stream::iter([account_id]));
-
-                Ok(Response::from_ok(Parts::new(session_id), data))
+                delegate_call_discrete(request, codec, |payload| async move {
+                    self.subsystem.create_account(scope, payload).await
+                })
+                .await
             }
         }
     }
@@ -318,9 +261,7 @@ async fn server() {
                 .layer(HandleReportLayer::new())
                 .layer(HandleBodyReportLayer::new())
         })
-        .register(AccountServerDelegate {
-            service: AccountServiceImpl,
-        });
+        .register(AccountServerDelegate::new(AccountSystemImpl::new()));
 
     let task = router.background_task(server.events());
     tokio::spawn(task.into_future());
@@ -341,7 +282,7 @@ async fn client() {
     let client =
         Client::new(ClientConfig::default(), JsonCodec).expect("should be able to start service");
 
-    let service = AccountServiceClient;
+    let service = AccountSystemClient::new();
 
     let connection = client
         .connect(multiaddr![Ip4([127, 0, 0, 1]), Tcp(10500_u16)])
@@ -351,7 +292,7 @@ async fn client() {
     for _ in 0..16 {
         let now = Instant::now();
         let account_id = service
-            .create_account(&connection, CreateAccount { id: None })
+            .create_account(connection.clone(), CreateAccount { id: None })
             .await
             .expect("should be able to create account");
 

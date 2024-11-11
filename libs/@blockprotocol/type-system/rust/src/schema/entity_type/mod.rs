@@ -116,6 +116,38 @@ pub struct EntityType {
     pub icon: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PartialEntityType {
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    pub description: String,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+impl From<EntityType> for PartialEntityType {
+    fn from(value: EntityType) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            title_plural: value.title_plural,
+            description: value.description,
+            inverse: value.inverse,
+            label_property: value.label_property,
+            icon: value.icon,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum EntityTypeToEntityTypeEdge {
     Inheritance,
@@ -319,7 +351,7 @@ mod tests {
     #[tokio::test]
     async fn book() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::BOOK_V1,
+            hash_graph_test_data::entity_type::BOOK_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -340,7 +372,7 @@ mod tests {
     #[tokio::test]
     async fn address() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::UK_ADDRESS_V1,
+            hash_graph_test_data::entity_type::UK_ADDRESS_V1,
             EntityTypeValidator,
             JsonEqualityCheck::No,
         )
@@ -358,7 +390,7 @@ mod tests {
     #[tokio::test]
     async fn organization() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::ORGANIZATION_V1,
+            hash_graph_test_data::entity_type::ORGANIZATION_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -374,7 +406,7 @@ mod tests {
     #[tokio::test]
     async fn building() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::BUILDING_V1,
+            hash_graph_test_data::entity_type::BUILDING_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -399,7 +431,7 @@ mod tests {
     #[tokio::test]
     async fn person() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::PERSON_V1,
+            hash_graph_test_data::entity_type::PERSON_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -426,7 +458,7 @@ mod tests {
     #[tokio::test]
     async fn playlist() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::PLAYLIST_V1,
+            hash_graph_test_data::entity_type::PLAYLIST_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -445,7 +477,7 @@ mod tests {
     #[tokio::test]
     async fn song() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::SONG_V1,
+            hash_graph_test_data::entity_type::SONG_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -461,7 +493,7 @@ mod tests {
     #[tokio::test]
     async fn page() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::PAGE_V2,
+            hash_graph_test_data::entity_type::PAGE_V2,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )

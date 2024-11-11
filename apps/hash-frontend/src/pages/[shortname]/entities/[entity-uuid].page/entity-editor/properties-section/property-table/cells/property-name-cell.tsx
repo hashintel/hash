@@ -40,7 +40,9 @@ export const createRenderPropertyNameCell = (
       } = cell.data.propertyRow;
 
       const yCenter = getYCenter(args);
-      const columnPadding = getCellHorizontalPadding(true);
+      const columnPadding = getCellHorizontalPadding(
+        !!children.length || depth > 0,
+      );
 
       const indentMultiplier = 16;
       const indentWidth = indent * indentMultiplier;

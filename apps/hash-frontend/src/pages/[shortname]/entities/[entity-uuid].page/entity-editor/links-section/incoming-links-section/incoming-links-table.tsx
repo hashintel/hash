@@ -1,4 +1,5 @@
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -139,6 +140,15 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
             }
             fontSize={linksTableFontSize}
             label={row.sourceEntityLabel}
+            icon={
+              <EntityOrTypeIcon
+                entity={row.sourceEntity}
+                fontSize={linksTableFontSize}
+                fill={({ palette }) => palette.gray[50]}
+                icon={row.sourceEntityTypes[0]!.icon}
+                isLink={!!row.sourceEntity.linkData}
+              />
+            }
           />
         </PropertiesTooltip>
       </TableCell>
@@ -148,13 +158,23 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
             <ValueChip
               key={linkEntityType.$id}
               showInFull
+              icon={
+                <EntityOrTypeIcon
+                  entity={null}
+                  fontSize={linksTableFontSize}
+                  fill={({ palette }) => palette.blue[70]}
+                  icon={linkEntityType.icon}
+                  isLink
+                />
+              }
               type
               sx={{
                 fontSize: linksTableFontSize,
                 mr: 1,
               }}
             >
-              {linkEntityType.title}
+              {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string */}
+              {linkEntityType.inverse?.title || linkEntityType.title}
             </ValueChip>
           ))}
           <Typography
@@ -178,6 +198,16 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
             <ValueChip
               key={sourceEntityType.$id}
               type
+              icon={
+                <EntityOrTypeIcon
+                  entity={null}
+                  fontSize={linksTableFontSize}
+                  fill={({ palette }) => palette.blue[70]}
+                  icon={sourceEntityType.icon}
+                  /* @todo H-3363 use closed entity type schema to check link status */
+                  isLink={!!row.sourceEntity.linkData}
+                />
+              }
               sx={{
                 fontSize: linksTableFontSize,
               }}
@@ -195,6 +225,15 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
           <ClickableCellChip
             onClick={() => row.onEntityClick(row.linkEntity.entityId)}
             fontSize={linksTableFontSize}
+            icon={
+              <EntityOrTypeIcon
+                entity={row.linkEntity}
+                fontSize={linksTableFontSize}
+                fill={({ palette }) => palette.gray[50]}
+                icon={row.linkEntityTypes[0]!.icon}
+                isLink
+              />
+            }
             label={row.linkEntityLabel}
           />
         </PropertiesTooltip>
@@ -514,11 +553,17 @@ export const IncomingLinksTable = memo(
 
             switch (field) {
               case "linkTypes": {
-                return (
-                  a.data.linkEntityTypes[0]!.title.localeCompare(
-                    b.data.linkEntityTypes[0]!.title,
-                  ) * direction
-                );
+                const aValue =
+                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+                  a.data.linkEntityTypes[0]!.inverse?.title ||
+                  a.data.linkEntityTypes[0]!.title;
+
+                const bValue =
+                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+                  b.data.linkEntityTypes[0]!.inverse?.title ||
+                  b.data.linkEntityTypes[0]!.title;
+
+                return aValue.localeCompare(bValue) * direction;
               }
               case "linkedFromTypes": {
                 return (

@@ -1,5 +1,5 @@
 {
-  "name": "@rust/repo-chores",
+  "name": "@rust/hash-repo-chores",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",

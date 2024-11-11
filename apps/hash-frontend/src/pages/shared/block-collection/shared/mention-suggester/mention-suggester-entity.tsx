@@ -1,5 +1,9 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
-import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
+import {
+  AsteriskRegularIcon,
+  EntityOrTypeIcon,
+  IconButton,
+} from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityTypeWithMetadata,
@@ -127,7 +131,15 @@ export const MentionSuggesterEntity = forwardRef<
     return (
       <>
         <ListItemButton ref={buttonRef} {...listItemButtonProps}>
-          <ListItemIcon sx={{ minWidth: "unset" }}>{entityIcon}</ListItemIcon>
+          <ListItemIcon sx={{ minWidth: "unset" }}>
+            <EntityOrTypeIcon
+              entity={entity}
+              fontSize={14}
+              isLink={!!entity.linkData}
+              icon={entityIcon}
+              fill={({ palette }) => palette.gray[50]}
+            />
+          </ListItemIcon>
           <ListItemPrimaryText>
             {generateEntityLabel(entitiesSubgraph, entity)}
           </ListItemPrimaryText>

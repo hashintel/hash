@@ -386,7 +386,11 @@ module "application" {
     {
       name  = "NODE_API_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["node_api_sentry_dsn"])
-    }
+    },
+    {
+      name  = "OPENAI_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
+    },
   ])
   temporal_worker_ai_ts_image    = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [

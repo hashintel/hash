@@ -10,21 +10,21 @@ publish.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-harpc-service = { workspace = true, public = true }
+harpc-system = { workspace = true, public = true }
+harpc-net = { workspace = true, public = true }
 
 # Public third-party dependencies
 frunk_core = { version = "0.4.3", public = true }
 tower = { workspace = true, public = true, features = ["make"] }
 
 # Private workspace dependencies
-harpc-net = { workspace = true }
 harpc-tower = { workspace = true }
 harpc-types = { workspace = true }
 
 # Private third-party dependencies
 bytes = { workspace = true }
 derive-where = { workspace = true }
-derive_more = { version = "1.0.0", features = ["display", "error"] }
+derive_more = { workspace = true, features = ["debug", "display", "error"] }
 error-stack = { workspace = true }
 frunk = "0.4.3"
 futures = { workspace = true }
@@ -40,9 +40,9 @@ tracing = { workspace = true }
 workspace = true
 
 [dev-dependencies]
-graph-types = { workspace = true }
 harpc-client = { workspace = true }
 harpc-codec = { workspace = true, features = ["json"] }
+hash-graph-types = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 uuid = { workspace = true, features = ["v4"] }

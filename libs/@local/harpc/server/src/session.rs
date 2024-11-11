@@ -3,16 +3,27 @@ use core::{fmt::Debug, sync::atomic::AtomicUsize, time::Duration};
 use std::{collections::HashSet, sync::Mutex};
 
 use futures::{Stream, StreamExt as _};
-use harpc_net::session::server::{SessionEvent, SessionEventError, SessionId};
+pub use harpc_net::session::server::{SessionEvent, SessionEventError, SessionId};
+use harpc_types::{procedure::ProcedureDescriptor, subsystem::SubsystemDescriptor};
 use scc::{ebr::Guard, hash_index::Entry};
 use tokio::pin;
 use tokio_util::sync::CancellationToken;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RequestInfo {
+    pub subsystem: SubsystemDescriptor,
+    pub procedure: ProcedureDescriptor,
+}
+
+#[derive(derive_more::Debug)]
 pub struct Session<T> {
+    #[debug(skip)]
     storage: Arc<SessionStorage<T>>,
 
     key: SessionId,
     value: Arc<T>,
+
+    request_info: RequestInfo,
 }
 
 impl<T> Session<T>
@@ -68,6 +79,12 @@ where
             false
         }
     }
+
+    /// Request information associated with the current request.
+    #[must_use]
+    pub const fn request_info(&self) -> RequestInfo {
+        self.request_info
+    }
 }
 
 impl<T> AsRef<T> for Session<T> {
@@ -78,10 +95,10 @@ impl<T> AsRef<T> for Session<T> {
 
 #[derive(Debug)]
 struct Marked {
-    // we use an std Mutex here, because we do not use the guard across an await point, therefore
+    // We use an std mutex here, because we do not use the guard across an await point, therefore
     // an std mutex is faster, smaller and more efficient.
     inner: Mutex<HashSet<SessionId>>,
-    // SeqCst is not needed as we don't require total ordering across all threads.
+    // `SeqCst` is not needed as we don't require total ordering across all threads.
     len: AtomicUsize,
 }
 
@@ -153,7 +170,7 @@ impl Marked {
 /// the session values), the session values are stored as `Arc<T>`.
 /// Values could be stored as `T` instead, but that would mean that a service could potentially
 /// simply lose access to the value if it is removed from the storage during a call, severely
-/// impacting ergnomics.
+/// impacting ergonomics.
 /// The underlying storage is lock-free for any read operations.
 #[derive_where::derive_where(Debug; T: Debug + 'static)]
 pub struct SessionStorage<T> {
@@ -183,10 +200,14 @@ impl<T> SessionStorage<T>
 where
     T: Default + Send + Sync + 'static,
 {
-    pub(crate) async fn get_or_insert(self: Arc<Self>, session_id: SessionId) -> Session<T> {
+    pub(crate) async fn get_or_insert(
+        self: Arc<Self>,
+        session_id: SessionId,
+        request_info: RequestInfo,
+    ) -> Session<T> {
         self.marked.remove(session_id);
 
-        // shortcut, which is completely lock-free
+        // Shortcut, which is completely lock-free
         if let Some(value) = self
             .storage
             .peek_with(&session_id, |_, value| Arc::clone(value))
@@ -195,16 +216,21 @@ where
                 storage: Arc::clone(&self),
                 key: session_id,
                 value,
+                request_info,
             };
         }
 
-        let entry = self.storage.entry_async(session_id).await.or_default();
-        let value = Arc::clone(entry.get());
+        let value = {
+            let entry = self.storage.entry_async(session_id).await.or_default();
+
+            Arc::clone(entry.get())
+        };
 
         Session {
             storage: Arc::clone(&self),
             key: session_id,
             value,
+            request_info,
         }
     }
 }

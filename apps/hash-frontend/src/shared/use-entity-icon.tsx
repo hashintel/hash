@@ -7,7 +7,7 @@ import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-enti
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box } from "@mui/material";
-import type { ReactNode } from "react";
+import type { ReactElement } from "react";
 import { useMemo } from "react";
 
 import { CanvasIcon } from "./icons/canvas-icon";
@@ -16,9 +16,9 @@ import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
 
 /**
- * @todo H-2014 support URL icons on entity types and remove these overrides
+ * @todo H-1978 set SVG icons on system entity types and remove these overrides
  */
-export const entityTypeIcons: Record<VersionedUrl, ReactNode> = {
+export const entityTypeIcons: Record<VersionedUrl, ReactElement> = {
   [systemEntityTypes.user.entityTypeId]: <UserIcon sx={{ fontSize: 12 }} />,
   [systemEntityTypes.organization.entityTypeId]: (
     <UsersRegularIcon sx={{ fontSize: 14, position: "relative", top: 1 }} />

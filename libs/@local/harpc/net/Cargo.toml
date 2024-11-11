@@ -29,7 +29,7 @@ multistream-select = { workspace = true, public = true }
 tokio = { workspace = true, public = true, features = ["io-util", "macros"] }
 
 # Private workspace dependencies
-codec = { workspace = true, features = ["harpc"] }
+hash-codec = { workspace = true, features = ["harpc"] }
 error-stack = { workspace = true }
 harpc-wire-protocol = { workspace = true }
 harpc-types = { workspace = true }
@@ -37,7 +37,7 @@ harpc-types = { workspace = true }
 # Private third-party dependencies
 bytes = { workspace = true }
 bytes-utils = { workspace = true }
-derive_more = { version = "1.0.0", features = ["display"] }
+derive_more = { workspace = true, features = ["display"] }
 futures = { workspace = true }
 libp2p = { workspace = true, features = ["metrics", "macros", "tcp", "noise", "yamux", "ping", "tokio", "identify"] }
 libp2p-stream = { workspace = true }

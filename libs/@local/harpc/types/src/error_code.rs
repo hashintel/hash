@@ -85,7 +85,21 @@ define_error_code_consts! {
         /// The combination of service and version requirement could not be found on the server.
         ///
         /// The HTTP equivalent is 404 Not Found.
-        NOT_FOUND
+        SUBSYSTEM_NOT_FOUND,
+        /// The service was found, but the procedure was not.
+        ///
+        /// The HTTP equivalent is 404 Not Found.
+        PROCEDURE_NOT_FOUND,
+        /// The resource was not found.
+        ///
+        /// The HTTP equivalent is 404 Not Found.
+        RESOURCE_NOT_FOUND,
+        /// The client is not allowed to call the procedure.
+        ///
+        /// The HTTP equivalent is 403 Forbidden.
+        FORBIDDEN,
+        /// The amount of items in the request stream does not match the expected amount.
+        REQUEST_EXPECTED_ITEM_COUNT_MISMATCH
     ],
     // 0xFF_xx = server errors
     /// Errors that occur in a session and are issued by the server.

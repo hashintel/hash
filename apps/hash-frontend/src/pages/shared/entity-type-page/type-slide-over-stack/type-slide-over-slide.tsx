@@ -233,7 +233,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
                   isLink={
                     !!entityTypesContext.isSpecialEntityTypeLookup?.[
                       remoteEntityType.schema.$id
-                    ]?.isFile
+                    ]?.isLink
                   }
                   ontologyChip={
                     <CopyableOntologyChip entityType={remoteEntityType} />

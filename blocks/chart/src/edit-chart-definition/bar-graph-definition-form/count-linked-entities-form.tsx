@@ -29,6 +29,9 @@ import type {
 } from "../../types/chart-definition";
 import { getEntityTypePropertyTypes } from "../util";
 
+/**
+ * @todo upgrade block to use in-repo @blockprotocol/graph and use titlePlural from schema here
+ */
 export const generateXAxisLabel = (params: { entityType: EntityType }) =>
   `${pluralize(params.entityType.title)}`;
 

@@ -4,32 +4,33 @@ use bytes::Bytes;
 use frunk::{HCons, HNil};
 use futures::FutureExt as _;
 use harpc_codec::error::NetworkError;
+use harpc_system::{RefinedSubsystemIdentifier, SubsystemIdentifier};
 use harpc_tower::{
     body::{Body, controlled::Controlled, full::Full},
     request::Request,
     response::{Parts, Response},
 };
-use harpc_types::{response_kind::ResponseKind, service::ServiceId, version::Version};
+use harpc_types::{response_kind::ResponseKind, version::Version};
 use tower::{Service, ServiceExt as _, util::Oneshot};
 
-use crate::error::NotFound;
+use crate::error::SubsystemNotFound;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Handler<S> {
-    service: ServiceId,
+pub struct Handler<S, I> {
+    subsystem: I,
     version: Version,
 
     inner: S,
 }
 
-impl<S> Handler<S> {
-    pub(crate) const fn new<Svc>(inner: S) -> Self
+impl<Svc> Handler<Svc, !> {
+    pub(crate) const fn new<Sys>(inner: Svc) -> Handler<Svc, Sys::SubsystemId>
     where
-        Svc: harpc_service::Service,
+        Sys: harpc_system::Subsystem,
     {
-        Self {
-            service: Svc::ID,
-            version: Svc::VERSION,
+        Handler {
+            subsystem: Sys::ID,
+            version: Sys::VERSION,
 
             inner,
         }
@@ -68,21 +69,23 @@ impl<S> Handler<S> {
 /// [`Router`]: crate::router::Router
 /// [`Steer`]: https://docs.rs/tower/latest/tower/steer/struct.Steer.html
 pub trait Route<ReqBody> {
+    type SubsystemId;
     type ResponseBody: Body<Control: AsRef<ResponseKind>, Error = !>;
     type Future: Future<Output = Response<Self::ResponseBody>>;
 
     fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
-        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync;
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send;
 }
 
 // The clone requirement might seem odd here, but is the same as in axum's router implementation.
 // see: https://docs.rs/axum/latest/src/axum/routing/route.rs.html#45
-impl<Svc, Tail, ReqBody, ResBody> Route<ReqBody> for HCons<Handler<Svc>, Tail>
+impl<Svc, Tail, ReqBody, ResBody, Id> Route<ReqBody> for HCons<Handler<Svc, Id>, Tail>
 where
     Svc: Service<Request<ReqBody>, Response = Response<ResBody>, Error = !> + Clone,
-    Tail: Route<ReqBody>,
+    Tail: Route<ReqBody, SubsystemId: RefinedSubsystemIdentifier<Id>>,
     ResBody: Body<Control: AsRef<ResponseKind>, Error = !>,
+    Id: SubsystemIdentifier,
 {
     // cannot use `impl Future` here, as it would require additional constraints on the associated
     // type, that are already present on the `call` method.
@@ -97,15 +100,16 @@ where
         >,
     >;
     type ResponseBody = harpc_tower::either::Either<ResBody, Tail::ResponseBody>;
+    type SubsystemId = Id;
 
     fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
-        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send,
     {
         let requirement = self.head.version.into_requirement();
 
-        if self.head.service == request.service().id
-            && requirement.compatible(request.service().version)
+        if self.head.subsystem.into_id() == request.subsystem().id
+            && requirement.compatible(request.subsystem().version)
         {
             let service = self.head.inner.clone();
 
@@ -127,14 +131,14 @@ where
 impl<ReqBody> Route<ReqBody> for HNil {
     type Future = core::future::Ready<Response<Self::ResponseBody>>;
     type ResponseBody = Controlled<ResponseKind, Full<Bytes>>;
+    type SubsystemId = !;
 
     fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
-        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send,
     {
-        let error = NotFound {
-            service: request.service().id,
-            version: request.service().version,
+        let error = SubsystemNotFound {
+            subsystem: request.subsystem(),
         };
 
         let session = request.session();

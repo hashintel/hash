@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type {
   SelectorAutocompleteProps,
   TypeListSelectorDropdownProps,
@@ -20,7 +21,7 @@ import {
   extractDraftIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo, useState } from "react";
 
 import type {
@@ -175,14 +176,32 @@ export const EntitySelector = <Multiple extends boolean>({
       onInputChange={(_, value) => setQuery(value)}
       options={sortedAndFilteredEntities}
       optionToRenderData={(entity) => {
+        /**
+         * @todo H-3363 use the closed schema to get the first icon
+         */
+        const entityTypes = entity.metadata.entityTypeIds
+          .toSorted()
+          .map((entityTypeId) => {
+            const entityType = getEntityTypeById(
+              entitiesSubgraph!,
+              entityTypeId,
+            );
+
+            if (!entityType) {
+              throw new Error(`Cannot find entity type ${entityTypeId}`);
+            }
+
+            return entityType.schema;
+          });
+
         return {
           entityProperties: entity.properties,
           uniqueId: entity.metadata.recordId.entityId,
-          icon: null,
+          icon: entityTypes[0]?.icon ?? null,
           /**
            * @todo update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId
            * */
-          typeIds: entity.metadata.entityTypeIds,
+          types: mustHaveAtLeastOne(entityTypes),
           title: generateEntityLabel(entitiesSubgraph!, entity),
           draft: !!extractDraftIdFromEntityId(
             entity.metadata.recordId.entityId,

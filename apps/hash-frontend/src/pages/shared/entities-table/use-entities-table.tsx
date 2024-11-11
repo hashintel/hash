@@ -21,6 +21,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getEntityTypeById,
@@ -94,10 +95,12 @@ export interface TypeEntitiesRow {
   rowId: string;
   entityId: EntityId;
   entity: Entity;
+  entityIcon?: string;
   entityLabel: string;
   entityTypes: {
     entityTypeId: VersionedUrl;
     icon?: string;
+    isLink: boolean;
     title: string;
   }[];
   archived?: boolean;
@@ -108,10 +111,14 @@ export interface TypeEntitiesRow {
   sourceEntity?: {
     entityId: EntityId;
     label: string;
+    icon?: string;
+    isLink: boolean;
   };
   targetEntity?: {
     entityId: EntityId;
     label: string;
+    icon?: string;
+    isLink: boolean;
   };
   web: string;
   properties?: {
@@ -200,9 +207,11 @@ export const useEntitiesTable = (params: {
           const entityType = getEntityTypeById(subgraph, entityTypeId);
 
           if (!entityType) {
-            throw new Error(
-              `Could not find entityType with id ${entityTypeId} in subgraph`,
+            // eslint-disable-next-line no-console
+            console.warn(
+              `Could not find entityType with id ${entityTypeId}, it may be loading...`,
             );
+            return [entityTypeId, []];
           }
 
           return [
@@ -292,6 +301,8 @@ export const useEntitiesTable = (params: {
               entity.metadata.entityTypeIds.includes(type.$id),
             );
 
+            const entityIcon = currentEntitysTypes[0]?.icon;
+
             const { shortname: entityNamespace } = getOwnerForEntity({
               entityId: entity.metadata.recordId.entityId,
             });
@@ -359,9 +370,18 @@ export const useEntitiesTable = (params: {
                   ? generateLinkEntityLabel(subgraph, source)
                   : generateEntityLabel(subgraph, source);
 
+              /**
+               * @todo H-3363 use closed schema to get entity's icon
+               */
+              const sourceEntityType = source
+                ? getEntityTypeById(subgraph, source.metadata.entityTypeIds[0])
+                : undefined;
+
               sourceEntity = {
                 entityId: entity.linkData.leftEntityId,
                 label: sourceEntityLabel,
+                icon: sourceEntityType?.schema.icon,
+                isLink: !!source?.linkData,
               };
 
               const targetEntityLabel = !target
@@ -370,9 +390,18 @@ export const useEntitiesTable = (params: {
                   ? generateLinkEntityLabel(subgraph, target)
                   : generateEntityLabel(subgraph, target);
 
+              /**
+               * @todo H-3363 use closed schema to get entity's icon
+               */
+              const targetEntityType = target
+                ? getEntityTypeById(subgraph, target.metadata.entityTypeIds[0])
+                : undefined;
+
               targetEntity = {
                 entityId: entity.linkData.rightEntityId,
                 label: targetEntityLabel,
+                icon: targetEntityType?.schema.icon,
+                isLink: !!target?.linkData,
               };
             }
 
@@ -381,7 +410,15 @@ export const useEntitiesTable = (params: {
               entityId,
               entity,
               entityLabel,
+              entityIcon,
               entityTypes: currentEntitysTypes.map((entityType) => {
+                /**
+                 * @todo H-3363 use closed schema to take account of indirectly inherited link entity types
+                 */
+                const isLink = !!entityType.allOf?.some(
+                  (allOf) => allOf.$ref === linkEntityTypeUrl,
+                );
+
                 let entityTypeLabel = entityType.title;
                 if (
                   entityTypesWithMultipleVersionsPresent.includes(
@@ -394,6 +431,8 @@ export const useEntitiesTable = (params: {
                 return {
                   title: entityTypeLabel,
                   entityTypeId: entityType.$id,
+                  icon: entityType.icon,
+                  isLink,
                 };
               }),
               web: `@${entityNamespace}`,

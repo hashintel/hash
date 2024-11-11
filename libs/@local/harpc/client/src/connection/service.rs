@@ -51,7 +51,7 @@ where
         let connection = Arc::clone(&self.inner);
 
         async move {
-            let service = req.service();
+            let service = req.subsystem();
             let procedure = req.procedure();
             let session = req.session();
 

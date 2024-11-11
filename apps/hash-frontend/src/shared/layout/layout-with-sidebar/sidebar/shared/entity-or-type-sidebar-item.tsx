@@ -1,9 +1,6 @@
 import type { EntityType } from "@blockprotocol/type-system";
-import {
-  EntityTypeIcon,
-  IconButton,
-  LinkTypeIcon,
-} from "@hashintel/design-system";
+import { EntityOrTypeIcon, IconButton } from "@hashintel/design-system";
+import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { BoxProps } from "@mui/material";
 import { Box, styled, Tooltip, Typography } from "@mui/material";
@@ -57,7 +54,15 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
   href?: string;
   variant: "entity" | "entity-type";
 }> = ({ entityType, href, variant }) => {
-  const { title, $id: entityTypeId, icon } = entityType;
+  const {
+    title,
+    titlePlural: maybeTitlePlural,
+    $id: entityTypeId,
+    icon,
+  } = entityType;
+
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+  const titlePlural = maybeTitlePlural || pluralize(title);
 
   const entityMenuTriggerRef = useRef(null);
 
@@ -91,7 +96,8 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
         <Typography
           variant="smallTextLabels"
           sx={{
-            display: "block",
+            alignItems: "center",
+            display: "flex",
             color: ({ palette }) => palette.gray[70],
             fontWeight: 500,
           }}
@@ -105,26 +111,15 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
               justifyContent: "center",
             }}
           >
-            {icon ??
-              (isLink ? (
-                <LinkTypeIcon
-                  sx={({ palette }) => ({
-                    position: "relative",
-                    top: 2,
-                    fontSize: 16,
-                    stroke: palette.gray[50],
-                  })}
-                />
-              ) : (
-                <EntityTypeIcon
-                  sx={({ palette }) => ({
-                    position: "relative",
-                    top: 2,
-                    fontSize: 16,
-                    fill: palette.gray[50],
-                  })}
-                />
-              ))}
+            <EntityOrTypeIcon
+              entity={null}
+              icon={icon}
+              isLink={!!isLink}
+              fontSize={16}
+              fill={({ palette }) =>
+                variant === "entity-type" ? palette.blue[70] : palette.gray[50]
+              }
+            />
           </Box>
           {title}
         </Typography>
@@ -153,6 +148,7 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
           entityTypeId={entityTypeId}
           popupState={popupState}
           title={title}
+          titlePlural={titlePlural}
           entityTypeIcon={icon}
           isLinkType={isLink}
         />
@@ -161,6 +157,7 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
           entityTypeId={entityTypeId}
           popupState={popupState}
           title={title}
+          titlePlural={titlePlural}
           url={baseUrl}
         />
       )}

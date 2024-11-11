@@ -11,7 +11,7 @@ use bytes::Bytes;
 use futures::{Sink, Stream, StreamExt as _, stream::FusedStream};
 use harpc_codec::error::NetworkError;
 use harpc_types::{
-    procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
+    procedure::ProcedureDescriptor, response_kind::ResponseKind, subsystem::SubsystemDescriptor,
 };
 use harpc_wire_protocol::{
     flags::BitFlagsOp as _,
@@ -179,7 +179,7 @@ pub struct TransactionContext {
     peer: Box<PeerId>,
     session: SessionId,
 
-    service: ServiceDescriptor,
+    subsystem: SubsystemDescriptor,
     procedure: ProcedureDescriptor,
 }
 
@@ -200,8 +200,8 @@ impl TransactionContext {
     }
 
     #[must_use]
-    pub const fn service(&self) -> ServiceDescriptor {
-        self.service
+    pub const fn subsystem(&self) -> SubsystemDescriptor {
+        self.subsystem
     }
 
     #[must_use]
@@ -248,7 +248,7 @@ impl Transaction {
                 id: permit.id(),
                 peer: Box::new(peer),
                 session,
-                service: body.service,
+                subsystem: body.subsystem,
                 procedure: body.procedure,
             },
 

@@ -11,7 +11,7 @@ use error_stack::{Report, ResultExt as _};
 use futures::{SinkExt as _, Stream, StreamExt as _};
 use harpc_types::{
     procedure::{ProcedureDescriptor, ProcedureId},
-    service::{ServiceDescriptor, ServiceId},
+    subsystem::{SubsystemDescriptor, SubsystemId},
     version::Version,
 };
 use harpc_wire_protocol::{
@@ -65,8 +65,8 @@ pub(crate) fn make_request_begin(
     Request {
         header: make_request_header(flags),
         body: RequestBody::Begin(RequestBegin {
-            service: ServiceDescriptor {
-                id: ServiceId::new(0x01),
+            subsystem: SubsystemDescriptor {
+                id: SubsystemId::new(0x01),
                 version: Version {
                     major: 0x00,
                     minor: 0x01,
@@ -175,11 +175,11 @@ impl EchoStatistics {
 }
 
 #[derive(Debug)]
-struct EchoService {
+struct EchoSystem {
     statistics: EchoStatistics,
 }
 
-impl EchoService {
+impl EchoSystem {
     fn new() -> Self {
         Self {
             statistics: EchoStatistics {
@@ -294,10 +294,10 @@ async fn single_session() {
     let (server, _server_guard) = session(SessionConfig::default(), address.clone()).await;
     let (client, _client_guard) = layer();
 
-    let service = EchoService::new();
-    let statistics = service.statistics();
+    let system = EchoSystem::new();
+    let statistics = system.statistics();
 
-    service.spawn(server);
+    system.spawn(server);
 
     let OutgoingConnection {
         mut sink, stream, ..
@@ -343,10 +343,10 @@ async fn client_disconnect() {
 
     let (server, _server_guard) = session(SessionConfig::default(), address.clone()).await;
 
-    let service = EchoService::new();
-    let statistics = service.statistics();
+    let system = EchoSystem::new();
+    let statistics = system.statistics();
 
-    service.spawn(server);
+    system.spawn(server);
 
     let (client, _client_guard) = layer();
 
@@ -414,7 +414,7 @@ async fn server_disconnect_by_dropping_listen_stream() {
     .await;
     let (client, _client_guard) = layer();
 
-    let service = EchoService::new();
+    let system = EchoSystem::new();
 
     // we first start a connection, and accept that transaction with an echo service
     let OutgoingConnection {
@@ -432,7 +432,7 @@ async fn server_disconnect_by_dropping_listen_stream() {
         .expect("should be able to accept transaction");
 
     let (_, txn_sink, txn_stream) = transaction.into_parts();
-    service.accept(txn_sink, txn_stream);
+    system.accept(txn_sink, txn_stream);
 
     // we now shutdown the server
     drop(server);
@@ -473,9 +473,9 @@ async fn swarm_shutdown_client() {
     .await;
     let (client, _client_guard) = layer();
 
-    let service = EchoService::new();
+    let system = EchoSystem::new();
 
-    service.spawn(server);
+    system.spawn(server);
 
     let OutgoingConnection {
         mut sink,
@@ -595,8 +595,8 @@ async fn too_many_connections() {
 
     let (client, _client_guard) = layer();
 
-    let service = EchoService::new();
-    service.spawn(server);
+    let system = EchoSystem::new();
+    system.spawn(server);
 
     let OutgoingConnection {
         mut sink,
@@ -643,8 +643,8 @@ async fn connection_reclaim() {
 
     let (client, _client_guard) = layer();
 
-    let service = EchoService::new();
-    service.spawn(server);
+    let system = EchoSystem::new();
+    system.spawn(server);
 
     let OutgoingConnection {
         mut sink, stream, ..

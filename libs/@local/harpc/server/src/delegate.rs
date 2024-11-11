@@ -4,34 +4,34 @@ use core::{
     task::{Context, Poll},
 };
 
-use harpc_service::delegate::ServiceDelegate;
+use harpc_system::delegate::SubsystemDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use tower::Service;
 
-use crate::session::{Session, SessionStorage};
+use crate::session::{RequestInfo, Session, SessionStorage};
 
-/// Bridge between `harpc-service` and `tower`.
+/// Bridge between `harpc-system` and `tower`.
 ///
-/// This is a very thin layer between the `harpc-service` and `tower` services. It is responsible
-/// for taking the incoming request, selecting the appropriate session and codec, and then
-/// delegating the request to the inner service (which is cloned).
+/// This is a very thin layer between the `harpc-system` subsystem and `tower` service. It is
+/// responsible for taking the incoming request, selecting the appropriate session and codec, and
+/// then delegating the request to the inner subsystem (which is cloned).
 ///
-/// A concious decision was made not to have `ServiceDelegate` be a `Service`, as it allows for
+/// A conscious decision was made not to have `ServiceDelegate` be a `Service`, as it allows for
 /// greater ergonomics, and allows server implementation that are not based on tower in the future.
-/// For example, because of the inherit `oneshot` nature of our tower implementation, having `&mut
-/// self` as a parameter would be more confusing than helpful.
+/// For example, because of the inherit `oneshot` nature of our tower implementation, having
+/// `&mut self` as a parameter would be more confusing than helpful.
 ///
-/// A service delegate has additional information that isn't useful in the context of a tower
-/// service, such as the underlying `harpc-service` that is being delegated to.
+/// A subsystem delegate has additional information that isn't useful in the context of a tower
+/// service, such as the underlying `harpc-system` that is being delegated to.
 #[derive_where::derive_where(Clone; D: Clone, C: Clone)]
 #[derive_where(Debug; D: Debug, S: Debug + 'static, C: Debug)]
-pub struct ServiceDelegateHandler<D, S, C> {
+pub struct SubsystemDelegateService<D, S, C> {
     delegate: D,
     session: Arc<SessionStorage<S>>,
     codec: C,
 }
 
-impl<D, S, C> ServiceDelegateHandler<D, S, C> {
+impl<D, S, C> SubsystemDelegateService<D, S, C> {
     pub const fn new(delegate: D, session: Arc<SessionStorage<S>>, codec: C) -> Self {
         Self {
             delegate,
@@ -41,12 +41,12 @@ impl<D, S, C> ServiceDelegateHandler<D, S, C> {
     }
 }
 
-impl<D, S, C, ReqBody> Service<Request<ReqBody>> for ServiceDelegateHandler<D, S, C>
+impl<D, S, C, ReqBody> Service<Request<ReqBody>> for SubsystemDelegateService<D, S, C>
 where
-    D: ServiceDelegate<Session<S>, C> + Clone + Send,
+    D: SubsystemDelegate<C, ExecutionScope = Session<S>> + Clone + Send,
     S: Default + Clone + Send + Sync + 'static,
     C: Clone + Send + 'static,
-    ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
+    ReqBody: Body<Control = !, Error: Send + Sync> + Send,
 {
     type Error = D::Error;
     type Response = Response<D::Body<ReqBody>>;
@@ -67,7 +67,12 @@ where
 
         async move {
             let storage = session;
-            let session = storage.get_or_insert(req.session()).await;
+            let session = storage
+                .get_or_insert(req.session(), RequestInfo {
+                    subsystem: req.subsystem(),
+                    procedure: req.procedure(),
+                })
+                .await;
 
             delegate.call(req, session, codec).await
         }

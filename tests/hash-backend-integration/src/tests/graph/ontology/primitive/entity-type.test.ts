@@ -8,6 +8,7 @@ import {
   getClosedEntityTypes,
   getClosedMultiEntityType,
   getEntityTypeById,
+  getEntityTypeSubgraph,
   getEntityTypeSubgraphById,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
@@ -38,6 +39,7 @@ import {
   isOwnedOntologyElementMetadata,
   linkEntityTypeUrl,
 } from "@local/hash-subgraph";
+import { getDataTypes, getPropertyTypes } from "@local/hash-subgraph/stdlib";
 import { assert, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -369,18 +371,16 @@ describe("Entity type CRU", () => {
       },
     )) as [ClosedEntityTypeWithMetadata, ...ClosedEntityTypeWithMetadata[]];
 
-    const closedMultiEntityType = await getClosedMultiEntityType(
-      graphContext,
-      authentication,
-      {
+    const { entityType: closedMultiEntityType, definitions } =
+      await getClosedMultiEntityType(graphContext, authentication, {
         entityTypeIds: [
           systemEntityTypes.user.entityTypeId,
           systemEntityTypes.actor.entityTypeId,
         ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
-      },
-    );
+        includeResolved: true,
+      });
 
     // It's not specified how `required` is ordered, so we need to sort it before comparing
     if (closedMultiEntityType.required) {
@@ -423,6 +423,40 @@ describe("Entity type CRU", () => {
         {} as ClosedMultiEntityType["links"],
       ),
     } satisfies ClosedMultiEntityType);
+
+    const subgraph = await getEntityTypeSubgraph(graphContext, authentication, {
+      filter: {
+        any: [
+          {
+            equal: [
+              { path: ["versionedUrl"] },
+              { parameter: systemEntityTypes.user.entityTypeId },
+            ],
+          },
+          {
+            equal: [
+              { path: ["versionedUrl"] },
+              { parameter: systemEntityTypes.actor.entityTypeId },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsPropertiesOn: { outgoing: 255 },
+        constrainsValuesOn: { outgoing: 255 },
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+    });
+
+    for (const propertyType of getPropertyTypes(subgraph)) {
+      expect(propertyType.schema).toEqual(
+        definitions?.propertyTypes[propertyType.schema.$id],
+      );
+    }
+    for (const dataType of getDataTypes(subgraph)) {
+      expect(definitions?.dataTypes[dataType.schema.$id]).toBeDefined();
+    }
   });
 
   const updatedTitle = "New text!";

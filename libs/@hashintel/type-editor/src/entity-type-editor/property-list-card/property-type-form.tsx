@@ -25,7 +25,7 @@ export const PropertyTypeForm = ({
     });
 
   return (
-    <TypeForm validateTitle={validateTitle} {...props}>
+    <TypeForm kind="property" validateTitle={validateTitle} {...props}>
       <ExpectedValueSelector propertyTypeBaseUrl={baseUrl} />
     </TypeForm>
   );
