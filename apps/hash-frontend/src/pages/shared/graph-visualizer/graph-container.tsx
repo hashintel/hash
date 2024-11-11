@@ -128,8 +128,6 @@ export const GraphContainer = memo(
         <Box
           ref={containerRef}
           sx={{
-            border: `1px solid ${palette.gray[30]}`,
-            borderTopWidth: 0,
             height: "100%",
             ...borderRadii,
           }}

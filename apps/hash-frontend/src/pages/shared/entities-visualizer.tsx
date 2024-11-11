@@ -10,13 +10,14 @@ import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/s
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, useTheme } from "@mui/material";
+import { Box, Stack, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactElement, RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import { tableContentSx } from "../../shared/table-content";
 import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
@@ -110,7 +111,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   );
 
   const loadingComponent = customLoadingComponent ?? (
-    <LoadingSpinner size={42} color={theme.palette.blue[30]} />
+    <LoadingSpinner size={42} color={theme.palette.blue[60]} />
   );
 
   const [selectedEntityType, setSelectedEntityType] = useState<{
@@ -393,8 +394,22 @@ export const EntitiesVisualizer: FunctionComponent<{
           }
           onBulkActionCompleted={() => null}
         />
-        {!subgraph ? null : view === "Graph" ? (
-          <Box height={maximumTableHeight}>
+        {!subgraph ? (
+          <Stack
+            alignItems="center"
+            justifyContent="center"
+            sx={[
+              {
+                height: maximumTableHeight,
+                width: "100%",
+              },
+              tableContentSx,
+            ]}
+          >
+            <Box>{loadingComponent}</Box>
+          </Stack>
+        ) : view === "Graph" ? (
+          <Box height={maximumTableHeight} sx={tableContentSx}>
             <EntityGraphVisualizer
               defaultConfig={defaultGraphConfig}
               defaultFilters={defaultGraphFilters}

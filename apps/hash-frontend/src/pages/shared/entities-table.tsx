@@ -51,6 +51,7 @@ import type { TypeEntitiesRow } from "./entities-table/use-entities-table/types"
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { UrlCellProps } from "./url-cell";
 import { createRenderUrlCell } from "./url-cell";
+import { tableContentSx } from "../../shared/table-content";
 
 const noneString = "none";
 
@@ -793,7 +794,13 @@ export const EntitiesTable: FunctionComponent<{
       <Stack
         alignItems="center"
         justifyContent="center"
-        sx={{ height: maximumTableHeight, width: "100%" }}
+        sx={[
+          {
+            height: maximumTableHeight,
+            width: "100%",
+          },
+          tableContentSx,
+        ]}
       >
         <Box>{loadingComponent}</Box>
       </Stack>
