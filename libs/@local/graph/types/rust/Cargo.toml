@@ -27,11 +27,11 @@ postgres-types = { workspace = true, features = ["derive", "with-uuid-1", "with-
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-time = { workspace = true, default-features = false, features = ["serde", "parsing", "formatting", "macros"] }
+time = { workspace = true, features = ["serde", "parsing", "formatting", "macros"] }
 trait-variant = { workspace = true }
 url = { workspace = true, features = ["serde"] }
 utoipa = { workspace = true, optional = true }
-uuid = { workspace = true, default-features = false, features = ["serde"] }
+uuid = { workspace = true, features = ["serde"] }
 
 [dev-dependencies]
 hash-graph-test-data = { workspace = true }

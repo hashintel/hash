@@ -13,7 +13,7 @@ authors.workspace = true
 
 # Public third-party dependencies
 bytes = { workspace = true, public = true, optional = true }
-postgres-types = { workspace = true, public = true, features = ["with-time-0_3"], optional = true }
+postgres-types = { workspace = true, public = true, optional = true, features = ["with-time-0_3"] }
 time = { workspace = true, public = true, features = ["serde", "parsing", "formatting", "macros"] }
 utoipa = { workspace = true, public = true, optional = true }
 

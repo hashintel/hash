@@ -23,7 +23,7 @@ serde_json = { workspace = true }
 temporal-io-client = { workspace = true }
 temporal-io-sdk-core-protos = { workspace = true }
 thiserror = { workspace = true }
-url = { workspace = true, default-features = false }
+url = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 
 [lints]

@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "harpc-wire-protocol"
+name              = "harpc-wire-protocol"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -14,7 +14,7 @@ error-stack = { workspace = true, public = true }
 harpc-types = { workspace = true, public = true }
 
 # Public third-party dependencies
-bytes = { workspace = true, public = true }
+bytes      = { workspace = true, public = true }
 enumflags2 = { workspace = true, public = true }
 
 # Private workspace dependencies
@@ -23,11 +23,11 @@ enumflags2 = { workspace = true, public = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-proptest = { workspace = true }
-test-strategy = { workspace = true }
-harpc-types = { workspace = true, features = ["proptest"] }
-expect-test = { workspace = true }
+expect-test     = { workspace = true }
+harpc-types     = { workspace = true, features = ["proptest"] }
+proptest        = { workspace = true }
 similar-asserts = { workspace = true }
+test-strategy   = { workspace = true }
 
 [features]
 test-utils = []

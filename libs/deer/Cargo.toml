@@ -1,17 +1,17 @@
 [package]
-name = "deer"
-version = "0.0.0-reserved"
-authors = { workspace = true }
-edition = "2021"
-rust-version = "1.65"
-license = "MIT OR Apache-2.0"
-description = "A backend-agnostic fail-slow deserialization framework"
+name          = "deer"
+version       = "0.0.0-reserved"
+authors       = { workspace = true }
+edition       = "2021"
+rust-version  = "1.65"
+license       = "MIT OR Apache-2.0"
+description   = "A backend-agnostic fail-slow deserialization framework"
 documentation = "https://docs.rs/deer"
-repository = "https://github.com/hashintel/hash/tree/main/libs/deer"
-keywords = ["deserialize", "serde", "no_std"]
-categories = ["no-std", "rust-patterns"]
-exclude = ["package.json"]
-publish = false
+repository    = "https://github.com/hashintel/hash/tree/main/libs/deer"
+keywords      = ["deserialize", "serde", "no_std"]
+categories    = ["no-std", "rust-patterns"]
+exclude       = ["package.json"]
+publish       = false
 
 [dependencies]
 # Public workspace dependencies
@@ -19,7 +19,7 @@ error-stack = { workspace = true, public = true, default-features = false, featu
 
 # Public third-party dependencies
 erased-serde = { workspace = true, public = true, features = ['alloc'] }
-serde = { workspace = true, public = true, features = ['alloc', 'derive'] }
+serde        = { workspace = true, public = true, features = ['alloc', 'derive'] }
 
 # Private workspace dependencies
 
@@ -27,20 +27,20 @@ serde = { workspace = true, public = true, features = ['alloc', 'derive'] }
 num-traits = { workspace = true }
 
 [dev-dependencies]
-serde_json = { workspace = true, features = ['arbitrary_precision'] }
+approx          = { workspace = true }
+deer-desert     = { path = "./desert", features = ['pretty'] }
+paste           = { workspace = true }
+proptest        = { workspace = true, features = ["std"] }
+seq-macro       = { workspace = true }
+serde_json      = { workspace = true, features = ['arbitrary_precision'] }
 similar-asserts = { workspace = true, features = ["serde"] }
-deer-desert = { path = "./desert", features = ['pretty'] }
-proptest = { workspace = true, features = ["std"] }
-paste = { workspace = true }
-approx = { workspace = true }
-seq-macro = { workspace = true }
 
 [build-dependencies]
 rustc_version = { workspace = true }
 
 [features]
-default = ['std']
-std = ['serde/std', 'error-stack/std']
+default             = ['std']
+std                 = ['serde/std', 'error-stack/std']
 arbitrary-precision = []
 
 [lints]

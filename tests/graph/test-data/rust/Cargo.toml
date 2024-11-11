@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "hash-graph-test-data"
+name              = "hash-graph-test-data"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

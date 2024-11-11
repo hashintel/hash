@@ -34,7 +34,7 @@ type-system = { workspace = true, features = ["postgres"] }
 # Private third-party dependencies
 async-scoped = { workspace = true, features = ["use-tokio"] }
 bytes = { workspace = true }
-clap = { workspace = true, features = ["derive", "env"], optional = true }
+clap = { workspace = true, optional = true, features = ["derive", "env"] }
 derive-where = { workspace = true }
 dotenv-flow = { workspace = true }
 futures = { workspace = true }
@@ -46,7 +46,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 time = { workspace = true }
 tracing = { workspace = true }
-utoipa = { workspace = true, features = ["uuid"], optional = true }
+utoipa = { workspace = true, optional = true, features = ["uuid"] }
 uuid = { workspace = true, features = ["v4", "serde"] }
 
 [dev-dependencies]

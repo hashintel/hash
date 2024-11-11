@@ -23,7 +23,7 @@ text-size = { workspace = true, public = true }
 
 # Private third-party dependencies
 anstyle-yansi = { workspace = true }
-serde_with = { workspace = true, features = ["std", "macros"], optional = true }
+serde_with = { workspace = true, optional = true, features = ["std", "macros"] }
 thiserror = { workspace = true }
 
 [dev-dependencies]

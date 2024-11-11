@@ -2,12 +2,12 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "hash-graph-type-fetcher"
+description = "RPC service definition to fetch external BP types"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
 authors.workspace = true
-description = "RPC service definition to fetch external BP types"
 
 [dependencies]
 # Public workspace dependencies

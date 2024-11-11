@@ -21,7 +21,7 @@ error-stack = { workspace = true, default-features = false }
 bitvec = { workspace = true, features = ["alloc", "atomic"] }
 num-traits = { workspace = true }
 serde = { workspace = true, features = ['alloc'] }
-similar-asserts = { workspace = true, features = ["serde"], optional = true }
+similar-asserts = { workspace = true, optional = true, features = ["serde"] }
 
 [features]
 std = ['deer/std']

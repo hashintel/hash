@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "hash-graph-authorization"
+name              = "hash-graph-authorization"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -14,24 +14,24 @@ hash-graph-types = { workspace = true, public = true }
 
 # Public third-party dependencies
 futures-core = { workspace = true, public = true }
+reqwest      = { workspace = true, public = true, features = ["json", "stream"] }
 
 # Private workspace dependencies
 error-stack = { workspace = true, features = ["unstable"] }
-hash-codec = { workspace = true }
+hash-codec  = { workspace = true }
 type-system = { workspace = true }
 
 # Private third-party dependencies
 derive-where = { workspace = true }
-futures = { workspace = true, default-features = false }
-reqwest = { workspace = true, public = true, features = ["json", "stream"] }
-serde = { workspace = true, features = ["derive", "unstable"] }
-serde_json = { workspace = true }
-serde_plain = { workspace = true }
-tokio = { workspace = true }
-tokio-util = { workspace = true, features = ["io"] }
-tracing = { workspace = true, features = ["attributes"] }
-utoipa = { workspace = true, optional = true }
-uuid = { workspace = true, default-features = false }
+futures      = { workspace = true }
+serde        = { workspace = true, features = ["derive", "unstable"] }
+serde_json   = { workspace = true }
+serde_plain  = { workspace = true }
+tokio        = { workspace = true }
+tokio-util   = { workspace = true, features = ["io"] }
+tracing      = { workspace = true, features = ["attributes"] }
+utoipa       = { workspace = true, optional = true }
+uuid         = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

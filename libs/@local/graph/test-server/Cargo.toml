@@ -2,12 +2,12 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "hash-graph-test-server"
+description = "HASH Graph test server"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
 authors.workspace = true
-description = "HASH Graph test server"
 
 [dependencies]
 # Public workspace dependencies

@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "harpc-system"
+name              = "harpc-system"
 authors.workspace = true
 version.workspace = true
 edition.workspace = true
