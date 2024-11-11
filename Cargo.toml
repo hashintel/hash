@@ -267,12 +267,19 @@ restriction = { level = "warn", priority = -1 }
 # Should be enabled:
 absolute_paths = "allow"
 allow_attributes_without_reason = "allow"
+# With the current configuration option it's pretty much unusable. We'd like to
+# use it for grouping in particular, but this comes with sorting by name as well.
+# Needs to be further tested in a smaller scope.
+arbitrary_source_item_ordering = "allow"
 arithmetic_side_effects = "allow"
 as_conversions = "allow"
 else_if_without_else = "allow"
 enum_variant_names = "allow"
 expect_used = "allow"
 indexing_slicing = "allow"
+# It's not possible to include `README.md` in the crate-level documentation
+# as this would require to allow the lint for the whole crate
+large_include_file = "allow"
 let_underscore_must_use = "allow"
 missing_assert_message = "allow"
 multiple_inherent_impl = "allow"
