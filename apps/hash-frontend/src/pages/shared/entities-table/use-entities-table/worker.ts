@@ -12,7 +12,10 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import {
+  extractOwnedByIdFromEntityId,
+  linkEntityTypeUrl,
+} from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getEntityTypeById,
@@ -91,7 +94,7 @@ const generateTableData = (
   requestId: string,
 ): EntitiesTableData | "cancelled" => {
   const {
-    actors,
+    actorsByAccountId,
     entities,
     entitiesHaveSameType,
     entityTypesWithMultipleVersionsPresent,
@@ -102,6 +105,7 @@ const generateTableData = (
     hidePageArchivedColumn,
     hidePropertiesColumns,
     isViewingOnlyPages,
+    webNameByOwnedById,
   } = params;
 
   if (activeRequestId !== requestId) {
@@ -197,11 +201,10 @@ const generateTableData = (
 
     const entityIcon = currentEntitysTypes[0]?.icon;
 
-    // const { shortname: entityNamespace } = getOwnerForEntity({
-    //   entityId: entity.metadata.recordId.entityId,
-    // });
-
-    const entityNamespace = "dummy";
+    const entityNamespace =
+      webNameByOwnedById[
+        extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+      ] ?? "loading";
 
     const entityId = entity.metadata.recordId.entityId;
 
@@ -217,10 +220,8 @@ const generateTableData = (
       "yyyy-MM-dd HH:mm",
     );
 
-    const lastEditedBy = actors.find(
-      ({ accountId }) =>
-        accountId === entity.metadata.provenance.edition.createdById,
-    );
+    const lastEditedBy =
+      actorsByAccountId[entity.metadata.provenance.edition.createdById];
 
     if (lastEditedBy) {
       lastEditedBySet.add({
@@ -234,9 +235,7 @@ const generateTableData = (
       "yyyy-MM-dd HH:mm",
     );
 
-    const createdBy = actors.find(
-      ({ accountId }) => accountId === entity.metadata.provenance.createdById,
-    );
+    const createdBy = actorsByAccountId[entity.metadata.provenance.createdById];
 
     if (createdBy) {
       createdBySet.add(createdBy);
@@ -351,11 +350,9 @@ const generateTableData = (
         ? simplifyProperties(entity.properties as PageProperties).archived
         : undefined,
       lastEdited,
-      lastEditedBy,
+      lastEditedBy: lastEditedBy ?? "loading",
       created,
-      createdBy,
-      /** @todo: uncomment this when we have additional types for entities */
-      // additionalTypes: "",
+      createdBy: createdBy ?? "loading",
       sourceEntity,
       targetEntity,
       applicableProperties,

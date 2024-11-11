@@ -6,8 +6,10 @@ import type {
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getPropertyTypesForEntityType,
@@ -17,6 +19,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { gridHeaderBaseFont } from "../../../components/grid/grid";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
+import type { MinimalActor } from "../../../shared/use-actors";
 import { useActors } from "../../../shared/use-actors";
 import type {
   EntitiesTableData,
@@ -81,10 +84,7 @@ export const useEntitiesTable = (params: {
     };
   }, []);
 
-  /**
-   * *********** @TODO RESTORE THIS *************
-   */
-  // const getOwnerForEntity = useGetOwnerForEntity();
+  const getOwnerForEntity = useGetOwnerForEntity();
 
   const {
     editorActorIds,
@@ -168,6 +168,38 @@ export const useEntitiesTable = (params: {
     accountIds: editorActorIds,
   });
 
+  const actorsByAccountId: Record<AccountId, MinimalActor | null> =
+    useMemo(() => {
+      if (!actors) {
+        return {};
+      }
+
+      const actorsByAccount: Record<AccountId, MinimalActor | null> = {};
+
+      for (const actor of actors) {
+        actorsByAccount[actor.accountId] = actor;
+      }
+
+      return actorsByAccount;
+    }, [actors]);
+
+  const webNameByOwnedById = useMemo(() => {
+    if (!entities) {
+      return {};
+    }
+
+    const webNameByOwner: Record<OwnedById, string> = {};
+
+    for (const entity of entities) {
+      const owner = getOwnerForEntity(entity);
+      webNameByOwner[
+        extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+      ] = owner.shortname;
+    }
+
+    return webNameByOwner;
+  }, [entities, getOwnerForEntity]);
+
   const [tableData, setTableData] = useState<EntitiesTableData | null>(null);
   const [waitingTableData, setWaitingTableData] = useState(true);
 
@@ -215,7 +247,7 @@ export const useEntitiesTable = (params: {
       worker.postMessage({
         type: "generateEntitiesTableData",
         params: {
-          actors: actors ?? [],
+          actorsByAccountId,
           entities,
           entitiesHaveSameType,
           entityTypesWithMultipleVersionsPresent,
@@ -228,11 +260,12 @@ export const useEntitiesTable = (params: {
           hidePropertiesColumns,
           isViewingOnlyPages,
           usedPropertyTypesByEntityTypeId,
+          webNameByOwnedById,
         },
       } satisfies GenerateEntitiesTableDataRequestMessage);
     }
   }, [
-    actors,
+    actorsByAccountId,
     actorsLoading,
     entities,
     entityTypes,
@@ -246,6 +279,7 @@ export const useEntitiesTable = (params: {
     propertyTypes,
     subgraph,
     usedPropertyTypesByEntityTypeId,
+    webNameByOwnedById,
     worker,
   ]);
 

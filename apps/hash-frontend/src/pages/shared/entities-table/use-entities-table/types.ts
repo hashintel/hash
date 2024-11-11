@@ -11,6 +11,7 @@ import type {
   BaseUrl,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { SerializedSubgraph } from "@local/hash-subgraph";
 
 import type { MinimalActor } from "../../../../shared/use-actors";
@@ -68,7 +69,7 @@ export type PropertiesByEntityTypeId = {
 };
 
 export type GenerateEntitiesTableDataParams = {
-  actors: MinimalActor[];
+  actorsByAccountId: Record<AccountId, MinimalActor | null>;
   entities: Entity[];
   entitiesHaveSameType: boolean;
   entityTypesWithMultipleVersionsPresent: VersionedUrl[];
@@ -81,6 +82,7 @@ export type GenerateEntitiesTableDataParams = {
   hidePropertiesColumns: boolean;
   isViewingOnlyPages?: boolean;
   usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
+  webNameByOwnedById: Record<OwnedById, string>;
 };
 
 export type ActorTableData = { accountId: AccountId; displayName?: string };
