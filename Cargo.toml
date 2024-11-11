@@ -117,7 +117,7 @@ libp2p-identity = { version = "=0.2.9", default-features = false }
 libp2p-ping = { version = "=0.45.0", default-features = false }
 libp2p-swarm = { version = "=0.45.1", default-features = false }
 libp2p-yamux = { version = "=0.46.0", default-features = false }
-pdfium-render = { version = "0.8.25" }
+pdfium-render = { version = "0.8.26" }
 prometheus-client = { version = "=0.22.3", default-features = false }
 postgres-types = { version = "=0.2.8", default-features = false }
 reqwest = { version = "=0.12.9", default-features = false, features = ["rustls-tls"] }
