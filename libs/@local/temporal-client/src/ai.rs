@@ -146,7 +146,7 @@ impl TemporalClient {
         &self,
         actor_id: AccountId,
         entities: &[Entity],
-    ) -> Result<String, Report<WorkflowError>> {
+    ) -> Result<Vec<String>, Report<WorkflowError>> {
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase")]
         struct UpdateEntityEmbeddingsParams<'a> {
@@ -154,10 +154,21 @@ impl TemporalClient {
             entities: &'a [Entity],
         }
 
-        self.start_ai_workflow("updateEntityEmbeddings", &UpdateEntityEmbeddingsParams {
-            authentication: AuthenticationContext { actor_id },
-            entities,
-        })
-        .await
+        // There is an upper limit on how many bytes can be sent in a single workflow invocation so
+        // we need to split the entities into chunks.
+        const CHUNK_SIZE: usize = 100;
+
+        let mut workflow_ids = Vec::with_capacity(entities.len() / CHUNK_SIZE + 1);
+        for partial_entities in entities.chunks(CHUNK_SIZE) {
+            workflow_ids.push(
+                self.start_ai_workflow("updateEntityEmbeddings", &UpdateEntityEmbeddingsParams {
+                    authentication: AuthenticationContext { actor_id },
+                    entities: partial_entities,
+                })
+                .await?,
+            );
+        }
+
+        Ok(workflow_ids)
     }
 }
