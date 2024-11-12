@@ -158,6 +158,11 @@ impl TemporalClient {
         // we need to split the entities into chunks.
         const CHUNK_SIZE: usize = 100;
 
+        #[expect(
+            clippy::integer_division,
+            clippy::integer_division_remainder_used,
+            reason = "The devision is only used to calculate vector capacity and is rounded up."
+        )]
         let mut workflow_ids = Vec::with_capacity(entities.len() / CHUNK_SIZE + 1);
         for partial_entities in entities.chunks(CHUNK_SIZE) {
             workflow_ids.push(

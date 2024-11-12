@@ -490,14 +490,13 @@ impl ZanzibarBackend for SpiceDbOpenApi {
 
             if relationships.peek().is_none() {
                 break response.checked_at.token;
-            } else {
-                current_token = Some(response.checked_at.token);
             }
+            current_token = Some(response.checked_at.token);
         };
 
         Ok(BulkCheckResponse {
-            checked_at,
             permissions,
+            checked_at,
         })
     }
 
