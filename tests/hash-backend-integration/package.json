@@ -39,7 +39,7 @@
     "@graphql-codegen/typescript-resolvers": "2.7.13",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/node-fetch": "2.6.11",
+    "@types/node-fetch": "2.6.12",
     "@vitest/coverage-istanbul": "2.1.4",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
