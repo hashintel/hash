@@ -118,3 +118,13 @@ body {
 .full-height-for-react-full-screen {
   height: 100%;
 }
+
+.react-pdf-page {
+  background: #37434f;
+}
+
+.react-pdf-document {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
