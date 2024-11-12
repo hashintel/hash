@@ -2,7 +2,7 @@
   "name": "@local/harpc-client",
   "version": "0.0.0-private",
   "private": true,
-  "description": "A collection of helper types",
+  "description": "Client for the HaRPC system",
   "license": "AGPL-3",
   "type": "module",
   "exports": {
