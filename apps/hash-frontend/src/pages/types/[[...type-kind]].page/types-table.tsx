@@ -31,6 +31,7 @@ import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+import { tableContentSx } from "../../../shared/table-content";
 import type { FilterState } from "../../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../../shared/table-header";
 import {
@@ -45,10 +46,10 @@ import type { TextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { TypeSlideOverStack } from "../../shared/entity-type-page/type-slide-over-stack";
 import { TableHeaderToggle } from "../../shared/table-header-toggle";
-import type { TableView } from "../../shared/table-views";
-import { tableViewIcons } from "../../shared/table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
+import type { VisualizerView } from "../../shared/visualizer-views";
+import { visualizerViewIcons } from "../../shared/visualizer-views";
 
 const typesTableColumnIds = [
   "title",
@@ -115,7 +116,7 @@ export const TypesTable: FunctionComponent<{
 }> = ({ types, kind }) => {
   const router = useRouter();
 
-  const [view, setView] = useState<TableView>("Table");
+  const [view, setView] = useState<VisualizerView>("Table");
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
@@ -178,6 +179,9 @@ export const TypesTable: FunctionComponent<{
     ],
     [filterState.includeArchived, kind],
   );
+
+  const currentlyDisplayedColumnsRef = useRef<TypesTableColumn[] | null>(null);
+  currentlyDisplayedColumnsRef.current = typesTableColumns;
 
   const { users } = useUsers();
   const { orgs } = useOrgs();
@@ -350,49 +354,36 @@ export const TypesTable: FunctionComponent<{
 
         switch (column.id) {
           case "title": {
-            if (row.kind === "entity-type" || row.kind === "link-type") {
-              return {
-                kind: GridCellKind.Custom,
-                readonly: true,
-                allowOverlay: false,
-                copyData: row.title,
-                cursor: "pointer",
-                data: {
-                  kind: "chip-cell",
-                  chips: [
-                    {
-                      icon: row.icon
-                        ? { entityTypeIcon: row.icon }
-                        : {
-                            inbuiltIcon:
-                              row.kind === "link-type"
-                                ? "bpLink"
-                                : "bpAsterisk",
-                          },
-                      text: row.title,
-                      onClick: () => {
-                        setSelectedEntityType({ entityTypeId: row.typeId });
-                      },
-                      iconFill: theme.palette.blue[70],
-                    },
-                  ],
-                  color: "white",
-                  variant: "outlined",
-                },
-              };
-            } else {
-              return {
-                kind: GridCellKind.Custom,
-                readonly: true,
-                allowOverlay: false,
-                copyData: row.title,
-                data: {
-                  kind: "text-icon-cell",
-                  icon: "bpAsterisk",
-                  value: row.title,
-                },
-              };
-            }
+            return {
+              kind: GridCellKind.Custom,
+              readonly: true,
+              allowOverlay: false,
+              copyData: row.title,
+              cursor: "pointer",
+              data: {
+                kind: "chip-cell",
+                chips: [
+                  {
+                    icon: row.icon
+                      ? { entityTypeIcon: row.icon }
+                      : {
+                          inbuiltIcon:
+                            row.kind === "link-type" ? "bpLink" : "bpAsterisk",
+                        },
+                    text: row.title,
+                    onClick:
+                      row.kind === "entity-type" || row.kind === "link-type"
+                        ? () => {
+                            setSelectedEntityType({ entityTypeId: row.typeId });
+                          }
+                        : undefined,
+                    iconFill: theme.palette.blue[70],
+                  },
+                ],
+                color: "white",
+                variant: "outlined",
+              },
+            };
           }
           case "kind":
             return {
@@ -512,20 +503,20 @@ export const TypesTable: FunctionComponent<{
             <TableHeaderToggle
               value={view}
               setValue={setView}
-              options={(["Table", "Graph"] as const satisfies TableView[]).map(
-                (optionValue) => ({
-                  icon: tableViewIcons[optionValue],
-                  label: `${optionValue} view`,
-                  value: optionValue,
-                }),
-              )}
+              options={(
+                ["Table", "Graph"] as const satisfies VisualizerView[]
+              ).map((optionValue) => ({
+                icon: visualizerViewIcons[optionValue],
+                label: `${optionValue} view`,
+                value: optionValue,
+              }))}
             />
           }
           internalWebIds={internalWebIds}
           itemLabelPlural="types"
           items={types}
           title={typesTablesToTitle[kind]}
-          columns={typesTableColumns}
+          currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           filterState={filterState}
           setFilterState={setFilterState}
@@ -535,24 +526,25 @@ export const TypesTable: FunctionComponent<{
           onBulkActionCompleted={() => setSelectedRows([])}
         />
         {view === "Table" ? (
-          <Grid
-            showSearch={showSearch}
-            onSearchClose={() => setShowSearch(false)}
-            columns={typesTableColumns}
-            dataLoading={!types}
-            rows={filteredRows}
-            enableCheckboxSelection
-            selectedRows={selectedRows}
-            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-            onSelectedRowsChange={(updatedSelectedRows) =>
-              setSelectedRows(updatedSelectedRows)
-            }
-            sortable
-            sortRows={sortRows}
-            firstColumnLeftPadding={firstColumnLeftPadding}
-            createGetCellContent={createGetCellContent}
-            // define max height if there are lots of rows
-            height={`
+          <Box sx={tableContentSx}>
+            <Grid
+              showSearch={showSearch}
+              onSearchClose={() => setShowSearch(false)}
+              columns={typesTableColumns}
+              dataLoading={!types}
+              rows={filteredRows}
+              enableCheckboxSelection
+              selectedRows={selectedRows}
+              currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+              onSelectedRowsChange={(updatedSelectedRows) =>
+                setSelectedRows(updatedSelectedRows)
+              }
+              sortable
+              sortRows={sortRows}
+              firstColumnLeftPadding={firstColumnLeftPadding}
+              createGetCellContent={createGetCellContent}
+              // define max height if there are lots of rows
+              height={`
           min(
             ${maxTableHeight},
             calc(
@@ -563,14 +555,15 @@ export const TypesTable: FunctionComponent<{
               ${gridHorizontalScrollbarHeight}px
             )
           )`}
-            customRenderers={[
-              createRenderTextIconCell({ firstColumnLeftPadding }),
-              createRenderChipCell({ firstColumnLeftPadding }),
-            ]}
-            freezeColumns={1}
-          />
+              customRenderers={[
+                createRenderTextIconCell({ firstColumnLeftPadding }),
+                createRenderChipCell({ firstColumnLeftPadding }),
+              ]}
+              freezeColumns={1}
+            />
+          </Box>
         ) : (
-          <Box height={maxTableHeight}>
+          <Box height={maxTableHeight} sx={tableContentSx}>
             <TypeGraphVisualizer
               onTypeClick={onTypeClick}
               types={filteredTypes}

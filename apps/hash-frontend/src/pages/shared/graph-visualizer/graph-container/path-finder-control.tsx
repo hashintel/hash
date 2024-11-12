@@ -67,12 +67,14 @@ const PathTerminusSelector = ({
       tooltip={`Where the path should ${lowercasedLabel}`}
     >
       <Stack gap={1}>
-        <SimpleAutocomplete
-          placeholder={`Which type to ${lowercasedLabel}`}
-          options={typeOptions}
-          setValue={setType}
-          value={type}
-        />
+        {typeOptions.length > 1 && (
+          <SimpleAutocomplete
+            placeholder={`Which type to ${lowercasedLabel}`}
+            options={typeOptions}
+            setValue={setType}
+            value={type}
+          />
+        )}
         <SimpleAutocomplete
           key={type?.typeId ?? "no-type"}
           placeholder={`Which node to ${lowercasedLabel}`}
@@ -106,48 +108,94 @@ const PathFinderPanel: FunctionComponent<{
 
   const sigma = useSigma();
 
-  const { visibleNodesByTypeId, visibleTypesByTypeId } = useMemo(() => {
-    const { includeByNodeTypeId } = filters;
+  const { visibleNodesByTypeId, visibleTypesByTypeId, visibleNodeIds } =
+    useMemo(() => {
+      const { includeByNodeTypeId } = filters;
 
-    const visibleNodes: NodesByTypeId = {};
-    const visibleTypes: TypesByTypeId = {};
+      const visibleNodes: NodesByTypeId = {};
+      const visibleTypes: TypesByTypeId = {};
+      const visibleIds = new Set<string>();
 
-    for (const node of nodes) {
-      const { nodeTypeId, nodeTypeLabel, nodeId } = node;
+      for (const node of nodes) {
+        const { nodeTypeId = "none", nodeTypeLabel = "No type", nodeId } = node;
 
-      if (!node.nodeTypeId || !includeByNodeTypeId?.[node.nodeTypeId]) {
-        continue;
+        if (node.nodeTypeId && !includeByNodeTypeId?.[node.nodeTypeId]) {
+          continue;
+        }
+
+        visibleIds.add(nodeId);
+
+        if (nodeTypeId && nodeTypeLabel) {
+          visibleTypes[nodeTypeId] ??= {
+            label: nodeTypeLabel,
+            typeId: nodeTypeId,
+            valueForSelector: nodeTypeId,
+          };
+
+          visibleNodes[nodeTypeId] ??= [];
+          visibleNodes[nodeTypeId].push({ ...node, valueForSelector: nodeId });
+        }
       }
 
-      if (nodeTypeId && nodeTypeLabel) {
-        visibleTypes[nodeTypeId] ??= {
-          label: nodeTypeLabel,
-          typeId: nodeTypeId,
-          valueForSelector: nodeTypeId,
-        };
+      return {
+        visibleNodeIds: visibleIds,
+        visibleNodesByTypeId: visibleNodes,
+        visibleTypesByTypeId: visibleTypes,
+      };
+    }, [filters, nodes]);
 
-        visibleNodes[nodeTypeId] ??= [];
-        visibleNodes[nodeTypeId].push({ ...node, valueForSelector: nodeId });
-      }
-    }
-
-    return {
-      visibleNodesByTypeId: visibleNodes,
-      visibleTypesByTypeId: visibleTypes,
-    };
-  }, [filters, nodes]);
+  const hasMultipleTypes = Object.keys(visibleTypesByTypeId).length > 1;
+  const firstType = Object.values(visibleTypesByTypeId)[0] ?? null;
 
   const [startNode, setStartNode] = useState<NodeData | null>(null);
   const [startType, setStartType] = useState<TypeData | null>(
     config.pathfinding?.startTypeId
       ? (visibleTypesByTypeId[config.pathfinding.startTypeId] ?? null)
-      : null,
+      : hasMultipleTypes
+        ? null
+        : firstType,
   );
   const [endNode, setEndNode] = useState<NodeData | null>(null);
-  const [endType, setEndType] = useState<TypeData | null>(null);
+  const [endType, setEndType] = useState<TypeData | null>(
+    hasMultipleTypes ? null : firstType,
+  );
 
   const [viaNode, setViaNode] = useState<NodeData | null>(null);
-  const [viaType, setViaType] = useState<TypeData | null>(null);
+  const [viaType, setViaType] = useState<TypeData | null>(
+    hasMultipleTypes ? null : firstType,
+  );
+
+  useEffect(() => {
+    if (!visibleTypesByTypeId[startType?.typeId ?? ""]) {
+      setStartType(null);
+      setStartNode(null);
+    } else if (!visibleNodeIds.has(startNode?.nodeId ?? "")) {
+      setStartNode(null);
+    }
+
+    if (!visibleTypesByTypeId[endType?.typeId ?? ""]) {
+      setEndType(null);
+      setEndNode(null);
+    } else if (!visibleNodeIds.has(endNode?.nodeId ?? "")) {
+      setEndNode(null);
+    }
+
+    if (!visibleTypesByTypeId[viaType?.typeId ?? ""]) {
+      setViaType(null);
+      setViaNode(null);
+    } else if (!visibleNodeIds.has(viaNode?.nodeId ?? "")) {
+      setViaNode(null);
+    }
+  }, [
+    startNode,
+    startType,
+    endType,
+    endNode,
+    viaType,
+    viaNode,
+    visibleTypesByTypeId,
+    visibleNodeIds,
+  ]);
 
   const [maxSimplePathDepth, setMaxSimplePathDepth] = useState(3);
   const [allowRepeatedNodeTypes, setAllowRepeatedNodeTypes] = useState(false);
@@ -186,13 +234,24 @@ const PathFinderPanel: FunctionComponent<{
     [highlightPath],
   );
 
-  const worker = useMemo(
-    () =>
-      new Worker(new URL("./path-finder-control/worker.ts", import.meta.url)),
-    [],
-  );
+  const [worker, setWorker] = useState<Worker | null>(null);
 
   useEffect(() => {
+    const webWorker = new Worker(
+      new URL("./path-finder-control/worker.ts", import.meta.url),
+    );
+    setWorker(webWorker);
+
+    return () => {
+      webWorker.terminate();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!worker) {
+      return;
+    }
+
     worker.onmessage = ({ data }) => {
       if (
         "type" in data &&
@@ -202,7 +261,6 @@ const PathFinderPanel: FunctionComponent<{
         setSimplePaths((data as GenerateSimplePathsResultMessage).result);
         setWaitingSimplePathResult(false);
       }
-      return () => worker.terminate();
     };
   }, [worker]);
 
@@ -226,6 +284,9 @@ const PathFinderPanel: FunctionComponent<{
       },
     };
 
+    if (!worker) {
+      throw new Error("No worker available");
+    }
     worker.postMessage(request);
   }, [
     allowRepeatedNodeTypes,
@@ -256,8 +317,13 @@ const PathFinderPanel: FunctionComponent<{
 
     const shortestPathByKey: { [key: string]: string[] | null } = {};
 
+    const endOptions: NodeData[] = [];
+    const viaOptions: NodeData[] = [];
+
     if (startNode) {
-      for (const node of endNodes) {
+      for (const originalNode of endNodes) {
+        const node = { ...originalNode };
+
         let shortestPath: string[] | null = null;
         if (viaNode) {
           const firstPart = dijkstra.bidirectional(
@@ -303,10 +369,13 @@ const PathFinderPanel: FunctionComponent<{
         }
 
         node.shortestPathTo = `(${pathLength})`;
+        endOptions.push(node);
       }
 
       if (endNode) {
-        for (const node of viaNodes) {
+        for (const originalNode of viaNodes) {
+          const node = { ...originalNode };
+
           let shortestPath: string[] | null | undefined =
             shortestPathByKey[
               generatePathKey({
@@ -343,11 +412,12 @@ const PathFinderPanel: FunctionComponent<{
           }
 
           node.shortestPathVia = `(${pathLength})`;
+          viaOptions.push(node);
         }
       }
     }
 
-    return { endNodeOptions: endNodes, viaNodeOptions: viaNodes };
+    return { endNodeOptions: endOptions, viaNodeOptions: viaOptions };
   }, [
     endNode,
     endType,
@@ -410,7 +480,13 @@ const PathFinderPanel: FunctionComponent<{
       position="left"
       title="Path finder"
     >
-      <Stack direction="row" spacing={1} px={1} mt={1} sx={{ width: 700 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        px={1}
+        mt={1}
+        sx={{ width: config.pathfinding?.hideVia ? 500 : 700 }}
+      >
         <PathTerminusSelector
           label="Start at"
           node={startNode}
@@ -432,16 +508,18 @@ const PathFinderPanel: FunctionComponent<{
           type={endType}
           typeOptions={sortedTypes}
         />
-        <PathTerminusSelector
-          label="Go via"
-          suffixKey="shortestPathVia"
-          node={viaNode}
-          nodeOptions={viaNodeOptions}
-          setNode={selectViaNode}
-          setType={selectViaType}
-          type={viaType}
-          typeOptions={sortedTypes}
-        />
+        {!config.pathfinding?.hideVia && (
+          <PathTerminusSelector
+            label="Go via"
+            suffixKey="shortestPathVia"
+            node={viaNode}
+            nodeOptions={viaNodeOptions}
+            setNode={selectViaNode}
+            setType={selectViaType}
+            type={viaType}
+            typeOptions={sortedTypes}
+          />
+        )}
       </Stack>
       <ControlSectionContainer
         label={`Simple paths${simplePaths.length ? ` (${formatNumber(simplePaths.length)})` : ""}`}

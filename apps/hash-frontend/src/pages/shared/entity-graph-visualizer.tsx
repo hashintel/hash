@@ -79,7 +79,7 @@ export const EntityGraphVisualizer = memo(
      * Whether this entity should receive a special highlight.
      */
     isPrimaryEntity?: (entity: T) => boolean;
-    loadingComponent?: ReactElement;
+    loadingComponent: ReactElement;
     subgraphWithTypes: Subgraph;
   }) => {
     const { palette } = useTheme();
@@ -261,7 +261,7 @@ export const EntityGraphVisualizer = memo(
 
     return (
       <Box sx={{ height: "100%" }}>
-        {loading && loadingComponent && (
+        {loading && (
           <Stack
             alignItems="center"
             justifyContent="center"
