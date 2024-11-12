@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "hash-temporal-client"
+name              = "hash-temporal-client"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -18,13 +18,13 @@ hash-graph-types = { workspace = true, public = true }
 error-stack = { workspace = true }
 
 # Private third-party dependencies
-serde = { workspace = true }
-serde_json = { workspace = true }
-temporal-io-client = { workspace = true }
+serde                       = { workspace = true }
+serde_json                  = { workspace = true }
+temporal-io-client          = { workspace = true }
 temporal-io-sdk-core-protos = { workspace = true }
-thiserror = { workspace = true }
-url = { workspace = true, default-features = false }
-uuid = { workspace = true, features = ["v4"] }
+thiserror                   = { workspace = true }
+url                         = { workspace = true }
+uuid                        = { workspace = true, features = ["v4"] }
 
 [lints]
 workspace = true

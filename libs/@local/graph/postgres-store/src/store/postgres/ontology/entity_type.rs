@@ -48,7 +48,7 @@ use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;
 use tokio_postgres::{GenericClient as _, Row};
-use tracing::instrument;
+use tracing::{Instrument as _, instrument};
 use type_system::{
     Valid, Validator as _,
     schema::{
@@ -377,34 +377,35 @@ where
             .try_collect::<Vec<_>>()
             .await?;
 
-            let span = tracing::trace_span!("post_filter_entities");
-            let _s = span.enter();
+            async move {
+                let (permissions, _zookie) = self
+                    .authorization_api
+                    .check_entity_types_permission(
+                        actor_id,
+                        EntityTypePermission::View,
+                        entity_ids.iter().copied(),
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(QueryError)?;
 
-            let (permissions, _zookie) = self
-                .authorization_api
-                .check_entity_types_permission(
-                    actor_id,
-                    EntityTypePermission::View,
-                    entity_ids.iter().copied(),
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?;
+                let permitted_ids = permissions
+                    .into_iter()
+                    .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
+                    .collect::<HashSet<_>>();
 
-            let permitted_ids = permissions
-                .into_iter()
-                .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
-                .collect::<HashSet<_>>();
-
-            let count = entity_ids
-                .into_iter()
-                .filter(|id| permitted_ids.contains(id))
-                .count();
-            (
-                Some(count),
-                web_ids.map(HashMap::from),
-                edition_created_by_ids.map(HashMap::from),
-            )
+                let count = entity_ids
+                    .into_iter()
+                    .filter(|id| permitted_ids.contains(id))
+                    .count();
+                Ok::<_, Report<QueryError>>((
+                    Some(count),
+                    web_ids.map(HashMap::from),
+                    edition_created_by_ids.map(HashMap::from),
+                ))
+            }
+            .instrument(tracing::trace_span!("post_filter_entities"))
+            .await?
         } else {
             (None, None, None)
         };

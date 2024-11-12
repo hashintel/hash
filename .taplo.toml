@@ -2,7 +2,7 @@ exclude = ["node_modules/**"]
 include = ["**/Cargo.toml", ".taplo.toml"]
 
 [formatting]
-align_comments      = false
+align_entries       = true
 array_auto_collapse = false
 array_auto_expand   = false
 indent_string       = "    "
@@ -10,7 +10,7 @@ inline_table_expand = false
 
 [[rule]]
 include = ["**/Cargo.toml"]
-keys    = ["dependencies", "workspace.dependencies"]
+keys    = ["dependencies", "dev-dependencies", "build-dependencies", "workspace.dependencies"]
 
 [rule.formatting]
 reorder_keys = true
