@@ -27,7 +27,7 @@
     "start:graph:test-server": "turbo run start start:healthcheck --filter @rust/test-server",
     "start:worker": "turbo run start start:healthcheck --filter '@apps/hash-*-worker*' --env-mode=loose",
     "start:test": "turbo run start:test start:test:healthcheck --env-mode=loose",
-    "graph:reset-database": "yarn workspace @rust/graph-http-tests reset-database",
+    "graph:reset-database": "yarn workspace @rust/hash-graph-http-tests reset-database",
     "external-services": "turbo deploy --filter '@apps/hash-external-services' --",
     "external-services:offline": "turbo deploy:offline --filter '@apps/hash-external-services' --",
     "external-services:test": "turbo deploy:test --filter '@apps/hash-external-services' --",
