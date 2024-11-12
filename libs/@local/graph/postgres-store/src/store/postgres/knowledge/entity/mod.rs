@@ -67,6 +67,7 @@ use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde_json::Value as JsonValue;
 use tokio_postgres::{GenericClient as _, error::SqlState};
+use tracing::Instrument as _;
 use type_system::{
     schema::{
         ClosedEntityType, ClosedMultiEntityType, DataTypeReference, EntityTypeUuid,
@@ -165,9 +166,6 @@ where
             for (entity_vertex_id, graph_resolve_depths, traversal_interval) in
                 entity_queue.drain(..)
             {
-                let span = tracing::trace_span!("collect_edges", ?entity_vertex_id);
-                let _s = span.enter();
-
                 if let Some(new_graph_resolve_depths) = graph_resolve_depths
                     .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
                 {
@@ -207,9 +205,6 @@ where
             }
 
             if let Some(traversal_data) = shared_edges_to_traverse.take() {
-                let span = tracing::trace_span!("post_filter_entity_types");
-                let _s = span.enter();
-
                 entity_type_queue.extend(
                     Self::filter_entity_types_by_permission(
                         self.read_shared_edges(&traversal_data, Some(0)).await?,
@@ -217,6 +212,7 @@ where
                         &self.authorization_api,
                         zookie,
                     )
+                    .instrument(tracing::trace_span!("post_filter_entity_types"))
                     .await?
                     .flat_map(|edge| {
                         subgraph.insert_edge(
@@ -549,37 +545,40 @@ where
                 .try_collect::<Vec<_>>()
                 .await?;
 
-                let span = tracing::trace_span!("post_filter_entities");
-                let _s = span.enter();
+                async move {
+                    let (permissions, zookie) = self
+                        .authorization_api
+                        .check_entities_permission(
+                            actor_id,
+                            EntityPermission::View,
+                            entity_ids.iter().copied(),
+                            Consistency::FullyConsistent,
+                        )
+                        .await
+                        .change_context(QueryError)?;
 
-                let (permissions, zookie) = self
-                    .authorization_api
-                    .check_entities_permission(
-                        actor_id,
-                        EntityPermission::View,
-                        entity_ids.iter().copied(),
-                        Consistency::FullyConsistent,
-                    )
-                    .await
-                    .change_context(QueryError)?;
+                    let permitted_ids = permissions
+                        .into_iter()
+                        .filter_map(|(entity_id, has_permission)| {
+                            has_permission.then_some(entity_id)
+                        })
+                        .collect::<HashSet<_>>();
 
-                let permitted_ids = permissions
-                    .into_iter()
-                    .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
-                    .collect::<HashSet<_>>();
-
-                let count = entity_ids
-                    .into_iter()
-                    .filter(|id| permitted_ids.contains(&id.entity_uuid))
-                    .count();
-                (
-                    Some((permitted_ids, zookie)),
-                    Some(count),
-                    web_ids.map(HashMap::from),
-                    created_by_ids.map(HashMap::from),
-                    edition_created_by_ids.map(HashMap::from),
-                    include_type_ids.map(HashMap::from),
-                )
+                    let count = entity_ids
+                        .into_iter()
+                        .filter(|id| permitted_ids.contains(&id.entity_uuid))
+                        .count();
+                    Ok::<_, Report<QueryError>>((
+                        Some((permitted_ids, zookie)),
+                        Some(count),
+                        web_ids.map(HashMap::from),
+                        created_by_ids.map(HashMap::from),
+                        edition_created_by_ids.map(HashMap::from),
+                        include_type_ids.map(HashMap::from),
+                    ))
+                }
+                .instrument(tracing::trace_span!("post_filter_entities"))
+                .await?
             } else {
                 (None, None, None, None, None, None)
             };
@@ -1324,107 +1323,110 @@ where
             temporal_axes,
         );
 
-        let span = tracing::trace_span!("construct_subgraph");
-        let _s = span.enter();
+        async move {
+            subgraph.roots.extend(
+                root_entities
+                    .iter()
+                    .map(|entity| entity.vertex_id(time_axis).into()),
+            );
+            subgraph.vertices.entities = root_entities
+                .into_iter()
+                .map(|entity| (entity.vertex_id(time_axis), entity))
+                .collect();
 
-        subgraph.roots.extend(
-            root_entities
-                .iter()
-                .map(|entity| entity.vertex_id(time_axis).into()),
-        );
-        subgraph.vertices.entities = root_entities
-            .into_iter()
-            .map(|entity| (entity.vertex_id(time_axis), entity))
-            .collect();
+            let mut traversal_context = TraversalContext::default();
 
-        let mut traversal_context = TraversalContext::default();
-
-        // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
-        //       vertices and have to `.collect()` the keys.
-        self.traverse_entities(
-            subgraph
-                .vertices
-                .entities
-                .keys()
-                .map(|id| {
-                    (
-                        *id,
-                        subgraph.depths,
-                        subgraph.temporal_axes.resolved.variable_interval(),
-                    )
-                })
-                .collect(),
-            &mut traversal_context,
-            actor_id,
-            &zookie,
-            &mut subgraph,
-        )
-        .await?;
-
-        traversal_context
-            .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
-            .await?;
-
-        if !params.conversions.is_empty() {
-            let provider = StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            };
-            for entity in subgraph.vertices.entities.values_mut() {
-                self.convert_entity(&provider, entity, &params.conversions)
-                    .await
-                    .change_context(QueryError)?;
-            }
-        }
-
-        Ok(GetEntitySubgraphResponse {
-            #[expect(
-                clippy::if_then_some_else_none,
-                reason = "False positive, use of `await`"
-            )]
-            closed_multi_entity_types: if params.include_entity_types.is_some() {
-                Some(
-                    self.resolve_closed_multi_entity_types(subgraph.vertices.entities.values())
-                        .await?,
-                )
-            } else {
-                None
-            },
-            #[expect(
-                clippy::if_then_some_else_none,
-                reason = "False positive, use of `await`"
-            )]
-            definitions: if params.include_entity_types == Some(IncludeEntityTypeOption::Resolved) {
-                let entity_type_uuids = subgraph
+            // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow
+            // the       vertices and have to `.collect()` the keys.
+            self.traverse_entities(
+                subgraph
                     .vertices
                     .entities
-                    .values()
-                    .flat_map(|entity| {
-                        entity
-                            .metadata
-                            .entity_type_ids
-                            .iter()
-                            .map(EntityTypeUuid::from_url)
+                    .keys()
+                    .map(|id| {
+                        (
+                            *id,
+                            subgraph.depths,
+                            subgraph.temporal_axes.resolved.variable_interval(),
+                        )
                     })
-                    .collect::<HashSet<_>>()
-                    .into_iter()
-                    .collect::<Vec<_>>();
-                Some(
-                    self.get_entity_type_resolve_definitions(actor_id, &entity_type_uuids)
-                        .await?,
-                )
-            } else {
-                None
-            },
-            subgraph,
-            cursor,
-            count,
-            web_ids,
-            created_by_ids,
-            edition_created_by_ids,
-            type_ids,
-        })
+                    .collect(),
+                &mut traversal_context,
+                actor_id,
+                &zookie,
+                &mut subgraph,
+            )
+            .await?;
+
+            traversal_context
+                .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
+                .await?;
+
+            if !params.conversions.is_empty() {
+                let provider = StoreProvider {
+                    store: self,
+                    cache: StoreCache::default(),
+                    authorization: Some((actor_id, Consistency::FullyConsistent)),
+                };
+                for entity in subgraph.vertices.entities.values_mut() {
+                    self.convert_entity(&provider, entity, &params.conversions)
+                        .await
+                        .change_context(QueryError)?;
+                }
+            }
+
+            Ok(GetEntitySubgraphResponse {
+                #[expect(
+                    clippy::if_then_some_else_none,
+                    reason = "False positive, use of `await`"
+                )]
+                closed_multi_entity_types: if params.include_entity_types.is_some() {
+                    Some(
+                        self.resolve_closed_multi_entity_types(subgraph.vertices.entities.values())
+                            .await?,
+                    )
+                } else {
+                    None
+                },
+                #[expect(
+                    clippy::if_then_some_else_none,
+                    reason = "False positive, use of `await`"
+                )]
+                definitions: if params.include_entity_types
+                    == Some(IncludeEntityTypeOption::Resolved)
+                {
+                    let entity_type_uuids = subgraph
+                        .vertices
+                        .entities
+                        .values()
+                        .flat_map(|entity| {
+                            entity
+                                .metadata
+                                .entity_type_ids
+                                .iter()
+                                .map(EntityTypeUuid::from_url)
+                        })
+                        .collect::<HashSet<_>>()
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    Some(
+                        self.get_entity_type_resolve_definitions(actor_id, &entity_type_uuids)
+                            .await?,
+                    )
+                } else {
+                    None
+                },
+                subgraph,
+                cursor,
+                count,
+                web_ids,
+                created_by_ids,
+                edition_created_by_ids,
+                type_ids,
+            })
+        }
+        .instrument(tracing::trace_span!("construct_subgraph"))
+        .await
     }
 
     async fn count_entities(
@@ -1455,9 +1457,6 @@ where
         .try_collect::<Vec<_>>()
         .await?;
 
-        let span = tracing::trace_span!("post_filter_entities");
-        let _s = span.enter();
-
         let permitted_ids = self
             .authorization_api
             .check_entities_permission(
@@ -1466,6 +1465,7 @@ where
                 entity_ids.iter().copied(),
                 Consistency::FullyConsistent,
             )
+            .instrument(tracing::trace_span!("post_filter_entities"))
             .await
             .change_context(QueryError)?
             .0
