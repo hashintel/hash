@@ -31,6 +31,7 @@ import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+import { tableContentSx } from "../../../shared/table-content";
 import type { FilterState } from "../../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../../shared/table-header";
 import {
@@ -45,11 +46,10 @@ import type { TextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { TypeSlideOverStack } from "../../shared/entity-type-page/type-slide-over-stack";
 import { TableHeaderToggle } from "../../shared/table-header-toggle";
-import type { VisualizerView } from "../../shared/visualizer-views";
-import { visualizerViewIcons } from "../../shared/visualizer-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
-import { tableContentSx } from "../../../shared/table-content";
+import type { VisualizerView } from "../../shared/visualizer-views";
+import { visualizerViewIcons } from "../../shared/visualizer-views";
 
 const typesTableColumnIds = [
   "title",

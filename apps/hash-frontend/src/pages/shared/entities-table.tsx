@@ -39,6 +39,7 @@ import { blankCell } from "../../components/grid/utils";
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import type { ColumnFilter } from "../../components/grid/utils/filtering";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import { tableContentSx } from "../../shared/table-content";
 import type { FilterState } from "../../shared/table-header";
 import { tableHeaderHeight } from "../../shared/table-header";
 import { isAiMachineActor } from "../../shared/use-actors";
@@ -51,7 +52,6 @@ import type { TypeEntitiesRow } from "./entities-table/use-entities-table/types"
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { UrlCellProps } from "./url-cell";
 import { createRenderUrlCell } from "./url-cell";
-import { tableContentSx } from "../../shared/table-content";
 
 const noneString = "none";
 

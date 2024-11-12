@@ -4,7 +4,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
@@ -70,7 +70,7 @@ export type PropertiesByEntityTypeId = {
 
 export type GenerateEntitiesTableDataParams = {
   actorsByAccountId: Record<AccountId, MinimalActor | null>;
-  entities: Entity[];
+  entities: SerializedEntity[];
   entitiesHaveSameType: boolean;
   entityTypesWithMultipleVersionsPresent: VersionedUrl[];
   entityTypes: EntityType[];
