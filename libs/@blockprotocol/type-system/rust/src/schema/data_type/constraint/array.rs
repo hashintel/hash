@@ -2,7 +2,7 @@ use core::cmp;
 
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail};
 use hash_codec::serde::constant::ConstBool;
-use itertools::{EitherOrBoth, Itertools};
+use itertools::{EitherOrBoth, Itertools as _};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
@@ -651,13 +651,11 @@ mod tests {
             array.clone(),
             tuple.clone(),
         ]);
-        check_schema_intersection([tuple.clone(), array.clone()], [
-            tuple.clone(),
-            array.clone(),
-        ]);
+        check_schema_intersection([tuple.clone(), array.clone()], [tuple, array]);
     }
 
     #[test]
+    #[expect(clippy::too_many_lines)]
     fn intersect_combinable_tuples() {
         check_schema_intersection(
             [
