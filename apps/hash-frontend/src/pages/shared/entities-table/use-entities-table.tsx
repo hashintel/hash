@@ -237,7 +237,6 @@ export const useEntitiesTable = (params: {
 
   useEffect(() => {
     if (entities && entityTypes && subgraph && !actorsLoading) {
-      setWaitingTableData(true);
       const serializedSubgraph = serializeSubgraph(subgraph);
 
       if (!worker) {
@@ -248,7 +247,7 @@ export const useEntitiesTable = (params: {
         type: "generateEntitiesTableData",
         params: {
           actorsByAccountId,
-          entities,
+          entities: entities.map((entity) => entity.toJSON()),
           entitiesHaveSameType,
           entityTypesWithMultipleVersionsPresent,
           entityTypes,

@@ -1,6 +1,7 @@
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   generateEntityLabel,
@@ -9,6 +10,7 @@ import {
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -89,10 +91,15 @@ const columnDefinitionsByKey: Record<
 
 let activeRequestId: string | null;
 
-const generateTableData = (
+const isCancelled = async (requestId: string) => {
+  await sleep(0);
+  return activeRequestId !== requestId;
+};
+
+const generateTableData = async (
   params: GenerateEntitiesTableDataParams,
   requestId: string,
-): EntitiesTableData | "cancelled" => {
+): Promise<EntitiesTableData | "cancelled"> => {
   const {
     actorsByAccountId,
     entities,
@@ -108,7 +115,7 @@ const generateTableData = (
     webNameByOwnedById,
   } = params;
 
-  if (activeRequestId !== requestId) {
+  if (await isCancelled(requestId)) {
     return "cancelled";
   }
 
@@ -161,7 +168,9 @@ const generateTableData = (
     {
       title: entitiesHaveSameType
         ? (entityTypes.find(
-            ({ $id }) => $id === entities[0]?.metadata.entityTypeIds[0],
+            ({ $id }) =>
+              entities[0] &&
+              $id === new Entity(entities[0]).metadata.entityTypeIds[0],
           )?.title ?? "Entity")
         : "Entity",
       id: "entityLabel",
@@ -188,10 +197,12 @@ const generateTableData = (
   }
 
   const rows: TypeEntitiesRow[] = [];
-  for (const entity of entities) {
-    if (activeRequestId !== requestId) {
+  for (const serializedEntity of entities) {
+    if (await isCancelled(requestId)) {
       return "cancelled";
     }
+
+    const entity = new Entity(serializedEntity);
 
     const entityLabel = generateEntityLabel(subgraph, entity);
 
@@ -392,14 +403,14 @@ const generateTableData = (
 };
 
 // eslint-disable-next-line no-restricted-globals
-self.onmessage = ({ data }) => {
+self.onmessage = async ({ data }) => {
   if (isGenerateEntitiesTableDataRequestMessage(data)) {
     const params = data.params;
 
     const requestId = generateUuid();
     activeRequestId = requestId;
 
-    const result = generateTableData(params, requestId);
+    const result = await generateTableData(params, requestId);
 
     if (result !== "cancelled") {
       /**
@@ -425,7 +436,9 @@ self.onmessage = ({ data }) => {
       }
     } else {
       // eslint-disable-next-line no-console
-      console.info(`Request ${requestId} cancelled`);
+      console.info(
+        `Table data generation request ${requestId} cancelled, superseded by a subsequent request`,
+      );
     }
   }
 };
