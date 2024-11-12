@@ -2,6 +2,7 @@ use core::error::Error;
 
 mod benches;
 mod completions;
+mod dependency_graph;
 
 /// Subcommand for the program.
 #[derive(Debug, clap::Subcommand)]
@@ -10,6 +11,8 @@ pub(super) enum Subcommand {
     Completions(completions::Args),
     /// Tooling around benchmarks for the repository.
     Benches(benches::Args),
+    /// Tool to create a dependency graph for a package.
+    DependencyGraph(dependency_graph::Args),
 }
 
 impl Subcommand {
@@ -20,6 +23,7 @@ impl Subcommand {
                 Ok(())
             }
             Self::Benches(args) => benches::run(args).await,
+            Self::DependencyGraph(args) => dependency_graph::run(args),
         }
     }
 }

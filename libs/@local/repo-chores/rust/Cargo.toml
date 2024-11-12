@@ -13,10 +13,11 @@ authors.workspace = true
 error-stack = { workspace = true, public = true }
 
 # Public third-party dependencies
-aws-types = { workspace = true, public = true }
-bytes     = { workspace = true, public = true }
-criterion = { workspace = true, public = true }
-inferno   = { workspace = true, public = true }
+aws-types      = { workspace = true, public = true }
+bytes          = { workspace = true, public = true }
+cargo_metadata = { workspace = true, public = true }
+criterion      = { workspace = true, public = true }
+inferno        = { workspace = true, public = true }
 
 # Private workspace dependencies
 
@@ -25,6 +26,7 @@ aws-config    = { workspace = true }
 aws-sdk-s3    = { workspace = true }
 clap          = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = { workspace = true }
+petgraph      = { workspace = true, features = ["stable_graph"] }
 serde         = { workspace = true, features = ["derive", "std"] }
 serde_json    = { workspace = true }
 thiserror     = { workspace = true }

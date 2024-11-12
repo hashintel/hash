@@ -154,6 +154,7 @@ aws-config                  = { version = "=1.5.10" }
 aws-sdk-s3                  = { version = "=1.60.0", default-features = false }
 bitvec                      = { version = "=1.0.1", default-features = false }
 bytes-utils                 = { version = "=0.1.4", default-features = false }
+cargo_metadata              = { version = "=0.18.1", default-features = false }
 clap                        = { version = "=4.5.20", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_complete               = { version = "=4.5.37", default-features = false }
 coverage-helper             = { version = "=0.2.2", default-features = false }
@@ -187,6 +188,7 @@ opentelemetry_sdk           = { version = "=0.26.0", default-features = false }
 orx-concurrent-vec          = { version = "=3.0.2", default-features = false }
 owo-colors                  = { version = "=4.1.0", default-features = false }
 paste                       = { version = "=1.0.15", default-features = false }
+petgraph                    = { version = "=0.6.5", default-features = false }
 pin-project                 = { version = "=1.1.7", default-features = false }
 pin-project-lite            = { version = "=0.2.15", default-features = false }
 postgres-protocol           = { version = "=0.6.7", default-features = false }
