@@ -173,7 +173,7 @@ pub trait ZanzibarBackend {
     /// set to `false`.
     fn check_permissions<O, R, S>(
         &self,
-        relationships: impl IntoIterator<Item = (O, R, S)> + Send,
+        relationships: impl IntoIterator<Item = (O, R, S), IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> impl Future<
         Output = Result<
@@ -285,7 +285,7 @@ impl<Z: ZanzibarBackend + Send + Sync> ZanzibarBackend for &mut Z {
 
     async fn check_permissions<O, R, S>(
         &self,
-        relationships: impl IntoIterator<Item = (O, R, S)> + Send,
+        relationships: impl IntoIterator<Item = (O, R, S), IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> Result<
         BulkCheckResponse<impl IntoIterator<Item = BulkCheckItem<O, R, S>>>,
