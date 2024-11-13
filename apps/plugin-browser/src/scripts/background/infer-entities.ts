@@ -18,6 +18,7 @@ import type {
 import { v4 as uuid } from "uuid";
 import browser from "webextension-polyfill";
 
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { FlowRunStatus } from "../../graphql/api-types.gen";
 import type { InferEntitiesRequest } from "../../shared/messages";
 import {
@@ -114,14 +115,29 @@ const getWebSocket = async () => {
            * This request is already being or has already been processed, so we don't need to do anything.
            */
           return;
-        } else {
-          await setExternalInputRequestsValue((requestsById) => ({
-            ...requestsById,
-            [payload.requestId]: {
-              message,
-              receivedAt: new Date().toISOString(),
-            },
-          }));
+        }
+
+        await setExternalInputRequestsValue((requestsById) => ({
+          ...requestsById,
+          [payload.requestId]: {
+            message,
+            receivedAt: new Date().toISOString(),
+          },
+        }));
+
+        /**
+         * Limit the number of active requests to 3 to avoid overloading the browser.
+         */
+        let numberOfOutstandingInputRequests =
+          Object.keys(inputRequests).length;
+
+        console.log({ numberOfOutstandingInputRequests });
+
+        while (numberOfOutstandingInputRequests > 3) {
+          await sleep(2_000);
+          numberOfOutstandingInputRequests = Object.keys(
+            (await getFromLocalStorage("externalInputRequests")) ?? {},
+          ).length;
         }
 
         const webPages = await getWebsiteContent(payload.data.urls);
