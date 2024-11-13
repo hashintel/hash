@@ -15,7 +15,6 @@ import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import {
@@ -405,12 +404,10 @@ export const updateEntityEmbeddings = async (
         authentication: params.authentication,
         request: {
           filter: {
-            any: entity.metadata.entityTypeIds.map((entityTypeId) =>
-              generateVersionedUrlMatchingFilter(entityTypeId, {
-                ignoreParents: true,
-              }),
-            ),
-          },
+            any: entity.metadata.entityTypeIds.map((entityTypeId) => ({
+              equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+            })),
+          } satisfies Filter,
           graphResolveDepths: {
             inheritsFrom: { outgoing: 255 },
             constrainsValuesOn: { outgoing: 0 },
