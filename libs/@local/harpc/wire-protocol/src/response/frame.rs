@@ -11,6 +11,7 @@ use crate::{
 pub struct ResponseFrameEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct ResponseFrame {
     pub payload: Payload,

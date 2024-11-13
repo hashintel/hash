@@ -17,6 +17,7 @@ use crate::{
 pub struct ResponseBodyEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub enum ResponseBody {
     Begin(ResponseBegin),
