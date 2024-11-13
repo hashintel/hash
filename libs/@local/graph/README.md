@@ -9,6 +9,7 @@ Each crate has a `hash-graph-` prefix and the following crates are part of the H
 - `api`: Endpoints for interacting with the graph. It provides a RESTful API to interact with the graph.
 - `authorization`: Authorization layer which is responsible for authorizing the data that is being used in the graph, and the users who are interacting with the graph.
 - `client`: A client which is used to interact with the graph. It provides a typed interface to interact with the graph.
+- `migrations`: Migrations for the graph. It provides the functionality to migrate the graph to a new version.
 - `postgres-store`: A crate that provides a PostgreSQL storage backend for the graph. Also, it defines the schema of the database and provides the funcitonality of dumping/restoring snaphots of the graph.
 - `sdk`: The SDK for interacting with the graph in a more user-friendly way. It provides a high-level interface to interact with the graph.
 - `store`: Declaration for the store interface which is used to interact with the graph.
