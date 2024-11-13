@@ -17,10 +17,10 @@ edition.workspace = true
 error-stack = { workspace = true, public = true }
 
 # Public third-party dependencies
+image         = { workspace = true, public = true, features = ["png", "bmp"] }
+insta         = { workspace = true }
 pdfium-render = { workspace = true, public = true, features = ["static"] }
-image = { workspace = true, public = true, features = ["png" , "bmp"]}
-thiserror = { workspace = true }
-insta = { workspace = true }  
+thiserror     = { workspace = true }
 
 # Private workspace dependencies
 
