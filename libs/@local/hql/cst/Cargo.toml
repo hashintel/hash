@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "hql-cst"
+name              = "hql-cst"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,11 +13,11 @@ authors.workspace = true
 hql-span = { workspace = true, public = true }
 
 # Public third-party dependencies
-ahash = { workspace = true, public = true }
-bumpalo = { workspace = true, public = true, features = ["allocator_api"] }
-ecow = { workspace = true, public = true }
-hashbrown = { workspace = true, public = true, features = ["default-hasher"] }
-foldhash = { workspace = true, public = true }
+ahash       = { workspace = true, public = true }
+bumpalo     = { workspace = true, public = true, features = ["allocator_api"] }
+ecow        = { workspace = true, public = true }
+foldhash    = { workspace = true, public = true }
+hashbrown   = { workspace = true, public = true, features = ["default-hasher"] }
 json-number = { workspace = true, public = true }
 
 # Private workspace dependencies

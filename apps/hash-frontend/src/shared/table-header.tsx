@@ -43,7 +43,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import type { Row } from "../components/grid/utils/rows";
 import type { MinimalUser } from "../lib/user-and-org";
-import type { TypeEntitiesRow } from "../pages/shared/entities-table/use-entities-table";
+import type { TypeEntitiesRow } from "../pages/shared/entities-table/use-entities-table/types";
 import type { TypesTableRow } from "../pages/types/[[...type-kind]].page/types-table";
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
@@ -132,7 +132,7 @@ type TableHeaderProps = {
   filterState: FilterState;
   endAdornment?: ReactNode;
   title: string;
-  columns: SizedGridColumn[];
+  currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
   currentlyDisplayedRowsRef: MutableRefObject<Row[] | null>;
   setFilterState: Dispatch<SetStateAction<FilterState>>;
   toggleSearch?: () => void;
@@ -146,7 +146,7 @@ const commonChipSx = {
 } as const satisfies SxProps<Theme>;
 
 export const TableHeader: FunctionComponent<TableHeaderProps> = ({
-  columns,
+  currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
   endAdornment,
   filterState,
@@ -190,11 +190,16 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
       return null;
     }
 
+    const currentlyDisplayedColumns = currentlyDisplayedColumnsRef.current;
+    if (!currentlyDisplayedColumns) {
+      return null;
+    }
+
     // Entity metadata columns (i.e. what's already being displayed in the entities table)
 
-    const columnRowKeys = columns.map(({ id }) => id).flat();
+    const columnRowKeys = currentlyDisplayedColumns.map(({ id }) => id).flat();
 
-    const tableContentColumnTitles = columns.map((column) =>
+    const tableContentColumnTitles = currentlyDisplayedColumns.map((column) =>
       /**
        * If the column is the entity label column, add the word "label" to the
        * column title. Otherwise we'd end up with an "Entity" or "Page" column title,
@@ -220,6 +225,10 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             return (row as TypesTableRow).archived ? "Yes" : "No";
           } else if (key === "sourceEntity" || key === "targetEntity") {
             return (row as TypeEntitiesRow).sourceEntity?.label ?? "";
+          } else if (key === "entityTypes") {
+            return (row as TypeEntitiesRow).entityTypes
+              .map((type) => type.title)
+              .join(", ");
           } else {
             return stringifyPropertyValue(value);
           }
@@ -229,7 +238,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
     ];
 
     return { title, content };
-  }, [title, columns, currentlyDisplayedRowsRef]);
+  }, [title, currentlyDisplayedColumnsRef, currentlyDisplayedRowsRef]);
 
   return (
     <Box

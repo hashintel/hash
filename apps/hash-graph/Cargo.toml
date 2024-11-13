@@ -1,33 +1,33 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "hash-graph"
+name              = "hash-graph"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
 authors.workspace = true
-description = "The entity-graph query-layer for the HASH datastore"
+description       = "The entity-graph query-layer for the HASH datastore"
 
 [package.metadata.sync.turborepo]
 package-name = "@apps/hash-graph"
 
 [dependencies]
 # Workspace dependencies
-hash-codec = { workspace = true }
-error-stack = { workspace = true }
+error-stack               = { workspace = true }
+harpc-codec               = { workspace = true, features = ["json"] }
+harpc-server              = { workspace = true }
+hash-codec                = { workspace = true }
+hash-graph-api            = { workspace = true }
+hash-graph-authorization  = { workspace = true }
 hash-graph-postgres-store = { workspace = true, features = ["clap"] }
-hash-graph-api = { workspace = true }
-hash-graph-authorization = { workspace = true }
-hash-graph-store = { workspace = true }
-hash-graph-type-fetcher = { workspace = true }
-hash-graph-types = { workspace = true }
-hash-graph-test-server = { workspace = true, optional = true }
-hash-temporal-client = { workspace = true }
-hash-tracing = { workspace = true, features = ["clap"] }
-type-system = { workspace = true }
-harpc-codec = { workspace = true, features = ["json"] }
-harpc-server = { workspace = true }
+hash-graph-store          = { workspace = true }
+hash-graph-test-server    = { workspace = true, optional = true }
+hash-graph-type-fetcher   = { workspace = true }
+hash-graph-types          = { workspace = true }
+hash-temporal-client      = { workspace = true }
+hash-tracing              = { workspace = true, features = ["clap"] }
+type-system               = { workspace = true }
 
 # Third party dependencies
 axum = { workspace = true }
@@ -35,6 +35,7 @@ clap = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = { workspace = true }
 futures = { workspace = true }
 mimalloc = { workspace = true }
+multiaddr = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls"] }
 tarpc = { workspace = true, features = [
@@ -49,7 +50,6 @@ tokio = { workspace = true }
 tokio-postgres = { workspace = true }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing = { workspace = true }
-multiaddr = { workspace = true }
 
 [features]
 test-server = ["dep:hash-graph-test-server"]

@@ -99,7 +99,7 @@ export const useUserOrOrg = (
       },
     },
     skip: !("accountOrAccountGroupId" in params) && !("shortname" in params),
-    fetchPolicy: "network-only",
+    fetchPolicy: "cache-and-network",
   });
 
   return useMemo(() => {

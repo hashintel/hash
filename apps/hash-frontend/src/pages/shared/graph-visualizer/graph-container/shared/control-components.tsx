@@ -1,7 +1,7 @@
 import { IconButton } from "@hashintel/design-system";
 import { Box, Stack, type Theme, Tooltip, Typography } from "@mui/material";
 import type { SystemStyleObject } from "@mui/system";
-import type { PropsWithChildren, ReactElement } from "react";
+import type { PropsWithChildren, ReactElement, RefObject } from "react";
 
 import { ArrowRightToLineIcon } from "../../../../../shared/icons/arrow-right-to-line-icon";
 import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
@@ -83,16 +83,19 @@ export const ControlPanel = ({
   children,
   onClose,
   open,
+  panelRef,
   position,
   title,
 }: PropsWithChildren<{
   open: boolean;
   onClose: () => void;
   position: "left" | "right";
+  panelRef?: RefObject<HTMLDivElement>;
   title: string;
 }>) => {
   return (
     <Box
+      ref={panelRef}
       sx={{
         zIndex: 1,
         position: "absolute",

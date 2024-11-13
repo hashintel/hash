@@ -128,8 +128,6 @@ export const GraphContainer = memo(
         <Box
           ref={containerRef}
           sx={{
-            border: `1px solid ${palette.gray[30]}`,
-            borderTopWidth: 0,
             height: "100%",
             ...borderRadii,
           }}
@@ -154,7 +152,7 @@ export const GraphContainer = memo(
               <PathFinderControl nodes={nodes} />
               <SearchControl nodes={nodes} />
               <ConfigControl />
-              <FilterControl nodes={nodes} />
+              <FilterControl defaultFilters={defaultFilters} nodes={nodes} />
               <Stack
                 direction="row"
                 gap={1}

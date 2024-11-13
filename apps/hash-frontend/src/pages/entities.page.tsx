@@ -47,7 +47,7 @@ import { Tabs } from "../shared/ui/tabs";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
 import type { Breadcrumb } from "./shared/breadcrumbs";
 import { CreateButton } from "./shared/create-button";
-import { EntitiesTable } from "./shared/entities-table";
+import { EntitiesVisualizer } from "./shared/entities-visualizer";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "./shared/workspace-context";
@@ -366,8 +366,8 @@ const EntitiesPage: NextPageWithLayout = () => {
       </Box>
       <Container sx={{ maxWidth, py: 5 }}>
         <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-          <EntitiesTable
-            hideColumns={entityTypeId ? ["entityTypeVersion"] : []}
+          <EntitiesVisualizer
+            hideColumns={entityTypeId ? ["entityTypes"] : []}
           />
         </EntityTypeEntitiesContext.Provider>
       </Container>

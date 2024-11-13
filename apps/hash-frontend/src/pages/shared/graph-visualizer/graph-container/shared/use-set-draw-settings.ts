@@ -124,10 +124,10 @@ export const useSetDrawSettings = <
           return;
         }
 
-        if (
-          graphState.selectedNodeId === data.nodeId ||
-          graphState.hoveredNodeId === data.nodeId
-        ) {
+        if (graphState.hoveredNodeId === data.nodeId) {
+          /**
+           * There's an inbuilt hover label renderer which we don't want to override
+           */
           return;
         }
 

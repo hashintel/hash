@@ -1,3 +1,5 @@
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { MultiDirectedGraph } from "graphology";
 import { edgePathFromNodePath } from "graphology-shortest-path";
 import { allSimplePaths } from "graphology-simple-path";
@@ -9,15 +11,23 @@ import type {
   Path,
 } from "./types";
 
-const generateSimplePaths = ({
+let activeRequestId: string | null = null;
+
+const isCancelled = async (requestId: string) => {
+  await sleep(0);
+  return requestId !== activeRequestId;
+};
+
+const generateSimplePaths = async ({
   allowRepeatedNodeTypes,
   endNode,
   graph: serializedGraph,
   maxSimplePathDepth,
+  requestId,
   simplePathSort,
   startNode,
   viaNode,
-}: GenerateSimplePathsParams) => {
+}: GenerateSimplePathsParams & { requestId: string }) => {
   const graph = new MultiDirectedGraph();
   graph.import(serializedGraph);
 
@@ -32,6 +42,10 @@ const generateSimplePaths = ({
 
   // eslint-disable-next-line no-labels
   pathsLoop: for (const path of unfilteredSimplePaths) {
+    if (await isCancelled(requestId)) {
+      return "cancelled";
+    }
+
     const seenTypes = new Set<string>();
 
     const labelParts: string[] = [];
@@ -100,14 +114,27 @@ const generateSimplePaths = ({
 };
 
 // eslint-disable-next-line no-restricted-globals
-self.onmessage = ({ data }) => {
+self.onmessage = async ({ data }) => {
   if (
     "type" in data &&
     data.type ===
       ("generateSimplePaths" satisfies GenerateSimplePathsRequestMessage["type"])
   ) {
     const { params } = data as GenerateSimplePathsRequestMessage;
-    const result = generateSimplePaths(params);
+
+    const requestId = generateUuid();
+    activeRequestId = requestId;
+
+    const result = await generateSimplePaths({ ...params, requestId });
+
+    if (result === "cancelled") {
+      // eslint-disable-next-line no-console
+      console.info(
+        `Pathfinding request ${requestId} cancelled, superseded by a subsequent request`,
+      );
+      return;
+    }
+
     // eslint-disable-next-line no-restricted-globals
     self.postMessage({
       type: "generateSimplePathsResult",

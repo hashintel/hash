@@ -1,0 +1,31 @@
+exclude = ["node_modules/**"]
+include = ["**/Cargo.toml", ".taplo.toml"]
+
+[formatting]
+align_entries       = true
+array_auto_collapse = false
+array_auto_expand   = false
+indent_string       = "    "
+inline_table_expand = false
+
+[[rule]]
+include = ["**/Cargo.toml"]
+keys    = ["dependencies", "dev-dependencies", "build-dependencies", "workspace.dependencies"]
+
+[rule.formatting]
+reorder_keys = true
+
+[[rule]]
+include = ["**/Cargo.toml"]
+keys    = ["workspace"]
+
+[rule.formatting]
+reorder_arrays = true
+reorder_keys   = true
+
+[[rule]]
+include = [".taplo.toml"]
+
+[rule.formatting]
+align_entries = true
+reorder_keys  = true

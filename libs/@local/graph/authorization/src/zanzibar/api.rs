@@ -222,7 +222,7 @@ where
         &self,
         actor: AccountId,
         permission: EntityPermission,
-        entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = EntityId, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> Result<(HashMap<EntityUuid, bool>, Zookie<'static>), Report<CheckError>> {
         let response = self
@@ -318,7 +318,7 @@ where
         &self,
         actor: AccountId,
         permission: EntityTypePermission,
-        entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send> + Send,
+        entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         let response = self
@@ -416,7 +416,7 @@ where
         &self,
         actor: AccountId,
         permission: PropertyTypePermission,
-        property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send> + Send,
+        property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         let response = self
@@ -512,7 +512,7 @@ where
         &self,
         actor: AccountId,
         permission: DataTypePermission,
-        data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send> + Send,
+        data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         let response = self
@@ -617,7 +617,7 @@ where
 
     async fn check_permissions<O, R, S>(
         &self,
-        relationships: impl IntoIterator<Item = (O, R, S)> + Send,
+        relationships: impl IntoIterator<Item = (O, R, S), IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> Result<
         BulkCheckResponse<impl IntoIterator<Item = BulkCheckItem<O, R, S>>>,

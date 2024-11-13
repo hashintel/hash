@@ -66,6 +66,7 @@ use hash_graph_types::{
 use hash_temporal_client::TemporalClient;
 use tarpc::context;
 use tokio::net::ToSocketAddrs;
+use tracing::Instrument as _;
 use type_system::{
     schema::{DataType, DomainValidator, EntityType, EntityTypeReference, PropertyType},
     url::VersionedUrl,
@@ -381,9 +382,9 @@ where
                     "fetching ontology types from type fetcher",
                     urls=?ontology_urls
                 );
-                let _enter = span.enter();
                 fetcher
                     .fetch_ontology_types(context::current(), ontology_urls)
+                    .instrument(span)
                     .await
                     .change_context(QueryError)?
                     .change_context(QueryError)?

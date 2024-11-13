@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "hql-diagnostics"
+name              = "hql-diagnostics"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,31 +10,31 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hql-span = { workspace = true, public = true }
-error-stack = { workspace = true, public = true, features = ["unstable"]}
+error-stack = { workspace = true, public = true, features = ["unstable"] }
+hql-span    = { workspace = true, public = true }
 
 # Public third-party dependencies
-anstyle = { workspace = true, public = true }
-ariadne = { workspace = true, public = true }
-serde = { workspace = true, public = true, optional = true, features = ["derive"] }
+anstyle   = { workspace = true, public = true }
+ariadne   = { workspace = true, public = true }
+serde     = { workspace = true, public = true, optional = true, features = ["derive"] }
 text-size = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
 anstyle-yansi = { workspace = true }
-serde_with = { workspace = true, features = ["std", "macros"], optional = true }
-thiserror = { workspace = true }
+serde_with    = { workspace = true, optional = true, features = ["std", "macros"] }
+thiserror     = { workspace = true }
 
 [dev-dependencies]
-jsonptr = "0.6.0"
+jsonptr    = "0.6.0"
 serde_json = { workspace = true }
 
 [features]
 serde = ["dep:serde", "dep:serde_with", "hql-span/serde"]
 
 [[example]]
-name = "jexpr"
+name              = "jexpr"
 required-features = ["serde"]
 
 [lints]

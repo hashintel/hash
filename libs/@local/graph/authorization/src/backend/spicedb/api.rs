@@ -351,7 +351,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
     #[expect(clippy::too_many_lines)]
     async fn check_permissions<O, R, S>(
         &self,
-        relationships: impl IntoIterator<Item = (O, R, S)> + Send,
+        relationships: impl IntoIterator<Item = (O, R, S), IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> Result<
         BulkCheckResponse<impl IntoIterator<Item = BulkCheckItem<O, R, S>>>,
@@ -451,28 +451,34 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             response: Response,
         }
 
-        let request = BulkCheckPermissionRequest::<O, R, S> {
-            consistency: consistency.into(),
-            items: relationships
-                .into_iter()
-                .map(
-                    |(resource, permission, subject)| BulkCheckPermissionRequestItem {
-                        resource,
-                        permission,
-                        subject,
-                    },
-                )
-                .collect(),
-        };
+        let mut current_token = None;
+        let mut relationships = relationships.into_iter().peekable();
+        let mut permissions = Vec::with_capacity(relationships.size_hint().0);
+        let checked_at = loop {
+            let request = BulkCheckPermissionRequest::<O, R, S> {
+                consistency: current_token
+                    .as_ref()
+                    .map_or(consistency, Consistency::AtLeastAsFresh)
+                    .into(),
+                items: relationships
+                    .by_ref()
+                    .take(10000)
+                    .map(
+                        |(resource, permission, subject)| BulkCheckPermissionRequestItem {
+                            resource,
+                            permission,
+                            subject,
+                        },
+                    )
+                    .collect(),
+            };
 
-        let response: BulkCheckPermissionResponse<O, R, S> = self
-            .call("/v1/experimental/permissions/bulkcheckpermission", &request)
-            .await
-            .change_context(CheckError)?;
+            let response: BulkCheckPermissionResponse<O, R, S> = self
+                .call("/v1/experimental/permissions/bulkcheckpermission", &request)
+                .await
+                .change_context(CheckError)?;
 
-        Ok(BulkCheckResponse {
-            checked_at: response.checked_at.token,
-            permissions: response.pairs.into_iter().map(|pair| BulkCheckItem {
+            permissions.extend(response.pairs.into_iter().map(|pair| BulkCheckItem {
                 subject: pair.request.subject,
                 permission: pair.request.permission,
                 resource: pair.request.resource,
@@ -480,7 +486,17 @@ impl ZanzibarBackend for SpiceDbOpenApi {
                     Response::Item(item) => Ok(item.permissionship.into()),
                     Response::Error(error) => Err(error),
                 },
-            }),
+            }));
+
+            if relationships.peek().is_none() {
+                break response.checked_at.token;
+            }
+            current_token = Some(response.checked_at.token);
+        };
+
+        Ok(BulkCheckResponse {
+            permissions,
+            checked_at,
         })
     }
 

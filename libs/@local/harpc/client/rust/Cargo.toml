@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "harpc-client"
+name              = "harpc-client"
 authors.workspace = true
 version.workspace = true
 edition.workspace = true
@@ -10,28 +10,28 @@ publish.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-harpc-tower = { workspace = true, public = true }
 harpc-system = { workspace = true, public = true }
+harpc-tower  = { workspace = true, public = true }
 
 # Public third-party dependencies
-tower = { workspace = true, public = true }
 serde-value = { version = "0.7.0", public = true }
+tower       = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack = { workspace = true, features = ["unstable", "futures"] }
 harpc-codec = { workspace = true }
-harpc-net = { workspace = true }
+harpc-net   = { workspace = true }
 harpc-types = { workspace = true }
 
 # Private third-party dependencies
-bytes = { workspace = true }
+bytes        = { workspace = true }
 derive-where = { workspace = true }
-futures = { workspace = true }
-multiaddr = { workspace = true }
-thiserror = { workspace = true }
-tokio-util = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-derive_more = { workspace = true, features = ["display"] }
+derive_more  = { workspace = true, features = ["display"] }
+futures      = { workspace = true }
+multiaddr    = { workspace = true }
+serde        = { workspace = true, features = ["derive"] }
+thiserror    = { workspace = true }
+tokio-util   = { workspace = true }
 
 [lints]
 workspace = true

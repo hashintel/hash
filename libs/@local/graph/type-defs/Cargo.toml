@@ -1,13 +1,13 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "hash-graph-type-defs"
+name              = "hash-graph-type-defs"
+description       = "HASH Graph type definitions"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
 authors.workspace = true
-description = "HASH Graph type definitions"
 
 [package.metadata.sync.turborepo]
 extra-dependencies = [
