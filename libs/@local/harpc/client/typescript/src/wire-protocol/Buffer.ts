@@ -135,3 +135,34 @@ export const getU64 = (
 
   return [value, make(impl.value, impl.index + 8, Read)];
 };
+
+export const putSlice: {
+  (value: Uint8Array): (buffer: Buffer<Write>) => Buffer<Write>;
+  (buffer: Buffer<Write>, value: Uint8Array): Buffer<Write>;
+} = Function.dual(
+  2,
+  (buffer: BufferImpl<Write>, value: Uint8Array): Buffer<Write> => {
+    let index = buffer.index;
+
+    const uint8Array = new Uint8Array(
+      buffer.value.buffer,
+      buffer.index,
+      value.length,
+    );
+    uint8Array.set(value);
+    index += value.length;
+
+    return make(buffer.value, index, Write);
+  },
+);
+
+export const getSlice = (
+  buffer: Buffer<Read>,
+  length: number,
+): [value: Uint8Array, buffer: Buffer<Read>] => {
+  const impl = buffer as unknown as BufferImpl<Read>;
+  const value = new Uint8Array(impl.value.buffer, impl.index, length);
+  const index = impl.index + length;
+
+  return [value, make(impl.value, index, Read)];
+};

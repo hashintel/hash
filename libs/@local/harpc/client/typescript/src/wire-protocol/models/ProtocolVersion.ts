@@ -1,3 +1,6 @@
+import { Function } from "effect";
+import * as Buffer from "../Buffer.js";
+
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/ProtocolVersion",
 );
@@ -22,5 +25,23 @@ const make = (value: number): ProtocolVersion => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return object;
 };
+
+export const encode: {
+  (
+    version: ProtocolVersion,
+  ): (buffer: Buffer.Buffer<Buffer.Write>) => Buffer.Buffer<Buffer.Write>;
+  (
+    buffer: Buffer.Buffer<Buffer.Write>,
+    version: ProtocolVersion,
+  ): Buffer.Buffer<Buffer.Write>;
+} = Function.dual(
+  2,
+  (
+    buffer: Buffer.Buffer<Buffer.Write>,
+    version: ProtocolVersion,
+  ): Buffer.Buffer<Buffer.Write> => {
+    return Buffer.putU8(buffer, version.value);
+  },
+);
 
 export const V1: ProtocolVersion = make(1);
