@@ -1,3 +1,5 @@
+import { Function } from "effect";
+
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Buffer",
 );
@@ -23,7 +25,11 @@ const BufferProto: Omit<BufferImpl<unknown>, "value" | "index" | "mode"> = {
   [TypeId]: TypeId,
 };
 
-export const makeRead = (view: DataView): Buffer<Read> => {
+export const make = <T>(
+  view: DataView,
+  index: number,
+  mode: T,
+): BufferImpl<T> => {
   // the buffer we write to is always a single page of 64KiB
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const object = Object.create(BufferProto);
@@ -31,20 +37,101 @@ export const makeRead = (view: DataView): Buffer<Read> => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   object.value = view;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.index = 0;
+  object.index = index;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.mode = Read;
+  object.mode = mode;
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return object;
 };
 
-export const makeWrite = (): Buffer<Write> => {
-  const object = makeRead(
-    new DataView(new ArrayBuffer(64 * 1024)),
-  ) as unknown as Buffer<Write>;
+export const makeRead = (view: DataView): Buffer<Read> => make(view, 0, Read);
 
-  object.mode = Write;
+// the buffer we write to is always a single page of 64KiB
+export const makeWrite = (): Buffer<Write> =>
+  make(new DataView(new ArrayBuffer(64 * 1024)), 0, Write);
 
-  return object;
+export const putU8: {
+  (value: number): (buffer: Buffer<Write>) => Buffer<Write>;
+  (buffer: Buffer<Write>, value: number): Buffer<Write>;
+} = Function.dual(
+  2,
+  (buffer: BufferImpl<Write>, value: number): Buffer<Write> => {
+    // the buffer is shared, but the index isn't
+    buffer.value.setUint8(buffer.index, value);
+
+    return make(buffer.value, buffer.index + 1, Write);
+  },
+);
+
+export const getU8 = (
+  buffer: Buffer<Read>,
+): [value: number, buffer: Buffer<Read>] => {
+  const impl = buffer as unknown as BufferImpl<Read>;
+  const value = impl.value.getUint8(impl.index);
+
+  return [value, make(impl.value, impl.index + 1, Read)];
+};
+
+export const putU16: {
+  (value: number): (buffer: Buffer<Write>) => Buffer<Write>;
+  (buffer: Buffer<Write>, value: number): Buffer<Write>;
+} = Function.dual(
+  2,
+  (buffer: BufferImpl<Write>, value: number): Buffer<Write> => {
+    buffer.value.setUint16(buffer.index, value, false);
+
+    return make(buffer.value, buffer.index + 2, Write);
+  },
+);
+
+export const getU16 = (
+  buffer: Buffer<Read>,
+): [value: number, buffer: Buffer<Read>] => {
+  const impl = buffer as unknown as BufferImpl<Read>;
+  const value = impl.value.getUint16(impl.index, false);
+
+  return [value, make(impl.value, impl.index + 2, Read)];
+};
+
+export const putU32: {
+  (value: number): (buffer: Buffer<Write>) => Buffer<Write>;
+  (buffer: Buffer<Write>, value: number): Buffer<Write>;
+} = Function.dual(
+  2,
+  (buffer: BufferImpl<Write>, value: number): Buffer<Write> => {
+    buffer.value.setUint32(buffer.index, value, false);
+
+    return make(buffer.value, buffer.index + 4, Write);
+  },
+);
+
+export const getU32 = (
+  buffer: Buffer<Read>,
+): [value: number, buffer: Buffer<Read>] => {
+  const impl = buffer as unknown as BufferImpl<Read>;
+  const value = impl.value.getUint32(impl.index, false);
+
+  return [value, make(impl.value, impl.index + 4, Read)];
+};
+
+export const putU64: {
+  (value: bigint): (buffer: Buffer<Write>) => Buffer<Write>;
+  (buffer: Buffer<Write>, value: bigint): Buffer<Write>;
+} = Function.dual(
+  2,
+  (buffer: BufferImpl<Write>, value: bigint): Buffer<Write> => {
+    buffer.value.setBigUint64(buffer.index, value, false);
+
+    return make(buffer.value, buffer.index + 8, Write);
+  },
+);
+
+export const getU64 = (
+  buffer: Buffer<Read>,
+): [value: bigint, buffer: Buffer<Read>] => {
+  const impl = buffer as unknown as BufferImpl<Read>;
+  const value = impl.value.getBigUint64(impl.index, false);
+
+  return [value, make(impl.value, impl.index + 8, Read)];
 };
