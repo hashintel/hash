@@ -32,7 +32,8 @@
       "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*.ts"],
       "@local/status": ["../status/typescript/pkg/src/main.ts"],
       "@local/hash-subgraph": ["../hash-subgraph/src/main.ts"],
-      "@local/hash-subgraph/*": ["../hash-subgraph/src/*.ts"]
+      "@local/hash-subgraph/*": ["../hash-subgraph/src/*.ts"],
+      "@local/harpc-client": ["../harpc/client/typescript/src/index.ts"]
     },
     "outDir": "./dist"
   },
