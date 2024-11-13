@@ -20,7 +20,10 @@ enumflags2 = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-thiserror = { workspace = true }
+base64     = { version = "0.22.1", optional = true }
+serde      = { workspace = true, features = ["derive"], optional = true }
+serde_json = { workspace = true, optional = true }
+thiserror  = { workspace = true }
 
 [dev-dependencies]
 expect-test     = { workspace = true }
@@ -31,6 +34,13 @@ test-strategy   = { workspace = true }
 
 [features]
 test-utils = []
+serde      = ["dep:serde", "enumflags2/serde", "bytes/serde", "harpc-types/serde"]
+cli        = ["dep:serde_json", "dep:base64", "serde"]
+
 
 [lints]
 workspace = true
+
+[[bin]]
+name              = "codec"
+required-features = ["cli"]

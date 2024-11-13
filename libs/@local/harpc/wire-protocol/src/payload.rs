@@ -4,6 +4,7 @@ use error_stack::Report;
 use crate::codec::{Buffer, BufferError, BytesEncodeError, Decode, Encode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct Payload(
     // 1024 ensures that we spill over into the second length byte while still having a good

@@ -1916,6 +1916,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d232db7f5956f3f14313dc2f87985c58bd2c695ce124c8cdd984e08e15ac133d"
 dependencies = [
  "enumflags2_derive",
+ "serde",
 ]
 
 [[package]]
@@ -2595,12 +2596,15 @@ dependencies = [
 name = "harpc-wire-protocol"
 version = "0.0.0"
 dependencies = [
+ "base64 0.22.1",
  "bytes",
  "enumflags2",
  "error-stack",
  "expect-test",
  "harpc-types",
  "proptest",
+ "serde",
+ "serde_json",
  "similar-asserts",
  "test-strategy",
  "thiserror 2.0.3",
