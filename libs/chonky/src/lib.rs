@@ -69,8 +69,9 @@ pub mod pdf_segmentation {
     ///
     /// # Errors
     ///
-    /// Return an [`PdfiumError::ImageError`] if there was a problem with the image processing
-    /// operation, occurs when image cannot be encoded into specific image format
+    /// Return an [`ChonkyError::Pdfium`]  if there was a
+    /// problem with the image processing operation, occurs when image cannot be encoded into
+    /// specific image format
     pub fn pdf_to_images(pdf: &PdfDocument) -> Result<Vec<DynamicImage>, Report<ChonkyError>> {
         let mut images: Vec<DynamicImage> = Vec::new();
 
@@ -100,7 +101,7 @@ pub mod pdf_segmentation {
     ///
     /// # Errors
     ///
-    /// Return an [`PdfiumError::CoordinateConversionFunctionIndicatedError`] if there was a problem
+    /// Return an [`ChonkyError::Pdfium`] if there was a problem
     /// with converting the pdfs dimensions to pixels
     fn create_empty_bitmap<'a>(
         pdf: &'a PdfDocument,
@@ -153,7 +154,7 @@ pub mod pdf_segmentation {
     ///
     /// Errors#
     ///
-    /// [`PdfiumError::ImageError`] when the image had an error being processed
+    /// [`ChonkyError::Pdfium`] when the image had an error being processed
     fn as_image(bitmap: &PdfBitmap) -> Result<DynamicImage, Report<ChonkyError>> {
         let bytes = bitmap.as_rgba_bytes();
 

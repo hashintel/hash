@@ -25,7 +25,7 @@ The library relies on common Rust tools as configured in the repository root. Th
 
 ## Usage
 
-To run this package, a compiled static library of `pdfium-render` must be provided. The library should be held in `libs/pdfium-lib` folder in the `Chonky` package, the precompiled binary for MacOS has been included in this repo. We pass the environment variable of the full path of the libary once when running `cargo build`
+To run this package, a compiled static library of `pdfium-render` must be provided. The library should be held in `libs/pdfium-lib` folder in the `Chonky` package, the precompiled binary for `MacOS` has been included in this repo. We pass the environment variable of the full path of the libary once when running `cargo build`
 
 ```sh
 PDFIUM_STATIC_LIB_PATH=/path/to/static/lib cargo build
