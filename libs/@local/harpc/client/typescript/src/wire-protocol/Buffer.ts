@@ -20,8 +20,8 @@ export class UnexpectedEndOfBufferError extends Data.TaggedError(
 }
 
 export interface Buffer<T> {
-  [TypeId]: TypeId;
-  mode: T;
+  readonly [TypeId]: TypeId;
+  readonly mode: T;
 }
 
 export type WriteBuffer = Buffer<Write>;
@@ -178,6 +178,7 @@ export const getU32 = getInt(4, (view, byteOffset) =>
   view.getUint32(byteOffset, false),
 );
 
+// TODO: U64 should make use of BigInt
 export const putU64: WriteSignature = Function.dual(
   2,
   putInt(8, (view, byteOffset, value) =>

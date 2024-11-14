@@ -10,6 +10,7 @@ import {
   Predicate,
 } from "effect";
 
+import { U32_MAX, U32_MIN } from "../../../constants.js";
 import * as Buffer from "../../Buffer.js";
 
 const TypeId: unique symbol = Symbol(
@@ -17,14 +18,14 @@ const TypeId: unique symbol = Symbol(
 );
 export type TypeId = typeof TypeId;
 
-export const MIN_VALUE = 0;
-export const MAX_VALUE = 4_294_967_295;
+export const MIN_VALUE = U32_MIN;
+export const MAX_VALUE = U32_MAX;
 
 export interface RequestId
   extends Equal.Equal,
     Inspectable.Inspectable,
     Pipeable.Pipeable {
-  [TypeId]: TypeId;
+  readonly [TypeId]: TypeId;
   readonly value: number;
 }
 

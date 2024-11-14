@@ -32,7 +32,7 @@ export interface Protocol
   extends Equal.Equal,
     Inspectable.Inspectable,
     Pipeable.Pipeable {
-  [TypeId]: TypeId;
+  readonly [TypeId]: TypeId;
   readonly version: ProtocolVersion.ProtocolVersion;
 }
 
@@ -104,13 +104,13 @@ export const encode: {
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {
-    const [magic, bufferNext] = yield* Buffer.getSlice(buffer, 5);
+    const magic = yield* Buffer.getSlice(buffer, 5);
 
     if (magic.some((byte, index) => byte !== MAGIC[index])) {
       yield* new InvalidMagicError({ received: magic });
     }
 
-    const version = yield* ProtocolVersion.decode(bufferNext);
+    const version = yield* ProtocolVersion.decode(buffer);
 
     return make(version);
   });

@@ -8,7 +8,7 @@ const TypeId: unique symbol = Symbol(
 export type TypeId = typeof TypeId;
 
 export interface RequestIdProducer {
-  [TypeId]: TypeId;
+  readonly [TypeId]: TypeId;
 }
 
 interface RequestIdProducerImpl extends RequestIdProducer {

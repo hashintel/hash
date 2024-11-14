@@ -32,7 +32,7 @@ export interface ProtocolVersion
   extends Equal.Equal,
     Inspectable.Inspectable,
     Pipeable.Pipeable {
-  [TypeId]: TypeId;
+  readonly [TypeId]: TypeId;
   readonly value: number;
 }
 
@@ -101,7 +101,7 @@ export const encode: {
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {
-    const [version, _] = yield* Buffer.getU8(buffer);
+    const version = yield* Buffer.getU8(buffer);
 
     if (version !== 1) {
       yield* new InvalidProtocolVersionError({ received: version });

@@ -1,0 +1,125 @@
+import type { FastCheck } from "effect";
+import {
+  Effect,
+  Equal,
+  Function,
+  Hash,
+  Inspectable,
+  pipe,
+  Pipeable,
+  Predicate,
+} from "effect";
+
+import type * as Buffer from "../wire-protocol/Buffer.js";
+import * as SubsystemId from "./SubsystemId.js";
+import * as Version from "./Version.js";
+
+const TypeId: unique symbol = Symbol(
+  "@local/harpc-client/wire-protocol/types/SubsystemDescriptor",
+);
+export type TypeId = typeof TypeId;
+
+export interface SubsystemDescriptor
+  extends Equal.Equal,
+    Inspectable.Inspectable,
+    Pipeable.Pipeable {
+  readonly [TypeId]: TypeId;
+
+  readonly id: SubsystemId.SubsystemId;
+  readonly version: Version.Version;
+}
+
+const SubsystemDescriptorProto: Omit<SubsystemDescriptor, "id" | "version"> = {
+  [TypeId]: TypeId,
+
+  [Equal.symbol](this: SubsystemDescriptor, that: Equal.Equal) {
+    return (
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      isSubsystemDescriptor(that) &&
+      Equal.equals(this.id, that.id) &&
+      Equal.equals(this.version, that.version)
+    );
+  },
+
+  [Hash.symbol](this: SubsystemDescriptor) {
+    return pipe(
+      Hash.hash(this[TypeId]),
+      Hash.combine(Hash.hash(this.id)),
+      Hash.combine(Hash.hash(this.version)),
+      Hash.cached(this),
+    );
+  },
+
+  toString(this: SubsystemDescriptor) {
+    return `SubsystemDescriptor(${this.id.toString()}, ${this.version.toString()})`;
+  },
+
+  toJSON(this: SubsystemDescriptor) {
+    return {
+      _id: "SubsystemDescriptor",
+      id: this.id.toJSON(),
+      version: this.version.toJSON(),
+    };
+  },
+
+  [Inspectable.NodeInspectSymbol]() {
+    return this.toJSON();
+  },
+
+  pipe() {
+    // eslint-disable-next-line prefer-rest-params
+    return Pipeable.pipeArguments(this, arguments);
+  },
+};
+
+export const make = (
+  id: SubsystemId.SubsystemId,
+  version: Version.Version,
+): SubsystemDescriptor => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const object = Object.create(SubsystemDescriptorProto);
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  object.id = id;
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  object.version = version;
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return object;
+};
+
+export const encode: {
+  (
+    descriptor: SubsystemDescriptor,
+  ): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
+  (
+    buffer: Buffer.WriteBuffer,
+    descriptor: SubsystemDescriptor,
+  ): Buffer.WriteResult;
+} = Function.dual(
+  2,
+  (buffer: Buffer.WriteBuffer, descriptor: SubsystemDescriptor) =>
+    pipe(
+      buffer,
+      SubsystemId.encode(descriptor.id),
+      Effect.andThen(Version.encode(descriptor.version)),
+    ),
+);
+
+export const decode = (buffer: Buffer.ReadBuffer) =>
+  Effect.gen(function* () {
+    const id = yield* SubsystemId.decode(buffer);
+    const version = yield* Version.decode(buffer);
+
+    return make(id, version);
+  });
+
+export const isSubsystemDescriptor = (
+  value: unknown,
+): value is SubsystemDescriptor => Predicate.hasProperty(value, TypeId);
+
+export const arbitrary = (fc: typeof FastCheck) =>
+  fc
+    .tuple(SubsystemId.arbitrary(fc), Version.arbitrary(fc))
+    .map(Function.tupled(make));

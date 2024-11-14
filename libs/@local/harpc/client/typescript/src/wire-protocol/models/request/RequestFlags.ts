@@ -28,7 +28,7 @@ export interface RequestFlags
   extends Equal.Equal,
     Inspectable.Inspectable,
     Pipeable.Pipeable {
-  [TypeId]: TypeId;
+  readonly [TypeId]: TypeId;
   readonly flags: HashSet.HashSet<Flag>;
 }
 
