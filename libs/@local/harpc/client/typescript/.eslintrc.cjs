@@ -4,6 +4,7 @@ module.exports = {
   rules: {
     "@typescript-eslint/no-redeclare": "off",
     "unicorn/filename-case": "off",
+    "func-names": "off",
   },
   ignorePatterns: require("@local/eslint-config/generate-ignore-patterns.cjs")(
     __dirname,

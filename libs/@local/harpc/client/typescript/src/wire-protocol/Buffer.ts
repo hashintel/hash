@@ -1,4 +1,5 @@
-import { Function } from "effect";
+import { Data, Effect, Either, Function } from "effect";
+import { Unexpected } from "effect/ParseResult";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Buffer",
@@ -10,6 +11,14 @@ export type Read = typeof Read;
 
 const Write: unique symbol = Symbol("@local/harpc-client/wire-protocol/Write");
 export type Write = typeof Write;
+
+export class UnexpectedEndOfBufferError extends Data.TaggedError(
+  "UnexpectedEndOfBufferError",
+)<{ index: number; length: number }> {
+  get message(): string {
+    return `Unexpected end of buffer at index ${this.index} of length ${this.length}`;
+  }
+}
 
 export interface Buffer<T> {
   [TypeId]: TypeId;
@@ -28,7 +37,23 @@ const BufferProto: Omit<BufferImpl<unknown>, "value" | "index" | "mode"> = {
   [TypeId]: TypeId,
 };
 
-export const make = <T>(
+const validateBounds = <T>(
+  buffer: BufferImpl<T>,
+  width: number,
+): Either.Either<void, UnexpectedEndOfBufferError> => {
+  if (buffer.index + width > buffer.value.byteLength) {
+    return Either.left(
+      new UnexpectedEndOfBufferError({
+        index: buffer.index,
+        length: buffer.value.byteLength,
+      }),
+    );
+  }
+
+  return Either.right(undefined);
+};
+
+const makeUnchecked = <T>(
   view: DataView,
   index: number,
   mode: T,
@@ -48,125 +73,132 @@ export const make = <T>(
   return object;
 };
 
-export const makeRead = (view: DataView): Buffer<Read> => make(view, 0, Read);
+export const makeRead = (view: DataView): Buffer<Read> =>
+  makeUnchecked(view, 0, Read);
 
 // the buffer we write to is always a single page of 64KiB
 export const makeWrite = (): Buffer<Write> =>
-  make(new DataView(new ArrayBuffer(64 * 1024)), 0, Write);
+  makeUnchecked(new DataView(new ArrayBuffer(64 * 1024)), 0, Write);
 
-// TODO: these need to error, what if we're no longer in bounds?!
-export const putU8: {
-  (value: number): (buffer: Buffer<Write>) => Buffer<Write>;
-  (buffer: Buffer<Write>, value: number): Buffer<Write>;
-} = Function.dual(
+const putInt =
+  (
+    width: 1 | 2 | 4 | 8,
+    set: (view: DataView, byteOffset: number, value: number) => void,
+  ) =>
+  (
+    buffer: BufferImpl<Write>,
+    value: number,
+  ): Either.Either<Buffer<Write>, UnexpectedEndOfBufferError> =>
+    Either.gen(function* () {
+      yield* validateBounds(buffer, width);
+
+      set(buffer.value, buffer.index, value);
+
+      return makeUnchecked(buffer.value, buffer.index + width, Write);
+    });
+
+const getInt =
+  (width: 1 | 2 | 4 | 8, get: (view: DataView, byteOffset: number) => number) =>
+  (
+    buffer: Buffer<Read>,
+  ): Either.Either<
+    [value: number, buffer: Buffer<Read>],
+    UnexpectedEndOfBufferError
+  > =>
+    Either.gen(function* () {
+      yield* validateBounds(buffer as BufferImpl<Read>, width);
+
+      const impl = buffer as unknown as BufferImpl<Read>;
+      const value = get(impl.value, impl.index);
+
+      return [
+        value,
+        makeUnchecked(impl.value, impl.index + width, Read),
+      ] as const;
+    });
+
+type PutReturn = Either.Either<Buffer<Write>, UnexpectedEndOfBufferError>;
+type PutSignature = {
+  (value: number): (buffer: Buffer<Write>) => PutReturn;
+  (buffer: Buffer<Write>, value: number): PutReturn;
+};
+export const putU8: PutSignature = Function.dual(
   2,
-  (buffer: BufferImpl<Write>, value: number): Buffer<Write> => {
-    // the buffer is shared, but the index isn't
-    buffer.value.setUint8(buffer.index, value);
-
-    return make(buffer.value, buffer.index + 1, Write);
-  },
+  putInt(1, (view, byteOffset, value) => view.setUint8(byteOffset, value)),
 );
 
-export const getU8 = (
-  buffer: Buffer<Read>,
-): [value: number, buffer: Buffer<Read>] => {
-  const impl = buffer as unknown as BufferImpl<Read>;
-  const value = impl.value.getUint8(impl.index);
+export const getU8 = getInt(1, (view, byteOffset) => view.getUint8(byteOffset));
 
-  return [value, make(impl.value, impl.index + 1, Read)];
-};
-
-export const putU16: {
-  (value: number): (buffer: Buffer<Write>) => Buffer<Write>;
-  (buffer: Buffer<Write>, value: number): Buffer<Write>;
-} = Function.dual(
+export const putU16: PutSignature = Function.dual(
   2,
-  (buffer: BufferImpl<Write>, value: number): Buffer<Write> => {
-    buffer.value.setUint16(buffer.index, value, false);
-
-    return make(buffer.value, buffer.index + 2, Write);
-  },
+  putInt(2, (view, byteOffset, value) =>
+    view.setUint16(byteOffset, value, false),
+  ),
 );
 
-export const getU16 = (
-  buffer: Buffer<Read>,
-): [value: number, buffer: Buffer<Read>] => {
-  const impl = buffer as unknown as BufferImpl<Read>;
-  const value = impl.value.getUint16(impl.index, false);
-
-  return [value, make(impl.value, impl.index + 2, Read)];
-};
-
-export const putU32: {
-  (value: number): (buffer: Buffer<Write>) => Buffer<Write>;
-  (buffer: Buffer<Write>, value: number): Buffer<Write>;
-} = Function.dual(
-  2,
-  (buffer: BufferImpl<Write>, value: number): Buffer<Write> => {
-    buffer.value.setUint32(buffer.index, value, false);
-
-    return make(buffer.value, buffer.index + 4, Write);
-  },
+export const getU16 = getInt(2, (view, byteOffset) =>
+  view.getUint16(byteOffset, false),
 );
 
-export const getU32 = (
-  buffer: Buffer<Read>,
-): [value: number, buffer: Buffer<Read>] => {
-  const impl = buffer as unknown as BufferImpl<Read>;
-  const value = impl.value.getUint32(impl.index, false);
-
-  return [value, make(impl.value, impl.index + 4, Read)];
-};
-
-export const putU64: {
-  (value: bigint): (buffer: Buffer<Write>) => Buffer<Write>;
-  (buffer: Buffer<Write>, value: bigint): Buffer<Write>;
-} = Function.dual(
+export const putU32: PutSignature = Function.dual(
   2,
-  (buffer: BufferImpl<Write>, value: bigint): Buffer<Write> => {
-    buffer.value.setBigUint64(buffer.index, value, false);
-
-    return make(buffer.value, buffer.index + 8, Write);
-  },
+  putInt(4, (view, byteOffset, value) =>
+    view.setUint32(byteOffset, value, false),
+  ),
 );
 
-export const getU64 = (
-  buffer: Buffer<Read>,
-): [value: bigint, buffer: Buffer<Read>] => {
-  const impl = buffer as unknown as BufferImpl<Read>;
-  const value = impl.value.getBigUint64(impl.index, false);
+export const getU32 = getInt(4, (view, byteOffset) =>
+  view.getUint32(byteOffset, false),
+);
 
-  return [value, make(impl.value, impl.index + 8, Read)];
-};
+export const putU64: PutSignature = Function.dual(
+  2,
+  putInt(8, (view, byteOffset, value) =>
+    view.setBigUint64(byteOffset, BigInt(value), false),
+  ),
+);
+
+export const getU64 = getInt(8, (view, byteOffset) =>
+  Number(view.getBigUint64(byteOffset, false)),
+);
 
 export const putSlice: {
-  (value: Uint8Array): (buffer: Buffer<Write>) => Buffer<Write>;
-  (buffer: Buffer<Write>, value: Uint8Array): Buffer<Write>;
+  (value: Uint8Array): (buffer: Buffer<Write>) => PutReturn;
+  (buffer: Buffer<Write>, value: Uint8Array): PutReturn;
 } = Function.dual(
   2,
-  (buffer: BufferImpl<Write>, value: Uint8Array): Buffer<Write> => {
-    let index = buffer.index;
+  (buffer: BufferImpl<Write>, value: Uint8Array): PutReturn =>
+    Either.gen(function* () {
+      yield* validateBounds(buffer, value.length);
 
-    const uint8Array = new Uint8Array(
-      buffer.value.buffer,
-      buffer.index,
-      value.length,
-    );
-    uint8Array.set(value);
-    index += value.length;
+      let index = buffer.index;
 
-    return make(buffer.value, index, Write);
-  },
+      const uint8Array = new Uint8Array(
+        buffer.value.buffer,
+        buffer.index,
+        value.length,
+      );
+      uint8Array.set(value);
+      index += value.length;
+
+      return makeUnchecked(buffer.value, index, Write);
+    }),
 );
 
 export const getSlice = (
   buffer: Buffer<Read>,
   length: number,
-): [value: Uint8Array, buffer: Buffer<Read>] => {
-  const impl = buffer as unknown as BufferImpl<Read>;
-  const value = new Uint8Array(impl.value.buffer, impl.index, length);
-  const index = impl.index + length;
+): Either.Either<
+  [value: Uint8Array, buffer: Buffer<Read>],
+  UnexpectedEndOfBufferError
+> =>
+  Either.gen(function* () {
+    const impl = buffer as unknown as BufferImpl<Read>;
 
-  return [value, make(impl.value, index, Read)];
-};
+    yield* validateBounds(impl, length);
+
+    const value = new Uint8Array(impl.value.buffer, impl.index, length);
+    const index = impl.index + length;
+
+    return [value, makeUnchecked(impl.value, index, Read)] as const;
+  });

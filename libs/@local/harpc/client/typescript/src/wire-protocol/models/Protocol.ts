@@ -74,17 +74,12 @@ export const make = (version: ProtocolVersion.ProtocolVersion): Protocol => {
 };
 
 export const encode: {
-  (
-    protocol: Protocol,
-  ): (buffer: Buffer.Buffer<Buffer.Write>) => Buffer.Buffer<Buffer.Write>;
-  (
-    buffer: Buffer.Buffer<Buffer.Write>,
-    protocol: Protocol,
-  ): Buffer.Buffer<Buffer.Write>;
+  (protocol: Protocol): (buffer: Buffer.WriteBuffer) => Buffer.WriteBuffer;
+  (buffer: Buffer.WriteBuffer, protocol: Protocol): Buffer.WriteBuffer;
 } = Function.dual(
   2,
   (
-    buffer: Buffer.Buffer<Buffer.Write>,
+    buffer: Buffer.WriteBuffer,
     protocol: Protocol,
   ): Buffer.Buffer<Buffer.Write> => {
     return pipe(
@@ -94,6 +89,10 @@ export const encode: {
     );
   },
 );
+
+export const decode = (buffer: Buffer.ReadBuffer) => {
+  Buffer;
+};
 
 export const isProtocol = (value: unknown): value is Protocol =>
   Predicate.hasProperty(value, TypeId);
