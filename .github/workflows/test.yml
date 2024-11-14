@@ -136,6 +136,16 @@ jobs:
         if: always() && steps.tests.outputs.has-rust == 'true'
         run: sudo apt install protobuf-compiler
 
+      - name: Install PDFium
+        if: matrix.package == "@rust/chonky"
+        run: |
+          temp_dir=$(mktemp -d)
+          gh release download chromium/6721 --repo bblanchon/pdfium-binaries --pattern 'pdfium-linux-x64.tgz' --dir $temp_dir
+          tar -xzf $temp_dir/pdfium-linux-x64.tgz -C $temp_dir
+          mv $temp_dir/lib/* "${{ matrix.directory }}/libs/"
+          rm -rf $temp_dir
+          echo "PDFIUM_DYNAMIC_LIB_PATH="${{ matrix.directory }}/libs/" >> $GITHUB_ENV
+
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
