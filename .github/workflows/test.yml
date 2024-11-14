@@ -146,7 +146,7 @@ jobs:
           tar -xzf $temp_dir/pdfium-linux-x64.tgz -C $temp_dir
           mv $temp_dir/lib/* "${{ matrix.directory }}/libs/"
           rm -rf $temp_dir
-          echo "PDFIUM_DYNAMIC_LIB_PATH="${{ matrix.directory }}/libs/" >> $GITHUB_ENV
+          echo "PDFIUM_DYNAMIC_LIB_PATH='${{ matrix.directory }}/libs/'" >> $GITHUB_ENV
 
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
