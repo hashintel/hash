@@ -424,10 +424,11 @@ jobs:
         run: |
           echo "## Benchmark results" > /tmp/summary.md
           cat downloads/*/*.md >> /tmp/summary.md
+          cat /tmp/summary.md
 
       - name: Post comment
         uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
-        if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
+        if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success' && github.event.pull_request.head.repo.full_name == github.repository
         with:
           message-path: /tmp/summary.md
           message-id: benchmark-results
