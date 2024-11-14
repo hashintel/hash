@@ -1,4 +1,13 @@
-import { Function, pipe } from "effect";
+import type { FastCheck } from "effect";
+import {
+  Equal,
+  Function,
+  Hash,
+  Inspectable,
+  pipe,
+  Pipeable,
+  Predicate,
+} from "effect";
 
 import * as Buffer from "../Buffer.js";
 import * as ProtocolVersion from "./ProtocolVersion.js";
@@ -8,13 +17,49 @@ const TypeId: unique symbol = Symbol(
 );
 export type TypeId = typeof TypeId;
 
-export interface Protocol {
+export interface Protocol
+  extends Equal.Equal,
+    Inspectable.Inspectable,
+    Pipeable.Pipeable {
   [TypeId]: TypeId;
   version: ProtocolVersion.ProtocolVersion;
 }
 
 const ProtocolProto: Omit<Protocol, "version"> = {
   [TypeId]: TypeId,
+
+  [Equal.symbol](this: Protocol, that: Equal.Equal) {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    return isProtocol(that) && Equal.equals(this.version, that.version);
+  },
+
+  [Hash.symbol](this: Protocol) {
+    return pipe(
+      Hash.hash(this[TypeId]),
+      Hash.combine(Hash.hash(this.version)),
+      Hash.cached(this),
+    );
+  },
+
+  toString(this: Protocol) {
+    return `Protocol(${this.version.toString()})`;
+  },
+
+  toJSON(this: Protocol) {
+    return {
+      _id: "Protocol",
+      version: this.version.toJSON(),
+    };
+  },
+
+  [Inspectable.NodeInspectSymbol]() {
+    return this.toJSON();
+  },
+
+  pipe() {
+    // eslint-disable-next-line prefer-rest-params
+    return Pipeable.pipeArguments(this, arguments);
+  },
 };
 
 export const make = (version: ProtocolVersion.ProtocolVersion): Protocol => {
@@ -49,3 +94,12 @@ export const encode: {
     );
   },
 );
+
+export const isProtocol = (value: unknown): value is Protocol =>
+  Predicate.hasProperty(value, TypeId);
+
+export const arbitrary = (fc: typeof FastCheck) => {
+  const version = ProtocolVersion.arbitrary(fc);
+
+  return version.map(make);
+};

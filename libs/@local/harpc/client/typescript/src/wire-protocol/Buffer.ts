@@ -16,6 +16,9 @@ export interface Buffer<T> {
   mode: T;
 }
 
+export type WriteBuffer = Buffer<Write>;
+export type ReadBuffer = Buffer<Read>;
+
 interface BufferImpl<T> extends Buffer<T> {
   value: DataView;
   index: number;
@@ -51,6 +54,7 @@ export const makeRead = (view: DataView): Buffer<Read> => make(view, 0, Read);
 export const makeWrite = (): Buffer<Write> =>
   make(new DataView(new ArrayBuffer(64 * 1024)), 0, Write);
 
+// TODO: these need to error, what if we're no longer in bounds?!
 export const putU8: {
   (value: number): (buffer: Buffer<Write>) => Buffer<Write>;
   (buffer: Buffer<Write>, value: number): Buffer<Write>;
