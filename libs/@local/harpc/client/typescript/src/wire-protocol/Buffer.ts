@@ -1,4 +1,4 @@
-import { Data, Effect, Function } from "effect";
+import { Data, Effect, Function, SubscriptionRef } from "effect";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Buffer",
@@ -29,7 +29,7 @@ export type ReadBuffer = Buffer<Read>;
 
 interface BufferImpl<T> extends Buffer<T> {
   value: DataView;
-  index: number;
+  index: SubscriptionRef.SubscriptionRef<number>;
 }
 
 const BufferProto: Omit<BufferImpl<unknown>, "value" | "index" | "mode"> = {
@@ -38,47 +38,53 @@ const BufferProto: Omit<BufferImpl<unknown>, "value" | "index" | "mode"> = {
 
 const validateBounds = <T>(
   buffer: BufferImpl<T>,
-  width: number,
-): Effect.Effect<void, UnexpectedEndOfBufferError> => {
-  if (buffer.index + width > buffer.value.byteLength) {
-    return Effect.fail(
-      new UnexpectedEndOfBufferError({
-        index: buffer.index,
-        length: buffer.value.byteLength,
-      }),
-    );
-  }
-
-  return Effect.succeed(undefined);
-};
-
-const makeUnchecked = <T>(
-  view: DataView,
   index: number,
-  mode: T,
-): BufferImpl<T> => {
-  // the buffer we write to is always a single page of 64KiB
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(BufferProto);
+  width: number,
+): Effect.Effect<void, UnexpectedEndOfBufferError> =>
+  Effect.gen(function* () {
+    if (index + width > buffer.value.byteLength) {
+      yield* new UnexpectedEndOfBufferError({
+        index,
+        length: buffer.value.byteLength,
+      });
+    }
+  });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.value = view;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.index = index;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.mode = mode;
+const makeUnchecked = <T>(view: DataView, mode: T) =>
+  Effect.gen(function* () {
+    // the buffer we write to is always a single page of 64KiB
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const object = Object.create(BufferProto);
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
-};
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    object.value = view;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    object.index = yield* SubscriptionRef.make(0);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    object.mode = mode;
 
-export const makeRead = (view: DataView): Buffer<Read> =>
-  makeUnchecked(view, 0, Read);
+    return object as BufferImpl<T>;
+  });
+
+export const makeRead = (view: DataView) => makeUnchecked(view, Read);
 
 // the buffer we write to is always a single page of 64KiB
-export const makeWrite = (): Buffer<Write> =>
-  makeUnchecked(new DataView(new ArrayBuffer(64 * 1024)), 0, Write);
+export const makeWrite = () =>
+  makeUnchecked(new DataView(new ArrayBuffer(64 * 1024)), Write);
 
+/**
+ * Put a variable-length integer into the buffer.
+ *
+ * Writes an integer of specified width to the internal buffer at the current index.
+ *
+ * # Note
+ *
+ * This operation mutates the buffer by writing the value and advancing the index.
+ *
+ * # Errors
+ *
+ * May fail with `UnexpectedEndOfBufferError` if there's not enough space in the buffer.
+ */
 const putInt =
   (
     width: 1 | 2 | 4 | 8,
@@ -88,33 +94,45 @@ const putInt =
     buffer: BufferImpl<Write>,
     value: number,
   ): Effect.Effect<Buffer<Write>, UnexpectedEndOfBufferError> =>
-    Effect.gen(function* () {
-      yield* validateBounds(buffer, width);
+    SubscriptionRef.modifyEffect(buffer.index, (index) =>
+      Effect.gen(function* () {
+        yield* validateBounds(buffer, index, width);
 
-      set(buffer.value, buffer.index, value);
+        set(buffer.value, index, value);
 
-      return makeUnchecked(buffer.value, buffer.index + width, Write);
-    });
+        return [buffer, index + width] as const;
+      }),
+    );
 
+/**
+ * Read a variable-length integer from the buffer.
+ *
+ * Reads an integer of specified width from the buffer at the current index.
+ *
+ * # Note
+ *
+ * This operation advances the buffer's internal index after reading.
+ *
+ * # Errors
+ *
+ * May fail with `UnexpectedEndOfBufferError` if there's not enough data in the buffer.
+ */
 const getInt =
   (width: 1 | 2 | 4 | 8, get: (view: DataView, byteOffset: number) => number) =>
-  (
-    buffer: Buffer<Read>,
-  ): Effect.Effect<
-    [value: number, buffer: Buffer<Read>],
-    UnexpectedEndOfBufferError
-  > =>
-    Effect.gen(function* () {
-      yield* validateBounds(buffer as BufferImpl<Read>, width);
+  (buffer: Buffer<Read>): Effect.Effect<number, UnexpectedEndOfBufferError> =>
+    SubscriptionRef.modifyEffect(
+      (buffer as unknown as BufferImpl<Read>).index,
+      (index) =>
+        Effect.gen(function* () {
+          yield* validateBounds(buffer as BufferImpl<Read>, index, width);
 
-      const impl = buffer as unknown as BufferImpl<Read>;
-      const value = get(impl.value, impl.index);
+          const impl = buffer as unknown as BufferImpl<Read>;
 
-      return [
-        value,
-        makeUnchecked(impl.value, impl.index + width, Read),
-      ] as const;
-    });
+          const value = get(impl.value, index);
+
+          return [value, index + width] as const;
+        }),
+    );
 
 export type WriteResult = Effect.Effect<
   Buffer<Write>,
@@ -122,7 +140,7 @@ export type WriteResult = Effect.Effect<
 >;
 
 export type ReadResult<T = number> = Effect.Effect<
-  [value: T, buffer: Buffer<Read>],
+  T,
   UnexpectedEndOfBufferError
 >;
 
@@ -177,34 +195,54 @@ export const putSlice: {
 } = Function.dual(
   2,
   (buffer: BufferImpl<Write>, value: Uint8Array): WriteResult =>
-    Effect.gen(function* () {
-      yield* validateBounds(buffer, value.length);
+    SubscriptionRef.modifyEffect(buffer.index, (index) =>
+      Effect.gen(function* () {
+        yield* validateBounds(buffer, index, value.length);
 
-      let index = buffer.index;
+        const uint8Array = new Uint8Array(
+          buffer.value.buffer,
+          index,
+          value.length,
+        );
+        uint8Array.set(value);
 
-      const uint8Array = new Uint8Array(
-        buffer.value.buffer,
-        buffer.index,
-        value.length,
-      );
-      uint8Array.set(value);
-      index += value.length;
-
-      return makeUnchecked(buffer.value, index, Write);
-    }),
+        return [buffer, index + value.length] as const;
+      }),
+    ),
 );
 
 export const getSlice = (
   buffer: Buffer<Read>,
   length: number,
 ): ReadResult<Uint8Array> =>
+  SubscriptionRef.modifyEffect(
+    (buffer as unknown as BufferImpl<Read>).index,
+    (index) =>
+      Effect.gen(function* () {
+        const impl = buffer as unknown as BufferImpl<Read>;
+
+        yield* validateBounds(impl, index, length);
+
+        const value = new Uint8Array(impl.value.buffer, index, length);
+
+        return [value, index + length] as const;
+      }),
+  );
+
+export const remaining = (buffer: Buffer<Read>) =>
   Effect.gen(function* () {
     const impl = buffer as unknown as BufferImpl<Read>;
 
-    yield* validateBounds(impl, length);
+    const index = yield* SubscriptionRef.get(impl.index);
 
-    const value = new Uint8Array(impl.value.buffer, impl.index, length);
-    const index = impl.index + length;
+    return impl.value.byteLength - index;
+  });
 
-    return [value, makeUnchecked(impl.value, index, Read)] as const;
+export const length = (buffer: Buffer<Write>) =>
+  Effect.gen(function* () {
+    const impl = buffer as unknown as BufferImpl<Write>;
+
+    const index = yield* SubscriptionRef.get(impl.index);
+
+    return index;
   });
