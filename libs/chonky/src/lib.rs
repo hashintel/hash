@@ -1,5 +1,14 @@
 #![doc = include_str!("../README.md")]
 
+extern crate alloc;
+
+#[cfg(not(feature = "static"))]
+use alloc::borrow::Cow;
+#[cfg(not(feature = "static"))]
+use std::{env, path::Path};
+
+use error_stack::{Report, ResultExt as _};
+use pdfium_render::prelude::Pdfium;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -12,6 +21,40 @@ pub enum ChonkyError {
     Write,
     #[error("Issues with CLI input")]
     Arguments,
+}
+
+/// Attempts to link to the `PDFium` library.
+///
+/// ## Loading strategy
+///
+/// - if the `static` feature is enabled, it will attempt to statically link to the `PDFium`
+///   library.
+/// - Otherwise, it will use the `PDFIUM_DYNAMIC_LIB_PATH` environment variable to load the dynamic
+///   library from the specific path. If the environment variable is not set, it will attempt to
+///   load the dynamic library from the default path `./libs/`.
+///
+/// # Errors
+///
+/// Will return a [`ChonkyError::Pdfium`] if the `PDFium` library could not be loaded.
+pub fn link_pdfium() -> Result<Pdfium, Report<ChonkyError>> {
+    #[cfg(feature = "static")]
+    return Ok(Pdfium::new(
+        Pdfium::bind_to_statically_linked_library().change_context(ChonkyError::Pdfium)?,
+    ));
+
+    #[cfg(not(feature = "static"))]
+    {
+        let lib_path = env::var("PDFIUM_DYNAMIC_LIB_PATH")
+            .map_or_else(|_| Cow::Borrowed("./libs/"), Cow::Owned);
+
+        let lib_path = Path::new(lib_path.as_ref())
+            .canonicalize()
+            .change_context(ChonkyError::Pdfium)?;
+        Ok(Pdfium::new(
+            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path(&lib_path))
+                .change_context(ChonkyError::Pdfium)?,
+        ))
+    }
 }
 
 pub mod pdf_segmentation {
@@ -182,13 +225,12 @@ pub mod pdf_segmentation {
 mod tests {
     use error_stack::{Report, ResultExt as _};
     use insta::assert_binary_snapshot;
-    use pdfium_render::prelude::Pdfium;
 
     use super::*;
 
     #[test]
     fn pdf_load_success() -> Result<(), Report<ChonkyError>> {
-        let pdfium = Pdfium::default();
+        let pdfium = link_pdfium()?;
 
         let test_pdf_string = "tests/docs/test-doc.pdf";
 
@@ -200,7 +242,7 @@ mod tests {
 
     #[test]
     fn pdf_load_failure() -> Result<(), Report<ChonkyError>> {
-        let pdfium = Pdfium::default();
+        let pdfium = link_pdfium()?;
 
         let test_pdf_string = "tests/docs/invalid.pdf";
 
@@ -219,9 +261,7 @@ mod tests {
 
     #[test]
     fn pdf_image_conversion() -> Result<(), Report<ChonkyError>> {
-        //create the pdfium instance and bind to static library
-
-        let pdfium = Pdfium::default();
+        let pdfium = link_pdfium()?;
 
         let test_pdf_string = "tests/docs/test-doc.pdf";
 

@@ -40,6 +40,9 @@ runs:
           IMAGE_TAG=":$(echo ${{ github.ref_name }} | sed 's|/|-|g')"
         fi
 
+        # `dev` is large (~400 MB), slow, and fast to build
+        # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
+        # `release` is a compromise between the two (~30 MB, no LTO)
         GRAPH_PROFILE="$([ "${{ github.ref_name }}" == "main" ] && echo "release" || echo "dev")"
 
         set -x
@@ -57,7 +60,7 @@ runs:
         password: ${{ inputs.repo-token }}
 
     - name: Build hash-graph image
-      if: inputs.hash-graph == 'true'
+      if: inputs.hash-graph == 'true' && github.event.pull_request.head.repo.full_name == 'hashintel/hash'
       uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
       with:
         context: .
@@ -75,9 +78,23 @@ runs:
           org.opencontainers.image.source="https://github.com/hashintel/hash"
           org.opencontainers.image.licenses="AGPL-3.0-only,"
           org.opencontainers.image.description="The entity-graph query-layer for the HASH datastore"
-        # `dev` is large (~400 MB), slow, and fast to build
-        # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
-        # `release` is a compromise between the two (~30 MB, no LTO)
+        build-args: |
+          PROFILE=${{ env.GRAPH_PROFILE }}
+          ENABLE_TYPE_FETCHER=yes
+          ENABLE_TEST_SERVER=yes
+
+    - name: Build hash-graph image (fork)
+      if: inputs.hash-graph == 'true' && github.event.pull_request.head.repo.full_name != 'hashintel/hash'
+      uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
+      with:
+        context: .
+        file: apps/hash-graph/docker/Dockerfile
+        tags: |
+          hash-graph
+          hash-graph:test
+        cache-from: |
+          type=registry,ref=ghcr.io/hashintel/hash-graph
+        outputs: type=docker,dest=/tmp/hash-graph.tar
         build-args: |
           PROFILE=${{ env.GRAPH_PROFILE }}
           ENABLE_TYPE_FETCHER=yes
@@ -91,7 +108,7 @@ runs:
         path: /tmp/hash-graph.tar
 
     - name: Build hash-ai-worker-ts image
-      if: inputs.hash-ai-worker-ts == 'true'
+      if: inputs.hash-ai-worker-ts == 'true' && github.event.pull_request.head.repo.full_name == 'hashintel/hash'
       uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
       with:
         context: .
@@ -108,6 +125,17 @@ runs:
           org.opencontainers.image.licenses="AGPL-3.0-only,"
           org.opencontainers.image.description="A TypeScript 'AI' worker for HASH"
 
+    - name: Build hash-ai-worker-ts image (fork)
+      if: inputs.hash-ai-worker-ts == 'true' && github.event.pull_request.head.repo.full_name != 'hashintel/hash'
+      uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
+      with:
+        context: .
+        file: apps/hash-ai-worker-ts/docker/Dockerfile
+        tags: hash-ai-worker-ts
+        cache-from: |
+          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts
+        outputs: type=docker,dest=/tmp/hash-ai-worker-ts.tar
+
     - name: Upload artifact
       if: ${{ (success() || failure()) && inputs.hash-ai-worker-ts == 'true' }}
       uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
@@ -116,7 +144,7 @@ runs:
         path: /tmp/hash-ai-worker-ts.tar
 
     - name: Build hash-integration-worker image
-      if: inputs.hash-integration-worker == 'true'
+      if: inputs.hash-integration-worker == 'true' && github.event.pull_request.head.repo.full_name == 'hashintel/hash'
       uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
       with:
         context: .
@@ -133,6 +161,17 @@ runs:
           org.opencontainers.image.licenses="AGPL-3.0-only,"
           org.opencontainers.image.description="A TypeScript worker for HASH for data integration"
 
+    - name: Build hash-integration-worker image (fork)
+      if: inputs.hash-integration-worker == 'true' && github.event.pull_request.head.repo.full_name != 'hashintel/hash'
+      uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
+      with:
+        context: .
+        file: apps/hash-integration-worker/docker/Dockerfile
+        tags: hash-integration-worker
+        cache-from: |
+          type=registry,ref=ghcr.io/hashintel/hash-integration-worker
+        outputs: type=docker,dest=/tmp/hash-integration-worker.tar
+
     - name: Upload artifact
       if: ${{ (success() || failure()) && inputs.hash-integration-worker == 'true' }}
       uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
@@ -141,7 +180,7 @@ runs:
         path: /tmp/hash-integration-worker.tar
 
     - name: Build hash-api image
-      if: inputs.hash-api == 'true'
+      if: inputs.hash-api == 'true' && github.event.pull_request.head.repo.full_name == 'hashintel/hash'
       uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
       with:
         context: .
@@ -156,7 +195,18 @@ runs:
         labels: |
           org.opencontainers.image.source="https://github.com/hashintel/hash"
           org.opencontainers.image.licenses="AGPL-3.0-only,"
-          org.opencontainers.image.description="API and data store for HAS"
+          org.opencontainers.image.description="API and data store for HASH"
+
+    - name: Build hash-api image (fork)
+      if: inputs.hash-api == 'true' && github.event.pull_request.head.repo.full_name != 'hashintel/hash'
+      uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
+      with:
+        context: .
+        file: infra/docker/api/prod/Dockerfile
+        tags: hash-api
+        cache-from: |
+          type=registry,ref=ghcr.io/hashintel/hash-api
+        outputs: type=docker,dest=/tmp/hash-api.tar
 
     - name: Upload artifact
       if: ${{ (success() || failure()) && inputs.hash-api == 'true' }}

@@ -2,7 +2,6 @@ use std::env;
 
 use chonky::{ChonkyError, pdf_segmentation};
 use error_stack::{Report, ResultExt as _, ensure};
-use pdfium_render::prelude::Pdfium;
 
 fn main() -> Result<(), Report<ChonkyError>> {
     // read file path arguments
@@ -11,15 +10,7 @@ fn main() -> Result<(), Report<ChonkyError>> {
 
     ensure!(args.len() > 1, ChonkyError::Arguments);
 
-    // creates instance so must be global
-    // let pdfium = Pdfium::new(
-    //     Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./libs/"))
-    //         .change_context(ChonkyError::Pdfium)?,
-    // );
-
-    let pdfium = Pdfium::new(
-        Pdfium::bind_to_statically_linked_library().change_context(ChonkyError::Pdfium)?,
-    );
+    let pdfium = chonky::link_pdfium()?;
 
     let pdf = pdf_segmentation::load_pdf(&pdfium, &args[1]).change_context(ChonkyError::Pdfium)?;
 

@@ -25,10 +25,24 @@ The library relies on common Rust tools as configured in the repository root. Th
 
 ## Usage
 
-To run this package, a compiled static library of `pdfium-render` must be provided. The library should be held in `libs/pdfium-lib` folder in the `Chonky` package, the precompiled binary for `MacOS` has been included in this repo. We pass the environment variable of the full path of the libary once when running `cargo build`
+To run this package, a compiled library of `pdfium` must be provided. A dynamic library can be downloaded from [`bblanchon/pdfium-binaries`](https://github.com/bblanchon/pdfium-binaries/releases). The library can either be statically or dynamically linked. The `libs/` folder is reserved to store the libraries.
+
+### Dynamic linking
+
+To link the library dynamically, don't enable the `static`. The binary will read `PDFIUM_DYNAMIC_LIB_PATH` to search for the library. If the variable is not set it will use `libs/`:
 
 ```sh
-PDFIUM_STATIC_LIB_PATH=/path/to/static/lib cargo build
+export PDFIUM_DYNAMIC_LIB_PATH=libs/
+cargo build
+```
+
+### Static linking
+
+To link the library statically, enable the `static` feature by passing `--features static` to any `cargo` invocation. When building the library it will search for `PDFIUM_STATIC_LIB_PATH`. For example if the library is located at `libs/libpdfium.a` you can build the library with:
+
+```sh
+export PDFIUM_STATIC_LIB_PATH=libs/libpdfium.a
+cargo build --features static
 ```
 
 ### Testing
