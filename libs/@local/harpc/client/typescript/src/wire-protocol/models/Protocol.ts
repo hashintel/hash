@@ -33,7 +33,7 @@ export interface Protocol
     Inspectable.Inspectable,
     Pipeable.Pipeable {
   [TypeId]: TypeId;
-  version: ProtocolVersion.ProtocolVersion;
+  readonly version: ProtocolVersion.ProtocolVersion;
 }
 
 const ProtocolProto: Omit<Protocol, "version"> = {

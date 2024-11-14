@@ -2,7 +2,6 @@ import type { FastCheck } from "effect";
 import {
   Data,
   Effect,
-  Either,
   Equal,
   Function,
   Hash,
