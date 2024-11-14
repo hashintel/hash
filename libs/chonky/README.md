@@ -32,7 +32,7 @@ To run this package, a compiled library of `pdfium` must be provided. A dynamic 
 To link the library dynamically, don't enable the `static`. The binary will read `PDFIUM_DYNAMIC_LIB_PATH` to search for the library. If the variable is not set it will use `libs/`:
 
 ```sh
-export PDFIUM_DYNAMIC_LIB_PATH=libs/
+export PDFIUM_DYNAMIC_LIB_PATH="${pwd}/libs/"
 cargo build
 ```
 
@@ -41,7 +41,7 @@ cargo build
 To link the library statically, enable the `static` feature by passing `--features static` to any `cargo` invocation. When building the library it will search for `PDFIUM_STATIC_LIB_PATH`. For example if the library is located at `libs/libpdfium.a` you can build the library with:
 
 ```sh
-export PDFIUM_STATIC_LIB_PATH=libs/libpdfium.a
+export PDFIUM_STATIC_LIB_PATH="${pwd}/libs/"
 cargo build --features static
 ```
 
