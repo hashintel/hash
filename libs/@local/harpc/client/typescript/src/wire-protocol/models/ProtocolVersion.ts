@@ -1,5 +1,8 @@
 import type { FastCheck } from "effect";
 import {
+  Data,
+  Effect,
+  Either,
   Equal,
   Function,
   Hash,
@@ -15,6 +18,16 @@ const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/ProtocolVersion",
 );
 export type TypeId = typeof TypeId;
+
+export class InvalidProtocolVersionError extends Data.TaggedError(
+  "InvalidProtocolVersionError",
+)<{
+  received: number;
+}> {
+  get message(): string {
+    return `Invalid protocol version received: ${this.received}`;
+  }
+}
 
 export interface ProtocolVersion
   extends Equal.Equal,
@@ -75,20 +88,28 @@ const make = (value: number): ProtocolVersion => {
 export const encode: {
   (
     version: ProtocolVersion,
-  ): (buffer: Buffer.Buffer<Buffer.Write>) => Buffer.Buffer<Buffer.Write>;
-  (
-    buffer: Buffer.Buffer<Buffer.Write>,
-    version: ProtocolVersion,
-  ): Buffer.Buffer<Buffer.Write>;
+  ): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
+  (buffer: Buffer.WriteBuffer, version: ProtocolVersion): Buffer.WriteResult;
 } = Function.dual(
   2,
   (
-    buffer: Buffer.Buffer<Buffer.Write>,
+    buffer: Buffer.WriteBuffer,
     version: ProtocolVersion,
-  ): Buffer.Buffer<Buffer.Write> => {
+  ): Buffer.WriteResult => {
     return Buffer.putU8(buffer, version.value);
   },
 );
+
+export const decode = (buffer: Buffer.ReadBuffer) =>
+  Effect.gen(function* () {
+    const [version, _] = yield* Buffer.getU8(buffer);
+
+    if (version !== 1) {
+      yield* new InvalidProtocolVersionError({ received: version });
+    }
+
+    return make(version);
+  });
 
 export const V1: ProtocolVersion = make(1);
 

@@ -1,5 +1,4 @@
-import { Data, Effect, Either, Function } from "effect";
-import { Unexpected } from "effect/ParseResult";
+import { Data, Effect, Function } from "effect";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Buffer",
@@ -40,9 +39,9 @@ const BufferProto: Omit<BufferImpl<unknown>, "value" | "index" | "mode"> = {
 const validateBounds = <T>(
   buffer: BufferImpl<T>,
   width: number,
-): Either.Either<void, UnexpectedEndOfBufferError> => {
+): Effect.Effect<void, UnexpectedEndOfBufferError> => {
   if (buffer.index + width > buffer.value.byteLength) {
-    return Either.left(
+    return Effect.fail(
       new UnexpectedEndOfBufferError({
         index: buffer.index,
         length: buffer.value.byteLength,
@@ -50,7 +49,7 @@ const validateBounds = <T>(
     );
   }
 
-  return Either.right(undefined);
+  return Effect.succeed(undefined);
 };
 
 const makeUnchecked = <T>(
@@ -88,8 +87,8 @@ const putInt =
   (
     buffer: BufferImpl<Write>,
     value: number,
-  ): Either.Either<Buffer<Write>, UnexpectedEndOfBufferError> =>
-    Either.gen(function* () {
+  ): Effect.Effect<Buffer<Write>, UnexpectedEndOfBufferError> =>
+    Effect.gen(function* () {
       yield* validateBounds(buffer, width);
 
       set(buffer.value, buffer.index, value);
@@ -101,11 +100,11 @@ const getInt =
   (width: 1 | 2 | 4 | 8, get: (view: DataView, byteOffset: number) => number) =>
   (
     buffer: Buffer<Read>,
-  ): Either.Either<
+  ): Effect.Effect<
     [value: number, buffer: Buffer<Read>],
     UnexpectedEndOfBufferError
   > =>
-    Either.gen(function* () {
+    Effect.gen(function* () {
       yield* validateBounds(buffer as BufferImpl<Read>, width);
 
       const impl = buffer as unknown as BufferImpl<Read>;
@@ -117,19 +116,29 @@ const getInt =
       ] as const;
     });
 
-type PutReturn = Either.Either<Buffer<Write>, UnexpectedEndOfBufferError>;
-type PutSignature = {
-  (value: number): (buffer: Buffer<Write>) => PutReturn;
-  (buffer: Buffer<Write>, value: number): PutReturn;
+export type WriteResult = Effect.Effect<
+  Buffer<Write>,
+  UnexpectedEndOfBufferError
+>;
+
+export type ReadResult<T = number> = Effect.Effect<
+  [value: T, buffer: Buffer<Read>],
+  UnexpectedEndOfBufferError
+>;
+
+type WriteSignature = {
+  (value: number): (buffer: Buffer<Write>) => WriteResult;
+  (buffer: Buffer<Write>, value: number): WriteResult;
 };
-export const putU8: PutSignature = Function.dual(
+
+export const putU8: WriteSignature = Function.dual(
   2,
   putInt(1, (view, byteOffset, value) => view.setUint8(byteOffset, value)),
 );
 
 export const getU8 = getInt(1, (view, byteOffset) => view.getUint8(byteOffset));
 
-export const putU16: PutSignature = Function.dual(
+export const putU16: WriteSignature = Function.dual(
   2,
   putInt(2, (view, byteOffset, value) =>
     view.setUint16(byteOffset, value, false),
@@ -140,7 +149,7 @@ export const getU16 = getInt(2, (view, byteOffset) =>
   view.getUint16(byteOffset, false),
 );
 
-export const putU32: PutSignature = Function.dual(
+export const putU32: WriteSignature = Function.dual(
   2,
   putInt(4, (view, byteOffset, value) =>
     view.setUint32(byteOffset, value, false),
@@ -151,7 +160,7 @@ export const getU32 = getInt(4, (view, byteOffset) =>
   view.getUint32(byteOffset, false),
 );
 
-export const putU64: PutSignature = Function.dual(
+export const putU64: WriteSignature = Function.dual(
   2,
   putInt(8, (view, byteOffset, value) =>
     view.setBigUint64(byteOffset, BigInt(value), false),
@@ -163,12 +172,12 @@ export const getU64 = getInt(8, (view, byteOffset) =>
 );
 
 export const putSlice: {
-  (value: Uint8Array): (buffer: Buffer<Write>) => PutReturn;
-  (buffer: Buffer<Write>, value: Uint8Array): PutReturn;
+  (value: Uint8Array): (buffer: Buffer<Write>) => WriteResult;
+  (buffer: Buffer<Write>, value: Uint8Array): WriteResult;
 } = Function.dual(
   2,
-  (buffer: BufferImpl<Write>, value: Uint8Array): PutReturn =>
-    Either.gen(function* () {
+  (buffer: BufferImpl<Write>, value: Uint8Array): WriteResult =>
+    Effect.gen(function* () {
       yield* validateBounds(buffer, value.length);
 
       let index = buffer.index;
@@ -188,11 +197,8 @@ export const putSlice: {
 export const getSlice = (
   buffer: Buffer<Read>,
   length: number,
-): Either.Either<
-  [value: Uint8Array, buffer: Buffer<Read>],
-  UnexpectedEndOfBufferError
-> =>
-  Either.gen(function* () {
+): ReadResult<Uint8Array> =>
+  Effect.gen(function* () {
     const impl = buffer as unknown as BufferImpl<Read>;
 
     yield* validateBounds(impl, length);
