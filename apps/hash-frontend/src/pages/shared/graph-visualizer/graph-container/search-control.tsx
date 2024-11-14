@@ -1,10 +1,10 @@
-import { IconButton } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import { useSigma } from "@react-sigma/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { SearchIcon } from "../../../../shared/icons/search-icon";
-import { controlButtonSx, ControlPanel } from "./shared/control-components";
+import { GrayToBlueIconButton } from "../../gray-to-blue-icon-button";
+import { ControlPanel } from "./shared/control-components";
 import { useGraphContext } from "./shared/graph-context";
 import { SimpleAutocomplete } from "./shared/simple-autocomplete";
 import type { GraphVizNode } from "./shared/types";
@@ -128,12 +128,12 @@ export const SearchControl = ({ nodes }: { nodes: GraphVizNode[] }) => {
         open={searchPanelOpen}
         onClose={() => setSearchPanelOpen(false)}
       />
-      <IconButton
+      <GrayToBlueIconButton
         onClick={() => setSearchPanelOpen(true)}
-        sx={[controlButtonSx, { position: "absolute", top: 8, left: 42 }]}
+        sx={{ position: "absolute", top: 8, left: 42 }}
       >
         <SearchIcon />
-      </IconButton>
+      </GrayToBlueIconButton>
     </>
   );
 };

@@ -7,7 +7,7 @@ import { useContext, useMemo } from "react";
 
 import { useEntityTypeEntitiesContext } from "../../../shared/entity-type-entities-context";
 import { SectionEmptyState } from "../../[shortname]/shared/section-empty-state";
-import { SectionWrapper } from "../../[shortname]/shared/section-wrapper";
+import { SectionWrapper } from "../section-wrapper";
 import { EntitiesVisualizer } from "../entities-visualizer";
 import { WorkspaceContext } from "../workspace-context";
 import { useEntityType } from "./shared/entity-type-context";

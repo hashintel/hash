@@ -11,7 +11,7 @@ import { useState } from "react";
 
 import { Grid } from "../../../../../../components/grid/grid";
 import { createRenderChipCell } from "../../../../../shared/chip-cell";
-import { SectionWrapper } from "../../../../shared/section-wrapper";
+import { SectionWrapper } from "../../../../../shared/section-wrapper";
 import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
 import { useEntityEditor } from "../entity-editor-context";
 import { renderSummaryChipCell } from "../shared/summary-chip-cell";

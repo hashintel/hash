@@ -163,6 +163,7 @@ export const setupFileDownloadProxyHandler = (
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- should likely be using express-async-handler
   app.get("/file/:key(*)", async (req, res) => {
     const key = req.params.key;
+    const urlOnly = req.query.urlOnly;
 
     // We purposefully return 404 for all error cases.
     if (!key) {
@@ -275,6 +276,11 @@ export const setupFileDownloadProxyHandler = (
           `Could not set expiring cache entry for file download [key=${key}, presignUrl=${presignUrl}]. Error: ${error}`,
         );
       }
+    }
+
+    if (urlOnly) {
+      res.json({ url: presignUrl });
+      return;
     }
 
     res.redirect(presignUrl);

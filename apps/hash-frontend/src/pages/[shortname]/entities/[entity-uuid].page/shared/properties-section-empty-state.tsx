@@ -1,8 +1,8 @@
 import { Chip } from "@hashintel/design-system";
 
 import { LinksIcon } from "../../../../../shared/icons";
+import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { SectionEmptyState } from "../../../shared/section-empty-state";
-import { SectionWrapper } from "../../../shared/section-wrapper";
 
 export const PropertiesSectionEmptyState = () => {
   return (

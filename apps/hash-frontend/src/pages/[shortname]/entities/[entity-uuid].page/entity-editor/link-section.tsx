@@ -4,7 +4,7 @@ import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 
 import { LinkLabelWithSourceAndDestination } from "../../../../shared/link-label-with-source-and-destination";
-import { SectionWrapper } from "../../../shared/section-wrapper";
+import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
 
 export const LinkSection: FunctionComponent = () => {

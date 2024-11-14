@@ -1,6 +1,5 @@
 import { IconButton } from "@hashintel/design-system";
-import { Box, Stack, type Theme, Tooltip, Typography } from "@mui/material";
-import type { SystemStyleObject } from "@mui/system";
+import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import type { PropsWithChildren, ReactElement, RefObject } from "react";
 
 import { ArrowRightToLineIcon } from "../../../../../shared/icons/arrow-right-to-line-icon";
@@ -155,14 +154,3 @@ export const ControlPanel = ({
     </Box>
   );
 };
-export const controlButtonSx: (theme: Theme) => SystemStyleObject<Theme> = ({
-  palette,
-}) => ({
-  background: palette.common.white,
-  borderColor: palette.gray[30],
-  borderStyle: "solid",
-  borderWidth: 1,
-  borderRadius: "4px",
-  p: 0.6,
-  transition: "none",
-});

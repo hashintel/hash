@@ -25,7 +25,7 @@ import { Button } from "../../../../../shared/ui/button";
 import { Link } from "../../../../../shared/ui/link";
 import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
 import { nonAssignableTypes } from "../../../../shared/hidden-types";
-import { SectionWrapper } from "../../../shared/section-wrapper";
+import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
 import type { EntityTypeChangeDetails } from "./types-section/entity-type-change-modal";
 import { EntityTypeChangeModal } from "./types-section/entity-type-change-modal";

@@ -1,8 +1,4 @@
-import {
-  IconButton,
-  IconDiagramNestedLight,
-  Select,
-} from "@hashintel/design-system";
+import { IconDiagramNestedLight, Select } from "@hashintel/design-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { Box, Stack, Switch } from "@mui/material";
 import { useSigma } from "@react-sigma/core";
@@ -11,6 +7,7 @@ import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { MenuItem } from "../../../../shared/ui/menu-item";
+import { GrayToBlueIconButton } from "../../gray-to-blue-icon-button";
 import type {
   GenerateSimplePathsRequestMessage,
   GenerateSimplePathsResultMessage,
@@ -20,7 +17,6 @@ import type {
 } from "./path-finder-control/types";
 import { simplePathSorts } from "./path-finder-control/types";
 import {
-  controlButtonSx,
   ControlPanel,
   ControlSectionContainer,
   ItemLabel,
@@ -607,12 +603,12 @@ export const PathFinderControl = ({ nodes }: { nodes: GraphVizNode[] }) => {
         open={pathFinderPanelOpen}
         onClose={() => setPathFinderPanelOpen(false)}
       />
-      <IconButton
+      <GrayToBlueIconButton
         onClick={() => setPathFinderPanelOpen(true)}
-        sx={[controlButtonSx, { position: "absolute", top: 8, left: 8 }]}
+        sx={{ position: "absolute", top: 8, left: 8 }}
       >
         <IconDiagramNestedLight />
-      </IconButton>
+      </GrayToBlueIconButton>
     </>
   );
 };

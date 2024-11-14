@@ -5,7 +5,6 @@ import type { FunctionComponent } from "react";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import {
-  controlButtonSx,
   ControlPanel,
   ControlSectionContainer,
   ItemLabel,
@@ -13,6 +12,7 @@ import {
 import { useGraphContext } from "./graph-context";
 import { IntegerInput } from "./integer-input";
 import { selectSx } from "./styles";
+import { GrayToBlueIconButton } from "../../../gray-to-blue-icon-button";
 
 const directionOptions = ["All", "In", "Out"] as const;
 
@@ -450,12 +450,12 @@ export const ConfigControl = () => {
         open={configPanelOpen}
         onClose={() => setConfigPanelOpen(false)}
       />
-      <IconButton
+      <GrayToBlueIconButton
         onClick={() => setConfigPanelOpen(true)}
-        sx={[controlButtonSx, { position: "absolute", top: 8, right: 13 }]}
+        sx={{ position: "absolute", top: 8, right: 13 }}
       >
         <GearIcon />
-      </IconButton>
+      </GrayToBlueIconButton>
     </>
   );
 };
