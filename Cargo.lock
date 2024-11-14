@@ -2921,6 +2921,21 @@ dependencies = [
 [[package]]
 name = "hash-graph-migrations"
 version = "0.0.0"
+dependencies = [
+ "bytes",
+ "clap",
+ "clap_complete",
+ "derive_more 1.0.0",
+ "error-stack",
+ "futures",
+ "hash-tracing",
+ "postgres-types",
+ "sha2",
+ "time",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+]
 
 [[package]]
 name = "hash-graph-postgres-store"
