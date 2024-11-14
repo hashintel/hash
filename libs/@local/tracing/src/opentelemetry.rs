@@ -1,11 +1,16 @@
 use core::time::Duration;
 
-use opentelemetry::{KeyValue, global, trace::TracerProvider as _};
-use opentelemetry_otlp::WithExportConfig as _;
+use error_stack::Report;
+use opentelemetry::{
+    KeyValue, global,
+    trace::{TraceError, TracerProvider as _},
+};
+use opentelemetry_otlp::{SpanExporter, WithExportConfig as _};
 use opentelemetry_sdk::{
     Resource,
     propagation::TraceContextPropagator,
-    trace::{Config, RandomIdGenerator, Sampler},
+    runtime,
+    trace::{self, RandomIdGenerator, Sampler},
 };
 use tokio::runtime::Handle;
 use tracing::Subscriber;
@@ -32,11 +37,13 @@ where
 
 /// Creates a layer which connects to the `OpenTelemetry` collector.
 ///
-/// # Panics
+/// # Errors
 ///
-/// Panics if the `OpenTelemetry` configuration is invalid.
-#[must_use]
-pub fn layer<S>(config: &OpenTelemetryConfig, handle: &Handle) -> OtlpLayer<S>
+/// Errors if the `OpenTelemetry` configuration is invalid.
+pub fn layer<S>(
+    config: &OpenTelemetryConfig,
+    handle: &Handle,
+) -> Result<OtlpLayer<S>, Report<TraceError>>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
@@ -44,21 +51,18 @@ where
     // The handle is used so that we can spawn the task on the correct runtime.
     let _guard = handle.enter();
 
-    let endpoint = config.endpoint.as_deref()?;
+    let Some(endpoint) = config.endpoint.as_deref() else {
+        return Ok(None);
+    };
 
     // Allow correlating trace IDs
     global::set_text_map_propagator(TraceContextPropagator::new());
-    // If we need to set any tokens in the header for the tracing collector, this would be the place
-    // we do so.
-    let map = opentelemetry_otlp::TonicConfig::default()
-        .metadata
-        .unwrap_or_default();
 
-    let pipeline = opentelemetry_otlp::new_exporter()
-        .tonic()
+    let exporter = SpanExporter::builder()
+        .with_tonic()
         .with_endpoint(endpoint)
         .with_timeout(OPENTELEMETRY_TIMEOUT_DURATION)
-        .with_metadata(map);
+        .build()?;
 
     // Configure sampler args with the following environment variables:
     //   - OTEL_TRACES_SAMPLER_ARG
@@ -68,21 +72,18 @@ where
     //   - OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT
     //   - OTEL_SPAN_EVENT_COUNT_LIMIT
     //   - OTEL_SPAN_LINK_COUNT_LIMIT
-    let trace_config = Config::default()
+    let trace_config = trace::Config::default()
         .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
             0.1,
         ))))
         .with_id_generator(RandomIdGenerator::default())
         .with_resource(Resource::new(vec![KeyValue::new("service.name", "graph")]));
 
-    // The tracer batch sends traces asynchronously instead of per-span.
-    let tracer = opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(pipeline)
-        .with_trace_config(trace_config)
-        .install_batch(opentelemetry_sdk::runtime::Tokio)
-        .expect("failed to create OTLP tracer provider, check configuration values")
+    let tracer = trace::TracerProvider::builder()
+        .with_batch_exporter(exporter, runtime::Tokio)
+        .with_config(trace_config)
+        .build()
         .tracer("graph");
 
-    Some(tracing_opentelemetry::layer().with_tracer(tracer))
+    Ok(Some(tracing_opentelemetry::layer().with_tracer(tracer)))
 }
