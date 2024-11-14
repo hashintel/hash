@@ -40,7 +40,7 @@ pub struct InitTracingError;
 ///
 /// # Errors
 ///
-/// - [`TryInitError`], if initializing the [`tracing_subscriber::Registry`] fails.
+/// - [`InitTracingError`], if initializing the [`tracing_subscriber::Registry`] fails.
 pub fn init_tracing(
     config: TracingConfig,
     handle: &Handle,
