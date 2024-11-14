@@ -138,6 +138,8 @@ jobs:
 
       - name: Install PDFium
         if: matrix.package == '@rust/chonky'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           temp_dir=$(mktemp -d)
           gh release download chromium/6721 --repo bblanchon/pdfium-binaries --pattern 'pdfium-linux-x64.tgz' --dir $temp_dir
@@ -281,6 +283,8 @@ jobs:
 
       - name: Install PDFium
         if: matrix.package == '@rust/chonky'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           temp_dir=$(mktemp -d)
           gh release download chromium/6721 --repo bblanchon/pdfium-binaries --pattern 'pdfium-linux-x64.tgz' --dir $temp_dir
