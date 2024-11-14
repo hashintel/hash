@@ -8,7 +8,6 @@ import {
   pipe,
   Pipeable,
   Predicate,
-  Tuple,
 } from "effect";
 
 import * as Buffer from "../../Buffer.js";
@@ -17,6 +16,9 @@ const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestId",
 );
 export type TypeId = typeof TypeId;
+
+export const MIN_VALUE = 0;
+export const MAX_VALUE = 4_294_967_295;
 
 export interface RequestId
   extends Equal.Equal,
@@ -84,8 +86,7 @@ export const encode: {
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   pipe(
-    Buffer.getU32(buffer),
-    Effect.map(Tuple.getFirst),
+    Buffer.getU32(buffer), //
     Effect.map(makeUnchecked),
   );
 
@@ -93,4 +94,4 @@ export const isRequestId = (value: unknown): value is RequestId =>
   Predicate.hasProperty(value, TypeId);
 
 export const arbitrary = (fc: typeof FastCheck) =>
-  fc.integer({ min: 0, max: 4_294_967_295 });
+  fc.integer({ min: MIN_VALUE, max: MAX_VALUE });
