@@ -1,3 +1,4 @@
+import type { FastCheck } from "effect";
 import {
   Effect,
   Equal,
@@ -122,3 +123,12 @@ export const decode = (buffer: Buffer.ReadBuffer) =>
 
 export const isRequestHeader = (value: unknown): value is RequestHeader =>
   Predicate.hasProperty(value, TypeId);
+
+export const arbitrary = (fc: typeof FastCheck) =>
+  fc
+    .tuple(
+      Protocol.arbitrary(fc),
+      RequestId.arbitrary(fc),
+      RequestFlags.arbitrary(fc),
+    )
+    .map(Function.tupled(make));

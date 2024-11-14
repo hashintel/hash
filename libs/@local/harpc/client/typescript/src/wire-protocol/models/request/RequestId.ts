@@ -94,4 +94,4 @@ export const isRequestId = (value: unknown): value is RequestId =>
   Predicate.hasProperty(value, TypeId);
 
 export const arbitrary = (fc: typeof FastCheck) =>
-  fc.integer({ min: MIN_VALUE, max: MAX_VALUE });
+  fc.integer({ min: MIN_VALUE, max: MAX_VALUE }).map(makeUnchecked);
