@@ -352,6 +352,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
+        if: github.event.pull_request.head.repo.full_name == github.repository
         uses: hashicorp/vault-action@d1720f055e0635fd932a1d2a48f87a666a57906c # v3.0.0
         with:
           exportToken: true
@@ -364,6 +365,7 @@ jobs:
             aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
 
       - name: Upload benchmark results
+        if: github.event.pull_request.head.repo.full_name == github.repository
         run: turbo run upload-benchmarks --env-mode=loose -- --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
 
       - name: Upload benchmark summary
