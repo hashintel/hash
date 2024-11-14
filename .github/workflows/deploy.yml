@@ -48,7 +48,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.sourcemaps) }}
       fail-fast: false
-    if: needs.setup.outputs.sourcemaps != '{"package":[],"include":[]}'
+    if: needs.setup.outputs.sourcemaps != '{"package":[],"include":[]}' && github.event.pull_request.head.repo.full_name == 'hashintel/hash'
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
