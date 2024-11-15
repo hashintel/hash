@@ -326,8 +326,13 @@ export const PdfPreview = ({
                 </Stack>
               )}
               <Stack
-                justifyContent="center"
-                alignItems="center"
+                direction="row"
+                justifyContent={
+                  pageWidth * scale > pageContainerWidth
+                    ? "flex-start"
+                    : "center"
+                }
+                alignItems={scale > 1 ? "flex-start" : "center"}
                 sx={{
                   overflow: scale > 1 ? "auto" : "hidden",
                   height: pageContainerHeight - 2,
