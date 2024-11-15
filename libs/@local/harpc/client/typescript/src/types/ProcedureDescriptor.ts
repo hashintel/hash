@@ -2,7 +2,6 @@ import type { FastCheck } from "effect";
 import {
   Effect,
   Equal,
-  Function,
   Hash,
   Inspectable,
   pipe,
@@ -10,7 +9,7 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto } from "../utils.js";
+import { createProto, encodeDual } from "../utils.js";
 import type * as Buffer from "../wire-protocol/Buffer.js";
 import * as ProcedureId from "./ProcedureId.js";
 
@@ -70,16 +69,7 @@ const ProcedureDescriptorProto: Omit<ProcedureDescriptor, "id"> = {
 export const make = (id: ProcedureId.ProcedureId): ProcedureDescriptor =>
   createProto(ProcedureDescriptorProto, { id });
 
-export const encode: {
-  (
-    descriptor: ProcedureDescriptor,
-  ): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
-  (
-    buffer: Buffer.WriteBuffer,
-    descriptor: ProcedureDescriptor,
-  ): Buffer.WriteResult;
-} = Function.dual(
-  2,
+export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, descriptor: ProcedureDescriptor) =>
     ProcedureId.encode(buffer, descriptor.id),
 );

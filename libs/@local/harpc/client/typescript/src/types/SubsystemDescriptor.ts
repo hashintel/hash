@@ -10,7 +10,7 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto } from "../utils.js";
+import { createProto, encodeDual } from "../utils.js";
 import type * as Buffer from "../wire-protocol/Buffer.js";
 import * as SubsystemId from "./SubsystemId.js";
 import * as Version from "./Version.js";
@@ -79,16 +79,7 @@ export const make = (
 ): SubsystemDescriptor =>
   createProto(SubsystemDescriptorProto, { id, version });
 
-export const encode: {
-  (
-    descriptor: SubsystemDescriptor,
-  ): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
-  (
-    buffer: Buffer.WriteBuffer,
-    descriptor: SubsystemDescriptor,
-  ): Buffer.WriteResult;
-} = Function.dual(
-  2,
+export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, descriptor: SubsystemDescriptor) =>
     pipe(
       buffer,

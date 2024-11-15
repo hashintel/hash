@@ -3,7 +3,6 @@ import {
   Data,
   Effect,
   Equal,
-  Function,
   Hash,
   Inspectable,
   pipe,
@@ -12,6 +11,7 @@ import {
 } from "effect";
 
 import { U16_MAX, U16_MIN } from "../constants.js";
+import { createProto, encodeDual } from "../utils.js";
 import * as Buffer from "../wire-protocol/Buffer.js";
 
 const TypeId: unique symbol = Symbol(
@@ -84,16 +84,8 @@ const SubsystemIdProto: Omit<SubsystemId, "id"> = {
 };
 
 /** @internal */
-export const makeUnchecked = (id: number): SubsystemId => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(SubsystemIdProto);
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.id = id;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
-};
+export const makeUnchecked = (id: number): SubsystemId =>
+  createProto(SubsystemIdProto, { id });
 
 export const make = (
   id: number,
@@ -109,13 +101,9 @@ export const make = (
   return Effect.succeed(makeUnchecked(id));
 };
 
-export const encode: {
-  (
-    subsystemId: SubsystemId,
-  ): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
-  (buffer: Buffer.WriteBuffer, subsystemId: SubsystemId): Buffer.WriteResult;
-} = Function.dual(2, (buffer: Buffer.WriteBuffer, subsystemId: SubsystemId) =>
-  Buffer.putU16(buffer, subsystemId.id),
+export const encode = encodeDual(
+  (buffer: Buffer.WriteBuffer, subsystemId: SubsystemId) =>
+    Buffer.putU16(buffer, subsystemId.id),
 );
 
 export const decode = (buffer: Buffer.ReadBuffer) =>

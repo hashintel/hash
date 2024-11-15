@@ -11,6 +11,7 @@ import {
 } from "effect";
 
 import { U8_MAX, U8_MIN } from "../constants.js";
+import { createProto } from "../utils.js";
 import * as Buffer from "../wire-protocol/Buffer.js";
 
 const TypeId: unique symbol = Symbol(
@@ -71,19 +72,8 @@ const VersionProto: Omit<Version, "major" | "minor"> = {
   },
 };
 
-export const make = (major: number, minor: number): Version => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(VersionProto);
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.major = major;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.minor = minor;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
-};
+export const make = (major: number, minor: number): Version =>
+  createProto(VersionProto, { major, minor });
 
 export const encode: {
   (version: Version): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;

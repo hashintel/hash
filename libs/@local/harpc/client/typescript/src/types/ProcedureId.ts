@@ -3,7 +3,6 @@ import {
   Data,
   Effect,
   Equal,
-  Function,
   Hash,
   Inspectable,
   pipe,
@@ -12,7 +11,7 @@ import {
 } from "effect";
 
 import { U16_MAX, U16_MIN } from "../constants.js";
-import { createProto } from "../utils.js";
+import { createProto, encodeDual } from "../utils.js";
 import * as Buffer from "../wire-protocol/Buffer.js";
 
 const TypeId: unique symbol = Symbol(
@@ -101,13 +100,9 @@ export const make = (
   return Effect.succeed(makeUnchecked(id));
 };
 
-export const encode: {
-  (
-    procedureId: ProcedureId,
-  ): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
-  (buffer: Buffer.WriteBuffer, procedureId: ProcedureId): Buffer.WriteResult;
-} = Function.dual(2, (buffer: Buffer.WriteBuffer, procedureId: ProcedureId) =>
-  Buffer.putU16(buffer, procedureId.id),
+export const encode = encodeDual(
+  (buffer: Buffer.WriteBuffer, procedureId: ProcedureId) =>
+    Buffer.putU16(buffer, procedureId.id),
 );
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
