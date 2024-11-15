@@ -3,7 +3,6 @@ import {
   Data,
   Effect,
   Equal,
-  Function,
   Hash,
   Inspectable,
   pipe,
@@ -11,9 +10,9 @@ import {
   Predicate,
 } from "effect";
 
+import { createProto, encodeDual } from "../../utils.js";
 import * as Buffer from "../Buffer.js";
 import * as ProtocolVersion from "./ProtocolVersion.js";
-import { createProto, encodeDual } from "../../utils.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/Protocol",

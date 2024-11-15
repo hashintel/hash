@@ -10,9 +10,9 @@ import {
   Predicate,
 } from "effect";
 
+import { createProto } from "../utils.js";
 import type * as Buffer from "../wire-protocol/Buffer.js";
 import * as ProcedureId from "./ProcedureId.js";
-import { createProto } from "../utils.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/ProcedureDescriptor",
