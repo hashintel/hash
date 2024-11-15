@@ -12,6 +12,7 @@ import {
 
 import type * as Buffer from "../wire-protocol/Buffer.js";
 import * as ProcedureId from "./ProcedureId.js";
+import { createProto } from "../utils.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/ProcedureDescriptor",
@@ -66,16 +67,8 @@ const ProcedureDescriptorProto: Omit<ProcedureDescriptor, "id"> = {
   },
 };
 
-export const make = (id: ProcedureId.ProcedureId): ProcedureDescriptor => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(ProcedureDescriptorProto);
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.id = id;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
-};
+export const make = (id: ProcedureId.ProcedureId): ProcedureDescriptor =>
+  createProto(ProcedureDescriptorProto, { id });
 
 export const encode: {
   (

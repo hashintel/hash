@@ -1,5 +1,6 @@
 import type { FastCheck } from "effect";
 import {
+  Data,
   Effect,
   Equal,
   Function,
@@ -17,6 +18,22 @@ const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/SubsystemId",
 );
 export type TypeId = typeof TypeId;
+
+export class SubsystemIdTooLarge extends Data.TaggedError(
+  "SubsystemIdTooLarge",
+)<{ received: number }> {
+  get message() {
+    return `Procedure ID too large: ${this.received}, expected between ${U16_MIN} and ${U16_MAX}`;
+  }
+}
+
+export class SubsystemIdTooSmall extends Data.TaggedError(
+  "SubsystemIdTooSmall",
+)<{ received: number }> {
+  get message() {
+    return `Procedure ID too small: ${this.received}, expected between ${U16_MIN} and ${U16_MAX}`;
+  }
+}
 
 export interface SubsystemId
   extends Equal.Equal,
@@ -66,7 +83,8 @@ const SubsystemIdProto: Omit<SubsystemId, "id"> = {
   },
 };
 
-export const make = (id: number): SubsystemId => {
+/** @internal */
+export const makeUnchecked = (id: number): SubsystemId => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const object = Object.create(SubsystemIdProto);
 
@@ -75,6 +93,20 @@ export const make = (id: number): SubsystemId => {
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return object;
+};
+
+export const make = (
+  id: number,
+): Effect.Effect<SubsystemId, SubsystemIdTooLarge | SubsystemIdTooSmall> => {
+  if (id < U16_MIN) {
+    return Effect.fail(new SubsystemIdTooSmall({ received: id }));
+  }
+
+  if (id > U16_MAX) {
+    return Effect.fail(new SubsystemIdTooLarge({ received: id }));
+  }
+
+  return Effect.succeed(makeUnchecked(id));
 };
 
 export const encode: {
@@ -87,7 +119,7 @@ export const encode: {
 );
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
-  Buffer.getU16(buffer).pipe(Effect.map(make));
+  Buffer.getU16(buffer).pipe(Effect.map(makeUnchecked));
 
 export const isSubsystemId = (value: unknown): value is SubsystemId =>
   Predicate.hasProperty(value, TypeId);
@@ -97,4 +129,4 @@ export const isReserved = (value: SubsystemId) =>
   (value.id & 0xf0_00) === 0xf0_00;
 
 export const arbitrary = (fc: typeof FastCheck) =>
-  fc.integer({ min: U16_MIN, max: U16_MAX }).map(make);
+  fc.integer({ min: U16_MIN, max: U16_MAX }).map(makeUnchecked);

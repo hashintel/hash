@@ -13,6 +13,7 @@ import {
 import type * as Buffer from "../wire-protocol/Buffer.js";
 import * as SubsystemId from "./SubsystemId.js";
 import * as Version from "./Version.js";
+import { createProto } from "../utils.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/SubsystemDescriptor",
@@ -75,19 +76,8 @@ const SubsystemDescriptorProto: Omit<SubsystemDescriptor, "id" | "version"> = {
 export const make = (
   id: SubsystemId.SubsystemId,
   version: Version.Version,
-): SubsystemDescriptor => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(SubsystemDescriptorProto);
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.id = id;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.version = version;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
-};
+): SubsystemDescriptor =>
+  createProto(SubsystemDescriptorProto, { id, version });
 
 export const encode: {
   (

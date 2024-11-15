@@ -66,7 +66,7 @@ const RequestIdProto: Omit<RequestId, "value"> = {
   },
 };
 
-/* @internal */
+/** @internal */
 export const makeUnchecked = (value: number): RequestId =>
   createProto(RequestIdProto, { value });
 

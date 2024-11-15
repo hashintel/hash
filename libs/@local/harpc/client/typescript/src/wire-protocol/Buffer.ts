@@ -5,10 +5,14 @@ const TypeId: unique symbol = Symbol(
 );
 export type TypeId = typeof TypeId;
 
-const Read: unique symbol = Symbol("@local/harpc-client/wire-protocol/Read");
+const Read: unique symbol = Symbol(
+  "@local/harpc-client/wire-protocol/Buffer/Read",
+);
 export type Read = typeof Read;
 
-const Write: unique symbol = Symbol("@local/harpc-client/wire-protocol/Write");
+const Write: unique symbol = Symbol(
+  "@local/harpc-client/wire-protocol/Buffer/Write",
+);
 export type Write = typeof Write;
 
 export class UnexpectedEndOfBufferError extends Data.TaggedError(

@@ -18,18 +18,18 @@ const TypeId = Symbol("@local/harpc-client/wire-protocol/types/ErrorCode");
 export type TypeId = typeof TypeId;
 
 export class ErrorCodeTooLarge extends Data.TaggedError("ErrorCodeTooLarge")<{
-  size: number;
+  received: number;
 }> {
   get message() {
-    return `error code is too large, expected error code to be less than or equal to ${U16_MAX}, got ${this.size}`;
+    return `error code is too large, expected error code to be less than or equal to ${U16_MAX}, got ${this.received}`;
   }
 }
 
 export class ErrorCodeTooSmall extends Data.TaggedError(
   "ErrorCodeNotPositive",
-)<{ size: number }> {
+)<{ received: number }> {
   get message() {
-    return `error code mut be a positive number, got ${this.size}`;
+    return `error code mut be a positive number, got ${this.received}`;
   }
 }
 
@@ -79,7 +79,7 @@ const ErrorCodeProto: Omit<ErrorCode, "code"> = {
   },
 };
 
-/* @internal */
+/** @internal */
 export const makeUnchecked = (code: number): ErrorCode =>
   createProto(ErrorCodeProto, { code });
 
@@ -87,9 +87,9 @@ export const make = (
   code: number,
 ): Effect.Effect<ErrorCode, ErrorCodeTooLarge | ErrorCodeTooSmall> => {
   if (code < 1) {
-    return Effect.fail(new ErrorCodeTooSmall({ size: code }));
+    return Effect.fail(new ErrorCodeTooSmall({ received: code }));
   } else if (code > U16_MAX) {
-    return Effect.fail(new ErrorCodeTooLarge({ size: code }));
+    return Effect.fail(new ErrorCodeTooLarge({ received: code }));
   } else {
     return Effect.succeed(makeUnchecked(code));
   }

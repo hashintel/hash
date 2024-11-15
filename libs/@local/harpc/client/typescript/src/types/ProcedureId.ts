@@ -1,5 +1,6 @@
 import type { FastCheck } from "effect";
 import {
+  Data,
   Effect,
   Equal,
   Function,
@@ -11,12 +12,29 @@ import {
 } from "effect";
 
 import { U16_MAX, U16_MIN } from "../constants.js";
+import { createProto } from "../utils.js";
 import * as Buffer from "../wire-protocol/Buffer.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/ProcedureId",
 );
 export type TypeId = typeof TypeId;
+
+export class ProcedureIdTooLarge extends Data.TaggedError(
+  "ProcedureIdTooLarge",
+)<{ received: number }> {
+  get message() {
+    return `Procedure ID too large: ${this.received}, expected between ${U16_MIN} and ${U16_MAX}`;
+  }
+}
+
+export class ProcedureIdTooSmall extends Data.TaggedError(
+  "ProcedureIdTooSmall",
+)<{ received: number }> {
+  get message() {
+    return `Procedure ID too small: ${this.received}, expected between ${U16_MIN} and ${U16_MAX}`;
+  }
+}
 
 export interface ProcedureId
   extends Equal.Equal,
@@ -66,15 +84,21 @@ const ProcedureIdProto: Omit<ProcedureId, "id"> = {
   },
 };
 
-export const make = (id: number): ProcedureId => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(ProcedureIdProto);
+/** @internal */
+export const makeUnchecked = (id: number): ProcedureId =>
+  createProto(ProcedureIdProto, { id });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.id = id;
+export const make = (
+  id: number,
+): Effect.Effect<ProcedureId, ProcedureIdTooSmall | ProcedureIdTooLarge> => {
+  if (id < U16_MIN) {
+    return Effect.fail(new ProcedureIdTooSmall({ received: id }));
+  }
+  if (id > U16_MAX) {
+    return Effect.fail(new ProcedureIdTooLarge({ received: id }));
+  }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
+  return Effect.succeed(makeUnchecked(id));
 };
 
 export const encode: {
@@ -87,7 +111,7 @@ export const encode: {
 );
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
-  Buffer.getU16(buffer).pipe(Effect.map(make));
+  Buffer.getU16(buffer).pipe(Effect.map(makeUnchecked));
 
 export const isProcedureId = (value: unknown): value is ProcedureId =>
   Predicate.hasProperty(value, TypeId);
@@ -97,4 +121,4 @@ export const isReserved = (value: ProcedureId) =>
   (value.id & 0xf0_00) === 0xf0_00;
 
 export const arbitrary = (fc: typeof FastCheck) =>
-  fc.integer({ min: U16_MIN, max: U16_MAX }).map(make);
+  fc.integer({ min: U16_MIN, max: U16_MAX }).map(makeUnchecked);
