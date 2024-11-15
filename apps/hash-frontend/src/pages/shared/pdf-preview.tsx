@@ -3,14 +3,14 @@ import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 
 import {
   ArrowDownLeftAndArrowUpRightToCenterIcon,
-  ArrowRightIconRegular,
+  ArrowRightRegularIcon,
   ArrowUpRightAndArrowDownLeftFromCenterIcon,
-  MagnifyingGlassMinusIconLight,
-  MagnifyingGlassPlusIconLight,
+  MagnifyingGlassMinusLightIcon,
+  MagnifyingGlassPlusLightIcon,
 } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 import dynamic from "next/dynamic";
-import { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -28,17 +28,14 @@ import {
 } from "./pdf-preview/dimensions";
 import { PageThumbnail } from "./pdf-preview/page-thumbnail";
 import { PdfPreviewSkeleton } from "./pdf-preview/pdf-preview-skeleton";
+import type { SearchHit, SearchHits } from "./pdf-preview/pdf-search";
+import { PdfSearch } from "./pdf-preview/pdf-search";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
-import {
-  PdfSearch,
-  SearchHit,
-  SearchHitsByPageNumber,
-} from "./pdf-preview/pdf-search";
 
 /**
- * Highlights search hits within the text representing a line on the page.
- * @param text - The text content of the line
- * @param textItemIndex - The index of this TextItem in its page.
+ * Highlights search hits within the text representing a row/line on the page.
+ * @param text - The text content of the row
+ * @param rowIndex - The index of the row in its page.
  * @param searchHits - An array of occurrences spanning across TextItems.
  * @returns The text with relevant parts wrapped in <mark> tags.
  */
@@ -46,11 +43,9 @@ const highlightOccurrencesInTextItem = (
   text: string,
   rowIndex: number,
   searchHits: SearchHit[],
+  selectedSearchHit: SearchHit | null,
 ) => {
-  let textWithHighlights = "";
-  let nextStartingCharacterIndex = 0;
-
-  // Filter occurrences that intersect with this TextItem
+  /** Find occurrences that intersect with this TextItem */
   const relevantOccurrences = searchHits.filter(({ start, end }) => {
     return (
       (start.rowIndex < rowIndex && end.rowIndex >= rowIndex) || // Starts before and ends in or after
@@ -58,12 +53,8 @@ const highlightOccurrencesInTextItem = (
     );
   });
 
-  // Sort occurrences by starting position within this TextItem
-  relevantOccurrences.sort(
-    (a, b) =>
-      (a.start.rowIndex === rowIndex ? a.start.characterIndex : 0) -
-      (b.start.rowIndex === rowIndex ? b.start.characterIndex : 0),
-  );
+  let textWithHighlights = "";
+  let positionInText = 0;
 
   for (const { start, end } of relevantOccurrences) {
     const startCharIndex =
@@ -71,21 +62,23 @@ const highlightOccurrencesInTextItem = (
     const endCharIndex =
       end.rowIndex === rowIndex ? end.characterIndex : text.length - 1;
 
-    // Append any unhighlighted text between the lastIndex and this occurrence
-    textWithHighlights += text.slice(
-      nextStartingCharacterIndex,
-      startCharIndex,
-    );
+    const isSelectedHit = selectedSearchHit
+      ? selectedSearchHit.start.rowIndex === start.rowIndex &&
+        selectedSearchHit.start.characterIndex === start.characterIndex
+      : false;
 
-    // Wrap the relevant part in <mark> tags
-    textWithHighlights += `<mark style="position: relative; bottom:1px;">${text.slice(startCharIndex, endCharIndex + 1)}</mark>`;
+    /** First, append any unhighlighted text between our. current positionInText and this occurrence */
+    textWithHighlights += text.slice(positionInText, startCharIndex);
 
-    // Update nextStartingCharacterIndex to continue after the current occurrence
-    nextStartingCharacterIndex = endCharIndex + 1;
+    /** Apply the highlight */
+    textWithHighlights += `<span style="border-bottom: 4px solid ${isSelectedHit ? "lawngreen" : "yellow"}; position: relative;">${text.slice(startCharIndex, endCharIndex + 1)}</span>`;
+
+    /** Update positionInText to continue after the current occurrence */
+    positionInText = endCharIndex + 1;
   }
 
-  // Append any remaining text after the last occurrence
-  textWithHighlights += text.slice(nextStartingCharacterIndex);
+  /** Append any remaining text after the last occurrence */
+  textWithHighlights += text.slice(positionInText);
 
   return textWithHighlights;
 };
@@ -143,27 +136,36 @@ export const PdfPreview = ({
   const [scale, setScale] = useState(1);
   const [totalPages, setTotalPages] = useState<number>();
   const [selectedPageNumber, setSelectedPageNumber] = useState<number>(1);
-  const [searchHits, setSearchHits] = useState<SearchHitsByPageNumber>({});
+  const [searchHits, setSearchHits] = useState<SearchHits>({
+    total: 0,
+    hitsByPageNumber: {},
+  });
+  const [selectedSearchHit, setSelectedSearchHit] = useState<SearchHit | null>(
+    null,
+  );
 
-  const onDocumentLoadSuccess: OnDocumentLoadSuccess = async (docProxy) => {
+  const onDocumentLoadSuccess: OnDocumentLoadSuccess = (docProxy) => {
     setTotalPages(docProxy.numPages);
     setDocumentProxy(docProxy);
-
-    const page = await docProxy.getPage(3);
-    const textContent = await page.getTextContent();
-    console.log(textContent);
   };
 
   const textRenderer: CustomTextRenderer = useCallback(
     (textItem) => {
-      const relevantSearchHits = searchHits[textItem.pageNumber] ?? [];
+      const relevantSearchHits =
+        searchHits.hitsByPageNumber[textItem.pageNumber] ?? [];
+
+      if (!relevantSearchHits.length) {
+        return textItem.str;
+      }
+
       return highlightOccurrencesInTextItem(
         textItem.str,
         textItem.itemIndex,
         relevantSearchHits,
+        selectedSearchHit,
       );
     },
-    [searchHits],
+    [searchHits, selectedSearchHit],
   );
 
   const { ref: entireContainerRef, dimensions: entireContainerDimensions } =
@@ -238,7 +240,16 @@ export const PdfPreview = ({
           <PdfSearch
             closeSearch={() => setShowSearch(false)}
             document={documentProxy}
+            searchHits={searchHits}
             setSearchHits={setSearchHits}
+            selectedSearchHit={selectedSearchHit}
+            setSelectedSearchHit={(searchHit) => {
+              setSelectedSearchHit(searchHit);
+
+              if (searchHit) {
+                setSelectedPageNumber(searchHit.pageNumber);
+              }
+            }}
             showSearch={showSearch}
           />
         </Box>
@@ -291,7 +302,7 @@ export const PdfPreview = ({
                           setSelectedPageNumber(selectedPageNumber - 1)
                         }
                       >
-                        <ArrowRightIconRegular
+                        <ArrowRightRegularIcon
                           sx={{ transform: "rotate(180deg)" }}
                         />
                       </GrayToBlueIconButton>
@@ -308,7 +319,7 @@ export const PdfPreview = ({
                           setSelectedPageNumber(selectedPageNumber + 1)
                         }
                       >
-                        <ArrowRightIconRegular />
+                        <ArrowRightRegularIcon />
                       </GrayToBlueIconButton>
                     </Stack>
                   </Stack>
@@ -368,12 +379,12 @@ export const PdfPreview = ({
                     <GrayToBlueIconButton
                       onClick={() => setScale((prev) => prev - 0.2)}
                     >
-                      <MagnifyingGlassMinusIconLight />
+                      <MagnifyingGlassMinusLightIcon />
                     </GrayToBlueIconButton>
                     <GrayToBlueIconButton
                       onClick={() => setScale((prev) => prev + 0.2)}
                     >
-                      <MagnifyingGlassPlusIconLight />
+                      <MagnifyingGlassPlusLightIcon />
                     </GrayToBlueIconButton>
                     <Typography
                       sx={{
