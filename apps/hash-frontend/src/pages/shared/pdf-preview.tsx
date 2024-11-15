@@ -188,7 +188,7 @@ export const PdfPreview = ({
   const fullPageHeight = pageContainerWidth * pageWidthHeightRatio;
 
   const [viewportHeight, setViewportHeight] = useState(
-    document.documentElement.clientHeight - 120,
+    document.documentElement.clientHeight,
   );
 
   useEffect(() => {
@@ -236,7 +236,19 @@ export const PdfPreview = ({
           width: "100%",
         })}
       >
-        <Box sx={{ position: "absolute", top: 20, right: 20, zIndex: 100 }}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: 20,
+            left:
+              20 +
+              (showThumbnails
+                ? (thumbnailContainerDimensions?.width ??
+                  thumbnailWidth + thumbnailXPadding * 2)
+                : 0),
+            zIndex: 100,
+          }}
+        >
           <PdfSearch
             closeSearch={() => setShowSearch(false)}
             document={documentProxy}
@@ -299,6 +311,7 @@ export const PdfPreview = ({
                   >
                     <Stack direction="row" alignItems="center" gap={1}>
                       <GrayToBlueIconButton
+                        disabled={selectedPageNumber === 1}
                         onClick={() =>
                           setSelectedPageNumber(selectedPageNumber - 1)
                         }
@@ -311,11 +324,14 @@ export const PdfPreview = ({
                         sx={{
                           fontSize: 12,
                           color: ({ palette }) => palette.gray[70],
+                          textAlign: "center",
+                          width: (totalPages.toString().length * 2 + 4) * 7,
                         }}
                       >
                         {`${selectedPageNumber} of ${totalPages}`}
                       </Typography>
                       <GrayToBlueIconButton
+                        disabled={selectedPageNumber === totalPages}
                         onClick={() =>
                           setSelectedPageNumber(selectedPageNumber + 1)
                         }

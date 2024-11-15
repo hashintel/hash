@@ -304,12 +304,24 @@ export const PdfSearch = ({
           }}
           value={searchText}
         />
-        <Stack direction="row" gap={2} mt={0.8} justifyContent="flex-end">
-          <Collapse
-            orientation="horizontal"
-            in={!!selectedSearchHit && total > 0}
-            timeout={200}
+        <Stack direction="row" gap={2} mt={0.8} justifyContent="flex-start">
+          <GrayToBlueIconButton
+            onClick={() => {
+              getSearchHits(searchText, !ignoreCase);
+              setIgnoreCase(!ignoreCase);
+              inputRef.current?.focus();
+            }}
+            sx={{ "& svg": { fontSize: 13 }, p: 0.5 }}
           >
+            <FontCaseRegularIcon
+              sx={{
+                fill: ({ palette }) =>
+                  ignoreCase ? undefined : palette.blue[70],
+                transition: ({ transitions }) => transitions.create("fill"),
+              }}
+            />
+          </GrayToBlueIconButton>
+          <Collapse orientation="horizontal" in={!!searchText} timeout={200}>
             <Stack
               direction="row"
               alignItems="center"
@@ -365,22 +377,6 @@ export const PdfSearch = ({
               </GrayToBlueIconButton>
             </Stack>
           </Collapse>
-          <GrayToBlueIconButton
-            onClick={() => {
-              getSearchHits(searchText, !ignoreCase);
-              setIgnoreCase(!ignoreCase);
-              inputRef.current?.focus();
-            }}
-            sx={{ "& svg": { fontSize: 13 }, p: 0.5 }}
-          >
-            <FontCaseRegularIcon
-              sx={{
-                fill: ({ palette }) =>
-                  ignoreCase ? undefined : palette.blue[70],
-                transition: ({ transitions }) => transitions.create("fill"),
-              }}
-            />
-          </GrayToBlueIconButton>
         </Stack>
       </Box>
     </Collapse>
