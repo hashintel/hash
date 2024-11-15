@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import {
   AngleRightRegularIcon,
-  PlayIconSolid,
+  PlaySolidIcon,
   Select,
 } from "@hashintel/design-system";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
@@ -30,7 +30,7 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import { cancelFlowMutation } from "../../../../graphql/queries/knowledge/flow.queries";
 import { BoltLightIcon } from "../../../../shared/icons/bolt-light-icon";
-import { StopIconSolid } from "../../../../shared/icons/stop-icon-solid";
+import { StopSolidIcon } from "../../../../shared/icons/stop-icon-solid";
 import { Button } from "../../../../shared/ui/button";
 import { Link } from "../../../../shared/ui/link";
 import { MenuItem } from "../../../../shared/ui/menu-item";
@@ -346,7 +346,7 @@ export const Topbar = ({
       {selectedFlowRun && !selectedFlowRun.closedAt ? (
         <TopbarButton
           background="black"
-          Icon={StopIconSolid}
+          Icon={StopSolidIcon}
           onClick={onCancelFlowClicked}
           pending={cancelling}
           text="Stop"
@@ -354,7 +354,7 @@ export const Topbar = ({
       ) : showRunButton ? (
         <TopbarButton
           background="blue"
-          Icon={PlayIconSolid}
+          Icon={PlaySolidIcon}
           onClick={onRunFlowClicked}
           pending={waitingToRun}
           text={selectedFlowRun ? "Re-run" : "Run"}

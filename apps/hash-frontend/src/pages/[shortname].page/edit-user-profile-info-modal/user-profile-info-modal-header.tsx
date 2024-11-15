@@ -3,7 +3,7 @@ import {
   Avatar,
   FontAwesomeIcon,
   IconButton,
-  RotateIconRegular,
+  RotateRegularIcon,
 } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -263,7 +263,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
           <>
             <AvatarButton
               disabled={newCoverImageUploading}
-              startIcon={<RotateIconRegular />}
+              startIcon={<RotateRegularIcon />}
               sx={{ marginBottom: 1 }}
               onClick={handleChangeCoverImage}
             >

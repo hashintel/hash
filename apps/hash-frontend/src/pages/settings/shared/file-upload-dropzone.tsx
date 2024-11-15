@@ -1,4 +1,4 @@
-import { ImageIconSolid } from "@hashintel/design-system";
+import { ImageSolidIcon } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
 import { useCallback } from "react";
 import type { Accept } from "react-dropzone";
@@ -68,7 +68,7 @@ export const FileUploadDropzone = ({
     >
       {!showUploadingMessage && <Box component="input" {...getInputProps()} />}
       {image ? (
-        <ImageIconSolid sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
+        <ImageSolidIcon sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
       ) : (
         <UploadIcon sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
       )}

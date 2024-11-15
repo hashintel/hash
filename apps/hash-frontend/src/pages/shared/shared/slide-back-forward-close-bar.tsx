@@ -1,6 +1,6 @@
 import {
   ArrowLeftIcon,
-  ArrowRightIconRegular,
+  ArrowRightRegularIcon,
   CloseIcon,
   IconButton,
 } from "@hashintel/design-system";
@@ -33,7 +33,7 @@ export const SlideBackForwardCloseBar = ({
         {onForward ? (
           <Tooltip title="Forward" placement="bottom">
             <IconButton onClick={onForward}>
-              <ArrowRightIconRegular />
+              <ArrowRightRegularIcon />
             </IconButton>
           </Tooltip>
         ) : null}

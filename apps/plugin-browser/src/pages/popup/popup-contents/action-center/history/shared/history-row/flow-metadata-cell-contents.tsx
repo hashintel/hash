@@ -1,8 +1,8 @@
 import {
-  ArrowDownIconRegular,
-  ArrowRightIconRegular,
+  ArrowDownRegularIcon,
+  ArrowRightRegularIcon,
   AsteriskRegularIcon,
-  ClockIconRegular,
+  ClockRegularIcon,
 } from "@hashintel/design-system";
 import {
   currentTimeInstantTemporalAxes,
@@ -193,17 +193,17 @@ export const FlowMetadataCellContents = ({
       <MetadataItem
         marginRight={0.8}
         text={timeElapsed}
-        Icon={ClockIconRegular}
+        Icon={ClockRegularIcon}
       />
       {usage && (
         <>
           <MetadataItem
             text={`${usage.inputTokens} input tokens`}
-            Icon={ArrowDownIconRegular}
+            Icon={ArrowDownRegularIcon}
           />
           <MetadataItem
             text={`${usage.outputTokens} output tokens`}
-            Icon={ArrowRightIconRegular}
+            Icon={ArrowRightRegularIcon}
           />
         </>
       )}

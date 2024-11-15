@@ -1,4 +1,4 @@
-import { ArrowRightIconRegular } from "@hashintel/design-system";
+import { ArrowRightRegularIcon } from "@hashintel/design-system";
 import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 import type { SxProps, Theme } from "@mui/material";
@@ -226,7 +226,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
               }}
             >
               Your worker wants your advice
-              <ArrowRightIconRegular sx={{ ...statusBarTextSx, ml: 0.8 }} />
+              <ArrowRightRegularIcon sx={{ ...statusBarTextSx, ml: 0.8 }} />
             </Button>
           ) : (
             <Box sx={commonStatusBarSx}>

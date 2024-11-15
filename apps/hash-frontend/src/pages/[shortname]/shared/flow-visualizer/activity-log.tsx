@@ -2,7 +2,7 @@ import { useMutation } from "@apollo/client";
 import {
   CaretDownSolidIcon,
   IconButton,
-  RotateIconRegular,
+  RotateRegularIcon,
 } from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -248,7 +248,7 @@ const Checkpoint = ({ log }: { log: CheckpointLog }) => {
           onClick={triggerReset}
           sx={{ p: 0.6, borderRadius: "50%" }}
         >
-          <RotateIconRegular sx={{ width: 13, height: 13 }} />
+          <RotateRegularIcon sx={{ width: 13, height: 13 }} />
         </IconButton>
       )}
     </Stack>

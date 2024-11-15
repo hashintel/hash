@@ -1,12 +1,12 @@
 import {
   ArrowLeftIcon,
   ArrowUpRightFromSquareRegularIcon,
-  DownloadIconRegular,
-  FileIconRegular,
+  DownloadRegularIcon,
+  FileRegularIcon,
   ImageWithCheckedBackground,
   MagnifyingGlassRegularIcon,
-  RotateIconRegular,
-  SidebarIconRegular,
+  RotateRegularIcon,
+  SidebarRegularIcon,
 } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -199,7 +199,7 @@ export const FilePreviewSection = () => {
             <GrayToBlueIconButton
               onClick={() => setShowThumbnails(!showThumbnails)}
             >
-              <SidebarIconRegular
+              <SidebarRegularIcon
                 sx={{
                   color: ({ palette }) =>
                     showThumbnails ? palette.blue[70] : undefined,
@@ -234,7 +234,7 @@ export const FilePreviewSection = () => {
                   disabled={isDirty}
                   onClick={() => setReplacing(true)}
                 >
-                  <RotateIconRegular />
+                  <RotateRegularIcon />
                 </GrayToBlueIconButton>
               </Box>
             </Tooltip>
@@ -247,7 +247,7 @@ export const FilePreviewSection = () => {
               rel="nofollow noopener noreferrer"
             >
               <GrayToBlueIconButton>
-                <DownloadIconRegular />
+                <DownloadRegularIcon />
               </GrayToBlueIconButton>
             </Box>
           </Tooltip>
@@ -300,7 +300,7 @@ export const FilePreviewSection = () => {
           />
         ) : (
           <Stack alignItems="center" spacing={2}>
-            <FileIconRegular
+            <FileRegularIcon
               sx={{
                 color: ({ palette }) => palette.gray[50],
                 fontSize: 48,

@@ -2,7 +2,7 @@ import type { SvgIconProps } from "@mui/material";
 import { SvgIcon } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const ClockIconRegular: FunctionComponent<SvgIconProps> = (props) => {
+export const ClockRegularIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon
       width="512"

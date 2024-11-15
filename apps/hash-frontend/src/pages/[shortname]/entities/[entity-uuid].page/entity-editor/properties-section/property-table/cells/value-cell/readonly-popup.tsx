@@ -1,4 +1,4 @@
-import { CopyIconRegular, IconButton } from "@hashintel/design-system";
+import { CopyRegularIcon, IconButton } from "@hashintel/design-system";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
@@ -54,7 +54,7 @@ export const ReadonlyPopup: ValueCellEditorComponent = (props) => {
             padding: "4px",
           })}
         >
-          <CopyIconRegular
+          <CopyRegularIcon
             sx={{
               fill: "rgba(0, 0, 0, 0.3)",
             }}

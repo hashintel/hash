@@ -3,8 +3,8 @@ import { extractVersion } from "@blockprotocol/type-system";
 import {
   AsteriskRegularIcon,
   EntityOrTypeIcon,
-  EyeIconSolid,
-  PenToSquareIconSolid,
+  EyeSolidIcon,
+  PenToSquareSolidIcon,
 } from "@hashintel/design-system";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { isBaseUrl } from "@local/hash-graph-types/ontology";
@@ -338,9 +338,9 @@ const EntitiesPage: NextPageWithLayout = () => {
               >
                 {userPermissions?.edit ? "Edit" : "View"} Type
                 {userPermissions?.edit ? (
-                  <PenToSquareIconSolid sx={typeIconSx} />
+                  <PenToSquareSolidIcon sx={typeIconSx} />
                 ) : (
-                  <EyeIconSolid sx={typeIconSx} />
+                  <EyeSolidIcon sx={typeIconSx} />
                 )}
               </Button>
             )}

@@ -1,6 +1,6 @@
 import { useApolloClient, useMutation } from "@apollo/client";
 import {
-  ArrowRightIconRegular,
+  ArrowRightRegularIcon,
   BullseyeLightIcon,
   TextField,
 } from "@hashintel/design-system";
@@ -562,7 +562,7 @@ const NewGoalPageContent = () => {
               ) : (
                 <>
                   Continue
-                  <ArrowRightIconRegular sx={{ fontSize: 16, ml: 1 }} />
+                  <ArrowRightRegularIcon sx={{ fontSize: 16, ml: 1 }} />
                 </>
               )}
             </Button>

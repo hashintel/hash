@@ -2,7 +2,7 @@ import type { SvgIconProps } from "@mui/material";
 import { SvgIcon } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const PlugIconRegular: FunctionComponent<SvgIconProps> = (props) => {
+export const PlugRegularIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon
       stroke="currentColor"
