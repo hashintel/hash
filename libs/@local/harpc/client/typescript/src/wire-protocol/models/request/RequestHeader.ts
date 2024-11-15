@@ -10,11 +10,12 @@ import {
   Predicate,
 } from "effect";
 
+import { createProto, encodeDual } from "../../../utils.js";
 import type * as Buffer from "../../Buffer.js";
 import * as Protocol from "../Protocol.js";
+import type * as RequestBody from "./RequestBody.js";
 import * as RequestFlags from "./RequestFlags.js";
 import * as RequestId from "./RequestId.js";
-import { createProto, encodeDual } from "../../../utils.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestHeader",
@@ -88,6 +89,16 @@ export const make = (
   flags: RequestFlags.RequestFlags,
 ): RequestHeader =>
   createProto(RequestHeaderProto, { protocol, requestId, flags });
+
+export const applyBodyVariant = (
+  header: RequestHeader,
+  variant: RequestBody.RequestBodyVariant,
+) =>
+  make(
+    header.protocol,
+    header.requestId,
+    RequestFlags.applyBodyVariant(header.flags, variant),
+  );
 
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, header: RequestHeader) => {

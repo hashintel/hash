@@ -12,6 +12,7 @@ import {
 
 import { createProto, encodeDual } from "../../../utils.js";
 import * as Buffer from "../../Buffer.js";
+import * as RequestBody from "./RequestBody.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestFlags",
@@ -72,17 +73,29 @@ const RequestFlagsProto: Omit<RequestFlags, "flags"> = {
 export const make = (flags: HashSet.HashSet<Flag>): RequestFlags =>
   createProto(RequestFlagsProto, { flags });
 
+export const applyBodyVariant = (
+  flags: RequestFlags,
+  variant: RequestBody.RequestBodyVariant,
+) => {
+  switch (variant) {
+    case "RequestBegin":
+      return HashSet.add(flags.flags, "beginOfRequest").pipe(make);
+    case "RequestFrame":
+      return HashSet.remove(flags.flags, "beginOfRequest").pipe(make);
+  }
+};
+
 export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, requestFlags: RequestFlags) =>
+  (buffer: Buffer.WriteBuffer, flags: RequestFlags) =>
     Effect.gen(function* () {
       let value = 0x00;
 
-      if (HashSet.has(requestFlags.flags, "beginOfRequest")) {
+      if (HashSet.has(flags.flags, "beginOfRequest")) {
         // eslint-disable-next-line no-bitwise
         value |= 0b1000_0000;
       }
 
-      if (HashSet.has(requestFlags.flags, "endOfRequest")) {
+      if (HashSet.has(flags.flags, "endOfRequest")) {
         // eslint-disable-next-line no-bitwise
         value |= 0b0000_0001;
       }
@@ -112,6 +125,12 @@ export const decode = (buffer: Buffer.ReadBuffer) =>
 
 export const isRequestFlags = (value: unknown): value is RequestFlags =>
   Predicate.hasProperty(value, TypeId);
+
+export const isBeginOfRequest = (flags: RequestFlags) =>
+  HashSet.has(flags.flags, "beginOfRequest");
+
+export const isEndOfRequest = (flags: RequestFlags) =>
+  HashSet.has(flags.flags, "endOfRequest");
 
 export const arbitrary = (fc: typeof FastCheck) => {
   return fc
