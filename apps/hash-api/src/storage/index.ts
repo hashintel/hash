@@ -278,6 +278,11 @@ export const setupFileDownloadProxyHandler = (
       }
     }
 
+    /**
+     * For certain browser-based flows, automatically redirecting to the presigned URL can cause CORS issues,
+     * because fetch requests following redirects automatically have an Origin of 'null'.
+     * This provides a way for the frontend code to handle fetching from the presigned URL directly.
+     */
     if (urlOnly) {
       res.json({ url: presignUrl });
       return;
