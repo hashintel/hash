@@ -42,7 +42,6 @@ export const PageThumbnail = memo(
           height={height}
           width={thumbnailWidth}
           onItemClick={(args) => setSelectedPageNumber(args.pageNumber)}
-          onMouseEnter={() => setSelectedPageNumber(pageNumber)}
         />
       </Box>
     );
