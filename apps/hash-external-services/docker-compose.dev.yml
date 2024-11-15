@@ -14,6 +14,7 @@ services:
     image: quay.io/minio/minio
     command: server /data --console-address ":9001"
     environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: ${FRONTEND_URL}
       MINIO_ROOT_USER: ${AWS_S3_UPLOADS_ACCESS_KEY_ID}
       MINIO_ROOT_PASSWORD: ${AWS_S3_UPLOADS_SECRET_ACCESS_KEY}
     ports:
@@ -33,16 +34,11 @@ services:
       MINIO_ROOT_PASSWORD: ${AWS_S3_UPLOADS_SECRET_ACCESS_KEY}
       AWS_S3_UPLOADS_BUCKET: ${AWS_S3_UPLOADS_BUCKET}
     entrypoint: >
-      /bin/sh -c "
-      # Wait until MinIO is accessible
-      until (mc config host add myminio http://minio:9000 \$MINIO_ROOT_USER \$MINIO_ROOT_PASSWORD) do echo 'Waiting for MinIO...' && sleep 1; done;
-
-      # Add a fixed delay to ensure MinIO server is fully ready
-      sleep 5;
-
-      echo 'Creating bucket if not exists...';
-      mc mb myminio/\$AWS_S3_UPLOADS_BUCKET --ignore-existing;
-      "
+      /bin/sh -c '
+      mc config host add myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+      echo "Creating bucket $$AWS_S3_UPLOADS_BUCKET" &&
+      mc mb myminio/$$AWS_S3_UPLOADS_BUCKET --ignore-existing
+      '
 
   telemetry-collector:
     image: jaegertracing/all-in-one:1.48

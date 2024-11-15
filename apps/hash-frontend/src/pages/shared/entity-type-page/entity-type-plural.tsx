@@ -22,6 +22,10 @@ export const EntityTypePlural = ({
 
   const { ref, ...props } = pluralController.field;
 
+  if (readonly && !props.value) {
+    return null;
+  }
+
   return (
     <AltTitleGroup direction={isLinkType ? "column" : "row"} label="plural">
       <EditableField

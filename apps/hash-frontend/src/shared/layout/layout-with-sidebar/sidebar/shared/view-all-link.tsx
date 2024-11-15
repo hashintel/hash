@@ -1,4 +1,4 @@
-import { ArrowRightIconRegular } from "@hashintel/design-system";
+import { ArrowRightRegularIcon } from "@hashintel/design-system";
 import type { LinkProps } from "@mui/material";
 import { Typography } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
@@ -32,7 +32,7 @@ export const ViewAllLink: FunctionComponent<{
         })}
       >
         {children}
-        <ArrowRightIconRegular
+        <ArrowRightRegularIcon
           sx={{
             marginLeft: 0.75,
             fontSize: 10,

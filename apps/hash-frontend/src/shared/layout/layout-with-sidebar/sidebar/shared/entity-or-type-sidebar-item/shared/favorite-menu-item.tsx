@@ -1,4 +1,4 @@
-import { StarIconRegular, StarIconSolid } from "@hashintel/design-system";
+import { StarRegularIcon, StarSolidIcon } from "@hashintel/design-system";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import { useMemo } from "react";
 
@@ -59,7 +59,7 @@ export const FavoriteMenuItem = ({
   return (
     <SidebarMenuItem
       title={`${isFavorite ? "Remove from" : "Add to"} favorites`}
-      icon={isFavorite ? <StarIconSolid /> : <StarIconRegular />}
+      icon={isFavorite ? <StarSolidIcon /> : <StarRegularIcon />}
       onClick={toggleFavorite}
       popupState={popupState}
     />

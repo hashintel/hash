@@ -1,11 +1,11 @@
 import { GearIcon } from "@hashintel/block-design-system";
-import { IconButton, Select } from "@hashintel/design-system";
+import { Select } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
+import { GrayToBlueIconButton } from "../../../gray-to-blue-icon-button";
 import {
-  controlButtonSx,
   ControlPanel,
   ControlSectionContainer,
   ItemLabel,
@@ -450,12 +450,12 @@ export const ConfigControl = () => {
         open={configPanelOpen}
         onClose={() => setConfigPanelOpen(false)}
       />
-      <IconButton
+      <GrayToBlueIconButton
         onClick={() => setConfigPanelOpen(true)}
-        sx={[controlButtonSx, { position: "absolute", top: 8, right: 13 }]}
+        sx={{ position: "absolute", top: 8, right: 13 }}
       >
         <GearIcon />
-      </IconButton>
+      </GrayToBlueIconButton>
     </>
   );
 };

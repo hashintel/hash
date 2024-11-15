@@ -444,6 +444,8 @@ If you want to use AWS for file uploads or emails, you will need to have it conf
 - `AWS_S3_UPLOADS_ENDPOINT`: (optional) the endpoint to use for S3 operations. If not, the AWS S3 default for the given region is used. Useful if you are using a different S3-compatible storage provider.
 - `AWS_S3_UPLOADS_FORCE_PATH_STYLE`: (optional) set `true` if your S3 setup requires path-style rather than virtual hosted-style S3 requests.
 
+For some in-browser functionality (e.g. document previewing), you must configure a Access-Control-Allow-Origin header on your bucket to be something other than '\*'.
+
 ### File uploads
 
 By default, files are uploaded locally, which is **not** recommended for production use. It is also possible to upload files on AWS S3.

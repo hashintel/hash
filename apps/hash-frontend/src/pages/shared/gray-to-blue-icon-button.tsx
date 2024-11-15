@@ -23,6 +23,9 @@ export const GrayToBlueIconButton = ({ sx, ...props }: IconButtonProps) => {
             border: `1px solid ${palette.blue[25]}`,
             color: "blue.70",
           },
+          "& svg": {
+            fontSize: 13,
+          },
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

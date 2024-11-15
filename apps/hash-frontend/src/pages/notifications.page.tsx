@@ -1,4 +1,4 @@
-import { BellIconLight } from "@hashintel/design-system";
+import { BellLightIcon } from "@hashintel/design-system";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
@@ -336,7 +336,7 @@ const NotificationsPage: NextPageWithLayout = () => {
           {
             title: "Notifications",
             id: "notifications",
-            icon: <BellIconLight />,
+            icon: <BellLightIcon />,
           },
         ]}
         sx={{

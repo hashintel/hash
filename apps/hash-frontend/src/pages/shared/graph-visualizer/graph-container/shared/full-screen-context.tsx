@@ -48,10 +48,13 @@ export const FullScreenContextProvider = ({
   return (
     <FullScreenContext.Provider value={value}>
       {/*
-       * We need height: 100% to give the Sigma Container its proper height, this class is the only way to achieve it
+       * We need height: 100% to give the Sigma Container its proper height and width, this class is the only way to achieve it
        * @see https://github.com/snakesilk/react-fullscreen/issues/103
        */}
-      <FullScreen className="full-height-for-react-full-screen" handle={handle}>
+      <FullScreen
+        className="full-height-and-width-for-react-full-screen"
+        handle={handle}
+      >
         {children}
       </FullScreen>
     </FullScreenContext.Provider>

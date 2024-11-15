@@ -1,7 +1,7 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
 import {
   EntityOrTypeIcon,
-  EyeSlashIconRegular,
+  EyeSlashRegularIcon,
 } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
@@ -150,7 +150,7 @@ const LeftOrRightEntity: FunctionComponent<{
             fill={({ palette }) => palette.gray[50]}
           />
         ) : (
-          <EyeSlashIconRegular sx={{ fontSize: 14 }} />
+          <EyeSlashRegularIcon sx={{ fontSize: 14 }} />
         )}
       </Box>
       <ContentTypography>{entityLabel}</ContentTypography>

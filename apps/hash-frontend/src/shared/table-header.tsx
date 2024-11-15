@@ -2,8 +2,8 @@ import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
   CheckIcon,
   Chip,
-  EyeIconRegular,
-  EyeSlashIconRegular,
+  EyeRegularIcon,
+  EyeSlashRegularIcon,
   IconButton,
 } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -306,7 +306,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                 icon={
                   filterState.includeGlobal ? (
                     publicFilterHovered ? (
-                      <EyeSlashIconRegular
+                      <EyeSlashRegularIcon
                         sx={{ fill: ({ palette }) => palette.primary.main }}
                       />
                     ) : (
@@ -315,7 +315,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                       />
                     )
                   ) : publicFilterHovered ? (
-                    <EyeIconRegular
+                    <EyeRegularIcon
                       sx={{ fill: ({ palette }) => palette.primary.main }}
                     />
                   ) : (
