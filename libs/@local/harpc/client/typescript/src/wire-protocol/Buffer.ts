@@ -134,10 +134,9 @@ const getInt =
         }),
     );
 
-export type WriteResult = Effect.Effect<
-  Buffer<Write>,
-  UnexpectedEndOfBufferError
->;
+export type WriteResult<
+  E extends UnexpectedEndOfBufferError = UnexpectedEndOfBufferError,
+> = Effect.Effect<Buffer<Write>, E>;
 
 export type ReadResult<T = number> = Effect.Effect<
   T,
@@ -229,6 +228,21 @@ export const getSlice = (
         return [value, index + length] as const;
       }),
   );
+
+export const advance: {
+  (length: number): <T>(buffer: Buffer<T>) => WriteResult;
+  <T>(buffer: Buffer<T>, length: number): WriteResult;
+} = Function.dual(2, <T>(buffer: Buffer<T>, length: number) =>
+  SubscriptionRef.updateEffect(
+    (buffer as unknown as BufferImpl<T>).index,
+    (index) =>
+      Effect.gen(function* () {
+        yield* validateBounds(buffer as BufferImpl<T>, index, length);
+
+        return index + length;
+      }),
+  ),
+);
 
 export const remaining = (buffer: Buffer<Read>) =>
   Effect.gen(function* () {

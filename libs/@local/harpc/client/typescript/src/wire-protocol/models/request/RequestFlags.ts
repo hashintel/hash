@@ -2,7 +2,6 @@ import type { FastCheck } from "effect";
 import {
   Effect,
   Equal,
-  Function,
   Hash,
   HashSet,
   Inspectable,
@@ -11,6 +10,7 @@ import {
   Predicate,
 } from "effect";
 
+import { createProto, encodeDual } from "../../../utils.js";
 import * as Buffer from "../../Buffer.js";
 
 const TypeId: unique symbol = Symbol(
@@ -69,38 +69,26 @@ const RequestFlagsProto: Omit<RequestFlags, "flags"> = {
   },
 };
 
-export const make = (flags: HashSet.HashSet<Flag>): RequestFlags => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(RequestFlagsProto);
+export const make = (flags: HashSet.HashSet<Flag>): RequestFlags =>
+  createProto(RequestFlagsProto, { flags });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.flags = flags;
+export const encode = encodeDual(
+  (buffer: Buffer.WriteBuffer, requestFlags: RequestFlags) =>
+    Effect.gen(function* () {
+      let value = 0x00;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
-};
+      if (HashSet.has(requestFlags.flags, "beginOfRequest")) {
+        // eslint-disable-next-line no-bitwise
+        value |= 0b1000_0000;
+      }
 
-export const encode: {
-  (
-    requestFlags: RequestFlags,
-  ): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
-  (buffer: Buffer.WriteBuffer, requestFlags: RequestFlags): Buffer.WriteResult;
-} = Function.dual(2, (buffer: Buffer.WriteBuffer, requestFlags: RequestFlags) =>
-  Effect.gen(function* () {
-    let value = 0x00;
+      if (HashSet.has(requestFlags.flags, "endOfRequest")) {
+        // eslint-disable-next-line no-bitwise
+        value |= 0b0000_0001;
+      }
 
-    if (HashSet.has(requestFlags.flags, "beginOfRequest")) {
-      // eslint-disable-next-line no-bitwise
-      value |= 0b1000_0000;
-    }
-
-    if (HashSet.has(requestFlags.flags, "endOfRequest")) {
-      // eslint-disable-next-line no-bitwise
-      value |= 0b0000_0001;
-    }
-
-    return yield* Buffer.putU8(buffer, value);
-  }),
+      return yield* Buffer.putU8(buffer, value);
+    }),
 );
 
 export const decode = (buffer: Buffer.ReadBuffer) =>

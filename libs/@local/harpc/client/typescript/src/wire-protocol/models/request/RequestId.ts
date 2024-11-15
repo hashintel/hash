@@ -12,6 +12,7 @@ import {
 
 import { U32_MAX, U32_MIN } from "../../../constants.js";
 import * as Buffer from "../../Buffer.js";
+import { createProto, encodeDual } from "../../../utils.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestId",
@@ -67,22 +68,12 @@ const RequestIdProto: Omit<RequestId, "value"> = {
 };
 
 /* @internal */
-export const makeUnchecked = (value: number): RequestId => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(RequestIdProto);
+export const makeUnchecked = (value: number): RequestId =>
+  createProto(RequestIdProto, { value });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.value = value;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
-};
-
-export const encode: {
-  (requestId: RequestId): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
-  (buffer: Buffer.WriteBuffer, requestId: RequestId): Buffer.WriteResult;
-} = Function.dual(2, (buffer: Buffer.WriteBuffer, requestId: RequestId) =>
-  Buffer.putU32(buffer, requestId.value),
+export const encode = encodeDual(
+  (buffer: Buffer.WriteBuffer, requestId: RequestId) =>
+    Buffer.putU32(buffer, requestId.value),
 );
 
 export const decode = (buffer: Buffer.ReadBuffer) =>

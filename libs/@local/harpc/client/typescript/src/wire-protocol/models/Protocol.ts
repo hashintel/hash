@@ -13,6 +13,7 @@ import {
 
 import * as Buffer from "../Buffer.js";
 import * as ProtocolVersion from "./ProtocolVersion.js";
+import { createProto, encodeDual } from "../../utils.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/Protocol",
@@ -24,7 +25,7 @@ export class InvalidMagicError extends Data.TaggedError("InvalidMagicError")<{
 }> {
   get message(): string {
     const receivedString = new TextDecoder().decode(this.received);
-    return `Invalid magic number received: ${receivedString}`;
+    return `Invalid magic received: ${receivedString}`;
   }
 }
 
@@ -73,26 +74,14 @@ const ProtocolProto: Omit<Protocol, "version"> = {
   },
 };
 
-export const make = (version: ProtocolVersion.ProtocolVersion): Protocol => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(ProtocolProto);
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.version = version;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
-};
+export const make = (version: ProtocolVersion.ProtocolVersion): Protocol =>
+  createProto(ProtocolProto, { version });
 
 const MAGIC = new Uint8Array([
   0x68 /* h */, 0x61 /* a */, 0x72 /* r */, 0x70 /* p */, 0x63 /* c */,
 ]);
 
-export const encode: {
-  (protocol: Protocol): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
-  (buffer: Buffer.WriteBuffer, protocol: Protocol): Buffer.WriteResult;
-} = Function.dual(
-  2,
+export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, protocol: Protocol): Buffer.WriteResult => {
     return pipe(
       buffer,

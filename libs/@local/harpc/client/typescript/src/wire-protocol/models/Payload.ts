@@ -3,7 +3,6 @@ import {
   Data,
   Effect,
   Equal,
-  Function,
   Hash,
   Inspectable,
   pipe,
@@ -12,6 +11,7 @@ import {
 } from "effect";
 
 import { U16_MAX, U16_MIN } from "../../constants.js";
+import { createProto, encodeDual } from "../../utils.js";
 import * as Buffer from "../Buffer.js";
 
 const TypeId: unique symbol = Symbol(
@@ -115,16 +115,8 @@ const PayloadProto: Omit<Payload, "buffer"> = {
   },
 };
 
-const makeUnchecked = (buffer: Uint8Array): Payload => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(PayloadProto);
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.buffer = buffer;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
-};
+const makeUnchecked = (buffer: Uint8Array): Payload =>
+  createProto(PayloadProto, { buffer });
 
 export const make = (
   buffer: Uint8Array,
@@ -136,16 +128,14 @@ export const make = (
   return Effect.succeed(makeUnchecked(buffer));
 };
 
-export const encode: {
-  (payload: Payload): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
-  (buffer: Buffer.WriteBuffer, payload: Payload): Buffer.WriteResult;
-} = Function.dual(2, (buffer: Buffer.WriteBuffer, payload: Payload) =>
-  Effect.gen(function* () {
-    yield* Buffer.putU16(buffer, payload.buffer.length);
-    yield* Buffer.putSlice(buffer, payload.buffer);
+export const encode = encodeDual(
+  (buffer: Buffer.WriteBuffer, payload: Payload) =>
+    Effect.gen(function* () {
+      yield* Buffer.putU16(buffer, payload.buffer.length);
+      yield* Buffer.putSlice(buffer, payload.buffer);
 
-    return buffer;
-  }),
+      return buffer;
+    }),
 );
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
@@ -153,7 +143,7 @@ export const decode = (buffer: Buffer.ReadBuffer) =>
     const length = yield* Buffer.getU16(buffer);
     const slice = yield* Buffer.getSlice(buffer, length);
 
-    return make(slice);
+    return yield* make(slice);
   });
 
 export const isPayload = (value: unknown): value is Payload =>

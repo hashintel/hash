@@ -3,7 +3,6 @@ import {
   Data,
   Effect,
   Equal,
-  Function,
   Hash,
   Inspectable,
   pipe,
@@ -11,6 +10,7 @@ import {
   Predicate,
 } from "effect";
 
+import { createProto, encodeDual } from "../../utils.js";
 import * as Buffer from "../Buffer.js";
 
 const TypeId: unique symbol = Symbol(
@@ -73,24 +73,10 @@ const ProtocolVersionProto: Omit<ProtocolVersion, "value"> = {
   },
 };
 
-const make = (value: number): ProtocolVersion => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(ProtocolVersionProto);
+const make = (value: number): ProtocolVersion =>
+  createProto(ProtocolVersionProto, { value });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.value = value;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
-};
-
-export const encode: {
-  (
-    version: ProtocolVersion,
-  ): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
-  (buffer: Buffer.WriteBuffer, version: ProtocolVersion): Buffer.WriteResult;
-} = Function.dual(
-  2,
+export const encode = encodeDual(
   (
     buffer: Buffer.WriteBuffer,
     version: ProtocolVersion,

@@ -14,6 +14,7 @@ import type * as Buffer from "../../Buffer.js";
 import * as Protocol from "../Protocol.js";
 import * as RequestFlags from "./RequestFlags.js";
 import * as RequestId from "./RequestId.js";
+import { createProto, encodeDual } from "../../../utils.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestHeader",
@@ -85,32 +86,19 @@ export const make = (
   protocol: Protocol.Protocol,
   requestId: RequestId.RequestId,
   flags: RequestFlags.RequestFlags,
-): RequestHeader => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const object = Object.create(RequestHeaderProto);
+): RequestHeader =>
+  createProto(RequestHeaderProto, { protocol, requestId, flags });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.protocol = protocol;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.requestId = requestId;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  object.flags = flags;
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return object;
-};
-
-export const encode: {
-  (header: RequestHeader): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
-  (buffer: Buffer.WriteBuffer, header: RequestHeader): Buffer.WriteResult;
-} = Function.dual(2, (buffer: Buffer.WriteBuffer, header: RequestHeader) => {
-  return pipe(
-    buffer,
-    Protocol.encode(header.protocol),
-    Effect.andThen(RequestId.encode(header.requestId)),
-    Effect.andThen(RequestFlags.encode(header.flags)),
-  );
-});
+export const encode = encodeDual(
+  (buffer: Buffer.WriteBuffer, header: RequestHeader) => {
+    return pipe(
+      buffer,
+      Protocol.encode(header.protocol),
+      Effect.andThen(RequestId.encode(header.requestId)),
+      Effect.andThen(RequestFlags.encode(header.flags)),
+    );
+  },
+);
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {
