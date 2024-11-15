@@ -10,13 +10,11 @@ pub mod logging;
 pub mod opentelemetry;
 pub mod sentry;
 
+use error_stack::{Report, ResultExt as _};
 use tokio::runtime::Handle;
 use tracing::warn;
 use tracing_error::ErrorLayer;
-use tracing_subscriber::{
-    layer::SubscriberExt as _,
-    util::{SubscriberInitExt as _, TryInitError},
-};
+use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 use crate::{logging::LoggingConfig, opentelemetry::OpenTelemetryConfig, sentry::SentryConfig};
 
@@ -34,19 +32,27 @@ pub struct TracingConfig {
     pub sentry: SentryConfig,
 }
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Failed to initialize tracing")]
+pub struct InitTracingError;
+
 /// Initialize the `tracing` logging setup.
 ///
 /// # Errors
 ///
-/// - [`TryInitError`], if initializing the [`tracing_subscriber::Registry`] fails.
-pub fn init_tracing(config: TracingConfig, handle: &Handle) -> Result<impl Drop, TryInitError> {
+/// - [`InitTracingError`], if initializing the [`tracing_subscriber::Registry`] fails.
+pub fn init_tracing(
+    config: TracingConfig,
+    handle: &Handle,
+) -> Result<impl Drop, Report<InitTracingError>> {
     let error = ErrorLayer::default();
 
     let console = logging::console_layer(&config.logging.console);
     let (file, file_guard) = logging::file_layer(config.logging.file);
 
     let sentry = sentry::layer(&config.sentry);
-    let opentelemetry = opentelemetry::layer(&config.otlp, handle);
+    let opentelemetry =
+        opentelemetry::layer(&config.otlp, handle).change_context(InitTracingError)?;
 
     tracing_subscriber::registry()
         .with(sentry)
@@ -54,7 +60,8 @@ pub fn init_tracing(config: TracingConfig, handle: &Handle) -> Result<impl Drop,
         .with(console)
         .with(file)
         .with(error)
-        .try_init()?;
+        .try_init()
+        .change_context(InitTracingError)?;
 
     // We have to wait until logging is initialized before we can print the warning.
     if std::env::var("RUST_LOG").is_ok() {
