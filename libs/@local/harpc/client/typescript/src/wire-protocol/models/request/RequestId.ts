@@ -2,7 +2,6 @@ import type { FastCheck } from "effect";
 import {
   Effect,
   Equal,
-  Function,
   Hash,
   Inspectable,
   pipe,
@@ -11,8 +10,8 @@ import {
 } from "effect";
 
 import { U32_MAX, U32_MIN } from "../../../constants.js";
-import * as Buffer from "../../Buffer.js";
 import { createProto, encodeDual } from "../../../utils.js";
+import * as Buffer from "../../Buffer.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestId",

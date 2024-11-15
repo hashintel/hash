@@ -12,37 +12,36 @@ import {
 
 import { createProto, encodeDual } from "../../../utils.js";
 import * as Buffer from "../../Buffer.js";
-import type * as RequestBody from "./RequestBody.js";
+import type * as ResponseBody from "./ResponseBody.js";
 
 const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/models/request/RequestFlags",
+  "@local/harpc-client/wire-protocol/models/response/ResponseFlags",
 );
 export type TypeId = typeof TypeId;
 
 export type Flag =
   // Computed Flags
-  | "beginOfRequest"
+  | "beginOfResponse"
   // Controlled Flags
-  | "endOfRequest";
+  | "endOfResponse";
 
-export interface RequestFlags
+export interface ResponseFlags
   extends Equal.Equal,
     Inspectable.Inspectable,
     Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
-
   readonly flags: HashSet.HashSet<Flag>;
 }
 
-const RequestFlagsProto: Omit<RequestFlags, "flags"> = {
+const ResponseFlagsProto: Omit<ResponseFlags, "flags"> = {
   [TypeId]: TypeId,
 
-  [Equal.symbol](this: RequestFlags, that: Equal.Equal) {
+  [Equal.symbol](this: ResponseFlags, that: Equal.Equal) {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return isRequestFlags(that) && Equal.equals(this.flags, that.flags);
+    return isResponseFlags(that) && Equal.equals(this.flags, that.flags);
   },
 
-  [Hash.symbol](this: RequestFlags) {
+  [Hash.symbol](this: ResponseFlags) {
     return pipe(
       Hash.hash(this[TypeId]),
       Hash.combine(Hash.hash(this.flags)),
@@ -50,13 +49,13 @@ const RequestFlagsProto: Omit<RequestFlags, "flags"> = {
     );
   },
 
-  toString(this: RequestFlags) {
-    return `RequestFlags(${this.flags.toString()})`;
+  toString(this: ResponseFlags) {
+    return `ResponseFlags(${this.flags.toString()})`;
   },
 
-  toJSON(this: RequestFlags) {
+  toJSON(this: ResponseFlags) {
     return {
-      _id: "RequestFlags",
+      _id: "ResponseFlags",
       flags: this.flags.toJSON(),
     };
   },
@@ -71,32 +70,32 @@ const RequestFlagsProto: Omit<RequestFlags, "flags"> = {
   },
 };
 
-export const make = (flags: HashSet.HashSet<Flag>): RequestFlags =>
-  createProto(RequestFlagsProto, { flags });
+export const make = (flags: HashSet.HashSet<Flag>): ResponseFlags =>
+  createProto(ResponseFlagsProto, { flags });
 
 export const applyBodyVariant = (
-  flags: RequestFlags,
-  variant: RequestBody.RequestBodyVariant,
+  flags: ResponseFlags,
+  variant: ResponseBody.ResponseBodyVariant,
 ) => {
   switch (variant) {
-    case "RequestBegin":
-      return HashSet.add(flags.flags, "beginOfRequest").pipe(make);
-    case "RequestFrame":
-      return HashSet.remove(flags.flags, "beginOfRequest").pipe(make);
+    case "ResponseBegin":
+      return HashSet.add(flags.flags, "beginOfResponse").pipe(make);
+    case "ResponseFrame":
+      return HashSet.remove(flags.flags, "beginOfResponse").pipe(make);
   }
 };
 
 export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, flags: RequestFlags) =>
+  (buffer: Buffer.WriteBuffer, flags: ResponseFlags) =>
     Effect.gen(function* () {
       let value = 0x00;
 
-      if (HashSet.has(flags.flags, "beginOfRequest")) {
+      if (HashSet.has(flags.flags, "beginOfResponse")) {
         // eslint-disable-next-line no-bitwise
         value |= 0b1000_0000;
       }
 
-      if (HashSet.has(flags.flags, "endOfRequest")) {
+      if (HashSet.has(flags.flags, "endOfResponse")) {
         // eslint-disable-next-line no-bitwise
         value |= 0b0000_0001;
       }
@@ -113,29 +112,29 @@ export const decode = (buffer: Buffer.ReadBuffer) =>
 
     // eslint-disable-next-line no-bitwise
     if ((value & 0b1000_0000) === 0b1000_0000) {
-      HashSet.add(flags, "beginOfRequest");
+      HashSet.add(flags, "beginOfResponse");
     }
 
     // eslint-disable-next-line no-bitwise
     if ((value & 0b0000_0001) === 0b0000_0001) {
-      HashSet.add(flags, "endOfRequest");
+      HashSet.add(flags, "endOfResponse");
     }
 
     return make(flags.pipe(HashSet.endMutation));
   });
 
-export const isRequestFlags = (value: unknown): value is RequestFlags =>
+export const isResponseFlags = (value: unknown): value is ResponseFlags =>
   Predicate.hasProperty(value, TypeId);
 
-export const isBeginOfRequest = (flags: RequestFlags) =>
-  HashSet.has(flags.flags, "beginOfRequest");
+export const isBeginOfResponse = (flags: ResponseFlags) =>
+  HashSet.has(flags.flags, "beginOfResponse");
 
-export const isEndOfRequest = (flags: RequestFlags) =>
-  HashSet.has(flags.flags, "endOfRequest");
+export const isEndOfResponse = (flags: ResponseFlags) =>
+  HashSet.has(flags.flags, "endOfResponse");
 
 export const arbitrary = (fc: typeof FastCheck) => {
   return fc
-    .uniqueArray(fc.constantFrom<Flag>("beginOfRequest", "endOfRequest"))
+    .uniqueArray(fc.constantFrom<Flag>("beginOfResponse", "endOfResponse"))
     .map(HashSet.fromIterable)
     .map(make);
 };
