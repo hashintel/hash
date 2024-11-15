@@ -1,9 +1,10 @@
 import { GearIcon } from "@hashintel/block-design-system";
-import { IconButton, Select } from "@hashintel/design-system";
+import { Select } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
+import { GrayToBlueIconButton } from "../../../gray-to-blue-icon-button";
 import {
   ControlPanel,
   ControlSectionContainer,
@@ -12,7 +13,6 @@ import {
 import { useGraphContext } from "./graph-context";
 import { IntegerInput } from "./integer-input";
 import { selectSx } from "./styles";
-import { GrayToBlueIconButton } from "../../../gray-to-blue-icon-button";
 
 const directionOptions = ["All", "In", "Out"] as const;
 

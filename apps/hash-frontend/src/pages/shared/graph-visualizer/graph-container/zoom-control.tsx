@@ -1,7 +1,6 @@
 import {
-  IconButton,
-  MagnifyingGlassMinusIconLight,
-  MagnifyingGlassPlusIconLight,
+  MagnifyingGlassMinusLightIcon,
+  MagnifyingGlassPlusLightIcon,
 } from "@hashintel/design-system";
 import { useSigma } from "@react-sigma/core";
 
@@ -15,11 +14,11 @@ export const ZoomControl = () => {
   return (
     <>
       <GrayToBlueIconButton onClick={() => camera.animatedUnzoom(1.5)}>
-        <MagnifyingGlassMinusIconLight />
+        <MagnifyingGlassMinusLightIcon />
       </GrayToBlueIconButton>
-      <IconButton onClick={() => camera.animatedZoom(1.5)}>
-        <MagnifyingGlassPlusIconLight />
-      </IconButton>
+      <GrayToBlueIconButton onClick={() => camera.animatedZoom(1.5)}>
+        <MagnifyingGlassPlusLightIcon />
+      </GrayToBlueIconButton>
     </>
   );
 };
