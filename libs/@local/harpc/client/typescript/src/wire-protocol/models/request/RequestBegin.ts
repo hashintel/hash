@@ -12,7 +12,7 @@ import {
 
 import * as ProcedureDescriptor from "../../../types/ProcedureDescriptor.js";
 import * as SubsystemDescriptor from "../../../types/SubsystemDescriptor.js";
-import { createProto, encodeDual as dualEncode } from "../../../utils.js";
+import { createProto, encodeDual } from "../../../utils.js";
 import * as Buffer from "../../Buffer.js";
 import * as Payload from "../Payload.js";
 
@@ -89,7 +89,7 @@ export const make = (
 ): RequestBegin =>
   createProto(RequestBeginProto, { subsystem, procedure, payload });
 
-export const encode = dualEncode(
+export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, begin: RequestBegin) =>
     pipe(
       buffer,
