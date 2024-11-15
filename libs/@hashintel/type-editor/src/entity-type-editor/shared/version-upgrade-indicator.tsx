@@ -1,6 +1,6 @@
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
 import {
-  ArrowRightIconRegular,
+  ArrowRightRegularIcon,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
@@ -67,7 +67,7 @@ export const VersionUpgradeIndicator = ({
               <Typography variant="smallTextLabels" fontWeight={500}>
                 Update v{currentVersion}
               </Typography>
-              <ArrowRightIconRegular
+              <ArrowRightRegularIcon
                 sx={{
                   color: ({ palette }) => palette.gray[50],
                   fontSize: 14,
@@ -91,7 +91,7 @@ export const VersionUpgradeIndicator = ({
           >
             v{currentVersion}
           </Typography>
-          <ArrowRightIconRegular
+          <ArrowRightRegularIcon
             sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }}
           />
           <Typography

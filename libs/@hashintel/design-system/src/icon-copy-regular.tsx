@@ -2,7 +2,7 @@ import type { SvgIconProps } from "@mui/material";
 import { SvgIcon } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const CopyIconRegular: FunctionComponent<SvgIconProps> = (props) => {
+export const CopyRegularIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon
       width="448"

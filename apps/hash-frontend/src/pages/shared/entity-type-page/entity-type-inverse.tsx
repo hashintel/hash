@@ -18,6 +18,10 @@ export const EntityTypeInverse = ({ readonly }: EntityTypeInverseProps) => {
 
   const { ref, ...props } = inverseController.field;
 
+  if (readonly && !props.value) {
+    return null;
+  }
+
   return (
     <AltTitleGroup direction="column" label="inverse">
       <EditableField

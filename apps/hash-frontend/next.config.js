@@ -203,6 +203,9 @@ export default withSentryConfig(
           ".cjs": [".cts", ".cjs"],
         };
 
+        // eslint-disable-next-line no-param-reassign
+        webpackConfig.resolve.alias.canvas = false;
+
         webpackConfig.plugins.push(
           new DefinePlugin({
             __SENTRY_DEBUG__: false,

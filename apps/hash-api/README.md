@@ -16,7 +16,7 @@ The HASH Backend API service is configured using the following environment varia
 - S3 file uploads (ensure that `FILE_UPLOAD_PROVIDER=AWS_S3` is also set):
   - `AWS_S3_REGION`: (optional) the AWS region where the file uploads bucket is located. If not
     provided, `AWS_REGION` is assumed.
-  - `AWS_S3_UPLOADS_BUCKET`: the name of the S3 bucket for file uploads.
+  - `AWS_S3_UPLOADS_BUCKET`: the name of the S3 bucket for file uploads. For some in-browser functionality (e.g. document previewing), you must configure a Access-Control-Allow-Origin header on your bucket to be something other than '\*'.
   - `AWS_S3_UPLOADS_ACCESS_KEY_ID`: (optional) the AWS access key ID to use for file uploads. Must be provided along with the secret access key if the API is not otherwise authorized to access the bucket (e.g. via an IAM role).
   - `AWS_S3_UPLOADS_SECRET_ACCESS_KEY`: (optional) the AWS secret access key to use for file uploads.
   - `AWS_S3_UPLOADS_ENDPOINT`: (optional) the endpoint to use for S3 operations. If not, the AWS S3 default for the given region is used. Useful if you are using a different S3-compatible storage provider.

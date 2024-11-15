@@ -2,7 +2,7 @@ import { BlockErrorMessage } from "@hashintel/block-design-system";
 import {
   ArrowUpRegularIcon,
   Button,
-  ImageIconRegular,
+  ImageRegularIcon,
 } from "@hashintel/design-system";
 import {
   Box,
@@ -182,7 +182,7 @@ export const ImagePreview = ({
         })}
       >
         <Stack flexDirection="row" gap={1.5} alignItems="center">
-          <ImageIconRegular
+          <ImageRegularIcon
             sx={{ fontSize: 16, color: ({ palette }) => palette.gray[40] }}
           />
           <Typography

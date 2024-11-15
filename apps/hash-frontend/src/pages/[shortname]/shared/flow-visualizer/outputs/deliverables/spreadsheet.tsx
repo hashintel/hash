@@ -1,6 +1,6 @@
 import {
-  SpreadsheetFileIconRegular,
-  SpreadsheetFileIconSolid,
+  SpreadsheetFileRegularIcon,
+  SpreadsheetFileSolidIcon,
 } from "@hashintel/design-system";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack, Typography } from "@mui/material";
@@ -26,7 +26,7 @@ export const SpreadsheetDeliverable = ({
       gap={1.5}
       sx={{ alignItems: "flex-start", textAlign: "left" }}
     >
-      <SpreadsheetFileIconSolid
+      <SpreadsheetFileSolidIcon
         sx={{
           fill: ({ palette }) => palette.gray[30],
           fontSize: 36,
@@ -67,7 +67,7 @@ export const SpreadsheetDeliverable = ({
               transition: ({ transitions }) => transitions.create("opacity"),
             }}
           >
-            <SpreadsheetFileIconRegular
+            <SpreadsheetFileRegularIcon
               sx={{
                 fill: ({ palette }) => palette.blue[70],
                 fontSize: 14,

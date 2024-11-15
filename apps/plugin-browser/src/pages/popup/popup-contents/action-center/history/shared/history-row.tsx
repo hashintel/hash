@@ -5,7 +5,7 @@ import {
   InfinityLightIcon,
   MemoCircleCheckRegularIcon,
   MicroscopeRegularIcon,
-  PlugIconRegular,
+  PlugRegularIcon,
 } from "@hashintel/design-system";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import {
@@ -155,7 +155,7 @@ export const HistoryRow = ({
             <Chip>
               {type === "automatic" ? (
                 <>
-                  <PlugIconRegular sx={{ ...iconSx, mr: 0.5 }} />
+                  <PlugRegularIcon sx={{ ...iconSx, mr: 0.5 }} />
                   Plugin
                 </>
               ) : (

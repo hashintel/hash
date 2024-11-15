@@ -206,8 +206,8 @@ export const GridViewItem: FunctionComponent<{
                 color: ({ palette }) => palette.gray[90],
                 fontWeight: 600,
                 display: "-webkit-box",
-                "-webkit-line-clamp": "2",
-                "-webkit-box-orient": "vertical",
+                webkitLineClamp: "2",
+                webkitBoxOrient: "vertical",
                 overflow: "hidden",
               }}
             >

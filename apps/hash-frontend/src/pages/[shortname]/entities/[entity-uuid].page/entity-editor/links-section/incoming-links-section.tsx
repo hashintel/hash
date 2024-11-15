@@ -2,7 +2,7 @@ import { Chip } from "@hashintel/design-system";
 import type { LinkEntityAndLeftEntity } from "@local/hash-subgraph";
 import { Stack } from "@mui/material";
 
-import { SectionWrapper } from "../../../../shared/section-wrapper";
+import { SectionWrapper } from "../../../../../shared/section-wrapper";
 import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
 import { IncomingLinksTable } from "./incoming-links-section/incoming-links-table";
 

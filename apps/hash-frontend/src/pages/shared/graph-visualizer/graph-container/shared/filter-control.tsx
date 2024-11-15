@@ -1,10 +1,10 @@
-import { IconButton } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useEffect, useMemo } from "react";
 
 import { FilterLightIcon } from "../../../../../shared/icons/filter-light-icon";
-import { controlButtonSx, ControlPanel, ItemLabel } from "./control-components";
+import { GrayToBlueIconButton } from "../../../gray-to-blue-icon-button";
+import { ControlPanel, ItemLabel } from "./control-components";
 import {
   filterButtonSx,
   NodeTypeFilters,
@@ -190,9 +190,9 @@ export const FilterControl = ({
         open={filterPanelOpen}
         onClose={() => setFilterPanelOpen(false)}
       />
-      <IconButton
+      <GrayToBlueIconButton
         onClick={() => setFilterPanelOpen(true)}
-        sx={[controlButtonSx, { position: "absolute", top: 8, right: 46 }]}
+        sx={{ position: "absolute", top: 8, right: 46 }}
       >
         <FilterLightIcon
           sx={{
@@ -201,7 +201,7 @@ export const FilterControl = ({
             transition: ({ transitions }) => transitions.create("fill"),
           }}
         />
-      </IconButton>
+      </GrayToBlueIconButton>
     </>
   );
 };

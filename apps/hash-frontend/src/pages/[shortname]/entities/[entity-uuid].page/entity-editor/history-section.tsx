@@ -22,7 +22,7 @@ import {
   getEntityDiffsQuery,
   getEntitySubgraphQuery,
 } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { SectionWrapper } from "../../../shared/section-wrapper";
+import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { getHistoryEvents } from "./history-section/get-history-events";
 import { HistoryTable } from "./history-section/history-table";
 import type { HistoryEvent } from "./history-section/shared/types";
