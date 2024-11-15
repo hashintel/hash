@@ -132,7 +132,7 @@ pub trait AuthorizationApi: Send + Sync {
         &self,
         actor: AccountId,
         permission: EntityPermission,
-        entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = EntityId, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> impl Future<
         Output = Result<(HashMap<EntityUuid, bool>, Zookie<'static>), Report<CheckError>>,
@@ -171,7 +171,7 @@ pub trait AuthorizationApi: Send + Sync {
         &self,
         actor: AccountId,
         permission: EntityTypePermission,
-        entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send> + Send,
+        entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> impl Future<
         Output = Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), Report<CheckError>>,
@@ -210,7 +210,7 @@ pub trait AuthorizationApi: Send + Sync {
         &self,
         actor: AccountId,
         permission: PropertyTypePermission,
-        property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send> + Send,
+        property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> impl Future<
         Output = Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), Report<CheckError>>,
@@ -249,7 +249,7 @@ pub trait AuthorizationApi: Send + Sync {
         &self,
         actor: AccountId,
         permission: DataTypePermission,
-        data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send> + Send,
+        data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> impl Future<
         Output = Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), Report<CheckError>>,
@@ -357,7 +357,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         actor: AccountId,
         permission: EntityPermission,
-        entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = EntityId, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> Result<(HashMap<EntityUuid, bool>, Zookie<'static>), Report<CheckError>> {
         (**self)
@@ -403,7 +403,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         actor: AccountId,
         permission: EntityTypePermission,
-        entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send> + Send,
+        entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         (**self)
@@ -451,7 +451,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         actor: AccountId,
         permission: PropertyTypePermission,
-        property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send> + Send,
+        property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         (**self)
@@ -499,7 +499,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
         &self,
         actor: AccountId,
         permission: DataTypePermission,
-        data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send> + Send,
+        data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send + Sync> + Send,
         consistency: Consistency<'_>,
     ) -> Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), Report<CheckError>> {
         (**self)
