@@ -258,6 +258,7 @@ export const PdfPreview = ({
             className="react-pdf-document"
             externalLinkTarget="_blank"
             file={url}
+            imageResourcesPath="/pdf-annotations/"
             loading={
               <PdfPreviewSkeleton
                 pageWidth={pageWidth}
