@@ -490,9 +490,9 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-s3"
-version = "1.60.0"
+version = "1.61.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0506cc60e392e33712d47717d5ae5760a3b134bf8ee7aea7e43df3d7e2669ae0"
+checksum = "0e531658a0397d22365dfe26c3e1c0c8448bf6a3a2d8a098ded802f2b1261615"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
@@ -6503,9 +6503,9 @@ dependencies = [
 
 [[package]]
 name = "scc"
-version = "2.2.4"
+version = "2.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8d25269dd3a12467afe2e510f69fb0b46b698e5afb296b59f2145259deaf8e8"
+checksum = "66b202022bb57c049555430e11fc22fea12909276a80a4c3d368da36ac1d88ed"
 dependencies = [
  "sdd",
 ]
@@ -7339,9 +7339,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz"
-version = "6.0.0"
+version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ab7a9bb33d134e863862ab9dad2ac7e022ac89707914627f498fe0f29248d9b"
+checksum = "25dd6989b8dbc907ce18ce4b8ef7626db69a480a48affe962e4404a06296665a"
 dependencies = [
  "serde",
  "test-fuzz-internal",
@@ -7351,9 +7351,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-internal"
-version = "6.0.0"
+version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0bef5dd380747bd7b6e636a8032a24aa34fcecaf843e59fc97d299681922e86"
+checksum = "6b374ff9a99f798906b82c0beb1944c997e7795d40b7babf455b8d816c036e9d"
 dependencies = [
  "bincode",
  "cargo_metadata",
@@ -7362,9 +7362,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-macro"
-version = "6.0.0"
+version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7e6b4c7391a38f0f026972ec2200bcfd1ec45533aa266fdae5858d011afc500"
+checksum = "a0264b8d5cff19b61d833da2749fb26da056abaffa5c74f3f55ea91e40989a5d"
 dependencies = [
  "darling 0.20.10",
  "heck 0.5.0",
@@ -7378,9 +7378,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-runtime"
-version = "6.0.0"
+version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9fbe6fb7481ec6d9bf64ae2c5d49cb1b40f8da624a91031482af7b08168c679"
+checksum = "40d3c241faeb8f67a59ffb6d10df3b0949fedfedddac40a9675ecd26eca01d59"
 dependencies = [
  "hex",
  "num-traits",

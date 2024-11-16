@@ -155,7 +155,7 @@ approx                      = { version = "=0.5.1", default-features = false }
 async-scoped                = { version = "=0.9.0", default-features = false }
 async-trait                 = { version = "=0.1.83", default-features = false }
 aws-config                  = { version = "=1.5.10" }
-aws-sdk-s3                  = { version = "=1.60.0", default-features = false }
+aws-sdk-s3                  = { version = "=1.61.0", default-features = false }
 bitvec                      = { version = "=1.0.1", default-features = false }
 bytes-utils                 = { version = "=0.1.4", default-features = false }
 clap                        = { version = "=4.5.21", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
@@ -199,7 +199,7 @@ proptest                    = { version = "=1.5.0", default-features = false, fe
 rand                        = { version = "=0.8.5", default-features = false }
 refinery                    = { version = "=0.8.14", default-features = false }
 rustc_version               = { version = "=0.4.1", default-features = false }
-scc                         = { version = "=2.2.4", default-features = false }
+scc                         = { version = "=2.2.5", default-features = false }
 sentry                      = { version = "=0.34.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
 seq-macro                   = { version = "=0.3.5", default-features = false }
 serde_plain                 = { version = "=1.0.2", default-features = false }
@@ -211,7 +211,7 @@ tachyonix                   = { version = "=0.3.1", default-features = false }
 tarpc                       = { version = "=0.35.0", default-features = false }
 temporal-io-client          = { package = "temporal-client", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
 temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
-test-fuzz                   = { version = "=6.0.0", default-features = false }
+test-fuzz                   = { version = "=7.0.0", default-features = false }
 test-log                    = { version = "=0.2.16", default-features = false }
 test-strategy               = { version = "=0.4.0", default-features = false }
 thiserror                   = { version = "=2.0.3", default-features = false }
