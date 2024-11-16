@@ -23,6 +23,48 @@ The library relies on common Rust tools as configured in the repository root. Th
 - For linting, [`clippy`](https://github.com/rust-lang/rust-clippy) is used: `cargo clippy --package chonky`
 - [`rustfmt`](https://github.com/rust-lang/rustfmt) serves as the formatter: `cargo fmt`
 
+## Usage
+
+To run this package, a compiled library of `pdfium` must be provided. The library can either be statically or dynamically linked. The `libs/` folder is reserved to store the libraries.
+
+### Dynamic linking
+
+A dynamic library can be downloaded from [`bblanchon/pdfium-binaries`](https://github.com/bblanchon/pdfium-binaries/releases). It's possible to download the library from the command line. For example, to download the library for `mac-arm64` from the release `6721` and store it in `./libs/`:L
+
+```sh
+temp_dir=$(mktemp -d)
+gh release download chromium/6721 --repo bblanchon/pdfium-binaries --pattern 'pdfium-mac-arm64.tgz' --dir $temp_dir
+tar -xzf $temp_dir/pdfium-mac-arm64.tgz -C $temp_dir
+mv $temp_dir/lib/* libs/
+rm -rf $temp_dir
+```
+
+To link the library dynamically, don't enable the `static`. The binary will read `PDFIUM_DYNAMIC_LIB_PATH` to search for the library. If the variable is not set it will use `libs/`:
+
+```sh
+export PDFIUM_DYNAMIC_LIB_PATH="${pwd}/libs/"
+cargo build
+```
+
+### Static linking
+
+A static library can be downloaded from [`paulocoutinhox/pdfium-lib`](https://github.com/paulocoutinhox/pdfium-lib/releases). It's possible to download the library from the command line. For example, to download the library for `macos` from the release `6694` and store it in `./libs/`:
+
+```sh
+temp_dir=$(mktemp -d)
+gh release download 6694 --repo paulocoutinhox/pdfium-lib --pattern 'macos.tgz' --dir $temp_dir
+tar -xzf $temp_dir/macos.tgz -C $temp_dir
+mv $temp_dir/release/lib/* libs/
+rm -rf $temp_dir
+```
+
+To link the library statically, enable the `static` feature by passing `--features static` to any `cargo` invocation. When building the library it will search for `PDFIUM_STATIC_LIB_PATH`. For example if the library is located at `libs/libpdfium.a` you can build the library with:
+
+```sh
+export PDFIUM_STATIC_LIB_PATH="${pwd}/libs/"
+cargo build --features static
+```
+
 ### Testing
 
 The tests for the package can either be run by using the default test harness:

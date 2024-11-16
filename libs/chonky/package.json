@@ -5,7 +5,7 @@
   "scripts": {
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
-    "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
+    "test:unit": "cargo hack nextest run --feature-powerset --exclude-features static --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
     "@rust/error-stack": "0.5.0"
