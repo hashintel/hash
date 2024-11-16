@@ -1,6 +1,7 @@
 import type { DeepReadOnly, TriggerDefinition } from "./types.js";
 
 const triggerIds = [
+  "onFileUpload",
   "userTrigger",
   "userVisitedWebPageTrigger",
   "scheduledTrigger",
@@ -9,6 +10,19 @@ const triggerIds = [
 export type TriggerDefinitionId = (typeof triggerIds)[number];
 
 const triggerDefinitionsAsConst = {
+  onFileUpload: {
+    kind: "trigger",
+    triggerDefinitionId: "onFileUpload",
+    name: "On File Upload",
+    outputs: [
+      {
+        payloadKind: "EntityId",
+        name: "fileEntityId" as const,
+        array: false,
+        required: true,
+      },
+    ],
+  },
   userTrigger: {
     kind: "trigger",
     triggerDefinitionId: "userTrigger",

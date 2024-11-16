@@ -34,7 +34,7 @@ import { createInferredEntityNotification } from "../shared/create-inferred-enti
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
-import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url.js";
+import { createFileEntityFromUrl } from "./shared/create-file-entity-from-url.js";
 import {
   getEntityUpdate,
   getLatestEntityById,
@@ -131,7 +131,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   if (isFileEntity && fileUrl) {
     operation = "create";
 
-    const getFileEntityFromUrlStatus = await getFileEntityFromUrl({
+    const createFileEntityFromUrlStatus = await createFileEntityFromUrl({
       entityUuid,
       url: fileUrl,
       propertyMetadata,
@@ -139,10 +139,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       entityTypeIds,
     });
 
-    if (getFileEntityFromUrlStatus.status !== "ok") {
+    if (createFileEntityFromUrlStatus.status !== "ok") {
       return {
         code: StatusCode.Internal,
-        message: getFileEntityFromUrlStatus.message,
+        message: createFileEntityFromUrlStatus.message,
         contents: [
           {
             outputs: [
@@ -160,7 +160,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       };
     }
 
-    const { entity: updatedEntity } = getFileEntityFromUrlStatus;
+    const { entity: updatedEntity } = createFileEntityFromUrlStatus;
 
     entity = updatedEntity;
   } else {

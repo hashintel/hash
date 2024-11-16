@@ -25,7 +25,7 @@ const migrate: MigrationFunction = async ({
       dataTypeDefinition: {
         allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
         title: "DOI",
-        titlePlural: "DOI Links",
+        titlePlural: "DOIs",
         description:
           "A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.",
         type: "string",
@@ -59,6 +59,38 @@ const migrate: MigrationFunction = async ({
         description:
           "A permanent link for a digital object, using its Digital Object Identifier (DOI), which resolves to a webpage describing it",
         possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const isbnDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+        title: "ISBN",
+        titlePlural: "ISBNs",
+        description:
+          "International Standard Book Number: a numeric commercial book identifier that is intended to be unique, issued by an affiliate of the International ISBN Agency.",
+        type: "string",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const isbnPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "ISBN",
+        description: "The International Standard Book Number (ISBN) of a book",
+        possibleValues: [{ dataTypeId: isbnDataType.schema.$id }],
       },
       migrationState,
       webShortname: "hash",
@@ -135,18 +167,37 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const authorOfLinkEntityType = await createSystemEntityTypeIfNotExists(
+  const authoredByLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
-        title: "Author Of",
-        titlePlural: "Author Ofs",
+        title: "Authored By",
+        titlePlural: "Authored Bys",
         inverse: {
-          title: "Authored By",
+          title: "Author Of",
         },
-        description: "The author of something",
+        description: "Who or what something was authored by",
+      },
+      migrationState,
+      instantiator: null,
+      webShortname: "hash",
+    },
+  );
+
+  const publishedByLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Published By",
+        titlePlural: "Published Bys",
+        inverse: {
+          title: "Published",
+        },
+        description: "The entity that published something",
       },
       migrationState,
       instantiator: null,
@@ -282,15 +333,116 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  const personEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Person",
+        /** @todo improve this desc */
+        description: "A human being",
+        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+            required: true,
+          },
+        ],
+        outgoingLinks: [
+          {
+            destinationEntityTypes: [institutionEntityType.schema.$id],
+            linkEntityType: affiliatedWith.schema.$id,
+          },
+        ],
+      },
+      instantiator: null,
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const numberOfPagesPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Number of Pages",
+        description: "The total number of pages something has.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const documentEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Document",
+        description: "A written work, such as a book or article.",
+        icon: "/memo.svg",
+        labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
+        properties: [
+          {
+            propertyType: systemPropertyTypes.title.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: summaryPropertyType.schema.$id,
+          },
+          {
+            propertyType: numberOfPagesPropertyType.schema.$id,
+          },
+        ],
+        outgoingLinks: [
+          {
+            destinationEntityTypes: [personEntityType.schema.$id],
+            linkEntityType: authoredByLinkEntityType.schema.$id,
+          },
+        ],
+      },
+      instantiator: null,
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const bookEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [documentEntityType.schema.$id],
+        title: "Book",
+        description:
+          "A written work, typically longer than an article, often published in print form.",
+        properties: [
+          {
+            propertyType: isbnPropertyType.schema.$id,
+          },
+        ],
+      },
+      instantiator: null,
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
   const academicPaperEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
+        allOf: [documentEntityType.schema.$id],
         title: "Academic Paper",
         description: "A paper describing academic research",
         icon: "/memo.svg",
-        labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
         properties: [
           {
             propertyType: systemPropertyTypes.title.propertyTypeId,
@@ -332,42 +484,6 @@ const migrate: MigrationFunction = async ({
               journalEntityType.schema.$id,
             ],
             linkEntityType: publishedInLinkEntityType.schema.$id,
-          },
-        ],
-      },
-      instantiator: null,
-      migrationState,
-      webShortname: "hash",
-    },
-  );
-
-  const _personEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Person",
-        /** @todo improve this desc */
-        description: "A human being",
-        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
-        properties: [
-          {
-            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
-            required: true,
-          },
-          {
-            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-            required: true,
-          },
-        ],
-        outgoingLinks: [
-          {
-            destinationEntityTypes: [institutionEntityType.schema.$id],
-            linkEntityType: affiliatedWith.schema.$id,
-          },
-          {
-            destinationEntityTypes: [academicPaperEntityType.schema.$id],
-            linkEntityType: authorOfLinkEntityType.schema.$id,
           },
         ],
       },

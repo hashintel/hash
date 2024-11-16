@@ -12,8 +12,9 @@ const actionDefinitionIds = [
   "getFileFromUrl",
   "getWebPageByUrl",
   "getWebPageSummary",
-  "processAutomaticBrowsingSettings",
+  "inferMetadataFromDocument",
   "inferEntitiesFromContent",
+  "processAutomaticBrowsingSettings",
   "persistEntities",
   "persistEntity",
   "researchEntities",
@@ -181,6 +182,29 @@ const actionDefinitionsAsConst = {
         oneOfPayloadKinds: ["Text"],
         name: "relevantEntitiesPrompt",
         required: false,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "ProposedEntity",
+        name: "proposedEntities",
+        array: true,
+        required: true,
+      },
+    ],
+  },
+  inferMetadataFromDocument: {
+    actionDefinitionId: "inferMetadataFromDocument",
+    name: "Infer Metadata From Document",
+    description:
+      "Infer metadata from a document file (document kind, title, number of pages, etc), add the relevant type to the associated entity, and propose new entities representing its author, publisher etc.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "documentEntityId",
+        required: true,
         array: false,
       },
     ],

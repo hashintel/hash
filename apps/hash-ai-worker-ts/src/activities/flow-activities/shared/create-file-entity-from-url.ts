@@ -127,7 +127,7 @@ const writeFileToS3URL = async ({
   });
 };
 
-export const getFileEntityFromUrl = async (params: {
+export const createFileEntityFromUrl = async (params: {
   entityUuid: EntityUuid | null;
   url: string;
   propertyMetadata?: PropertyMetadataObject;
