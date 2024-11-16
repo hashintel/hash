@@ -1200,7 +1200,7 @@ name = "chonky"
 version = "0.0.0"
 dependencies = [
  "error-stack",
- "image 0.24.9",
+ "image",
  "insta",
  "pdfium-render",
  "thiserror 2.0.3",
@@ -3706,19 +3706,6 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.24.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5690139d2f55868e080017335e4b94cb7414274c74f1669c84fb5feba2c9f69d"
-dependencies = [
- "bytemuck",
- "byteorder",
- "color_quant",
- "num-traits",
- "png",
-]
-
-[[package]]
-name = "image"
 version = "0.25.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd6f44aed642f18953a158afeb30206f4d50da59fbc66ecb53c66488de73563b"
@@ -5327,7 +5314,7 @@ dependencies = [
  "chrono",
  "console_error_panic_hook",
  "console_log",
- "image 0.25.5",
+ "image",
  "itertools 0.13.0",
  "js-sys",
  "libloading",
