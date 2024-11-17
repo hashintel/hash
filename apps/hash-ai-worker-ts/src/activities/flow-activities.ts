@@ -8,6 +8,7 @@ import { getFileFromUrlAction } from "./flow-activities/get-file-from-url-action
 import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action.js";
 import { getWebPageSummaryAction } from "./flow-activities/get-web-page-summary-action.js";
 import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action.js";
+import { inferMetadataFromDocumentAction } from "./flow-activities/infer-metadata-from-document-action.js";
 import { persistEntitiesAction } from "./flow-activities/persist-entities-action.js";
 import { persistEntityAction } from "./flow-activities/persist-entity-action.js";
 import { persistFlowActivity } from "./flow-activities/persist-flow-activity.js";
@@ -28,6 +29,7 @@ export const createFlowActionActivities = ({
   getWebPageByUrlAction,
   processAutomaticBrowsingSettingsAction,
   inferEntitiesFromContentAction,
+  inferMetadataFromDocumentAction,
   persistEntityAction,
   persistEntitiesAction,
   getFileFromUrlAction,

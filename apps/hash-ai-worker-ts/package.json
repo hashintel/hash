@@ -46,6 +46,7 @@
     "@apps/hash-graph": "0.0.0-private",
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@google/generative-ai": "0.21.0",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
@@ -89,7 +90,9 @@
     "sanitize-html": "2.13.1",
     "tsconfig-paths-webpack-plugin": "4.2.0",
     "tsx": "4.19.2",
-    "typescript": "5.6.3"
+    "typescript": "5.6.3",
+    "zod": "3.23.8",
+    "zod-to-json-schema": "3.23.5"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

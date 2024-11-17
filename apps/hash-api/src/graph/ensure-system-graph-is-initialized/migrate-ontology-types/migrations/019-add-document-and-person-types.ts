@@ -111,14 +111,48 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const yearPropertyType = await createSystemPropertyTypeIfNotExists(
+  const integerDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+        title: "Integer",
+        description:
+          "The number zero (0), a positive natural number (e.g. 1, 2, 3), or the negation of a positive natural number (e.g. -1, -2, -3).",
+        multipleOf: 1,
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const yearDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: integerDataType.schema.$id }],
+        title: "Year",
+        description: "A year in the Gregorian calendar.",
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const publicationYear = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
       propertyTypeDefinition: {
-        title: "Year",
-        description: "A year in the Gregorian calendar.",
-        possibleValues: [{ primitiveDataType: "number" }],
+        title: "Publication Year",
+        description: "The year in which something was first published.",
+        possibleValues: [{ dataTypeId: yearDataType.schema.$id }],
       },
       migrationState,
       webShortname: "hash",
@@ -461,7 +495,7 @@ const migrate: MigrationFunction = async ({
             required: true,
           },
           {
-            propertyType: yearPropertyType.schema.$id,
+            propertyType: publicationYear.schema.$id,
             required: false,
           },
           {

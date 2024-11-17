@@ -405,11 +405,9 @@ export const updateEntityEmbeddings = async (
         authentication: params.authentication,
         request: {
           filter: {
-            any: entity.metadata.entityTypeIds.map((entityTypeId) =>
-              generateVersionedUrlMatchingFilter(entityTypeId, {
-                ignoreParents: true,
-              }),
-            ),
+            any: entity.metadata.entityTypeIds.map((entityTypeId) => ({
+              equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+            })),
           },
           graphResolveDepths: {
             inheritsFrom: { outgoing: 255 },
