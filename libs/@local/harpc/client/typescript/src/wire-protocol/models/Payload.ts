@@ -150,4 +150,4 @@ export const isPayload = (value: unknown): value is Payload =>
   Predicate.hasProperty(value, TypeId);
 
 export const arbitrary = (fc: typeof FastCheck) =>
-  fc.uint8Array({ min: U16_MIN, max: MAX_SIZE }).map(makeUnchecked);
+  fc.uint8Array({ minLength: U16_MIN, maxLength: MAX_SIZE }).map(makeUnchecked);
