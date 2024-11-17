@@ -18,10 +18,16 @@ pub enum ChonkyError {
     #[error("pdfium error")]
     Pdfium,
     #[error("write error to system")]
-    Write,
+    ImageError,
     #[error("Issues with CLI input")]
     Arguments,
+    #[error("Issues with Google's Vertex API call")]
+    VertexAPI,
 }
+
+pub mod embedding;
+
+pub use crate::embedding::multi_modal_embedding;
 
 /// Attempts to link to the `PDFium` library.
 ///
@@ -55,6 +61,37 @@ pub fn link_pdfium() -> Result<Pdfium, Report<ChonkyError>> {
             Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path(&lib_path))
                 .change_context(ChonkyError::Pdfium)?,
         ))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct DocumentEmbeddings {
+    // Embeddings for structural chunks (page screenshots)
+    structural_embeddings: Vec<StructuralEmbedding>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Embedding {
+    _model_used: String,         //model name reveals image or text embedding model
+    _embedding_vector: Vec<f64>, //the actual embedding vector
+}
+
+#[derive(Debug, Clone)]
+pub struct StructuralMetadata {
+    _page_number: usize, //discuss additional metadata useful here
+    _image_path: String, //location of pdf image for embedding
+}
+
+#[derive(Debug, Clone)]
+pub struct StructuralEmbedding {
+    _metadata: StructuralMetadata,
+    _embedding: Embedding,
+}
+
+#[must_use]
+pub const fn create_document_embedding() -> DocumentEmbeddings {
+    DocumentEmbeddings {
+        structural_embeddings: Vec::new(),
     }
 }
 
