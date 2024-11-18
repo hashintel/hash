@@ -24,7 +24,7 @@ const executablePath = () =>
     );
   });
 
-export const assertEncode = (
+export const callEncode = (
   mode: "request-header" | "request-begin" | "request-frame" | "request",
   encoded: Uint8Array,
 ) =>
@@ -42,7 +42,7 @@ export const assertEncode = (
     return received;
   });
 
-export const assertDecode = <T>(
+export const callDecode = <T>(
   mode: "response-header" | "response-begin" | "response-frame" | "response",
   payload: T,
 ) =>

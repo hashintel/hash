@@ -12,7 +12,7 @@ import {
   RequestFrame,
   RequestHeader,
 } from "../src/wire-protocol/models/request/index.js";
-import { assertEncode as callEncode } from "./utils.js";
+import { callEncode } from "./utils.js";
 
 const RequestHeaderFromSelf = Schema.declare(RequestHeader.isRequestHeader, {
   arbitrary: () => RequestHeader.arbitrary,

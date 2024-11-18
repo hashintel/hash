@@ -12,7 +12,7 @@ import {
   ResponseFrame,
   ResponseHeader,
 } from "../src/wire-protocol/models/response/index.js";
-import { assertDecode } from "./utils.js";
+import { callDecode } from "./utils.js";
 
 const ResponseHeaderFromSelf = Schema.declare(ResponseHeader.isResponseHeader, {
   arbitrary: () => ResponseHeader.arbitrary,
@@ -94,7 +94,7 @@ describe.concurrent("decode", () => {
       Effect.gen(function* () {
         const input = convertResponseHeader(header);
 
-        const array = yield* assertDecode("response-header", input);
+        const array = yield* callDecode("response-header", input);
         const buffer = yield* Buffer.makeRead(new DataView(array.buffer));
 
         const received = yield* ResponseHeader.decode(buffer);
@@ -110,7 +110,7 @@ describe.concurrent("decode", () => {
       Effect.gen(function* () {
         const input = convertResponseBegin(begin);
 
-        const array = yield* assertDecode("response-begin", input);
+        const array = yield* callDecode("response-begin", input);
         const buffer = yield* Buffer.makeRead(new DataView(array.buffer));
 
         const received = yield* ResponseBegin.decode(buffer);
@@ -126,7 +126,7 @@ describe.concurrent("decode", () => {
       Effect.gen(function* () {
         const input = convertResponseFrame(frame);
 
-        const array = yield* assertDecode("response-frame", input);
+        const array = yield* callDecode("response-frame", input);
         const buffer = yield* Buffer.makeRead(new DataView(array.buffer));
 
         const received = yield* ResponseFrame.decode(buffer);
@@ -145,7 +145,7 @@ describe.concurrent("decode", () => {
 
         const input = convertResponse(Response.prepare(response));
 
-        const array = yield* assertDecode("response", input);
+        const array = yield* callDecode("response", input);
         const buffer = yield* Buffer.makeRead(new DataView(array.buffer));
 
         const received = yield* Response.decode(buffer);
