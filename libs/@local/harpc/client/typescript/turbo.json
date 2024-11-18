@@ -5,7 +5,7 @@
     "build": {
       "outputs": ["./dist/**"]
     },
-    "test": {
+    "test:unit": {
       "dependsOn": ["@rust/harpc-wire-protocol#build:cli"],
       "inputs": ["../../wire-protocol/dist/release/codec", "$TURBO_DEFAULT$"]
     }
