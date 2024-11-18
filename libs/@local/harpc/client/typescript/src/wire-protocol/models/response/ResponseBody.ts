@@ -1,8 +1,9 @@
-import type { FastCheck } from "effect";
+import type { FastCheck, Option } from "effect";
 import {
   Effect,
   Either,
   Equal,
+  Function,
   Hash,
   Inspectable,
   pipe,
@@ -77,11 +78,38 @@ export const make = (
   body: Either.Either<ResponseBegin.ResponseBegin, ResponseFrame.ResponseFrame>,
 ): ResponseBody => createProto(ResponseBodyProto, { body });
 
+export const match: {
+  <A, B = A>(options: {
+    readonly onBegin: (begin: ResponseBegin.ResponseBegin) => A;
+    readonly onFrame: (frame: ResponseFrame.ResponseFrame) => B;
+  }): (self: ResponseBody) => A | B;
+  <A, B = A>(
+    self: ResponseBody,
+    options: {
+      readonly onBegin: (begin: ResponseBegin.ResponseBegin) => A;
+      readonly onFrame: (frame: ResponseFrame.ResponseFrame) => B;
+    },
+  ): A | B;
+} = Function.dual(
+  2,
+  <A, B = A>(
+    self: ResponseBody,
+    options: {
+      readonly onBegin: (begin: ResponseBegin.ResponseBegin) => A;
+      readonly onFrame: (frame: ResponseFrame.ResponseFrame) => B;
+    },
+  ) =>
+    Either.match(self.body, {
+      onLeft: options.onFrame,
+      onRight: options.onBegin,
+    }),
+);
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, body: ResponseBody) =>
-    Either.match(body.body, {
-      onLeft: (frame) => ResponseFrame.encode(buffer, frame),
-      onRight: (begin) => ResponseBegin.encode(buffer, begin),
+    match(body, {
+      onBegin: (begin) => ResponseBegin.encode(buffer, begin),
+      onFrame: (frame) => ResponseFrame.encode(buffer, frame),
     }),
 );
 
@@ -106,13 +134,21 @@ export const decode = (
 };
 
 export const variant = (body: ResponseBody): ResponseBodyVariant =>
-  Either.match(body.body, {
-    onLeft: () => "ResponseFrame",
-    onRight: () => "ResponseBegin",
+  match(body, {
+    onBegin: () => "ResponseBegin",
+    onFrame: () => "ResponseFrame",
   });
 
 export const isResponseBody = (value: unknown): value is ResponseBody =>
   Predicate.hasProperty(value, TypeId);
+
+export const getBegin = (
+  body: ResponseBody,
+): Option.Option<ResponseBegin.ResponseBegin> => Either.getRight(body.body);
+
+export const getFrame = (
+  body: ResponseBody,
+): Option.Option<ResponseFrame.ResponseFrame> => Either.getLeft(body.body);
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc

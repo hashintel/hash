@@ -2,6 +2,7 @@ import type { FastCheck } from "effect";
 import {
   Effect,
   Equal,
+  Function,
   Hash,
   Inspectable,
   pipe,
@@ -151,6 +152,35 @@ export const isOk = (value: unknown): value is Ok =>
 
 export const isErr = (value: unknown): value is Err =>
   isResponseKind(value) && value._tag === "Err";
+
+export const match: {
+  <A, B = A>(options: {
+    readonly onOk: () => A;
+    readonly onErr: (code: ErrorCode.ErrorCode) => B;
+  }): (self: ResponseKind) => A | B;
+  <A, B = A>(
+    self: ResponseKind,
+    options: {
+      readonly onOk: () => A;
+      readonly onErr: (code: ErrorCode.ErrorCode) => B;
+    },
+  ): A | B;
+} = Function.dual(
+  2,
+  <A, B = A>(
+    self: ResponseKind,
+    options: {
+      readonly onOk: () => A;
+      readonly onErr: (code: ErrorCode.ErrorCode) => B;
+    },
+  ) => {
+    if (isOk(self)) {
+      return options.onOk();
+    } else {
+      return options.onErr(self.code);
+    }
+  },
+);
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc.oneof(fc.constant(ok()), ErrorCode.arbitrary(fc).map(err));
