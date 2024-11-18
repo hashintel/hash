@@ -1204,7 +1204,9 @@ dependencies = [
  "error-stack",
  "image",
  "insta",
+ "num-traits",
  "pdfium-render",
+ "serde",
  "serde_json",
  "thiserror 2.0.3",
 ]

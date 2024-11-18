@@ -1,0 +1,6 @@
+---
+source: libs/chonky/src/embedding.rs
+expression: "format!(\"{:?}\", table_predictions)"
+snapshot_kind: text
+---
+[TablePrediction { score: 0.9997482, bounding_box: BoundingBox { xmin: 187.0, ymin: 138.0, xmax: 808.0, ymax: 315.0 } }]

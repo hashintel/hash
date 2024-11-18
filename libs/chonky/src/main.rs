@@ -2,8 +2,8 @@ use std::env;
 
 use chonky::{
     ChonkyError, create_document_embedding,
-    embedding::multi_modal_embedding::{add_structural_embedding, make_multimodal_api_request},
-    pdf_segmentation,
+    multi_modal_embedding::{add_structural_embedding, embed_screenshots},
+    pdf_segmentation::{self, embed_pdf},
 };
 use error_stack::{Report, ResultExt as _, ensure};
 
@@ -25,6 +25,10 @@ fn main() -> Result<(), Report<ChonkyError>> {
 
     let mut document_embeddings = create_document_embedding();
 
+    let mut images = Vec::new();
+
+    let project_id = std::env::var("GOOGLE_PROJECT_ID").change_context(ChonkyError::VertexAPI)?;
+
     for (index, image) in preprocessed_pdf.iter().enumerate() {
         // Generate a unique filename for each page image
         let file_path = format!("{}/page_{}.png", output_folder, index + 1);
@@ -34,20 +38,22 @@ fn main() -> Result<(), Report<ChonkyError>> {
             .save(&file_path)
             .change_context(ChonkyError::ImageError)?;
 
-        //collect project_id environment variable
-        let project_id =
-            std::env::var("GOOGLE_PROJECT_ID").change_context(ChonkyError::VertexAPI)?;
+        images.push(file_path);
+    }
 
-        //process image embedding
-        let embedding = make_multimodal_api_request(&project_id, &file_path)?;
+    let doc_screenshots = embed_screenshots(preprocessed_pdf, &project_id)?;
 
+    for (index, screenshot) in doc_screenshots.into_iter().enumerate() {
         add_structural_embedding(
             &mut document_embeddings,
             index + 1,
-            file_path.clone(),
-            embedding,
+            format!("{}/page_{}.png", output_folder, index + 1),
+            screenshot,
         );
     }
 
+    embed_pdf(&pdf, &images, &mut document_embeddings)?;
+
+    //dbg!("{:?}", document_embeddings);
     Ok(())
 }

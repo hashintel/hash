@@ -1,0 +1,19 @@
+---
+source: libs/chonky/src/lib.rs
+expression: "format!(\"{:#?}\", table.bounding_box)"
+snapshot_kind: text
+---
+PdfRect {
+    bottom: PdfPoints {
+        value: 599.20245,
+    },
+    left: PdfPoints {
+        value: 114.444,
+    },
+    top: PdfPoints {
+        value: 707.5363,
+    },
+    right: PdfPoints {
+        value: 494.496,
+    },
+}
