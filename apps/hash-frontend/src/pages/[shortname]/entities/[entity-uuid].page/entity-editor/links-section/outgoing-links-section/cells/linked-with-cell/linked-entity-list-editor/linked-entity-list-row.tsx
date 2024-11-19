@@ -7,11 +7,13 @@ import { RowAction } from "../../../../../properties-section/property-table/cell
 import { ValueChip } from "../../../../../properties-section/property-table/cells/value-cell/array-editor/value-chip";
 
 export const LinkedEntityListRow = ({
+  closeEditor,
   entityId,
   title,
   onDelete,
   imageSrc,
 }: {
+  closeEditor: () => void;
   entityId: EntityId;
   title: string;
   imageSrc?: string;
@@ -40,7 +42,10 @@ export const LinkedEntityListRow = ({
     >
       <Box
         component="button"
-        onClick={() => onEntityClick(entityId)}
+        onClick={() => {
+          closeEditor();
+          onEntityClick(entityId);
+        }}
         sx={{
           background: "none",
           border: "none",

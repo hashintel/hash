@@ -152,21 +152,6 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
         left: accumulatedLeft,
       });
 
-      entityChipInteractables.push(
-        InteractableManager.createCellInteractable(args, {
-          id: rightEntity.metadata.recordId.entityId,
-          pos: {
-            left: accumulatedLeft,
-            right: accumulatedLeft + chipWidth,
-            top: yCenter - 16,
-            bottom: yCenter + 16,
-          },
-          onClick: () => {
-            onEntityClick(rightEntity.entityId);
-          },
-        }),
-      );
-
       accumulatedLeft += chipWidth + chipGap;
     }
 
