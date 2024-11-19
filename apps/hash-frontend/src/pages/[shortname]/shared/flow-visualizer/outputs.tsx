@@ -440,6 +440,23 @@ export const Outputs = ({
       return undefined;
     }
 
+    const persistedEntity = persistedEntities.find(
+      ({ entity }) =>
+        entity &&
+        new Entity(entity).metadata.recordId.entityId === selectedEntityId,
+    );
+
+    if (persistedEntity) {
+      if (!persistedEntitiesSubgraph) {
+        return undefined;
+      }
+
+      return generateEntityRootedSubgraph(
+        selectedEntityId,
+        persistedEntitiesSubgraph,
+      );
+    }
+
     const proposedEntity = proposedEntities.find(
       (entity) => entity.localEntityId === selectedEntityId,
     );
@@ -505,16 +522,8 @@ export const Outputs = ({
 
       return mockSubgraph;
     }
-
-    if (!persistedEntitiesSubgraph) {
-      return undefined;
-    }
-
-    return generateEntityRootedSubgraph(
-      selectedEntityId,
-      persistedEntitiesSubgraph,
-    );
   }, [
+    persistedEntities,
     persistedEntitiesSubgraph,
     proposedEntitiesTypesSubgraph,
     proposedEntities,
