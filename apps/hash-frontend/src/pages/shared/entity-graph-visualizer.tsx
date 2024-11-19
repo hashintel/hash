@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import { ibm } from "@hashintel/design-system/palettes";
 import type {
   EntityId,
   EntityMetadata,
@@ -33,7 +34,7 @@ export type EntityForGraph = {
 };
 
 const fallbackDefaultConfig = {
-  graphKey: "entity-graph",
+  graphKey: "entity-graph-2024-11-19",
   edgeSizing: {
     min: 2,
     max: 5,
@@ -87,28 +88,7 @@ export const EntityGraphVisualizer = memo(
     const [loading, setLoading] = useState(true);
 
     const nodeColors = useMemo(() => {
-      return [
-        {
-          color: palette.blue[30],
-          borderColor: palette.gray[50],
-        },
-        {
-          color: palette.purple[30],
-          borderColor: palette.gray[50],
-        },
-        {
-          color: palette.green[50],
-          borderColor: palette.gray[50],
-        },
-        {
-          color: palette.red[20],
-          borderColor: palette.gray[50],
-        },
-        {
-          color: palette.yellow[30],
-          borderColor: palette.gray[50],
-        },
-      ] as const;
+      return ibm.map((color) => ({ color, borderColor: palette.gray[50] }));
     }, [palette]);
 
     const defaultConfig = defaultConfigFromProps ?? fallbackDefaultConfig;

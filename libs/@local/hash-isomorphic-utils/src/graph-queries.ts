@@ -22,7 +22,7 @@ import { splitEntityId } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
-import { systemPropertyTypes } from "./ontology-type-ids.js";
+import { systemEntityTypes, systemPropertyTypes } from "./ontology-type-ids.js";
 import { deserializeSubgraph } from "./subgraph-mapping.js";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
@@ -184,6 +184,13 @@ export const generateVersionedUrlMatchingFilter = (
       },
     ],
   };
+};
+
+export const ignoreNotificationsFilter: Filter = {
+  notEqual: [
+    { path: ["type", "versionedUrl"] },
+    { parameter: systemEntityTypes.graphChangeNotification.entityTypeId },
+  ],
 };
 
 /**

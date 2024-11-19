@@ -11,6 +11,7 @@ export const linksTableCellSx: SxProps<Theme> = {
   borderBottom: "none",
   color: ({ palette }) => palette.gray[80],
   height: linksTableRowHeight,
+  overflowX: "hidden",
 };
 
 export const linksTableFontSize = 14;

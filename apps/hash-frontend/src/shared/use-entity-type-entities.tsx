@@ -4,9 +4,11 @@ import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
+  ignoreNotificationsFilter,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -58,6 +60,11 @@ export const generateUseEntityTypeEntitiesQueryVariables = (params: {
                 },
               ]
             : []),
+        {
+          field: ["metadata", "entityTypeId"],
+          operator: "DOES_NOT_EQUAL" as const,
+          value: systemEntityTypes.notification.entityTypeId,
+        },
       ],
       operator: "AND",
     },
@@ -107,6 +114,7 @@ export const useEntityTypeEntities = (params: {
                     },
                   ]
                 : []),
+            ignoreNotificationsFilter,
           ],
         },
         graphResolveDepths: {

@@ -698,6 +698,30 @@ export const EntityResultTable = memo(
           staticFilterDefs.entityTypeIds.options[entityTypeId].count++;
           staticFilterDefs.entityTypeIds.initialValue.add(entityTypeId);
 
+          const outgoingLinks = outgoingLinksBySourceEntityId[entityId];
+          if (outgoingLinks) {
+            for (const [linkEntityTypeId, linksAndTargets] of typedEntries(
+              outgoingLinks,
+            )) {
+              outgoingLinksByLinkTypeId[linkEntityTypeId] = [];
+
+              for (const { targetEntityId, linkEntityId } of linksAndTargets) {
+                const linkedEntityRecord = entitiesByEntityId[targetEntityId];
+                if (!linkedEntityRecord) {
+                  throw new Error(
+                    `Could not find entity with id ${targetEntityId} linked from entity with id ${entityId}`,
+                  );
+                }
+
+                outgoingLinksByLinkTypeId[linkEntityTypeId].push({
+                  targetEntityId,
+                  targetEntityLabel: linkedEntityRecord.entityLabel,
+                  linkEntityId,
+                });
+              }
+            }
+          }
+
           for (const linkType of entityTypesRecord[entityTypeId]!.linkTypes) {
             const linkTypeId = linkType.schema.$id;
 
@@ -788,30 +812,6 @@ export const EntityResultTable = memo(
           : record.operation === "update"
             ? "Updated"
             : "Created";
-
-        const outgoingLinks = outgoingLinksBySourceEntityId[entityId];
-        if (outgoingLinks) {
-          for (const [linkEntityTypeId, linksAndTargets] of typedEntries(
-            outgoingLinks,
-          )) {
-            outgoingLinksByLinkTypeId[linkEntityTypeId] = [];
-
-            for (const { targetEntityId, linkEntityId } of linksAndTargets) {
-              const linkedEntityRecord = entitiesByEntityId[targetEntityId];
-              if (!linkedEntityRecord) {
-                throw new Error(
-                  `Could not find entity with id ${targetEntityId} linked from entity with id ${entityId}`,
-                );
-              }
-
-              outgoingLinksByLinkTypeId[linkEntityTypeId].push({
-                targetEntityId,
-                targetEntityLabel: linkedEntityRecord.entityLabel,
-                linkEntityId,
-              });
-            }
-          }
-        }
 
         const relevance = relevantEntityIds.includes(entityId) ? "Yes" : "No";
 
@@ -1009,9 +1009,6 @@ export const EntityResultTable = memo(
                     ),
                   )
                 ) {
-                  /**
-                   * There are no values in common between the filter and the link targets for this type, for this row
-                   */
                   return false;
                 }
               } else {
