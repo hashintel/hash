@@ -6,7 +6,6 @@ import {
 } from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
-  EntityId,
   EntityMetadata,
   EntityRecordId,
 } from "@local/hash-graph-types/entity";

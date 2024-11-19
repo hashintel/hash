@@ -37,7 +37,6 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     const {
       linkAndTargetEntities,
       markLinkAsArchived,
-      onEntityClick,
       isFile,
       isList,
       isUploading,

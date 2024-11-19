@@ -29,13 +29,8 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
-import {
-  FunctionComponent,
-  PropsWithChildren,
-  ReactNode,
-  useEffect,
-} from "react";
-import { useCallback, useMemo, useState } from "react";
+import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
   FlowRun,

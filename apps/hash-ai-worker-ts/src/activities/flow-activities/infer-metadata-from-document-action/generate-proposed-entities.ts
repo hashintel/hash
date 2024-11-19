@@ -19,10 +19,10 @@ import type {
   TextDataTypeMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import { entityIdFromComponents } from "@local/hash-subgraph";
-
-import type { DocumentMetadata } from "./get-llm-analysis-of-doc.js";
-import { logProgress } from "../../shared/log-progress.js";
 import { Context } from "@temporalio/activity";
+
+import { logProgress } from "../../shared/log-progress.js";
+import type { DocumentMetadata } from "./get-llm-analysis-of-doc.js";
 
 export const generateDocumentProposedEntities = ({
   documentMetadata,
@@ -40,7 +40,11 @@ export const generateDocumentProposedEntities = ({
   propertyProvenance: PropertyProvenance;
   webId: OwnedById;
 }): ProposedEntity[] => {
-  const { authors, publicationVenue, publishedBy } = documentMetadata;
+  const {
+    authors,
+    publicationVenue: _publicationVenue,
+    publishedBy: _publishedBy,
+  } = documentMetadata;
 
   const textDataTypeMetadata: TextDataTypeMetadata = {
     dataTypeId:

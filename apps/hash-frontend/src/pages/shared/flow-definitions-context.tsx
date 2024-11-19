@@ -11,6 +11,7 @@ import {
   researchTaskFlowDefinition,
   saveFileFromUrl,
 } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import { inferMetadataFromDocumentFlowDefinition } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
 import {
   goalFlowDefinition,
   goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
@@ -20,7 +21,6 @@ import {
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
-import { inferMetadataFromDocumentFlowDefinition } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
 
 export type FlowDefinitionsContextType = {
   flowDefinitions: FlowDefinition[];

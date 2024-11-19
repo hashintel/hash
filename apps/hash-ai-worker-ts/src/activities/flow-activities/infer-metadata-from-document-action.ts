@@ -8,12 +8,19 @@ import { fileURLToPath } from "node:url";
 
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { type EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type {
+  OriginProvenance,
+  PropertyProvenance,
+} from "@local/hash-graph-client";
+import type {
+  type EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolPropertyTypes,
@@ -23,21 +30,20 @@ import {
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
-import PDFParser, { Output } from "pdf2json";
+import { Context } from "@temporalio/activity";
+import type { Output } from "pdf2json";
+import PDFParser from "pdf2json";
 
+import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
+import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification.js";
 import { getEntityByFilter } from "../shared/get-entity-by-filter.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
-import type { FlowActionActivity } from "./types.js";
-import { getLlmAnalysisOfDoc } from "./infer-metadata-from-document-action/get-llm-analysis-of-doc.js";
-import { OriginProvenance, PropertyProvenance } from "@local/hash-graph-client";
-import { generateDocumentPropertyPatches } from "./infer-metadata-from-document-action/generate-property-patches.js";
-import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification.js";
-import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
-import { generateDocumentProposedEntities } from "./infer-metadata-from-document-action/generate-proposed-entities.js";
 import { logProgress } from "../shared/log-progress.js";
-import { Context } from "@temporalio/activity";
-import { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import { generateDocumentPropertyPatches } from "./infer-metadata-from-document-action/generate-property-patches.js";
+import { generateDocumentProposedEntities } from "./infer-metadata-from-document-action/generate-proposed-entities.js";
+import { getLlmAnalysisOfDoc } from "./infer-metadata-from-document-action/get-llm-analysis-of-doc.js";
+import type { FlowActionActivity } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

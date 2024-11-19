@@ -206,11 +206,13 @@ export const getLlmAnalysisOfDoc = async ({
 
   const resp = await gemini.generateContent(request);
 
-  const contentResponse = resp.response.candidates[0].content.parts[0].text;
+  const contentResponse = resp.response.candidates?.[0]?.content.parts[0]?.text;
 
-  const parsedResponse = JSON.parse(contentResponse);
+  if (!contentResponse) {
+    throw new Error("No content response from LLM analysis");
+  }
 
-  console.log({ parsedResponse });
+  const parsedResponse = JSON.parse(contentResponse) as DocumentMetadata;
 
-  return parsedResponse as DocumentMetadata;
+  return parsedResponse;
 };

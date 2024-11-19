@@ -75,7 +75,7 @@ export const EntityResultGraph = ({
     <OutputContainer sx={{ flex: 1.5, width: "100%", textAlign: "initial" }}>
       {subgraphWithTypes && (
         <EntityGraphVisualizer
-          entities={entities}
+          entities={deduplicatedEntities}
           loadingComponent={
             <LoadingSpinner size={42} color={theme.palette.blue[60]} />
           }
