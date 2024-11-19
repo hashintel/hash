@@ -4,7 +4,8 @@ use core::ops::{Bound, RangeBounds as _};
 use error_stack::{Report, ResultExt as _, bail};
 
 use crate::{Migration, MigrationInfo, MigrationList, StateStore, list::MigrationError};
-pub trait MigrationRunner: Sized {
+
+pub trait MigrationRunner {
     async fn run_migration<M>(
         &self,
         migration: M,
