@@ -7,8 +7,6 @@ import type {
 import type { FlowDefinition } from "./types.js";
 
 /**
- *
- *
  * @example
  * mutation {
  *   startFlow(

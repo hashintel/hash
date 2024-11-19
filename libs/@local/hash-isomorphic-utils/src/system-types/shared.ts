@@ -38,6 +38,39 @@ export type ActorPropertiesWithMetadata = {
 };
 
 /**
+ * Something that something is affiliated with.
+ */
+export type AffiliatedWith = {
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/affiliated-with/v/1",
+  ];
+  properties: AffiliatedWithProperties;
+  propertiesWithMetadata: AffiliatedWithPropertiesWithMetadata;
+};
+
+export type AffiliatedWithOutgoingLinkAndTarget = never;
+
+export type AffiliatedWithOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something that something is affiliated with.
+ */
+export type AffiliatedWithProperties = AffiliatedWithProperties1 &
+  AffiliatedWithProperties2;
+export type AffiliatedWithProperties1 = LinkProperties;
+
+export type AffiliatedWithProperties2 = {};
+
+export type AffiliatedWithPropertiesWithMetadata =
+  AffiliatedWithPropertiesWithMetadata1 & AffiliatedWithPropertiesWithMetadata2;
+export type AffiliatedWithPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type AffiliatedWithPropertiesWithMetadata2 = {
+  metadata?: ObjectMetadata;
+  value: {};
+};
+
+/**
  * A user or other entity's preferences for how an application should behave or appear
  */
 export type ApplicationPreferencesPropertyValue = ObjectDataType;
@@ -59,6 +92,35 @@ export type AppliesUntilPropertyValue = DateTimeDataType;
 
 export type AppliesUntilPropertyValueWithMetadata =
   DateTimeDataTypeWithMetadata;
+
+/**
+ * A collection of documents, records or other artifacts.
+ */
+export type Archive = {
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/archive/v/1"];
+  properties: ArchiveProperties;
+  propertiesWithMetadata: ArchivePropertiesWithMetadata;
+};
+
+export type ArchiveOutgoingLinkAndTarget = never;
+
+export type ArchiveOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A collection of documents, records or other artifacts.
+ */
+export type ArchiveProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+};
+
+export type ArchivePropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+  };
+};
 
 /**
  * Whether or not something has been archived.
@@ -269,6 +331,35 @@ export type CommentPropertiesWithMetadata = {
 };
 
 /**
+ * A company
+ */
+export type Company = {
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/company/v/1"];
+  properties: CompanyProperties;
+  propertiesWithMetadata: CompanyPropertiesWithMetadata;
+};
+
+export type CompanyOutgoingLinkAndTarget = never;
+
+export type CompanyOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A company
+ */
+export type CompanyProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+};
+
+export type CompanyPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+  };
+};
+
+/**
  * An identifier for a component.
  */
 export type ComponentIdPropertyValue = TextDataType;
@@ -286,7 +377,10 @@ export type ConnectionSourceNamePropertyValueWithMetadata =
 /**
  * A reference to a particular date and time, formatted according to RFC 3339.
  */
-export type DateTimeDataType = string;
+export type DateTimeDataType = DateTimeDataType1;
+export type DateTimeDataType1 = TextDataType;
+
+export type DateTimeDataType2 = string;
 
 export type DateTimeDataTypeWithMetadata = {
   value: DateTimeDataType;
@@ -915,6 +1009,53 @@ export type InputUnitCostPropertyValue = NumberDataType;
 export type InputUnitCostPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
 /**
+ * An organization dedicated to a specific purpose, such as education, research, or public service, and structured with formal systems of governance and operation.
+ */
+export type Institution = {
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/institution/v/1"];
+  properties: InstitutionProperties;
+  propertiesWithMetadata: InstitutionPropertiesWithMetadata;
+};
+
+export type InstitutionOutgoingLinkAndTarget = never;
+
+export type InstitutionOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * An organization dedicated to a specific purpose, such as education, research, or public service, and structured with formal systems of governance and operation.
+ */
+export type InstitutionProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+};
+
+export type InstitutionPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+  };
+};
+
+/**
+ * The number zero (0), a positive natural number (e.g. 1, 2, 3), or the negation of a positive natural number (e.g. -1, -2, -3).
+ */
+export type IntegerDataType = IntegerDataType1;
+export type IntegerDataType1 = NumberDataType;
+
+export type IntegerDataType2 = number;
+
+export type IntegerDataTypeWithMetadata = {
+  value: IntegerDataType;
+  metadata: IntegerDataTypeMetadata;
+};
+export type IntegerDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@hash/types/data-type/integer/v/1";
+};
+
+/**
  * Something that someone or something is a member of.
  */
 export type IsMemberOf = {
@@ -943,6 +1084,35 @@ export type IsMemberOfPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 export type IsMemberOfPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
+};
+
+/**
+ * A periodical publication containing articles and other content related to a particular subject or profession.
+ */
+export type Journal = {
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/journal/v/1"];
+  properties: JournalProperties;
+  propertiesWithMetadata: JournalPropertiesWithMetadata;
+};
+
+export type JournalOutgoingLinkAndTarget = never;
+
+export type JournalOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A periodical publication containing articles and other content related to a particular subject or profession.
+ */
+export type JournalProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+};
+
+export type JournalPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+  };
 };
 
 /**
@@ -1049,6 +1219,13 @@ export type NumberDataTypeMetadata = {
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
 };
+
+/**
+ * The total number of pages something has.
+ */
+export type NumberOfPagesPropertyValue = NumberDataType;
+
+export type NumberOfPagesPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
 /**
  * An opaque, untyped JSON object
@@ -1322,6 +1499,52 @@ export type PagePropertiesWithMetadata2 = {
 };
 
 /**
+ * A human being
+ */
+export type Person = {
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"];
+  properties: PersonProperties;
+  propertiesWithMetadata: PersonPropertiesWithMetadata;
+};
+
+export type PersonAffiliatedWithLink = {
+  linkEntity: AffiliatedWith;
+  rightEntity: Institution;
+};
+
+export type PersonOutgoingLinkAndTarget =
+  | PersonAffiliatedWithLink
+  | PersonWorkedAtLink;
+
+export type PersonOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@hash/types/entity-type/affiliated-with/v/1": PersonAffiliatedWithLink;
+  "https://hash.ai/@hash/types/entity-type/worked-at/v/1": PersonWorkedAtLink;
+};
+
+/**
+ * A human being
+ */
+export type PersonProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@hash/types/property-type/email/"?: EmailPropertyValue[];
+};
+
+export type PersonPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@hash/types/property-type/email/"?: {
+      value: EmailPropertyValueWithMetadata[];
+      metadata?: ArrayMetadata;
+    };
+  };
+};
+
+export type PersonWorkedAtLink = { linkEntity: WorkedAt; rightEntity: Company };
+
+/**
  * The base URL of a pinned entity type.
  */
 export type PinnedEntityTypeBaseURLPropertyValue = TextDataType;
@@ -1423,6 +1646,13 @@ export type ProfileURLPropertyValue = TextDataType;
 export type ProfileURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * The year in which something was first published.
+ */
+export type PublicationYearPropertyValue = YearDataType;
+
+export type PublicationYearPropertyValueWithMetadata = YearDataTypeWithMetadata;
+
+/**
  * The timestamp of when something was read.
  */
 export type ReadAtPropertyValue = TextDataType;
@@ -1435,6 +1665,13 @@ export type ReadAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 export type ResolvedAtPropertyValue = TextDataType;
 
 export type ResolvedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
+ * The name of someone or something's role.
+ */
+export type RolePropertyValue = TextDataType;
+
+export type RolePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A service account.
@@ -1842,3 +2079,99 @@ export type VaultPathPropertyValueWithMetadata = TextDataTypeWithMetadata;
 export type WebsiteURLPropertyValue = TextDataType;
 
 export type WebsiteURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
+ * Somewhere that someone or something worked at
+ */
+export type WorkedAt = {
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/worked-at/v/1"];
+  properties: WorkedAtProperties;
+  propertiesWithMetadata: WorkedAtPropertiesWithMetadata;
+};
+
+export type WorkedAtOutgoingLinkAndTarget = never;
+
+export type WorkedAtOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Somewhere that someone or something worked at
+ */
+export type WorkedAtProperties = WorkedAtProperties1 & WorkedAtProperties2;
+export type WorkedAtProperties1 = LinkProperties;
+
+export type WorkedAtProperties2 = {
+  "https://hash.ai/@hash/types/property-type/applies-from/"?: AppliesFromPropertyValue;
+  "https://hash.ai/@hash/types/property-type/applies-until/"?: AppliesUntilPropertyValue;
+  "https://hash.ai/@hash/types/property-type/role/"?: RolePropertyValue;
+};
+
+export type WorkedAtPropertiesWithMetadata = WorkedAtPropertiesWithMetadata1 &
+  WorkedAtPropertiesWithMetadata2;
+export type WorkedAtPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type WorkedAtPropertiesWithMetadata2 = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@hash/types/property-type/applies-from/"?: AppliesFromPropertyValueWithMetadata;
+    "https://hash.ai/@hash/types/property-type/applies-until/"?: AppliesUntilPropertyValueWithMetadata;
+    "https://hash.ai/@hash/types/property-type/role/"?: RolePropertyValueWithMetadata;
+  };
+};
+
+/**
+ * A written work, such as a book or article.
+ */
+export type WrittenWork = {
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/written-work/v/1"];
+  properties: WrittenWorkProperties;
+  propertiesWithMetadata: WrittenWorkPropertiesWithMetadata;
+};
+
+export type WrittenWorkAuthoredByLink = {
+  linkEntity: AuthoredBy;
+  rightEntity: Person;
+};
+
+export type WrittenWorkOutgoingLinkAndTarget = WrittenWorkAuthoredByLink;
+
+export type WrittenWorkOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@hash/types/entity-type/authored-by/v/1": WrittenWorkAuthoredByLink;
+};
+
+/**
+ * A written work, such as a book or article.
+ */
+export type WrittenWorkProperties = {
+  "https://hash.ai/@hash/types/property-type/number-of-pages/"?: NumberOfPagesPropertyValue;
+  "https://hash.ai/@hash/types/property-type/publication-year/"?: PublicationYearPropertyValue;
+  "https://hash.ai/@hash/types/property-type/summary/"?: SummaryPropertyValue;
+  "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValue;
+};
+
+export type WrittenWorkPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@hash/types/property-type/number-of-pages/"?: NumberOfPagesPropertyValueWithMetadata;
+    "https://hash.ai/@hash/types/property-type/publication-year/"?: PublicationYearPropertyValueWithMetadata;
+    "https://hash.ai/@hash/types/property-type/summary/"?: SummaryPropertyValueWithMetadata;
+    "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValueWithMetadata;
+  };
+};
+
+/**
+ * A year in the Gregorian calendar.
+ */
+export type YearDataType = YearDataType1;
+export type YearDataType1 = IntegerDataType;
+
+export type YearDataType2 = number;
+
+export type YearDataTypeWithMetadata = {
+  value: YearDataType;
+  metadata: YearDataTypeMetadata;
+};
+export type YearDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@hash/types/data-type/year/v/1";
+};

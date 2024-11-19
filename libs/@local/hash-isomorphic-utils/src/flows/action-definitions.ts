@@ -211,8 +211,16 @@ const actionDefinitionsAsConst = {
     outputs: [
       {
         payloadKind: "ProposedEntity",
+        description: "The entities inferred from the document, e.g. authors",
         name: "proposedEntities",
         array: true,
+        required: true,
+      },
+      {
+        payloadKind: "PersistedEntity",
+        description: "The entity representing the Google Sheet synced to.",
+        name: "updatedDocumentEntity",
+        array: false,
         required: true,
       },
     ],

@@ -86,6 +86,7 @@ export type PatchEntityParameters = Omit<
   propertyPatches?: PropertyPatchOperation[];
   provenance: EnforcedEntityEditionProvenance;
 };
+
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
 );

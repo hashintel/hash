@@ -8,8 +8,8 @@ import { fileURLToPath } from "node:url";
 
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import { type EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -17,9 +17,10 @@ import {
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolPropertyTypes,
+  systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { File } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import PDFParser, { Output } from "pdf2json";
@@ -28,8 +29,15 @@ import { getEntityByFilter } from "../shared/get-entity-by-filter.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import type { FlowActionActivity } from "./types.js";
-import { typedKeys } from "@local/advanced-types/typed-entries";
 import { getLlmAnalysisOfDoc } from "./infer-metadata-from-document-action/get-llm-analysis-of-doc.js";
+import { OriginProvenance, PropertyProvenance } from "@local/hash-graph-client";
+import { generateDocumentPropertyPatches } from "./infer-metadata-from-document-action/generate-property-patches.js";
+import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification.js";
+import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
+import { generateDocumentProposedEntities } from "./infer-metadata-from-document-action/generate-proposed-entities.js";
+import { logProgress } from "../shared/log-progress.js";
+import { Context } from "@temporalio/activity";
+import { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -42,7 +50,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
   const {
     flowEntityId,
     stepId,
-    userAuthentication: { actorId },
+    userAuthentication: { actorId: userActorId },
     webId,
   } = await getFlowContext();
 
@@ -51,14 +59,22 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     actionType: "inferMetadataFromDocument",
   });
 
-  const webBotActorId = await getWebMachineActorId(
-    { graphApi: graphApiClient },
-    { actorId },
-    { ownedById: webId },
-  );
+  const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
+    authentication: { actorId: userActorId },
+    graphApiClient,
+    grantCreatePermissionForWeb: webId,
+  });
+
+  if (!aiAssistantAccountId) {
+    return {
+      code: StatusCode.FailedPrecondition,
+      contents: [],
+      message: `Could not get AI assistant account for web ${webId}`,
+    };
+  }
 
   const documentEntity = await getEntityByFilter({
-    actorId: webBotActorId,
+    actorId: aiAssistantAccountId,
     includeDrafts: false,
     filter: {
       all: [
@@ -168,10 +184,6 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
 
   const pdfParser = new PDFParser();
 
-  const documentMetadata = await getLlmAnalysisOfDoc(filePath);
-
-  const { authors, publishedInYear, summary, title } = documentMetadata;
-
   const documentJson = await new Promise<Output>((resolve, reject) => {
     pdfParser.on("pdfParser_dataError", (errData) =>
       reject(errData.parserError),
@@ -184,26 +196,117 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     pdfParser.loadPDF(filePath).catch((err) => reject(err));
   });
 
+  const numberOfPages = documentJson.Pages.length;
+
+  /**
+   * @todo handle documents exceeding Vertex AI limit of 30MB
+   */
+
+  const documentMetadata = await getLlmAnalysisOfDoc({
+    fileSystemPath: filePath,
+    hashFileStorageKey: storageKey,
+  });
+
   await unlink(filePath);
 
-  const page = documentJson.Pages[0]!;
-  const lines: Record<number, string> = {};
+  const {
+    authors,
+    doi,
+    doiLink,
+    isbn,
+    publishedBy,
+    publishedInYear,
+    publicationVenue,
+    summary,
+    title,
+    type,
+  } = documentMetadata;
 
-  for (const textItem of page.Texts) {
-    const y = textItem.y;
+  const entityTypeIds = new Set(documentEntity.metadata.entityTypeIds);
 
-    const text = textItem.R[0] ? decodeURIComponent(textItem.R[0].T) : "";
-    if (!text) {
-      continue;
-    }
-
-    lines[y] ??= "";
-    lines[y] += `${text} `;
+  if (type === "AcademicPaper") {
+    entityTypeIds.add(systemEntityTypes.academicPaper.entityTypeId);
+  } else if (type === "Book") {
+    entityTypeIds.add(systemEntityTypes.book.entityTypeId);
+  } else {
+    entityTypeIds.add(systemEntityTypes.writtenWork.entityTypeId);
   }
 
-  console.log(lines);
+  const provenance: EnforcedEntityEditionProvenance = {
+    actorType: "ai",
+    origin: {
+      type: "flow",
+      id: flowEntityId,
+      stepIds: [stepId],
+    } satisfies OriginProvenance,
+  };
 
-  console.log(documentJson.Meta);
+  const propertyProvenance: PropertyProvenance = {
+    sources: [
+      {
+        type: "document",
+        authors: (authors ?? []).map((author) => author.name),
+        entityId: documentEntityId,
+        location: { uri: fileUrl },
+      },
+    ],
+  };
+
+  const propertyPatches = generateDocumentPropertyPatches(
+    {
+      doi,
+      doiLink,
+      isbn,
+      numberOfPages,
+      publishedInYear,
+      summary,
+      title,
+      type,
+    },
+    propertyProvenance,
+  );
+
+  const existingEntity = documentEntity.toJSON();
+
+  const updatedEntity = await documentEntity.patch(
+    graphApiClient,
+    { actorId: aiAssistantAccountId },
+    {
+      entityTypeIds: [...entityTypeIds],
+      propertyPatches,
+      provenance,
+    },
+  );
+
+  await createInferredEntityNotification({
+    entity: updatedEntity,
+    graphApiClient,
+    operation: "update",
+    notifiedUserAccountId: userActorId,
+  });
+
+  const persistedDocumentEntity: PersistedEntity = {
+    entity: updatedEntity.toJSON(),
+    existingEntity,
+    operation: "update",
+  };
+
+  logProgress([
+    {
+      persistedEntity: persistedDocumentEntity,
+      recordedAt: new Date().toISOString(),
+      stepId: Context.current().info.activityId,
+      type: "PersistedEntity",
+    },
+  ]);
+
+  const proposedEntities = generateDocumentProposedEntities({
+    documentEntityId,
+    documentMetadata: { authors, publishedBy, publicationVenue },
+    provenance,
+    propertyProvenance,
+    webId,
+  });
 
   return {
     code: StatusCode.Ok,
@@ -212,10 +315,18 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
         outputs: [
           {
             outputName:
-              "proposedEntities" as OutputNameForAction<"inferMetadataFromDocument">,
+              "proposedEntities" satisfies OutputNameForAction<"inferMetadataFromDocument">,
             payload: {
               kind: "ProposedEntity",
-              value: [],
+              value: proposedEntities,
+            },
+          },
+          {
+            outputName:
+              "updatedDocumentEntity" satisfies OutputNameForAction<"inferMetadataFromDocument">,
+            payload: {
+              kind: "PersistedEntity",
+              value: persistedDocumentEntity,
             },
           },
         ],

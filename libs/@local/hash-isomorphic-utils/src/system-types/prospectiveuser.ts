@@ -7,6 +7,8 @@ import type { ObjectMetadata } from "@local/hash-graph-client";
 import type {
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
+  RolePropertyValue,
+  RolePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
   WebsiteURLPropertyValue,
@@ -16,6 +18,8 @@ import type {
 export type {
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
+  RolePropertyValue,
+  RolePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
   WebsiteURLPropertyValue,
@@ -74,13 +78,6 @@ export type ProspectiveUserPropertiesWithMetadata = {
     "https://hash.ai/@hash/types/property-type/willing-to-pay/": WillingToPayPropertyValueWithMetadata;
   };
 };
-
-/**
- * The name of someone or something's role.
- */
-export type RolePropertyValue = TextDataType;
-
-export type RolePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * The amount that someone is willing to pay for something
