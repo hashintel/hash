@@ -1,6 +1,11 @@
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import type { PropertyPatchOperation } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  PropertyPatchOperation,
+} from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ClaimProperties } from "@local/hash-isomorphic-utils/system-types/claim";
 
@@ -28,6 +33,7 @@ const noObjectEntityIdKey = "no-object-entity-id";
  */
 export const deduplicateClaims = async (
   inputClaims: Claim[],
+  proposedEntities: ProposedEntity[],
 ): Promise<Claim[]> => {
   const { flowEntityId, stepId, userAuthentication, webId } =
     await getFlowContext();
@@ -42,6 +48,8 @@ export const deduplicateClaims = async (
       };
     };
   } = {};
+
+  const canonicalClaimIdByDuplicateId: { [claimId: EntityId]: EntityId } = {};
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: userAuthentication,
@@ -63,13 +71,15 @@ export const deduplicateClaims = async (
 
     const originalIdentifiedClaim =
       claimsByEntityIdObjectAndText[entityId][objectEntityId][
-        currentClaimInLoop.text
+        currentClaimInLoop.text.toLowerCase()
       ];
 
     if (!originalIdentifiedClaim) {
       claimsByEntityIdObjectAndText[entityId][objectEntityId][
-        currentClaimInLoop.text
+        currentClaimInLoop.text.toLowerCase()
       ] = currentClaimInLoop;
+      continue;
+    } else if (originalIdentifiedClaim.claimId === currentClaimInLoop.claimId) {
       continue;
     }
 
@@ -154,9 +164,34 @@ export const deduplicateClaims = async (
       },
     });
 
+    canonicalClaimIdByDuplicateId[currentClaimInLoop.claimId] =
+      newClaimObject.claimId;
+
     logger.debug(
       `Merged claim ${JSON.stringify(currentClaimInLoop)} into ${JSON.stringify(originalIdentifiedClaim)}`,
     );
+  }
+
+  for (const proposedEntity of proposedEntities) {
+    const subjectOfSet = new Set(proposedEntity.claims.isSubjectOf);
+    const objectOfSet = new Set(proposedEntity.claims.isObjectOf);
+
+    for (const [duplicateId, canonicalId] of typedEntries(
+      canonicalClaimIdByDuplicateId,
+    )) {
+      if (subjectOfSet.has(duplicateId)) {
+        subjectOfSet.delete(duplicateId);
+        subjectOfSet.add(canonicalId);
+      }
+
+      if (objectOfSet.has(duplicateId)) {
+        objectOfSet.delete(duplicateId);
+        objectOfSet.add(canonicalId);
+      }
+    }
+
+    proposedEntity.claims.isSubjectOf = [...subjectOfSet];
+    proposedEntity.claims.isObjectOf = [...objectOfSet];
   }
 
   const newClaimsArray = Object.values(claimsByEntityIdObjectAndText).flatMap(

@@ -294,7 +294,7 @@ export const runSubCoordinatingAgent = async (params: {
 
       state.inferredClaims.push(...inferredClaimsWithDeduplicatedEntities);
 
-      state.inferredClaims = await deduplicateClaims(state.inferredClaims);
+      state.inferredClaims = await deduplicateClaims(state.inferredClaims, []);
 
       state.entitySummaries = [
         ...state.entitySummaries,
