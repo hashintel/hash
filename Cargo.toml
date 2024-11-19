@@ -137,7 +137,7 @@ time               = { version = "=0.3.36", default-features = false }
 tokio              = { version = "=1.41.1", default-features = false }
 tokio-postgres     = { version = "=0.7.12", default-features = false }
 tokio-util         = { version = "=0.7.12", default-features = false }
-tower-http         = { version = "=0.6.1", features = ["trace"] }
+tower-http         = { version = "=0.6.2", features = ["trace"] }
 tower-layer        = { version = "=0.3.3", default-features = false }
 tower-service      = { version = "=0.3.3", default-features = false }
 tracing-appender   = { version = "=0.2.3", default-features = false }
