@@ -8,6 +8,7 @@ import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import type { MigrationFunction } from "../types";
 import {
+  anyUserInstantiator,
   createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
@@ -207,6 +208,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
+        icon: "🖊",
         title: "Authored By",
         titlePlural: "Authored Bys",
         inverse: {
@@ -215,12 +217,12 @@ const migrate: MigrationFunction = async ({
         description: "Who or what something was authored by",
       },
       migrationState,
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       webShortname: "hash",
     },
   );
 
-  const publishedByLinkEntityType = await createSystemEntityTypeIfNotExists(
+  const _publishedByLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
@@ -234,7 +236,7 @@ const migrate: MigrationFunction = async ({
         description: "The entity that published something",
       },
       migrationState,
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       webShortname: "hash",
     },
   );
@@ -253,7 +255,7 @@ const migrate: MigrationFunction = async ({
         description: "The place in which something was published",
       },
       migrationState,
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       webShortname: "hash",
     },
   );
@@ -272,7 +274,7 @@ const migrate: MigrationFunction = async ({
         description: "Something that something is affiliated with.",
       },
       migrationState,
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       webShortname: "hash",
     },
   );
@@ -283,6 +285,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Institution",
+        icon: "🏛",
         description:
           "An organization dedicated to a specific purpose, such as education, research, or public service, and structured with formal systems of governance and operation.",
         properties: [
@@ -292,11 +295,10 @@ const migrate: MigrationFunction = async ({
           },
           {
             propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-            required: true,
           },
         ],
       },
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "hash",
     },
@@ -316,11 +318,10 @@ const migrate: MigrationFunction = async ({
           },
           {
             propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-            required: true,
           },
         ],
       },
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "hash",
     },
@@ -341,11 +342,10 @@ const migrate: MigrationFunction = async ({
           },
           {
             propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-            required: true,
           },
         ],
       },
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "hash",
     },
@@ -361,9 +361,75 @@ const migrate: MigrationFunction = async ({
         description:
           "An institution of higher education and research, typically offering undergraduate and postgraduate degrees across a wide range of disciplines, and often engaging in the creation and dissemination of knowledge.",
       },
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "hash",
+    },
+  );
+
+  const companyEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Company",
+        description: "A company",
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "hash",
+      instantiator: anyUserInstantiator,
+    },
+  );
+
+  const rolePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Role",
+        description: "The name of a role performed by someone or something.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "hash",
+    },
+  );
+
+  const workedAtLinkType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Worked At",
+        description: "Somewhere that someone or something worked at",
+        properties: [
+          {
+            propertyType: systemPropertyTypes.appliesFrom.propertyTypeId,
+            required: false,
+          },
+          {
+            propertyType: systemPropertyTypes.appliesUntil.propertyTypeId,
+            required: false,
+          },
+          {
+            propertyType: rolePropertyType.schema.$id,
+            required: false,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "hash",
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -373,6 +439,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Person",
+        icon: "👤",
         /** @todo improve this desc */
         description: "A human being",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
@@ -383,7 +450,10 @@ const migrate: MigrationFunction = async ({
           },
           {
             propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-            required: true,
+          },
+          {
+            propertyType: systemPropertyTypes.email.propertyTypeId,
+            array: true,
           },
         ],
         outgoingLinks: [
@@ -391,9 +461,13 @@ const migrate: MigrationFunction = async ({
             destinationEntityTypes: [institutionEntityType.schema.$id],
             linkEntityType: affiliatedWith.schema.$id,
           },
+          {
+            linkEntityType: workedAtLinkType,
+            destinationEntityTypes: [companyEntityType],
+          },
         ],
       },
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "hash",
     },
@@ -413,14 +487,14 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const documentEntityType = await createSystemEntityTypeIfNotExists(
+  const writtenWork = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
-        title: "Document",
+        title: "Written Work",
         description: "A written work, such as a book or article.",
-        icon: "/memo.svg",
+        icon: "📝",
         labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
         properties: [
           {
@@ -433,6 +507,9 @@ const migrate: MigrationFunction = async ({
           {
             propertyType: numberOfPagesPropertyType.schema.$id,
           },
+          {
+            propertyType: publicationYear.schema.$id,
+          },
         ],
         outgoingLinks: [
           {
@@ -441,18 +518,18 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "hash",
     },
   );
 
-  const bookEntityType = await createSystemEntityTypeIfNotExists(
+  const _bookEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [documentEntityType.schema.$id],
+        allOf: [writtenWork.schema.$id],
         title: "Book",
         description:
           "A written work, typically longer than an article, often published in print form.",
@@ -462,21 +539,20 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "hash",
     },
   );
 
-  const academicPaperEntityType = await createSystemEntityTypeIfNotExists(
+  const _academicPaperEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [documentEntityType.schema.$id],
+        allOf: [writtenWork.schema.$id],
         title: "Academic Paper",
         description: "A paper describing academic research",
-        icon: "/memo.svg",
         properties: [
           {
             propertyType: systemPropertyTypes.title.propertyTypeId,
@@ -493,10 +569,6 @@ const migrate: MigrationFunction = async ({
           {
             propertyType: summaryPropertyType.schema.$id,
             required: true,
-          },
-          {
-            propertyType: publicationYear.schema.$id,
-            required: false,
           },
           {
             propertyType: methodologyPropertyType.schema.$id,
@@ -521,7 +593,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      instantiator: null,
+      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "hash",
     },
