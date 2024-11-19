@@ -1,96 +1,85 @@
-import { useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { SourceProvenance } from "@local/hash-graph-client/api";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { entityIdFromComponents } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
-  getOutgoingLinksForEntity,
+  getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
-} from "../../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
-import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
-import { ValueChip } from "../../../../shared/value-chip";
+import { CircleInfoIcon } from "../../shared/icons/circle-info-icon";
+import { SourcesPopover } from "./sources-popover";
+import { ValueChip } from "./value-chip";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
-} from "../../../../shared/virtualized-table";
-import {
-  defaultCellSx,
-  VirtualizedTable,
-} from "../../../../shared/virtualized-table";
+} from "./virtualized-table";
+import { defaultCellSx, VirtualizedTable } from "./virtualized-table";
 import type {
   VirtualizedTableFilterDefinition,
   VirtualizedTableFilterDefinitionsByFieldId,
   VirtualizedTableFilterValuesByFieldId,
-} from "../../../../shared/virtualized-table/header/filter";
+} from "./virtualized-table/header/filter";
 import {
   isValueIncludedInFilter,
   missingValueString,
-} from "../../../../shared/virtualized-table/header/filter";
-import type { VirtualizedTableSort } from "../../../../shared/virtualized-table/header/sort";
-import { useVirtualizedTableFilterState } from "../../../../shared/virtualized-table/use-filter-state";
-import type { ProposedEntityOutput } from "../shared/types";
-import { EmptyOutputBox } from "./shared/empty-output-box";
-import { outputIcons } from "./shared/icons";
-import { OutputContainer } from "./shared/output-container";
-import { SourcesPopover } from "./shared/sources-popover";
-import { TableSkeleton } from "./shared/table-skeleton";
+} from "./virtualized-table/header/filter";
+import type { VirtualizedTableSort } from "./virtualized-table/header/sort";
+import { useVirtualizedTableFilterState } from "./virtualized-table/use-filter-state";
 
-type FieldId = "status" | "claim" | "subject" | "object";
+type FieldId = "status" | "claim" | "subject" | "object" | "createdAt";
 
-const columns: VirtualizedTableColumn<FieldId>[] = [
-  {
-    label: "Status",
-    id: "status",
-    sortable: true,
-    width: 120,
-  },
+const generateColumns = (
+  includeStatusColumn: boolean,
+): VirtualizedTableColumn<FieldId>[] => [
+  ...(includeStatusColumn
+    ? [
+        {
+          label: "Status",
+          id: "status" as const,
+          sortable: true,
+          width: 120,
+        },
+      ]
+    : []),
   {
     label: "Claim",
-    id: "claim",
+    id: "claim" as const,
     sortable: true,
     width: 700,
   },
   {
     label: "Subject",
-    id: "subject",
+    id: "subject" as const,
     sortable: true,
     width: 170,
   },
   {
     label: "Relevant value",
-    id: "object",
+    id: "object" as const,
     sortable: true,
     width: 170,
+  },
+  {
+    label: "Created at",
+    id: "createdAt" as const,
+    sortable: true,
+    width: 140,
   },
 ];
 
 type ClaimResultRow = {
   claim: string;
+  createdAt: Date;
   subject: {
     name: string;
     entityId: EntityId | null;
@@ -101,7 +90,7 @@ type ClaimResultRow = {
   } | null;
   onEntityClick: (entityId: EntityId) => void;
   sources: SourceProvenance[];
-  status: "Processing" | "Processed";
+  status: "Processing" | "Processed" | null;
 };
 
 const typographySx = {
@@ -177,32 +166,36 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
 
   return (
     <>
-      <TableCell
-        sx={({ palette }) => ({
-          ...cellSx,
-          background:
-            status === "Processing" ? palette.blue[15] : palette.gray[20],
-          color:
-            status === "Processing" ? palette.blue[70] : palette.common.black,
-        })}
-      >
-        <Stack direction="row" alignItems="center">
-          <Box
-            aria-hidden
-            component="span"
-            sx={{
-              borderRadius: "50%",
-              background: ({ palette }) =>
-                status === "Processing" ? palette.blue[70] : palette.green[80],
-              display: "inline-block",
-              minHeight: 6,
-              minWidth: 6,
-              mr: 1,
-            }}
-          />
-          {status}
-        </Stack>
-      </TableCell>
+      {status && (
+        <TableCell
+          sx={({ palette }) => ({
+            ...cellSx,
+            background:
+              status === "Processing" ? palette.blue[15] : palette.gray[20],
+            color:
+              status === "Processing" ? palette.blue[70] : palette.common.black,
+          })}
+        >
+          <Stack direction="row" alignItems="center">
+            <Box
+              aria-hidden
+              component="span"
+              sx={{
+                borderRadius: "50%",
+                background: ({ palette }) =>
+                  status === "Processing"
+                    ? palette.blue[70]
+                    : palette.green[80],
+                display: "inline-block",
+                minHeight: 6,
+                minWidth: 6,
+                mr: 1,
+              }}
+            />
+            {status}
+          </Stack>
+        </TableCell>
+      )}
       <ClaimTextCell sources={sources} text={claim} />
       <TableCell sx={cellSx}>
         <Box
@@ -276,6 +269,19 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
           </Typography>
         )}
       </TableCell>
+      <TableCell sx={cellSx}>
+        <Stack justifyContent="center">
+          <Typography sx={typographySx}>
+            {row.createdAt.toLocaleString(undefined, {
+              day: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </Typography>
+        </Stack>
+      </TableCell>
     </>
   );
 });
@@ -286,63 +292,26 @@ const createRowContent: CreateVirtualizedRowContentFn<
 > = (_index, row) => <TableRow row={row.data} />;
 
 type ClaimsTableProps = {
+  claimsSubgraph: Subgraph<EntityRootType<Claim>>;
+  includeStatusColumn: boolean;
   onEntityClick: (entityId: EntityId) => void;
-  proposedEntities: ProposedEntityOutput[];
+  /**
+   * Include if this table is being rendered in the context of a flow that has proposed entities.
+   * Omit if viewing elsewhere (e.g. on an entity's page).
+   */
+  proposedEntities?: Pick<ProposedEntity, "claims" | "localEntityId">[];
 };
 
 export const ClaimsTable = memo(
-  ({ onEntityClick, proposedEntities }: ClaimsTableProps) => {
+  ({
+    claimsSubgraph,
+    includeStatusColumn,
+    onEntityClick,
+    proposedEntities,
+  }: ClaimsTableProps) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-      fieldId: "subject",
+      fieldId: "createdAt",
       direction: "asc",
-    });
-
-    const { selectedFlowRun } = useFlowRunsContext();
-
-    const { data: claimsData, loading: claimsDataLoading } = useQuery<
-      GetEntitySubgraphQuery,
-      GetEntitySubgraphQueryVariables
-    >(getEntitySubgraphQuery, {
-      variables: {
-        includePermissions: false,
-        request: {
-          filter: {
-            all: [
-              generateVersionedUrlMatchingFilter(
-                systemEntityTypes.claim.entityTypeId,
-                {
-                  ignoreParents: true,
-                },
-              ),
-              {
-                equal: [
-                  {
-                    path: ["editionProvenance", "origin", "id"],
-                  },
-                  {
-                    parameter: selectedFlowRun
-                      ? entityIdFromComponents(
-                          selectedFlowRun.webId,
-                          selectedFlowRun.flowRunId,
-                        )
-                      : "never",
-                  },
-                ],
-              },
-            ],
-          },
-          graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            hasLeftEntity: { incoming: 1, outgoing: 0 },
-            hasRightEntity: { outgoing: 0, incoming: 0 },
-          },
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: true,
-        },
-      },
-      pollInterval: selectedFlowRun?.closedAt ? 0 : 2_000,
-      skip: !selectedFlowRun,
-      fetchPolicy: "cache-and-network",
     });
 
     const {
@@ -351,18 +320,18 @@ export const ClaimsTable = memo(
       unsortedRows,
     }: {
       filterDefinitions?:
-        | VirtualizedTableFilterDefinitionsByFieldId<Exclude<FieldId, "claim">>
+        | VirtualizedTableFilterDefinitionsByFieldId<
+            Exclude<FieldId, "claim" | "createdAt">
+          >
         | undefined;
       initialFilterValues?:
-        | VirtualizedTableFilterValuesByFieldId<Exclude<FieldId, "claim">>
+        | VirtualizedTableFilterValuesByFieldId<
+            Exclude<FieldId, "claim" | "createdAt">
+          >
         | undefined;
       unsortedRows: VirtualizedTableRow<ClaimResultRow>[];
     } = useMemo(() => {
       const rowData: VirtualizedTableRow<ClaimResultRow>[] = [];
-
-      if (!claimsData) {
-        return { filters: undefined, unsortedRows: rowData };
-      }
 
       const filterDefs = {
         status: {
@@ -384,7 +353,7 @@ export const ClaimsTable = memo(
           type: "checkboxes",
         },
       } satisfies VirtualizedTableFilterDefinitionsByFieldId<
-        Exclude<FieldId, "claim">
+        Exclude<FieldId, "claim" | "createdAt">
       >;
 
       const defaultFilterValues = {
@@ -393,19 +362,16 @@ export const ClaimsTable = memo(
         object: new Set<string>(),
       };
 
-      const claimsSubgraph = deserializeSubgraph<EntityRootType<Claim>>(
-        claimsData.getEntitySubgraph.subgraph,
-      );
-
-      const claims = getRoots(claimsSubgraph);
+      const claims = getRoots<EntityRootType<Claim>>(claimsSubgraph);
 
       /**
        * We want a record of claimIds -> proposed entities to check when looping over claims,
        * rather than looping over proposed entities for each claim.
+       * Only relevant if rendering in the context of viewing a flow run.
        */
       const claimToSubjectRecord: Record<EntityId, EntityId> = {};
       const claimToObjectRecord: Record<EntityId, EntityId> = {};
-      for (const proposedEntity of proposedEntities) {
+      for (const proposedEntity of proposedEntities ?? []) {
         for (const subjectClaimEntityId of proposedEntity.claims.isSubjectOf) {
           claimToSubjectRecord[subjectClaimEntityId] =
             proposedEntity.localEntityId;
@@ -439,7 +405,7 @@ export const ClaimsTable = memo(
             "https://hash.ai/@hash/types/property-type/subject/"
           ];
 
-        const outgoingLinks = getOutgoingLinksForEntity(
+        const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
           claimsSubgraph,
           claim.entityId,
         );
@@ -450,25 +416,29 @@ export const ClaimsTable = memo(
         /**
          * The links will be created once there is an entity persisted in the graph to link the claim to
          */
-        for (const link of outgoingLinks) {
+        for (const {
+          linkEntity,
+          rightEntity,
+        } of outgoingLinkAndTargetEntities) {
           if (
-            link.metadata.entityTypeIds.includes(
+            linkEntity[0]?.metadata.entityTypeIds.includes(
               systemLinkEntityTypes.hasObject.linkEntityTypeId,
             )
           ) {
-            objectEntityId = link.linkData?.rightEntityId;
+            objectEntityId = rightEntity[0]?.entityId;
           } else if (
-            link.metadata.entityTypeIds.includes(
+            linkEntity[0]?.metadata.entityTypeIds.includes(
               systemLinkEntityTypes.hasSubject.linkEntityTypeId,
             )
           ) {
-            subjectEntityId = link.linkData?.rightEntityId;
+            subjectEntityId = rightEntity[0]?.entityId;
           }
         }
 
         /**
          * If we haven't found a link for the subject of the claim, the entities related to the claim haven't yet been
-         * persisted There may be an entity proposal attached to the claim, so we can check the proposals as a fallback.
+         * persisted. There may be an entity proposal attached to the claim, so we can check the proposals as a
+         * fallback.
          *
          * This may still not yield any results if the claims haven't been processed as part of generating proposed
          * entities yet.
@@ -481,19 +451,25 @@ export const ClaimsTable = memo(
           }
         }
 
-        const status = subjectEntityId ? "Processed" : "Processing";
+        const status = includeStatusColumn
+          ? subjectEntityId
+            ? "Processed"
+            : "Processing"
+          : null;
 
-        /**
-         * Account for the claim's values in the filters
-         */
-        filterDefs.status.options[status] ??= {
-          label: status,
-          count: 0,
-          value: status,
-        };
-        filterDefs.status.options[status].count++;
-        filterDefs.status.initialValue.add(status);
-        defaultFilterValues.status.add(status);
+        if (status) {
+          /**
+           * Account for the claim's values in the filters
+           */
+          filterDefs.status.options[status] ??= {
+            label: status,
+            count: 0,
+            value: status,
+          };
+          filterDefs.status.options[status].count++;
+          filterDefs.status.initialValue.add(status);
+          defaultFilterValues.status.add(status);
+        }
 
         filterDefs.subject.options[subjectText] ??= {
           label: subjectText,
@@ -519,6 +495,9 @@ export const ClaimsTable = memo(
         rowData.push({
           id: claim.metadata.recordId.entityId,
           data: {
+            createdAt: new Date(
+              claim.metadata.provenance.createdAtDecisionTime,
+            ),
             claim: claimText,
             onEntityClick,
             sources: claim.metadata.provenance.edition.sources ?? [],
@@ -539,10 +518,10 @@ export const ClaimsTable = memo(
         filterDefinitions: filterDefs,
         unsortedRows: rowData,
       };
-    }, [claimsData, onEntityClick, proposedEntities]);
+    }, [claimsSubgraph, includeStatusColumn, onEntityClick, proposedEntities]);
 
     const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
-      defaultFilterValues: initialFilterValues ?? null,
+      defaultFilterValues: initialFilterValues,
       filterDefinitions,
     });
 
@@ -550,10 +529,6 @@ export const ClaimsTable = memo(
       () =>
         unsortedRows
           .filter((row) => {
-            if (!filterValues) {
-              return true;
-            }
-
             for (const [fieldId, currentFilterValue] of typedEntries(
               filterValues,
             )) {
@@ -563,6 +538,9 @@ export const ClaimsTable = memo(
 
               let rowValue: string | EntityId | null = null;
               if (fieldId === "status") {
+                if (!includeStatusColumn) {
+                  return true;
+                }
                 rowValue = row.data.status;
               } else {
                 rowValue = row.data[fieldId]?.name ?? null;
@@ -594,9 +572,30 @@ export const ClaimsTable = memo(
               );
             }
 
+            if (fieldId === "status") {
+              const baseStatus = base.data[fieldId];
+              const targetStatus = target.data[fieldId];
+
+              if (baseStatus === targetStatus) {
+                return 0;
+              }
+
+              if (!baseStatus) {
+                return 1;
+              }
+
+              return -1;
+            }
+
+            if (fieldId === "createdAt") {
+              return (
+                base.data[fieldId].getTime() - target.data[fieldId].getTime()
+              );
+            }
+
             return base.data[fieldId].localeCompare(target.data[fieldId]);
           }),
-      [filterValues, sort, unsortedRows],
+      [filterValues, includeStatusColumn, sort, unsortedRows],
     );
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
@@ -610,40 +609,22 @@ export const ClaimsTable = memo(
       }
     }, [outputContainerHeight]);
 
-    const hasData = !!unsortedRows.length;
+    const columns = useMemo(
+      () => generateColumns(includeStatusColumn),
+      [includeStatusColumn],
+    );
 
     return (
-      <OutputContainer
-        noBorder={hasData}
-        ref={outputContainerRef}
-        sx={{
-          flex: 1,
-          minWidth: 400,
-          "& th:not(:last-child)": {
-            borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-          },
-        }}
-      >
-        {hasData ? (
-          <VirtualizedTable
-            columns={columns}
-            createRowContent={createRowContent}
-            filterDefinitions={filterDefinitions}
-            filterValues={filterValues ?? undefined}
-            setFilterValues={setFilterValues}
-            rows={rows}
-            sort={sort}
-            setSort={setSort}
-          />
-        ) : claimsDataLoading ? (
-          <TableSkeleton cellHeight={43} tableHeight={outputContainerHeight} />
-        ) : (
-          <EmptyOutputBox
-            Icon={outputIcons.table}
-            label="Claims about entities discovered by this flow will appear in a table here"
-          />
-        )}
-      </OutputContainer>
+      <VirtualizedTable
+        columns={columns}
+        createRowContent={createRowContent}
+        filterDefinitions={filterDefinitions}
+        filterValues={filterValues}
+        setFilterValues={setFilterValues}
+        rows={rows}
+        sort={sort}
+        setSort={setSort}
+      />
     );
   },
 );

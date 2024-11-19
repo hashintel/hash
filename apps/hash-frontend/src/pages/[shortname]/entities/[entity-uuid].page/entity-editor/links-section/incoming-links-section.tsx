@@ -15,16 +15,13 @@ export const IncomingLinksSection = ({
   incomingLinksAndSources,
   isLinkEntity,
 }: IncomingLinksSectionProps) => {
-  if (incomingLinksAndSources.length === 0) {
-    if (isLinkEntity) {
-      /**
-       * We don't show the links tables for link entities unless they have some links already set,
-       * because we don't yet fully support linking to/from links in the UI.
-       * If they happen to have ended up with some via a different client / process, we show them.
-       */
-      return null;
-    }
-    return <LinksSectionEmptyState direction="Incoming" />;
+  if (incomingLinksAndSources.length === 0 && isLinkEntity) {
+    /**
+     * We don't show the links tables for link entities unless they have some links already set,
+     * because we don't yet fully support linking to/from links in the UI.
+     * If they happen to have ended up with some via a different client / process, we show them.
+     */
+    return null;
   }
 
   return (
@@ -40,7 +37,11 @@ export const IncomingLinksSection = ({
         </Stack>
       }
     >
-      <IncomingLinksTable incomingLinksAndSources={incomingLinksAndSources} />
+      {incomingLinksAndSources.length ? (
+        <IncomingLinksTable incomingLinksAndSources={incomingLinksAndSources} />
+      ) : (
+        <LinksSectionEmptyState direction="Incoming" />
+      )}
     </SectionWrapper>
   );
 };

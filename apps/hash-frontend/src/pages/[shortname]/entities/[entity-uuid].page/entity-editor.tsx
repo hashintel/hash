@@ -17,6 +17,7 @@ import type { CustomColumn } from "./entity-editor/shared/types";
 import { TypesSection } from "./entity-editor/types-section";
 import { useEntityEditorTab } from "./shared/entity-editor-tabs";
 import type { DraftLinkState } from "./shared/use-draft-link-state";
+import { ClaimsSection } from "./entity-editor/claims-section";
 
 export type { CustomColumn };
 
@@ -88,6 +89,8 @@ export const EntityEditor = (props: EntityEditorProps) => {
           <PropertiesSection />
 
           <LinksSection isLinkEntity={isLinkEntity} />
+
+          <ClaimsSection />
 
           {/* <PeersSection /> */}
         </Box>

@@ -60,7 +60,14 @@ export const FlowTableWebChip = ({
       })}
     >
       <Avatar src={avatarUrl} title={name} size={14} />
-      <Typography component="span" sx={{ fontSize: 12, fontWeight: 500 }}>
+      <Typography
+        component="span"
+        sx={{
+          display: "block",
+          fontSize: 12,
+          fontWeight: 500,
+        }}
+      >
         {name}
       </Typography>
     </Stack>

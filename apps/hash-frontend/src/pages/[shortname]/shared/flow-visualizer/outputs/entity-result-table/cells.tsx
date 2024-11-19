@@ -16,7 +16,7 @@ import { useRef, useState } from "react";
 import { CircleInfoIcon } from "../../../../../../shared/icons/circle-info-icon";
 import { ValueChip } from "../../../../../shared/value-chip";
 import { defaultCellSx } from "../../../../../shared/virtualized-table";
-import { SourcesPopover } from "../shared/sources-popover";
+import { SourcesPopover } from "../../../../../shared/sources-popover";
 
 export const typographySx = {
   color: ({ palette }) => palette.common.black,
