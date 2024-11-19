@@ -1,29 +1,107 @@
-import type { Mailbox } from "effect";
-import { Effect, Function, Option, Ref } from "effect";
+import {
+  Console,
+  Effect,
+  Exit,
+  Function,
+  Inspectable,
+  Mailbox,
+  Option,
+  pipe,
+  Pipeable,
+  Ref,
+} from "effect";
 
+import { createProto } from "../../utils.js";
 import * as Buffer from "../Buffer.js";
-import { Response } from "../models/response/index.js";
+import type { Payload, Protocol, ProtocolVersion } from "../models/index.js";
+import { Response, ResponseFlags } from "../models/response/index.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/codec/Encoder",
 );
+
+type ResponseDecodeError =
+  | Buffer.UnexpectedEndOfBufferError
+  | ProtocolVersion.InvalidProtocolVersionError
+  | Protocol.InvalidMagicError
+  | Payload.PayloadTooLargeError;
 
 interface Cursor {
   buffer: ArrayBuffer;
   index: number;
 }
 
-export interface ResponseDecoder {
-  [TypeId]: typeof TypeId;
+export interface ResponseDecoder
+  extends Inspectable.Inspectable,
+    Pipeable.Pipeable {
+  readonly [TypeId]: typeof TypeId;
 }
 
 interface ResponseDecoderImpl extends ResponseDecoder {
   readonly buffer: Ref.Ref<Cursor>;
-  readonly output: Mailbox.Mailbox<Response.Response>;
+  readonly output: Mailbox.Mailbox<Response.Response, ResponseDecodeError>;
 }
+
+const ResponseDecoderProto: Omit<ResponseDecoderImpl, "buffer" | "output"> = {
+  [TypeId]: TypeId,
+
+  toString(this: ResponseDecoderImpl) {
+    return `ResponseDecoder(buffer=...)`;
+  },
+
+  toJSON(this: ResponseDecoderImpl) {
+    return {
+      _id: "ResponseDecoder",
+    };
+  },
+
+  [Inspectable.NodeInspectSymbol]() {
+    return this.toJSON();
+  },
+
+  pipe() {
+    // eslint-disable-next-line prefer-rest-params
+    return Pipeable.pipeArguments(this, arguments);
+  },
+};
+
+export const make = (options?: {
+  readonly bufferCapacity?: number;
+  readonly channelCapacity?: number;
+}) =>
+  Effect.gen(function* () {
+    const bufferCapacity = options?.bufferCapacity ?? 4;
+    const channelCapacity = options?.channelCapacity ?? bufferCapacity * 2;
+
+    // a single message is at most 64KiB, therefore we can allocate a buffer of capacity * 64KiB
+    const buffer = new ArrayBuffer(bufferCapacity * 1024 * 64);
+
+    const cursor: Cursor = {
+      buffer,
+      index: 0,
+    };
+
+    const bufferRef = yield* Ref.make(cursor);
+
+    const mailbox = yield* Mailbox.make<Response.Response, ResponseDecodeError>(
+      {
+        capacity: channelCapacity,
+        // we never ever suspend the decoder, if we can't decode a message we simply drop the message
+        strategy: "dropping",
+      },
+    );
+
+    return createProto(ResponseDecoderProto, {
+      buffer: bufferRef,
+      output: mailbox,
+    }) satisfies ResponseDecoderImpl as ResponseDecoder;
+  });
 
 const cast = (encoder: ResponseDecoder): ResponseDecoderImpl =>
   encoder as unknown as ResponseDecoderImpl;
+
+export const stream = (self: ResponseDecoder) =>
+  Mailbox.toStream(cast(self).output);
 
 export const length = (encoder: ResponseDecoder) =>
   Effect.gen(function* () {
@@ -100,27 +178,27 @@ export const getMany: {
     }),
 );
 
-// TODO: update mailbox
-export const push: {
-  (
-    array: Uint8Array,
-  ): (self: ResponseDecoder) => Effect.Effect<ResponseDecoder>;
-  (self: ResponseDecoder, array: Uint8Array): Effect.Effect<ResponseDecoder>;
-} = Function.dual(2, (encoder: ResponseDecoder, array: Uint8Array) =>
+const sendPacket = (self: ResponseDecoder, packet: Response.Response) =>
   Effect.gen(function* () {
-    const impl = cast(encoder);
+    const impl = cast(self);
+    const mailbox = impl.output;
 
-    const buffer = yield* Ref.get(impl.buffer);
-    const cursor = buffer.index;
+    const hasSent = yield* mailbox.offer(packet);
 
-    const view = new Uint8Array(buffer.buffer, cursor, array.length);
-    view.set(array);
+    if (!hasSent) {
+      yield* Console.warn(
+        "Unable to send response to receiver, stream has been closed. Dropping response.",
+      );
+    }
+  });
 
-    buffer.index += array.length;
+const finishStream = (self: ResponseDecoder) =>
+  Effect.gen(function* () {
+    const impl = cast(self);
+    const mailbox = impl.output;
 
-    return encoder;
-  }),
-);
+    yield* mailbox.done(Exit.succeed(undefined));
+  });
 
 const tryDecodePacket = (self: ResponseDecoder) =>
   Effect.gen(function* () {
@@ -135,7 +213,6 @@ const tryDecodePacket = (self: ResponseDecoder) =>
     // eslint-disable-next-line no-bitwise
     const packetLength = (lengthBytes.value[0] << 8) | lengthBytes.value[1];
 
-    // take the whole packet out of the buffer (cloning it)
     const buffer = yield* Ref.get(cast(self).buffer);
 
     // we now need to check if the length we have in the buffer is enough to decode the full message (32 bytes header + length)
@@ -146,6 +223,7 @@ const tryDecodePacket = (self: ResponseDecoder) =>
       return false;
     }
 
+    // take the whole packet out of the buffer and detach it
     // TODO: this is virtually the same as ArrayBuffer.transfer(), something that's part of ES2024
     const packetBuffer = new ArrayBuffer(packetLength + 32);
     const packet = new Uint8Array(packetBuffer);
@@ -164,10 +242,14 @@ const tryDecodePacket = (self: ResponseDecoder) =>
     const response = yield* Response.decode(reader);
 
     // send the decoded message to the output mailbox
-    const hasSent = yield* cast(self).output.offer(response);
-    // TODO: handle if cannot be sent (error)
+    yield* sendPacket(self, response);
 
-    // there might be another finished message in the buffer, try to decode it
+    if (ResponseFlags.isEndOfResponse(response.header.flags)) {
+      yield* finishStream(self);
+      // we don't need to decode any more packets, because the stream is closed
+      return false;
+    }
+
     return true;
   });
 
@@ -181,3 +263,45 @@ const tryDecode = (self: ResponseDecoder) =>
 
     return self;
   });
+
+const decode = (self: ResponseDecoder) =>
+  Effect.gen(function* () {
+    const impl = cast(self);
+
+    yield* pipe(
+      tryDecode(self),
+      Effect.map(Function.constVoid),
+      Effect.onError((cause) => {
+        // send the error via the mailbox to the caller
+        const mailbox = impl.output;
+        return mailbox.failCause(cause);
+      }),
+      Effect.orElseSucceed(Function.constVoid),
+    );
+
+    return self;
+  });
+
+export const push: {
+  (
+    array: Uint8Array,
+  ): (self: ResponseDecoder) => Effect.Effect<ResponseDecoder>;
+  (self: ResponseDecoder, array: Uint8Array): Effect.Effect<ResponseDecoder>;
+} = Function.dual(2, (self: ResponseDecoder, array: Uint8Array) =>
+  Effect.gen(function* () {
+    const impl = cast(self);
+
+    const buffer = yield* Ref.get(impl.buffer);
+    const cursor = buffer.index;
+
+    const view = new Uint8Array(buffer.buffer, cursor, array.length);
+    view.set(array);
+
+    buffer.index += array.length;
+
+    // notify background task to try to decode the message
+    yield* decode(self);
+
+    return self;
+  }),
+);
