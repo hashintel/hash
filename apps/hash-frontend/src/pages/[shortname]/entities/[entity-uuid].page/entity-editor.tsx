@@ -6,6 +6,7 @@ import { Box } from "@mui/material";
 import type { RefObject } from "react";
 import { useMemo } from "react";
 
+import { ClaimsSection } from "./entity-editor/claims-section";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { FilePreviewSection } from "./entity-editor/file-preview-section";
 import { HistorySection } from "./entity-editor/history-section";
@@ -17,7 +18,6 @@ import type { CustomColumn } from "./entity-editor/shared/types";
 import { TypesSection } from "./entity-editor/types-section";
 import { useEntityEditorTab } from "./shared/entity-editor-tabs";
 import type { DraftLinkState } from "./shared/use-draft-link-state";
-import { ClaimsSection } from "./entity-editor/claims-section";
 
 export type { CustomColumn };
 
