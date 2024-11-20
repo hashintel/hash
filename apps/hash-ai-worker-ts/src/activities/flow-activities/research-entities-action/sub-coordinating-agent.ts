@@ -345,6 +345,13 @@ export const runSubCoordinatingAgent = async (params: {
       return { status: "ok", explanation };
     }
 
+    if (isCleanupIteration) {
+      /**
+       * This is an iteration after a stop signal was received, we shouldn't make any more requests.
+       */
+      return { status: "ok", explanation: "Early stopping requesting" };
+    }
+
     /**
      * Prior to asking the coordinator to decide on its next actions, check if we should stop.
      * We checked before waiting for outstanding tasks, but we may have received a stop signal from the coordinator since.
@@ -370,13 +377,6 @@ export const runSubCoordinatingAgent = async (params: {
        * to allow any child tasks to pass whatever results they hold now back here.
        */
       return processToolCalls({ toolCalls: [], isCleanupIteration: true });
-    }
-
-    if (isCleanupIteration) {
-      /**
-       * This is an iteration after a stop signal was received, we shouldn't make any more requests.
-       */
-      return { status: "ok", explanation: "Early stopping requesting" };
     }
 
     const { toolCalls: nextToolCalls } = await requestSubCoordinatorActions({
