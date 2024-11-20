@@ -71,7 +71,7 @@ impl PropertyObject {
         };
         self.0
             .get(&first_key)
-            .map_or(false, |property| property.get(path_iter).is_some())
+            .is_some_and(|property| property.get(path_iter).is_some())
     }
 }
 
@@ -85,7 +85,7 @@ impl PartialEq<JsonValue> for PropertyObject {
             && self.0.iter().all(|(key, value)| {
                 other_object
                     .get(key.as_str())
-                    .map_or(false, |other_value| value == other_value)
+                    .is_some_and(|other_value| value == other_value)
             })
     }
 }
