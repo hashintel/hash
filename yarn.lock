@@ -28604,10 +28604,10 @@ siginfo@^2.0.0:
   resolved "https://registry.yarnpkg.com/siginfo/-/siginfo-2.0.0.tgz#32e76c70b79724e3bb567cb9d543eb858ccfaf30"
   integrity sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==
 
-sigma@3.0.0-beta.37:
-  version "3.0.0-beta.37"
-  resolved "https://registry.yarnpkg.com/sigma/-/sigma-3.0.0-beta.37.tgz#c370601bfbf5585684d9e57983b953664d7a34c8"
-  integrity sha512-3JEpboKQrpRVA3m8l/eIrUUW8y2A1kF6SMBhzBKDQyrg3tNrE3v8re/f9KUyRMOr58wsnXOuRzIdqwo/uLsG7A==
+sigma@3.0.0-beta.38:
+  version "3.0.0-beta.38"
+  resolved "https://registry.yarnpkg.com/sigma/-/sigma-3.0.0-beta.38.tgz#9479102e7666bb3f7be3436c1a4a3384ad16d546"
+  integrity sha512-Q5fHTUjQ4bg8AjhV1RqdegzMQBHdPfGenZ1QBbX26DZ1A6p5oswgRkpXhDGZRM251fHdd+riobMSHimbp9CPFA==
   dependencies:
     events "^3.3.0"
     graphology-utils "^2.5.2"
