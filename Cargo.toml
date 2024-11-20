@@ -11,6 +11,7 @@ members = [
     "libs/@local/graph/api",
     "libs/@local/graph/authorization",
     "libs/@local/graph/migrations",
+    "libs/@local/graph/migrations-macros",
     "libs/@local/graph/postgres-store",
     "libs/@local/graph/store",
     "libs/@local/graph/temporal-versioning",
@@ -69,6 +70,7 @@ hash-codec.path                     = "libs/@local/codec"
 hash-graph-api.path                 = "libs/@local/graph/api"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"
 hash-graph-migrations.path          = "libs/@local/graph/migrations"
+hash-graph-migrations-macros.path   = "libs/@local/graph/migrations-macros"
 hash-graph-postgres-store.path      = "libs/@local/graph/postgres-store"
 hash-graph-store.path               = "libs/@local/graph/store"
 hash-graph-temporal-versioning.path = "libs/@local/graph/temporal-versioning"
@@ -160,6 +162,7 @@ bitvec                      = { version = "=1.0.1", default-features = false }
 bytes-utils                 = { version = "=0.1.4", default-features = false }
 clap                        = { version = "=4.5.21", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_complete               = { version = "=4.5.38", default-features = false }
+convert_case                = { version = "=0.6.0", default-features = false }
 coverage-helper             = { version = "=0.2.2", default-features = false }
 criterion-macro             = { version = "=0.4.0", default-features = false }
 derive-where                = { version = "=1.2.7", default-features = false, features = ["nightly"] }
@@ -195,7 +198,9 @@ pin-project                 = { version = "=1.1.7", default-features = false }
 pin-project-lite            = { version = "=0.2.15", default-features = false }
 postgres-protocol           = { version = "=0.6.7", default-features = false }
 pretty_assertions           = { version = "=1.4.1", default-features = false, features = ["alloc"] }
+proc-macro2                 = { version = "=1.0.89", default-features = false }
 proptest                    = { version = "=1.5.0", default-features = false, features = ["alloc"] }
+quote                       = { version = "=1.0.37", default-features = false }
 rand                        = { version = "=0.8.5", default-features = false }
 refinery                    = { version = "=0.8.14", default-features = false }
 rustc_version               = { version = "=0.4.1", default-features = false }
@@ -208,6 +213,7 @@ sha2                        = { version = "=0.10.8", default-features = false }
 similar-asserts             = { version = "=1.6.0", default-features = false }
 supports-color              = { version = "=3.0.1", default-features = false }
 supports-unicode            = { version = "=3.0.0", default-features = false }
+syn                         = { version = "=2.0.87", default-features = false }
 tachyonix                   = { version = "=0.3.1", default-features = false }
 tarpc                       = { version = "=0.35.0", default-features = false }
 temporal-io-client          = { package = "temporal-client", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }

@@ -29,7 +29,7 @@ impl MigrationStateRow {
     fn from_info(info: MigrationInfo, state: &MigrationState) -> Self {
         Self {
             number: info.number as i64,
-            name: info.name,
+            name: info.name.into_owned(),
             size: info.size as i64,
             digest: info.digest,
             applied_on: match state {
@@ -48,7 +48,7 @@ impl MigrationStateRow {
         (
             MigrationInfo {
                 number: self.number as u32,
-                name: self.name,
+                name: self.name.into(),
                 size: self.size as usize,
                 digest: self.digest,
             },

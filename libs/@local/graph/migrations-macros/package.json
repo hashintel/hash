@@ -1,0 +1,6 @@
+{
+  "name": "@rust/hash-graph-migrations-macros",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3"
+}

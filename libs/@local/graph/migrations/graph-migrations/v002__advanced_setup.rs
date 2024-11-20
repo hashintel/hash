@@ -1,10 +1,9 @@
 use error_stack::Report;
+use hash_graph_migrations::Migration;
 
-use crate::Migration;
+pub struct AdvancedSetup;
 
-pub struct V002;
-
-impl Migration for V002 {
+impl Migration for AdvancedSetup {
     type Context = ();
     type Error = core::fmt::Error;
 
