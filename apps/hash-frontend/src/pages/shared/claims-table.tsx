@@ -584,7 +584,11 @@ export const ClaimsTable = memo(
                 return 1;
               }
 
-              return -1;
+              if (!targetStatus) {
+                return -1;
+              }
+
+              return baseStatus.localeCompare(targetStatus);
             }
 
             if (fieldId === "createdAt") {
