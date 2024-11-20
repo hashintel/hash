@@ -4,15 +4,16 @@ use alloc::collections::{BTreeMap, btree_map::Entry};
 use core::{error::Error, num::ParseIntError};
 use std::{
     fs, io,
+    os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
-    sync::OnceLock,
+    sync::LazyLock,
 };
 
 use convert_case::{Case, Casing as _};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use regex::Regex;
-use sha2::{Digest as _, Sha256};
+use sha2::{Digest, Sha256};
 use syn::{LitStr, parse_macro_input};
 use walkdir::{DirEntry, WalkDir};
 
@@ -29,23 +30,34 @@ struct MigrationFile {
     digest: [u8; 32],
 }
 
-fn read_directory_content(path: impl AsRef<Path>) -> io::Result<String> {
+fn hash_file(path: impl AsRef<Path>, digest: &mut impl Digest) -> io::Result<usize> {
+    let path = path.as_ref();
+    let content = fs::read(path)?;
+    digest.update(path.as_os_str().as_bytes());
+    digest.update(&content);
+    Ok(content.len())
+}
+
+fn hash_directory(path: impl AsRef<Path>, digest: &mut impl Digest) -> io::Result<usize> {
     WalkDir::new(path)
         .sort_by_file_name()
         .into_iter()
-        // .filter(|entry| Ok::<_, io::Error>(!entry?.file_type().is_dir()))
-        .try_fold(String::new(), |mut buffer, entry| {
+        .try_fold(0, |mut length, entry| {
             let entry = entry?;
-            if !entry.file_type().is_dir()  {
-                buffer.push_str(&fs::read_to_string(entry.path())?);
+            if !entry.file_type().is_dir() {
+                length += hash_file(entry.path(), digest)?;
             }
-            Ok(buffer)
+            Ok(length)
         })
 }
 
 const BASE_REGEX: &str = r"^v(\d+)__(\w+)";
-static DIRECTORY_REGEX: OnceLock<Regex> = OnceLock::new();
-static FILE_REGEX: OnceLock<Regex> = OnceLock::new();
+static DIRECTORY_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new([BASE_REGEX, "$"].concat().as_str()).expect("regex should be valid")
+});
+static FILE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new([BASE_REGEX, ".rs$"].concat().as_str()).expect("regex should be valid")
+});
 
 #[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 enum ReadMigrationFileError {
@@ -92,13 +104,6 @@ fn is_module_path(entry: &DirEntry) -> bool {
 /// This function will return an error if the file name is not in the expected format or if the file
 /// could not be read.
 fn read_migration_file(path: impl AsRef<Path>) -> Result<MigrationFile, ReadMigrationFileError> {
-    let directory_regex = DIRECTORY_REGEX.get_or_init(|| {
-        Regex::new([BASE_REGEX, "$"].concat().as_str()).expect("regex should be valid")
-    });
-    let file_regex = FILE_REGEX.get_or_init(|| {
-        Regex::new([BASE_REGEX, ".rs$"].concat().as_str()).expect("regex should be valid")
-    });
-
     let path = path.as_ref();
     let file_name = path
         .file_name()
@@ -106,12 +111,13 @@ fn read_migration_file(path: impl AsRef<Path>) -> Result<MigrationFile, ReadMigr
         .to_string_lossy();
 
     if !path.is_dir() {
-        if let Some(captures) = file_regex.captures(&file_name) {
-            let mut module_content = fs::read_to_string(path)?;
+        if let Some(captures) = FILE_REGEX.captures(&file_name) {
+            let mut digest = Sha256::new();
+            let mut size = hash_file(path, &mut digest)?;
             if let Some((parent, file_stem)) = path.parent().zip(path.file_stem()) {
                 let module_path = parent.join(file_stem);
                 if module_path.exists() {
-                    module_content.push_str(&read_directory_content(module_path)?);
+                    size += hash_directory(module_path, &mut digest)?;
                 }
             }
 
@@ -131,17 +137,18 @@ fn read_migration_file(path: impl AsRef<Path>) -> Result<MigrationFile, ReadMigr
                     })?
                     .as_str()
                     .to_owned(),
-                size: module_content.len(),
-                digest: Sha256::digest(module_content.as_bytes()).into(),
+                size,
+                digest: digest.finalize().into(),
             })
         } else {
             Err(ReadMigrationFileError::InvalidFileName(
                 file_name.into_owned(),
             ))
         }
-    } else if let Some(captures) = directory_regex.captures(&file_name) {
+    } else if let Some(captures) = DIRECTORY_REGEX.captures(&file_name) {
         let module_path = path.join("mod.rs");
-        let module_content = read_directory_content(path)?;
+        let mut digest = Sha256::new();
+        let size = hash_directory(path, &mut digest)?;
 
         Ok(MigrationFile {
             module_path,
@@ -157,8 +164,8 @@ fn read_migration_file(path: impl AsRef<Path>) -> Result<MigrationFile, ReadMigr
                 .expect("capture should contain migration name")
                 .as_str()
                 .to_owned(),
-            size: module_content.len(),
-            digest: Sha256::digest(module_content.as_bytes()).into(),
+            size,
+            digest: digest.finalize().into(),
         })
     } else {
         Err(ReadMigrationFileError::InvalidFileName(
@@ -339,7 +346,7 @@ fn embed_migrations_impl(input: &EmbedMigrationsInput) -> Result<TokenStream, Bo
 /// Creates a function `migrations` that returns a list of all migrations.
 ///
 /// The function returns a `MigrationList` of all migrations in the specified directory.
-/// The directory is relative to the crate root and defaults to `migrations`.
+/// The directory is relative to the crate root.
 ///
 /// There are two ways how a migration modules can be structured:
 /// - A file with the format `v{{number}}__{{name}}.rs` and optional additional files in the
@@ -350,12 +357,7 @@ fn embed_migrations_impl(input: &EmbedMigrationsInput) -> Result<TokenStream, Bo
 /// allowed).
 #[proc_macro]
 pub fn embed_migrations(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let location = if input.is_empty() {
-        crate_root().join("migrations")
-    } else {
-        let location: LitStr = parse_macro_input!(input);
-        crate_root().join(location.value())
-    };
+    let location = crate_root().join(parse_macro_input!(input as LitStr).value());
 
     match embed_migrations_impl(&EmbedMigrationsInput { location }) {
         Ok(output) => output.into(),
@@ -366,5 +368,19 @@ pub fn embed_migrations(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             }
             .into()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn embed_migrations() {
+        println!(
+            "{}",
+            super::embed_migrations_impl(&super::EmbedMigrationsInput {
+                location: std::path::PathBuf::from("../migrations/graph-migrations"),
+            })
+            .unwrap()
+        );
     }
 }

@@ -5,6 +5,7 @@ use time::OffsetDateTime;
 
 use crate::MigrationInfo;
 
+#[derive(Debug)]
 pub enum MigrationState {
     Applied { on: OffsetDateTime },
     NotApplied,
