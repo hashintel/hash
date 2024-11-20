@@ -1,7 +1,8 @@
 use alloc::collections::BTreeMap;
 use core::ops::{Bound, RangeBounds as _};
+use std::collections::HashSet;
 
-use error_stack::{Report, ResultExt as _, bail};
+use error_stack::{Report, ResultExt as _, bail, ensure};
 
 use crate::{Migration, MigrationInfo, MigrationList, StateStore, list::MigrationError};
 
@@ -22,51 +23,9 @@ pub enum MigrationDirection {
     Down,
 }
 
-pub struct Plan<L, S, C> {
-    lower: Bound<u32>,
-    upper: Bound<u32>,
-    existing_migrations: BTreeMap<u32, MigrationInfo>,
-    migration_list: L,
-    direction: MigrationDirection,
-    state_store: S,
-    context: C,
-}
-
-impl<L, S, C> Plan<L, S, C> {
-    /// Executes the plan.
-    ///
-    /// This will run the migrations in the list in the direction specified by the plan. Depending
-    /// on the direction, the migrations will be run in ascending or descending order.
-    ///
-    /// # Errors
-    ///
-    /// - If a migration fails to run
-    /// - If the state store fails to update
-    pub async fn execute(mut self) -> Result<(), Report<MigrationError>>
-    where
-        L: MigrationList<C>,
-        S: StateStore,
-    {
-        self.migration_list
-            .traverse(
-                &Runner {
-                    lower: self.lower,
-                    upper: self.upper,
-                    existing_migrations: self.existing_migrations,
-                    direction: self.direction,
-                    state_store: self.state_store,
-                },
-                &mut self.context,
-                self.direction,
-            )
-            .await
-    }
-}
-
 pub struct Runner<S> {
-    lower: Bound<u32>,
-    upper: Bound<u32>,
-    existing_migrations: BTreeMap<u32, MigrationInfo>,
+    migrations_to_apply: (Bound<u32>, Bound<u32>),
+    infos_to_update: HashSet<u32>,
     direction: MigrationDirection,
     state_store: S,
 }
@@ -84,18 +43,15 @@ where
     where
         M: Migration,
     {
-        if !(self.lower, self.upper).contains(&info.number) {
-            if let Some(existing_migration) = self.existing_migrations.get(&info.number) {
-                if existing_migration != info {
-                    tracing::error!(
-                        number = info.number,
-                        name = %info.name,
-                        "Migration file has changed"
-                    );
-                    bail!(MigrationError::new(info.clone()));
-                }
-            }
-            if self.direction == MigrationDirection::Up {
+        if !self.migrations_to_apply.contains(&info.number) {
+            if self.infos_to_update.contains(&info.number) {
+                self.state_store
+                    .update(info.clone())
+                    .await
+                    .change_context_lazy(|| MigrationError::new(info.clone()))?;
+
+                tracing::info!(number = info.number, name = %info.name, "updated migration info");
+            } else {
                 tracing::debug!(number = info.number, name = %info.name, "skipping migration");
             }
 
@@ -129,11 +85,57 @@ where
     }
 }
 
+pub struct Plan<L, S, C> {
+    runner: Runner<S>,
+    infos_to_remove: BTreeMap<u32, MigrationInfo>,
+    migration_list: L,
+    context: C,
+}
+
+impl<L, S, C> Plan<L, S, C> {
+    /// Executes the plan.
+    ///
+    /// This will run the migrations in the list in the direction specified by the plan. Depending
+    /// on the direction, the migrations will be run in ascending or descending order.
+    ///
+    /// # Errors
+    ///
+    /// - If a migration fails to run
+    /// - If the state store fails to update
+    pub async fn execute(mut self) -> Result<(), Report<MigrationError>>
+    where
+        L: MigrationList<C>,
+        S: StateStore,
+    {
+        self.migration_list
+            .traverse(&self.runner, &mut self.context, self.runner.direction)
+            .await?;
+
+        for info in self.infos_to_remove.values() {
+            self.runner
+                .state_store
+                .remove(info.number)
+                .await
+                .change_context_lazy(|| MigrationError::new(info.clone()))?;
+            tracing::info!(number = info.number, name = %info.name, "removed migration info");
+        }
+        Ok(())
+    }
+}
+
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "This struct using a builder pattern for this reason"
+)]
 pub struct MigrationPlanBuilder<L, S, C> {
     target: Option<u32>,
     migrations: L,
     state_store: S,
     context: C,
+    allow_divergent: bool,
+    update_divergent: bool,
+    allow_missing: bool,
+    remove_missing: bool,
 }
 
 impl MigrationPlanBuilder<(), (), ()> {
@@ -144,6 +146,10 @@ impl MigrationPlanBuilder<(), (), ()> {
             migrations: (),
             state_store: (),
             context: (),
+            allow_divergent: false,
+            update_divergent: false,
+            allow_missing: false,
+            remove_missing: false,
         }
     }
 }
@@ -164,6 +170,10 @@ impl<S, C> MigrationPlanBuilder<(), S, C> {
             migrations,
             state_store: self.state_store,
             context: self.context,
+            allow_divergent: self.allow_divergent,
+            update_divergent: self.update_divergent,
+            allow_missing: self.allow_missing,
+            remove_missing: self.remove_missing,
         }
     }
 }
@@ -178,6 +188,10 @@ impl<L, C> MigrationPlanBuilder<L, (), C> {
             migrations: self.migrations,
             state_store: state,
             context: self.context,
+            allow_divergent: self.allow_divergent,
+            update_divergent: self.update_divergent,
+            allow_missing: self.allow_missing,
+            remove_missing: self.remove_missing,
         }
     }
 }
@@ -192,6 +206,10 @@ impl<L, S> MigrationPlanBuilder<L, S, ()> {
             migrations: self.migrations,
             state_store: self.state_store,
             context,
+            allow_divergent: self.allow_divergent,
+            update_divergent: self.update_divergent,
+            allow_missing: self.allow_missing,
+            remove_missing: self.remove_missing,
         }
     }
 }
@@ -202,6 +220,42 @@ impl<L, S, C> MigrationPlanBuilder<L, S, C> {
         self.target = Some(target);
         self
     }
+
+    #[must_use]
+    pub const fn allow_divergent(mut self, allow: bool) -> Self {
+        self.allow_divergent = allow;
+        self
+    }
+
+    #[must_use]
+    pub const fn update_divergent(mut self, update: bool) -> Self {
+        self.update_divergent = update;
+        self
+    }
+
+    #[must_use]
+    pub const fn allow_missing(mut self, allow: bool) -> Self {
+        self.allow_missing = allow;
+        self
+    }
+
+    #[must_use]
+    pub const fn remove_missing(mut self, remove: bool) -> Self {
+        self.remove_missing = remove;
+        self
+    }
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum MigrationPlanError {
+    #[display("the state store encountered an error")]
+    StateError,
+    #[display("the migration file `{}` ({}) has changed", _0.number, _0.name)]
+    ChangedMigration(#[error(ignore)] MigrationInfo),
+    #[display("the migration file `{}` ({}) is missing", _0.number, _0.name)]
+    MissingMigration(#[error(ignore)] MigrationInfo),
+    #[display("the specified target migration `{}` does not exist", _0)]
+    UnknownTarget(#[error(ignore)] u32),
 }
 
 impl<L, S, C> IntoFuture for MigrationPlanBuilder<L, S, C>
@@ -209,48 +263,86 @@ where
     S: StateStore,
     L: MigrationList<C>,
 {
-    type Output = Result<Plan<L, S, C>, Report<S::Error>>;
+    type Output = Result<Plan<L, S, C>, Report<MigrationPlanError>>;
 
     type IntoFuture = impl Future<Output = Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {
         async move {
-            self.state_store.initialize().await?;
+            self.state_store
+                .initialize()
+                .await
+                .change_context(MigrationPlanError::StateError)?;
+
+            let migration_infos = self
+                .migrations
+                .infos()
+                .map(|info| (info.number, info))
+                .collect::<BTreeMap<_, _>>();
+
+            if let Some(target) = self.target {
+                ensure!(
+                    target == 0 || migration_infos.contains_key(&target),
+                    MigrationPlanError::UnknownTarget(target)
+                );
+            }
+
+            let mut infos_to_update = HashSet::new();
+            let mut infos_to_remove = BTreeMap::new();
             let existing_migrations = self
                 .state_store
                 .get_all()
-                .await?
+                .await
+                .change_context(MigrationPlanError::StateError)?
                 .into_iter()
-                .map(|(info, _state)| (info.number, info))
-                .collect::<BTreeMap<_, _>>();
+                .map(|(info, _state)| {
+                    if let Some(expected_migration) = migration_infos.get(&info.number) {
+                        if *expected_migration != &info {
+                            if self.allow_divergent {
+                                if self.update_divergent {
+                                    infos_to_update.insert(info.number);
+                                }
+                            } else {
+                                bail!(MigrationPlanError::ChangedMigration(info));
+                            }
+                        };
+                    } else if self.allow_missing {
+                        if self.remove_missing {
+                            infos_to_remove.insert(info.number, info.clone());
+                        }
+                    } else {
+                        bail!(MigrationPlanError::MissingMigration(info));
+                    }
 
-            let (lower, upper, direction) = match (
+                    Ok((info.number, info))
+                })
+                .collect::<Result<BTreeMap<_, _>, _>>()?;
+
+            let (migrations_to_apply, direction) = match (
                 existing_migrations.last_key_value().map(|(key, _)| *key),
                 self.target,
             ) {
-                (Some(current), Some(target)) if current < target => (
-                    Bound::Excluded(current),
-                    Bound::Included(target),
-                    MigrationDirection::Up,
-                ),
                 (Some(current), Some(target)) if current > target => (
-                    Bound::Excluded(target),
-                    Bound::Included(current),
+                    (Bound::Excluded(target), Bound::Included(current)),
                     MigrationDirection::Down,
                 ),
                 (current, target) => (
-                    current.map_or(Bound::Unbounded, Bound::Excluded),
-                    target.map_or(Bound::Unbounded, Bound::Included),
+                    (
+                        current.map_or(Bound::Unbounded, Bound::Excluded),
+                        target.map_or(Bound::Unbounded, Bound::Included),
+                    ),
                     MigrationDirection::Up,
                 ),
             };
 
             Ok(Plan {
-                lower,
-                upper,
-                direction,
-                state_store: self.state_store,
-                existing_migrations,
+                runner: Runner {
+                    migrations_to_apply,
+                    infos_to_update,
+                    direction,
+                    state_store: self.state_store,
+                },
+                infos_to_remove,
                 context: self.context,
                 migration_list: self.migrations,
             })

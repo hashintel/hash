@@ -18,6 +18,8 @@ pub trait StateStore {
 
     async fn add(&self, info: MigrationInfo) -> Result<(), Report<Self::Error>>;
 
+    async fn update(&self, info: MigrationInfo) -> Result<(), Report<Self::Error>>;
+
     async fn get_all(&self) -> Result<Vec<(MigrationInfo, MigrationState)>, Report<Self::Error>>;
 
     async fn remove(

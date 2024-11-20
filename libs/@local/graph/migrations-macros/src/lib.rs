@@ -191,65 +191,7 @@ struct EmbedMigrationsInput {
     location: PathBuf,
 }
 
-fn migration_list() -> TokenStream {
-    quote! {
-        struct Cons<H, T>(H, T);
-        struct Nil;
-
-        macro_rules! tuples {
-            () => { Nil };
-            ($head:expr) => { Cons($head, Nil) };
-            ($head:expr, $($tail:tt)*) => {
-                Cons($head, tuples![$($tail)*])
-            };
-        }
-
-        #[derive(Debug)]
-        pub struct MigrationDefinition<M> {
-            pub migration: M,
-            pub info: MigrationInfo,
-        }
-
-        impl<Head, Tail, C> MigrationList<C> for Cons<MigrationDefinition<Head>, Tail>
-        where
-            Head: Migration,
-            Tail: MigrationList<C>,
-            C: ContextProvider<Head::Context>,
-        {
-            async fn traverse(
-                self,
-                runner: &impl MigrationRunner,
-                context: &mut C,
-                direction: MigrationDirection,
-            ) -> Result<(), Report<MigrationError>> {
-                if direction == MigrationDirection::Down {
-                    self.1.traverse(runner, context, direction).await?;
-                    runner
-                        .run_migration(self.0.migration, &self.0.info, context.provide())
-                        .await
-                } else {
-                    runner
-                        .run_migration(self.0.migration, &self.0.info, context.provide())
-                        .await?;
-                    self.1.traverse(runner, context, direction).await
-                }
-            }
-        }
-
-        // Empty-list implementation.
-        impl<C> MigrationList<C> for Nil {
-            async fn traverse(
-                self,
-                _: &impl MigrationRunner,
-                _: &mut C,
-                _: MigrationDirection,
-            ) -> Result<(), Report<MigrationError>> {
-                Ok(())
-            }
-        }
-    }
-}
-
+#[expect(clippy::too_many_lines)]
 fn embed_migrations_impl(input: &EmbedMigrationsInput) -> Result<TokenStream, Box<dyn Error>> {
     let included_dir = input.location.to_string_lossy();
     let mut migration_files = BTreeMap::new();
@@ -269,9 +211,11 @@ fn embed_migrations_impl(input: &EmbedMigrationsInput) -> Result<TokenStream, Bo
         }
     }
 
-    let mut mod_definitions = Vec::with_capacity(migration_files.len());
-    let mut context_bounds = Vec::with_capacity(migration_files.len());
-    let mut migration_definitions = Vec::with_capacity(migration_files.len());
+    let num_migrations = migration_files.len();
+    let mut mod_definitions = Vec::with_capacity(num_migrations);
+    let mut context_bounds = Vec::with_capacity(num_migrations);
+    let mut migration_infos = Vec::with_capacity(num_migrations);
+    let mut migration_definitions = Vec::with_capacity(num_migrations);
 
     for (n, (number, migration_file)) in migration_files.into_iter().enumerate() {
         let expected_migration_number = u32::try_from(n + 1)?;
@@ -302,20 +246,22 @@ fn embed_migrations_impl(input: &EmbedMigrationsInput) -> Result<TokenStream, Bo
             });
         }
 
+        migration_infos.push(quote! {
+            MigrationInfo {
+                number: #number,
+                name: Cow::Borrowed(#name),
+                size: #size,
+                digest: Digest::new([#(#digest,)*]),
+            }
+        });
+
         migration_definitions.push(quote! {
             MigrationDefinition {
                 migration: self::#module_name::#struct_name,
-                info: ::hash_graph_migrations::MigrationInfo {
-                    number: #number,
-                    name: #name.into(),
-                    size: #size,
-                    digest: [#(#digest,)*].into(),
-                }
+                index: #n,
             }
         });
     }
-
-    let migration_list_impl = migration_list();
 
     Ok(quote! {
         // This enforces rebuilding the crate when the migrations change.
@@ -329,11 +275,74 @@ fn embed_migrations_impl(input: &EmbedMigrationsInput) -> Result<TokenStream, Bo
         where #(#context_bounds)*
         {
             use ::hash_graph_migrations::{
-                __export::Report, ContextProvider, Migration, MigrationDirection,
-                MigrationError, MigrationInfo, MigrationList, MigrationRunner,
+                __export::{Report, alloc::borrow::Cow},
+                ContextProvider, Digest, Migration, MigrationDirection, MigrationError, MigrationInfo,
+                MigrationList, MigrationRunner,
             };
 
-            #migration_list_impl
+            const MIGRATIONS: [MigrationInfo; #num_migrations] = [
+                #(#migration_infos,)*
+            ];
+
+            struct Cons<H, T>(H, T);
+            struct Nil;
+
+            macro_rules! tuples {
+                () => { Nil };
+                ($head:expr) => { Cons($head, Nil) };
+                ($head:expr, $($tail:tt)*) => {
+                    Cons($head, tuples![$($tail)*])
+                };
+            }
+
+            #[derive(Debug)]
+            pub struct MigrationDefinition<M> {
+                pub migration: M,
+                pub index: usize,
+            }
+
+            impl<Head, Tail, C> MigrationList<C> for Cons<MigrationDefinition<Head>, Tail>
+            where
+                Head: Migration,
+                Tail: MigrationList<C>,
+                C: ContextProvider<Head::Context>,
+            {
+                fn infos(&self) -> impl Iterator<Item=&MigrationInfo> {
+                    MIGRATIONS.iter()
+                }
+
+                async fn traverse(
+                    self,
+                    runner: &impl MigrationRunner,
+                    context: &mut C,
+                    direction: MigrationDirection,
+                ) -> Result<(), Report<MigrationError>> {
+                    if direction == MigrationDirection::Down {
+                        self.1.traverse(runner, context, direction).await?;
+                        runner.run_migration(self.0.migration, &MIGRATIONS[self.0.index], context.provide()).await
+                    } else {
+                        runner.run_migration(self.0.migration, &MIGRATIONS[self.0.index], context.provide()).await?;
+                        self.1.traverse(runner, context, direction).await
+                    }
+                }
+            }
+
+            // Empty-list implementation.
+            impl<C> MigrationList<C> for Nil {
+                fn infos(&self) -> impl Iterator<Item=&MigrationInfo> {
+                    MIGRATIONS.iter()
+                }
+
+                async fn traverse(
+                    self,
+                    _: &impl MigrationRunner,
+                    _: &mut C,
+                    _: MigrationDirection,
+                ) -> Result<(), Report<MigrationError>> {
+                    Ok(())
+                }
+            }
+
             tuples![#(#migration_definitions,)*]
         }
     })
