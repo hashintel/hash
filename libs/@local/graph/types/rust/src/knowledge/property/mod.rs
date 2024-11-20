@@ -616,7 +616,7 @@ impl PartialEq<JsonValue> for Property {
                 lhs.len() == rhs.len()
                     && lhs.iter().all(|(key, value)| {
                         rhs.get(key.as_str())
-                            .map_or(false, |other_value| value == other_value)
+                            .is_some_and(|other_value| value == other_value)
                     })
             }
             Self::Value(lhs) => lhs == other,

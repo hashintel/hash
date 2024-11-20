@@ -41,7 +41,7 @@ fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigErro
 fn main() {
     // error-stack only uses ANSI codes for colors
     let supports_color = supports_color::on_cached(supports_color::Stream::Stdout)
-        .map_or(false, |level| level.has_basic);
+        .is_some_and(|level| level.has_basic);
 
     let color_mode = if supports_color {
         ColorMode::Color
