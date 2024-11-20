@@ -1,10 +1,9 @@
 use error_stack::Report;
+use hash_graph_migrations::{Migration, MigrationError};
 
-use crate::{Migration, MigrationError};
+pub struct InitialSetup;
 
-pub struct V001;
-
-impl Migration for V001 {
+impl Migration for InitialSetup {
     type Context = ();
     type Error = MigrationError;
 

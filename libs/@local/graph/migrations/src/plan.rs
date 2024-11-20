@@ -89,14 +89,14 @@ where
                 if existing_migration != info {
                     tracing::error!(
                         number = info.number,
-                        name = info.name,
+                        name = %info.name,
                         "Migration file has changed"
                     );
                     bail!(MigrationError::new(info.clone()));
                 }
             }
             if self.direction == MigrationDirection::Up {
-                tracing::debug!(number = info.number, name = info.name, "skipping migration");
+                tracing::debug!(number = info.number, name = %info.name, "skipping migration");
             }
 
             return Ok(());
@@ -114,14 +114,14 @@ where
                     .add(info.clone())
                     .await
                     .change_context_lazy(|| MigrationError::new(info.clone()))?;
-                tracing::info!(number = info.number, name = info.name, "applied migration");
+                tracing::info!(number = info.number, name = %info.name, "applied migration");
             }
             MigrationDirection::Down => {
                 self.state_store
                     .remove(info.number)
                     .await
                     .change_context_lazy(|| MigrationError::new(info.clone()))?;
-                tracing::info!(number = info.number, name = info.name, "reverted migration");
+                tracing::info!(number = info.number, name = %info.name, "reverted migration");
             }
         }
 

@@ -15,6 +15,8 @@ pub struct RunCommand {
     pub target: Option<u32>,
 }
 
+hash_graph_migrations::embed_migrations!("graph-migrations");
+
 impl Command for RunCommand {
     async fn execute(self) -> Result<(), Box<dyn Error>> {
         let (client, connection) = self.db_info.connect().await?;
@@ -27,7 +29,7 @@ impl Command for RunCommand {
 
         let mut builder = MigrationPlanBuilder::new()
             .state(client)
-            .migrations(hash_graph_migrations::embedded::file_migrations());
+            .migrations(self::migrations());
 
         if let Some(target) = self.target {
             builder = builder.target(target);
