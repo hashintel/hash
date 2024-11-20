@@ -4,7 +4,6 @@ use alloc::collections::{BTreeMap, btree_map::Entry};
 use core::{error::Error, num::ParseIntError};
 use std::{
     fs, io,
-    os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
     sync::LazyLock,
 };
@@ -33,7 +32,7 @@ struct MigrationFile {
 fn hash_file(path: impl AsRef<Path>, digest: &mut impl Digest) -> io::Result<usize> {
     let path = path.as_ref();
     let content = fs::read(path)?;
-    digest.update(path.as_os_str().as_bytes());
+    digest.update(path.to_string_lossy().as_bytes());
     digest.update(&content);
     Ok(content.len())
 }
@@ -295,17 +294,17 @@ fn embed_migrations_impl(input: &EmbedMigrationsInput) -> Result<TokenStream, Bo
 
         if n == 0 {
             context_bounds.push(quote! {
-                C: ::hash_graph_migrations::ContextProvider<<self::migrations::#module_name::#struct_name as ::hash_graph_migrations::Migration>::Context>
+                C: ::hash_graph_migrations::ContextProvider<<self::#module_name::#struct_name as ::hash_graph_migrations::Migration>::Context>
             });
         } else {
             context_bounds.push(quote! {
-                + ::hash_graph_migrations::ContextProvider<<self::migrations::#module_name::#struct_name as ::hash_graph_migrations::Migration>::Context>
+                + ::hash_graph_migrations::ContextProvider<<self::#module_name::#struct_name as ::hash_graph_migrations::Migration>::Context>
             });
         }
 
         migration_definitions.push(quote! {
             MigrationDefinition {
-                migration: self::migrations::#module_name::#struct_name,
+                migration: self::#module_name::#struct_name,
                 info: ::hash_graph_migrations::MigrationInfo {
                     number: #number,
                     name: #name.into(),
@@ -319,14 +318,11 @@ fn embed_migrations_impl(input: &EmbedMigrationsInput) -> Result<TokenStream, Bo
     let migration_list_impl = migration_list();
 
     Ok(quote! {
-        mod migrations {
-            use ::hash_graph_migrations::__export::{include_dir, Dir};
+        // This enforces rebuilding the crate when the migrations change.
+        const _: ::hash_graph_migrations::__export::Dir = ::hash_graph_migrations::__export::include_dir!(#included_dir);
 
-            // This enforces rebuilding the crate when the migrations change.
-            const _: Dir = include_dir!(#included_dir);
-
-            #(#mod_definitions)*
-        }
+        // Rust Analyzer having issue with `#[path]` instructions for nested modules, so we keep them here.
+        #(#mod_definitions)*
 
         #[must_use]
         pub fn migrations<C>() -> impl ::hash_graph_migrations::MigrationList<C>
@@ -368,19 +364,5 @@ pub fn embed_migrations(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             }
             .into()
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn embed_migrations() {
-        println!(
-            "{}",
-            super::embed_migrations_impl(&super::EmbedMigrationsInput {
-                location: std::path::PathBuf::from("../migrations/graph-migrations"),
-            })
-            .unwrap()
-        );
     }
 }
