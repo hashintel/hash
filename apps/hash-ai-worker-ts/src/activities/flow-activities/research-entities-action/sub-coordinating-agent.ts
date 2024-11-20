@@ -1,4 +1,5 @@
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Context } from "@temporalio/activity";
 
 import { logProgress } from "../../shared/log-progress.js";
@@ -8,6 +9,7 @@ import { checkIfWorkerShouldStop } from "./shared/check-if-worker-should-stop.js
 import {
   getSomeToolCallResults,
   handleStopTasksRequests,
+  type ParsedCoordinatorToolCallMap,
   type ParsedSubCoordinatorToolCall,
   triggerToolCallsRequests,
 } from "./shared/coordinator-tools.js";
@@ -57,18 +59,6 @@ const handleStopReturn = async (
       ...workerIdentifiers,
     },
   ]);
-
-  if (shouldStopStatus.stopType === "activityCancelled") {
-    return {
-      status: "terminated",
-      explanation: "Activity was cancelled",
-    } as const;
-  }
-
-  return {
-    status: "ok",
-    explanation: "Early stopping requested",
-  } as const;
 };
 
 /**
@@ -139,6 +129,7 @@ export const runSubCoordinatingAgent = async (params: {
    */
   const processToolCalls = async (processToolCallsParams: {
     toolCalls: ParsedSubCoordinatorToolCall[];
+    isCleanupIteration: boolean;
   }): Promise<
     | {
         status: "ok";
@@ -149,7 +140,7 @@ export const runSubCoordinatingAgent = async (params: {
         explanation: string;
       }
   > => {
-    const { toolCalls } = processToolCallsParams;
+    const { toolCalls, isCleanupIteration } = processToolCallsParams;
 
     const terminateToolCall = toolCalls.find(
       (toolCall) => toolCall.name === "terminate",
@@ -161,7 +152,7 @@ export const runSubCoordinatingAgent = async (params: {
       return { status: "terminated", explanation };
     }
 
-    await handleStopTasksRequests({ toolCalls, state });
+    await handleStopTasksRequests({ toolCalls });
 
     const requestMakingToolCalls = toolCalls.filter(
       (toolCall) =>
@@ -181,26 +172,63 @@ export const runSubCoordinatingAgent = async (params: {
       }),
     );
 
+    const completeToolCall = toolCalls.find(
+      (toolCall) => toolCall.name === "complete",
+    );
+
     /**
      * Prior to initiating more requests based on the agent's tool calls, check if we should stop.
      */
     const preRequestToolResultsStopCheck =
       await checkIfWorkerShouldStop(workerIdentifiers);
+
     if (preRequestToolResultsStopCheck.shouldStop) {
-      return handleStopReturn(
+      await handleStopReturn(
         preRequestToolResultsStopCheck,
         state.workersStarted,
         workerIdentifiers,
       );
+
+      /**
+       * If the activity has been cancelled from outside, just stop everything immediately.
+       */
+      if (preRequestToolResultsStopCheck.stopType === "activityCancelled") {
+        return {
+          status: "terminated",
+          explanation: "Activity was cancelled",
+        } as const;
+      }
+
+      /**
+       * If the activity wasn't cancelled, but instead we received a stop signal from the coordinator,
+       * we allow the sub-coordinator to wrap up its outstanding tasks by waiting for any final results.
+       * The child tasks will have received a stop signal via {@link handleStopReturn} so will stop early.
+       */
+    } else if (completeToolCall) {
+      /**
+       * If the sub-coordinator has called complete but there are still outstanding tasks,
+       * we let them wrap up so that any claims and entities they've proposed to date are captured.
+       * Otherwise, we'll have 'orphaned' claims which have been created but not attached to any entity.
+       */
+      const stopTasksToolCall = {
+        id: generateUuid(),
+        name: "stopTasks",
+        input: {
+          tasksToStop: state.outstandingTasks.map((task) => ({
+            toolCallId: task.toolCall.id,
+            explanation: "Sub-coordinator decided to complete the task",
+          })),
+        },
+      } satisfies ParsedCoordinatorToolCallMap["stopTasks"];
+
+      await handleStopTasksRequests({ toolCalls: [stopTasksToolCall] });
     }
 
     const completedToolCalls = await getSomeToolCallResults({
       state,
+      waitForAll:
+        !!completeToolCall || preRequestToolResultsStopCheck.shouldStop,
     });
-
-    const completeToolCall = toolCalls.find(
-      (toolCall) => toolCall.name === "complete",
-    );
 
     state.lastCompletedToolCalls = completedToolCalls;
 
@@ -319,15 +347,36 @@ export const runSubCoordinatingAgent = async (params: {
 
     /**
      * Prior to asking the coordinator to decide on its next actions, check if we should stop.
+     * We checked before waiting for outstanding tasks, but we may have received a stop signal from the coordinator since.
      */
     const preRequestNextActionsShouldStop =
       await checkIfWorkerShouldStop(workerIdentifiers);
     if (preRequestNextActionsShouldStop.shouldStop) {
-      return handleStopReturn(
+      await handleStopReturn(
         preRequestNextActionsShouldStop,
         state.workersStarted,
         workerIdentifiers,
       );
+
+      if (preRequestNextActionsShouldStop.stopType === "activityCancelled") {
+        return {
+          status: "terminated",
+          explanation: "Activity was cancelled",
+        } as const;
+      }
+
+      /**
+       * If we've received a stop signal from the coordinator, go through this function one last time,
+       * to allow any child tasks to pass whatever results they hold now back here.
+       */
+      return processToolCalls({ toolCalls: [], isCleanupIteration: true });
+    }
+
+    if (isCleanupIteration) {
+      /**
+       * This is an iteration after a stop signal was received, we shouldn't make any more requests.
+       */
+      return { status: "ok", explanation: "Early stopping requesting" };
     }
 
     const { toolCalls: nextToolCalls } = await requestSubCoordinatorActions({
@@ -335,10 +384,16 @@ export const runSubCoordinatingAgent = async (params: {
       state,
     });
 
-    return processToolCalls({ toolCalls: nextToolCalls });
+    return processToolCalls({
+      toolCalls: nextToolCalls,
+      isCleanupIteration: false,
+    });
   };
 
-  const result = await processToolCalls({ toolCalls: initialToolCalls });
+  const result = await processToolCalls({
+    toolCalls: initialToolCalls,
+    isCleanupIteration: false,
+  });
 
   return {
     ...result,

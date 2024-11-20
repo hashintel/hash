@@ -53,6 +53,7 @@ const adjustDuplicates = (params: {
 
   return adjustedDuplicates;
 };
+
 /**
  * Given newly discovered claims and entity summaries:
  * 1. Deduplicate entities and update state
@@ -110,28 +111,29 @@ export const updateStateFromInferredClaims = async (params: {
       ...adjustedDuplicates.map(({ canonicalId }) => canonicalId),
     );
 
-    const inferredClaimsWithDeduplicatedEntities = newClaims.map((claim) => {
-      const { subjectEntityLocalId, objectEntityLocalId } = claim;
-      const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
-        duplicateIds.includes(subjectEntityLocalId),
-      );
+    state.inferredClaims = [...state.inferredClaims, ...newClaims].map(
+      (claim) => {
+        const { subjectEntityLocalId, objectEntityLocalId } = claim;
+        const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
+          duplicateIds.includes(subjectEntityLocalId),
+        );
 
-      const objectDuplicate = objectEntityLocalId
-        ? duplicates.find(({ duplicateIds }) =>
-            duplicateIds.includes(objectEntityLocalId),
-          )
-        : undefined;
+        const objectDuplicate = objectEntityLocalId
+          ? duplicates.find(({ duplicateIds }) =>
+              duplicateIds.includes(objectEntityLocalId),
+            )
+          : undefined;
 
-      return {
-        ...claim,
-        subjectEntityLocalId:
-          subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
-        objectEntityLocalId:
-          objectDuplicate?.canonicalId ?? objectEntityLocalId,
-      };
-    });
+        return {
+          ...claim,
+          subjectEntityLocalId:
+            subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
+          objectEntityLocalId:
+            objectDuplicate?.canonicalId ?? objectEntityLocalId,
+        };
+      },
+    );
 
-    state.inferredClaims.push(...inferredClaimsWithDeduplicatedEntities);
     state.entitySummaries = [
       ...state.entitySummaries,
       ...newEntitySummaries,
@@ -154,13 +156,15 @@ export const updateStateFromInferredClaims = async (params: {
       .filter(isNotNullish);
   }
 
-  /**
-   * Step 2: Deduplicate claims and update state
-   */
-  state.inferredClaims = await deduplicateClaims(
-    [...state.inferredClaims, ...newClaims],
-    state.proposedEntities,
-  );
+  if (newClaims.length) {
+    /**
+     * Step 2: Deduplicate claims and update state
+     */
+    state.inferredClaims = await deduplicateClaims(
+      [...state.inferredClaims, ...newClaims],
+      state.proposedEntities,
+    );
+  }
 
   /**
    * Step 3: Create or update proposals for new entities and existing entities with new claims
@@ -210,43 +214,45 @@ export const updateStateFromInferredClaims = async (params: {
       ),
   );
 
-  const { proposedEntities: newProposedEntities } =
-    await proposeEntitiesFromClaims({
-      dereferencedEntityTypes: input.allDereferencedEntityTypesById,
-      entitySummaries,
-      existingEntitySummaries: input.existingEntitySummaries,
-      existingProposals: state.proposedEntities,
-      claims: relevantClaims,
-      potentialLinkTargetEntitySummaries,
-      workerIdentifiers,
-    });
+  if (relevantClaims.length) {
+    const { proposedEntities: newProposedEntities } =
+      await proposeEntitiesFromClaims({
+        dereferencedEntityTypes: input.allDereferencedEntityTypesById,
+        entitySummaries,
+        existingEntitySummaries: input.existingEntitySummaries,
+        existingProposals: state.proposedEntities,
+        claims: relevantClaims,
+        potentialLinkTargetEntitySummaries,
+        workerIdentifiers,
+      });
 
-  /**
-   * Step 4. Update the state with the new and updated proposals
-   */
-  state.proposedEntities = [
     /**
-     * Filter out any previous proposed entities that have been re-proposed with new claims.
-     * This assumes that the new proposal is better than the old one, as it takes account of the latest claims.
-     * An alternative approach would be to feed both old and new into an agent and ask it to merge properties.
+     * Step 4. Update the state with the new and updated proposals
      */
-    ...state.proposedEntities.filter(
-      ({ localEntityId, sourceEntityId, targetEntityId }) =>
-        !newProposedEntities.some(
-          (newProposedEntity) =>
-            /**
-             * The entity has the same id as a new proposed entity
-             */
-            newProposedEntity.localEntityId === localEntityId ||
-            /**
-             * The entity is a link, and has the same source and target as a new proposed entity
-             */
-            (newProposedEntity.sourceEntityId &&
-              newProposedEntity.sourceEntityId === sourceEntityId &&
-              newProposedEntity.targetEntityId &&
-              newProposedEntity.targetEntityId === targetEntityId),
-        ),
-    ),
-    ...newProposedEntities,
-  ];
+    state.proposedEntities = [
+      /**
+       * Filter out any previous proposed entities that have been re-proposed with new claims.
+       * This assumes that the new proposal is better than the old one, as it takes account of the latest claims.
+       * An alternative approach would be to feed both old and new into an agent and ask it to merge properties.
+       */
+      ...state.proposedEntities.filter(
+        ({ localEntityId, sourceEntityId, targetEntityId }) =>
+          !newProposedEntities.some(
+            (newProposedEntity) =>
+              /**
+               * The entity has the same id as a new proposed entity
+               */
+              newProposedEntity.localEntityId === localEntityId ||
+              /**
+               * The entity is a link, and has the same source and target as a new proposed entity
+               */
+              (newProposedEntity.sourceEntityId &&
+                newProposedEntity.sourceEntityId === sourceEntityId &&
+                newProposedEntity.targetEntityId &&
+                newProposedEntity.targetEntityId === targetEntityId),
+          ),
+      ),
+      ...newProposedEntities,
+    ];
+  }
 };
