@@ -13,6 +13,9 @@ impl MigrationError {
 }
 
 pub trait MigrationList<C> {
+    /// Returns an iterator over the migration infos in this list.
+    fn infos(&self) -> impl Iterator<Item = &MigrationInfo>;
+
     /// Runs this list in the provided plan and context.
     ///
     /// This will only forward the [`Migration`] to the [`MigrationRunner`].

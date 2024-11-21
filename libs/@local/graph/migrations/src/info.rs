@@ -18,8 +18,9 @@ pub enum InvalidMigrationFile {
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Digest([u8; 32]);
 
-impl From<[u8; 32]> for Digest {
-    fn from(bytes: [u8; 32]) -> Self {
+impl Digest {
+    #[must_use]
+    pub const fn new(bytes: [u8; 32]) -> Self {
         Self(bytes)
     }
 }

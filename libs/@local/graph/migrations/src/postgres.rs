@@ -102,6 +102,31 @@ where
         Ok(())
     }
 
+    async fn update(&self, info: MigrationInfo) -> Result<(), Report<Self::Error>> {
+        let info_row = [MigrationStateRow::from_info(
+            info,
+            &MigrationState::Applied {
+                on: OffsetDateTime::now_utc(),
+            },
+        )];
+        let info_row_ref = info_row.as_slice();
+        self.execute(
+            "
+                UPDATE migration_states
+                SET name = data.name,
+                    size = data.size,
+                    digest = data.digest,
+                    applied_on = now()
+                FROM (SELECT * FROM UNNEST($1::migration_states[]))
+                  AS data(number, name, size, digest)
+                WHERE migration_states.number = data.number;
+            ",
+            &[&info_row_ref],
+        )
+        .await?;
+        Ok(())
+    }
+
     async fn get_all(&self) -> Result<Vec<(MigrationInfo, MigrationState)>, Report<Self::Error>> {
         self.query_raw(
             "SELECT ROW(migration_states.*)::migration_states FROM migration_states;",
