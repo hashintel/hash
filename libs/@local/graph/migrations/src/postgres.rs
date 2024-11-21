@@ -4,9 +4,39 @@ use error_stack::Report;
 use futures::{StreamExt as _, TryStreamExt as _};
 use postgres_types::ToSql;
 use time::OffsetDateTime;
-use tokio_postgres::GenericClient;
+use tokio_postgres::{Client, GenericClient};
 
-use crate::{Digest, MigrationInfo, MigrationState, StateStore};
+use crate::{
+    Digest, Migration, MigrationInfo, MigrationState, StateStore,
+    context::{Context, Transaction},
+};
+
+impl Transaction for tokio_postgres::Transaction<'_> {
+    type Error = tokio_postgres::Error;
+
+    async fn commit(self) -> Result<(), Report<Self::Error>> {
+        tracing::trace!("Committing transaction");
+        self.commit().await.map_err(Report::new)
+    }
+
+    async fn rollback(self) -> Result<(), Report<Self::Error>> {
+        tracing::trace!("Rolling back transaction");
+        self.rollback().await.map_err(Report::new)
+    }
+}
+
+impl Context for Client {
+    type Error = tokio_postgres::Error;
+    type Transaction<'c>
+        = tokio_postgres::Transaction<'c>
+    where
+        Self: 'c;
+
+    async fn transaction(&mut self) -> Result<Self::Transaction<'_>, Report<Self::Error>> {
+        tracing::trace!("Starting transaction");
+        self.transaction().await.map_err(Report::new)
+    }
+}
 
 #[derive(Debug, postgres_types::ToSql, postgres_types::FromSql)]
 #[postgres(name = "migration_states")]
@@ -57,6 +87,33 @@ impl MigrationStateRow {
                     on,
                 }),
         )
+    }
+}
+
+#[derive(Debug)]
+pub struct PostgresMigration {
+    pub up: &'static str,
+    pub down: &'static str,
+}
+
+impl Migration for PostgresMigration {
+    type Context = Client;
+    type Error = tokio_postgres::Error;
+
+    async fn up(
+        self,
+        context: &mut <Self::Context as Context>::Transaction<'_>,
+    ) -> Result<(), Report<Self::Error>> {
+        context.simple_query(self.up).await?;
+        Ok(())
+    }
+
+    async fn down(
+        self,
+        context: &mut <Self::Context as Context>::Transaction<'_>,
+    ) -> Result<(), Report<Self::Error>> {
+        context.simple_query(self.down).await?;
+        Ok(())
     }
 }
 
