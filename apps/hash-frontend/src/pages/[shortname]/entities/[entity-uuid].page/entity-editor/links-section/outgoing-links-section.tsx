@@ -83,29 +83,33 @@ export const OutgoingLinksSection = ({
         </Stack>
       }
     >
-      {rows.length === 0 || !outgoingLinksAndTargets?.length ? (
-        <LinksSectionEmptyState direction="Outgoing" />
-      ) : readonly ? (
-        <OutgoingLinksTable outgoingLinksAndTargets={outgoingLinksAndTargets} />
-      ) : (
-        <Paper sx={{ overflow: "hidden" }}>
-          <Grid
-            columns={linkGridColumns}
-            rows={rows}
-            createGetCellContent={createGetCellContent}
-            dataLoading={false}
-            showSearch={showSearch}
-            onSearchClose={() => setShowSearch(false)}
-            // define max height if there are lots of rows
-            height={rows.length > 10 ? 500 : undefined}
-            customRenderers={[
-              renderLinkCell,
-              renderLinkedWithCell,
-              renderSummaryChipCell,
-              createRenderChipCell(),
-            ]}
+      {outgoingLinksAndTargets?.length ? (
+        readonly ? (
+          <OutgoingLinksTable
+            outgoingLinksAndTargets={outgoingLinksAndTargets}
           />
-        </Paper>
+        ) : (
+          <Paper sx={{ overflow: "hidden" }}>
+            <Grid
+              columns={linkGridColumns}
+              rows={rows}
+              createGetCellContent={createGetCellContent}
+              dataLoading={false}
+              showSearch={showSearch}
+              onSearchClose={() => setShowSearch(false)}
+              // define max height if there are lots of rows
+              height={rows.length > 10 ? 500 : undefined}
+              customRenderers={[
+                renderLinkCell,
+                renderLinkedWithCell,
+                renderSummaryChipCell,
+                createRenderChipCell(),
+              ]}
+            />
+          </Paper>
+        )
+      ) : (
+        <LinksSectionEmptyState direction="Outgoing" />
       )}
     </SectionWrapper>
   );

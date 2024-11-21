@@ -435,10 +435,7 @@ self.onmessage = async ({ data }) => {
         } satisfies GenerateEntitiesTableDataResultMessage);
       }
     } else {
-      // eslint-disable-next-line no-console
-      console.info(
-        `Table data generation request ${requestId} cancelled, superseded by a subsequent request`,
-      );
+      // Cancelled
     }
   }
 };
