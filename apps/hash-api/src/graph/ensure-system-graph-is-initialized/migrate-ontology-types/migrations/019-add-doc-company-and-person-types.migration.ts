@@ -487,12 +487,12 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const writtenWork = await createSystemEntityTypeIfNotExists(
+  const docEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
-        title: "Written Work",
+        title: "Doc",
         description: "A written work, such as a book or article.",
         icon: "📝",
         labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
@@ -529,7 +529,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [writtenWork.schema.$id],
+        allOf: [docEntityType.schema.$id],
         title: "Book",
         description:
           "A written work, typically longer than an article, often published in print form.",
@@ -550,7 +550,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [writtenWork.schema.$id],
+        allOf: [docEntityType.schema.$id],
         title: "Academic Paper",
         description: "A paper describing academic research",
         properties: [
