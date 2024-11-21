@@ -16544,6 +16544,13 @@ ee-first@1.1.1:
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
   integrity "sha1-WQxhFWsK4vTwJVcyoViyZrxWsh0= sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="
 
+effect@3.10.13:
+  version "3.10.13"
+  resolved "https://registry.yarnpkg.com/effect/-/effect-3.10.13.tgz#25277fcac9841483b866362f3bcf52e13ec94a3a"
+  integrity sha512-7L8BGZldtMpXx5mw5MRTsnW6j4zpa+K6Rn2pU5CJ4LyH9jm2Hopfgaq3YurkTmv5HWpCQnhqCkMhbaSG3Nporw==
+  dependencies:
+    fast-check "^3.21.0"
+
 ejs@^3.1.8:
   version "3.1.8"
   resolved "https://registry.yarnpkg.com/ejs/-/ejs-3.1.8.tgz#758d32910c78047585c7ef1f92f9ee041c1c190b"
@@ -17712,6 +17719,13 @@ extsprintf@1.3.0, extsprintf@^1.2.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/extsprintf/-/extsprintf-1.3.0.tgz#96918440e3041a7a414f8c52e3c574eb3c3e1e05"
   integrity "sha1-lpGEQOMEGnpBT4xS48V06zw+HgU= sha512-11Ndz7Nv+mvAC1j0ktTa7fAb0vLyGGX+rMHNBYQviQDGU0Hw7lhctJANqbPhu9nV9/izT/IntTgZ7Im/9LJs9g=="
+
+fast-check@^3.21.0:
+  version "3.23.1"
+  resolved "https://registry.yarnpkg.com/fast-check/-/fast-check-3.23.1.tgz#a25f5c0f6a58f92f2a68cb7dfe1476054329ea3f"
+  integrity sha512-u/MudsoQEgBUZgR5N1v87vEgybeVYus9VnDVaIkxkkGP2jt54naghQ3PCQHJiogS8U/GavZCUPFfx3Xkp+NaHw==
+  dependencies:
+    pure-rand "^6.1.0"
 
 fast-decode-uri-component@^1.0.1:
   version "1.0.1"
@@ -26558,6 +26572,11 @@ pure-color@^1.2.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/pure-color/-/pure-color-1.3.0.tgz#1fe064fb0ac851f0de61320a8bf796836422f33e"
   integrity "sha1-H+Bk+wrIUfDeYTIKi/eWg2Qi8z4= sha512-QFADYnsVoBMw1srW7OVKEYjG+MbIa49s54w1MA1EDY6r2r/sTcKKYqRX1f4GYvnXP7eN/Pe9HFcX+hwzmrXRHA=="
+
+pure-rand@^6.1.0:
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/pure-rand/-/pure-rand-6.1.0.tgz#d173cf23258231976ccbdb05247c9787957604f2"
+  integrity sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==
 
 q@^1.5.0:
   version "1.5.1"

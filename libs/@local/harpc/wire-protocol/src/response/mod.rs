@@ -91,6 +91,7 @@ pub enum ResponseDecodeError {
 /// total 32 bytes to 64 KiB
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct Response {
     pub header: ResponseHeader,

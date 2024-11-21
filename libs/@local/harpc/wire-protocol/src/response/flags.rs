@@ -19,6 +19,7 @@ pub enum ResponseFlag {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct ResponseFlags(
     #[cfg_attr(test, strategy(proptest::arbitrary::any::<u8>()))]
