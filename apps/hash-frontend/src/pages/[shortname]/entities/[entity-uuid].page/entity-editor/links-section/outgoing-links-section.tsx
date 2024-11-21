@@ -83,31 +83,27 @@ export const OutgoingLinksSection = ({
         </Stack>
       }
     >
-      {outgoingLinksAndTargets?.length ? (
-        readonly ? (
-          <OutgoingLinksTable
-            outgoingLinksAndTargets={outgoingLinksAndTargets}
+      {rows.length && !readonly ? (
+        <Paper sx={{ overflow: "hidden" }}>
+          <Grid
+            columns={linkGridColumns}
+            rows={rows}
+            createGetCellContent={createGetCellContent}
+            dataLoading={false}
+            showSearch={showSearch}
+            onSearchClose={() => setShowSearch(false)}
+            // define max height if there are lots of rows
+            height={rows.length > 10 ? 500 : undefined}
+            customRenderers={[
+              renderLinkCell,
+              renderLinkedWithCell,
+              renderSummaryChipCell,
+              createRenderChipCell(),
+            ]}
           />
-        ) : (
-          <Paper sx={{ overflow: "hidden" }}>
-            <Grid
-              columns={linkGridColumns}
-              rows={rows}
-              createGetCellContent={createGetCellContent}
-              dataLoading={false}
-              showSearch={showSearch}
-              onSearchClose={() => setShowSearch(false)}
-              // define max height if there are lots of rows
-              height={rows.length > 10 ? 500 : undefined}
-              customRenderers={[
-                renderLinkCell,
-                renderLinkedWithCell,
-                renderSummaryChipCell,
-                createRenderChipCell(),
-              ]}
-            />
-          </Paper>
-        )
+        </Paper>
+      ) : outgoingLinksAndTargets?.length ? (
+        <OutgoingLinksTable outgoingLinksAndTargets={outgoingLinksAndTargets} />
       ) : (
         <LinksSectionEmptyState direction="Outgoing" />
       )}
