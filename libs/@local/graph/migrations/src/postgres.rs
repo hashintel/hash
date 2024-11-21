@@ -7,7 +7,7 @@ use time::OffsetDateTime;
 use tokio_postgres::{Client, GenericClient};
 
 use crate::{
-    Digest, Migration, MigrationInfo, MigrationState, StateStore,
+    Digest, MigrationInfo, MigrationState, StateStore,
     context::{Context, Transaction},
 };
 
