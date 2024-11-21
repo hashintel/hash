@@ -325,7 +325,7 @@ pub mod pdf_segmentation {
         document_embeddings: &'a mut DocumentEmbeddings,
     ) -> Result<&'a mut DocumentEmbeddings, Report<ChonkyError>> {
         let project_id =
-            std::env::var("GOOGLE_PROJECT_ID").change_context(ChonkyError::VertexAPI)?;
+            std::env::var("GOOGLE_CLOUD_HASH_PROJECT_ID").change_context(ChonkyError::VertexAPI)?;
 
         let pdf_table_bounds = extract_tables(pdf, images, &create_config())?;
 

@@ -14,7 +14,8 @@ pub mod multi_modal_embedding {
     fn get_vertex_access_token() -> Result<String, Report<ChonkyError>> {
         Ok(String::from_utf8(
             std::process::Command::new("gcloud")
-                .args(["auth", "print-access-token"])
+                // assumes GOOGLE_APPLICATION_CREDENTIALS set in env via CLI login (local) or CI/build process (remote)
+                .args(["auth", "application-default", "print-access-token"])
                 .output()
                 .change_context(ChonkyError::VertexAPI)?
                 .stdout,

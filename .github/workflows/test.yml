@@ -105,6 +105,11 @@ jobs:
       fail-fast: false
     if: needs.setup.outputs.unit-tests != '{"package":[],"include":[]}'
     runs-on: ubuntu-24.04
+    permissions:
+      # Required to fetch an OIDC token, used to auth with Google Cloud Platform for @rust/chonky tests
+      id-token: "write"
+      # Maintain permission to read repo contents
+      contents: "read"
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -148,6 +153,15 @@ jobs:
           rm -rf $temp_dir
           echo "PDFIUM_DYNAMIC_LIB_PATH=$(pwd)/${{ matrix.directory }}/libs/" >> $GITHUB_ENV
 
+      # Sets GOOGLE_APPLICATION_CREDENTIALS in the environment, to be consumed by gcloud or client libraries
+      - name: Generate Google Cloud credential configuration
+        if: matrix.package == '@rust/chonky'
+        uses: google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f # v2.1.7
+        with:
+          project_id: ${{ secrets.GOOGLE_CLOUD_HASH_PROJECT_ID }}
+          service_account: ${{ secrets.GOOGLE_CLOUD_VERTEX_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ secrets.GOOGLE_CLOUD_IDENTITY_PROVIDER }}
+
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
@@ -178,6 +192,9 @@ jobs:
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
         env:
           TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
+          # Google auth variables needed for chonky tests
+          GOOGLE_CLOUD_HASH_PROJECT_ID: ${{ secrets.GOOGLE_CLOUD_HASH_PROJECT_ID }}
+          GOOGLE_DEFAULT_CREDENTIALS: ${{ env.GOOGLE_DEFAULT_CREDENTIALS }} # set by google-github-actions/auth
         run: |
           turbo run test:unit --env-mode=loose --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
@@ -225,6 +242,11 @@ jobs:
       fail-fast: false
     if: needs.setup.outputs.integration-tests != '{"package":[],"include":[]}'
     runs-on: ubuntu-24.04
+    permissions:
+      # Required to fetch an OIDC token, used to auth with Google Cloud Platform for @rust/chonky tests
+      id-token: "write"
+      # Maintain permission to read repo contents
+      contents: "read"
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -293,6 +315,15 @@ jobs:
           rm -rf $temp_dir
           echo "PDFIUM_DYNAMIC_LIB_PATH=$(pwd)/${{ matrix.directory }}/libs/" >> $GITHUB_ENV
 
+      # Sets GOOGLE_APPLICATION_CREDENTIALS in the environment, to be consumed by gcloud or client libraries
+      - name: Generate Google Cloud credential configuration
+        if: matrix.package == '@rust/chonky'
+        uses: google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f # v2.1.7
+        with:
+          project_id: ${{ secrets.GOOGLE_CLOUD_HASH_PROJECT_ID }}
+          service_account: ${{ secrets.GOOGLE_CLOUD_VERTEX_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ secrets.GOOGLE_CLOUD_IDENTITY_PROVIDER }}
+
       - name: Install playwright
         if: matrix.package == '@tests/hash-playwright'
         uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
@@ -350,6 +381,10 @@ jobs:
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
+        env:
+          # Google auth variables needed for chonky tests
+          GOOGLE_CLOUD_HASH_PROJECT_ID: ${{ secrets.GOOGLE_CLOUD_HASH_PROJECT_ID }}
+          GOOGLE_DEFAULT_CREDENTIALS: ${{ env.GOOGLE_DEFAULT_CREDENTIALS }} # set by google-github-actions/auth
         run: |
           turbo run test:integration --env-mode=loose --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
