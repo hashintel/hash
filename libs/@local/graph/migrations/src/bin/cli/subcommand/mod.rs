@@ -26,7 +26,7 @@ impl Command for Subcommand {
     }
 }
 
-#[derive(derive_more::Debug, clap::Args)]
+#[derive(derive_more::Debug, Clone, clap::Args)]
 pub struct DatabaseConnectionInfo {
     /// Database username.
     #[clap(long, default_value = "postgres", env = "HASH_GRAPH_PG_USER")]
