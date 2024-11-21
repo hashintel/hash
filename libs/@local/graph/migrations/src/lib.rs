@@ -17,7 +17,6 @@ pub use self::{
     list::{MigrationError, MigrationList},
     migration::Migration,
     plan::{MigrationDirection, MigrationPlanBuilder, MigrationRunner, Plan, Runner},
-    postgres::PostgresMigration,
     state::{MigrationState, StateStore},
 };
 

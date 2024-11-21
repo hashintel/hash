@@ -6,7 +6,7 @@ use error_stack::{Report, ResultExt as _, bail, ensure};
 
 use crate::{
     Migration, MigrationInfo, MigrationList, StateStore,
-    context::{Context, Transaction as _},
+    context::{Context as _, Transaction as _},
     list::MigrationError,
 };
 

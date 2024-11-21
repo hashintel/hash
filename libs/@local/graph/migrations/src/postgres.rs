@@ -90,33 +90,6 @@ impl MigrationStateRow {
     }
 }
 
-#[derive(Debug)]
-pub struct PostgresMigration {
-    pub up: &'static str,
-    pub down: &'static str,
-}
-
-impl Migration for PostgresMigration {
-    type Context = Client;
-    type Error = tokio_postgres::Error;
-
-    async fn up(
-        self,
-        context: &mut <Self::Context as Context>::Transaction<'_>,
-    ) -> Result<(), Report<Self::Error>> {
-        context.simple_query(self.up).await?;
-        Ok(())
-    }
-
-    async fn down(
-        self,
-        context: &mut <Self::Context as Context>::Transaction<'_>,
-    ) -> Result<(), Report<Self::Error>> {
-        context.simple_query(self.down).await?;
-        Ok(())
-    }
-}
-
 impl<C> StateStore for C
 where
     C: GenericClient,
