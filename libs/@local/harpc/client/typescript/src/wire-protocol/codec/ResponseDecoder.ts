@@ -7,12 +7,6 @@ import type { InvalidMagicError } from "../models/Protocol.js";
 import type { InvalidProtocolVersionError } from "../models/ProtocolVersion.js";
 import { Response } from "../models/response/index.js";
 
-export const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/ResponseDecoder",
-);
-
-export type TypeId = typeof TypeId;
-
 export class IncompleteResponseError extends Data.TaggedError(
   "IncompleteResponseError",
 )<{

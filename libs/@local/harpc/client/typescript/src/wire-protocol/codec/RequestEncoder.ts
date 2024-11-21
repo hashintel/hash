@@ -1,22 +1,40 @@
-import { Inspectable, Mailbox, Pipeable, Ref } from "effect";
+import { Effect, pipe, Stream, Streamable } from "effect";
+
+import * as Buffer from "../Buffer.js";
 import { Request } from "../models/request/index.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/codec/RequestEncoder",
-);
+export class RequestEncoder<E, R> extends Streamable.Class<
+  ArrayBuffer,
+  E | Buffer.UnexpectedEndOfBufferError,
+  R
+> {
+  readonly #stream: Stream.Stream<Request.Request, E, R>;
 
-interface Cursor {
-  buffer: ArrayBuffer;
-  index: number;
+  constructor(stream: Stream.Stream<Request.Request, E, R>) {
+    super();
+
+    this.#stream = stream;
+  }
+
+  toStream(): Stream.Stream<
+    ArrayBuffer,
+    E | Buffer.UnexpectedEndOfBufferError,
+    R
+  > {
+    return pipe(
+      this.#stream,
+      Stream.mapEffect((request) =>
+        Effect.gen(function* () {
+          const buffer = yield* Buffer.makeWrite();
+
+          yield* Request.encode(buffer, request);
+
+          return yield* Buffer.take(buffer);
+        }),
+      ),
+    );
+  }
 }
 
-export interface RequestEncoder
-  extends Inspectable.Inspectable,
-    Pipeable.Pipeable {
-  readonly [TypeId]: typeof TypeId;
-}
-
-interface RequestEncoderImpl extends RequestEncoder {
-  readonly buffer: Ref.Ref<Cursor>;
-  readonly output: Mailbox.Mailbox<Request.Request>;
-}
+export const make = <E, R>(stream: Stream.Stream<Request.Request, E, R>) =>
+  new RequestEncoder(stream);

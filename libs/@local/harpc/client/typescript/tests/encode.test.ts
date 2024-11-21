@@ -124,7 +124,10 @@ describe.concurrent("encode", () => {
         yield* RequestHeader.encode(buffer, header);
 
         const array = yield* Buffer.take(buffer);
-        const received = yield* callEncode("request-header", array);
+        const received = yield* callEncode(
+          "request-header",
+          new Uint8Array(array),
+        );
 
         assertRequestHeader(cx, header, received as RequestHeaderData);
       }).pipe(Effect.provide(NodeContext.layer)),
@@ -139,7 +142,10 @@ describe.concurrent("encode", () => {
         yield* RequestBegin.encode(buffer, begin);
 
         const array = yield* Buffer.take(buffer);
-        const received = yield* callEncode("request-begin", array);
+        const received = yield* callEncode(
+          "request-begin",
+          new Uint8Array(array),
+        );
         assertRequestBegin(cx, begin, received as RequestBeginData);
       }).pipe(Effect.provide(NodeContext.layer)),
   );
@@ -153,7 +159,10 @@ describe.concurrent("encode", () => {
         yield* RequestFrame.encode(buffer, frame);
 
         const array = yield* Buffer.take(buffer);
-        const received = yield* callEncode("request-frame", array);
+        const received = yield* callEncode(
+          "request-frame",
+          new Uint8Array(array),
+        );
 
         assertRequestFrame(cx, frame, received as RequestFrameData);
       }).pipe(Effect.provide(NodeContext.layer)),
@@ -168,7 +177,7 @@ describe.concurrent("encode", () => {
         yield* Request.encode(buffer, request);
 
         const array = yield* Buffer.take(buffer);
-        const received = yield* callEncode("request", array);
+        const received = yield* callEncode("request", new Uint8Array(array));
 
         assertRequest(cx, request, received as RequestData);
       }).pipe(Effect.provide(NodeContext.layer)),
