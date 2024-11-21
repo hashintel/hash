@@ -119,7 +119,7 @@ iso8601-duration   = { version = "=0.2.0", default-features = false }
 json-number        = { version = "=0.4.9", default-features = false }
 jsonptr            = { version = "=0.6.3", default-features = false }
 libp2p-core        = { version = "=0.42.0", default-features = false }
-libp2p-identity    = { version = "=0.2.9", default-features = false }
+libp2p-identity    = { version = "=0.2.10", default-features = false }
 libp2p-ping        = { version = "=0.45.0", default-features = false }
 libp2p-swarm       = { version = "=0.45.1", default-features = false }
 libp2p-yamux       = { version = "=0.46.0", default-features = false }
