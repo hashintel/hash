@@ -67,7 +67,7 @@ const makeUnchecked = <T>(view: DataView, mode: T) =>
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     object.mode = mode;
 
-    return object as BufferImpl<T>;
+    return object as Buffer<T>;
   });
 
 export const makeRead = (view: DataView) => makeUnchecked(view, Read);
@@ -237,13 +237,13 @@ export const advance: {
   (length: number): <T>(buffer: Buffer<T>) => WriteResult;
   <T>(buffer: Buffer<T>, length: number): WriteResult;
 } = Function.dual(2, <T>(buffer: Buffer<T>, length: number) =>
-  SubscriptionRef.updateEffect(
+  SubscriptionRef.modifyEffect(
     (buffer as unknown as BufferImpl<T>).index,
     (index) =>
       Effect.gen(function* () {
         yield* validateBounds(buffer as BufferImpl<T>, index, length);
 
-        return index + length;
+        return [buffer, index + length] as const;
       }),
   ),
 );
@@ -264,4 +264,14 @@ export const length = (buffer: Buffer<Write>) =>
     const index = yield* SubscriptionRef.get(impl.index);
 
     return index;
+  });
+
+export const take = (buffer: Buffer<Write>) =>
+  Effect.gen(function* () {
+    const currentLength = yield* length(buffer);
+
+    const impl = buffer as unknown as BufferImpl<Write>;
+
+    const inner = impl.value.buffer.slice(0, currentLength);
+    return new Uint8Array(inner);
   });

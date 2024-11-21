@@ -79,6 +79,19 @@ export const make = (
   body: ResponseBody.ResponseBody,
 ): Response => createProto(ResponseProto, { header, body });
 
+/*
+ * Prepare a response for encoding, this will ensure that the header has all computed flags set.
+ *
+ * This step is automatically done during encoding, but can be useful to call manually if you want to inspect the
+ * header before encoding.
+ */
+export const prepare = (self: Response) => {
+  const variant = ResponseBody.variant(self.body);
+  const header = ResponseHeader.applyBodyVariant(self.header, variant);
+
+  return make(header, self.body);
+};
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, request: Response) =>
     Effect.gen(function* () {

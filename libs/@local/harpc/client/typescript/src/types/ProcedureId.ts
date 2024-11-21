@@ -41,35 +41,35 @@ export interface ProcedureId
     Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
-  readonly id: number;
+  readonly value: number;
 }
 
-const ProcedureIdProto: Omit<ProcedureId, "id"> = {
+const ProcedureIdProto: Omit<ProcedureId, "value"> = {
   [TypeId]: TypeId,
 
   [Equal.symbol](this: ProcedureId, that: Equal.Equal) {
     return (
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      isProcedureId(that) && Equal.equals(this.id, that.id)
+      isProcedureId(that) && Equal.equals(this.value, that.value)
     );
   },
 
   [Hash.symbol](this: ProcedureId) {
     return pipe(
       Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.id)),
+      Hash.combine(Hash.hash(this.value)),
       Hash.cached(this),
     );
   },
 
   toString(this: ProcedureId) {
-    return `ProcedureId(${this.id.toString()})`;
+    return `ProcedureId(${this.value.toString()})`;
   },
 
   toJSON(this: ProcedureId) {
     return {
       _id: "ProcedureId",
-      id: this.id,
+      id: this.value,
     };
   },
 
@@ -84,8 +84,8 @@ const ProcedureIdProto: Omit<ProcedureId, "id"> = {
 };
 
 /** @internal */
-export const makeUnchecked = (id: number): ProcedureId =>
-  createProto(ProcedureIdProto, { id });
+export const makeUnchecked = (value: number): ProcedureId =>
+  createProto(ProcedureIdProto, { value });
 
 export const make = (
   id: number,
@@ -102,7 +102,7 @@ export const make = (
 
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, procedureId: ProcedureId) =>
-    Buffer.putU16(buffer, procedureId.id),
+    Buffer.putU16(buffer, procedureId.value),
 );
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
@@ -113,7 +113,7 @@ export const isProcedureId = (value: unknown): value is ProcedureId =>
 
 export const isReserved = (value: ProcedureId) =>
   // eslint-disable-next-line no-bitwise
-  (value.id & 0xf0_00) === 0xf0_00;
+  (value.value & 0xf0_00) === 0xf0_00;
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc.integer({ min: U16_MIN, max: U16_MAX }).map(makeUnchecked);

@@ -86,20 +86,26 @@ export const applyBodyVariant = (
   }
 };
 
+export const repr = (flags: RequestFlags) => {
+  let value = 0x00;
+
+  if (HashSet.has(flags.flags, "beginOfRequest")) {
+    // eslint-disable-next-line no-bitwise
+    value |= 0b1000_0000;
+  }
+
+  if (HashSet.has(flags.flags, "endOfRequest")) {
+    // eslint-disable-next-line no-bitwise
+    value |= 0b0000_0001;
+  }
+
+  return value;
+};
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, flags: RequestFlags) =>
     Effect.gen(function* () {
-      let value = 0x00;
-
-      if (HashSet.has(flags.flags, "beginOfRequest")) {
-        // eslint-disable-next-line no-bitwise
-        value |= 0b1000_0000;
-      }
-
-      if (HashSet.has(flags.flags, "endOfRequest")) {
-        // eslint-disable-next-line no-bitwise
-        value |= 0b0000_0001;
-      }
+      const value = repr(flags);
 
       return yield* Buffer.putU8(buffer, value);
     }),
