@@ -1,312 +1,207 @@
-import {
-  Console,
-  Effect,
-  Exit,
-  Function,
-  Inspectable,
-  Mailbox,
-  Option,
-  pipe,
-  Pipeable,
-  Predicate,
-  Ref,
-} from "effect";
+import { Data, Effect, Either, Number, pipe, Stream, Streamable } from "effect";
 
-import { createProto } from "../../utils.js";
+import type { UnexpectedEndOfBufferError } from "../Buffer.js";
 import * as Buffer from "../Buffer.js";
-import type { Payload, Protocol, ProtocolVersion } from "../models/index.js";
-import { Response, ResponseFlags } from "../models/response/index.js";
+import type { PayloadTooLargeError } from "../models/Payload.js";
+import type { InvalidMagicError } from "../models/Protocol.js";
+import type { InvalidProtocolVersionError } from "../models/ProtocolVersion.js";
+import { Response } from "../models/response/index.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/codec/ResponseDecoder",
+export const TypeId: unique symbol = Symbol(
+  "@local/harpc-client/wire-protocol/ResponseDecoder",
 );
+
 export type TypeId = typeof TypeId;
 
-type ResponseDecodeError =
-  | Buffer.UnexpectedEndOfBufferError
-  | ProtocolVersion.InvalidProtocolVersionError
-  | Protocol.InvalidMagicError
-  | Payload.PayloadTooLargeError;
+export class IncompleteResponseError extends Data.TaggedError(
+  "IncompleteResponseError",
+)<{
+  length: number;
+}> {
+  get message() {
+    return `Underlying stream ended with ${this.length} bytes remaining, which could not be decoded into a complete response.`;
+  }
+}
 
-interface Cursor {
+interface Scratch {
   buffer: ArrayBuffer;
-  index: number;
+  length: number;
 }
 
-export interface ResponseDecoder
-  extends Inspectable.Inspectable,
-    Pipeable.Pipeable {
-  readonly [TypeId]: typeof TypeId;
-}
+// initial scratch buffer is 2x size of the largest possible packet
+const makeScratch = (): Scratch => ({
+  buffer: new ArrayBuffer(2 * 1024 * 64),
+  length: 0,
+});
 
-interface ResponseDecoderImpl extends ResponseDecoder {
-  readonly buffer: Ref.Ref<Cursor>;
-  readonly output: Mailbox.Mailbox<Response.Response, ResponseDecodeError>;
-}
-
-const ResponseDecoderProto: Omit<ResponseDecoderImpl, "buffer" | "output"> = {
-  [TypeId]: TypeId,
-
-  toString(this: ResponseDecoderImpl) {
-    return `ResponseDecoder(buffer=...)`;
-  },
-
-  toJSON(this: ResponseDecoderImpl) {
-    return {
-      _id: "ResponseDecoder",
-    };
-  },
-
-  [Inspectable.NodeInspectSymbol]() {
-    return this.toJSON();
-  },
-
-  pipe() {
-    // eslint-disable-next-line prefer-rest-params
-    return Pipeable.pipeArguments(this, arguments);
-  },
-};
-
-export const make = (options?: {
-  readonly bufferCapacity?: number;
-  readonly channelCapacity?: number;
-}) =>
-  Effect.gen(function* () {
-    const bufferCapacity = options?.bufferCapacity ?? 4;
-    const channelCapacity = options?.channelCapacity ?? bufferCapacity * 2;
-
-    // a single message is at most 64KiB, therefore we can allocate a buffer of capacity * 64KiB
-    const buffer = new ArrayBuffer(bufferCapacity * 1024 * 64);
-
-    const cursor: Cursor = {
-      buffer,
-      index: 0,
-    };
-
-    const bufferRef = yield* Ref.make(cursor);
-
-    const mailbox = yield* Mailbox.make<Response.Response, ResponseDecodeError>(
-      {
-        capacity: channelCapacity,
-        // we never ever suspend the decoder, if we can't decode a message we simply drop the message
-        strategy: "dropping",
-      },
+const pushScratch = (scratch: Scratch, that: ArrayBuffer): Scratch => {
+  if (scratch.length + that.byteLength > scratch.buffer.byteLength) {
+    // allocate a new buffer, the new buffer is `max(2x current buffer, current buffer + new buffer)`, allows us to cut down on allocations
+    const buffer = new ArrayBuffer(
+      Number.max(
+        2 * scratch.buffer.byteLength,
+        scratch.length + that.byteLength,
+      ),
     );
 
-    return createProto(ResponseDecoderProto, {
-      buffer: bufferRef,
-      output: mailbox,
-    }) satisfies ResponseDecoderImpl as ResponseDecoder;
-  });
+    const view = new Uint8Array(buffer);
+    view.set(new Uint8Array(scratch.buffer, 0, scratch.length));
+    view.set(new Uint8Array(that), scratch.length);
 
-const cast = (encoder: ResponseDecoder): ResponseDecoderImpl =>
-  encoder as unknown as ResponseDecoderImpl;
+    return { buffer, length: scratch.length + that.byteLength };
+  } else {
+    const view = new Uint8Array(scratch.buffer);
+    view.set(new Uint8Array(that), scratch.length);
 
-export const stream = (self: ResponseDecoder) =>
-  Mailbox.toStream(cast(self).output);
-
-export const length = (encoder: ResponseDecoder) =>
-  Effect.gen(function* () {
-    const impl = cast(encoder);
-
-    const buffer = yield* Ref.get(impl.buffer);
-    return buffer.index;
-  });
-
-export const get: {
-  (
-    index: number,
-  ): (self: ResponseDecoder) => Effect.Effect<Option.Option<number>>;
-  (self: ResponseDecoder, index: number): Effect.Effect<Option.Option<number>>;
-} = Function.dual(
-  2,
-  (
-    self: ResponseDecoder,
-    index: number,
-  ): Effect.Effect<Option.Option<number>> =>
-    Effect.gen(function* () {
-      const impl = cast(self);
-      const count = yield* length(self);
-
-      if (index < 0 || index >= count) {
-        return Option.none();
-      }
-
-      const buffer = yield* Ref.get(impl.buffer);
-      const view = new DataView(buffer.buffer, index, 1);
-      return Option.some(view.getUint8(0));
-    }),
-);
-
-type TupleMap<T extends readonly unknown[], U> = {
-  readonly [K in keyof T]: U;
+    return { buffer: scratch.buffer, length: scratch.length + that.byteLength };
+  }
 };
 
-export const getMany: {
-  <T extends readonly number[]>(
-    indices: T,
-  ): (
-    self: ResponseDecoder,
-  ) => Effect.Effect<Option.Option<TupleMap<T, number>>>;
-  <T extends readonly number[]>(
-    self: ResponseDecoder,
-    indices: T,
-  ): Effect.Effect<Option.Option<TupleMap<T, number>>>;
-} = Function.dual(
-  2,
-  <T extends readonly number[]>(
-    self: ResponseDecoder,
-    indices: T,
-  ): Effect.Effect<Option.Option<TupleMap<T, number>>> =>
-    Effect.gen(function* () {
-      const impl = cast(self);
-      const count = yield* length(self);
+/**
+ * Split the scratch space, so that scratch contains `[at,length)` and the rest is returned as a new scratch space
+ */
+const splitToScratch = (
+  scratch: Scratch,
+  at: number,
+): Either.Either<[ArrayBuffer, Scratch], Scratch> => {
+  if (at > scratch.length) {
+    return Either.left(scratch);
+  }
 
-      const result = new Array(indices.length);
-      const buffer = yield* Ref.get(impl.buffer);
+  const buffer = new ArrayBuffer(at);
+  const bufferView = new Uint8Array(buffer);
+  bufferView.set(new Uint8Array(scratch.buffer, 0, at));
 
-      for (let i = 0; i < indices.length; i++) {
-        const index = indices[i]!;
+  // shift rest of the buffer to the beginning
+  const scratchView = new Uint8Array(scratch.buffer);
+  scratchView.copyWithin(0, at, scratch.length);
 
-        if (index < 0 || index >= count) {
-          return Option.none();
-        }
+  return Either.right([
+    buffer,
+    { buffer: scratch.buffer, length: scratch.length - at },
+  ]);
+};
 
-        const view = new DataView(buffer.buffer, index, 1);
-        result[i] = view.getUint8(0);
-      }
-
-      return Option.some(result as { [K in keyof T]: number });
-    }),
-);
-
-const sendPacket = (self: ResponseDecoder, packet: Response.Response) =>
-  Effect.gen(function* () {
-    const impl = cast(self);
-    const mailbox = impl.output;
-
-    const hasSent = yield* mailbox.offer(packet);
-
-    if (!hasSent) {
-      yield* Console.warn(
-        "Unable to send response to receiver, stream has been closed. Dropping response.",
-      );
-    }
-  });
-
-const finishStream = (self: ResponseDecoder) =>
-  Effect.gen(function* () {
-    const impl = cast(self);
-    const mailbox = impl.output;
-
-    yield* mailbox.done(Exit.succeed(undefined));
-  });
-
-const tryDecodePacket = (self: ResponseDecoder) =>
+const tryDecodePacket = (scratch: Scratch) =>
   Effect.gen(function* () {
     // The length marker is always at bytes 30 and 31
-    const lengthBytes = yield* getMany(self, [30, 31] as const);
-
-    if (Option.isNone(lengthBytes)) {
-      return false;
+    if (scratch.length >= 32) {
+      return Either.left(scratch);
     }
 
     // length is encoded as a 16-bit unsigned integer, big-endian
-    // eslint-disable-next-line no-bitwise
-    const packetLength = (lengthBytes.value[0] << 8) | lengthBytes.value[1];
+    const bufferView = new DataView(scratch.buffer, 30, 2);
+    const packetLength = bufferView.getUint16(0, false);
 
-    const buffer = yield* Ref.get(cast(self).buffer);
-
-    // we now need to check if the length we have in the buffer is enough to decode the full message (32 bytes header + length)
-    const bufferLength = buffer.index;
-
-    if (bufferLength < packetLength + 32) {
+    const split = splitToScratch(scratch, packetLength + 32);
+    if (Either.isLeft(split)) {
       // we cannot yet read the full message
-      return false;
+      return Either.left(scratch);
     }
 
-    // take the whole packet out of the buffer and detach it
-    // TODO: this is virtually the same as ArrayBuffer.transfer(), something that's part of ES2024
-    const packetBuffer = new ArrayBuffer(packetLength + 32);
-    const packet = new Uint8Array(packetBuffer);
-    packet.set(new Uint8Array(buffer.buffer, 0, packetLength + 32));
-
-    // remove the packet from the buffer (shift the rest of the buffer to the beginning)
-    const byteBuffer = new Uint8Array(buffer.buffer);
-    byteBuffer.copyWithin(0, packetLength + 32, bufferLength);
-
-    // update the cursor to the new buffer length
-    buffer.index -= packetLength + 32;
+    const [packet, remaining] = split.right;
 
     // decode the message
-    const reader = yield* Buffer.makeRead(new DataView(packet.buffer));
-
+    const reader = yield* Buffer.makeRead(new DataView(packet));
     const response = yield* Response.decode(reader);
 
-    // send the decoded message to the output mailbox
-    yield* sendPacket(self, response);
-
-    if (ResponseFlags.isEndOfResponse(response.header.flags)) {
-      yield* finishStream(self);
-      // we don't need to decode any more packets, because the stream is closed
-      return false;
-    }
-
-    return true;
+    return Either.right([remaining, response] as const);
   });
 
-const tryDecode = (self: ResponseDecoder) =>
-  Effect.gen(function* () {
-    let hasMore = true;
+const tryDecode = (self: Scratch) =>
+  Effect.iterate(
+    {
+      loop: true,
+      scratch: self,
+      output: [] as Response.Response[],
+    },
+    {
+      while: ({ loop }) => loop,
+      body: ({ scratch, output }) =>
+        Effect.gen(function* () {
+          const result = yield* tryDecodePacket(scratch);
 
-    while (hasMore) {
-      hasMore = yield* tryDecodePacket(self);
-    }
+          return Either.match(result, {
+            onLeft: (remaining) => ({
+              loop: false,
+              scratch: remaining,
+              output,
+            }),
 
-    return self;
-  });
+            onRight: ([remaining, response]) => {
+              output.push(response);
 
-const decode = (self: ResponseDecoder) =>
-  Effect.gen(function* () {
-    const impl = cast(self);
+              return {
+                loop: true,
+                scratch: remaining,
+                output,
+              };
+            },
+          });
+        }),
+    },
+  ).pipe(Effect.map(({ scratch, output }) => [scratch, output] as const));
 
-    yield* pipe(
-      tryDecode(self),
-      Effect.map(Function.constVoid),
-      Effect.onError((cause) => {
-        // send the error via the mailbox to the caller
-        const mailbox = impl.output;
-        return mailbox.failCause(cause);
-      }),
-      Effect.orElseSucceed(Function.constVoid),
+export class ResponseDecoder<E = never, R = never> extends Streamable.Class<
+  Response.Response,
+  | E
+  | UnexpectedEndOfBufferError
+  | InvalidProtocolVersionError
+  | InvalidMagicError
+  | PayloadTooLargeError
+  | IncompleteResponseError,
+  R
+> {
+  readonly #stream: Stream.Stream<ArrayBuffer, E, R>;
+
+  constructor(stream: Stream.Stream<ArrayBuffer, E, R>) {
+    super();
+
+    this.#stream = stream;
+  }
+
+  toStream(): Stream.Stream<
+    Response.Response,
+    | E
+    | UnexpectedEndOfBufferError
+    | InvalidProtocolVersionError
+    | InvalidMagicError
+    | PayloadTooLargeError
+    | IncompleteResponseError,
+    R
+  > {
+    let scratch = makeScratch();
+
+    return pipe(
+      this.#stream,
+      Stream.mapConcatEffect((chunk) =>
+        Effect.gen(function* () {
+          scratch = pushScratch(scratch, chunk);
+
+          const [remaining, responses] = yield* tryDecode(scratch);
+          scratch = remaining;
+
+          return responses;
+        }),
+      ),
+      Stream.concat(
+        Stream.fromIterableEffect(
+          Effect.gen(function* () {
+            // we don't need to `tryDecode` here again, because anytime we receive a value, we try to decode as much as possible.
+
+            if (scratch.length > 0) {
+              yield* new IncompleteResponseError({
+                length: scratch.length,
+              });
+            }
+
+            return [];
+          }),
+        ),
+      ),
     );
+  }
+}
 
-    return self;
-  });
-
-export const push: {
-  (
-    array: Uint8Array,
-  ): (self: ResponseDecoder) => Effect.Effect<ResponseDecoder>;
-  (self: ResponseDecoder, array: Uint8Array): Effect.Effect<ResponseDecoder>;
-} = Function.dual(2, (self: ResponseDecoder, array: Uint8Array) =>
-  Effect.gen(function* () {
-    const impl = cast(self);
-
-    const buffer = yield* Ref.get(impl.buffer);
-    const cursor = buffer.index;
-
-    const view = new Uint8Array(buffer.buffer, cursor, array.length);
-    view.set(array);
-
-    buffer.index += array.length;
-
-    // notify background task to try to decode the message
-    yield* decode(self);
-
-    return self;
-  }),
-);
-
-export const isResponseDecoder = (self: unknown): self is ResponseDecoder =>
-  Predicate.hasProperty(self, TypeId);
+export const make = <E, R>(stream: Stream.Stream<ArrayBuffer, E, R>) =>
+  new ResponseDecoder(stream);
