@@ -178,6 +178,8 @@ test("both the link and properties tables renders some content", async ({
 
   await page.getByTestId("selector-autocomplete-option").first().click();
 
+  await sleep(200);
+
   const linkTableCanvas = page
     .locator(".dvn-underlay > canvas:first-of-type")
     .nth(1);
