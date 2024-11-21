@@ -169,17 +169,19 @@ export class ResponseFromBytesStream<
       ),
       Stream.concat(
         Stream.fromIterableEffect(
-          Effect.gen(function* () {
-            // we don't need to `tryDecode` here again, because anytime we receive a value, we try to decode as much as possible.
+          Effect.suspend(() =>
+            Effect.gen(function* () {
+              // we don't need to `tryDecode` here again, because anytime we receive a value, we try to decode as much as possible.
 
-            if (scratch.length > 0) {
-              yield* new IncompleteResponseError({
-                length: scratch.length,
-              });
-            }
+              if (scratch.length > 0) {
+                yield* new IncompleteResponseError({
+                  length: scratch.length,
+                });
+              }
 
-            return [];
-          }),
+              return [];
+            }),
+          ),
         ),
       ),
     );
