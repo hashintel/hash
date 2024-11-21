@@ -8,6 +8,7 @@ import {
   Option,
   pipe,
   Pipeable,
+  Predicate,
   Ref,
 } from "effect";
 
@@ -17,8 +18,9 @@ import type { Payload, Protocol, ProtocolVersion } from "../models/index.js";
 import { Response, ResponseFlags } from "../models/response/index.js";
 
 const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/codec/Encoder",
+  "@local/harpc-client/wire-protocol/codec/ResponseDecoder",
 );
+export type TypeId = typeof TypeId;
 
 type ResponseDecodeError =
   | Buffer.UnexpectedEndOfBufferError
@@ -305,3 +307,6 @@ export const push: {
     return self;
   }),
 );
+
+export const isResponseDecoder = (self: unknown): self is ResponseDecoder =>
+  Predicate.hasProperty(self, TypeId);
