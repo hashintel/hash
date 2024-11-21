@@ -192,9 +192,10 @@ jobs:
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
         env:
           TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
-          # Google auth variables needed for chonky tests
+          # Variables needed for chonky tests
           GOOGLE_CLOUD_HASH_PROJECT_ID: ${{ secrets.GOOGLE_CLOUD_HASH_PROJECT_ID }}
           GOOGLE_DEFAULT_CREDENTIALS: ${{ env.GOOGLE_DEFAULT_CREDENTIALS }} # set by google-github-actions/auth
+          HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
         run: |
           turbo run test:unit --env-mode=loose --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
@@ -382,9 +383,10 @@ jobs:
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
         env:
-          # Google auth variables needed for chonky tests
+          # Variables needed for chonky tests
           GOOGLE_CLOUD_HASH_PROJECT_ID: ${{ secrets.GOOGLE_CLOUD_HASH_PROJECT_ID }}
           GOOGLE_DEFAULT_CREDENTIALS: ${{ env.GOOGLE_DEFAULT_CREDENTIALS }} # set by google-github-actions/auth
+          HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
         run: |
           turbo run test:integration --env-mode=loose --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
