@@ -79,6 +79,8 @@ export const make = (
 ): SubsystemDescriptor =>
   createProto(SubsystemDescriptorProto, { id, version });
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, descriptor: SubsystemDescriptor) =>
     pipe(
@@ -87,6 +89,8 @@ export const encode = encodeDual(
       Effect.andThen(Version.encode(descriptor.version)),
     ),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {

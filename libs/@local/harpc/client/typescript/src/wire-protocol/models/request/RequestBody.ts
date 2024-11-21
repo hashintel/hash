@@ -105,6 +105,8 @@ export const match: {
     }),
 );
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, body: RequestBody) =>
     match(body, {
@@ -112,6 +114,8 @@ export const encode = encodeDual(
       onFrame: (frame) => RequestFrame.encode(buffer, frame),
     }),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (
   buffer: Buffer.ReadBuffer,

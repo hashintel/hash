@@ -69,6 +69,8 @@ const ResponseFrameProto: Omit<ResponseFrame, "payload"> = {
 export const make = (payload: Payload.Payload): ResponseFrame =>
   createProto(ResponseFrameProto, { payload });
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, frame: ResponseFrame) =>
     pipe(
@@ -77,6 +79,8 @@ export const encode = encodeDual(
       Effect.andThen(Payload.encode(frame.payload)),
     ),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {

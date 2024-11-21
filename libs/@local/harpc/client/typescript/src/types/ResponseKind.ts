@@ -121,6 +121,8 @@ export const err = (code: ErrorCode.ErrorCode): Err =>
 
 export type ResponseKind = Ok | Err;
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, kind: ResponseKind) =>
     Effect.gen(function* () {
@@ -132,6 +134,8 @@ export const encode = encodeDual(
       }
     }),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {

@@ -3,9 +3,9 @@ import { Effect, pipe, Stream, Streamable } from "effect";
 import * as Buffer from "../Buffer.js";
 import { Request } from "../models/request/index.js";
 
-export class RequestEncoder<E, R> extends Streamable.Class<
+export class RequestToBytesStream<E, R> extends Streamable.Class<
   ArrayBuffer,
-  E | Buffer.UnexpectedEndOfBufferError,
+  E | Request.EncodeError,
   R
 > {
   readonly #stream: Stream.Stream<Request.Request, E, R>;
@@ -16,11 +16,7 @@ export class RequestEncoder<E, R> extends Streamable.Class<
     this.#stream = stream;
   }
 
-  toStream(): Stream.Stream<
-    ArrayBuffer,
-    E | Buffer.UnexpectedEndOfBufferError,
-    R
-  > {
+  toStream(): Stream.Stream<ArrayBuffer, E | Request.EncodeError, R> {
     return pipe(
       this.#stream,
       Stream.mapEffect((request) =>
@@ -37,4 +33,4 @@ export class RequestEncoder<E, R> extends Streamable.Class<
 }
 
 export const make = <E, R>(stream: Stream.Stream<Request.Request, E, R>) =>
-  new RequestEncoder(stream);
+  new RequestToBytesStream(stream);

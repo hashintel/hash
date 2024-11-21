@@ -1,10 +1,6 @@
 import { Data, Effect, Either, Number, pipe, Stream, Streamable } from "effect";
 
-import type { UnexpectedEndOfBufferError } from "../Buffer.js";
 import * as Buffer from "../Buffer.js";
-import type { PayloadTooLargeError } from "../models/Payload.js";
-import type { InvalidMagicError } from "../models/Protocol.js";
-import type { InvalidProtocolVersionError } from "../models/ProtocolVersion.js";
 import { Response } from "../models/response/index.js";
 
 export class IncompleteResponseError extends Data.TaggedError(
@@ -136,14 +132,12 @@ const tryDecode = (self: Scratch) =>
     },
   ).pipe(Effect.map(({ scratch, output }) => [scratch, output] as const));
 
-export class ResponseDecoder<E = never, R = never> extends Streamable.Class<
+export class ResponseFromBytesStream<
+  E = never,
+  R = never,
+> extends Streamable.Class<
   Response.Response,
-  | E
-  | UnexpectedEndOfBufferError
-  | InvalidProtocolVersionError
-  | InvalidMagicError
-  | PayloadTooLargeError
-  | IncompleteResponseError,
+  E | Response.DecodeError | IncompleteResponseError,
   R
 > {
   readonly #stream: Stream.Stream<ArrayBuffer, E, R>;
@@ -156,12 +150,7 @@ export class ResponseDecoder<E = never, R = never> extends Streamable.Class<
 
   toStream(): Stream.Stream<
     Response.Response,
-    | E
-    | UnexpectedEndOfBufferError
-    | InvalidProtocolVersionError
-    | InvalidMagicError
-    | PayloadTooLargeError
-    | IncompleteResponseError,
+    E | Response.DecodeError | IncompleteResponseError,
     R
   > {
     let scratch = makeScratch();
@@ -198,4 +187,4 @@ export class ResponseDecoder<E = never, R = never> extends Streamable.Class<
 }
 
 export const make = <E, R>(stream: Stream.Stream<ArrayBuffer, E, R>) =>
-  new ResponseDecoder(stream);
+  new ResponseFromBytesStream(stream);

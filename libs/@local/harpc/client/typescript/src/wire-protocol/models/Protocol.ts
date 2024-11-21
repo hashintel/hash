@@ -80,6 +80,8 @@ const MAGIC = new Uint8Array([
   0x68 /* h */, 0x61 /* a */, 0x72 /* r */, 0x70 /* p */, 0x63 /* c */,
 ]);
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, protocol: Protocol): Buffer.WriteResult => {
     return pipe(
@@ -89,6 +91,8 @@ export const encode = encodeDual(
     );
   },
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {

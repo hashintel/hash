@@ -75,6 +75,8 @@ const VersionProto: Omit<Version, "major" | "minor"> = {
 export const make = (major: number, minor: number): Version =>
   createProto(VersionProto, { major, minor });
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode: {
   (version: Version): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult;
   (buffer: Buffer.WriteBuffer, version: Version): Buffer.WriteResult;
@@ -86,6 +88,8 @@ export const encode: {
     return buffer;
   }),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {

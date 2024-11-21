@@ -95,6 +95,8 @@ export const make = (
   }
 };
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, errorCode: ErrorCode) =>
     Buffer.putU16(buffer, errorCode.value),
