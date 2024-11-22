@@ -154,6 +154,11 @@
       ]
     },
     {
+      "groupName": "effect npm packages",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@effect//", "/^effect-/", "/effect$/"]
+    },
+    {
       "groupName": "GraphQL npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^@graphql//", "/^graphql-/", "/graphql$/"]
