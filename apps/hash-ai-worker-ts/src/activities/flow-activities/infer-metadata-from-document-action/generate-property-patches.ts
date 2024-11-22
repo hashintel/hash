@@ -13,9 +13,9 @@ import type {
   ISBNPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/book";
 import type {
+  DocProperties,
   PublicationYearPropertyValueWithMetadata,
   TitlePropertyValueWithMetadata,
-  WrittenWorkProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { logger } from "../../shared/activity-logger.js";
@@ -48,7 +48,7 @@ export const generateDocumentPropertyPatches = (
   } = documentMetadata;
 
   const numPagesKey =
-    "https://hash.ai/@hash/types/property-type/number-of-pages/" satisfies keyof WrittenWorkProperties;
+    "https://hash.ai/@hash/types/property-type/number-of-pages/" satisfies keyof DocProperties;
 
   propertyPatches.push({
     op: "add",
@@ -64,7 +64,7 @@ export const generateDocumentPropertyPatches = (
   });
 
   const summaryKey =
-    "https://hash.ai/@hash/types/property-type/summary/" satisfies keyof WrittenWorkProperties;
+    "https://hash.ai/@hash/types/property-type/summary/" satisfies keyof DocProperties;
 
   propertyPatches.push({
     op: "add",
@@ -81,7 +81,7 @@ export const generateDocumentPropertyPatches = (
 
   if (title) {
     const key =
-      "https://hash.ai/@hash/types/property-type/title/" satisfies keyof WrittenWorkProperties;
+      "https://hash.ai/@hash/types/property-type/title/" satisfies keyof DocProperties;
 
     propertyPatches.push({
       op: "add",
@@ -99,7 +99,7 @@ export const generateDocumentPropertyPatches = (
 
   if (publishedInYear) {
     const key =
-      "https://hash.ai/@hash/types/property-type/publication-year/" satisfies keyof WrittenWorkProperties;
+      "https://hash.ai/@hash/types/property-type/publication-year/" satisfies keyof DocProperties;
 
     propertyPatches.push({
       op: "add",

@@ -235,7 +235,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
   } else if (type === "Book") {
     entityTypeIds.add(systemEntityTypes.book.entityTypeId);
   } else {
-    entityTypeIds.add(systemEntityTypes.writtenWork.entityTypeId);
+    entityTypeIds.add(systemEntityTypes.doc.entityTypeId);
   }
 
   const provenance: EnforcedEntityEditionProvenance = {
