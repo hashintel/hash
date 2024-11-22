@@ -52,11 +52,11 @@ RUN yarn install --frozen-lockfile --prefer-offline \
 
 COPY --from=base /app/out/full/ .
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 ARG API_ORIGIN
-ENV API_ORIGIN ${API_ORIGIN}
+ENV API_ORIGIN=${API_ORIGIN}
 ARG FRONTEND_URL
-ENV FRONTEND_URL ${FRONTEND_URL}
+ENV FRONTEND_URL=${FRONTEND_URL}
 
 RUN yarn turbo build --filter '@apps/hash-frontend' && rm -rf target/
 
@@ -76,4 +76,4 @@ RUN groupadd --system --gid 60000 hash && \
 RUN chown -R frontend:hash .next
 
 USER frontend:hash
-ENV NODE_ENV production
+ENV NODE_ENV=production
