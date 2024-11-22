@@ -69,10 +69,14 @@ const ProcedureDescriptorProto: Omit<ProcedureDescriptor, "id"> = {
 export const make = (id: ProcedureId.ProcedureId): ProcedureDescriptor =>
   createProto(ProcedureDescriptorProto, { id });
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, descriptor: ProcedureDescriptor) =>
     ProcedureId.encode(buffer, descriptor.id),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   ProcedureId.decode(buffer).pipe(Effect.map(make));

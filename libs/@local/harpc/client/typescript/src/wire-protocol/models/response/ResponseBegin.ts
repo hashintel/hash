@@ -79,6 +79,8 @@ export const make = (
   payload: Payload.Payload,
 ): ResponseBegin => createProto(ResponseBeginProto, { kind, payload });
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, begin: ResponseBegin) =>
     pipe(
@@ -88,6 +90,8 @@ export const encode = encodeDual(
       Effect.andThen(Payload.encode(begin.payload)),
     ),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {

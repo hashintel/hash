@@ -273,5 +273,5 @@ export const take = (buffer: Buffer<Write>) =>
     const impl = buffer as unknown as BufferImpl<Write>;
 
     const inner = impl.value.buffer.slice(0, currentLength);
-    return new Uint8Array(inner);
+    return inner;
   });

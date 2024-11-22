@@ -101,6 +101,8 @@ export const repr = (flags: ResponseFlags) => {
   return value;
 };
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, flags: ResponseFlags) =>
     Effect.gen(function* () {
@@ -109,6 +111,8 @@ export const encode = encodeDual(
       return yield* Buffer.putU8(buffer, value);
     }),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {

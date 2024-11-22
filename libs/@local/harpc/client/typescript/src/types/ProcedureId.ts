@@ -100,10 +100,14 @@ export const make = (
   return Effect.succeed(makeUnchecked(id));
 };
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, procedureId: ProcedureId) =>
     Buffer.putU16(buffer, procedureId.value),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Buffer.getU16(buffer).pipe(Effect.map(makeUnchecked));

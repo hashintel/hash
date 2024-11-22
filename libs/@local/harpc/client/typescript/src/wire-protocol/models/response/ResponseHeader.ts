@@ -101,6 +101,8 @@ export const applyBodyVariant = (
     ResponseFlags.applyBodyVariant(header.flags, variant),
   );
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, header: ResponseHeader) => {
     return pipe(
@@ -111,6 +113,8 @@ export const encode = encodeDual(
     );
   },
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {
