@@ -6,7 +6,6 @@ import {
 } from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
-  EntityId,
   EntityMetadata,
   EntityRecordId,
 } from "@local/hash-graph-types/entity";
@@ -77,16 +76,20 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
       ? entity.entityTypeIds
       : entity.metadata.entityTypeIds;
 
-  const entityLabel = generateEntityLabel(null, {
-    properties: entity.properties,
-    metadata: {
-      recordId: {
-        editionId: "irrelevant-here",
-        entityId: `ownedBy~${entityId}` as EntityId,
-      } satisfies EntityRecordId,
-      entityTypeIds,
-    } as EntityMetadata,
-  });
+  const entityLabel = generateEntityLabel(
+    null,
+    {
+      properties: entity.properties,
+      metadata: {
+        recordId: {
+          editionId: "irrelevant-here",
+          entityId,
+        } satisfies EntityRecordId,
+        entityTypeIds,
+      } as EntityMetadata,
+    },
+    true,
+  );
 
   return entityLabel;
 };

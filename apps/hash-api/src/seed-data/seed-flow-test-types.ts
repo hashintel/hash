@@ -614,6 +614,7 @@ const seedFlowTestTypes = async () => {
           {
             propertyType: systemPropertyTypes.email.propertyTypeId,
             required: false,
+            array: true,
           },
           {
             propertyType: linkedinUrlPropertyType.schema.$id,

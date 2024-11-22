@@ -30,7 +30,7 @@ import {
 import type { SvgIconProps } from "@mui/material";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
   FlowRun,
@@ -351,67 +351,81 @@ export const Outputs = ({
     [persistedEntities],
   );
 
-  const { data: proposedEntitiesTypesData } = useQuery<
-    QueryEntityTypesQuery,
-    QueryEntityTypesQueryVariables
-  >(queryEntityTypesQuery, {
-    fetchPolicy: "cache-and-network",
-    variables: {
-      filter: {
-        any: [
-          ...new Set(
-            proposedEntities.flatMap(
-              (proposedEntity) => proposedEntity.entityTypeIds,
+  const {
+    data: proposedEntitiesTypesData,
+    previousData: previousProposedEntitiesTypesData,
+  } = useQuery<QueryEntityTypesQuery, QueryEntityTypesQueryVariables>(
+    queryEntityTypesQuery,
+    {
+      fetchPolicy: "cache-and-network",
+      variables: {
+        filter: {
+          any: [
+            ...new Set(
+              proposedEntities.flatMap(
+                (proposedEntity) => proposedEntity.entityTypeIds,
+              ),
             ),
+          ].map((entityTypeId) =>
+            generateVersionedUrlMatchingFilter(entityTypeId, {
+              forEntityType: true,
+            }),
           ),
-        ].map((entityTypeId) =>
-          generateVersionedUrlMatchingFilter(entityTypeId, {
-            forEntityType: true,
-          }),
-        ),
+        },
+        ...fullOntologyResolveDepths,
       },
-      ...fullOntologyResolveDepths,
+      skip: proposedEntities.length === 0,
     },
-    skip: proposedEntities.length === 0,
-  });
+  );
 
   const proposedEntitiesTypesSubgraph = useMemo(() => {
     if (!proposedEntitiesTypesData) {
-      return undefined;
+      return previousProposedEntitiesTypesData
+        ? deserializeSubgraph(
+            previousProposedEntitiesTypesData.queryEntityTypes,
+          )
+        : undefined;
     }
 
     return deserializeSubgraph(proposedEntitiesTypesData.queryEntityTypes);
-  }, [proposedEntitiesTypesData]);
+  }, [proposedEntitiesTypesData, previousProposedEntitiesTypesData]);
 
-  const { data: entitiesSubgraphData } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
-    variables: {
-      includePermissions: false,
-      request: {
-        filter: persistedEntitiesFilter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          ...fullOntologyResolveDepths,
+  const {
+    data: persistedEntitiesSubgraphData,
+    previousData: previousPersistedEntitiesSubgraphData,
+  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
+    getEntitySubgraphQuery,
+    {
+      variables: {
+        includePermissions: false,
+        request: {
+          filter: persistedEntitiesFilter,
+          graphResolveDepths: {
+            ...zeroedGraphResolveDepths,
+            ...fullOntologyResolveDepths,
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: true,
         },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: true,
       },
+      skip: !persistedEntities.length,
+      fetchPolicy: "network-only",
     },
-    skip: !persistedEntities.length,
-    fetchPolicy: "network-only",
-  });
+  );
 
   const persistedEntitiesSubgraph = useMemo(() => {
-    if (!entitiesSubgraphData) {
-      return undefined;
+    if (!persistedEntitiesSubgraphData) {
+      return previousPersistedEntitiesSubgraphData
+        ? deserializeSubgraph<EntityRootType>(
+            previousPersistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
+          )
+        : undefined;
     }
 
     return deserializeSubgraph<EntityRootType>(
-      entitiesSubgraphData.getEntitySubgraph.subgraph,
+      persistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
     );
-  }, [entitiesSubgraphData]);
+  }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
 
   const selectedEntitySubgraph = useMemo(() => {
     const selectedEntityId =
@@ -419,6 +433,23 @@ export const Outputs = ({
 
     if (!selectedEntityId || !selectedFlowRun?.webId) {
       return undefined;
+    }
+
+    const persistedEntity = persistedEntities.find(
+      ({ entity }) =>
+        entity &&
+        new Entity(entity).metadata.recordId.entityId === selectedEntityId,
+    );
+
+    if (persistedEntity) {
+      if (!persistedEntitiesSubgraph) {
+        return undefined;
+      }
+
+      return generateEntityRootedSubgraph(
+        selectedEntityId,
+        persistedEntitiesSubgraph,
+      );
     }
 
     const proposedEntity = proposedEntities.find(
@@ -486,22 +517,20 @@ export const Outputs = ({
 
       return mockSubgraph;
     }
-
-    if (!persistedEntitiesSubgraph) {
-      return undefined;
-    }
-
-    return generateEntityRootedSubgraph(
-      selectedEntityId,
-      persistedEntitiesSubgraph,
-    );
   }, [
+    persistedEntities,
     persistedEntitiesSubgraph,
     proposedEntitiesTypesSubgraph,
     proposedEntities,
     selectedFlowRun?.webId,
     slideOver,
   ]);
+
+  useEffect(() => {
+    if (!hasClaims && visibleSection === "claims" && hasEntities) {
+      setVisibleSection("entities");
+    }
+  }, [hasClaims, hasEntities, visibleSection]);
 
   const entitiesForGraph = useMemo<EntityForGraphChart[]>(() => {
     const entities: EntityForGraphChart[] = [];

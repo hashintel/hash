@@ -168,6 +168,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
             return (
               <LinkedEntityListRow
                 key={linkEntityId}
+                closeEditor={onFinishedEditing}
                 entityId={rightEntity.entityId}
                 imageSrc={getImageUrlFromEntityProperties(
                   rightEntity.properties,

@@ -411,6 +411,8 @@ export type EntityTypeDefinition = {
   allOf?: VersionedUrl[];
   entityTypeId: VersionedUrl;
   title: string;
+  titlePlural?: string;
+  inverse?: EntityType["inverse"];
   description: string;
   labelProperty?: BaseUrl;
   icon?: string;

@@ -1013,9 +1013,6 @@ export const EntityResultTable = memo(
                     ),
                   )
                 ) {
-                  /**
-                   * There are no values in common between the filter and the link targets for this type, for this row
-                   */
                   return false;
                 }
               } else {

@@ -65,6 +65,7 @@ module.exports = {
               "@hashintel/design-system/*",
               "!@hashintel/design-system/theme",
               "!@hashintel/design-system/constants",
+              "!@hashintel/design-system/palettes",
             ],
             message: "Please import from @hashintel/design-system instead",
           },

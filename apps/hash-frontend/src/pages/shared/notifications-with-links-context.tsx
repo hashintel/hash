@@ -393,21 +393,38 @@ export const useNotificationsWithLinksContextValue =
                 continue;
               }
 
+              const editions = typedValues(editionMap).flat();
+
               /**
                * We have a candidate – this might be one of multiple draft series for the entity, or the single live series.
                * We match the timestamp logged in the link to the editions of the entity.
                * This may result in a false positive if the live entity and any of its drafts have editions at the exact same timestamp.
                */
-              occurredInEntity = typedValues(editionMap)
-                .flat()
-                .find(
-                  (vertex): vertex is EntityVertex =>
-                    vertex.kind === "entity" &&
-                    vertex.inner.metadata.temporalVersioning.decisionTime.start
-                      .limit === occurredInEntityEditionTimestamp,
-                )?.inner;
+              occurredInEntity = editions.find(
+                (vertex): vertex is EntityVertex =>
+                  vertex.kind === "entity" &&
+                  vertex.inner.metadata.temporalVersioning.decisionTime.start
+                    .limit === occurredInEntityEditionTimestamp,
+              )?.inner;
 
               if (occurredInEntity) {
+                break;
+              }
+
+              /**
+               * If the entity has been updated since the notification was created, we won't have the edition in the subgraph,
+               * because the request above only fetches editions still valid for the current timestamp.
+               * In order to show the notification we just take any available edition.
+               *
+               * The other option would be to fetch the entire history for all entities which are the subject of a notification,
+               * but this might be a lot of data.
+               */
+              const anyAvailableEdition = editions.find(
+                (vertex): vertex is EntityVertex => vertex.kind === "entity",
+              )?.inner;
+
+              if (anyAvailableEdition) {
+                occurredInEntity = anyAvailableEdition;
                 break;
               }
             }

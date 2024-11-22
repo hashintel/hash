@@ -387,7 +387,11 @@ export type ProgressLogBase = {
   stepId: string;
 };
 
-export type WorkerType = "Coordinator" | "Sub-coordinator" | "Link explorer";
+export type WorkerType =
+  | "Coordinator"
+  | "Sub-coordinator"
+  | "Link explorer"
+  | "Document analyzer";
 
 /**
  * Identifiers for a 'worker' within the flow, which corresponds to an agent.

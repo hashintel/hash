@@ -1,10 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
-import { EntitiesGraphChart } from "@hashintel/block-design-system";
+import { LoadingSpinner } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Subgraph } from "@local/hash-subgraph";
+import { useTheme } from "@mui/material";
 import { useMemo } from "react";
 
+import { EntityGraphVisualizer } from "../../../../shared/entity-graph-visualizer";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
@@ -56,6 +58,8 @@ export const EntityResultGraph = ({
     return Object.values(deduplicatedLatestEntitiesByEntityId);
   }, [entities]);
 
+  const theme = useTheme();
+
   if (!subgraphWithTypes && !entities.length) {
     return (
       <OutputContainer sx={{ flex: 1.5 }}>
@@ -68,14 +72,16 @@ export const EntityResultGraph = ({
   }
 
   return (
-    <OutputContainer sx={{ flex: 1.5 }}>
+    <OutputContainer sx={{ flex: 1.5, width: "100%", textAlign: "initial" }}>
       {subgraphWithTypes && (
-        <EntitiesGraphChart
+        <EntityGraphVisualizer
           entities={deduplicatedEntities}
+          loadingComponent={
+            <LoadingSpinner size={42} color={theme.palette.blue[60]} />
+          }
           onEntityClick={onEntityClick}
           onEntityTypeClick={onEntityTypeClick}
           subgraphWithTypes={subgraphWithTypes}
-          sx={{ maxHeight: "100%" }}
         />
       )}
     </OutputContainer>

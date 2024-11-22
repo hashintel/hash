@@ -4,7 +4,7 @@ export const ENTITY_TYPE_META_SCHEMA: EntityType["$schema"] =
   "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type";
 
 /**
- * Returns all the IDs of all types referenced in a given property type.
+ * Returns all the IDs of all types referenced in a given entity type.
  *
  * @param {EntityType} entityType
  */
