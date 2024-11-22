@@ -136,32 +136,33 @@ const EditEntitySlideOver = memo(
       }, 300);
     }, [setAnimateOut, onBack]);
 
-    const providedSubgraphAlreadyHasLinkedEntities = useMemo(() => {
-      if (!providedEntitySubgraph) {
+    const subgraphHasLinkedEntities = useMemo(() => {
+      if (!localEntitySubgraph) {
         return false;
       }
 
       if (
-        providedEntitySubgraph.depths.hasLeftEntity.incoming === 0 ||
-        providedEntitySubgraph.depths.hasLeftEntity.outgoing === 0 ||
-        providedEntitySubgraph.depths.hasRightEntity.incoming === 0 ||
-        providedEntitySubgraph.depths.hasRightEntity.outgoing === 0
+        localEntitySubgraph.depths.hasLeftEntity.incoming === 0 ||
+        localEntitySubgraph.depths.hasLeftEntity.outgoing === 0 ||
+        localEntitySubgraph.depths.hasRightEntity.incoming === 0 ||
+        localEntitySubgraph.depths.hasRightEntity.outgoing === 0
       ) {
         return false;
       }
 
-      const roots = getRoots(providedEntitySubgraph);
+      const roots = getRoots(localEntitySubgraph);
       const containsRequestedEntity = roots.some(
         (root) => root.entityId === providedEntityId,
       );
 
       return containsRequestedEntity;
-    }, [providedEntitySubgraph, providedEntityId]);
+    }, [localEntitySubgraph, providedEntityId]);
 
     /**
      * If the parent component didn't have the entitySubgraph already available,
      * or it doesn't contain links to/from the request entity,
-     * we need to fetch it and set it in the local state (from where it will be updated if the user uses the editor form).
+     * we need to fetch it and set it in the local state (from where it will be updated if the user uses the editor
+     * form).
      */
     const { data: fetchedEntitySubgraph } = useQuery<
       GetEntitySubgraphQuery,
@@ -175,7 +176,7 @@ const EditEntitySlideOver = memo(
 
         setLocalEntitySubgraph(subgraph);
       },
-      skip: providedSubgraphAlreadyHasLinkedEntities,
+      skip: subgraphHasLinkedEntities,
       variables: {
         request: {
           filter: {
@@ -211,7 +212,7 @@ const EditEntitySlideOver = memo(
     });
 
     const originalEntitySubgraph = useMemo(() => {
-      if (!providedSubgraphAlreadyHasLinkedEntities && fetchedEntitySubgraph) {
+      if (fetchedEntitySubgraph) {
         return mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
           fetchedEntitySubgraph.getEntitySubgraph.subgraph,
         );
@@ -222,11 +223,7 @@ const EditEntitySlideOver = memo(
       }
 
       return null;
-    }, [
-      providedSubgraphAlreadyHasLinkedEntities,
-      providedEntitySubgraph,
-      fetchedEntitySubgraph,
-    ]);
+    }, [providedEntitySubgraph, fetchedEntitySubgraph]);
 
     const [savingChanges, setSavingChanges] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
@@ -412,6 +409,7 @@ const EditEntitySlideOver = memo(
       >
         {!entity ||
         !localEntitySubgraph ||
+        !subgraphHasLinkedEntities ||
         entity.entityId !== providedEntityId ? (
           <Stack gap={3} p={5}>
             <Skeleton height={60} />

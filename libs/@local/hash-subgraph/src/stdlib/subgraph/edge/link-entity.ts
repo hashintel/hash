@@ -211,7 +211,9 @@ export const getLeftEntityForLinkEntity = (
       subgraph.temporalAxes.resolved.variable.interval.end.limit,
     );
 
-  const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
+  const outwardEdge = Object.values(
+    subgraph.edges[stripDraftIdFromEntityId(entityId)] ?? {},
+  )
     .flat()
     .find(isHasLeftEntityEdge);
 
@@ -263,7 +265,9 @@ export const getRightEntityForLinkEntity = (
       subgraph.temporalAxes.resolved.variable.interval.end.limit,
     );
 
-  const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
+  const outwardEdge = Object.values(
+    subgraph.edges[stripDraftIdFromEntityId(entityId)] ?? {},
+  )
     .flat()
     .find(isHasRightEntityEdge);
 

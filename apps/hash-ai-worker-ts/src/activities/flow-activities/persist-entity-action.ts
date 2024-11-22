@@ -318,7 +318,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         entityTypeIds: [entityTypeId],
         ownedById: webId,
         provenance: {
-          ...claim.metadata.provenance,
+          sources: claim.metadata.provenance.edition.sources,
           actorType: "ai",
           origin: {
             type: "flow",

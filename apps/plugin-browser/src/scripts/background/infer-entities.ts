@@ -15,6 +15,7 @@ import type {
   AutomaticInferenceArguments,
   ManualInferenceArguments,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { v4 as uuid } from "uuid";
 import browser from "webextension-polyfill";
 
@@ -52,31 +53,60 @@ const getCookieString = async () => {
   return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join(";");
 };
 
-const waitForConnection = async (ws: WebSocket) => {
-  while (ws.readyState !== ws.OPEN) {
-    await new Promise((resolve) => {
-      setTimeout(resolve, 200);
-    });
+const maxConcurrentRequests = 3;
+const queue: (() => Promise<void>)[] = [];
+
+let numberOfOutstandingInputRequests = 0;
+
+const processQueue = async () => {
+  console.log({ numberOfOutstandingInputRequests });
+
+  if (numberOfOutstandingInputRequests >= maxConcurrentRequests) {
+    return;
+  }
+
+  const task = queue.shift();
+  if (!task) {
+    return;
+  }
+
+  numberOfOutstandingInputRequests++;
+  try {
+    await task();
+  } catch (err) {
+    console.error("Task failed:", err);
+  } finally {
+    numberOfOutstandingInputRequests--;
+  }
+
+  void processQueue();
+};
+
+const enqueueTask = (task: () => Promise<void>) => {
+  queue.push(task);
+  void processQueue();
+};
+
+const waitForConnection = async (socket: WebSocket) => {
+  while (socket.readyState !== socket.OPEN) {
+    await sleep(200);
   }
 };
 
 let ws: WebSocket | null = null;
-const getWebSocket = async () => {
-  if (ws) {
-    await waitForConnection(ws);
-    return ws;
-  }
+let reconnecting = false;
 
+const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
   const apiOrigin = await getFromLocalStorage("apiOrigin");
 
   const { host, protocol } = new URL(apiOrigin ?? API_ORIGIN);
   const websocketUrl = `${protocol === "https:" ? "wss" : "ws"}://${host}`;
 
-  ws = new WebSocket(websocketUrl);
+  const newWs = new WebSocket(websocketUrl);
 
   const externalRequestPoll = setInterval(() => {
     void getCookieString().then((cookie) =>
-      ws?.send(
+      newWs.send(
         JSON.stringify({
           cookie,
           type: "check-for-external-input-requests",
@@ -85,17 +115,26 @@ const getWebSocket = async () => {
     );
   }, 20_000);
 
-  ws.addEventListener("close", () => {
-    console.log("Connection closed");
-    ws = null;
-    clearInterval(externalRequestPoll);
-  });
-
-  ws.addEventListener("open", () => {
+  newWs.addEventListener("open", () => {
     console.log("Connection established");
   });
 
-  ws.addEventListener(
+  newWs.addEventListener("close", () => {
+    console.warn("WebSocket connection closed. Attempting to reconnect...");
+    ws = null;
+
+    clearInterval(externalRequestPoll);
+    onClose();
+  });
+
+  newWs.addEventListener("error", () => {
+    console.error(
+      "WebSocket error encountered. Closing and attempting to reconnect...",
+    );
+    newWs.close();
+  });
+
+  newWs.addEventListener(
     "message",
 
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -114,49 +153,87 @@ const getWebSocket = async () => {
            * This request is already being or has already been processed, so we don't need to do anything.
            */
           return;
-        } else {
-          await setExternalInputRequestsValue((requestsById) => ({
-            ...requestsById,
-            [payload.requestId]: {
-              message,
-              receivedAt: new Date().toISOString(),
-            },
-          }));
         }
 
-        const webPages = await getWebsiteContent(payload.data.urls);
-
-        const cookie = await getCookieString();
-
-        ws?.send(
-          JSON.stringify({
-            cookie,
-            workflowId,
-            payload: {
-              ...payload,
-              data: { webPages: webPages ?? [] },
-            },
-            type: "external-input-response",
-          } satisfies ExternalInputWebsocketResponseMessage),
-        );
+        await setExternalInputRequestsValue((requestsById) => ({
+          ...requestsById,
+          [payload.requestId]: {
+            message,
+            receivedAt: new Date().toISOString(),
+          },
+        }));
 
         /**
-         * Clear the request from local storage after 30 seconds – if the message didn't get through to Temporal
-         * for some reason, the API will request the content again.
+         * Limit the number of active requests to 3 to avoid overloading the browser.
          */
-        setTimeout(() => {
-          void setExternalInputRequestsValue((requestsById) => ({
-            ...requestsById,
-            [payload.requestId]: null,
-          }));
-        }, 30_000);
+        enqueueTask(async () => {
+          const webPages = await getWebsiteContent(payload.data.urls);
+
+          const cookie = await getCookieString();
+
+          newWs.send(
+            JSON.stringify({
+              cookie,
+              workflowId,
+              payload: {
+                ...payload,
+                data: { webPages: webPages ?? [] },
+              },
+              type: "external-input-response",
+            } satisfies ExternalInputWebsocketResponseMessage),
+          );
+
+          /**
+           * Clear the request from local storage after 30 seconds – if the message didn't get through to Temporal
+           * for some reason, the API will request the content again.
+           */
+          setTimeout(() => {
+            void setExternalInputRequestsValue((requestsById) => ({
+              ...requestsById,
+              [payload.requestId]: null,
+            }));
+          }, 30_000);
+        });
       }
     },
   );
 
-  await waitForConnection(ws);
+  return newWs;
+};
 
-  return ws;
+const reconnectWebSocket = async () => {
+  if (reconnecting || ws) {
+    return;
+  }
+
+  reconnecting = true;
+
+  try {
+    console.log("Reconnecting WebSocket...");
+    ws = await createWebSocket({ onClose: reconnectWebSocket });
+    console.log("WebSocket reconnected successfully.");
+  } catch (err) {
+    console.error("Failed to reconnect WebSocket:", err);
+    setTimeout(() => {
+      void reconnectWebSocket();
+    }, 3_000);
+  } finally {
+    if (ws) {
+      reconnecting = false;
+    }
+  }
+};
+
+const getWebSocket = async () => {
+  if (ws) {
+    await waitForConnection(ws);
+    return ws;
+  }
+
+  const newWs = await createWebSocket({ onClose: reconnectWebSocket });
+  await waitForConnection(newWs);
+
+  return newWs;
 };
 
 const sendInferEntitiesMessage = async (
@@ -308,10 +385,6 @@ export const inferEntities = async (
  * Keep a persist websocket connection because we use it to get sent input requests from the API
  */
 const init = () => {
-  setInterval(() => {
-    void getWebSocket();
-  }, 10_000);
-
   void getWebSocket();
 };
 

@@ -4,6 +4,7 @@ import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
+  ignoreNoisySystemTypesFilter,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -107,6 +108,9 @@ export const useEntityTypeEntities = (params: {
                     },
                   ]
                 : []),
+            ...(!entityTypeId && !entityTypeBaseUrl
+              ? [ignoreNoisySystemTypesFilter]
+              : []),
           ],
         },
         graphResolveDepths: {

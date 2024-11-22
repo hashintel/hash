@@ -6,6 +6,7 @@ import { Box } from "@mui/material";
 import type { RefObject } from "react";
 import { useMemo } from "react";
 
+import { ClaimsSection } from "./entity-editor/claims-section";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { FilePreviewSection } from "./entity-editor/file-preview-section";
 import { HistorySection } from "./entity-editor/history-section";
@@ -88,6 +89,8 @@ export const EntityEditor = (props: EntityEditorProps) => {
           <PropertiesSection />
 
           <LinksSection isLinkEntity={isLinkEntity} />
+
+          <ClaimsSection />
 
           {/* <PeersSection /> */}
         </Box>

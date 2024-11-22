@@ -36,7 +36,10 @@ import { requestCoordinatorActions } from "./coordinating-agent/request-coordina
 import type { ExistingEntitySummary } from "./coordinating-agent/summarize-existing-entities.js";
 import { summarizeExistingEntities } from "./coordinating-agent/summarize-existing-entities.js";
 import { updateStateFromInferredClaims } from "./coordinating-agent/update-state-from-inferred-claims.js";
-import type { ParsedCoordinatorToolCall } from "./shared/coordinator-tools.js";
+import type {
+  ParsedCoordinatorToolCall,
+  ParsedCoordinatorToolCallMap,
+} from "./shared/coordinator-tools.js";
 import {
   getSomeToolCallResults,
   handleStopTasksRequests,
@@ -248,7 +251,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
       return;
     }
 
-    await handleStopTasksRequests({ state, toolCalls });
+    await handleStopTasksRequests({ toolCalls });
 
     const requestMakingToolCalls = toolCalls.filter(
       (toolCall) =>
@@ -258,9 +261,14 @@ export const runCoordinatingAgent: FlowActionActivity<{
         toolCall.name !== "waitForOutstandingTasks",
     );
 
+    const completeToolCall = toolCalls.find(
+      (toolCall) => toolCall.name === "complete",
+    );
+
     const waitForTasksToolCall = toolCalls.find(
       (toolCall) => toolCall.name === "waitForOutstandingTasks",
     );
+
     if (waitForTasksToolCall && !requestMakingToolCalls.length) {
       /**
        * If the coordinator has decided to wait for outstanding tasks, notify the user of this.
@@ -281,18 +289,47 @@ export const runCoordinatingAgent: FlowActionActivity<{
       ]);
     }
 
-    state.outstandingTasks.push(
-      ...triggerToolCallsRequests({
-        agentType: "coordinator",
-        input,
-        state,
-        toolCalls: requestMakingToolCalls,
-        workerIdentifiers,
-      }),
-    );
+    if (
+      completeToolCall &&
+      state.outstandingTasks.length > 0 &&
+      !requestMakingToolCalls.length
+    ) {
+      /**
+       * If the coordinator has called complete but there are still outstanding tasks,
+       * we let them wrap up so that any claims and entities they've proposed to date are captured.
+       * Otherwise, we'll have 'orphaned' claims which have been created but not attached to any entity.
+       */
+      const stopTasksToolCall = {
+        id: generateUuid(),
+        name: "stopTasks",
+        input: {
+          tasksToStop: state.outstandingTasks.map((task) => ({
+            toolCallId: task.toolCall.id,
+            explanation: "Coordinator decided to complete the research task",
+          })),
+        },
+      } satisfies ParsedCoordinatorToolCallMap["stopTasks"];
+
+      await handleStopTasksRequests({ toolCalls: [stopTasksToolCall] });
+    } else if (requestMakingToolCalls.length) {
+      state.outstandingTasks.push(
+        ...triggerToolCallsRequests({
+          agentType: "coordinator",
+          input,
+          state,
+          toolCalls: requestMakingToolCalls,
+          workerIdentifiers,
+        }),
+      );
+    }
 
     const toolCallResults = await getSomeToolCallResults({
       state,
+      /**
+       * If the worker has called 'complete', we will have issued stop requests to all outstanding tasks.
+       * We wait for them to have finished cleaning up so we can capture whatever they had inferred to this point.
+       */
+      waitForAll: !!completeToolCall,
     });
 
     processCommonStateMutationsFromToolResults({
@@ -349,10 +386,6 @@ export const runCoordinatingAgent: FlowActionActivity<{
       newEntitySummaries,
       workerIdentifiers,
     });
-
-    const completeToolCall = toolCalls.find(
-      (toolCall) => toolCall.name === "complete",
-    );
 
     /**
      * Check whether the research task has completed after processing the other tool calls,

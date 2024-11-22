@@ -386,6 +386,7 @@ const NewGoalPageContent = () => {
             title: "New",
           },
         ]}
+        hideDivider
         sideTitle="New research goal"
         title={{
           text: "Goals",
