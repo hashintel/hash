@@ -215,6 +215,7 @@ jobs:
           hash-graph: ${{ matrix.package == '@apps/hash-graph' }}
           hash-ai-worker-ts: ${{ matrix.package == '@apps/hash-ai-worker-ts' }}
           hash-integration-worker: ${{ matrix.package == '@apps/hash-integration-worker' }}
+          GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
           hash-api: ${{ matrix.package == '@apps/hash-api' }}
 
   integration-tests:
