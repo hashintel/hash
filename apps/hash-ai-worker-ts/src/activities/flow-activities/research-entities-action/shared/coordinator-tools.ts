@@ -694,10 +694,12 @@ export function triggerToolCallsRequests({
 
 export async function getSomeToolCallResults(params: {
   state: CoordinatingAgentState;
+  waitForAll: boolean;
 }): Promise<CompletedCoordinatorToolCall<CoordinatorToolName>[]>;
 
 export async function getSomeToolCallResults(params: {
   state: SubCoordinatingAgentState;
+  waitForAll: boolean;
 }): Promise<CompletedCoordinatorToolCall<SubCoordinatingAgentToolName>[]>;
 
 /**
@@ -714,8 +716,10 @@ export async function getSomeToolCallResults(params: {
  */
 export async function getSomeToolCallResults({
   state,
+  waitForAll,
 }: {
   state: CoordinatingAgentState | SubCoordinatingAgentState;
+  waitForAll: boolean;
 }): Promise<
   | CompletedToolCall<CoordinatorToolName>[]
   | CompletedToolCall<SubCoordinatingAgentToolName>[]
@@ -727,32 +731,38 @@ export async function getSomeToolCallResults({
     ({ longRunning }) => longRunning,
   );
 
-  const readyTasks = (
-    await Promise.all([
-      /**
-       * Wait for all the short-lived tasks to complete
-       */
-      Promise.all(
-        outstandingShortLivedTasks.map(({ resultsPromise }) => resultsPromise),
-      ),
-
-      /**
-       * Wait for the first long-lived task to complete
-       *
-       * An empty array to Promise.race() will never resolve,
-       * so we need to exclude it if the array is empty.
-       */
-      ...(outstandingLongRunningTasks.length
-        ? [
-            Promise.race(
-              outstandingLongRunningTasks.map(
-                ({ resultsPromise }) => resultsPromise,
-              ),
+  const readyTasks = waitForAll
+    ? await Promise.all(
+        state.outstandingTasks.map(({ resultsPromise }) => resultsPromise),
+      )
+    : (
+        await Promise.all([
+          /**
+           * Wait for all the short-lived tasks to complete
+           */
+          Promise.all(
+            outstandingShortLivedTasks.map(
+              ({ resultsPromise }) => resultsPromise,
             ),
-          ]
-        : []),
-    ])
-  ).flat();
+          ),
+
+          /**
+           * Wait for the first long-lived task to complete
+           *
+           * An empty array to Promise.race() will never resolve,
+           * so we need to exclude it if the array is empty.
+           */
+          ...(outstandingLongRunningTasks.length
+            ? [
+                Promise.race(
+                  outstandingLongRunningTasks.map(
+                    ({ resultsPromise }) => resultsPromise,
+                  ),
+                ),
+              ]
+            : []),
+        ])
+      ).flat();
 
   /**
    * A short grace period to allow for any long-running tasks which are ready soon after the first one.
@@ -821,32 +831,13 @@ export const generateOutstandingTasksDescription = (
  * Handle requests (tool calls) from the coordinator to early stop tasks that it has started.
  */
 export const handleStopTasksRequests = async ({
-  state,
   toolCalls,
 }: {
-  state: CoordinatingAgentState | SubCoordinatingAgentState;
   toolCalls: ParsedCoordinatorToolCall[] | ParsedSubCoordinatorToolCall[];
 }) => {
   const stopRequests = toolCalls
     .filter((call) => call.name === "stopTasks")
     .flatMap(({ input }) => input.tasksToStop);
-
-  // eslint-disable-next-line no-param-reassign
-  state.workersStarted = state.workersStarted.filter(
-    (workerIdentifiers) =>
-      !stopRequests.find(
-        (stopRequest) =>
-          stopRequest.toolCallId === workerIdentifiers.toolCallId,
-      ),
-  );
-
-  // eslint-disable-next-line no-param-reassign
-  state.outstandingTasks = state.outstandingTasks.filter(
-    (task) =>
-      !stopRequests.find(
-        (stopRequest) => stopRequest.toolCallId === task.toolCall.id,
-      ),
-  ) as typeof state.outstandingTasks;
 
   await stopWorkers(stopRequests);
 };

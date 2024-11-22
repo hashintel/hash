@@ -14,7 +14,7 @@ export const formatTimeTaken = (scheduledAt: string, closedAt?: string) => {
 
   const duration = intervalToDuration({ start: 0, end: elapsed });
 
-  return [duration.hours, duration.minutes ?? 0, duration.seconds]
+  return [duration.hours, duration.minutes ?? 0, duration.seconds ?? 0]
     .filter(isNonNullable)
     .map(pad)
     .join(":");

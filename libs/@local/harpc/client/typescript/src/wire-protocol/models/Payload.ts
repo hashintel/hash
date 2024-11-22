@@ -128,6 +128,8 @@ export const make = (
   return Effect.succeed(makeUnchecked(buffer));
 };
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, payload: Payload) =>
     Effect.gen(function* () {
@@ -137,6 +139,8 @@ export const encode = encodeDual(
       return buffer;
     }),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {
@@ -150,4 +154,4 @@ export const isPayload = (value: unknown): value is Payload =>
   Predicate.hasProperty(value, TypeId);
 
 export const arbitrary = (fc: typeof FastCheck) =>
-  fc.uint8Array({ min: U16_MIN, max: MAX_SIZE }).map(makeUnchecked);
+  fc.uint8Array({ minLength: U16_MIN, maxLength: MAX_SIZE }).map(makeUnchecked);

@@ -85,24 +85,34 @@ export const applyBodyVariant = (
   }
 };
 
+export const repr = (flags: ResponseFlags) => {
+  let value = 0x00;
+
+  if (HashSet.has(flags.flags, "beginOfResponse")) {
+    // eslint-disable-next-line no-bitwise
+    value |= 0b1000_0000;
+  }
+
+  if (HashSet.has(flags.flags, "endOfResponse")) {
+    // eslint-disable-next-line no-bitwise
+    value |= 0b0000_0001;
+  }
+
+  return value;
+};
+
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, flags: ResponseFlags) =>
     Effect.gen(function* () {
-      let value = 0x00;
-
-      if (HashSet.has(flags.flags, "beginOfResponse")) {
-        // eslint-disable-next-line no-bitwise
-        value |= 0b1000_0000;
-      }
-
-      if (HashSet.has(flags.flags, "endOfResponse")) {
-        // eslint-disable-next-line no-bitwise
-        value |= 0b0000_0001;
-      }
+      const value = repr(flags);
 
       return yield* Buffer.putU8(buffer, value);
     }),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {

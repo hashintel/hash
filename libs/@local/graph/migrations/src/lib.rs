@@ -1,4 +1,9 @@
-#![feature(impl_trait_in_assoc_type, return_type_notation, async_closure)]
+#![feature(
+    impl_trait_in_assoc_type,
+    return_type_notation,
+    async_closure,
+    never_type
+)]
 #![expect(clippy::future_not_send)]
 
 extern crate alloc;
@@ -7,7 +12,7 @@ extern crate alloc;
 pub use ::hash_graph_migrations_macros::embed_migrations;
 
 pub use self::{
-    context::ContextProvider,
+    context::{Context, ContextProvider, Transaction},
     info::{Digest, InvalidMigrationFile, MigrationInfo},
     list::{MigrationError, MigrationList},
     migration::Migration,

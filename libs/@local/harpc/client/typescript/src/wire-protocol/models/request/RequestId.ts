@@ -70,10 +70,14 @@ const RequestIdProto: Omit<RequestId, "value"> = {
 export const makeUnchecked = (value: number): RequestId =>
   createProto(RequestIdProto, { value });
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, requestId: RequestId) =>
     Buffer.putU32(buffer, requestId.value),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   pipe(

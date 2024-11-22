@@ -58,6 +58,10 @@ const getValidator = () => {
   if (!_ajv) {
     _ajv = new Ajv();
     _ajv.addKeyword("label");
+    _ajv.addKeyword("labelProperty");
+    _ajv.addKeyword("abstract");
+    _ajv.addKeyword("titlePlural");
+    _ajv.addKeyword("inverse");
     addFormats(_ajv);
   }
 
@@ -130,20 +134,26 @@ export const getInputValidationErrors = (params: {
 
   const validator = getValidator();
 
-  const validate = validator.compile(
-    applyAdditionalPropertiesFalseToSchema({
-      schema: toolDefinition.inputSchema,
-    }),
-  );
-
-  const inputIsValid = validate(input);
-
-  if (!inputIsValid) {
-    logger.error(
-      `Input did not match schema for requestId ${requestId}: ${stringify(validate.errors)} for tool: ${toolDefinition.name}`,
+  try {
+    const validate = validator.compile(
+      applyAdditionalPropertiesFalseToSchema({
+        schema: toolDefinition.inputSchema,
+      }),
     );
 
-    return validate.errors ?? [];
+    const inputIsValid = validate(input);
+
+    if (!inputIsValid) {
+      logger.error(
+        `Input did not match schema for requestId ${requestId}: ${stringify(validate.errors)} for tool: ${toolDefinition.name}`,
+      );
+
+      return validate.errors ?? [];
+    }
+  } catch (error) {
+    logger.error(
+      `Error validating input for requestId ${requestId}: ${(error as Error).message} for tool: ${toolDefinition.name}`,
+    );
   }
 
   return null;

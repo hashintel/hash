@@ -33,6 +33,13 @@ export const ValueChip = ({
           px: 1.2,
           py: 0.8,
           whiteSpace: "nowrap",
+          ...(showInFull
+            ? {}
+            : {
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                width: "fit-content",
+              }),
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

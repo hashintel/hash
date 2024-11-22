@@ -52,15 +52,18 @@ const SourceRow = ({ source }: { source: SourceProvenance }) => {
   return (
     <TableRow>
       <TableCell>
-        <ValueChip type sx={{ py: 0.2 }}>
-          <FontAwesomeIcon
-            icon={faFile}
-            sx={(theme) => ({
-              fontSize: 12,
-              color: theme.palette.blue[70],
-              mr: 0.6,
-            })}
-          />
+        <ValueChip
+          icon={
+            <FontAwesomeIcon
+              icon={faFile}
+              sx={(theme) => ({
+                color: theme.palette.blue[70],
+                fontSize: 13,
+              })}
+            />
+          }
+          type
+        >
           <Box
             component="span"
             sx={{

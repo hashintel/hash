@@ -2,6 +2,7 @@ import type { FastCheck } from "effect";
 import {
   Effect,
   Equal,
+  Function,
   Hash,
   Inspectable,
   pipe,
@@ -120,6 +121,8 @@ export const err = (code: ErrorCode.ErrorCode): Err =>
 
 export type ResponseKind = Ok | Err;
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, kind: ResponseKind) =>
     Effect.gen(function* () {
@@ -131,6 +134,8 @@ export const encode = encodeDual(
       }
     }),
 );
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {
@@ -151,6 +156,35 @@ export const isOk = (value: unknown): value is Ok =>
 
 export const isErr = (value: unknown): value is Err =>
   isResponseKind(value) && value._tag === "Err";
+
+export const match: {
+  <A, B = A>(options: {
+    readonly onOk: () => A;
+    readonly onErr: (code: ErrorCode.ErrorCode) => B;
+  }): (self: ResponseKind) => A | B;
+  <A, B = A>(
+    self: ResponseKind,
+    options: {
+      readonly onOk: () => A;
+      readonly onErr: (code: ErrorCode.ErrorCode) => B;
+    },
+  ): A | B;
+} = Function.dual(
+  2,
+  <A, B = A>(
+    self: ResponseKind,
+    options: {
+      readonly onOk: () => A;
+      readonly onErr: (code: ErrorCode.ErrorCode) => B;
+    },
+  ) => {
+    if (isOk(self)) {
+      return options.onOk();
+    } else {
+      return options.onErr(self.code);
+    }
+  },
+);
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc.oneof(fc.constant(ok()), ErrorCode.arbitrary(fc).map(err));

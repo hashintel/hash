@@ -39,33 +39,33 @@ export interface ErrorCode
     Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
-  readonly code: number;
+  readonly value: number;
 }
 
-const ErrorCodeProto: Omit<ErrorCode, "code"> = {
+const ErrorCodeProto: Omit<ErrorCode, "value"> = {
   [TypeId]: TypeId,
 
   [Equal.symbol](this: ErrorCode, that: Equal.Equal) {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return isErrorCode(that) && Equal.equals(this.code, that.code);
+    return isErrorCode(that) && Equal.equals(this.value, that.value);
   },
 
   [Hash.symbol](this: ErrorCode) {
     return pipe(
       Hash.hash(this[TypeId]),
-      Hash.combine(Hash.number(this.code)),
+      Hash.combine(Hash.number(this.value)),
       Hash.cached(this),
     );
   },
 
   toString(this: ErrorCode) {
-    return `ErrorCode(${this.code})`;
+    return `ErrorCode(${this.value})`;
   },
 
   toJSON(this: ErrorCode) {
     return {
       _id: "ErrorCode",
-      code: this.code,
+      code: this.value,
     };
   },
 
@@ -80,24 +80,26 @@ const ErrorCodeProto: Omit<ErrorCode, "code"> = {
 };
 
 /** @internal */
-export const makeUnchecked = (code: number): ErrorCode =>
-  createProto(ErrorCodeProto, { code });
+export const makeUnchecked = (value: number): ErrorCode =>
+  createProto(ErrorCodeProto, { value });
 
 export const make = (
-  code: number,
+  value: number,
 ): Effect.Effect<ErrorCode, ErrorCodeTooLarge | ErrorCodeTooSmall> => {
-  if (code < 1) {
-    return Effect.fail(new ErrorCodeTooSmall({ received: code }));
-  } else if (code > U16_MAX) {
-    return Effect.fail(new ErrorCodeTooLarge({ received: code }));
+  if (value < 1) {
+    return Effect.fail(new ErrorCodeTooSmall({ received: value }));
+  } else if (value > U16_MAX) {
+    return Effect.fail(new ErrorCodeTooLarge({ received: value }));
   } else {
-    return Effect.succeed(makeUnchecked(code));
+    return Effect.succeed(makeUnchecked(value));
   }
 };
 
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
 export const encode = encodeDual(
   (buffer: Buffer.WriteBuffer, errorCode: ErrorCode) =>
-    Buffer.putU16(buffer, errorCode.code),
+    Buffer.putU16(buffer, errorCode.value),
 );
 
 // no decode function, decoding is done through the ResponseKind.ts file

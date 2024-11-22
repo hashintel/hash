@@ -46,7 +46,7 @@ import { TypeSlideOverStack } from "../../../shared/entity-type-page/type-slide-
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../shared/get-file-properties";
 import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
-import { ClaimsTable } from "./outputs/claims-table";
+import { ClaimsOutput } from "./outputs/claims-output";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
 import { EntityResultGraph } from "./outputs/entity-result-graph";
@@ -489,12 +489,12 @@ export const Outputs = ({
         {
           ...fullOntologyResolveDepths,
           hasLeftEntity: {
-            outgoing: 0,
+            outgoing: 1,
             incoming: 1,
           },
           hasRightEntity: {
             outgoing: 1,
-            incoming: 0,
+            incoming: 1,
           },
         },
         {
@@ -705,7 +705,7 @@ export const Outputs = ({
             />
           ))}
         {visibleSection === "claims" && (
-          <ClaimsTable
+          <ClaimsOutput
             onEntityClick={onEntityClick}
             proposedEntities={proposedEntities}
           />

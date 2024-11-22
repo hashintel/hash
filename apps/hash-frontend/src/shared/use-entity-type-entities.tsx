@@ -65,7 +65,9 @@ export const generateUseEntityTypeEntitiesQueryVariables = ({
                 },
               ]
             : []),
-        ignoreNoisySystemTypesFilter,
+        ...(!entityTypeId && !entityTypeBaseUrl
+          ? [ignoreNoisySystemTypesFilter]
+          : []),
       ],
     },
     graphResolveDepths: {

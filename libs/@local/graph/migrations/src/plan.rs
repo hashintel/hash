@@ -4,7 +4,11 @@ use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _, bail, ensure};
 
-use crate::{Migration, MigrationInfo, MigrationList, StateStore, list::MigrationError};
+use crate::{
+    Migration, MigrationInfo, MigrationList, StateStore,
+    context::{Context as _, Transaction as _},
+    list::MigrationError,
+};
 
 pub trait MigrationRunner {
     async fn run_migration<M>(
@@ -58,11 +62,31 @@ where
             return Ok(());
         }
 
-        match self.direction {
-            MigrationDirection::Up => migration.up(context).await,
-            MigrationDirection::Down => migration.down(context).await,
+        let mut transaction = context
+            .transaction()
+            .await
+            .change_context_lazy(|| MigrationError::new(info.clone()))?;
+
+        let migration_result = match self.direction {
+            MigrationDirection::Up => migration.up(&mut transaction).await,
+            MigrationDirection::Down => migration.down(&mut transaction).await,
         }
-        .change_context_lazy(|| MigrationError::new(info.clone()))?;
+        .change_context_lazy(|| MigrationError::new(info.clone()));
+        match migration_result {
+            Ok(()) => {
+                transaction
+                    .commit()
+                    .await
+                    .change_context_lazy(|| MigrationError::new(info.clone()))?;
+            }
+            Err(error) => {
+                transaction
+                    .commit()
+                    .await
+                    .change_context_lazy(|| MigrationError::new(info.clone()))?;
+                bail!(error);
+            }
+        };
 
         match self.direction {
             MigrationDirection::Up => {
@@ -197,10 +221,7 @@ impl<L, C> MigrationPlanBuilder<L, (), C> {
 }
 
 impl<L, S> MigrationPlanBuilder<L, S, ()> {
-    pub fn context<C>(self, context: C) -> MigrationPlanBuilder<L, S, C>
-    where
-        L: MigrationList<C>,
-    {
+    pub fn context<C>(self, context: C) -> MigrationPlanBuilder<L, S, C> {
         MigrationPlanBuilder {
             target: self.target,
             migrations: self.migrations,

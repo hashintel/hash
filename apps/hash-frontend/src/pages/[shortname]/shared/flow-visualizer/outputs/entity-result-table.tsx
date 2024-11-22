@@ -813,7 +813,11 @@ export const EntityResultTable = memo(
             ? "Updated"
             : "Created";
 
-        const relevance = relevantEntityIds.includes(entityId) ? "Yes" : "No";
+        const relevance = relevantEntityIds.find((relevantEntityId) =>
+          entityId.startsWith(relevantEntityId),
+        )
+          ? "Yes"
+          : "No";
 
         /**
          * Account for the entity's values in the filters, other than types which are handled above when processing the entity's types.

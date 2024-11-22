@@ -59,13 +59,6 @@ export const OutgoingLinksSection = ({
       )
     : null;
 
-  if (
-    rows.length === 0 ||
-    (readonly && outgoingLinksAndTargets?.length === 0)
-  ) {
-    return <LinksSectionEmptyState direction="Outgoing" />;
-  }
-
   return (
     <SectionWrapper
       title="Outgoing Links"
@@ -76,23 +69,21 @@ export const OutgoingLinksSection = ({
             size="xs"
             label={`${outgoingLinks.length} ${outgoingLinks.length === 1 ? "link" : "links"}`}
           />
-          <Stack direction="row" spacing={0.5}>
-            <IconButton
-              rounded
-              onClick={() => setShowSearch(true)}
-              sx={{ color: ({ palette }) => palette.gray[60] }}
-            >
-              <FontAwesomeIcon icon={faMagnifyingGlass} />
-            </IconButton>
-          </Stack>
+          {!!rows.length && (
+            <Stack direction="row" spacing={0.5}>
+              <IconButton
+                rounded
+                onClick={() => setShowSearch(true)}
+                sx={{ color: ({ palette }) => palette.gray[60] }}
+              >
+                <FontAwesomeIcon icon={faMagnifyingGlass} />
+              </IconButton>
+            </Stack>
+          )}
         </Stack>
       }
     >
-      {readonly ? (
-        <OutgoingLinksTable
-          outgoingLinksAndTargets={outgoingLinksAndTargets!}
-        />
-      ) : (
+      {rows.length && !readonly ? (
         <Paper sx={{ overflow: "hidden" }}>
           <Grid
             columns={linkGridColumns}
@@ -111,6 +102,10 @@ export const OutgoingLinksSection = ({
             ]}
           />
         </Paper>
+      ) : outgoingLinksAndTargets?.length ? (
+        <OutgoingLinksTable outgoingLinksAndTargets={outgoingLinksAndTargets} />
+      ) : (
+        <LinksSectionEmptyState direction="Outgoing" />
       )}
     </SectionWrapper>
   );

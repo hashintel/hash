@@ -1,5 +1,6 @@
 import type { NoisySystemTypeId } from "@local/hash-isomorphic-utils/graph-queries";
 import { noisySystemTypeIds } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   getIncomingLinkAndSourceEntities,
   getOutgoingLinksForEntity,
@@ -35,6 +36,10 @@ export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
       incomingLinkAndSource.linkEntity[0] &&
       !incomingLinkAndSource.linkEntity[0].metadata.entityTypeIds.some(
         (typeId) => noisySystemTypeIds.includes(typeId as NoisySystemTypeId),
+      ) &&
+      incomingLinkAndSource.leftEntity[0] &&
+      !incomingLinkAndSource.leftEntity[0].metadata.entityTypeIds.includes(
+        systemEntityTypes.claim.entityTypeId,
       )
     );
   });

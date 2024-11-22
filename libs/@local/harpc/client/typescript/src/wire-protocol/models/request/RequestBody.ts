@@ -1,8 +1,9 @@
-import type { FastCheck } from "effect";
+import type { FastCheck, Option } from "effect";
 import {
   Effect,
   Either,
   Equal,
+  Function,
   Hash,
   Inspectable,
   pipe,
@@ -77,13 +78,44 @@ export const make = (
   body: Either.Either<RequestBegin.RequestBegin, RequestFrame.RequestFrame>,
 ): RequestBody => createProto(RequestBodyProto, { body });
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, body: RequestBody) =>
-    Either.match(body.body, {
-      onLeft: (frame) => RequestFrame.encode(buffer, frame),
-      onRight: (begin) => RequestBegin.encode(buffer, begin),
+export const match: {
+  <A, B = A>(options: {
+    readonly onBegin: (begin: RequestBegin.RequestBegin) => A;
+    readonly onFrame: (frame: RequestFrame.RequestFrame) => B;
+  }): (self: RequestBody) => A | B;
+  <A, B = A>(
+    self: RequestBody,
+    options: {
+      readonly onBegin: (begin: RequestBegin.RequestBegin) => A;
+      readonly onFrame: (frame: RequestFrame.RequestFrame) => B;
+    },
+  ): A | B;
+} = Function.dual(
+  2,
+  <A, B = A>(
+    self: RequestBody,
+    options: {
+      readonly onBegin: (begin: RequestBegin.RequestBegin) => A;
+      readonly onFrame: (frame: RequestFrame.RequestFrame) => B;
+    },
+  ) =>
+    Either.match(self.body, {
+      onLeft: options.onFrame,
+      onRight: options.onBegin,
     }),
 );
+
+export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+
+export const encode = encodeDual(
+  (buffer: Buffer.WriteBuffer, body: RequestBody) =>
+    match(body, {
+      onBegin: (begin) => RequestBegin.encode(buffer, begin),
+      onFrame: (frame) => RequestFrame.encode(buffer, frame),
+    }),
+);
+
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (
   buffer: Buffer.ReadBuffer,
@@ -106,13 +138,21 @@ export const decode = (
 };
 
 export const variant = (body: RequestBody): RequestBodyVariant =>
-  Either.match(body.body, {
-    onLeft: () => "RequestFrame",
-    onRight: () => "RequestBegin",
+  match(body, {
+    onBegin: () => "RequestBegin",
+    onFrame: () => "RequestFrame",
   });
 
 export const isRequestBody = (value: unknown): value is RequestBody =>
   Predicate.hasProperty(value, TypeId);
+
+export const getBegin = (
+  body: RequestBody,
+): Option.Option<RequestBegin.RequestBegin> => Either.getRight(body.body);
+
+export const getFrame = (
+  body: RequestBody,
+): Option.Option<RequestFrame.RequestFrame> => Either.getLeft(body.body);
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc

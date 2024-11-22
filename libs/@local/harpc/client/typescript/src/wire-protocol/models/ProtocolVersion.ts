@@ -85,6 +85,8 @@ export const encode = encodeDual(
   },
 );
 
+export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {
     const version = yield* Buffer.getU8(buffer);

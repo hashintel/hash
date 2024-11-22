@@ -40,16 +40,23 @@ hash_graph_migrations::embed_migrations!("graph-migrations");
 
 impl Command for RunCommand {
     async fn execute(self) -> Result<(), Box<dyn Error>> {
-        let (client, connection) = self.db_info.connect().await?;
+        let (state, state_connection) = self.db_info.clone().connect().await?;
+        let (client, client_connection) = self.db_info.connect().await?;
 
         tokio::spawn(async move {
-            if let Err(error) = connection.await {
-                tracing::error!(error = ?error, "Connection error");
+            if let Err(error) = state_connection.await {
+                tracing::error!(error = ?error, "state connection error");
+            }
+        });
+        tokio::spawn(async move {
+            if let Err(error) = client_connection.await {
+                tracing::error!(error = ?error, "client connection error");
             }
         });
 
         let mut builder = MigrationPlanBuilder::new()
-            .state(client)
+            .state(state)
+            .context(client)
             .migrations(self::migrations())
             .allow_divergent(self.allow_divergent)
             .update_divergent(self.update_divergent)

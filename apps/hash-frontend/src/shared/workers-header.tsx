@@ -60,7 +60,6 @@ export const WorkersHeader = ({
               alignItems="center"
               direction="row"
               justifyContent="space-between"
-              sx={{ mb: 1.5 }}
             >
               <Stack alignItems="center" direction="row" gap={1.5}>
                 <title.Icon
@@ -107,7 +106,7 @@ export const WorkersHeader = ({
               <Typography
                 component="p"
                 variant="largeTextLabels"
-                sx={{ mt: 1, color: ({ palette }) => palette.gray[80] }}
+                sx={{ mt: 2.5, color: ({ palette }) => palette.gray[80] }}
               >
                 {subtitle}
               </Typography>
