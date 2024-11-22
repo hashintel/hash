@@ -190,42 +190,6 @@ export const generateVersionedUrlMatchingFilter = (
   };
 };
 
-export const notificationTypesToIgnore = [
-  systemEntityTypes.notification.entityTypeId,
-  systemEntityTypes.graphChangeNotification.entityTypeId,
-];
-
-export const usageRecordTypesToIgnore = [
-  systemEntityTypes.usageRecord.entityTypeId,
-  systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
-  systemLinkEntityTypes.created.linkEntityTypeId,
-  systemLinkEntityTypes.updated.linkEntityTypeId,
-  systemLinkEntityTypes.incurredIn.linkEntityTypeId,
-];
-
-const pageNotificationTypesToIgnore = [
-  systemEntityTypes.mentionNotification.entityTypeId,
-  systemEntityTypes.commentNotification.entityTypeId,
-  systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-];
-
-export const noisySystemTypeIds = [
-  ...notificationTypesToIgnore,
-  ...usageRecordTypesToIgnore,
-  ...pageNotificationTypesToIgnore,
-] as const;
-
-export type NoisySystemTypeId = (typeof noisySystemTypeIds)[number];
-
-export const ignoreNoisySystemTypesFilter: Filter = {
-  all: noisySystemTypeIds.map((versionedUrl) => ({
-    notEqual: [
-      { path: ["type(inheritanceDepth = 0)", "versionedUrl"] },
-      { parameter: versionedUrl },
-    ],
-  })),
-};
-
 /**
  * Generate a filter to match an entity by its ID.
  *
