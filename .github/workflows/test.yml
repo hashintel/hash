@@ -193,7 +193,7 @@ jobs:
         env:
           TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
           # Variables needed for chonky tests
-          GOOGLE_CLOUD_HASH_PROJECT_ID: ${{ secrets.GOOGLE_CLOUD_HASH_PROJECT_ID }}
+          GOOGLE_PROJECT_ID: ${{ secrets.GOOGLE_CLOUD_HASH_PROJECT_ID }}
           GOOGLE_DEFAULT_CREDENTIALS: ${{ env.GOOGLE_DEFAULT_CREDENTIALS }} # set by google-github-actions/auth
           HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
         run: |
@@ -384,7 +384,7 @@ jobs:
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
         env:
           # Variables needed for chonky tests
-          GOOGLE_CLOUD_HASH_PROJECT_ID: ${{ secrets.GOOGLE_CLOUD_HASH_PROJECT_ID }}
+          GOOGLE_PROJECT_ID: ${{ secrets.GOOGLE_CLOUD_HASH_PROJECT_ID }}
           GOOGLE_DEFAULT_CREDENTIALS: ${{ env.GOOGLE_DEFAULT_CREDENTIALS }} # set by google-github-actions/auth
           HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
         run: |
