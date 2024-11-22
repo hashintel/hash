@@ -13,7 +13,7 @@ import type {
   PropertyProvenance,
 } from "@local/hash-graph-client";
 import type {
-  type EnforcedEntityEditionProvenance,
+  EnforcedEntityEditionProvenance,
   Entity,
 } from "@local/hash-graph-sdk/entity";
 import {
@@ -205,7 +205,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
   const numberOfPages = documentJson.Pages.length;
 
   /**
-   * @todo handle documents exceeding Vertex AI limit of 30MB
+   * @todo H-3620: handle documents exceeding Vertex AI limit of 30MB
    */
 
   const documentMetadata = await getLlmAnalysisOfDoc({

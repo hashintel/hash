@@ -222,43 +222,45 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const _publishedByLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
-        title: "Published By",
-        titlePlural: "Published Bys",
-        inverse: {
-          title: "Published",
-        },
-        description: "The entity that published something",
-      },
-      migrationState,
-      instantiator: anyUserInstantiator,
-      webShortname: "hash",
-    },
-  );
+  /** @todo H-3619: Infer info on publisher and link to docs */
+  // const _publishedByLinkEntityType = await createSystemEntityTypeIfNotExists(
+  //   context,
+  //   authentication,
+  //   {
+  //     entityTypeDefinition: {
+  //       allOf: [linkEntityTypeUrl],
+  //       title: "Published By",
+  //       titlePlural: "Published Bys",
+  //       inverse: {
+  //         title: "Published",
+  //       },
+  //       description: "The entity that published something",
+  //     },
+  //     migrationState,
+  //     instantiator: anyUserInstantiator,
+  //     webShortname: "hash",
+  //   },
+  // );
 
-  const publishedInLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
-        title: "Published In",
-        titlePlural: "Published Ins",
-        inverse: {
-          title: "Published",
-        },
-        description: "The place in which something was published",
-      },
-      migrationState,
-      instantiator: anyUserInstantiator,
-      webShortname: "hash",
-    },
-  );
+  /** @todo H-3619: Infer info on publisher and link to docs */
+  // const publishedInLinkEntityType = await createSystemEntityTypeIfNotExists(
+  //   context,
+  //   authentication,
+  //   {
+  //     entityTypeDefinition: {
+  //       allOf: [linkEntityTypeUrl],
+  //       title: "Published In",
+  //       titlePlural: "Published Ins",
+  //       inverse: {
+  //         title: "Published",
+  //       },
+  //       description: "The place in which something was published",
+  //     },
+  //     migrationState,
+  //     instantiator: anyUserInstantiator,
+  //     webShortname: "hash",
+  //   },
+  // );
 
   const affiliatedWith = await createSystemEntityTypeIfNotExists(
     context,
@@ -304,134 +306,71 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const archiveEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Archive",
-        description: "A collection of documents, records or other artifacts.",
-        properties: [
-          {
-            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
-            required: true,
-          },
-          {
-            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-          },
-        ],
-      },
-      instantiator: anyUserInstantiator,
-      migrationState,
-      webShortname: "hash",
-    },
-  );
+  /** @todo H-3619: Infer info on publication venue and link to docs */
+  // const archiveEntityType = await createSystemEntityTypeIfNotExists(
+  //   context,
+  //   authentication,
+  //   {
+  //     entityTypeDefinition: {
+  //       title: "Archive",
+  //       description: "A collection of documents, records or other artifacts.",
+  //       properties: [
+  //         {
+  //           propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+  //           required: true,
+  //         },
+  //         {
+  //           propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+  //         },
+  //       ],
+  //     },
+  //     instantiator: anyUserInstantiator,
+  //     migrationState,
+  //     webShortname: "hash",
+  //   },
+  // );
 
-  const journalEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Journal",
-        description:
-          "A periodical publication containing articles and other content related to a particular subject or profession.",
-        properties: [
-          {
-            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
-            required: true,
-          },
-          {
-            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-          },
-        ],
-      },
-      instantiator: anyUserInstantiator,
-      migrationState,
-      webShortname: "hash",
-    },
-  );
+  /** @todo H-3619: Infer info on publisher and link to docs */
+  // const journalEntityType = await createSystemEntityTypeIfNotExists(
+  //   context,
+  //   authentication,
+  //   {
+  //     entityTypeDefinition: {
+  //       title: "Journal",
+  //       description:
+  //         "A periodical publication containing articles and other content related to a particular subject or profession.",
+  //       properties: [
+  //         {
+  //           propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+  //           required: true,
+  //         },
+  //         {
+  //           propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+  //         },
+  //       ],
+  //     },
+  //     instantiator: anyUserInstantiator,
+  //     migrationState,
+  //     webShortname: "hash",
+  //   },
+  // );
 
-  const _universityEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [institutionEntityType.schema.$id],
-        title: "University",
-        description:
-          "An institution of higher education and research, typically offering undergraduate and postgraduate degrees across a wide range of disciplines, and often engaging in the creation and dissemination of knowledge.",
-      },
-      instantiator: anyUserInstantiator,
-      migrationState,
-      webShortname: "hash",
-    },
-  );
-
-  const companyEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Company",
-        description: "A company",
-        properties: [
-          {
-            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
-            required: true,
-          },
-          {
-            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "hash",
-      instantiator: anyUserInstantiator,
-    },
-  );
-
-  const rolePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Role",
-        description: "The name of a role performed by someone or something.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "hash",
-    },
-  );
-
-  const workedAtLinkType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
-        title: "Worked At",
-        description: "Somewhere that someone or something worked at",
-        properties: [
-          {
-            propertyType: systemPropertyTypes.appliesFrom.propertyTypeId,
-            required: false,
-          },
-          {
-            propertyType: systemPropertyTypes.appliesUntil.propertyTypeId,
-            required: false,
-          },
-          {
-            propertyType: rolePropertyType.schema.$id,
-            required: false,
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "hash",
-      instantiator: anyUserInstantiator,
-    },
-  );
+  /** @todo H-3619: Infer info on publisher and link to docs */
+  // const _universityEntityType = await createSystemEntityTypeIfNotExists(
+  //   context,
+  //   authentication,
+  //   {
+  //     entityTypeDefinition: {
+  //       allOf: [institutionEntityType.schema.$id],
+  //       title: "University",
+  //       description:
+  //         "An institution of higher education and research, typically offering undergraduate and postgraduate degrees across a wide range of disciplines, and often engaging in the creation and dissemination of knowledge.",
+  //     },
+  //     instantiator: anyUserInstantiator,
+  //     migrationState,
+  //     webShortname: "hash",
+  //   },
+  // );
 
   const personEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -460,10 +399,6 @@ const migrate: MigrationFunction = async ({
           {
             destinationEntityTypes: [institutionEntityType.schema.$id],
             linkEntityType: affiliatedWith.schema.$id,
-          },
-          {
-            linkEntityType: workedAtLinkType,
-            destinationEntityTypes: [companyEntityType],
           },
         ],
       },
@@ -584,13 +519,14 @@ const migrate: MigrationFunction = async ({
           },
         ],
         outgoingLinks: [
-          {
-            destinationEntityTypes: [
-              archiveEntityType.schema.$id,
-              journalEntityType.schema.$id,
-            ],
-            linkEntityType: publishedInLinkEntityType.schema.$id,
-          },
+          /** @todo H-3619: Infer info on publisher and link to docs */
+          // {
+          //   destinationEntityTypes: [
+          //     archiveEntityType.schema.$id,
+          //     journalEntityType.schema.$id,
+          //   ],
+          //   linkEntityType: publishedInLinkEntityType.schema.$id,
+          // },
         ],
       },
       instantiator: anyUserInstantiator,

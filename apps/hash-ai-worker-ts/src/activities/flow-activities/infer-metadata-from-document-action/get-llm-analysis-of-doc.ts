@@ -104,13 +104,15 @@ export type DocumentMetadata = {
   type?: "AcademicPaper" | "Book";
 };
 
-const googleCloudProjectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
+const googleCloudProjectId = process.env.GOOGLE_CLOUD_HASH_PROJECT_ID;
 
 let _generativeModel: GenerativeModel | undefined;
 
 const getGeminiModel = () => {
   if (!googleCloudProjectId) {
-    throw new Error("GOOGLE_CLOUD_PROJECT_ID environment variable is not set");
+    throw new Error(
+      "GOOGLE_CLOUD_HASH_PROJECT_ID environment variable is not set",
+    );
   }
 
   if (_generativeModel) {
