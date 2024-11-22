@@ -11,6 +11,7 @@ import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws
 import type {
   OriginProvenance,
   PropertyProvenance,
+  SourceProvenance,
 } from "@local/hash-graph-client";
 import type {
   EnforcedEntityEditionProvenance,
@@ -41,7 +42,7 @@ import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
 import { generateDocumentPropertyPatches } from "./infer-metadata-from-document-action/generate-property-patches.js";
-import { generateDocumentProposedEntities } from "./infer-metadata-from-document-action/generate-proposed-entities.js";
+import { generateDocumentProposedEntitiesAndCreateClaims } from "./infer-metadata-from-document-action/generate-proposed-entities-and-claims.js";
 import { getLlmAnalysisOfDoc } from "./infer-metadata-from-document-action/get-llm-analysis-of-doc.js";
 import type { FlowActionActivity } from "./types.js";
 
@@ -238,6 +239,13 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     entityTypeIds.add(systemEntityTypes.doc.entityTypeId);
   }
 
+  const sourceProvenance: SourceProvenance = {
+    type: "document",
+    authors: (authors ?? []).map((author) => author.name),
+    entityId: documentEntityId,
+    location: { uri: fileUrl },
+  };
+
   const provenance: EnforcedEntityEditionProvenance = {
     actorType: "ai",
     origin: {
@@ -245,17 +253,11 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
       id: flowEntityId,
       stepIds: [stepId],
     } satisfies OriginProvenance,
+    sources: [sourceProvenance],
   };
 
   const propertyProvenance: PropertyProvenance = {
-    sources: [
-      {
-        type: "document",
-        authors: (authors ?? []).map((author) => author.name),
-        entityId: documentEntityId,
-        location: { uri: fileUrl },
-      },
-    ],
+    sources: [sourceProvenance],
   };
 
   const propertyPatches = generateDocumentPropertyPatches(
@@ -306,13 +308,15 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     },
   ]);
 
-  const proposedEntities = generateDocumentProposedEntities({
-    documentEntityId,
-    documentMetadata: { authors, publishedBy, publicationVenue },
-    provenance,
-    propertyProvenance,
-    webId,
-  });
+  const proposedEntities =
+    await generateDocumentProposedEntitiesAndCreateClaims({
+      aiAssistantAccountId,
+      documentEntityId,
+      documentMetadata: { authors, publishedBy, publicationVenue },
+      documentTitle: title,
+      provenance,
+      propertyProvenance,
+    });
 
   return {
     code: StatusCode.Ok,

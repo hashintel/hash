@@ -307,6 +307,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       includeDrafts: draft,
     });
 
+    const { sources } = claim.metadata.provenance.edition;
+
     const entityTypeId =
       `https://hash.ai/@hash/types/entity-type/${linkType}/v/1` as const;
 
@@ -318,7 +320,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         entityTypeIds: [entityTypeId],
         ownedById: webId,
         provenance: {
-          ...claim.metadata.provenance,
+          sources,
           actorType: "ai",
           origin: {
             type: "flow",
