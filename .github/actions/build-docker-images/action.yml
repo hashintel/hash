@@ -9,6 +9,9 @@ inputs:
     description: "Build hash-ai-worker-ts image"
     required: false
     default: "false"
+  GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON:
+    description: "JSON file containing GCP Identity Federation config, required by the AI worker"
+    required: false
   hash-integration-worker:
     description: "Build hash-integration-worker image"
     required: false
@@ -115,7 +118,7 @@ runs:
           org.opencontainers.image.licenses="AGPL-3.0-only,"
           org.opencontainers.image.description="A TypeScript 'AI' worker for HASH"
         build-args: |
-          GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
+          GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${{ inputs.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
 
     - name: Build hash-ai-worker-ts image (fork)
       if: inputs.hash-ai-worker-ts == 'true' && github.event.pull_request.head.repo.full_name != github.repository
@@ -127,7 +130,7 @@ runs:
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts
         build-args: |
-          GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
+          GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${{ inputs.google_cloud_workload_identity_federation_config_json }}
 
     - name: Build hash-integration-worker image
       if: inputs.hash-integration-worker == 'true' && github.event.pull_request.head.repo.full_name == github.repository
