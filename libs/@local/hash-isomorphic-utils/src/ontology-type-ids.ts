@@ -12,11 +12,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/actor/" as BaseUrl,
   },
-  archive: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/archive/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/archive/" as BaseUrl,
-  },
   block: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/block/v/1",
     entityTypeBaseUrl:
@@ -60,10 +55,10 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/comment-notification/" as BaseUrl,
   },
-  company: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/company/v/1",
+  doc: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/doc/v/1",
     entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/company/" as BaseUrl,
+      "https://hash.ai/@hash/types/entity-type/doc/" as BaseUrl,
   },
   document: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/document/v/1",
@@ -132,11 +127,6 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/institution/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/institution/" as BaseUrl,
-  },
-  journal: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/journal/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/journal/" as BaseUrl,
   },
   linearIntegration: {
     entityTypeId:
@@ -245,11 +235,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/twitter-account/" as BaseUrl,
   },
-  university: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/university/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/university/" as BaseUrl,
-  },
   usageRecord: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/usage-record/v/2",
     entityTypeBaseUrl:
@@ -264,11 +249,6 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/user-secret/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/user-secret/" as BaseUrl,
-  },
-  writtenWork: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/written-work/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/written-work/" as BaseUrl,
   },
 } as const satisfies Record<
   string,
@@ -397,18 +377,6 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/occurred-in-text/" as BaseUrl,
   },
-  publishedBy: {
-    linkEntityTypeId:
-      "https://hash.ai/@hash/types/entity-type/published-by/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/published-by/" as BaseUrl,
-  },
-  publishedIn: {
-    linkEntityTypeId:
-      "https://hash.ai/@hash/types/entity-type/published-in/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/published-in/" as BaseUrl,
-  },
   recordsUsageOf: {
     linkEntityTypeId:
       "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1",
@@ -449,11 +417,6 @@ export const systemLinkEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/uses-user-secret/" as BaseUrl,
-  },
-  workedAt: {
-    linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/worked-at/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/worked-at/" as BaseUrl,
   },
 } as const satisfies Record<
   string,

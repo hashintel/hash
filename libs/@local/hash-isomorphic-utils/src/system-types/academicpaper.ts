@@ -14,29 +14,19 @@ import type {
   AffiliatedWithOutgoingLinksByLinkEntityTypeId,
   AffiliatedWithProperties,
   AffiliatedWithPropertiesWithMetadata,
-  AppliesFromPropertyValue,
-  AppliesFromPropertyValueWithMetadata,
-  AppliesUntilPropertyValue,
-  AppliesUntilPropertyValueWithMetadata,
-  Archive,
-  ArchiveOutgoingLinkAndTarget,
-  ArchiveOutgoingLinksByLinkEntityTypeId,
-  ArchiveProperties,
-  ArchivePropertiesWithMetadata,
   AuthoredBy,
   AuthoredByOutgoingLinkAndTarget,
   AuthoredByOutgoingLinksByLinkEntityTypeId,
   AuthoredByProperties,
   AuthoredByPropertiesWithMetadata,
-  Company,
-  CompanyOutgoingLinkAndTarget,
-  CompanyOutgoingLinksByLinkEntityTypeId,
-  CompanyProperties,
-  CompanyPropertiesWithMetadata,
-  DateTimeDataType,
-  DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
+  Doc,
+  DocAuthoredByLink,
+  DocOutgoingLinkAndTarget,
+  DocOutgoingLinksByLinkEntityTypeId,
+  DocProperties,
+  DocPropertiesWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   Institution,
@@ -46,11 +36,6 @@ import type {
   InstitutionPropertiesWithMetadata,
   IntegerDataType,
   IntegerDataTypeWithMetadata,
-  Journal,
-  JournalOutgoingLinkAndTarget,
-  JournalOutgoingLinksByLinkEntityTypeId,
-  JournalProperties,
-  JournalPropertiesWithMetadata,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -68,28 +53,14 @@ import type {
   PersonOutgoingLinksByLinkEntityTypeId,
   PersonProperties,
   PersonPropertiesWithMetadata,
-  PersonWorkedAtLink,
   PublicationYearPropertyValue,
   PublicationYearPropertyValueWithMetadata,
-  RolePropertyValue,
-  RolePropertyValueWithMetadata,
   SummaryPropertyValue,
   SummaryPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
-  WorkedAt,
-  WorkedAtOutgoingLinkAndTarget,
-  WorkedAtOutgoingLinksByLinkEntityTypeId,
-  WorkedAtProperties,
-  WorkedAtPropertiesWithMetadata,
-  WrittenWork,
-  WrittenWorkAuthoredByLink,
-  WrittenWorkOutgoingLinkAndTarget,
-  WrittenWorkOutgoingLinksByLinkEntityTypeId,
-  WrittenWorkProperties,
-  WrittenWorkPropertiesWithMetadata,
   YearDataType,
   YearDataTypeWithMetadata,
 } from "./shared.js";
@@ -100,29 +71,19 @@ export type {
   AffiliatedWithOutgoingLinksByLinkEntityTypeId,
   AffiliatedWithProperties,
   AffiliatedWithPropertiesWithMetadata,
-  AppliesFromPropertyValue,
-  AppliesFromPropertyValueWithMetadata,
-  AppliesUntilPropertyValue,
-  AppliesUntilPropertyValueWithMetadata,
-  Archive,
-  ArchiveOutgoingLinkAndTarget,
-  ArchiveOutgoingLinksByLinkEntityTypeId,
-  ArchiveProperties,
-  ArchivePropertiesWithMetadata,
   AuthoredBy,
   AuthoredByOutgoingLinkAndTarget,
   AuthoredByOutgoingLinksByLinkEntityTypeId,
   AuthoredByProperties,
   AuthoredByPropertiesWithMetadata,
-  Company,
-  CompanyOutgoingLinkAndTarget,
-  CompanyOutgoingLinksByLinkEntityTypeId,
-  CompanyProperties,
-  CompanyPropertiesWithMetadata,
-  DateTimeDataType,
-  DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
+  Doc,
+  DocAuthoredByLink,
+  DocOutgoingLinkAndTarget,
+  DocOutgoingLinksByLinkEntityTypeId,
+  DocProperties,
+  DocPropertiesWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   Institution,
@@ -132,11 +93,6 @@ export type {
   InstitutionPropertiesWithMetadata,
   IntegerDataType,
   IntegerDataTypeWithMetadata,
-  Journal,
-  JournalOutgoingLinkAndTarget,
-  JournalOutgoingLinksByLinkEntityTypeId,
-  JournalProperties,
-  JournalPropertiesWithMetadata,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -154,28 +110,14 @@ export type {
   PersonOutgoingLinksByLinkEntityTypeId,
   PersonProperties,
   PersonPropertiesWithMetadata,
-  PersonWorkedAtLink,
   PublicationYearPropertyValue,
   PublicationYearPropertyValueWithMetadata,
-  RolePropertyValue,
-  RolePropertyValueWithMetadata,
   SummaryPropertyValue,
   SummaryPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
-  WorkedAt,
-  WorkedAtOutgoingLinkAndTarget,
-  WorkedAtOutgoingLinksByLinkEntityTypeId,
-  WorkedAtProperties,
-  WorkedAtPropertiesWithMetadata,
-  WrittenWork,
-  WrittenWorkAuthoredByLink,
-  WrittenWorkOutgoingLinkAndTarget,
-  WrittenWorkOutgoingLinksByLinkEntityTypeId,
-  WrittenWorkProperties,
-  WrittenWorkPropertiesWithMetadata,
   YearDataType,
   YearDataTypeWithMetadata,
 };
@@ -189,18 +131,16 @@ export type AcademicPaper = {
   propertiesWithMetadata: AcademicPaperPropertiesWithMetadata;
 };
 
-export type AcademicPaperOutgoingLinkAndTarget = AcademicPaperPublishedInLink;
+export type AcademicPaperOutgoingLinkAndTarget = never;
 
-export type AcademicPaperOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/published-in/v/1": AcademicPaperPublishedInLink;
-};
+export type AcademicPaperOutgoingLinksByLinkEntityTypeId = {};
 
 /**
  * A paper describing academic research
  */
 export type AcademicPaperProperties = AcademicPaperProperties1 &
   AcademicPaperProperties2;
-export type AcademicPaperProperties1 = WrittenWorkProperties;
+export type AcademicPaperProperties1 = DocProperties;
 
 export type AcademicPaperProperties2 = {
   "https://hash.ai/@hash/types/property-type/doi-link/"?: DOILinkPropertyValue;
@@ -214,8 +154,7 @@ export type AcademicPaperProperties2 = {
 
 export type AcademicPaperPropertiesWithMetadata =
   AcademicPaperPropertiesWithMetadata1 & AcademicPaperPropertiesWithMetadata2;
-export type AcademicPaperPropertiesWithMetadata1 =
-  WrittenWorkPropertiesWithMetadata;
+export type AcademicPaperPropertiesWithMetadata1 = DocPropertiesWithMetadata;
 
 export type AcademicPaperPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
@@ -228,11 +167,6 @@ export type AcademicPaperPropertiesWithMetadata2 = {
     "https://hash.ai/@hash/types/property-type/summary/": SummaryPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValueWithMetadata;
   };
-};
-
-export type AcademicPaperPublishedInLink = {
-  linkEntity: PublishedIn;
-  rightEntity: Archive | Journal;
 };
 
 /**
@@ -288,37 +222,6 @@ export type FindingPropertyValueWithMetadata = TextDataTypeWithMetadata;
 export type MethodologyPropertyValue = TextDataType;
 
 export type MethodologyPropertyValueWithMetadata = TextDataTypeWithMetadata;
-
-/**
- * The place in which something was published
- */
-export type PublishedIn = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/published-in/v/1"];
-  properties: PublishedInProperties;
-  propertiesWithMetadata: PublishedInPropertiesWithMetadata;
-};
-
-export type PublishedInOutgoingLinkAndTarget = never;
-
-export type PublishedInOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * The place in which something was published
- */
-export type PublishedInProperties = PublishedInProperties1 &
-  PublishedInProperties2;
-export type PublishedInProperties1 = LinkProperties;
-
-export type PublishedInProperties2 = {};
-
-export type PublishedInPropertiesWithMetadata =
-  PublishedInPropertiesWithMetadata1 & PublishedInPropertiesWithMetadata2;
-export type PublishedInPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type PublishedInPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
 
 /**
  * A unique identifier for a resource (e.g. a URL, or URN).
