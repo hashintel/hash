@@ -1,5 +1,5 @@
+import type { ClosedDataType } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 import type { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 
@@ -7,7 +7,7 @@ export type PropertyRow = {
   title: string;
   rowId: string;
   value: unknown;
-  expectedTypes: DataTypeWithMetadata["schema"][];
+  expectedTypes: ClosedDataType[];
   isArray: boolean;
   isSingleUrl: boolean;
   required: boolean;

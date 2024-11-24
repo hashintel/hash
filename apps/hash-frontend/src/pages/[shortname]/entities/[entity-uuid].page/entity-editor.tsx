@@ -1,4 +1,8 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  ClosedMultiEntityTypeRootMap,
+  ClosedMultiEntityTypesDefinitions,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -22,6 +26,8 @@ import type { DraftLinkState } from "./shared/use-draft-link-state";
 export type { CustomColumn };
 
 export interface EntityEditorProps extends DraftLinkState {
+  closedMultiEntityTypes: ClosedMultiEntityTypeRootMap;
+  closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
   customColumns?: CustomColumn[];
   defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
   disableTypeClick?: boolean;

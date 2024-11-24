@@ -19,7 +19,7 @@ import {
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { getClosedMultiEntityTypesFromResponse } from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypesFromMap } from "@local/hash-graph-sdk/entity";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -312,10 +312,10 @@ describe("Entity CRU", () => {
       ),
     );
 
-    // It should not matter if the entity type is read independently from the response or is part of the resposne. The result should be the same.
+    // It should not matter if the entity type is read independently from the response or is part of the response. The result should be the same.
     for (const entity of entities) {
-      const entityTypeFromResponse = getClosedMultiEntityTypesFromResponse(
-        response,
+      const entityTypeFromResponse = getClosedMultiEntityTypesFromMap(
+        response.closedMultiEntityTypes,
         entity.metadata.entityTypeIds,
       );
       expect(entityTypeFromResponse).toBeDefined();

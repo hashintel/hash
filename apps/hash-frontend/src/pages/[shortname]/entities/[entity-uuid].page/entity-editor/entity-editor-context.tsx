@@ -21,6 +21,8 @@ const EntityEditorContext = createContext<Props | null>(null);
 
 export const EntityEditorContextProvider = ({
   children,
+  closedMultiEntityTypes,
+  closedMultiEntityTypesDefinitions,
   customColumns,
   defaultOutgoingLinkFilters,
   disableTypeClick,
@@ -69,6 +71,8 @@ export const EntityEditorContextProvider = ({
 
   const state = useMemo(
     () => ({
+      closedMultiEntityTypes,
+      closedMultiEntityTypesDefinitions,
       customColumns,
       defaultOutgoingLinkFilters,
       disableTypeClick,
@@ -88,6 +92,8 @@ export const EntityEditorContextProvider = ({
       togglePropertyExpand,
     }),
     [
+      closedMultiEntityTypes,
+      closedMultiEntityTypesDefinitions,
       customColumns,
       defaultOutgoingLinkFilters,
       disableTypeClick,

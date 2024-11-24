@@ -1,11 +1,13 @@
 import type {
+  ClosedMultiEntityType,
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getPropertyTypeById } from "@local/hash-subgraph/stdlib";
 import get from "lodash/get";
 
 import {
@@ -49,18 +51,20 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
  * @returns property row (and nested rows as `children` if it's a nested property)
  */
 export const generatePropertyRowRecursively = ({
+  closedMultiEntityType,
+  closedMultiEntityTypesDefinitions,
   propertyTypeBaseUrl,
   propertyKeyChain,
   entity,
-  entitySubgraph,
   requiredPropertyTypes,
   depth = 0,
   propertyRefSchema,
 }: {
+  closedMultiEntityType: ClosedMultiEntityType;
+  closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
   propertyTypeBaseUrl: BaseUrl;
   propertyKeyChain: BaseUrl[];
   entity: Entity;
-  entitySubgraph: Subgraph<EntityRootType>;
   requiredPropertyTypes: BaseUrl[];
   depth?: number;
   propertyRefSchema: ValueOrArray<PropertyTypeReference>;
@@ -70,16 +74,18 @@ export const generatePropertyRowRecursively = ({
       ? propertyRefSchema.$ref
       : propertyRefSchema.items.$ref;
 
-  const propertyType = getPropertyTypeById(
-    entitySubgraph,
-    propertyTypeId,
-  )?.schema;
+  const propertyType =
+    closedMultiEntityTypesDefinitions.propertyTypes[propertyTypeId];
+
   if (!propertyType) {
-    throw new Error(`Property type ${propertyTypeId} not found in subgraph`);
+    throw new Error(`Property type ${propertyTypeId} not found in definitions`);
   }
 
   const { isArray: isPropertyTypeArray, expectedTypes } =
-    getExpectedTypesOfPropertyType(propertyType, entitySubgraph);
+    getExpectedTypesOfPropertyType(
+      propertyType,
+      closedMultiEntityTypesDefinitions,
+    );
 
   const isAllowMultiple = "type" in propertyRefSchema;
 
@@ -102,6 +108,8 @@ export const generatePropertyRowRecursively = ({
     )) {
       children.push(
         generatePropertyRowRecursively({
+          closedMultiEntityType,
+          closedMultiEntityTypesDefinitions,
           propertyTypeBaseUrl: subPropertyTypeBaseUrl as BaseUrl,
           propertyKeyChain: [
             ...propertyKeyChain,
@@ -110,7 +118,6 @@ export const generatePropertyRowRecursively = ({
             subPropertyTypeBaseUrl,
           ] as BaseUrl[],
           entity,
-          entitySubgraph,
           requiredPropertyTypes,
           depth: depth + 1,
           propertyRefSchema: subPropertyRefSchema,

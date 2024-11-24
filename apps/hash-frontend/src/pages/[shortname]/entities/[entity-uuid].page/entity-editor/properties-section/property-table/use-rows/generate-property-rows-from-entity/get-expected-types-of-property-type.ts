@@ -1,37 +1,36 @@
 import type {
+  ClosedDataType,
   DataTypeReference,
   PropertyType,
   PropertyValues,
 } from "@blockprotocol/type-system";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { Subgraph } from "@local/hash-subgraph";
-import { getDataTypeById } from "@local/hash-subgraph/stdlib";
+import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/entity";
 
 import { isPropertyValueArray } from "../../../../../../../../../lib/typeguards";
 
 const getDataType = (
   dataTypeReference: DataTypeReference,
-  subgraph: Subgraph,
+  definitions: ClosedMultiEntityTypesDefinitions,
 ) => {
   const dataTypeId = dataTypeReference.$ref;
-  const dataType = getDataTypeById(subgraph, dataTypeId);
+  const dataType = definitions.dataTypes[dataTypeId];
 
   if (!dataType) {
     throw new Error(`Could not find data type with id ${dataTypeId}`);
   }
 
-  return dataType.schema;
+  return dataType;
 };
 
 const getReferencedDataTypes = (
   propertyValues: PropertyValues[],
-  subgraph: Subgraph,
+  definitions: ClosedMultiEntityTypesDefinitions,
 ) => {
-  const types: DataTypeWithMetadata["schema"][] = [];
+  const types: ClosedDataType[] = [];
 
   for (const value of propertyValues) {
     if ("$ref" in value) {
-      types.push(getDataType(value, subgraph));
+      types.push(getDataType(value, definitions));
     }
   }
 
@@ -40,13 +39,13 @@ const getReferencedDataTypes = (
 
 export const getExpectedTypesOfPropertyType = (
   propertyType: PropertyType,
-  subgraph: Subgraph,
+  definitions: ClosedMultiEntityTypesDefinitions,
 ): {
-  expectedTypes: DataTypeWithMetadata["schema"][];
+  expectedTypes: ClosedDataType[];
   isArray: boolean;
 } => {
   let isArray = false;
-  let expectedTypes: DataTypeWithMetadata["schema"][] = [];
+  let expectedTypes: ClosedDataType[] = [];
 
   /**
    * @todo handle property types with multiple expected values -- H-2257
@@ -62,9 +61,9 @@ export const getExpectedTypesOfPropertyType = (
 
   if (isPropertyValueArray(firstType)) {
     isArray = true;
-    expectedTypes = getReferencedDataTypes(firstType.items.oneOf, subgraph);
+    expectedTypes = getReferencedDataTypes(firstType.items.oneOf, definitions);
   } else {
-    expectedTypes = getReferencedDataTypes(propertyType.oneOf, subgraph);
+    expectedTypes = getReferencedDataTypes(propertyType.oneOf, definitions);
   }
 
   return {

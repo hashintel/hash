@@ -13,15 +13,23 @@ import type {
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import {
+  currentTimeInstantTemporalAxes,
+  generateEntityIdFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   entityIdFromComponents,
   extractDraftIdFromEntityId,
@@ -35,12 +43,15 @@ import { useCallback, useEffect, useState } from "react";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { PageErrorState } from "../../../components/page-error-state";
 import type {
-  GetEntityQuery,
-  GetEntityQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
-import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
+import {
+  getEntitySubgraphQuery,
+  updateEntityMutation,
+} from "../../../graphql/queries/knowledge/entity.queries";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { EditBar } from "../shared/edit-bar";
@@ -58,10 +69,10 @@ const Page: NextPageWithLayout = () => {
 
   const { routeNamespace } = useRouteNamespace();
 
-  const [lazyGetEntity] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
-    getEntityQuery,
-    { fetchPolicy: "cache-and-network" },
-  );
+  const [lazyGetEntity] = useLazyQuery<
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, { fetchPolicy: "cache-and-network" });
   const { getEntityType } = useBlockProtocolGetEntityType();
 
   const [updateEntity] = useMutation<
@@ -110,17 +121,19 @@ const Page: NextPageWithLayout = () => {
     (entityId: EntityId) =>
       lazyGetEntity({
         variables: {
-          entityId,
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 1 },
-          constrainsLinkDestinationsOn: { outgoing: 1 },
           includePermissions: true,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
-          includeDrafts: !!draftId,
+          request: {
+            filter: generateEntityIdFilter({ entityId, includeArchived: true }),
+            graphResolveDepths: {
+              ...zeroedGraphResolveDepths,
+              isOfType: { outgoing: 1 },
+              hasLeftEntity: { outgoing: 1, incoming: 1 },
+              hasRightEntity: { outgoing: 1, incoming: 1 },
+            },
+            includeEntityTypes: "closed",
+            includeDrafts: !!draftId,
+            temporalAxes: currentTimeInstantTemporalAxes,
+          },
         },
       }),
     [draftId, lazyGetEntity],
@@ -147,16 +160,17 @@ const Page: NextPageWithLayout = () => {
 
           const subgraph = data
             ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-                data.getEntity.subgraph,
+                data.getEntitySubgraph.subgraph,
               )
             : undefined;
 
-          if (data?.getEntity) {
+          if (data?.getEntitySubgraph) {
             try {
               setEntitySubgraphFromDb(subgraph);
               setDraftEntitySubgraph(subgraph);
               setIsReadOnly(
-                !data.getEntity.userPermissionsOnEntities?.[entityId]?.edit,
+                !data.getEntitySubgraph.userPermissionsOnEntities?.[entityId]
+                  ?.edit,
               );
             } catch {
               setEntitySubgraphFromDb(undefined);
@@ -188,7 +202,7 @@ const Page: NextPageWithLayout = () => {
 
     const subgraph = data
       ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.getEntity.subgraph,
+          data.getEntitySubgraph.subgraph,
         )
       : undefined;
 

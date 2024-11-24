@@ -1,16 +1,19 @@
 import type {
+  ClosedDataType,
   ClosedMultiEntityType,
+  PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
-  ClosedMultiEntityType as GraphApiClosedMultiEntityType,
+  ClosedMultiEntityTypeMap,
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
-  GetEntitiesResponse,
-  GetEntitySubgraphResponse,
+  GetClosedMultiEntityTypeResponseDefinitions,
   GraphApi,
   OriginProvenance,
+  PartialEntityType as GraphApiPartialEntityType,
   PatchEntityParams as GraphApiPatchEntityParams,
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
@@ -471,20 +474,40 @@ export const flattenPropertyMetadata = (
   return flattened;
 };
 
+export type ClosedMultiEntityTypeRootMap = {
+  [key: string]: ClosedMultiEntityTypeMap;
+};
+
+export type PartialEntityType = Subtype<
+  GraphApiPartialEntityType,
+  Omit<GraphApiPartialEntityType, "$id"> & {
+    $id: VersionedUrl;
+  }
+>;
+
+export type ClosedMultiEntityTypesDefinitions = Subtype<
+  GetClosedMultiEntityTypeResponseDefinitions,
+  {
+    dataTypes: { [key: VersionedUrl]: ClosedDataType };
+    entityTypes: { [key: VersionedUrl]: PartialEntityType };
+    propertyTypes: { [key: VersionedUrl]: PropertyType };
+  }
+>;
+
 /**
  * Retrieves a `ClosedMultiEntityType` from a given response based on a list of entity type IDs.
  *
- * @param response - The response object returned from the Graph API which contains the closed multi-entity types.
+ * @param closedMultiEntityTypes - The object returned from the Graph API which contains the closed multi-entity types.
  * @param entityTypesIds - An array of entity type IDs.
- * @returns Returns a `ClosedMultiEntityType` if found, otherwise returns `undefined`.
+ * @throws Error If the closed entity type for the given entityTypeIds is not found in the map.
+ * @returns ClosedMultiEntityType
  */
-export const getClosedMultiEntityTypesFromResponse = (
-  response: GetEntitySubgraphResponse | GetEntitiesResponse,
+export const getClosedMultiEntityTypesFromMap = (
+  closedMultiEntityTypes: ClosedMultiEntityTypeRootMap | undefined,
   entityTypesIds: [VersionedUrl, ...VersionedUrl[]],
-): ClosedMultiEntityType | undefined => {
-  // A response does not necessarily include closed multi-entity types.
-  if (!response.closedMultiEntityTypes) {
-    return;
+): ClosedMultiEntityType => {
+  if (!closedMultiEntityTypes) {
+    throw new Error(`Expected closedMultiEntityTypes to be defined`);
   }
 
   // The `closedMultiEntityTypes` field contains a nested map of closed entity types.
@@ -510,13 +533,32 @@ export const getClosedMultiEntityTypesFromResponse = (
   // Thus, we sort the entity type IDs and traverse the nested map to find the closed multi-entity type.
   // The first entity type ID is used to get the first level of the nested map. The rest of the entity
   // type IDs are used to traverse the nested map.
-  const [firstEntityTypeId, ...restEntityTypesIds] = entityTypesIds.toSorted();
-  return restEntityTypesIds.reduce(
-    (map, entity_type_id) => map?.inner?.[entity_type_id],
-    response.closedMultiEntityTypes[firstEntityTypeId!],
-  )?.schema satisfies GraphApiClosedMultiEntityType | undefined as
-    | ClosedMultiEntityType
-    | undefined;
+  const [firstEntityTypeId, ...restEntityTypesIds] =
+    entityTypesIds.toSorted() as typeof entityTypesIds;
+
+  const unMappedFirstEntityType = closedMultiEntityTypes[firstEntityTypeId];
+
+  if (!unMappedFirstEntityType) {
+    throw new Error(
+      `Could not find closed entity type for id ${firstEntityTypeId} in map`,
+    );
+  }
+
+  const unmappedClosedEntityType = restEntityTypesIds.reduce(
+    (map, entityTypeId) => {
+      const nextEntityType = map.inner?.[entityTypeId];
+      if (!nextEntityType) {
+        throw new Error(
+          `Could not find closed entity type for id ${entityTypeId} in map`,
+        );
+      }
+
+      return nextEntityType;
+    },
+    unMappedFirstEntityType,
+  );
+
+  return unmappedClosedEntityType.schema as ClosedMultiEntityType;
 };
 
 export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
@@ -635,13 +677,13 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       ...params
     }: PatchEntityParameters,
     /**
-     * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of the update.
-     *    I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId is changed, but
-     *    it isn't causing a compiler error:
+     * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of
+     *   the update. I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId
+     *   is changed, but it isn't causing a compiler error:
      *
      *    public async patch<NewPropertyMap extends EntityProperties = PropertyMap>(
-     *      // PatchEntityParams sets a specific VersionedUrl based on NewPropertyMap, but this is not enforced by the compiler
-     *      params: PatchEntityParameters<NewPropertyMap>,
+     *      // PatchEntityParams sets a specific VersionedUrl based on NewPropertyMap, but this is not enforced by the
+     *   compiler params: PatchEntityParameters<NewPropertyMap>,
      *    )
      */
   ): Promise<this> {

@@ -10,11 +10,13 @@ import type {
   Entity as GraphApiEntity,
   EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
   EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
+  GetClosedMultiEntityTypeResponseDefinitions,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   PropertyTypeWithMetadata as GraphApiPropertyTypeWithMetadata,
   Subgraph as GraphApiSubgraph,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
+import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
@@ -233,6 +235,11 @@ export const mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType = (
 export const mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes = (
   entityTypes: GraphApiClosedMultiEntityType[],
 ) => entityTypes as ClosedMultiEntityType[];
+
+export const mapGraphApiDefinitionsToDefinitions = (
+  definitions: GetClosedMultiEntityTypeResponseDefinitions,
+  // @ts-expect-error Graph API types need updating to add 'abstract' and 'allOf' to ClosedDataType
+) => definitions as ClosedMultiEntityTypesDefinitions | undefined;
 
 export const mapGraphApiPropertyTypesToPropertyTypes = (
   entityTypes: GraphApiPropertyTypeWithMetadata[],
