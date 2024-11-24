@@ -27337,10 +27337,10 @@ react-type-animation@3.2.0:
   resolved "https://registry.yarnpkg.com/react-type-animation/-/react-type-animation-3.2.0.tgz#6863d5d60e3beb237f2bd690cceb585402c47e6a"
   integrity sha512-WXTe0i3rRNKjmggPvT5ntye1QBt0ATGbijeW6V3cQe2W0jaMABXXlPPEdtofnS9tM7wSRHchEvI9SUw+0kUohw==
 
-react-virtuoso@4.12.1:
-  version "4.12.1"
-  resolved "https://registry.yarnpkg.com/react-virtuoso/-/react-virtuoso-4.12.1.tgz#03318c73759cde1e5022ef413d628316a583ce14"
-  integrity sha512-v+jwMrF6L5q2k9n00mqdow3Kp1wxBfkrfKWP/waJmQ8BkE4xv0uY99arrmeHYxchgqqB9ttSbxkGd+i7sxALeg==
+react-virtuoso@4.12.2:
+  version "4.12.2"
+  resolved "https://registry.yarnpkg.com/react-virtuoso/-/react-virtuoso-4.12.2.tgz#a3ccf6cebef78056d36a7f6d0143fef8fc6236dd"
+  integrity sha512-9KiEc3uxD07qNrwb09PhPJKWfeNQ/Fw/TNKdZS7D3v4cDa6M/jg5lKLAUlRL7RluO8870cgLGM1T5pPKYEnprg==
 
 react-window@1.8.10:
   version "1.8.10"
