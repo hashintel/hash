@@ -163,7 +163,6 @@ bytes-utils                 = { version = "=0.1.4", default-features = false }
 clap                        = { version = "=4.5.21", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_complete               = { version = "=4.5.38", default-features = false }
 convert_case                = { version = "=0.6.0", default-features = false }
-coverage-helper             = { version = "=0.2.2", default-features = false }
 criterion-macro             = { version = "=0.4.0", default-features = false }
 derive-where                = { version = "=1.2.7", default-features = false, features = ["nightly"] }
 derive_more                 = { version = "=1.0.0", default-features = false }

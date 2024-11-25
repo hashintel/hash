@@ -42,10 +42,9 @@ impl SchemaVersion {
 
 #[cfg(test)]
 #[cfg(feature = "serde")]
+#[coverage(off)]
 pub(crate) mod tests {
     use std::fs;
-
-    use coverage_helper::test;
 
     use super::*;
 

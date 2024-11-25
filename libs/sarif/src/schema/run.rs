@@ -41,8 +41,8 @@ impl<'s> Run<'s> {
 
 #[cfg(test)]
 #[cfg(feature = "serde")]
+#[coverage(off)]
 pub(crate) mod tests {
-    use coverage_helper::test;
 
     use crate::schema::{
         Run, SarifLog, SchemaVersion, Tool, ToolComponent, tests::validate_schema,

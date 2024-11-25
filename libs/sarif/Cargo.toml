@@ -30,8 +30,7 @@ uuid       = { version = ">=1", public = true, default-features = false }
 serde = ["dep:serde", "dep:serde_json", "semver/serde", "url/serde", "uuid/serde"]
 
 [dev-dependencies]
-coverage-helper = { workspace = true }
-jsonschema      = { workspace = true }
+jsonschema = { workspace = true }
 
 [lints]
 workspace = true
