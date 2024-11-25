@@ -2,9 +2,9 @@ use error_stack::Report;
 use hash_graph_migrations::{Context, Migration};
 use tokio_postgres::Client;
 
-pub struct InitialSetup;
+pub struct Entities;
 
-impl Migration for InitialSetup {
+impl Migration for Entities {
     type Context = Client;
     type Error = tokio_postgres::Error;
 

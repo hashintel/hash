@@ -1,0 +1,4 @@
+DROP TABLE property_type_embeddings;
+DROP TABLE property_type_constrains_properties_on;
+DROP TABLE property_type_constrains_values_on;
+DROP TABLE property_types;
