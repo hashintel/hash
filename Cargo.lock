@@ -1409,12 +1409,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "coverage-helper"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8174551717bb3d1e75935e38d33f5f8ee8f680dd8dd42c90851e6c644faad14e"
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6544,7 +6538,6 @@ dependencies = [
 name = "sarif"
 version = "0.0.0-reserved"
 dependencies = [
- "coverage-helper",
  "jsonschema",
  "semver",
  "serde",
