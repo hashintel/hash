@@ -42,7 +42,7 @@ import { Button, Link } from "../../../../shared/ui";
 import { SlideBackForwardCloseBar } from "../../../shared/shared/slide-back-forward-close-bar";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditor } from "./entity-editor";
-import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
+import { useUpdateDraftEntityState } from "./shared/use-update-draft-entity-state";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
 
@@ -477,7 +477,7 @@ const EditEntitySlideOver = memo(
                 entitySubgraph={localEntitySubgraph}
                 setEntity={(newEntity) => {
                   setIsDirty(true);
-                  updateEntitySubgraphStateByEntity(
+                  useUpdateDraftEntityState(
                     newEntity,
                     (updatedEntitySubgraphOrFunction) => {
                       setLocalEntitySubgraph((prev) => {

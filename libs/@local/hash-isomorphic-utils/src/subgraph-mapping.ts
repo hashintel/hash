@@ -1,7 +1,4 @@
-import type {
-  ClosedEntityType,
-  ClosedMultiEntityType,
-} from "@blockprotocol/type-system";
+import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   ClosedEntityType as GraphApiClosedEntityType,
@@ -26,6 +23,7 @@ import type {
 } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
+  ClosedEntityType,
   DataTypeWithMetadata,
   EntityTypeResolveDefinitions,
   EntityTypeWithMetadata,
@@ -238,7 +236,6 @@ export const mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes = (
 
 export const mapGraphApiDefinitionsToDefinitions = (
   definitions: GetClosedMultiEntityTypeResponseDefinitions,
-  // @ts-expect-error Graph API types need updating to add 'abstract' and 'allOf' to ClosedDataType
 ) => definitions as ClosedMultiEntityTypesDefinitions | undefined;
 
 export const mapGraphApiPropertyTypesToPropertyTypes = (

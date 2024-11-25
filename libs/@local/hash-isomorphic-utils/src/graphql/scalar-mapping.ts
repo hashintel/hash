@@ -1,5 +1,3 @@
-import { ClosedMultiEntityTypeRootMap } from "@local/hash-graph-sdk/entity";
-
 export const scalars = {
   BaseUrl: "@local/hash-graph-types/ontology#BaseUrl",
   VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
@@ -20,15 +18,16 @@ export const scalars = {
   ConstructDataTypeParams:
     "@local/hash-isomorphic-utils/data-types#ConstructDataTypeParams",
 
-  ClosedMultiEntityTypeRootMap:
-    "@local/hash-graph-sdk/entity#ClosedMultiEntityTypeRootMap",
+  ClosedMultiEntityType:
+    "@local/hash-graph-types/ontology#ClosedMultiEntityType",
+  ClosedMultiEntityTypesRootMap:
+    "@local/hash-graph-sdk/entity#ClosedMultiEntityTypesRootMap",
   ClosedMultiEntityTypesDefinitions:
     "@local/hash-graph-sdk/entity#ClosedMultiEntityTypesDefinitions",
   EntityTypeWithMetadata:
     "@local/hash-graph-types/ontology#EntityTypeWithMetadata",
   ConstructEntityTypeParams:
     "@local/hash-isomorphic-utils/types#ConstructEntityTypeParams",
-
   PropertyTypeWithMetadata:
     "@local/hash-graph-types/ontology#PropertyTypeWithMetadata",
   ConstructPropertyTypeParams:

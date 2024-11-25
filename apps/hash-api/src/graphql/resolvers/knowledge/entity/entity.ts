@@ -211,15 +211,10 @@ export const getEntitySubgraphResolver: ResolverFn<
   GraphQLContext,
   QueryGetEntitySubgraphArgs
 > = async (_, { request }, graphQLContext, info) => {
-  const context = graphQLContextToImpureGraphContext(graphQLContext);
-
   const subgraph = await getEntitySubgraph(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
-    {
-      temporalClient: context.temporalClient,
-      ...request,
-    },
+    request,
   );
 
   return createSubgraphAndPermissionsReturn(graphQLContext, info, subgraph);

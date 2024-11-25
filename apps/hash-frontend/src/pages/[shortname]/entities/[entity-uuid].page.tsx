@@ -1,6 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
+  getClosedMultiEntityTypesFromMap,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
@@ -25,11 +26,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  EntityRootType,
-  extractEntityUuidFromEntityId,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   entityIdFromComponents,
   extractDraftIdFromEntityId,
@@ -56,11 +53,13 @@ import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { EditBar } from "../shared/edit-bar";
 import { useRouteNamespace } from "../shared/use-route-namespace";
+import type { EntityEditorProps } from "./[entity-uuid].page/entity-editor";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./[entity-uuid].page/shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./[entity-uuid].page/shared/use-draft-link-state";
+import { useUpdateEntityTypes } from "./[entity-uuid].page/shared/use-update-entity-types";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -82,14 +81,30 @@ const Page: NextPageWithLayout = () => {
 
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
-  const [entitySubgraphFromDb, setEntitySubgraphFromDb] =
-    useState<Subgraph<EntityRootType>>();
+  const [draftEntityTypesDetails, setDraftEntityTypesDetails] =
+    useState<
+      Pick<
+        EntityEditorProps,
+        "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
+      >
+    >();
+
+  const [dataFromDb, setDataFromDb] =
+    useState<
+      Pick<
+        EntityEditorProps,
+        | "closedMultiEntityType"
+        | "closedMultiEntityTypesDefinitions"
+        | "entitySubgraph"
+      >
+    >();
+
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
     useState<Subgraph<EntityRootType>>();
   const [isReadOnly, setIsReadOnly] = useState(true);
 
   const entityFromDb =
-    entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];
+    dataFromDb?.entitySubgraph && getRoots(dataFromDb.entitySubgraph)[0];
 
   /**
    * If the user is viewing a `User` entity, redirect to its profile page.
@@ -130,7 +145,7 @@ const Page: NextPageWithLayout = () => {
               hasLeftEntity: { outgoing: 1, incoming: 1 },
               hasRightEntity: { outgoing: 1, incoming: 1 },
             },
-            includeEntityTypes: "closed",
+            includeEntityTypes: "resolved",
             includeDrafts: !!draftId,
             temporalAxes: currentTimeInstantTemporalAxes,
           },
@@ -146,6 +161,59 @@ const Page: NextPageWithLayout = () => {
     setDraftLinksToArchive,
   ] = useDraftLinkState();
 
+  const setStateFromGetEntityResponse = useCallback(
+    (data?: GetEntitySubgraphQuery) => {
+      if (data?.getEntitySubgraph) {
+        const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          data.getEntitySubgraph.subgraph,
+        );
+
+        try {
+          const { closedMultiEntityTypes, definitions } =
+            data.getEntitySubgraph;
+
+          if (!closedMultiEntityTypes || !definitions) {
+            throw new Error(
+              "closedMultiEntityTypes and definitions are required",
+            );
+          }
+
+          const entity = getRoots(subgraph)[0];
+
+          if (!entity) {
+            throw new Error("No root entity found in entity subgraph");
+          }
+
+          const closedMultiEntityType = getClosedMultiEntityTypesFromMap(
+            closedMultiEntityTypes,
+            entity.metadata.entityTypeIds,
+          );
+
+          setDataFromDb({
+            closedMultiEntityType,
+            closedMultiEntityTypesDefinitions: definitions,
+            entitySubgraph: subgraph,
+          });
+
+          setDraftEntityTypesDetails({
+            closedMultiEntityType,
+            closedMultiEntityTypesDefinitions: definitions,
+          });
+          setDraftEntitySubgraph(subgraph);
+          setIsReadOnly(
+            !data.getEntitySubgraph.userPermissionsOnEntities?.[entity.entityId]
+              ?.edit,
+          );
+        } catch {
+          setDataFromDb(undefined);
+          setDraftEntitySubgraph(undefined);
+          setIsReadOnly(true);
+        }
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     if (routeNamespace) {
       const init = async () => {
@@ -158,26 +226,7 @@ const Page: NextPageWithLayout = () => {
 
           const { data } = await getEntity(entityId);
 
-          const subgraph = data
-            ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-                data.getEntitySubgraph.subgraph,
-              )
-            : undefined;
-
-          if (data?.getEntitySubgraph) {
-            try {
-              setEntitySubgraphFromDb(subgraph);
-              setDraftEntitySubgraph(subgraph);
-              setIsReadOnly(
-                !data.getEntitySubgraph.userPermissionsOnEntities?.[entityId]
-                  ?.edit,
-              );
-            } catch {
-              setEntitySubgraphFromDb(undefined);
-              setDraftEntitySubgraph(undefined);
-              setIsReadOnly(true);
-            }
-          }
+          setStateFromGetEntityResponse(data);
         } finally {
           setLoading(false);
         }
@@ -185,7 +234,14 @@ const Page: NextPageWithLayout = () => {
 
       void init();
     }
-  }, [draftId, entityUuid, getEntity, getEntityType, routeNamespace]);
+  }, [
+    draftId,
+    entityUuid,
+    getEntity,
+    getEntityType,
+    routeNamespace,
+    setStateFromGetEntityResponse,
+  ]);
 
   const refetch = useCallback(async () => {
     if (!routeNamespace || !draftEntitySubgraph) {
@@ -200,15 +256,15 @@ const Page: NextPageWithLayout = () => {
 
     const { data } = await getEntity(entityId);
 
-    const subgraph = data
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.getEntitySubgraph.subgraph,
-        )
-      : undefined;
-
-    setEntitySubgraphFromDb(subgraph);
-    setDraftEntitySubgraph(subgraph);
-  }, [draftEntitySubgraph, draftId, entityUuid, getEntity, routeNamespace]);
+    setStateFromGetEntityResponse(data);
+  }, [
+    draftEntitySubgraph,
+    draftId,
+    entityUuid,
+    getEntity,
+    routeNamespace,
+    setStateFromGetEntityResponse,
+  ]);
 
   const resetDraftState = () => {
     setIsDirty(false);
@@ -218,12 +274,27 @@ const Page: NextPageWithLayout = () => {
 
   const discardChanges = () => {
     resetDraftState();
-    setDraftEntitySubgraph(entitySubgraphFromDb);
+
+    const {
+      entitySubgraph,
+      closedMultiEntityType,
+      closedMultiEntityTypesDefinitions,
+    } = dataFromDb ?? {};
+
+    setDraftEntityTypesDetails(
+      closedMultiEntityType && closedMultiEntityTypesDefinitions
+        ? {
+            closedMultiEntityType,
+            closedMultiEntityTypesDefinitions,
+          }
+        : undefined,
+    );
+    setDraftEntitySubgraph(entitySubgraph);
   };
 
   const [savingChanges, setSavingChanges] = useState(false);
   const handleSaveChanges = async (overrideProperties?: PropertyObject) => {
-    if (!entitySubgraphFromDb || !draftEntitySubgraph) {
+    if (!dataFromDb || !draftEntitySubgraph) {
       return;
     }
 
@@ -236,7 +307,7 @@ const Page: NextPageWithLayout = () => {
     try {
       setSavingChanges(true);
 
-      const entity = getRoots(entitySubgraphFromDb)[0];
+      const entity = getRoots(dataFromDb.entitySubgraph)[0];
       if (!entity) {
         throw new Error(`entity not found in subgraph`);
       }
@@ -303,11 +374,13 @@ const Page: NextPageWithLayout = () => {
     [draftId, refetch, router, routeNamespace],
   );
 
+  const updateEntityTypes = useUpdateEntityTypes();
+
   if (loading) {
     return <EntityPageLoadingState />;
   }
 
-  if (!draftEntitySubgraph) {
+  if (!draftEntitySubgraph || !draftEntityTypesDetails) {
     return <PageErrorState />;
   }
 
@@ -327,6 +400,7 @@ const Page: NextPageWithLayout = () => {
   return (
     <EntityEditorPage
       entity={entityFromDb}
+      {...draftEntityTypesDetails}
       editBar={
         <EditBar
           visible={isModifyingEntity}
@@ -354,6 +428,12 @@ const Page: NextPageWithLayout = () => {
       entitySubgraph={draftEntitySubgraph}
       readonly={isReadOnly}
       onEntityUpdated={(entity) => onEntityUpdated(entity)}
+      setEntityTypes={async (newEntityTypeIds) => {
+        await updateEntityTypes({
+          newEntityTypeIds,
+          setEntityTypeDetailsState: setDraftEntityTypesDetails,
+        });
+      }}
       setEntity={(changedEntity) => {
         setIsDirty(true);
         updateEntitySubgraphStateByEntity(

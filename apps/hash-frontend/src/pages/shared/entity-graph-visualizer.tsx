@@ -1,5 +1,5 @@
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { ibm } from "@hashintel/design-system/palettes";
 import type {
   EntityId,

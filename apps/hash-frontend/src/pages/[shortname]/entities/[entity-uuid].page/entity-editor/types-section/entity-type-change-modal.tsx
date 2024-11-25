@@ -18,26 +18,28 @@ export type EntityTypeChangeDetails = {
         type: "Remove";
       };
   linkChanges: {
-    linkTitle: string;
     change:
-      | "Added"
-      | "Removed"
+      | "Added (optional)"
+      | "Added (required)"
       | "Now required"
-      | "Now array"
-      | "No longer array"
-      | "Target changed";
-    blocking: boolean;
+      | "Min items changed"
+      | "Max items changed"
+      | "Removed"
+      | "Target type(s) changed";
+    linkTitle: string;
   }[];
   propertyChanges: {
     propertyTitle: string;
     change:
-      | "Added"
-      | "Removed"
+      | "Added (optional)"
+      | "Added (required)"
+      | "Now a list"
+      | "No longer a list"
       | "Now required"
-      | "Type changed"
+      | "Min items changed"
       | "Max items changed"
-      | "Min items changed";
-    blocking: boolean;
+      | "Removed"
+      | "Value type changed";
   }[];
 };
 
@@ -234,9 +236,6 @@ export const EntityTypeChangeModal = ({
     };
 
     for (const propertyChange of propertyChanges) {
-      if (propertyChange.blocking) {
-        summary.blockCount++;
-      }
       if (propertyChange.change === "Added") {
         summary.propertyChangeCount.added++;
       }
@@ -254,9 +253,6 @@ export const EntityTypeChangeModal = ({
     }
 
     for (const linkChange of linkChanges) {
-      if (linkChange.blocking) {
-        summary.blockCount++;
-      }
       if (linkChange.change === "Added") {
         summary.linkChangeCount.added++;
       }
@@ -267,7 +263,7 @@ export const EntityTypeChangeModal = ({
       if (linkChange.change === "Now required") {
         summary.linkChangeCount.madeRequired++;
       }
-      if (linkChange.change === "Target changed") {
+      if (linkChange.change === "Target(s) changed") {
         summary.linkChangeCount.changedDestination++;
         summary.shouldWarn = true;
       }

@@ -1,9 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { PartialEntityType } from "@local/hash-graph-sdk/entity";
 import {
-  getBreadthFirstEntityTypesAndParents,
-  getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getRoots,
   intervalCompareWithInterval,
@@ -15,15 +13,11 @@ import { useFileUploads } from "../../../../../../../shared/file-upload-context"
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../entity-editor-context";
 import type { LinkRow } from "./types";
-import {
-  getClosedMultiEntityTypesFromMap,
-  PartialEntityType,
-} from "@local/hash-graph-sdk/entity";
 
 export const useRows = () => {
   const {
     closedMultiEntityTypesDefinitions,
-    closedMultiEntityTypes,
+    closedMultiEntityType,
     entitySubgraph,
     draftLinksToArchive,
     draftLinksToCreate,
@@ -38,11 +32,6 @@ export const useRows = () => {
 
   const rows = useMemo<LinkRow[]>(() => {
     const entity = getRoots(entitySubgraph)[0]!;
-
-    const closedMultiEntityType = getClosedMultiEntityTypesFromMap(
-      closedMultiEntityTypes,
-      entity.metadata.entityTypeIds,
-    );
 
     const variableAxis = entitySubgraph.temporalAxes.resolved.variable.axis;
     const entityInterval = entity.metadata.temporalVersioning[variableAxis];
@@ -190,7 +179,7 @@ export const useRows = () => {
       },
     );
   }, [
-    closedMultiEntityTypes,
+    closedMultiEntityType,
     closedMultiEntityTypesDefinitions,
     entitySubgraph,
     draftLinksToArchive,

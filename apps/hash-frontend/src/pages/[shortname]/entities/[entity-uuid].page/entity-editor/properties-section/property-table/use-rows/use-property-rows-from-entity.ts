@@ -1,4 +1,3 @@
-import { getClosedMultiEntityTypesFromMap } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -10,17 +9,12 @@ import { generatePropertyRowRecursively } from "./generate-property-rows-from-en
 export const usePropertyRowsFromEntity = (): PropertyRow[] => {
   const {
     entitySubgraph,
-    closedMultiEntityTypes,
+    closedMultiEntityType,
     closedMultiEntityTypesDefinitions,
   } = useEntityEditor();
 
   return useMemo(() => {
     const entity = getRoots(entitySubgraph)[0]!;
-
-    const closedMultiEntityType = getClosedMultiEntityTypesFromMap(
-      closedMultiEntityTypes,
-      entity.metadata.entityTypeIds,
-    );
 
     const processedPropertyTypes = new Set<BaseUrl>();
 
@@ -53,7 +47,7 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
     );
   }, [
     entitySubgraph,
-    closedMultiEntityTypes,
+    closedMultiEntityType,
     closedMultiEntityTypesDefinitions,
   ]);
 };

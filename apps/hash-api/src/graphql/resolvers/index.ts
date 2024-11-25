@@ -83,6 +83,7 @@ import {
   archiveEntityTypeResolver,
   checkUserPermissionsOnEntityTypeResolver,
   createEntityTypeResolver,
+  getClosedMultiEntityTypeResolver,
   getEntityTypeResolver,
   queryEntityTypesResolver,
   unarchiveEntityTypeResolver,
@@ -119,6 +120,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getPropertyType: getPropertyTypeResolver,
     queryEntityTypes: queryEntityTypesResolver,
     getEntityType: getEntityTypeResolver,
+    getClosedMultiEntityType: getClosedMultiEntityTypeResolver,
     // Knowledge
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),

@@ -1,25 +1,22 @@
-import { useMutation, useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import { useQuery } from "@apollo/client";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { PlusIcon, TypeCard } from "@hashintel/design-system";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityTypeRootType } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import type {
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
 } from "../../../../../graphql/api-types.gen";
-import { updateEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { Button } from "../../../../../shared/ui/button";
 import { Link } from "../../../../../shared/ui/link";
@@ -29,6 +26,15 @@ import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
 import type { EntityTypeChangeDetails } from "./types-section/entity-type-change-modal";
 import { EntityTypeChangeModal } from "./types-section/entity-type-change-modal";
+import { useGetTypeChangeDetails } from "./types-section/use-get-type-change-details";
+
+type MinimalTypeData = {
+  entityTypeId: VersionedUrl;
+  entityTypeTitle: string;
+  icon?: string;
+  isLink: boolean;
+  version: number;
+};
 
 export const TypeButton = ({
   entity,
@@ -36,128 +42,99 @@ export const TypeButton = ({
   newerEntityType,
 }: {
   entity: Entity;
-  currentEntityType: EntityTypeWithMetadata;
-  newerEntityType?: EntityTypeWithMetadata;
+  currentEntityType: MinimalTypeData;
+  newerEntityType?: Pick<MinimalTypeData, "entityTypeId" | "version">;
 }) => {
-  const { disableTypeClick, onEntityUpdated, readonly } = useEntityEditor();
+  const { disableTypeClick, readonly, setEntityTypes } = useEntityEditor();
 
-  const newVersion = newerEntityType?.metadata.recordId.version;
+  const newVersion = newerEntityType?.version;
 
   const [changeDetails, setChangeDetails] =
     useState<EntityTypeChangeDetails | null>(null);
 
   const [updatingTypes, setUpdatingTypes] = useState(false);
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  const getTypeDetails = useGetTypeChangeDetails();
 
   const handleUpdateTypes = async (newEntityTypeIds: VersionedUrl[]) => {
     try {
-      setUpdatingTypes(true);
-
-      const res = await updateEntity({
-        variables: {
-          entityUpdate: {
-            entityTypeIds: newEntityTypeIds,
-            entityId: entity.metadata.recordId.entityId,
-            propertyPatches: [],
-          },
-        },
-      });
-
-      if (res.data) {
-        onEntityUpdated?.(new Entity(res.data.updateEntity));
-      }
-    } finally {
+      await setEntityTypes(newEntityTypeIds);
       setChangeDetails(null);
+    } finally {
       setUpdatingTypes(false);
     }
   };
 
-  const onUpgradeClicked = () => {
+  const onUpgradeClicked = async () => {
     if (!newerEntityType) {
       throw new Error(`No newer entity type to upgrade to`);
     }
 
     const newEntityTypeIds = entity.metadata.entityTypeIds.map(
       (entityTypeId) => {
-        if (entityTypeId === currentEntityType.schema.$id) {
-          return newerEntityType.schema.$id;
+        if (entityTypeId === currentEntityType.entityTypeId) {
+          return newerEntityType.entityTypeId;
         }
 
         return entityTypeId;
       },
     );
 
+    const { linkChanges, propertyChanges } =
+      await getTypeDetails(newEntityTypeIds);
+
     setChangeDetails({
       onAccept: () => handleUpdateTypes(newEntityTypeIds),
       proposedChange: {
         type: "Update",
-        entityTypeTitle: currentEntityType.schema.title,
-        currentVersion: currentEntityType.metadata.recordId.version,
-        newVersion: newerEntityType.metadata.recordId.version,
+        entityTypeTitle: currentEntityType.entityTypeTitle,
+        currentVersion: currentEntityType.version,
+        newVersion: newerEntityType.version,
       },
-      /**
-       * @todo H-3408: Calculate and show property/link changes when upgrading entity types
-       */
-      linkChanges: [],
-      propertyChanges: [],
+      linkChanges,
+      propertyChanges,
     });
   };
 
-  const onDeleteClicked = () => {
+  const onDeleteClicked = async () => {
     const newEntityTypeIds = entity.metadata.entityTypeIds.filter(
-      (entityTypeId) => entityTypeId !== currentEntityType.schema.$id,
+      (entityTypeId) => entityTypeId !== currentEntityType.entityTypeId,
     );
+
+    const { linkChanges, propertyChanges } =
+      await getTypeDetails(newEntityTypeIds);
 
     setChangeDetails({
       onAccept: () => handleUpdateTypes(newEntityTypeIds),
       proposedChange: {
         type: "Remove",
-        entityTypeTitle: currentEntityType.schema.title,
-        currentVersion: currentEntityType.metadata.recordId.version,
+        entityTypeTitle: currentEntityType.entityTypeTitle,
+        currentVersion: currentEntityType.version,
       },
-      /**
-       * @todo H-3408: Calculate and show property/link changes when removing entity types
-       */
-      linkChanges: [],
-      propertyChanges: [],
+      linkChanges,
+      propertyChanges,
     });
   };
 
   const closeModal = () => setChangeDetails(null);
 
-  const entityTypeId = currentEntityType.schema.$id;
-  const entityTypeTitle = currentEntityType.schema.title;
-  const currentVersion = currentEntityType.metadata.recordId.version;
+  const entityTypeId = currentEntityType.entityTypeId;
+  const entityTypeTitle = currentEntityType.entityTypeTitle;
+  const currentVersion = currentEntityType.version;
 
-  /**
-   * @todo H-3379 bring changes to types into the same 'local draft changes' system as properties/links changes,
-   *    which enables the user to make type changes before the entity is persisted to the db.
-   */
-  const isNotYetInDb = entity.metadata.recordId.entityId.includes("draft");
-  const canChangeTypes = !readonly && !isNotYetInDb;
-
-  const isLink = !!currentEntityType.schema.allOf?.some(
-    (allOf) => allOf.$ref === linkEntityTypeUrl,
-  );
-
-  /** @todo H-3363 take account of inherited icons */
   return (
     <>
       <TypeCard
         disableClick={disableTypeClick}
         LinkComponent={Link}
-        icon={currentEntityType.schema.icon}
-        isLink={isLink}
-        onDelete={canChangeTypes ? onDeleteClicked : undefined}
+        icon={currentEntityType.icon}
+        isLink={currentEntityType.isLink}
+        onDelete={readonly ? onDeleteClicked : undefined}
         url={entityTypeId}
         title={entityTypeTitle}
         version={currentVersion}
         newVersionConfig={
-          canChangeTypes && newVersion
+          readonly && newVersion
             ? {
                 newVersion,
                 onUpdateVersion: onUpgradeClicked,
@@ -178,13 +155,10 @@ export const TypeButton = ({
 };
 
 export const TypesSection = () => {
-  const { entitySubgraph, readonly, onEntityUpdated } = useEntityEditor();
+  const { entitySubgraph, closedMultiEntityType, readonly, setEntityTypes } =
+    useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
-
-  const {
-    metadata: { entityTypeIds },
-  } = entity;
 
   const { data: latestEntityTypesData } = useQuery<
     QueryEntityTypesQuery,
@@ -206,8 +180,8 @@ export const TypesSection = () => {
 
   const entityTypes = useMemo<
     {
-      currentEntityType: EntityTypeWithMetadata;
-      newerEntityType?: EntityTypeWithMetadata;
+      currentEntityType: MinimalTypeData;
+      newerEntityType?: Pick<MinimalTypeData, "entityTypeId" | "version">;
     }[]
   >(() => {
     const typedSubgraph = latestEntityTypesData
@@ -220,62 +194,52 @@ export const TypesSection = () => {
       ? getRoots<EntityTypeRootType>(typedSubgraph)
       : [];
 
-    return entityTypeIds.map((entityTypeId) => {
-      const currentEntityType = getEntityTypeById(entitySubgraph, entityTypeId);
-
-      if (!currentEntityType) {
-        throw new Error(
-          `Could not find entity type with id ${entityTypeId} in subgraph`,
-        );
-      }
+    return closedMultiEntityType.allOf.map((currentTypeMetadata) => {
+      const { baseUrl, version } = componentsFromVersionedUrl(
+        currentTypeMetadata.$id,
+      );
 
       const newerEntityType = latestEntityTypes.find(
         (type) =>
-          type.metadata.recordId.baseUrl ===
-            currentEntityType.metadata.recordId.baseUrl &&
-          type.metadata.recordId.version >
-            currentEntityType.metadata.recordId.version,
+          type.metadata.recordId.baseUrl === baseUrl &&
+          type.metadata.recordId.version > version,
       );
 
-      return { currentEntityType, newerEntityType };
-    });
-  }, [entitySubgraph, entityTypeIds, latestEntityTypesData]);
+      const currentEntityType: MinimalTypeData = {
+        entityTypeId: currentTypeMetadata.$id,
+        entityTypeTitle: currentTypeMetadata.title,
+        icon: currentTypeMetadata.icon,
+        isLink: !!currentTypeMetadata.allOf?.some(
+          (parent) => parent.$id === linkEntityTypeUrl,
+        ),
+        version,
+      };
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+      return {
+        currentEntityType,
+        newerEntityType: newerEntityType
+          ? {
+              entityTypeId: newerEntityType.schema.$id,
+              version: newerEntityType.metadata.recordId.version,
+            }
+          : undefined,
+      };
+    });
+  }, [closedMultiEntityType, latestEntityTypesData]);
 
   const [addingType, setAddingType] = useState(false);
 
   const onNewTypeSelected = async (entityTypeId: VersionedUrl) => {
+    const newEntityTypeIds = [...entity.metadata.entityTypeIds, entityTypeId];
+
     try {
       setAddingType(true);
 
-      const res = await updateEntity({
-        variables: {
-          entityUpdate: {
-            entityTypeIds: [...entityTypeIds, entityTypeId],
-            entityId: entity.metadata.recordId.entityId,
-            propertyPatches: [],
-          },
-        },
-      });
-
-      if (res.data) {
-        onEntityUpdated?.(new Entity(res.data.updateEntity));
-      }
+      await setEntityTypes(newEntityTypeIds);
     } finally {
       setAddingType(false);
     }
   };
-
-  /**
-   * @todo H-3379 bring changes to types into the same 'local draft changes' system as properties/links changes,
-   *    which enables the user to make type changes before the entity is persisted to the db.
-   */
-  const isNotYetInDb = entity.metadata.recordId.entityId.includes("draft");
-  const canChangeTypes = !readonly && !isNotYetInDb;
 
   return (
     <SectionWrapper
@@ -285,13 +249,13 @@ export const TypesSection = () => {
       <Stack alignItems="center" direction="row" gap={1.5}>
         {entityTypes.map(({ currentEntityType, newerEntityType }) => (
           <TypeButton
-            key={currentEntityType.schema.$id}
+            key={currentEntityType.entityTypeId}
             entity={entity}
             currentEntityType={currentEntityType}
             newerEntityType={newerEntityType}
           />
         ))}
-        {canChangeTypes &&
+        {!readonly &&
           (addingType ? (
             <Box component="form" sx={{ flexGrow: 1 }}>
               <EntityTypeSelector
@@ -299,8 +263,8 @@ export const TypesSection = () => {
                   ...entityTypes.flatMap(
                     ({ currentEntityType, newerEntityType }) =>
                       [
-                        currentEntityType.schema.$id,
-                        newerEntityType?.schema.$id ?? [],
+                        currentEntityType.entityTypeId,
+                        newerEntityType?.entityTypeId ?? [],
                       ].flat(),
                   ),
                   ...nonAssignableTypes,

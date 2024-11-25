@@ -1,9 +1,10 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
-  ClosedMultiEntityTypeRootMap,
   ClosedMultiEntityTypesDefinitions,
   Entity,
 } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { ClosedMultiEntityType } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
@@ -26,7 +27,7 @@ import type { DraftLinkState } from "./shared/use-draft-link-state";
 export type { CustomColumn };
 
 export interface EntityEditorProps extends DraftLinkState {
-  closedMultiEntityTypes: ClosedMultiEntityTypeRootMap;
+  closedMultiEntityType: ClosedMultiEntityType;
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
   customColumns?: CustomColumn[];
   defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
@@ -36,6 +37,7 @@ export interface EntityEditorProps extends DraftLinkState {
   entitySubgraph: Subgraph<EntityRootType>;
   onEntityClick: (entityId: EntityId) => void;
   setEntity: (entity: Entity) => void;
+  setEntityTypes: (entityTypeIds: VersionedUrl[]) => Promise<void>;
   readonly: boolean;
   onEntityUpdated: ((entity: Entity) => void) | null;
   /**

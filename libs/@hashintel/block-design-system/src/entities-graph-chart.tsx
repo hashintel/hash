@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   Chart,
   ECOption,

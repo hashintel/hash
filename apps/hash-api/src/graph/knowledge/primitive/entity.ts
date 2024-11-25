@@ -160,7 +160,7 @@ export const createEntity = async <Properties extends EntityProperties>(
 export const getEntities: ImpureGraphFunction<
   GetEntitiesRequest & { temporalClient?: TemporalClient },
   Promise<Entity[]>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...params }) => {
+> = async ({ graphApi, temporalClient }, { actorId }, params) => {
   await rewriteSemanticFilter(params.filter, temporalClient);
 
   const isRequesterAdmin = isTestEnv
@@ -186,11 +186,9 @@ export const getEntities: ImpureGraphFunction<
  * @param params.query the structural query to filter entities by.
  */
 export const getEntitySubgraph: ImpureGraphFunction<
-  GetEntitySubgraphRequest & {
-    temporalClient?: TemporalClient;
-  },
+  GetEntitySubgraphRequest,
   Promise<Subgraph<EntityRootType>>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...params }) => {
+> = async ({ graphApi, temporalClient }, { actorId }, params) => {
   await rewriteSemanticFilter(params.filter, temporalClient);
 
   const isRequesterAdmin = isTestEnv

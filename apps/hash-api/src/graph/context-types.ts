@@ -8,25 +8,25 @@ import type { DataSource } from "apollo-datasource";
 export type GraphApi = GraphApiClient & DataSource;
 
 export type ImpureGraphContext<
-  WithUpload extends boolean = false,
-  WithTemporal extends boolean = false,
+  RequiresUpload extends boolean = false,
+  RequiresTemporal extends boolean = false,
 > = {
   graphApi: GraphApi;
   provenance: EnforcedEntityEditionProvenance;
-} & (WithUpload extends true
+} & (RequiresUpload extends true
   ? { uploadProvider: UploadableStorageProvider }
-  : Record<string, unknown>) &
-  (WithTemporal extends true
+  : { uploadProvider?: UploadableStorageProvider }) &
+  (RequiresTemporal extends true
     ? { temporalClient: TemporalClient }
-    : Record<string, unknown>);
+    : { temporalClient?: TemporalClient });
 
 export type ImpureGraphFunction<
   Parameters,
   ReturnType,
-  WithUpload extends boolean = false,
-  WithTemporal extends boolean = false,
+  RequiresUpload extends boolean = false,
+  RequiresTemporal extends boolean = false,
 > = (
-  context: ImpureGraphContext<WithUpload, WithTemporal>,
+  context: ImpureGraphContext<RequiresUpload, RequiresTemporal>,
   authentication: AuthenticationContext,
   params: Parameters,
 ) => ReturnType;

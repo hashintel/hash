@@ -1,6 +1,5 @@
 import type {
   ClosedDataType,
-  ClosedMultiEntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -49,7 +48,10 @@ import {
   isObjectMetadata,
   isValueMetadata,
 } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  ClosedMultiEntityType,
+} from "@local/hash-graph-types/ontology";
 import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   CreatedAtDecisionTime,
@@ -474,7 +476,7 @@ export const flattenPropertyMetadata = (
   return flattened;
 };
 
-export type ClosedMultiEntityTypeRootMap = {
+export type ClosedMultiEntityTypesRootMap = {
   [key: string]: ClosedMultiEntityTypeMap;
 };
 
@@ -503,7 +505,7 @@ export type ClosedMultiEntityTypesDefinitions = Subtype<
  * @returns ClosedMultiEntityType
  */
 export const getClosedMultiEntityTypesFromMap = (
-  closedMultiEntityTypes: ClosedMultiEntityTypeRootMap | undefined,
+  closedMultiEntityTypes: ClosedMultiEntityTypesRootMap | undefined,
   entityTypesIds: [VersionedUrl, ...VersionedUrl[]],
 ): ClosedMultiEntityType => {
   if (!closedMultiEntityTypes) {
@@ -559,6 +561,39 @@ export const getClosedMultiEntityTypesFromMap = (
   );
 
   return unmappedClosedEntityType.schema as ClosedMultiEntityType;
+};
+
+export const getPropertyTypeForClosedEntityType = ({
+  closedMultiEntityType,
+  definitions,
+  propertyTypeBaseUrl,
+}: {
+  closedMultiEntityType: ClosedMultiEntityType;
+  definitions: ClosedMultiEntityTypesDefinitions;
+  propertyTypeBaseUrl: BaseUrl;
+}) => {
+  const schema = closedMultiEntityType.properties[propertyTypeBaseUrl];
+
+  if (!schema) {
+    throw new Error(
+      `Expected ${propertyTypeBaseUrl} to appear in entity properties`,
+    );
+  }
+
+  const propertyTypeId = "items" in schema ? schema.items.$ref : schema.$ref;
+
+  const propertyType = definitions.propertyTypes[propertyTypeId];
+
+  if (!propertyType) {
+    throw new Error(
+      `Expected ${propertyTypeId} to appear in definitions.propertyTypes`,
+    );
+  }
+
+  return {
+    propertyType,
+    schema,
+  };
 };
 
 export class Entity<PropertyMap extends EntityProperties = EntityProperties> {

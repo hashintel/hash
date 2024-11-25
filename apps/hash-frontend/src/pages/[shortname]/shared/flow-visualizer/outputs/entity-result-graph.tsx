@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";

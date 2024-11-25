@@ -16,7 +16,7 @@ import { WorkspaceContext } from "../../../shared/workspace-context";
 import { EditBar } from "../../shared/edit-bar";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
-import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
+import { useUpdateDraftEntityState } from "./shared/use-update-draft-entity-state";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftEntitySubgraph } from "./shared/use-draft-entity-subgraph";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
@@ -149,7 +149,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         isDraft
         handleSaveChanges={handleCreateEntity}
         setEntity={(entity) => {
-          updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
+          useUpdateDraftEntityState(entity, setDraftEntitySubgraph);
         }}
         draftLinksToCreate={draftLinksToCreate}
         setDraftLinksToCreate={setDraftLinksToCreate}

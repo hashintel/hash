@@ -190,11 +190,9 @@ export const createEntityType: ImpureGraphFunction<
  * @param params.query the structural query to filter entity types by.
  */
 export const getEntityTypeSubgraph: ImpureGraphFunction<
-  Omit<GetEntityTypeSubgraphParams, "includeDrafts"> & {
-    temporalClient?: TemporalClient;
-  },
+  Omit<GetEntityTypeSubgraphParams, "includeDrafts">,
   Promise<Subgraph<EntityTypeRootType>>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+> = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   return await graphApi
@@ -210,11 +208,9 @@ export const getEntityTypeSubgraph: ImpureGraphFunction<
 };
 
 export const getEntityTypes: ImpureGraphFunction<
-  Omit<GetEntityTypesParams, "includeDrafts" | "includeEntityTypes"> & {
-    temporalClient?: TemporalClient;
-  },
+  Omit<GetEntityTypesParams, "includeDrafts" | "includeEntityTypes">,
   Promise<EntityTypeWithMetadata[]>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+> = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   return await graphApi
@@ -232,7 +228,7 @@ export const getClosedEntityTypes: ImpureGraphFunction<
     temporalClient?: TemporalClient;
   },
   Promise<ClosedEntityTypeWithMetadata[]>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+> = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   const { data: response } = await graphApi.getEntityTypes(actorId, {
@@ -259,11 +255,9 @@ export type GetClosedMultiEntityTypeResponse = Omit<
 };
 
 export const getClosedMultiEntityType: ImpureGraphFunction<
-  GetClosedMultiEntityTypeParams & {
-    temporalClient?: TemporalClient;
-  },
+  GetClosedMultiEntityTypeParams,
   Promise<GetClosedMultiEntityTypeResponse>
-> = async ({ graphApi }, { actorId }, { temporalClient: _, ...request }) =>
+> = async ({ graphApi }, { actorId }, request) =>
   graphApi
     .getClosedMultiEntityType(actorId, request)
     .then(({ data: response }) => ({

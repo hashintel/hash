@@ -123,7 +123,7 @@ export const entityTypedef = gql`
 
     getEntitySubgraph(
       request: GetEntitySubgraphRequest!
-    ): SubgraphAndPermissions!
+    ): GetEntitySubgraphResponse!
 
     """
     Get a subgraph rooted at an entity resolved by its id.
