@@ -25,8 +25,16 @@
           "minItems": 1
         }
       ]
+    },
+    "allOf": {
+      "type": "array",
+      "items": {},
+      "minItems": 1
+    },
+    "abstract": {
+      "type": "boolean"
     }
   },
-  "required": ["$id", "title", "description"],
+  "required": ["$id", "title", "description", "allOf", "abstract"],
   "additionalProperties": true
 }
