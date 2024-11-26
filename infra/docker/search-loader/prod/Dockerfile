@@ -5,7 +5,7 @@ WORKDIR /app
 # Ensure that the node module layer can be cached
 COPY package.json .
 COPY yarn.lock .
-RUN yarn install --frozen-lockfile --production --ignore-scripts --prefer-offline
+RUN yarn install --immutable --production --ignore-scripts
 
 # Also ensure that api node modules can be cached
 COPY apps/hash-api/package.json apps/hash-api/
@@ -13,7 +13,7 @@ COPY apps/hash-search-realtime/package.json apps/hash-search-realtime/
 COPY libs/@local/hash-backend-utils/package.json libs/@local/hash-backend-utils/
 COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
-RUN yarn workspace @apps/hash-search-loader install --frozen-lockfile --ignore-scripts --prefer-offline
+RUN yarn workspace @apps/hash-search-loader install --immutable --ignore-scripts
 
 COPY apps/hash-api/codegen.config.ts apps/hash-api/codegen.config.ts
 COPY apps/hash-api/src/collab/graphql/queries apps/hash-api/src/collab/graphql/queries
