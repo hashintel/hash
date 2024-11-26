@@ -1,0 +1,9 @@
+name: Enable corepack
+description: "Enables corepack for the repository"
+
+runs:
+  using: composite
+  steps:
+    - name: Enable corepack
+      shell: bash
+      run: corepack enable
