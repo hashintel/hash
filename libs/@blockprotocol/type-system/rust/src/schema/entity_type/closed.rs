@@ -26,14 +26,14 @@ pub struct ClosedEntityTypeMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
     pub description: String,
-    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
-    pub inverse: InverseEntityTypeMetadata,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(
         target_arch = "wasm32",
         tsify(type = "[EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]]")
     )]
     pub all_of: Vec<EntityTypeDisplayMetadata>,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -46,8 +46,6 @@ pub struct ClosedEntityType {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
     pub description: String,
-    #[serde(flatten)]
-    pub constraints: EntityConstraints,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(
         target_arch = "wasm32",
@@ -56,6 +54,8 @@ pub struct ClosedEntityType {
     pub all_of: Vec<EntityTypeDisplayMetadata>,
     #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
     pub inverse: InverseEntityTypeMetadata,
+    #[serde(flatten)]
+    pub constraints: EntityConstraints,
 }
 
 #[derive(Debug, Error)]
@@ -69,6 +69,8 @@ pub enum ResolveClosedEntityTypeError {
     IncompatibleProperty(BaseUrl),
     #[error("The entity type has an empty schema")]
     EmptySchema,
+    #[error("The entity type has an inheritance depth overflow")]
+    InheritanceDepthOverflow,
 }
 
 impl ClosedEntityType {
@@ -82,16 +84,21 @@ impl ClosedEntityType {
         resolve_data: &EntityTypeResolveData,
     ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
         let mut closed_schema = Self {
-            id: schema.id,
+            id: schema.id.clone(),
             constraints: schema.constraints,
             title: schema.title,
             title_plural: schema.title_plural,
             description: schema.description,
             inverse: schema.inverse,
-            all_of: Vec::new(),
+            all_of: vec![EntityTypeDisplayMetadata {
+                id: schema.id,
+                depth: 0,
+                icon: schema.icon,
+                label_property: schema.label_property,
+            }],
         };
 
-        for (_depth, entity_type) in resolve_data.ordered_schemas() {
+        for (depth, entity_type) in resolve_data.ordered_schemas() {
             schema.all_of.remove((&entity_type.id).into());
             closed_schema
                 .constraints
@@ -105,13 +112,16 @@ impl ClosedEntityType {
                 &mut closed_schema.constraints.links,
                 entity_type.constraints.links.clone(),
             );
-            if entity_type.icon.is_some() || entity_type.label_property.is_some() {
-                closed_schema.all_of.push(EntityTypeDisplayMetadata {
-                    id: entity_type.id.clone(),
-                    label_property: entity_type.label_property.clone(),
-                    icon: entity_type.icon.clone(),
-                });
-            }
+
+            closed_schema.all_of.push(EntityTypeDisplayMetadata {
+                id: entity_type.id.clone(),
+                depth: depth
+                    .inner()
+                    .checked_add(1)
+                    .ok_or(ResolveClosedEntityTypeError::InheritanceDepthOverflow)?,
+                label_property: entity_type.label_property.clone(),
+                icon: entity_type.icon.clone(),
+            });
         }
 
         ensure!(

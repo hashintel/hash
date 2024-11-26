@@ -74,6 +74,7 @@ pub struct EntityTypeSchemaMetadata {
 pub struct EntityTypeDisplayMetadata {
     #[serde(rename = "$id")]
     pub id: VersionedUrl,
+    pub depth: u16,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
