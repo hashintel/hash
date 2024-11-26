@@ -61,11 +61,25 @@ use crate::store::error::{
     StoreError, VersionedUrlAlreadyExists,
 };
 
+#[derive(Debug, Clone)]
+pub struct PostgresStoreSettings {
+    pub validate_links: bool,
+}
+
+impl Default for PostgresStoreSettings {
+    fn default() -> Self {
+        Self {
+            validate_links: true,
+        }
+    }
+}
+
 /// A Postgres-backed store
 pub struct PostgresStore<C, A> {
     client: C,
     pub authorization_api: A,
     pub temporal_client: Option<Arc<TemporalClient>>,
+    pub settings: PostgresStoreSettings,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -122,11 +136,13 @@ where
         client: C,
         authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
+        settings: PostgresStoreSettings,
     ) -> Self {
         Self {
             client,
             authorization_api,
             temporal_client,
+            settings,
         }
     }
 
@@ -818,6 +834,7 @@ where
                 .change_context(StoreError)?,
             &mut self.authorization_api,
             self.temporal_client.clone(),
+            self.settings.clone(),
         ))
     }
 }

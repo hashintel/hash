@@ -65,6 +65,10 @@ const fn default_true() -> bool {
 #[derive(Debug, Copy, Clone, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "This is a configuration struct."
+)]
 pub struct ValidateEntityComponents {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default = "default_true")]
@@ -75,6 +79,9 @@ pub struct ValidateEntityComponents {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default = "default_true")]
     pub num_items: bool,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default = "default_true")]
+    pub link_validation: bool,
 }
 
 impl ValidateEntityComponents {
@@ -84,6 +91,7 @@ impl ValidateEntityComponents {
             link_data: true,
             required_properties: true,
             num_items: true,
+            link_validation: true,
         }
     }
 

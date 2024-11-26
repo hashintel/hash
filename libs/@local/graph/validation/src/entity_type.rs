@@ -142,14 +142,17 @@ where
             status.capture(EntityValidationError::EmptyEntityTypes);
         }
 
-        if let Err(error) = self
-            .link_data
-            .as_ref()
-            .validate(schema, components, context)
-            .await
-        {
-            status.append(error);
+        if components.link_validation {
+            if let Err(error) = self
+                .link_data
+                .as_ref()
+                .validate(schema, components, context)
+                .await
+            {
+                status.append(error);
+            }
         }
+
         if let Err(error) = self
             .metadata
             .properties

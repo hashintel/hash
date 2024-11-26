@@ -135,7 +135,6 @@ where
 
     async fn commit(
         postgres_client: &mut PostgresStore<C, A>,
-        _validation: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()

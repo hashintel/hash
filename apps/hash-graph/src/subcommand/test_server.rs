@@ -9,7 +9,7 @@ use hash_graph_authorization::{
 };
 use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
-    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool},
+    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings},
 };
 use reqwest::Client;
 use tokio::{net::TcpListener, time::timeout};
@@ -71,13 +71,18 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), Report<GraphError>>
         .change_context(GraphError);
     }
 
-    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
-        .await
-        .change_context(GraphError)
-        .map_err(|report| {
-            tracing::error!(error = ?report, "Failed to connect to database");
-            report
-        })?;
+    let pool = PostgresStorePool::new(
+        &args.db_info,
+        &args.pool_config,
+        NoTls,
+        PostgresStoreSettings::default(),
+    )
+    .await
+    .change_context(GraphError)
+    .map_err(|report| {
+        tracing::error!(error = ?report, "Failed to connect to database");
+        report
+    })?;
 
     let mut spicedb_client = SpiceDbOpenApi::new(
         format!("{}:{}", args.spicedb_host, args.spicedb_http_port),

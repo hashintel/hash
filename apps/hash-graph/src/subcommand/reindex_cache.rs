@@ -2,7 +2,7 @@ use clap::Parser;
 use error_stack::{Report, ResultExt as _, ensure};
 use hash_graph_authorization::NoAuthorization;
 use hash_graph_postgres_store::store::{
-    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool,
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
 use hash_graph_store::{
     data_type::DataTypeStore as _, entity::EntityStore as _, entity_type::EntityTypeStore as _,
@@ -40,13 +40,18 @@ pub struct ReindexOperations {
 }
 
 pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), Report<GraphError>> {
-    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
-        .await
-        .change_context(GraphError)
-        .map_err(|report| {
-            tracing::error!(error = ?report, "Failed to connect to database");
-            report
-        })?;
+    let pool = PostgresStorePool::new(
+        &args.db_info,
+        &args.pool_config,
+        NoTls,
+        PostgresStoreSettings::default(),
+    )
+    .await
+    .change_context(GraphError)
+    .map_err(|report| {
+        tracing::error!(error = ?report, "Failed to connect to database");
+        report
+    })?;
 
     let mut store = pool
         .acquire(NoAuthorization, None)

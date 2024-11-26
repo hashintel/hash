@@ -2,7 +2,7 @@ use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::NoAuthorization;
 use hash_graph_postgres_store::store::{
-    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool,
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
 use hash_graph_store::{migration::StoreMigration as _, pool::StorePool as _};
 use tokio_postgres::NoTls;
@@ -20,13 +20,18 @@ pub struct MigrateArgs {
 }
 
 pub async fn migrate(args: MigrateArgs) -> Result<(), Report<GraphError>> {
-    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
-        .await
-        .change_context(GraphError)
-        .map_err(|report| {
-            tracing::error!(error = ?report, "Failed to connect to database");
-            report
-        })?;
+    let pool = PostgresStorePool::new(
+        &args.db_info,
+        &args.pool_config,
+        NoTls,
+        PostgresStoreSettings::default(),
+    )
+    .await
+    .change_context(GraphError)
+    .map_err(|report| {
+        tracing::error!(error = ?report, "Failed to connect to database");
+        report
+    })?;
 
     pool.acquire(NoAuthorization, None)
         .await
