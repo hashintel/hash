@@ -31,6 +31,7 @@ runs:
         shell: bash
         command: |
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
+          corepack enable
           yarn install --frozen-lockfile --prefer-offline
 
     - name: npx playwright install

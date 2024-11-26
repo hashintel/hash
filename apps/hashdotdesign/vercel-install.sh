@@ -7,6 +7,7 @@ echo "Installing prerequisites"
 yum install -y jq
 
 echo "Installing turbo"
+corepack enable
 yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 
 echo "Installing Rust"

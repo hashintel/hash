@@ -5,7 +5,9 @@ FROM node:20-alpine3.18 AS base
 WORKDIR /app
 
 COPY package.json .
-RUN apk add --no-cache jq yq && yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+RUN apk add --no-cache jq yq && \
+    corepack enable && \
+    yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-graph' --docker && \
@@ -62,19 +64,19 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/src/apps/hash-graph/target,sharing=locked \
     FEATURES=(); \
     if [[ ${ENABLE_TEST_SERVER^^} == Y* || ${ENABLE_TEST_SERVER^^} == T* || $ENABLE_TEST_SERVER == 1 ]]; then \
-      FEATURES+=("test-server"); \
+    FEATURES+=("test-server"); \
     fi; \
     if [[ ${PROFILE} == dev ]]; then \
-        export RUSTFLAGS="$RUSTFLAGS -C debuginfo=line-tables-only"; \
+    export RUSTFLAGS="$RUSTFLAGS -C debuginfo=line-tables-only"; \
     fi; \
     FEATURES=${FEATURES[@]}; \
     cargo install --path . --features "${FEATURES// /,}" --profile $PROFILE --locked;
 
 RUN mkdir -p /out/etc/ \
- && echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd \
- && echo 'hash:x:60000:' > /out/etc/group \
- && install -d -m 0775 -o 61000 -g 60000 /out/logs \
- && cp /usr/local/cargo/bin/hash-graph /out/hash-graph
+    && echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd \
+    && echo 'hash:x:60000:' > /out/etc/group \
+    && install -d -m 0775 -o 61000 -g 60000 /out/logs \
+    && cp /usr/local/cargo/bin/hash-graph /out/hash-graph
 
 
 FROM scratch AS runtime

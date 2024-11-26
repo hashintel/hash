@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY package.json .
 RUN apk add --no-cache jq yq && \
+    corepack enable && \
     yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
