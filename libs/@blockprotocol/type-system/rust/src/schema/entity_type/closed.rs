@@ -26,7 +26,6 @@ pub struct ClosedEntityTypeMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
     pub description: String,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(
         target_arch = "wasm32",
         tsify(type = "[EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]]")
@@ -46,7 +45,6 @@ pub struct ClosedEntityType {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
     pub description: String,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(
         target_arch = "wasm32",
         tsify(type = "[EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]]")
