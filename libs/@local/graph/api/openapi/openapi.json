@@ -8446,6 +8446,9 @@
           "linkData": {
             "type": "boolean"
           },
+          "linkValidation": {
+            "type": "boolean"
+          },
           "numItems": {
             "type": "boolean"
           },
