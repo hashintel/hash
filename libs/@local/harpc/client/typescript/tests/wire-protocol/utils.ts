@@ -20,6 +20,7 @@ const executablePath = () =>
       directory,
       "..",
       "..",
+      "..",
       "wire-protocol/dist/release/codec",
     );
   });

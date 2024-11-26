@@ -2,8 +2,8 @@ import { NodeContext } from "@effect/platform-node";
 import { describe, it } from "@effect/vitest";
 import { Effect, Equal, Schema } from "effect";
 
-import { ResponseKind } from "../src/types/index.js";
-import { Buffer } from "../src/wire-protocol/index.js";
+import { ResponseKind } from "../../src/types/index.js";
+import { Buffer } from "../../src/wire-protocol/index.js";
 import {
   Response,
   ResponseBegin,
@@ -11,7 +11,7 @@ import {
   ResponseFlags,
   ResponseFrame,
   ResponseHeader,
-} from "../src/wire-protocol/models/response/index.js";
+} from "../../src/wire-protocol/models/response/index.js";
 import { callDecode } from "./utils.js";
 
 const ResponseHeaderFromSelf = Schema.declare(ResponseHeader.isResponseHeader, {
