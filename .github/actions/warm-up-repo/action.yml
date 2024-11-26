@@ -29,10 +29,11 @@ runs:
         max_attempts: 3
         timeout_minutes: 10
         shell: bash
+        # We don't need yarn install --immutable, because Yarn 4 enables hardened mode
         command: |
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
           corepack enable
-          yarn install --immutable
+          yarn install
 
     - name: npx playwright install
       if: ${{ inputs.playwright-deps != '' }}
