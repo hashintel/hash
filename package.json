@@ -134,7 +134,7 @@
     "prettier-plugin-sh": "0.14.0",
     "suppress-exit-code": "3.2.0",
     "turbo": "2.3.3",
-    "wait-on": "8.0.1",
+    "wait-on": "8.0.1"
   },
-  "packageManager": "yarn@4.5.1+sha512.341db9396b6e289fecc30cd7ab3af65060e05ebff4b3b47547b278b9e67b08f485ecd8c79006b405446262142c7a38154445ef7f17c1d5d1de7d90bf9ce7054d"
+  "packageManager": "yarn@4.5.3+sha512.3003a14012e2987072d244c720506549c1aab73ee728208f1b2580a9fd67b92d61ba6b08fe93f6dce68fd771e3af1e59a0afa28dd242dd0940d73b95fedd4e90"
 }
