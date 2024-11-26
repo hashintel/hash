@@ -29,11 +29,12 @@ runs:
         max_attempts: 3
         timeout_minutes: 10
         shell: bash
-        # We don't need yarn install --immutable, because Yarn 4 enables hardened mode
+        # refresh-lockfile doesn't work together with turbo prune, so we just use:
+        # a subset of hardened mode (https://yarnpkg.com/features/security)
         command: |
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
           corepack enable
-          yarn install
+          YARN_ENABLE_HARDENED_MODE=0 yarn install --immutable --check-resolutions
 
     - name: npx playwright install
       if: ${{ inputs.playwright-deps != '' }}
