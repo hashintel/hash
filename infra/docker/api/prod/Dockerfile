@@ -16,10 +16,6 @@ RUN turbo prune --scope='@apps/hash-api' --docker && \
       )' _ {} \; && \
     cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
-# Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
-# Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
-COPY patches /app/out/full/patches
-
 
 FROM node:20.13-slim AS rust
 
@@ -44,7 +40,7 @@ WORKDIR /usr/local/src/
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
-COPY --from=base /app/out/full/patches patches
+COPY --from=base /app/out/full/.yarn .yarn
 COPY --from=base /app/out/full/turbo.json turbo.json
 
 RUN yarn install --frozen-lockfile --prefer-offline && \
