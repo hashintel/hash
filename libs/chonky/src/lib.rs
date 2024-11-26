@@ -170,7 +170,7 @@ pub mod pdf_segmentation {
     ) -> Result<Vec<Vec<ExtractedTable>>, Report<ChonkyError>> {
         let mut pdf_table_bounds = Vec::new();
         for (index, page) in pdf.pages().iter().enumerate() {
-            let table_predictions = make_table_recognition_request(images[index].clone())?;
+            let table_predictions = make_table_recognition_request(images[index].clone(), true)?;
 
             let mut page_table_bounds: Vec<ExtractedTable> = Vec::new();
             //convert the pixels back to pdf points
