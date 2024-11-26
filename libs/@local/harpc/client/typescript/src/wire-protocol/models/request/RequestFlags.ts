@@ -71,8 +71,10 @@ const RequestFlagsProto: Omit<RequestFlags, "flags"> = {
   },
 };
 
-export const make = (flags: HashSet.HashSet<Flag>): RequestFlags =>
+const makeUnchecked = (flags: HashSet.HashSet<Flag>): RequestFlags =>
   createProto(RequestFlagsProto, { flags });
+
+export const make = () => makeUnchecked(HashSet.make());
 
 export const applyBodyVariant = (
   flags: RequestFlags,
@@ -80,9 +82,9 @@ export const applyBodyVariant = (
 ) => {
   switch (variant) {
     case "RequestBegin":
-      return HashSet.add(flags.flags, "beginOfRequest").pipe(make);
+      return HashSet.add(flags.flags, "beginOfRequest").pipe(makeUnchecked);
     case "RequestFrame":
-      return HashSet.remove(flags.flags, "beginOfRequest").pipe(make);
+      return HashSet.remove(flags.flags, "beginOfRequest").pipe(makeUnchecked);
   }
 };
 
@@ -131,7 +133,7 @@ export const decode = (buffer: Buffer.ReadBuffer) =>
       HashSet.add(flags, "endOfRequest");
     }
 
-    return make(flags.pipe(HashSet.endMutation));
+    return makeUnchecked(flags.pipe(HashSet.endMutation));
   });
 
 export const isRequestFlags = (value: unknown): value is RequestFlags =>
@@ -143,9 +145,12 @@ export const isBeginOfRequest = (flags: RequestFlags) =>
 export const isEndOfRequest = (flags: RequestFlags) =>
   HashSet.has(flags.flags, "endOfRequest");
 
+export const withEndOfRequest = (flags: RequestFlags) =>
+  HashSet.add(flags.flags, "endOfRequest").pipe(makeUnchecked);
+
 export const arbitrary = (fc: typeof FastCheck) => {
   return fc
     .uniqueArray(fc.constantFrom<Flag>("beginOfRequest", "endOfRequest"))
     .map(HashSet.fromIterable)
-    .map(make);
+    .map(makeUnchecked);
 };

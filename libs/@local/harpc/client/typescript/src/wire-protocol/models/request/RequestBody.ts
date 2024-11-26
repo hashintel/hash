@@ -78,6 +78,12 @@ export const make = (
   body: Either.Either<RequestBegin.RequestBegin, RequestFrame.RequestFrame>,
 ): RequestBody => createProto(RequestBodyProto, { body });
 
+export const makeBegin = (begin: RequestBegin.RequestBegin): RequestBody =>
+  make(Either.right(begin));
+
+export const makeFrame = (frame: RequestFrame.RequestFrame): RequestBody =>
+  make(Either.left(frame));
+
 export const match: {
   <A, B = A>(options: {
     readonly onBegin: (begin: RequestBegin.RequestBegin) => A;
@@ -102,6 +108,32 @@ export const match: {
     Either.match(self.body, {
       onLeft: options.onFrame,
       onRight: options.onBegin,
+    }),
+);
+
+export const mapBoth: {
+  <A>(
+    fn: (
+      beginOrFrame: RequestBegin.RequestBegin | RequestFrame.RequestFrame,
+    ) => A,
+  ): (self: RequestBody) => A;
+  <A>(
+    self: RequestBody,
+    fn: (
+      beginOrFrame: RequestBegin.RequestBegin | RequestFrame.RequestFrame,
+    ) => A,
+  ): A;
+} = Function.dual(
+  2,
+  <A>(
+    self: RequestBody,
+    fn: (
+      beginOrFrame: RequestBegin.RequestBegin | RequestFrame.RequestFrame,
+    ) => A,
+  ) =>
+    match(self, {
+      onBegin: (begin) => fn(begin),
+      onFrame: (frame) => fn(frame),
     }),
 );
 
@@ -145,6 +177,10 @@ export const variant = (body: RequestBody): RequestBodyVariant =>
 
 export const isRequestBody = (value: unknown): value is RequestBody =>
   Predicate.hasProperty(value, TypeId);
+
+export const isBegin = (value: RequestBody) => Either.isRight(value.body);
+
+export const isFrame = (value: RequestBody) => Either.isLeft(value.body);
 
 export const getBegin = (
   body: RequestBody,
