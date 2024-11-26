@@ -3,7 +3,7 @@ import type { TestContext } from "@effect/vitest";
 import { describe, it } from "@effect/vitest";
 import { Effect, Option, Predicate, Schema } from "effect";
 
-import { Buffer } from "../src/wire-protocol/index.js";
+import { Buffer } from "../../src/wire-protocol/index.js";
 import {
   Request,
   RequestBegin,
@@ -11,7 +11,7 @@ import {
   RequestFlags,
   RequestFrame,
   RequestHeader,
-} from "../src/wire-protocol/models/request/index.js";
+} from "../../src/wire-protocol/models/request/index.js";
 import { callEncode } from "./utils.js";
 
 const RequestHeaderFromSelf = Schema.declare(RequestHeader.isRequestHeader, {
