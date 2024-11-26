@@ -20,7 +20,7 @@ use hash_graph_authorization::{
     zanzibar::ZanzibarClient,
 };
 use hash_graph_postgres_store::store::{
-    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool,
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
 use hash_graph_store::pool::StorePool;
 use hash_graph_type_fetcher::FetchingPool;
@@ -178,6 +178,12 @@ pub struct ServerArgs {
     /// The port of the Temporal server.
     #[clap(long, env = "HASH_TEMPORAL_SERVER_PORT", default_value_t = 7233)]
     pub temporal_port: u16,
+
+    /// Skips the validation of links when creating/updating entities.
+    ///
+    /// This should only be used in development environments.
+    #[clap(long)]
+    pub skip_link_validation: bool,
 }
 
 fn server_rpc<S, A>(
@@ -239,13 +245,20 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         .change_context(GraphError);
     }
 
-    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
-        .await
-        .change_context(GraphError)
-        .map_err(|report| {
-            tracing::error!(error = ?report, "Failed to connect to database");
-            report
-        })?;
+    let pool = PostgresStorePool::new(
+        &args.db_info,
+        &args.pool_config,
+        NoTls,
+        PostgresStoreSettings {
+            validate_links: !args.skip_link_validation,
+        },
+    )
+    .await
+    .change_context(GraphError)
+    .map_err(|report| {
+        tracing::error!(error = ?report, "Failed to connect to database");
+        report
+    })?;
     _ = pool
         .acquire(NoAuthorization, None)
         .await

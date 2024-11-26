@@ -61,15 +61,14 @@ where
 
     async fn commit(
         postgres_client: &mut PostgresStore<C, A>,
-        validation: bool,
     ) -> Result<(), Report<InsertionError>> {
-        AccountRowBatch::commit(postgres_client, validation).await?;
-        WebBatch::commit(postgres_client, validation).await?;
-        OntologyTypeMetadataRowBatch::commit(postgres_client, validation).await?;
-        DataTypeRowBatch::commit(postgres_client, validation).await?;
-        PropertyTypeRowBatch::commit(postgres_client, validation).await?;
-        EntityTypeRowBatch::commit(postgres_client, validation).await?;
-        EntityRowBatch::commit(postgres_client, validation).await?;
+        AccountRowBatch::commit(postgres_client).await?;
+        WebBatch::commit(postgres_client).await?;
+        OntologyTypeMetadataRowBatch::commit(postgres_client).await?;
+        DataTypeRowBatch::commit(postgres_client).await?;
+        PropertyTypeRowBatch::commit(postgres_client).await?;
+        EntityTypeRowBatch::commit(postgres_client).await?;
+        EntityRowBatch::commit(postgres_client).await?;
         Ok(())
     }
 }

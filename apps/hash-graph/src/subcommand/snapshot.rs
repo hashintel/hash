@@ -8,7 +8,7 @@ use hash_graph_authorization::{
 };
 use hash_graph_postgres_store::{
     snapshot::{SnapshotDumpSettings, SnapshotEntry, SnapshotStore},
-    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool},
+    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings},
 };
 use hash_graph_store::pool::StorePool as _;
 use tokio::io;
@@ -105,13 +105,18 @@ pub struct SnapshotArgs {
 pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
     SnapshotEntry::install_error_stack_hook();
 
-    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
-        .await
-        .change_context(GraphError)
-        .map_err(|report| {
-            tracing::error!(error = ?report, "Failed to connect to database");
-            report
-        })?;
+    let mut pool = PostgresStorePool::new(
+        &args.db_info,
+        &args.pool_config,
+        NoTls,
+        PostgresStoreSettings::default(),
+    )
+    .await
+    .change_context(GraphError)
+    .map_err(|report| {
+        tracing::error!(error = ?report, "Failed to connect to database");
+        report
+    })?;
 
     let skip_authorization = match &args.command {
         SnapshotCommand::Dump(args) => args.no_relations,
@@ -168,6 +173,8 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(args) => {
+            pool.settings.validate_links = !args.skip_validation;
+
             let read =
                 FramedRead::new(io::BufReader::new(io::stdin()), JsonLinesDecoder::default());
             if let Some(authorization) = authorization {
@@ -180,7 +187,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
                             report
                         })?,
                 )
-                    .restore_snapshot(read, 10_000, !args.skip_validation)
+                    .restore_snapshot(read, 10_000)
                     .await
             } else {
                 SnapshotStore::new(pool.acquire(NoAuthorization, None).await
@@ -189,7 +196,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
                         tracing::error!(error = ?report, "Failed to acquire database connection");
                         report
                     })?)
-                    .restore_snapshot(read, 10_000, !args.skip_validation)
+                    .restore_snapshot(read, 10_000)
                     .await
             }
             .change_context(GraphError)

@@ -787,15 +787,12 @@ where
             )
             .change_context(InsertionError)?;
 
-            let validation_components = if params.draft {
-                ValidateEntityComponents {
-                    num_items: false,
-                    required_properties: false,
-                    ..ValidateEntityComponents::full()
-                }
+            let mut validation_components = if params.draft {
+                ValidateEntityComponents::draft()
             } else {
                 ValidateEntityComponents::full()
             };
+            validation_components.link_validation = self.settings.validate_links;
             EntityPreprocessor {
                 components: validation_components,
             }
@@ -1694,11 +1691,12 @@ where
         )
         .change_context(UpdateError)?;
 
-        let validation_components = if draft {
+        let mut validation_components = if draft {
             ValidateEntityComponents::draft()
         } else {
             ValidateEntityComponents::full()
         };
+        validation_components.link_validation = transaction.settings.validate_links;
 
         let (properties, property_metadata) =
             if let PropertyWithMetadata::Object(mut object) = properties_with_metadata {

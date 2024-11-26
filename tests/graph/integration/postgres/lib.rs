@@ -41,6 +41,7 @@ use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
         DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
+        PostgresStoreSettings,
     },
 };
 use hash_graph_store::{
@@ -176,9 +177,14 @@ impl DatabaseTestWrapper<NoAuthorization> {
             database,
         );
 
-        let pool = PostgresStorePool::new(&connection_info, &DatabasePoolConfig::default(), NoTls)
-            .await
-            .expect("could not connect to database");
+        let pool = PostgresStorePool::new(
+            &connection_info,
+            &DatabasePoolConfig::default(),
+            NoTls,
+            PostgresStoreSettings::default(),
+        )
+        .await
+        .expect("could not connect to database");
 
         let connection = pool
             .acquire_owned(NoAuthorization, None)

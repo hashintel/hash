@@ -15,11 +15,12 @@ use tokio_postgres::{
 use crate::store::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig},
     error::StoreError,
-    postgres::PostgresStore,
+    postgres::{PostgresStore, PostgresStoreSettings},
 };
 
 pub struct PostgresStorePool {
     pool: Pool,
+    pub settings: PostgresStoreSettings,
 }
 
 impl PostgresStorePool {
@@ -33,6 +34,7 @@ impl PostgresStorePool {
         db_info: &DatabaseConnectionInfo,
         pool_config: &DatabasePoolConfig,
         tls: Tls,
+        settings: PostgresStoreSettings,
     ) -> Result<Self, Report<StoreError>>
     where
         Tls: Clone
@@ -78,6 +80,7 @@ impl PostgresStorePool {
                 }))
                 .build()
                 .change_context(StoreError)?,
+            settings,
         })
     }
 }
@@ -103,6 +106,7 @@ impl StorePool for PostgresStorePool {
             self.pool.get().await?,
             authorization_api,
             temporal_client,
+            self.settings.clone(),
         ))
     }
 }
