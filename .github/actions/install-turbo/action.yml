@@ -6,4 +6,6 @@ runs:
   steps:
     - name: Install turbo
       shell: bash
-      run: yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+      run: |
+        corepack enable
+        yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
