@@ -388,7 +388,12 @@ pub mod hugging_face_api {
     /// [`ChonkyError::HuggingFaceAPI`] when there are HTTP request errors
     pub fn make_table_recognition_request(
         image_path: String,
+        retry: bool,
     ) -> Result<Vec<TablePrediction>, Report<ChonkyError>> {
+        // this is where we would wish to provide add the retry mechanism
+
+        // error code when model is warm is a 503 error, we can then add x-wait-for-model:true for
+        // it to work
         let url =
             "https://api-inference.huggingface.co/models/microsoft/table-transformer-detection";
 
@@ -403,6 +408,11 @@ pub mod hugging_face_api {
         let mut headers = List::new();
         headers
             .append(&format!("Authorization: Bearer {access_token}"))
+            .change_context(ChonkyError::HuggingFaceAPI)?;
+
+        // we add wait for model to be true if receiving api error prev
+        headers
+            .append(&format!("x-wait-for-model:{retry}"))
             .change_context(ChonkyError::HuggingFaceAPI)?;
 
         easy.http_headers(headers)
@@ -440,7 +450,7 @@ pub mod hugging_face_api {
         fn table_recognition() -> Result<(), Report<ChonkyError>> {
             let file_path = "tests/docs/table-testing.png";
 
-            let table_predictions = make_table_recognition_request(file_path.to_owned())?;
+            let table_predictions = make_table_recognition_request(file_path.to_owned(), true)?;
 
             assert_snapshot!(
                 "table_bounding_boxes.txt",
