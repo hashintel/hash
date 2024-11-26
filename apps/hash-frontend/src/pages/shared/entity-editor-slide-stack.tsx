@@ -8,8 +8,14 @@ import type { EditEntitySlideOverProps } from "../[shortname]/entities/[entity-u
 import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import type { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 import { generateEntityRootedSubgraph } from "./subgraphs";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-sdk/entity";
 
 interface EntityEditorSlideStackProps {
+  closedMultiEntityTypesMap?: ClosedMultiEntityTypesRootMap;
+  closedMultiEntityTypesDefinitions?: ClosedMultiEntityTypesDefinitions;
   customColumns?: EntityEditorProps["customColumns"];
   disableTypeClick?: boolean;
   /**

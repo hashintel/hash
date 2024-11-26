@@ -1,25 +1,15 @@
-import { useLazyQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { getPropertyTypeForClosedEntityType } from "@local/hash-graph-sdk/entity";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useCallback } from "react";
 
-import type {
-  GetClosedMultiEntityTypeQuery,
-  GetClosedMultiEntityTypeQueryVariables,
-} from "../../../../../../graphql/api-types.gen";
-import { getClosedMultiEntityTypeQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
+import { useGetClosedMultiEntityType } from "../../shared/use-get-closed-multi-entity-type";
 import { useEntityEditor } from "../entity-editor-context";
 import type { EntityTypeChangeDetails } from "./entity-type-change-modal";
 
 export const useGetTypeChangeDetails = () => {
-  const [getClosedMultiEntityType] = useLazyQuery<
-    GetClosedMultiEntityTypeQuery,
-    GetClosedMultiEntityTypeQueryVariables
-  >(getClosedMultiEntityTypeQuery, {
-    fetchPolicy: "cache-first",
-  });
+  const { getClosedMultiEntityType } = useGetClosedMultiEntityType();
 
   const {
     closedMultiEntityType: currentClosedType,
@@ -39,24 +29,10 @@ export const useGetTypeChangeDetails = () => {
         throw new Error("No entity found in entitySubgraph");
       }
 
-      const response = await getClosedMultiEntityType({
-        variables: {
-          entityTypeIds: [...newEntityTypeIds],
-          includeArchived: false,
-          includeDrafts: false,
-        },
-      });
-
-      if (!response.data) {
-        throw new Error(
-          `Failed to fetch closedMultiEntityType for ids ${[...newEntityTypeIds].join(", ")}`,
-        );
-      }
-
       const {
-        closedMultiEntityType: proposedClosedType,
-        definitions: proposedDefinitions,
-      } = response.data.getClosedMultiEntityType;
+        closedMultiEntityType: proposedClosedMultiType,
+        closedMultiEntityTypesDefinitions: proposedDefinitions,
+      } = await getClosedMultiEntityType(newEntityTypeIds);
 
       const changeDetails: Pick<
         EntityTypeChangeDetails,
@@ -67,16 +43,16 @@ export const useGetTypeChangeDetails = () => {
       };
 
       for (const [newPropertyBaseUrl, schema] of typedEntries(
-        proposedClosedType.properties,
+        proposedClosedMultiType.properties,
       )) {
         const newDetails = getPropertyTypeForClosedEntityType({
-          closedMultiEntityType: proposedClosedType,
+          closedMultiEntityType: proposedClosedMultiType,
           definitions: proposedDefinitions,
           propertyTypeBaseUrl: newPropertyBaseUrl,
         });
 
         const required =
-          proposedClosedType.required.includes(newPropertyBaseUrl);
+          proposedClosedMultiType.required.includes(newPropertyBaseUrl);
         const newListSchema = "items" in schema ? schema : undefined;
 
         const propertyTitle = newDetails.propertyType.title;
@@ -176,10 +152,10 @@ export const useGetTypeChangeDetails = () => {
       for (const oldPropertyBaseUrl of typedKeys(
         currentClosedType.properties,
       )) {
-        if (!proposedClosedType.properties[oldPropertyBaseUrl]) {
+        if (!proposedClosedMultiType.properties[oldPropertyBaseUrl]) {
           const oldDetails = getPropertyTypeForClosedEntityType({
-            closedMultiEntityType: proposedClosedType,
-            definitions: proposedDefinitions,
+            closedMultiEntityType: currentClosedType,
+            definitions: currentDefinitions,
             propertyTypeBaseUrl: oldPropertyBaseUrl,
           });
 
@@ -193,7 +169,7 @@ export const useGetTypeChangeDetails = () => {
       }
 
       for (const [newLinkTypeId, newLinkSchema] of typedEntries(
-        proposedClosedType.links ?? {},
+        proposedClosedMultiType.links ?? {},
       )) {
         const currentLinks = currentClosedType.links ?? {};
 

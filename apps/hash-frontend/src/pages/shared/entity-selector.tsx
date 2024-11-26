@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { EntityType } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type {
   SelectorAutocompleteProps,
@@ -7,7 +8,6 @@ import type {
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -41,7 +41,7 @@ type EntitySelectorProps<Multiple extends boolean = false> = Omit<
   | "dropdownProps"
 > & {
   dropdownProps?: Omit<TypeListSelectorDropdownProps, "query">;
-  expectedEntityTypes?: EntityTypeWithMetadata[];
+  expectedEntityTypes?: Pick<EntityType, "$id">[];
   entityIdsToFilterOut?: EntityId[];
   includeDrafts: boolean;
   multiple?: Multiple;
@@ -71,8 +71,8 @@ export const EntitySelector = <Multiple extends boolean>({
           !expectedEntityTypes || expectedEntityTypes.length === 0
             ? { all: [] }
             : {
-                any: expectedEntityTypes.map(({ schema }) =>
-                  generateVersionedUrlMatchingFilter(schema.$id, {
+                any: expectedEntityTypes.map(({ $id }) =>
+                  generateVersionedUrlMatchingFilter($id, {
                     ignoreParents: true,
                   }),
                 ),

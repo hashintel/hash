@@ -68,7 +68,6 @@ export const getClosedMultiEntityTypeQuery = gql`
       definitions
     }
   }
-  ${subgraphFieldsFragment}
 `;
 
 export const createEntityTypeMutation = gql`

@@ -4,7 +4,13 @@ import {
   EntityOrTypeIcon,
   Skeleton,
 } from "@hashintel/design-system";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-sdk/entity";
 import {
+  getClosedMultiEntityTypesFromMap,
+  getDisplayFieldsForClosedEntityType,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
@@ -13,16 +19,15 @@ import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths"
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
   mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   extractOwnedByIdFromEntityId,
-  linkEntityTypeUrl,
   splitEntityId,
 } from "@local/hash-subgraph";
-import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Drawer, Stack, Typography } from "@mui/material";
 import type { RefObject } from "react";
 import { memo, useCallback, useMemo, useState } from "react";
@@ -42,13 +47,16 @@ import { Button, Link } from "../../../../shared/ui";
 import { SlideBackForwardCloseBar } from "../../../shared/shared/slide-back-forward-close-bar";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditor } from "./entity-editor";
-import { useUpdateDraftEntityState } from "./shared/use-update-draft-entity-state";
+import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
+import { useGetClosedMultiEntityType } from "./shared/use-get-closed-multi-entity-type";
 
 export interface EditEntitySlideOverProps {
   customColumns?: EntityEditorProps["customColumns"];
   defaultOutgoingLinkFilters?: EntityEditorProps["defaultOutgoingLinkFilters"];
+  closedMultiEntityTypesMap?: ClosedMultiEntityTypesRootMap;
+  closedMultiEntityTypesDefinitions?: ClosedMultiEntityTypesDefinitions;
   /**
    * Whether to stop clicking on types taking any action
    */
@@ -98,6 +106,8 @@ export interface EditEntitySlideOverProps {
  */
 const EditEntitySlideOver = memo(
   ({
+    closedMultiEntityTypesMap,
+    closedMultiEntityTypesDefinitions,
     customColumns,
     defaultOutgoingLinkFilters,
     disableTypeClick,
@@ -125,6 +135,9 @@ const EditEntitySlideOver = memo(
 
     const [ownedByIdFromProvidedEntityId, entityUuid, draftId] =
       providedEntityId ? splitEntityId(providedEntityId) : [];
+
+    const { getClosedMultiEntityType, loading: closedTypeLoading } =
+      useGetClosedMultiEntityType();
 
     const [animateOut, setAnimateOut] = useState(false);
 
@@ -201,11 +214,12 @@ const EditEntitySlideOver = memo(
           },
           temporalAxes: currentTimeInstantTemporalAxes,
           graphResolveDepths: {
-            ...fullOntologyResolveDepths,
+            ...zeroedGraphResolveDepths,
             hasLeftEntity: { incoming: 1, outgoing: 1 },
             hasRightEntity: { incoming: 1, outgoing: 1 },
           },
           includeDrafts: !!draftId,
+          includeEntityTypes: "resolved",
         },
         includePermissions: false,
       },
@@ -276,6 +290,32 @@ const EditEntitySlideOver = memo(
     const entity = localEntitySubgraph
       ? getRoots(localEntitySubgraph)[0]
       : null;
+
+    const providedTypeDetails = useMemo(() => {
+      if (
+        closedMultiEntityTypesDefinitions &&
+        closedMultiEntityTypesMap &&
+        entity
+      ) {
+        const closedMultiEntityType = getClosedMultiEntityTypesFromMap(
+          closedMultiEntityTypesMap,
+          entity.metadata.entityTypeIds,
+        );
+
+        return {
+          closedMultiEntityType,
+          closedMultiEntityTypesDefinitions,
+        };
+      }
+    }, [closedMultiEntityTypesDefinitions, closedMultiEntityTypesMap, entity]);
+
+    const [draftEntityTypesDetails, setDraftEntityTypesDetails] = useState<
+      | Pick<
+          EntityEditorProps,
+          "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
+        >
+      | undefined
+    >(providedTypeDetails);
 
     const ownedById =
       ownedByIdFromProvidedEntityId ??
@@ -359,27 +399,17 @@ const EditEntitySlideOver = memo(
       [incompleteOnEntityClick, slideContainerRef],
     );
 
-    /**
-     * @todo H-3363 use the closed schema to get the first icon
-     */
-    const entityTypes = useMemo(
-      () =>
-        entity && localEntitySubgraph
-          ? entity.metadata.entityTypeIds.toSorted().map((entityTypeId) => {
-              const entityType = getEntityTypeById(
-                localEntitySubgraph,
-                entityTypeId,
-              );
+    if (!closedTypeLoading && !draftEntityTypesDetails) {
+      throw new Error(
+        `Could not load closed entity types for entityTypeIds ${entity?.metadata.entityTypeIds.join(", ")}`,
+      );
+    }
 
-              if (!entityType) {
-                throw new Error(`Cannot find entity type ${entityTypeId}`);
-              }
-
-              return entityType;
-            })
-          : [],
-      [entity, localEntitySubgraph],
-    );
+    const { icon, isLink } = draftEntityTypesDetails
+      ? getDisplayFieldsForClosedEntityType(
+          draftEntityTypesDetails.closedMultiEntityType,
+        )
+      : { icon: null, isLink: false };
 
     return (
       <Drawer
@@ -410,6 +440,7 @@ const EditEntitySlideOver = memo(
         {!entity ||
         !localEntitySubgraph ||
         !subgraphHasLinkedEntities ||
+        !draftEntityTypesDetails ||
         entity.entityId !== providedEntityId ? (
           <Stack gap={3} p={5}>
             <Skeleton height={60} />
@@ -428,13 +459,8 @@ const EditEntitySlideOver = memo(
                 <Box sx={{ minWidth: 40 }}>
                   <EntityOrTypeIcon
                     entity={entity}
-                    icon={entityTypes[0]?.schema.icon}
-                    // @todo H-3363 use closed schema to take account of indirectly inherited link status
-                    isLink={
-                      !!entityTypes[0]?.schema.allOf?.some(
-                        (allOf) => allOf.$ref === linkEntityTypeUrl,
-                      )
-                    }
+                    icon={icon}
+                    isLink={isLink}
                     fill={({ palette }) => palette.gray[50]}
                     fontSize={40}
                   />
@@ -469,16 +495,21 @@ const EditEntitySlideOver = memo(
 
               <EntityEditor
                 customColumns={customColumns}
+                {...draftEntityTypesDetails}
                 defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
                 disableTypeClick={disableTypeClick}
                 readonly={readonly}
                 onEntityUpdated={null}
                 entityLabel={entityLabel}
                 entitySubgraph={localEntitySubgraph}
-                setEntity={(newEntity) => {
-                  setIsDirty(true);
-                  useUpdateDraftEntityState(
-                    newEntity,
+                setEntityTypes={async (newEntityTypeIds) => {
+                  const newDetails =
+                    await getClosedMultiEntityType(newEntityTypeIds);
+                  setDraftEntityTypesDetails(newDetails);
+                }}
+                setEntity={(changedEntity) => {
+                  updateEntitySubgraphStateByEntity(
+                    changedEntity,
                     (updatedEntitySubgraphOrFunction) => {
                       setLocalEntitySubgraph((prev) => {
                         if (!prev) {

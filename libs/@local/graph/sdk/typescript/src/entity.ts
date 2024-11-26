@@ -1,5 +1,6 @@
 import type {
   ClosedDataType,
+  PartialEntityType as BpPartialEntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -12,7 +13,6 @@ import type {
   GetClosedMultiEntityTypeResponseDefinitions,
   GraphApi,
   OriginProvenance,
-  PartialEntityType as GraphApiPartialEntityType,
   PatchEntityParams as GraphApiPatchEntityParams,
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
@@ -50,6 +50,7 @@ import {
 } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
+  ClosedEntityType,
   ClosedMultiEntityType,
 } from "@local/hash-graph-types/ontology";
 import { isBaseUrl } from "@local/hash-graph-types/ontology";
@@ -58,6 +59,7 @@ import type {
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type { AuthenticationContext } from "./authentication-context.js";
 
@@ -481,8 +483,8 @@ export type ClosedMultiEntityTypesRootMap = {
 };
 
 export type PartialEntityType = Subtype<
-  GraphApiPartialEntityType,
-  Omit<GraphApiPartialEntityType, "$id"> & {
+  BpPartialEntityType,
+  Omit<BpPartialEntityType, "$id"> & {
     $id: VersionedUrl;
   }
 >;
@@ -495,6 +497,55 @@ export type ClosedMultiEntityTypesDefinitions = Subtype<
     propertyTypes: { [key: VersionedUrl]: PropertyType };
   }
 >;
+
+export const getDisplayFieldsForClosedEntityType = (
+  closedType:
+    | Pick<ClosedMultiEntityType, "allOf">
+    | Pick<ClosedEntityType, "allOf" | "$id">,
+) => {
+  let foundLabelProperty = undefined;
+  let foundIcon = undefined;
+  let isLink = false;
+
+  const breadthFirstArray =
+    "$id" in closedType
+      ? /**
+         * This is a closed, single entity type. Its inheritance chain, including itself, is breadth-first in 'allOf'.
+         */
+        (closedType.allOf ?? [])
+      : /**
+         * This is a multi-entity-type, where each item in the root 'allOf' is a closed type,
+         * each of which has its inheritance chain (including itself) in a breadth-first order in its own 'allOf'.
+         * We need to sort all this by depth rather than going through the root 'allOf' directly,
+         * which would process the entire inheritance chain of each type in the multi-type before moving to the next one.
+         */
+        closedType.allOf
+          .flatMap((type) => type.allOf ?? [])
+          .sort((a, b) => a.depth - b.depth);
+
+  for (const { icon, labelProperty, $id } of breadthFirstArray) {
+    if (!foundIcon && icon) {
+      foundIcon = icon;
+    }
+    if (!foundLabelProperty && labelProperty) {
+      foundLabelProperty = labelProperty;
+    }
+
+    if (!isLink) {
+      isLink = $id === blockProtocolEntityTypes.link.entityTypeId;
+    }
+
+    if (foundIcon && foundLabelProperty && isLink) {
+      break;
+    }
+  }
+
+  return {
+    icon: foundIcon,
+    isLink,
+    labelProperty: foundLabelProperty,
+  };
+};
 
 /**
  * Retrieves a `ClosedMultiEntityType` from a given response based on a list of entity type IDs.

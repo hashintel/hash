@@ -1,6 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Dispatch, SetStateAction } from "react";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { useCallback } from "react";
 
 import type {
@@ -8,35 +7,20 @@ import type {
   GetClosedMultiEntityTypeQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import { getClosedMultiEntityTypeQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
-import type { EntityEditorProps } from "../entity-editor";
 
-export const useUpdateEntityTypes = () => {
-  const [getClosedMultiEntityType] = useLazyQuery<
+export const useGetClosedMultiEntityType = () => {
+  const [getMultiEntityType, { loading }] = useLazyQuery<
     GetClosedMultiEntityTypeQuery,
     GetClosedMultiEntityTypeQueryVariables
   >(getClosedMultiEntityTypeQuery, {
     fetchPolicy: "cache-first",
   });
 
-  return useCallback(
-    async ({
-      newEntityTypeIds,
-      setEntityTypeDetailsState,
-    }: {
-      newEntityTypeIds: VersionedUrl[];
-      setEntityTypeDetailsState: Dispatch<
-        SetStateAction<
-          | Pick<
-              EntityEditorProps,
-              "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
-            >
-          | undefined
-        >
-      >;
-    }) => {
-      const response = await getClosedMultiEntityType({
+  const getClosedMultiEntityType = useCallback(
+    async (newEntityTypeIds: VersionedUrl[]) => {
+      const response = await getMultiEntityType({
         variables: {
-          entityTypeIds: [...newEntityTypeIds],
+          entityTypeIds: newEntityTypeIds,
           includeArchived: false,
           includeDrafts: false,
         },
@@ -48,14 +32,19 @@ export const useUpdateEntityTypes = () => {
         );
       }
 
-      const { definitions, closedMultiEntityType } =
+      const { closedMultiEntityType, definitions } =
         response.data.getClosedMultiEntityType;
 
-      setEntityTypeDetailsState({
+      return {
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions: definitions,
-      });
+      };
     },
-    [getClosedMultiEntityType],
+    [getMultiEntityType],
   );
+
+  return {
+    getClosedMultiEntityType,
+    loading,
+  };
 };

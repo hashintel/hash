@@ -19,15 +19,18 @@ import {
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   const { value: cell, onChange, onFinishedEditing } = props;
-  const { expectedTypes, value } = cell.data.propertyRow;
+  const { permittedDataTypes, value } = cell.data.propertyRow;
 
   const textInputFormRef = useRef<HTMLFormElement>(null);
 
   const [editorType, setEditorType] = useState<EditorType | null>(() => {
     // if there are multiple expected types
-    if (expectedTypes.length > 1) {
+    if (permittedDataTypes.length > 1) {
       // show type picker if value is empty, guess editor type using value if it's not
-      const guessedEditorType = guessEditorTypeFromValue(value, expectedTypes);
+      const guessedEditorType = guessEditorTypeFromValue(
+        value,
+        permittedDataTypes,
+      );
 
       if (guessedEditorType === "null" || guessedEditorType === "emptyList") {
         return guessedEditorType;
@@ -35,10 +38,10 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
       return isValueEmpty(value)
         ? null
-        : guessEditorTypeFromValue(value, expectedTypes);
+        : guessEditorTypeFromValue(value, permittedDataTypes);
     }
 
-    const expectedType = expectedTypes[0];
+    const expectedType = permittedDataTypes[0];
 
     if (!expectedType) {
       throw new Error("there is no expectedType found on property type");
@@ -50,7 +53,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     }
 
     // if the value is not empty, guess the editor type using value
-    return guessEditorTypeFromValue(value, expectedTypes);
+    return guessEditorTypeFromValue(value, permittedDataTypes);
   });
 
   const latestValueCellRef = useRef<ValueCell>(cell);
@@ -62,7 +65,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     return (
       <GridEditorWrapper>
         <EditorTypePicker
-          expectedTypes={expectedTypes}
+          expectedTypes={permittedDataTypes}
           onTypeChange={(type) => {
             const editorSpec = getEditorSpecs(type);
 
@@ -144,7 +147,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
-  const expectedType = expectedTypes.find((type) =>
+  const expectedType = permittedDataTypes.find((type) =>
     "type" in type
       ? type.type === editorType
       : /**
@@ -155,7 +158,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
   if (!expectedType) {
     throw new Error(
-      `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
+      `Could not find guessed editor type ${editorType} among expected types ${permittedDataTypes
         .map((opt) => opt.$id)
         .join(", ")}`,
     );

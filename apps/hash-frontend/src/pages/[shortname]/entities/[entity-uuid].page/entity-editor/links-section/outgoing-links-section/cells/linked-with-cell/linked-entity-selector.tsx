@@ -1,9 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { PaperProps } from "@mui/material";
@@ -32,7 +31,7 @@ interface EntitySelectorProps {
     sourceSubgraph: Subgraph<EntityRootType> | null,
   ) => void;
   onFinishedEditing: () => void;
-  expectedEntityTypes: EntityTypeWithMetadata[];
+  expectedEntityTypes: Pick<EntityType, "$id">[];
   entityIdsToFilterOut?: EntityId[];
   linkEntityTypeId: VersionedUrl;
 }
@@ -82,14 +81,12 @@ export const LinkedEntitySelector = ({
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const isFileType = expectedEntityTypes.some(
-    (expectedType) =>
-      isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isFile,
+    (expectedType) => isSpecialEntityTypeLookup?.[expectedType.$id]?.isFile,
   );
   const isImage =
     isFileType &&
     expectedEntityTypes.some(
-      (expectedType) =>
-        isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isImage,
+      (expectedType) => isSpecialEntityTypeLookup?.[expectedType.$id]?.isImage,
     );
 
   const onCreateNew = () => {
@@ -105,7 +102,7 @@ export const LinkedEntitySelector = ({
     /** @todo this should be replaced with a "new entity modal" or something else */
     void window.open(
       `/new/entity?entity-type-id=${encodeURIComponent(
-        expectedEntityTypes[0].schema.$id,
+        expectedEntityTypes[0].$id,
       )}`,
       "_blank",
     );
@@ -127,7 +124,7 @@ export const LinkedEntitySelector = ({
         fileData: {
           file,
           fileEntityCreationInput: {
-            entityTypeId: expectedEntityTypes[0]?.schema.$id,
+            entityTypeId: expectedEntityTypes[0]?.$id,
           },
         },
         makePublic: false,

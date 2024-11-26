@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useEntityEditor } from "../../../entity-editor-context";
 import type { PropertyRow } from "../types";
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
+import { typedKeys } from "@local/advanced-types/typed-entries";
 
 export const usePropertyRowsFromEntity = (): PropertyRow[] => {
   const {
@@ -18,7 +19,7 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
 
     const processedPropertyTypes = new Set<BaseUrl>();
 
-    return Object.keys(closedMultiEntityType.properties).flatMap(
+    return typedKeys(closedMultiEntityType.properties).flatMap(
       (propertyTypeBaseUrl) => {
         if (processedPropertyTypes.has(propertyTypeBaseUrl as BaseUrl)) {
           return [];

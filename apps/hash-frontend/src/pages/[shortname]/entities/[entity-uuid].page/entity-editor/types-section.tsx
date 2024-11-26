@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { PlusIcon, TypeCard } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
 import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
@@ -37,10 +38,12 @@ type MinimalTypeData = {
 };
 
 export const TypeButton = ({
+  allowDelete,
   entity,
   currentEntityType,
   newerEntityType,
 }: {
+  allowDelete: boolean;
   entity: Entity;
   currentEntityType: MinimalTypeData;
   newerEntityType?: Pick<MinimalTypeData, "entityTypeId" | "version">;
@@ -129,7 +132,7 @@ export const TypeButton = ({
         LinkComponent={Link}
         icon={currentEntityType.icon}
         isLink={currentEntityType.isLink}
-        onDelete={readonly ? onDeleteClicked : undefined}
+        onDelete={readonly || !allowDelete ? undefined : onDeleteClicked}
         url={entityTypeId}
         title={entityTypeTitle}
         version={currentVersion}
@@ -205,10 +208,12 @@ export const TypesSection = () => {
           type.metadata.recordId.version > version,
       );
 
+      const { icon } = getDisplayFieldsForClosedEntityType(currentTypeMetadata);
+
       const currentEntityType: MinimalTypeData = {
         entityTypeId: currentTypeMetadata.$id,
         entityTypeTitle: currentTypeMetadata.title,
-        icon: currentTypeMetadata.icon,
+        icon,
         isLink: !!currentTypeMetadata.allOf?.some(
           (parent) => parent.$id === linkEntityTypeUrl,
         ),
@@ -249,9 +254,10 @@ export const TypesSection = () => {
       <Stack alignItems="center" direction="row" gap={1.5}>
         {entityTypes.map(({ currentEntityType, newerEntityType }) => (
           <TypeButton
+            allowDelete={entityTypes.length !== 1}
+            currentEntityType={currentEntityType}
             key={currentEntityType.entityTypeId}
             entity={entity}
-            currentEntityType={currentEntityType}
             newerEntityType={newerEntityType}
           />
         ))}

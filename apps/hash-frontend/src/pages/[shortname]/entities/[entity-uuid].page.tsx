@@ -59,7 +59,7 @@ import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./[entity-uuid].page/shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./[entity-uuid].page/shared/use-draft-link-state";
-import { useUpdateEntityTypes } from "./[entity-uuid].page/shared/use-update-entity-types";
+import { useGetClosedMultiEntityType } from "./[entity-uuid].page/shared/use-get-closed-multi-entity-type";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -88,6 +88,9 @@ const Page: NextPageWithLayout = () => {
         "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
       >
     >();
+
+  const { getClosedMultiEntityType, loading: closedMultiEntityTypeLoading } =
+    useGetClosedMultiEntityType();
 
   const [dataFromDb, setDataFromDb] =
     useState<
@@ -374,9 +377,7 @@ const Page: NextPageWithLayout = () => {
     [draftId, refetch, router, routeNamespace],
   );
 
-  const updateEntityTypes = useUpdateEntityTypes();
-
-  if (loading) {
+  if (loading || (!draftEntityTypesDetails && closedMultiEntityTypeLoading)) {
     return <EntityPageLoadingState />;
   }
 
@@ -429,10 +430,8 @@ const Page: NextPageWithLayout = () => {
       readonly={isReadOnly}
       onEntityUpdated={(entity) => onEntityUpdated(entity)}
       setEntityTypes={async (newEntityTypeIds) => {
-        await updateEntityTypes({
-          newEntityTypeIds,
-          setEntityTypeDetailsState: setDraftEntityTypesDetails,
-        });
+        const newDetails = await getClosedMultiEntityType(newEntityTypeIds);
+        setDraftEntityTypesDetails(newDetails);
       }}
       setEntity={(changedEntity) => {
         setIsDirty(true);

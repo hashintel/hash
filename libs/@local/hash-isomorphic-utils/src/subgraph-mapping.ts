@@ -1,4 +1,3 @@
-import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   ClosedEntityType as GraphApiClosedEntityType,
@@ -24,6 +23,7 @@ import type {
 import type {
   BaseUrl,
   ClosedEntityType,
+  ClosedMultiEntityType,
   DataTypeWithMetadata,
   EntityTypeResolveDefinitions,
   EntityTypeWithMetadata,

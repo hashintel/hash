@@ -7,19 +7,21 @@ import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useContext, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { Link } from "../../../../shared/ui/link";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { EditBar } from "../../shared/edit-bar";
+import { createDraftEntitySubgraph } from "./create-entity-page/use-draft-entity-subgraph";
+import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
-import { useUpdateDraftEntityState } from "./shared/use-update-draft-entity-state";
+import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
-import { useDraftEntitySubgraph } from "./shared/use-draft-entity-subgraph";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
+import { useGetClosedMultiEntityType } from "./shared/use-get-closed-multi-entity-type";
 
 interface CreateEntityPageProps {
   entityTypeId: VersionedUrl;
@@ -38,8 +40,33 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     setDraftLinksToArchive,
   ] = useDraftLinkState();
 
-  const [draftEntitySubgraph, setDraftEntitySubgraph, loading] =
-    useDraftEntitySubgraph(entityTypeId);
+  const { getClosedMultiEntityType, loading: closedTypeLoading } =
+    useGetClosedMultiEntityType();
+
+  const [draftEntityTypesDetails, setDraftEntityTypesDetails] =
+    useState<
+      Pick<
+        EntityEditorProps,
+        "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
+      >
+    >();
+
+  const [draftEntitySubgraph, setDraftEntitySubgraph] = useState(() =>
+    createDraftEntitySubgraph([entityTypeId]),
+  );
+
+  const fetchAndSetTypeDetails = useCallback(
+    async (entityTypeIds: VersionedUrl[]) => {
+      await getClosedMultiEntityType(entityTypeIds).then((result) => {
+        setDraftEntityTypesDetails(result);
+      });
+    },
+    [getClosedMultiEntityType],
+  );
+
+  useEffect(() => {
+    void fetchAndSetTypeDetails([entityTypeId]);
+  }, [entityTypeId, fetchAndSetTypeDetails]);
 
   const { activeWorkspace, activeWorkspaceOwnedById } =
     useContext(WorkspaceContext);
@@ -56,7 +83,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
    * @todo find a better way to do this
    */
   const handleCreateEntity = async (overrideProperties?: PropertyObject) => {
-    if (!draftEntitySubgraph || !activeWorkspace) {
+    if (!activeWorkspace) {
       return;
     }
 
@@ -97,11 +124,11 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     }
   };
 
-  if (loading) {
+  if (!draftEntityTypesDetails && !closedTypeLoading) {
     return <EntityPageLoadingState />;
   }
 
-  if (!draftEntitySubgraph) {
+  if (!draftEntityTypesDetails) {
     return <PageErrorState />;
   }
 
@@ -126,6 +153,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         </AlertModal>
       )}
       <EntityEditorPage
+        {...draftEntityTypesDetails}
         editBar={
           <EditBar
             label="- this entity has not been created yet"
@@ -148,8 +176,25 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         isDirty
         isDraft
         handleSaveChanges={handleCreateEntity}
-        setEntity={(entity) => {
-          useUpdateDraftEntityState(entity, setDraftEntitySubgraph);
+        setEntityTypes={async (newEntityTypeIds) => {
+          const newDetails = await getClosedMultiEntityType(newEntityTypeIds);
+          setDraftEntityTypesDetails(newDetails);
+          setDraftEntitySubgraph(createDraftEntitySubgraph(newEntityTypeIds));
+        }}
+        setEntity={(changedEntity) => {
+          updateEntitySubgraphStateByEntity(
+            changedEntity,
+            (updatedEntitySubgraphOrFunction) => {
+              setDraftEntitySubgraph((prev) => {
+                const updatedEntitySubgraph =
+                  typeof updatedEntitySubgraphOrFunction === "function"
+                    ? updatedEntitySubgraphOrFunction(prev)
+                    : updatedEntitySubgraphOrFunction;
+
+                return updatedEntitySubgraph ?? prev;
+              });
+            },
+          );
         }}
         draftLinksToCreate={draftLinksToCreate}
         setDraftLinksToCreate={setDraftLinksToCreate}

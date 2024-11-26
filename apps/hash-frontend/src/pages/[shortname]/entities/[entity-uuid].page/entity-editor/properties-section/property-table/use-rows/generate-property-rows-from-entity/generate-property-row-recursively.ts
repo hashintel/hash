@@ -94,6 +94,7 @@ export const generatePropertyRowRecursively = ({
   const required = requiredPropertyTypes.includes(propertyTypeBaseUrl);
 
   const value = get(entity.properties, propertyKeyChain);
+  const valueMetadata = entity.propertyMetadata(propertyKeyChain);
 
   const children: PropertyRow[] = [];
 
@@ -160,23 +161,24 @@ export const generatePropertyRowRecursively = ({
   }
 
   return {
+    ...minMaxConfig,
+    children,
+    depth,
+    indent,
+    isArray,
+    isSingleUrl,
+    permittedDataTypes: expectedTypes,
+    propertyKeyChain,
+    required,
     rowId,
     title: propertyType.title,
     value,
-    expectedTypes,
-    isArray,
-    isSingleUrl,
-    ...minMaxConfig,
-    required,
-    depth,
-    children,
-    indent,
+    valueMetadata,
     /**
      * this will be filled by `fillRowIndentCalculations`
      * this is not filled here, because we'll use the whole flattened tree,
      * and check some values of prev-next items on the flattened tree while calculating this
      */
     verticalLinesForEachIndent: [],
-    propertyKeyChain,
   };
 };

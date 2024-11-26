@@ -1,5 +1,4 @@
-import type { DataType } from "@blockprotocol/type-system/slim";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { ClosedDataType } from "@blockprotocol/type-system/slim";
 import isPlainObject from "lodash/isPlainObject";
 
 import type { EditorType } from "./types";
@@ -8,12 +7,14 @@ const isEmptyArray = (value: unknown) => Array.isArray(value) && !value.length;
 
 const isValidTypeForSchemas = (
   type: "string" | "boolean" | "number" | "object" | "null",
-  expectedTypes: DataType[],
+  expectedTypes: ClosedDataType[],
 ) =>
-  expectedTypes.some((dataType) =>
-    "type" in dataType
-      ? dataType.type === type
-      : dataType.anyOf.some((subType) => subType.type === type),
+  expectedTypes.some(({ allOf }) =>
+    allOf.some((constraint) =>
+      "type" in constraint
+        ? constraint.type === type
+        : constraint.anyOf.some((subType) => subType.type === type),
+    ),
   );
 
 /**
@@ -21,7 +22,7 @@ const isValidTypeForSchemas = (
  */
 export const guessEditorTypeFromValue = (
   value: unknown,
-  expectedTypes: DataTypeWithMetadata["schema"][],
+  expectedTypes: ClosedDataType[],
 ): EditorType => {
   if (
     typeof value === "string" &&
@@ -63,7 +64,7 @@ export const guessEditorTypeFromValue = (
 };
 
 export const guessEditorTypeFromExpectedType = (
-  dataType: DataTypeWithMetadata["schema"],
+  dataType: ClosedDataType,
 ): EditorType => {
   if (dataType.title === "Empty List") {
     return "emptyList";
@@ -71,13 +72,15 @@ export const guessEditorTypeFromExpectedType = (
 
   let type: "string" | "number" | "boolean" | "object" | "null" | "array";
 
-  if ("anyOf" in dataType) {
+  const firstConstraint = dataType.allOf[0];
+
+  if ("anyOf" in firstConstraint) {
     /**
      * @todo H-3374 support multiple expected data types
      */
-    type = dataType.anyOf[0].type;
+    type = firstConstraint.anyOf[0].type;
   } else {
-    type = dataType.type;
+    type = firstConstraint.type;
   }
 
   if (type === "array") {

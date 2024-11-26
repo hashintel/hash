@@ -45,6 +45,8 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
 
   const { latestEntityTypes } = useLatestEntityTypesOptional();
 
+  console.log({ excludeEntityTypeIds });
+
   const filteredEntityTypes = useMemo(
     () =>
       latestEntityTypes?.filter(
