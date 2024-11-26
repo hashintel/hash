@@ -1,5 +1,7 @@
-import { Effect, Ref } from "effect";
+import { Effect, Layer, Ref } from "effect";
+import { GenericTag } from "effect/Context";
 
+import { createProto } from "../utils.js";
 import * as RequestId from "./models/request/RequestId.js";
 
 const TypeId: unique symbol = Symbol(
@@ -12,29 +14,33 @@ export interface RequestIdProducer {
 }
 
 interface RequestIdProducerImpl extends RequestIdProducer {
-  value: Ref.Ref<number>;
+  next: Ref.Ref<number>;
 }
 
 const RequestIdProducerProto: Omit<RequestIdProducer, "value"> = {
   [TypeId]: TypeId,
 };
 
-export const make = () =>
+export const RequestIdProducer = GenericTag<RequestIdProducer>(
+  TypeId.description!,
+);
+
+const make = () =>
   Effect.gen(function* () {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const object = Object.create(RequestIdProducerProto);
+    const next = yield* Ref.make(0);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    object.value = yield* Ref.make(0);
-
-    return object as RequestIdProducer;
+    return createProto(RequestIdProducerProto, { next }) as RequestIdProducer;
   });
+
+export const layer = Layer.effect(RequestIdProducer, make());
 
 export const next = (producer: RequestIdProducer) =>
   Effect.gen(function* () {
     const impl = producer as RequestIdProducerImpl;
 
-    return yield* Ref.getAndUpdate(impl.value, (value) =>
+    const id = yield* Ref.getAndUpdate(impl.next, (value) =>
       value === RequestId.MAX_VALUE ? RequestId.MIN_VALUE : value + 1,
     );
+
+    return RequestId.makeUnchecked(id);
   });

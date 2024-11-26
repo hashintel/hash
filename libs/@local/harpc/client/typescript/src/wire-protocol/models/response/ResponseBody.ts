@@ -105,6 +105,32 @@ export const match: {
     }),
 );
 
+export const mapBoth: {
+  <A>(
+    fn: (
+      beginOrFrame: ResponseBegin.ResponseBegin | ResponseFrame.ResponseFrame,
+    ) => A,
+  ): (self: ResponseBody) => A;
+  <A>(
+    self: ResponseBody,
+    fn: (
+      beginOrFrame: ResponseBegin.ResponseBegin | ResponseFrame.ResponseFrame,
+    ) => A,
+  ): A;
+} = Function.dual(
+  2,
+  <A>(
+    self: ResponseBody,
+    fn: (
+      beginOrFrame: ResponseBegin.ResponseBegin | ResponseFrame.ResponseFrame,
+    ) => A,
+  ) =>
+    match(self, {
+      onBegin: (begin) => fn(begin),
+      onFrame: (frame) => fn(frame),
+    }),
+);
+
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
 export const encode = encodeDual(
