@@ -84,6 +84,10 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
     workspace: rootWorkspace,
     ident: "prettier",
   });
+  const waitOn = Yarn.dependency({
+    workspace: rootWorkspace,
+    ident: "wait-on",
+  });
   /** @type {Dependency} */
   const rimraf = Yarn.dependency({ workspace, ident: "rimraf" });
   /** @type {Dependency} */
@@ -108,6 +112,10 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
     for (const value of Object.values(scripts)) {
       if (value.includes("prettier")) {
         workspace.set("devDependencies.prettier", prettier.range);
+      }
+
+      if (value.includes("wait-on")) {
+        workspace.set("devDependencies.wait-on", waitOn.range);
       }
 
       if (value.includes("rimraf")) {
