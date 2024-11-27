@@ -11,6 +11,12 @@
     "test:unit": "just test-or-coverage"
   },
   "dependencies": {
+    "@rust/deer-desert": "0.0.0-private",
+    "@rust/deer-json": "0.0.0-reserved-private",
+    "@rust/deer-macros": "0.0.0-reserved-private",
     "@rust/error-stack": "0.5.0"
+  },
+  "devDependencies": {
+    "@rust/deer-desert": "0.0.0-private"
   }
 }
