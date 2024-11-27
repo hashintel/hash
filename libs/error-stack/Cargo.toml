@@ -13,6 +13,11 @@ keywords      = ["error", "errorstack", "error-handling", "report", "no_std"]
 categories    = ["rust-patterns", "no-std"]
 exclude       = ["package.json", "macros", "experimental"]
 
+[package.metadata.sync.turborepo]
+extra-dependencies = [
+    { name = "@rust/error-stack-macros", version = "0.0.0-reserved-private" },
+]
+
 [dependencies]
 # Public workspace dependencies
 

@@ -2093,9 +2093,6 @@ dependencies = [
 [[package]]
 name = "error-stack-macros"
 version = "0.0.0-reserved"
-dependencies = [
- "error-stack",
-]
 
 [[package]]
 name = "event-listener"
