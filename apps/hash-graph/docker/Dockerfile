@@ -44,7 +44,8 @@ COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
 COPY --from=base /app/out/full/turbo.json turbo.json
 
-RUN yarn config set network-timeout 300000 && \
+RUN corepack enable && \
+    yarn config set network-timeout 300000 && \
     yarn install --immutable && \
     yarn cache clean
 
