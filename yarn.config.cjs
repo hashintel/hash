@@ -78,7 +78,6 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
 
   // get all required versions from @apps/hash-api
   const workspace = Yarn.workspace({ ident: "@apps/hash-api" });
-  console.log(workspace);
 
   /** @type {Dependency} */
   const prettier = Yarn.dependency({
@@ -94,6 +93,10 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
 
   const workspaces = Yarn.workspaces();
   for (const workspace of workspaces) {
+    if (workspace.ident === rootWorkspace.ident) {
+      continue;
+    }
+
     /** @type {Record<string, string> | undefined} */
     const scripts = workspace.manifest.scripts;
 
