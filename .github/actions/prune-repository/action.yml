@@ -21,6 +21,7 @@ runs:
         SCOPES=$(echo "${{ inputs.scope }}" | tr '\n' ' ')
 
         # TODO: remove once deer is in labs
+        #   see https://linear.app/hash/issue/H-3692/move-deer-to-labs
         # Nested crates are pruned in a way where the lockfile does not correctly reflect the pruned workspace, leading to an installation failure.
         # Check if any of the scopes start with @rust/deer
         # If any deer crate is in scope, include all deer crates
