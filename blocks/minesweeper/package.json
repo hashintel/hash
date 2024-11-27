@@ -26,8 +26,8 @@
     "mine-sweeper-tag": "1.0.6"
   },
   "devDependencies": {
-    "@local/eslint-config": "workspace:^",
-    "@local/tsconfig": "workspace:^",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "@types/react-dom": "18.2.25",
     "block-scripts": "0.3.4",
     "mock-block-dock": "0.1.9",

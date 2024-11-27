@@ -31,8 +31,8 @@
     "@blockprotocol/graph": "0.3.4"
   },
   "devDependencies": {
-    "@local/eslint-config": "workspace:^",
-    "@local/tsconfig": "workspace:^",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "@types/react-dom": "18.2.25",
     "block-scripts": "0.3.4",
     "eslint": "8.57.0",

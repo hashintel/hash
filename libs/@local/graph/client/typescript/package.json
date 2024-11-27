@@ -16,10 +16,10 @@
     "axios": "1.7.8"
   },
   "devDependencies": {
-    "@local/eslint-config": "workspace:^",
-    "@local/tsconfig": "workspace:^",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "@redocly/cli": "1.25.14",
-    "@rust/hash-graph-api": "workspace:^",
+    "@rust/hash-graph-api": "0.0.0-private",
     "@types/node": "22.10.0",
     "eslint": "8.57.0",
     "fix-esm-import-path": "1.10.1",

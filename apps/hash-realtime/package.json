@@ -15,15 +15,15 @@
     "start:test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts"
   },
   "dependencies": {
-    "@local/hash-backend-utils": "workspace:^",
+    "@local/hash-backend-utils": "0.0.0-private",
     "set-interval-async": "2.0.3",
     "slonik": "24.2.0",
     "tsx": "4.19.2",
     "typescript": "5.6.3"
   },
   "devDependencies": {
-    "@local/eslint-config": "workspace:^",
-    "@local/tsconfig": "workspace:^",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "@types/node": "22.10.0",
     "@types/set-interval-async": "1.0.3",
     "eslint": "8.57.0"

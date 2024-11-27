@@ -9,10 +9,10 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@rust/error-stack": "workspace:^",
-    "@rust/harpc-codec": "workspace:^",
-    "@rust/harpc-types": "workspace:^",
-    "@rust/harpc-wire-protocol": "workspace:^",
-    "@rust/hash-codec": "workspace:^"
+    "@rust/error-stack": "0.5.0",
+    "@rust/harpc-codec": "0.0.0-private",
+    "@rust/harpc-types": "0.0.0-private",
+    "@rust/harpc-wire-protocol": "0.0.0-private",
+    "@rust/hash-codec": "0.0.0-private"
   }
 }

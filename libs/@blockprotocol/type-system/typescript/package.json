@@ -51,11 +51,11 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "workspace:^"
+    "@blockprotocol/type-system-rs": "0.0.0-private"
   },
   "devDependencies": {
-    "@local/eslint-config": "workspace:^",
-    "@local/tsconfig": "workspace:^",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "@rollup/plugin-node-resolve": "15.3.0",
     "@rollup/plugin-typescript": "12.1.1",
     "@rollup/plugin-wasm": "6.2.2",

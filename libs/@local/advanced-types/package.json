@@ -22,8 +22,8 @@
     "lint:tsc": "tsc --noEmit"
   },
   "devDependencies": {
-    "@local/eslint-config": "workspace:^",
-    "@local/tsconfig": "workspace:^",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "eslint": "8.57.0",
     "react": "18.2.0",
     "rimraf": "6.0.1",

@@ -11,6 +11,6 @@
     "test:unit": "just test-or-coverage"
   },
   "dependencies": {
-    "@rust/error-stack": "workspace:^"
+    "@rust/error-stack": "0.5.0"
   }
 }

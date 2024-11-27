@@ -30,16 +30,16 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@blockprotocol/graph": "workspace:^",
-    "@blockprotocol/type-system": "workspace:^",
-    "@local/advanced-types": "workspace:^",
-    "@local/hash-graph-client": "workspace:^",
-    "@local/hash-graph-sdk": "workspace:^",
-    "@local/hash-graph-types": "workspace:^",
+    "@blockprotocol/graph": "0.4.0-canary.0",
+    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@local/advanced-types": "0.0.0-private",
+    "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-graph-sdk": "0.0.0-private",
+    "@local/hash-graph-types": "0.0.0-private",
     "uuid": "9.0.1"
   },
   "devDependencies": {
-    "@local/eslint-config": "workspace:^",
+    "@local/eslint-config": "0.0.0-private",
     "@types/uuid": "10.0.0",
     "@vitest/coverage-istanbul": "2.1.6",
     "typescript": "5.6.3",

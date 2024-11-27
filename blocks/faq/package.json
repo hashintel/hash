@@ -32,13 +32,13 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.3.4",
-    "@hashintel/block-design-system": "workspace:^",
-    "@hashintel/design-system": "workspace:^",
+    "@hashintel/block-design-system": "0.0.2",
+    "@hashintel/design-system": "0.0.8",
     "@mui/material": "5.16.7",
     "uuid": "9.0.1"
   },
   "devDependencies": {
-    "@local/eslint-config": "workspace:^",
+    "@local/eslint-config": "0.0.0-private",
     "@types/react-dom": "18.2.25",
     "@types/uuid": "10.0.0",
     "block-scripts": "0.3.4",

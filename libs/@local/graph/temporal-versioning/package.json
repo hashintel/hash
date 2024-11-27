@@ -9,6 +9,6 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@rust/hash-codec": "workspace:^"
+    "@rust/hash-codec": "0.0.0-private"
   }
 }

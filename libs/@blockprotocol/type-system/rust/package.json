@@ -25,11 +25,11 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@rust/error-stack": "workspace:^",
-    "@rust/hash-codec": "workspace:^"
+    "@rust/error-stack": "0.5.0",
+    "@rust/hash-codec": "0.0.0-private"
   },
   "devDependencies": {
-    "@rust/hash-graph-test-data": "workspace:^",
+    "@rust/hash-graph-test-data": "0.0.0-private",
     "wasm-pack": "0.13.1"
   }
 }

@@ -23,14 +23,14 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@blockprotocol/graph": "workspace:^",
-    "@local/advanced-types": "workspace:^",
-    "@local/hash-graph-client": "workspace:^",
-    "@local/hash-graph-types": "workspace:^"
+    "@blockprotocol/graph": "0.4.0-canary.0",
+    "@local/advanced-types": "0.0.0-private",
+    "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-graph-types": "0.0.0-private"
   },
   "devDependencies": {
-    "@local/eslint-config": "workspace:^",
-    "@local/tsconfig": "workspace:^",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "@vitest/coverage-istanbul": "2.1.6",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",

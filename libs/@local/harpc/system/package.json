@@ -4,7 +4,7 @@
   "private": true,
   "license": "AGPL-3",
   "dependencies": {
-    "@rust/harpc-tower": "workspace:^",
-    "@rust/harpc-types": "workspace:^"
+    "@rust/harpc-tower": "0.0.0-private",
+    "@rust/harpc-types": "0.0.0-private"
   }
 }
