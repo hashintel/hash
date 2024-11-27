@@ -21,9 +21,9 @@ export const scalars = {
   ClosedMultiEntityType:
     "@local/hash-graph-types/ontology#ClosedMultiEntityType",
   ClosedMultiEntityTypesRootMap:
-    "@local/hash-graph-sdk/entity#ClosedMultiEntityTypesRootMap",
+    "@local/hash-graph-types/ontology#ClosedMultiEntityTypesRootMap",
   ClosedMultiEntityTypesDefinitions:
-    "@local/hash-graph-sdk/entity#ClosedMultiEntityTypesDefinitions",
+    "@local/hash-graph-types/ontology#ClosedMultiEntityTypesDefinitions",
   EntityTypeWithMetadata:
     "@local/hash-graph-types/ontology#EntityTypeWithMetadata",
   ConstructEntityTypeParams:

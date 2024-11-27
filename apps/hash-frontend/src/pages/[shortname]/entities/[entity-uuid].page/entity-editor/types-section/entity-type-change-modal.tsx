@@ -188,7 +188,7 @@ const CalloutMessage = ({
     }
   }
 
-  const detail =
+  const detail = `${
     prefix +
     messages.reduce((acc, message, index) => {
       if (index === 0) {
@@ -198,8 +198,8 @@ const CalloutMessage = ({
         return `${acc} and ${message}`;
       }
       return `${acc}, ${message}`;
-    }, "") +
-    ".";
+    }, "")
+  }.`;
 
   return (
     <Typography

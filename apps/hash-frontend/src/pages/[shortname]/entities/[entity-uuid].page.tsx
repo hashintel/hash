@@ -1,7 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
-  getClosedMultiEntityTypesFromMap,
+  getClosedMultiEntityTypeFromMap,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
@@ -56,7 +56,7 @@ import { useRouteNamespace } from "../shared/use-route-namespace";
 import type { EntityEditorProps } from "./[entity-uuid].page/entity-editor";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
-import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
+import { updateDraftEntitySubgraph } from "./[entity-uuid].page/shared/update-draft-entity-subgraph";
 import { useApplyDraftLinkEntityChanges } from "./[entity-uuid].page/shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./[entity-uuid].page/shared/use-draft-link-state";
 import { useGetClosedMultiEntityType } from "./[entity-uuid].page/shared/use-get-closed-multi-entity-type";
@@ -98,6 +98,7 @@ const Page: NextPageWithLayout = () => {
         EntityEditorProps,
         | "closedMultiEntityType"
         | "closedMultiEntityTypesDefinitions"
+        | "closedMultiEntityTypesMap"
         | "entitySubgraph"
       >
     >();
@@ -187,12 +188,13 @@ const Page: NextPageWithLayout = () => {
             throw new Error("No root entity found in entity subgraph");
           }
 
-          const closedMultiEntityType = getClosedMultiEntityTypesFromMap(
+          const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
             closedMultiEntityTypes,
             entity.metadata.entityTypeIds,
           );
 
           setDataFromDb({
+            closedMultiEntityTypesMap: closedMultiEntityTypes,
             closedMultiEntityType,
             closedMultiEntityTypesDefinitions: definitions,
             entitySubgraph: subgraph,
@@ -390,7 +392,7 @@ const Page: NextPageWithLayout = () => {
     return <NextErrorComponent statusCode={404} />;
   }
 
-  const entityLabel = generateEntityLabel(draftEntitySubgraph);
+  const entityLabel = generateEntityLabel(draftEntitySubgraph, draftEntity);
   const isModifyingEntity =
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
@@ -401,6 +403,7 @@ const Page: NextPageWithLayout = () => {
   return (
     <EntityEditorPage
       entity={entityFromDb}
+      closedMultiEntityTypesMap={dataFromDb?.closedMultiEntityTypesMap ?? null}
       {...draftEntityTypesDetails}
       editBar={
         <EditBar
@@ -432,13 +435,23 @@ const Page: NextPageWithLayout = () => {
       setEntityTypes={async (newEntityTypeIds) => {
         const newDetails = await getClosedMultiEntityType(newEntityTypeIds);
         setDraftEntityTypesDetails(newDetails);
+
+        const newSubgraph = updateDraftEntitySubgraph(
+          draftEntity,
+          newEntityTypeIds,
+          draftEntitySubgraph,
+        );
+
+        setDraftEntitySubgraph(newSubgraph);
       }}
       setEntity={(changedEntity) => {
-        setIsDirty(true);
-        updateEntitySubgraphStateByEntity(
+        const newSubgraph = updateDraftEntitySubgraph(
           changedEntity,
-          setDraftEntitySubgraph,
+          changedEntity.metadata.entityTypeIds,
+          draftEntitySubgraph,
         );
+
+        setDraftEntitySubgraph(newSubgraph);
       }}
     />
   );

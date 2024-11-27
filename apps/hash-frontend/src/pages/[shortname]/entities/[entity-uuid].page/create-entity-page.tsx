@@ -14,11 +14,11 @@ import { PageErrorState } from "../../../../components/page-error-state";
 import { Link } from "../../../../shared/ui/link";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { EditBar } from "../../shared/edit-bar";
-import { createDraftEntitySubgraph } from "./create-entity-page/use-draft-entity-subgraph";
+import { createDraftEntitySubgraph } from "./create-entity-page/create-draft-entity-subgraph";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
-import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
+import { updateDraftEntitySubgraph } from "./shared/update-draft-entity-subgraph";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
 import { useGetClosedMultiEntityType } from "./shared/use-get-closed-multi-entity-type";
@@ -76,6 +76,8 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const [creating, setCreating] = useState(false);
 
+  const entity = getRoots(draftEntitySubgraph)[0]!;
+
   /**
    * `overrideProperties` is a quick hack to bypass the setting draftEntity state
    * I did this, because I was having trouble with the `setDraftEntitySubgraph` function,
@@ -95,25 +97,25 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
     try {
       setCreating(true);
-      const { data: entity } = await createEntity({
+      const { data: createdEntity } = await createEntity({
         data: {
-          entityTypeIds: [entityTypeId],
+          entityTypeIds: entity.metadata.entityTypeIds,
           properties: overrideProperties ?? draftEntity.properties,
         },
       });
 
-      if (!entity) {
+      if (!createdEntity) {
         return;
       }
 
       await applyDraftLinkEntityChanges(
-        entity,
+        createdEntity,
         draftLinksToCreate,
         draftLinksToArchive,
       );
 
       const entityId = extractEntityUuidFromEntityId(
-        entity.metadata.recordId.entityId,
+        createdEntity.metadata.recordId.entityId,
       );
 
       void router.push(`/@${activeWorkspace.shortname}/entities/${entityId}`);
@@ -132,7 +134,10 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     return <PageErrorState />;
   }
 
-  const entityLabel = generateEntityLabel(draftEntitySubgraph);
+  const entityLabel = generateEntityLabel(
+    draftEntityTypesDetails.closedMultiEntityType,
+    entity,
+  );
 
   const isQueryEntity =
     entityTypeId === blockProtocolEntityTypes.query.entityTypeId;
@@ -154,6 +159,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       )}
       <EntityEditorPage
         {...draftEntityTypesDetails}
+        closedMultiEntityTypesMap={null}
         editBar={
           <EditBar
             label="- this entity has not been created yet"
@@ -179,22 +185,22 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         setEntityTypes={async (newEntityTypeIds) => {
           const newDetails = await getClosedMultiEntityType(newEntityTypeIds);
           setDraftEntityTypesDetails(newDetails);
-          setDraftEntitySubgraph(createDraftEntitySubgraph(newEntityTypeIds));
+
+          const newSubgraph = updateDraftEntitySubgraph(
+            entity,
+            newEntityTypeIds,
+            draftEntitySubgraph,
+          );
+
+          setDraftEntitySubgraph(newSubgraph);
         }}
         setEntity={(changedEntity) => {
-          updateEntitySubgraphStateByEntity(
+          const newSubgraph = updateDraftEntitySubgraph(
             changedEntity,
-            (updatedEntitySubgraphOrFunction) => {
-              setDraftEntitySubgraph((prev) => {
-                const updatedEntitySubgraph =
-                  typeof updatedEntitySubgraphOrFunction === "function"
-                    ? updatedEntitySubgraphOrFunction(prev)
-                    : updatedEntitySubgraphOrFunction;
-
-                return updatedEntitySubgraph ?? prev;
-              });
-            },
+            changedEntity.metadata.entityTypeIds,
+            draftEntitySubgraph,
           );
+          setDraftEntitySubgraph(newSubgraph);
         }}
         draftLinksToCreate={draftLinksToCreate}
         setDraftLinksToCreate={setDraftLinksToCreate}

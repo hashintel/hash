@@ -68,8 +68,11 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   );
 
   const entityLabel = useMemo(
-    () => (entitySubgraph ? generateEntityLabel(entitySubgraph) : undefined),
-    [entitySubgraph],
+    () =>
+      entitySubgraph && entity
+        ? generateEntityLabel(entitySubgraph, entity)
+        : undefined,
+    [entity, entitySubgraph],
   );
 
   const entityOwnedById = useMemo(

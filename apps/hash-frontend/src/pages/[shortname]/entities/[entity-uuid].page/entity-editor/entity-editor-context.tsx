@@ -23,6 +23,7 @@ export const EntityEditorContextProvider = ({
   children,
   closedMultiEntityType,
   closedMultiEntityTypesDefinitions,
+  closedMultiEntityTypesMap,
   customColumns,
   defaultOutgoingLinkFilters,
   disableTypeClick,
@@ -74,6 +75,7 @@ export const EntityEditorContextProvider = ({
     () => ({
       closedMultiEntityType,
       closedMultiEntityTypesDefinitions,
+      closedMultiEntityTypesMap,
       customColumns,
       defaultOutgoingLinkFilters,
       disableTypeClick,
@@ -96,6 +98,7 @@ export const EntityEditorContextProvider = ({
     [
       closedMultiEntityType,
       closedMultiEntityTypesDefinitions,
+      closedMultiEntityTypesMap,
       customColumns,
       defaultOutgoingLinkFilters,
       disableTypeClick,

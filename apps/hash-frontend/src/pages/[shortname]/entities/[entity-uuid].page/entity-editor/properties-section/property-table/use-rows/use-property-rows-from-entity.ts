@@ -1,3 +1,4 @@
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -5,7 +6,6 @@ import { useMemo } from "react";
 import { useEntityEditor } from "../../../entity-editor-context";
 import type { PropertyRow } from "../types";
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
-import { typedKeys } from "@local/advanced-types/typed-entries";
 
 export const usePropertyRowsFromEntity = (): PropertyRow[] => {
   const {

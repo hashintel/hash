@@ -1,16 +1,8 @@
-import type {
-  ClosedDataType,
-  PartialEntityType as BpPartialEntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import type { Subtype } from "@local/advanced-types/subtype";
+import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
-  ClosedMultiEntityTypeMap,
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
-  GetClosedMultiEntityTypeResponseDefinitions,
   GraphApi,
   OriginProvenance,
   PatchEntityParams as GraphApiPatchEntityParams,
@@ -52,6 +44,8 @@ import type {
   BaseUrl,
   ClosedEntityType,
   ClosedMultiEntityType,
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
 import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import type {
@@ -59,7 +53,6 @@ import type {
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type { AuthenticationContext } from "./authentication-context.js";
 
@@ -478,26 +471,6 @@ export const flattenPropertyMetadata = (
   return flattened;
 };
 
-export type ClosedMultiEntityTypesRootMap = {
-  [key: string]: ClosedMultiEntityTypeMap;
-};
-
-export type PartialEntityType = Subtype<
-  BpPartialEntityType,
-  Omit<BpPartialEntityType, "$id"> & {
-    $id: VersionedUrl;
-  }
->;
-
-export type ClosedMultiEntityTypesDefinitions = Subtype<
-  GetClosedMultiEntityTypeResponseDefinitions,
-  {
-    dataTypes: { [key: VersionedUrl]: ClosedDataType };
-    entityTypes: { [key: VersionedUrl]: PartialEntityType };
-    propertyTypes: { [key: VersionedUrl]: PropertyType };
-  }
->;
-
 export const getDisplayFieldsForClosedEntityType = (
   closedType:
     | Pick<ClosedMultiEntityType, "allOf">
@@ -532,7 +505,13 @@ export const getDisplayFieldsForClosedEntityType = (
     }
 
     if (!isLink) {
-      isLink = $id === blockProtocolEntityTypes.link.entityTypeId;
+      isLink =
+        $id ===
+        /**
+         * Ideally this wouldn't be hardcoded but the only places to import it from would create a circular dependency between packages
+         * @todo do something about this
+         */
+        "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
     }
 
     if (foundIcon && foundLabelProperty && isLink) {
@@ -547,6 +526,59 @@ export const getDisplayFieldsForClosedEntityType = (
   };
 };
 
+export const isClosedMultiEntityTypeForEntityTypeIds = (
+  closedMultiEntityType: ClosedMultiEntityType,
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
+) => {
+  const entityTypeIdsSet = new Set(
+    entityTypeIds.map((entityTypeId) => entityTypeId),
+  );
+  const closedMultiEntityTypeIdsSet = new Set(
+    closedMultiEntityType.allOf.map((entityType) => entityType.$id),
+  );
+
+  if (entityTypeIdsSet.size !== closedMultiEntityTypeIdsSet.size) {
+    return false;
+  }
+
+  for (const value of entityTypeIdsSet) {
+    /**
+     * We can't use Set.isSubsetOf/isSupersetOf until using Node 22+ everywhere that might use this
+     */
+    if (!closedMultiEntityTypeIdsSet.has(value)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+export const getPropertyTypeForClosedMultiEntityType = (
+  closedMultiEntityType: ClosedMultiEntityType,
+  propertyTypeBaseUrl: BaseUrl,
+  definitions: ClosedMultiEntityTypesDefinitions,
+): PropertyType => {
+  const schema = closedMultiEntityType.properties[propertyTypeBaseUrl];
+
+  if (!schema) {
+    throw new Error(
+      `Expected ${propertyTypeBaseUrl} to appear in closed entity type properties`,
+    );
+  }
+
+  const propertyTypeId = "items" in schema ? schema.items.$ref : schema.$ref;
+
+  const propertyType = definitions.propertyTypes[propertyTypeId];
+
+  if (!propertyType) {
+    throw new Error(
+      `Expected ${propertyTypeId} to appear in definitions.propertyTypes`,
+    );
+  }
+
+  return propertyType;
+};
+
 /**
  * Retrieves a `ClosedMultiEntityType` from a given response based on a list of entity type IDs.
  *
@@ -555,7 +587,7 @@ export const getDisplayFieldsForClosedEntityType = (
  * @throws Error If the closed entity type for the given entityTypeIds is not found in the map.
  * @returns ClosedMultiEntityType
  */
-export const getClosedMultiEntityTypesFromMap = (
+export const getClosedMultiEntityTypeFromMap = (
   closedMultiEntityTypes: ClosedMultiEntityTypesRootMap | undefined,
   entityTypesIds: [VersionedUrl, ...VersionedUrl[]],
 ): ClosedMultiEntityType => {

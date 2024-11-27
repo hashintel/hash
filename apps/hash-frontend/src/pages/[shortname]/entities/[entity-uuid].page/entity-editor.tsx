@@ -1,10 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  ClosedMultiEntityTypesDefinitions,
-  Entity,
-} from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { ClosedMultiEntityType } from "@local/hash-graph-types/ontology";
+import type {
+  ClosedMultiEntityType,
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
@@ -29,6 +30,7 @@ export type { CustomColumn };
 export interface EntityEditorProps extends DraftLinkState {
   closedMultiEntityType: ClosedMultiEntityType;
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
+  closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
   customColumns?: CustomColumn[];
   defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
   disableTypeClick?: boolean;
@@ -37,7 +39,9 @@ export interface EntityEditorProps extends DraftLinkState {
   entitySubgraph: Subgraph<EntityRootType>;
   onEntityClick: (entityId: EntityId) => void;
   setEntity: (entity: Entity) => void;
-  setEntityTypes: (entityTypeIds: VersionedUrl[]) => Promise<void>;
+  setEntityTypes: (
+    entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
+  ) => Promise<void>;
   readonly: boolean;
   onEntityUpdated: ((entity: Entity) => void) | null;
   /**

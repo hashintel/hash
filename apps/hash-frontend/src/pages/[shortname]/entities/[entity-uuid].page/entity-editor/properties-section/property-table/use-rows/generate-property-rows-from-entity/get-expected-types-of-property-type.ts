@@ -4,7 +4,7 @@ import type {
   PropertyType,
   PropertyValues,
 } from "@blockprotocol/type-system";
-import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/entity";
+import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-types/ontology";
 
 import { isPropertyValueArray } from "../../../../../../../../../lib/typeguards";
 

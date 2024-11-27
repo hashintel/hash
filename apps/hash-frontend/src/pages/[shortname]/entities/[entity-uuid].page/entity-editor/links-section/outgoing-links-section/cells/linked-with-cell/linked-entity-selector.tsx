@@ -2,8 +2,9 @@ import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { PaperProps } from "@mui/material";
 import { Stack, Typography } from "@mui/material";
@@ -24,12 +25,9 @@ import { EntitySelector } from "../../../../../../../../shared/entity-selector";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
 
-interface EntitySelectorProps {
+interface LinkedEntitySelectorProps {
   includeDrafts: boolean;
-  onSelect: (
-    option: Entity,
-    sourceSubgraph: Subgraph<EntityRootType> | null,
-  ) => void;
+  onSelect: (option: Entity, entityLabel: string) => void;
   onFinishedEditing: () => void;
   expectedEntityTypes: Pick<EntityType, "$id">[];
   entityIdsToFilterOut?: EntityId[];
@@ -70,7 +68,7 @@ export const LinkedEntitySelector = ({
   expectedEntityTypes,
   entityIdsToFilterOut,
   linkEntityTypeId,
-}: EntitySelectorProps) => {
+}: LinkedEntitySelectorProps) => {
   const { entitySubgraph, readonly } = useEntityEditor();
 
   const entityId = getRoots(entitySubgraph)[0]?.metadata.recordId
@@ -128,13 +126,20 @@ export const LinkedEntitySelector = ({
           },
         },
         makePublic: false,
-        onComplete: (upload) =>
-          onSelect(
-            upload.createdEntities.fileEntity as Entity,
-            // the entity's subgraph should mostly contain the file's type, since we're choosing it based on the expected type
-            // it will not if the expected type is File and we automatically choose a narrower type of e.g. Image based on the upload
-            entitySubgraph,
-          ),
+        onComplete: (upload) => {
+          const entity = upload.createdEntities.fileEntity;
+
+          const label =
+            entity.properties[
+              "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
+            ] ??
+            entity.properties[
+              "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"
+            ] ??
+            "File";
+
+          onSelect(upload.createdEntities.fileEntity as Entity, label);
+        },
         ownedById: activeWorkspaceOwnedById,
         /**
          * Link creation is handled in the onSelect, since we might need to manage drafts,
@@ -152,7 +157,6 @@ export const LinkedEntitySelector = ({
     [
       activeWorkspaceOwnedById,
       entityId,
-      entitySubgraph,
       expectedEntityTypes,
       linkEntityTypeId,
       onFinishedEditing,
@@ -179,7 +183,16 @@ export const LinkedEntitySelector = ({
         expectedEntityTypes={expectedEntityTypes}
         includeDrafts={includeDrafts}
         multiple={false}
-        onSelect={onSelect}
+        onSelect={(entity, closedMultiEntityTypeMap) => {
+          const closedType = getClosedMultiEntityTypeFromMap(
+            closedMultiEntityTypeMap,
+            entity.metadata.entityTypeIds,
+          );
+
+          const label = generateEntityLabel(closedType, entity);
+
+          onSelect(entity, label);
+        }}
         className={GRID_CLICK_IGNORE_CLASS}
         open
         readOnly={readonly}

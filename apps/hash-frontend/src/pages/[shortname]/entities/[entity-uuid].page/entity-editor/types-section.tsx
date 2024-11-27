@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { PlusIcon, TypeCard } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -61,7 +62,7 @@ export const TypeButton = ({
 
   const handleUpdateTypes = async (newEntityTypeIds: VersionedUrl[]) => {
     try {
-      await setEntityTypes(newEntityTypeIds);
+      await setEntityTypes(mustHaveAtLeastOne(newEntityTypeIds));
       setChangeDetails(null);
     } finally {
       setUpdatingTypes(false);
@@ -235,7 +236,10 @@ export const TypesSection = () => {
   const [addingType, setAddingType] = useState(false);
 
   const onNewTypeSelected = async (entityTypeId: VersionedUrl) => {
-    const newEntityTypeIds = [...entity.metadata.entityTypeIds, entityTypeId];
+    const newEntityTypeIds = mustHaveAtLeastOne([
+      ...entity.metadata.entityTypeIds,
+      entityTypeId,
+    ]);
 
     try {
       setAddingType(true);

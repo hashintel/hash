@@ -1,4 +1,4 @@
-import type { ClosedDataType, DataType } from "@blockprotocol/type-system";
+import type { ClosedDataType } from "@blockprotocol/type-system";
 import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
   fa100,

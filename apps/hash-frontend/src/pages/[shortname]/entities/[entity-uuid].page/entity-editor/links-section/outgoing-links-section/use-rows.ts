@@ -1,6 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { PartialEntityType } from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import type { PartialEntityType } from "@local/hash-graph-types/ontology";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -16,8 +18,9 @@ import type { LinkRow } from "./types";
 
 export const useRows = () => {
   const {
-    closedMultiEntityTypesDefinitions,
     closedMultiEntityType,
+    closedMultiEntityTypesDefinitions,
+    closedMultiEntityTypesMap,
     entitySubgraph,
     draftLinksToArchive,
     draftLinksToCreate,
@@ -95,7 +98,7 @@ export const useRows = () => {
           ),
         );
 
-        const linkAndTargetEntities = [];
+        const linkAndTargetEntities: LinkRow["linkAndTargetEntities"] = [];
 
         for (const entities of outgoingLinkAndTargetEntities) {
           const linkEntityRevisions = [...entities.linkEntity];
@@ -137,11 +140,36 @@ export const useRows = () => {
             (markedLinkId) => markedLinkId === recordId.entityId,
           );
 
+          if (!closedMultiEntityTypesMap) {
+            throw new Error("Expected closedMultiEntityTypesMap to be defined");
+          }
+
+          const targetEntityClosedType = getClosedMultiEntityTypeFromMap(
+            closedMultiEntityTypesMap,
+            latestTargetEntityRevision.metadata.entityTypeIds,
+          );
+
+          const rightEntityLabel = generateEntityLabel(
+            targetEntityClosedType,
+            latestTargetEntityRevision,
+          );
+
+          const linkEntityClosedType = getClosedMultiEntityTypeFromMap(
+            closedMultiEntityTypesMap,
+            latestLinkEntityRevision.metadata.entityTypeIds,
+          );
+
+          const linkEntityLabel = generateEntityLabel(
+            linkEntityClosedType,
+            latestLinkEntityRevision,
+          );
+
           if (isMatching && !isMarkedToArchive) {
             linkAndTargetEntities.push({
               linkEntity: latestLinkEntityRevision,
+              linkEntityLabel,
               rightEntity: latestTargetEntityRevision,
-              sourceSubgraph: entitySubgraph,
+              rightEntityLabel,
             });
           }
         }
@@ -180,6 +208,7 @@ export const useRows = () => {
     );
   }, [
     closedMultiEntityType,
+    closedMultiEntityTypesMap,
     closedMultiEntityTypesDefinitions,
     entitySubgraph,
     draftLinksToArchive,

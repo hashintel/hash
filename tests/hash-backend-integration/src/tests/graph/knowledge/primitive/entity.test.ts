@@ -19,7 +19,7 @@ import {
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { getClosedMultiEntityTypesFromMap } from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -314,7 +314,7 @@ describe("Entity CRU", () => {
 
     // It should not matter if the entity type is read independently from the response or is part of the response. The result should be the same.
     for (const entity of entities) {
-      const entityTypeFromResponse = getClosedMultiEntityTypesFromMap(
+      const entityTypeFromResponse = getClosedMultiEntityTypeFromMap(
         response.closedMultiEntityTypes,
         entity.metadata.entityTypeIds,
       );
@@ -333,12 +333,10 @@ describe("Entity CRU", () => {
           includeResolved: true,
         },
       );
-      if (entityTypeFromResponse?.required && entityTypeFromGraph.required) {
-        // The `required` field is not sorted, so we need to sort it before comparing
-        entityTypeFromResponse.required =
-          entityTypeFromResponse.required.sort();
-        entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
-      }
+
+      // The `required` field is not sorted, so we need to sort it before comparing
+      entityTypeFromResponse.required = entityTypeFromResponse.required.sort();
+      entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
       expect(entityTypeFromResponse).toEqual(entityTypeFromGraph);
 
       for (const [id, schema] of Object.entries(

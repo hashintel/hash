@@ -27,7 +27,9 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ActorType,
+  ClosedMultiEntityTypeMap,
   EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
+  GetClosedMultiEntityTypeResponseDefinitions,
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
 } from "@local/hash-graph-client";
@@ -165,6 +167,19 @@ export type ClosedMultiEntityType = Omit<
   properties: Record<BaseUrl, ValueOrArray<PropertyTypeReference>>;
   required: [BaseUrl, ...BaseUrl[]];
 };
+
+export type ClosedMultiEntityTypesRootMap = {
+  [key: string]: ClosedMultiEntityTypeMap;
+};
+
+export type ClosedMultiEntityTypesDefinitions = Subtype<
+  GetClosedMultiEntityTypeResponseDefinitions,
+  {
+    dataTypes: { [key: VersionedUrl]: ClosedDataType };
+    entityTypes: { [key: VersionedUrl]: PartialEntityType };
+    propertyTypes: { [key: VersionedUrl]: PropertyType };
+  }
+>;
 
 export type PartialEntityType = Omit<PartialEntityTypeBp, "labelProperty"> & {
   labelProperty: BaseUrl;

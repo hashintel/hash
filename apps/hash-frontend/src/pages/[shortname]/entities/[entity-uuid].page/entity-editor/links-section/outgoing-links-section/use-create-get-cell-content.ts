@@ -81,11 +81,7 @@ export const useCreateGetCellContent = () => {
                       icon: icon
                         ? { entityTypeIcon: icon }
                         : {
-                            inbuiltIcon:
-                              /**
-                               * @todo know if a type is a link type or not
-                               */
-                              false ? "bpLink" : "bpAsterisk",
+                            inbuiltIcon: "bpAsterisk",
                           },
                       iconFill: theme.palette.blue[70],
                     })),

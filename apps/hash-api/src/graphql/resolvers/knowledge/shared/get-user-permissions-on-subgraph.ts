@@ -1,4 +1,3 @@
-import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import type { Subgraph } from "@local/hash-subgraph";
 import type { GraphQLResolveInfo } from "graphql";
@@ -14,7 +13,8 @@ const werePermissionsRequested = (info: GraphQLResolveInfo) => {
   const parsedResolveInfoFragment = parseResolveInfo(info);
 
   const requestedFieldsOnSubgraph =
-    parsedResolveInfoFragment?.fieldsByTypeName.SubgraphAndPermissions;
+    parsedResolveInfoFragment?.fieldsByTypeName.SubgraphAndPermissions ||
+    parsedResolveInfoFragment?.fieldsByTypeName.GetEntitySubgraphResponse;
 
   if (!requestedFieldsOnSubgraph) {
     throw new Error(`No Subgraph in parsed resolve info fragment`);
@@ -30,11 +30,11 @@ const werePermissionsRequested = (info: GraphQLResolveInfo) => {
   };
 };
 
-export const createSubgraphAndPermissionsReturn = async (
+export const getUserPermissionsOnSubgraph = async (
   graphQLContext: GraphQLContext,
   resolveInfo: GraphQLResolveInfo,
   subgraph: Subgraph,
-): Promise<SubgraphAndPermissions> => {
+): Promise<UserPermissionsOnEntities> => {
   const { authentication } = graphQLContext;
 
   const userPermissionsOnEntities = werePermissionsRequested(resolveInfo)
@@ -53,8 +53,5 @@ export const createSubgraphAndPermissionsReturn = async (
        */
       (null as unknown as UserPermissionsOnEntities);
 
-  return {
-    subgraph: serializeSubgraph(subgraph),
-    userPermissionsOnEntities,
-  };
+  return userPermissionsOnEntities;
 };
