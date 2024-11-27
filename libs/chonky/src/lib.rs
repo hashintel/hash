@@ -33,7 +33,7 @@ pub enum ChonkyError {
 
 pub mod embedding;
 
-pub use crate::embedding::multi_modal_embedding;
+pub use embedding::{hugging_face_api, multi_modal_embedding};
 
 /// Attempts to link to the `PDFium` library.
 ///
@@ -128,7 +128,9 @@ pub const fn create_document_embedding() -> DocumentEmbeddings {
 }
 
 pub mod pdf_segmentation {
+
     use error_stack::{Report, ResultExt as _};
+    use futures::future::try_join_all;
     use image::{DynamicImage, GrayImage, RgbaImage};
     use pdfium_render::prelude::{
         PdfBitmap, PdfBitmapFormat, PdfDocument, PdfPageObjectCommon as _,
@@ -138,8 +140,10 @@ pub mod pdf_segmentation {
     use crate::{
         ChonkyError, DocumentEmbeddings, Embedding, ImageEmbedding, PageContentEmbedding,
         TableEmbedding, TextEmbedding,
-        embedding::hugging_face_api::make_table_recognition_request,
-        multi_modal_embedding::{embed_pdf_object_images, embed_tables, embed_text},
+        embedding::{
+            hugging_face_api::make_table_recognition_request,
+            multi_modal_embedding::{embed_pdf_object_images, embed_tables, embed_text},
+        },
     };
 
     #[derive(Debug, Clone)]
@@ -163,14 +167,23 @@ pub mod pdf_segmentation {
             .map_err(|err| Report::new(err).change_context(ChonkyError::Pdfium))
     }
 
-    fn extract_tables(
-        pdf: &PdfDocument,
+    async fn extract_tables(
+        pdf: &PdfDocument<'_>,
         images: &[String],
         config: &PdfRenderConfig,
     ) -> Result<Vec<Vec<ExtractedTable>>, Report<ChonkyError>> {
+        let table_predictions_list = try_join_all(
+            images
+                .iter()
+                .map(|image_path| make_table_recognition_request(image_path, false)),
+        )
+        .await?;
+
         let mut pdf_table_bounds = Vec::new();
+
+        //task::spawn_blocking(move || {
         for (index, page) in pdf.pages().iter().enumerate() {
-            let table_predictions = make_table_recognition_request(images[index].clone(), true)?;
+            let table_predictions = &table_predictions_list[index];
 
             let mut page_table_bounds: Vec<ExtractedTable> = Vec::new();
             //convert the pixels back to pdf points
@@ -178,7 +191,7 @@ pub mod pdf_segmentation {
                 if table.score < 0.95 {
                     continue;
                 }
-                let bbox = table.bounding_box;
+                let bbox = &table.bounding_box;
 
                 // Convert to i32 safely
                 let xmin: i32 = num_traits::cast(bbox.xmin).ok_or(ChonkyError::Pdfium)?;
@@ -319,25 +332,26 @@ pub mod pdf_segmentation {
     /// [`ChonkyError::Pdfium`] if pdf rendering of tables fails
     /// [`ChonkyError::VertexAPI`] if the Multimodal Embedding Model fails
     /// [`ChonkyError::HuggingFaceAPI`] if there are issues parsing the table
-    pub fn embed_pdf<'a>(
-        pdf: &PdfDocument,
+    pub async fn embed_pdf<'a>(
+        pdf: &PdfDocument<'_>,
         images: &[String],
         document_embeddings: &'a mut DocumentEmbeddings,
     ) -> Result<&'a mut DocumentEmbeddings, Report<ChonkyError>> {
         let project_id =
             std::env::var("GOOGLE_PROJECT_ID").change_context(ChonkyError::VertexAPI)?;
 
-        let pdf_table_bounds = extract_tables(pdf, images, &create_config())?;
+        let pdf_table_bounds = extract_tables(pdf, images, &create_config()).await?;
 
         let pdf_text_extract = extract_text(pdf, &pdf_table_bounds);
 
         let pdf_image_extract = extract_images(pdf);
 
-        let image_embeddings = embed_pdf_object_images(pdf_image_extract.clone(), &project_id)?;
+        let image_embeddings =
+            embed_pdf_object_images(pdf_image_extract.clone(), &project_id).await?;
 
-        let table_embeddings = embed_tables(pdf_table_bounds.clone(), &project_id)?;
+        let table_embeddings = embed_tables(pdf_table_bounds.clone(), &project_id).await?;
 
-        let pdf_text_embeddings = embed_text(pdf_text_extract.clone(), &project_id)?;
+        let pdf_text_embeddings = embed_text(pdf_text_extract.clone(), &project_id).await?;
 
         //TODO: implement in a way to prevent so much unnecessary cloning
 
@@ -547,8 +561,8 @@ pub mod pdf_segmentation {
         use super::*;
         use crate::{create_document_embedding, link_pdfium};
 
-        #[test]
-        fn pdf_table_extraction() -> Result<(), Report<ChonkyError>> {
+        #[tokio::test]
+        async fn pdf_table_extraction() -> Result<(), Report<ChonkyError>> {
             let pdfium = link_pdfium()?;
             let file_path = "./tests/docs/table-testing.pdf";
 
@@ -556,7 +570,7 @@ pub mod pdf_segmentation {
 
             let images = vec!["./tests/docs/table-testing.png".to_owned()];
 
-            let table_info = extract_tables(&pdf, &images, &create_config())?;
+            let table_info = extract_tables(&pdf, &images, &create_config()).await?;
             //just take first vector
 
             let table = table_info[0][0].clone();
@@ -575,8 +589,8 @@ pub mod pdf_segmentation {
             Ok(())
         }
 
-        #[test]
-        fn pdf_text_extraction() -> Result<(), Report<ChonkyError>> {
+        #[tokio::test]
+        async fn pdf_text_extraction() -> Result<(), Report<ChonkyError>> {
             let pdfium = link_pdfium()?;
             let file_path = "./tests/docs/table-testing.pdf";
 
@@ -584,7 +598,7 @@ pub mod pdf_segmentation {
 
             let images = vec!["./tests/docs/table-testing.png".to_owned()];
 
-            let table_info = extract_tables(&pdf, &images, &create_config())?;
+            let table_info = extract_tables(&pdf, &images, &create_config()).await?;
             //just take first vector
 
             let text_info = extract_text(&pdf, &table_info);
@@ -618,8 +632,8 @@ pub mod pdf_segmentation {
             Ok(())
         }
 
-        #[test]
-        fn content_embeddings() -> Result<(), Report<ChonkyError>> {
+        #[tokio::test]
+        async fn content_embeddings() -> Result<(), Report<ChonkyError>> {
             let pdfium = link_pdfium()?;
             let file_path = "./tests/docs/table-testing.pdf";
 
@@ -628,7 +642,7 @@ pub mod pdf_segmentation {
             let images = vec!["./tests/docs/table-testing.png".to_owned()];
 
             let mut document_embeddings = create_document_embedding();
-            let document_embeddings = embed_pdf(&pdf, &images, &mut document_embeddings)?;
+            let document_embeddings = embed_pdf(&pdf, &images, &mut document_embeddings).await?;
 
             //cannot use binary snapshot since embeddings vary
             //check vector length since we individually check embeddings in other tests

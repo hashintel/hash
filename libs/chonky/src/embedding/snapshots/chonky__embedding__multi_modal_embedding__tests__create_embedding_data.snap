@@ -1,5 +1,5 @@
 ---
-source: libs/chonky/src/embedding.rs
+source: libs/chonky/src/embedding/multi_modal_embedding.rs
 expression: "format!(\"{:?}\", document_embeddings)"
 snapshot_kind: text
 ---

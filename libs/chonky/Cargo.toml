@@ -18,12 +18,15 @@ error-stack = { workspace = true, public = true }
 
 # Public third-party dependencies
 base64        = { workspace = true }
-curl          = { workspace = true }
+clap          = { workspace = true, features = ["derive"] }
+futures       = { workspace = true, features = ["alloc"] }
 image         = { workspace = true, public = true, features = ["png", "bmp"] }
 num-traits    = { workspace = true }
-pdfium-render = { workspace = true, public = true }
+pdfium-render = { workspace = true, features = ["thread_safe"], public = true }
+reqwest       = { workspace = true, features = ["json"] }
 serde         = { workspace = true, features = ["derive"] }
 serde_json    = { workspace = true }
+tokio         = { workspace = true, features = ["macros", "rt-multi-thread", "fs"] }
 
 # Private workspace dependencies
 

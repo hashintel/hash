@@ -1,22 +1,26 @@
-use std::env;
-
 use chonky::{
     ChonkyError, create_document_embedding,
     multi_modal_embedding::{add_structural_embedding, embed_screenshots},
     pdf_segmentation::{self, embed_pdf},
 };
-use error_stack::{Report, ResultExt as _, ensure};
+use clap::Parser;
+use error_stack::{Report, ResultExt as _};
 
-fn main() -> Result<(), Report<ChonkyError>> {
+#[derive(Parser)]
+struct CliArgs {
+    /// Path to the PDF file
+    pdf_path: String,
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Report<ChonkyError>> {
     // read file path arguments
-    // TODO: implement with clap
-    let args: Vec<String> = env::args().collect();
-
-    ensure!(args.len() > 1, ChonkyError::Arguments);
+    let args = CliArgs::parse();
 
     let pdfium = chonky::link_pdfium()?;
 
-    let pdf = pdf_segmentation::load_pdf(&pdfium, &args[1]).change_context(ChonkyError::Pdfium)?;
+    let pdf =
+        pdf_segmentation::load_pdf(&pdfium, &args.pdf_path).change_context(ChonkyError::Pdfium)?;
 
     let preprocessed_pdf =
         pdf_segmentation::pdf_to_images(&pdf).change_context(ChonkyError::Pdfium)?;
@@ -41,7 +45,7 @@ fn main() -> Result<(), Report<ChonkyError>> {
         images.push(file_path);
     }
 
-    let doc_screenshots = embed_screenshots(preprocessed_pdf, &project_id)?;
+    let doc_screenshots = embed_screenshots(preprocessed_pdf, &project_id).await?;
 
     for (index, screenshot) in doc_screenshots.into_iter().enumerate() {
         add_structural_embedding(
@@ -52,7 +56,9 @@ fn main() -> Result<(), Report<ChonkyError>> {
         );
     }
 
-    embed_pdf(&pdf, &images, &mut document_embeddings)?;
+    embed_pdf(&pdf, &images, &mut document_embeddings)
+        .await
+        .change_context(ChonkyError::Pdfium)?;
 
     //dbg!("{:?}", document_embeddings);
     Ok(())
