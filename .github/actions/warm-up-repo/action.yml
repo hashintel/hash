@@ -33,6 +33,7 @@ runs:
         # a subset of hardened mode (https://yarnpkg.com/features/security)
         command: |
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
+          export YARN_ENABLE_HARDENED_MODE=0
           corepack enable
           yarn install
 
