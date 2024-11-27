@@ -18405,6 +18405,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@yarnpkg/types@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "@yarnpkg/types@npm:4.0.0"
+  dependencies:
+    tslib: "npm:^2.4.0"
+  checksum: 10c0/41f67a4aa5c414c1e228f51453451fa15e0dd70c5cf2b1ae1ca142a3f018f25e4a37e60372cd0f5970c755e1804a2e31e208bff427add1cf13f899b0b9adc1e0
+  languageName: node
+  linkType: hard
+
 "@yomguithereal/helpers@npm:^1.1.1":
   version: 1.1.1
   resolution: "@yomguithereal/helpers@npm:1.1.1"
@@ -27965,6 +27974,7 @@ __metadata:
     "@changesets/changelog-github": "npm:0.4.8"
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch"
     "@taplo/cli": "npm:0.7.0"
+    "@yarnpkg/types": "npm:^4.0.0"
     check-dependency-version-consistency: "npm:3.0.3"
     concurrently: "npm:7.6.0"
     cross-env: "npm:7.0.3"
