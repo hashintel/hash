@@ -47,8 +47,4 @@ arbitrary-precision = []
 workspace = true
 
 [package.metadata.sync.turborepo]
-extra-dependencies = [
-    { name = "@rust/deer-desert", version = "0.0.0-private" },
-    { name = "@rust/deer-json", version = "0.0.0-reserved-private" },
-    { name = "@rust/deer-macros", version = "0.0.0-reserved-private" },
-]
+ignore = true
