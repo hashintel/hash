@@ -4197,6 +4197,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:2.1.6"
     eslint: "npm:8.57.0"
     react: "npm:18.2.0"
+    rimraf: "npm:^6.0.1"
     rollup: "npm:4.27.4"
     tslib: "npm:2.8.1"
     typescript: "npm:5.6.3"
@@ -39874,7 +39875,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rimraf@npm:6.0.1":
+"rimraf@npm:6.0.1, rimraf@npm:^6.0.1":
   version: 6.0.1
   resolution: "rimraf@npm:6.0.1"
   dependencies:
