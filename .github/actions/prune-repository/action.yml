@@ -17,11 +17,11 @@ runs:
     - name: Prune repository
       shell: bash
       run: |
-        while IFS= read -r line; do
-          if [[ -n "$line" ]]; then
-            turbo prune --scope="$line"
-          fi
-        done <<< "${{ inputs.scope }}"
+        # Convert newline-separated input to space-separated arguments
+        SCOPES=$(echo "${{ inputs.scope }}" | tr '\n' ' ')
+
+        # Run turbo prune with all scopes as arguments
+        turbo prune $SCOPES
 
         while IFS= read -r line; do
           DIRECTORY=$(dirname "$line")
