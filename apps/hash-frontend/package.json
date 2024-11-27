@@ -98,7 +98,7 @@
     "prosemirror-inputrules": "1.2.0",
     "prosemirror-keymap": "1.2.0",
     "prosemirror-model": "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch",
-    "prosemirror-state": "1.4.2",
+    "prosemirror-state": "1.4.3",
     "prosemirror-transform": "1.7.0",
     "prosemirror-view": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
     "react": "18.2.0",

@@ -584,7 +584,7 @@ __metadata:
     prosemirror-inputrules: "npm:1.2.0"
     prosemirror-keymap: "npm:1.2.0"
     prosemirror-model: "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch"
-    prosemirror-state: "npm:1.4.2"
+    prosemirror-state: "npm:1.4.3"
     prosemirror-transform: "npm:1.7.0"
     prosemirror-view: "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch"
     react: "npm:18.2.0"
@@ -8314,7 +8314,7 @@ __metadata:
     prosemirror-dropcursor: "npm:1.6.1"
     prosemirror-keymap: "npm:1.2.0"
     prosemirror-model: "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch"
-    prosemirror-state: "npm:1.4.2"
+    prosemirror-state: "npm:1.4.3"
     prosemirror-transform: "npm:1.7.0"
     prosemirror-view: "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch"
     react: "npm:18.2.0"
@@ -37601,18 +37601,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-state@npm:1.4.2":
-  version: 1.4.2
-  resolution: "prosemirror-state@npm:1.4.2"
-  dependencies:
-    prosemirror-model: "npm:^1.0.0"
-    prosemirror-transform: "npm:^1.0.0"
-    prosemirror-view: "npm:^1.27.0"
-  checksum: 10c0/cf1d63a22212c45b8000f4a31b1133853d606479cd982a81060d1e711e7d30ffb32e35edb2e4c492bbf938669d8416abb008542bc50ef7dd4c1a83e676183aba
-  languageName: node
-  linkType: hard
-
-"prosemirror-state@npm:>=1.0.0, prosemirror-state@npm:^1.0.0":
+"prosemirror-state@npm:1.4.3, prosemirror-state@npm:>=1.0.0, prosemirror-state@npm:^1.0.0":
   version: 1.4.3
   resolution: "prosemirror-state@npm:1.4.3"
   dependencies:
