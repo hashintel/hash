@@ -289,21 +289,21 @@ __metadata:
   dependencies:
     "@anthropic-ai/bedrock-sdk": "npm:0.10.0"
     "@anthropic-ai/sdk": "npm:0.24.0"
-    "@apps/hash-graph": "npm:0.0.0-private"
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@apps/hash-graph": "workspace:^"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
     "@google-cloud/storage": "npm:7.14.0"
     "@google-cloud/vertexai": "npm:1.9.0"
-    "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-backend-utils": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
-    "@local/status": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/advanced-types": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-backend-utils": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/hash-graph-sdk": "workspace:^"
+    "@local/hash-graph-types": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
+    "@local/status": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@sentry/cli": "npm:2.39.0"
     "@sentry/node": "npm:7.120.0"
     "@temporalio/activity": "npm:1.11.5"
@@ -361,34 +361,34 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/hash-api@npm:0.0.0-private, @apps/hash-api@workspace:apps/hash-api":
+"@apps/hash-api@workspace:^, @apps/hash-api@workspace:apps/hash-api":
   version: 0.0.0-use.local
   resolution: "@apps/hash-api@workspace:apps/hash-api"
   dependencies:
-    "@apps/hash-graph": "npm:0.0.0-private"
+    "@apps/hash-graph": "workspace:^"
     "@aws-sdk/client-s3": "npm:3.700.0"
     "@aws-sdk/client-ses": "npm:3.699.0"
     "@aws-sdk/credential-provider-node": "npm:3.699.0"
     "@aws-sdk/s3-presigned-post": "npm:3.700.0"
     "@aws-sdk/s3-request-presigner": "npm:3.700.0"
     "@blockprotocol/core": "npm:0.1.3"
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
     "@graphql-codegen/cli": "npm:5.0.3"
     "@graphql-codegen/introspection": "npm:2.2.3"
     "@graphql-codegen/typescript": "npm:2.8.8"
     "@graphql-codegen/typescript-resolvers": "npm:2.7.13"
     "@graphql-tools/schema": "npm:8.5.1"
     "@linear/sdk": "npm:6.0.0"
-    "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-backend-utils": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
-    "@local/status": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/advanced-types": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-backend-utils": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/hash-graph-sdk": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
+    "@local/status": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@mailchimp/mailchimp_marketing": "npm:3.0.80"
     "@opentelemetry/api": "npm:1.9.0"
     "@opentelemetry/core": "npm:1.28.0"
@@ -474,16 +474,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/hash-frontend@npm:0.0.0-private, @apps/hash-frontend@workspace:apps/hash-frontend":
+"@apps/hash-frontend@workspace:^, @apps/hash-frontend@workspace:apps/hash-frontend":
   version: 0.0.0-use.local
   resolution: "@apps/hash-frontend@workspace:apps/hash-frontend"
   dependencies:
     "@apollo/client": "npm:3.10.5"
     "@blockprotocol/core": "npm:0.1.3"
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
+    "@blockprotocol/graph": "workspace:^"
     "@blockprotocol/hook": "npm:0.1.3"
     "@blockprotocol/service": "npm:0.1.4"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "workspace:^"
     "@dnd-kit/core": "npm:6.2.0"
     "@dnd-kit/sortable": "npm:7.0.2"
     "@dnd-kit/utilities": "npm:3.2.2"
@@ -498,20 +498,20 @@ __metadata:
     "@graphql-codegen/fragment-matcher": "npm:3.3.3"
     "@graphql-codegen/typescript": "npm:2.8.8"
     "@graphql-codegen/typescript-operations": "npm:2.5.13"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@hashintel/query-editor": "npm:0.0.3"
-    "@hashintel/type-editor": "npm:0.0.25"
+    "@hashintel/block-design-system": "workspace:^"
+    "@hashintel/design-system": "workspace:^"
+    "@hashintel/query-editor": "workspace:^"
+    "@hashintel/type-editor": "workspace:^"
     "@lit-labs/react": "npm:1.2.1"
-    "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
-    "@local/status": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/advanced-types": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/hash-graph-sdk": "workspace:^"
+    "@local/hash-graph-types": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
+    "@local/status": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@mui/icons-material": "npm:5.16.7"
     "@mui/material": "npm:5.16.7"
     "@mui/system": "npm:5.16.7"
@@ -616,24 +616,24 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/hash-graph@npm:0.0.0-private, @apps/hash-graph@workspace:apps/hash-graph":
+"@apps/hash-graph@workspace:^, @apps/hash-graph@workspace:apps/hash-graph":
   version: 0.0.0-use.local
   resolution: "@apps/hash-graph@workspace:apps/hash-graph"
   dependencies:
-    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/harpc-codec": "npm:0.0.0-private"
-    "@rust/harpc-server": "npm:0.0.0-private"
-    "@rust/hash-codec": "npm:0.0.0-private"
-    "@rust/hash-graph-api": "npm:0.0.0-private"
-    "@rust/hash-graph-authorization": "npm:0.0.0-private"
-    "@rust/hash-graph-postgres-store": "npm:0.0.0-private"
-    "@rust/hash-graph-store": "npm:0.0.0-private"
-    "@rust/hash-graph-test-server": "npm:0.0.0-private"
-    "@rust/hash-graph-type-fetcher": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
-    "@rust/hash-temporal-client": "npm:0.0.0-private"
-    "@rust/hash-tracing": "npm:0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:^"
+    "@rust/error-stack": "workspace:^"
+    "@rust/harpc-codec": "workspace:^"
+    "@rust/harpc-server": "workspace:^"
+    "@rust/hash-codec": "workspace:^"
+    "@rust/hash-graph-api": "workspace:^"
+    "@rust/hash-graph-authorization": "workspace:^"
+    "@rust/hash-graph-postgres-store": "workspace:^"
+    "@rust/hash-graph-store": "workspace:^"
+    "@rust/hash-graph-test-server": "workspace:^"
+    "@rust/hash-graph-type-fetcher": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
+    "@rust/hash-temporal-client": "workspace:^"
+    "@rust/hash-tracing": "workspace:^"
   languageName: unknown
   linkType: soft
 
@@ -641,17 +641,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@apps/hash-integration-worker@workspace:apps/hash-integration-worker"
   dependencies:
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
     "@linear/sdk": "npm:6.0.0"
-    "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-backend-utils": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/advanced-types": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-backend-utils": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/hash-graph-sdk": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@sentry/cli": "npm:2.39.0"
     "@sentry/node": "npm:7.120.0"
     "@temporalio/activity": "npm:1.11.5"
@@ -668,13 +668,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/hash-realtime@npm:0.0.0-private, @apps/hash-realtime@workspace:apps/hash-realtime":
+"@apps/hash-realtime@workspace:^, @apps/hash-realtime@workspace:apps/hash-realtime":
   version: 0.0.0-use.local
   resolution: "@apps/hash-realtime@workspace:apps/hash-realtime"
   dependencies:
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-backend-utils": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-backend-utils": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/node": "npm:22.10.0"
     "@types/set-interval-async": "npm:1.0.3"
     eslint: "npm:8.57.0"
@@ -685,15 +685,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/hash-search-loader@npm:0.0.0-private, @apps/hash-search-loader@workspace:apps/hash-search-loader":
+"@apps/hash-search-loader@workspace:^, @apps/hash-search-loader@workspace:apps/hash-search-loader":
   version: 0.0.0-use.local
   resolution: "@apps/hash-search-loader@workspace:apps/hash-search-loader"
   dependencies:
-    "@apps/hash-api": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-backend-utils": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@apps/hash-api": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-backend-utils": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/node": "npm:22.10.0"
     eslint: "npm:8.57.0"
     hot-shots: "npm:8.5.2"
@@ -708,10 +708,10 @@ __metadata:
   dependencies:
     "@babel/preset-env": "npm:7.26.0"
     "@babel/preset-typescript": "npm:7.26.0"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@hashintel/block-design-system": "workspace:^"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@storybook/addon-essentials": "npm:7.6.20"
     "@storybook/addon-interactions": "npm:7.6.20"
     "@storybook/addon-links": "npm:7.6.20"
@@ -743,8 +743,8 @@ __metadata:
     "@emotion/server": "npm:11.11.0"
     "@emotion/styled": "npm:11.13.5"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@matejmazur/react-katex": "npm:3.1.3"
     "@mui/icons-material": "npm:5.16.7"
     "@mui/material": "npm:5.16.7"
@@ -801,7 +801,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/plugin-browser@npm:0.0.8, @apps/plugin-browser@workspace:apps/plugin-browser":
+"@apps/plugin-browser@workspace:^, @apps/plugin-browser@workspace:apps/plugin-browser":
   version: 0.0.0-use.local
   resolution: "@apps/plugin-browser@workspace:apps/plugin-browser"
   dependencies:
@@ -811,18 +811,18 @@ __metadata:
     "@babel/preset-env": "npm:7.26.0"
     "@babel/preset-react": "npm:7.25.9"
     "@blockprotocol/core": "npm:0.1.3"
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
+    "@blockprotocol/graph": "workspace:^"
     "@graphql-codegen/cli": "npm:5.0.3"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
-    "@local/status": "npm:0.0.0-private"
+    "@hashintel/block-design-system": "workspace:^"
+    "@hashintel/design-system": "workspace:^"
+    "@local/advanced-types": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/hash-graph-sdk": "workspace:^"
+    "@local/hash-graph-types": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
+    "@local/status": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@pmmmwh/react-refresh-webpack-plugin": "npm:0.5.15"
     "@sentry/browser": "npm:7.120.0"
@@ -4180,31 +4180,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockprotocol/graph@npm:0.3.4":
-  version: 0.3.4
-  resolution: "@blockprotocol/graph@npm:0.3.4"
-  dependencies:
-    "@blockprotocol/core": "npm:0.1.3"
-    "@blockprotocol/type-system": "npm:0.1.1"
-    ajv: "npm:^8.11.2"
-    ajv-formats: "npm:^2.1.1"
-    json-schema-to-typescript: "npm:^11.0.2"
-    lit: "npm:^2.4.1"
-    typescript: "npm:4.9.4"
-  peerDependencies:
-    react: ^18.0.0
-  checksum: 10c0/e10d460158268f5c209f7eeb69a25bb71b888546c102315fe887ddfb5e7dcb1a02ddb5e1769c621fc3925069ba06a1953e79879f25d46caafe2dbfb3a0ffbc46
-  languageName: node
-  linkType: hard
-
-"@blockprotocol/graph@npm:0.4.0-canary.0, @blockprotocol/graph@workspace:libs/@blockprotocol/graph":
+"@blockprotocol/graph@workspace:^, @blockprotocol/graph@workspace:libs/@blockprotocol/graph":
   version: 0.0.0-use.local
   resolution: "@blockprotocol/graph@workspace:libs/@blockprotocol/graph"
   dependencies:
     "@blockprotocol/core": "npm:0.1.3"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@blockprotocol/type-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/lodash.isequal": "npm:4.5.8"
     "@types/node": "npm:22.10.0"
     "@types/react": "npm:18.2.68"
@@ -4267,13 +4250,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockprotocol/type-system-rs@npm:0.0.0-private, @blockprotocol/type-system-rs@workspace:libs/@blockprotocol/type-system/rust":
+"@blockprotocol/type-system-rs@workspace:^, @blockprotocol/type-system-rs@workspace:libs/@blockprotocol/type-system/rust":
   version: 0.0.0-use.local
   resolution: "@blockprotocol/type-system-rs@workspace:libs/@blockprotocol/type-system/rust"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-codec": "npm:0.0.0-private"
-    "@rust/hash-graph-test-data": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hash-codec": "workspace:^"
+    "@rust/hash-graph-test-data": "workspace:^"
     wasm-pack: "npm:0.13.1"
   languageName: unknown
   linkType: soft
@@ -4285,13 +4268,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockprotocol/type-system@npm:0.1.2-canary.0, @blockprotocol/type-system@workspace:libs/@blockprotocol/type-system/typescript":
+"@blockprotocol/type-system@workspace:^, @blockprotocol/type-system@workspace:libs/@blockprotocol/type-system/typescript":
   version: 0.0.0-use.local
   resolution: "@blockprotocol/type-system@workspace:libs/@blockprotocol/type-system/typescript"
   dependencies:
-    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@rollup/plugin-node-resolve": "npm:15.3.0"
     "@rollup/plugin-typescript": "npm:12.1.1"
     "@rollup/plugin-wasm": "npm:6.2.2"
@@ -4312,13 +4295,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/address@workspace:blocks/address"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@blockprotocol/service": "npm:0.1.4"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@hashintel/block-design-system": "workspace:^"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@types/lodash.debounce": "npm:4.0.9"
     "@types/react-dom": "npm:18.2.25"
@@ -4343,13 +4326,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/ai-chat@workspace:blocks/ai-chat"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@blockprotocol/hook": "npm:0.1.3"
     "@blockprotocol/service": "npm:0.1.4"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@hashintel/block-design-system": "workspace:^"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@types/react-dom": "npm:18.2.25"
     "@types/uuid": "npm:10.0.0"
@@ -4373,12 +4356,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/ai-image@workspace:blocks/ai-image"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@blockprotocol/service": "npm:0.1.4"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@hashintel/block-design-system": "workspace:^"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@types/react-dom": "npm:18.2.25"
     "@types/uuid": "npm:10.0.0"
@@ -4400,12 +4383,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/ai-text@workspace:blocks/ai-text"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@blockprotocol/service": "npm:0.1.4"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@hashintel/block-design-system": "workspace:^"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@types/react-dom": "npm:18.2.25"
     block-scripts: "npm:0.3.4"
@@ -4424,10 +4407,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/callout@workspace:blocks/callout"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@blockprotocol/hook": "npm:0.1.3"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/react-dom": "npm:18.2.25"
     block-scripts: "npm:0.3.4"
     eslint: "npm:8.57.0"
@@ -4445,13 +4428,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/chart@workspace:blocks/chart"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@emotion/react": "npm:11.13.5"
     "@emotion/styled": "npm:11.13.5"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@hashintel/block-design-system": "workspace:^"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@types/lodash.debounce": "npm:4.0.9"
     "@types/react-dom": "npm:18.2.25"
@@ -4476,9 +4459,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/code@workspace:blocks/code"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/prismjs": "npm:1.26.5"
     "@types/react-dom": "npm:18.2.25"
     block-scripts: "npm:0.3.4"
@@ -4498,9 +4481,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/countdown@workspace:blocks/countdown"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/react-datepicker": "npm:4.19.6"
     "@types/react-dom": "npm:18.2.25"
     block-scripts: "npm:0.3.4"
@@ -4522,9 +4505,9 @@ __metadata:
   resolution: "@blocks/divider@workspace:blocks/divider"
   dependencies:
     "@blockprotocol/core": "npm:0.1.3"
-    "@blockprotocol/graph": "npm:0.3.4"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/react-dom": "npm:18.2.25"
     block-scripts: "npm:0.3.4"
     eslint: "npm:8.57.0"
@@ -4542,8 +4525,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/embed@workspace:blocks/embed"
   dependencies:
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/lodash": "npm:4.17.13"
     "@types/react-dom": "npm:18.0.9"
     block-scripts: "npm:0.0.14"
@@ -4566,10 +4549,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/faq@workspace:blocks/faq"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@hashintel/block-design-system": "workspace:^"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@types/react-dom": "npm:18.2.25"
     "@types/uuid": "npm:10.0.0"
@@ -4590,10 +4573,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/heading@workspace:blocks/heading"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@blockprotocol/hook": "npm:0.1.3"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/react-dom": "npm:18.2.25"
     block-scripts: "npm:0.3.4"
     eslint: "npm:8.57.0"
@@ -4611,10 +4594,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/how-to@workspace:blocks/how-to"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@hashintel/block-design-system": "workspace:^"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@types/react-dom": "npm:18.2.25"
     "@types/uuid": "npm:10.0.0"
@@ -4636,10 +4619,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/image@workspace:blocks/image"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@blockprotocol/hook": "npm:0.1.3"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/react-dom": "npm:18.2.25"
     block-scripts: "npm:0.3.4"
     eslint: "npm:8.57.0"
@@ -4658,13 +4641,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/kanban-board@workspace:blocks/kanban-board"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@dnd-kit/core": "npm:6.2.0"
     "@dnd-kit/sortable": "npm:7.0.2"
     "@dnd-kit/utilities": "npm:3.2.2"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@hashintel/block-design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@types/lodash.clonedeep": "npm:4.5.9"
     "@types/lodash.debounce": "npm:4.0.9"
@@ -4691,9 +4674,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/minesweeper@workspace:blocks/minesweeper"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/react-dom": "npm:18.2.25"
     block-scripts: "npm:0.3.4"
     lit: "npm:2.8.0"
@@ -4709,10 +4692,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/paragraph@workspace:blocks/paragraph"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@blockprotocol/hook": "npm:0.1.3"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/react-dom": "npm:18.2.25"
     block-scripts: "npm:0.3.4"
     eslint: "npm:8.57.0"
@@ -4730,9 +4713,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/person@workspace:blocks/person"
   dependencies:
-    "@blockprotocol/graph": "npm:0.0.18"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/dompurify": "npm:2.4.0"
     "@types/react-dom": "npm:18.0.9"
     block-scripts: "npm:0.0.14"
@@ -4752,13 +4735,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/shuffle@workspace:blocks/shuffle"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@dnd-kit/core": "npm:6.2.0"
     "@dnd-kit/sortable": "npm:7.0.2"
     "@dnd-kit/utilities": "npm:3.2.2"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@mui/icons-material": "npm:5.16.7"
     "@mui/material": "npm:5.16.7"
     "@types/lodash.isequal": "npm:4.5.8"
@@ -4782,11 +4765,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/table@workspace:blocks/table"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
+    "@blockprotocol/graph": "workspace:^"
     "@glideapps/glide-data-grid": "patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch"
-    "@hashintel/block-design-system": "npm:0.0.2"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@hashintel/block-design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@types/lodash.debounce": "npm:4.0.9"
     "@types/lodash.isequal": "npm:4.5.8"
@@ -4817,9 +4800,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/timer@workspace:blocks/timer"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/react-dom": "npm:18.2.25"
     block-scripts: "npm:0.3.4"
     date-fns: "npm:4.1.0"
@@ -4839,9 +4822,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blocks/video@workspace:blocks/video"
   dependencies:
-    "@blockprotocol/graph": "npm:0.3.4"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/react-dom": "npm:18.2.25"
     block-scripts: "npm:0.3.4"
     eslint: "npm:8.57.0"
@@ -7250,19 +7233,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hashintel/block-design-system@npm:0.0.2, @hashintel/block-design-system@workspace:libs/@hashintel/block-design-system":
+"@hashintel/block-design-system@workspace:^, @hashintel/block-design-system@workspace:libs/@hashintel/block-design-system":
   version: 0.0.0-use.local
   resolution: "@hashintel/block-design-system@workspace:libs/@hashintel/block-design-system"
   dependencies:
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
     "@emotion/react": "npm:11.13.5"
     "@emotion/styled": "npm:11.13.5"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@mui/system": "npm:5.16.7"
     "@types/react": "npm:18.2.68"
@@ -7286,20 +7269,20 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/design-system@npm:0.0.8, @hashintel/design-system@workspace:libs/@hashintel/design-system":
+"@hashintel/design-system@workspace:^, @hashintel/design-system@workspace:libs/@hashintel/design-system":
   version: 0.0.0-use.local
   resolution: "@hashintel/design-system@workspace:libs/@hashintel/design-system"
   dependencies:
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
     "@emotion/cache": "npm:11.13.5"
     "@emotion/react": "npm:11.13.5"
     "@emotion/styled": "npm:11.13.5"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@mui/system": "npm:5.16.7"
     "@storybook/react": "npm:7.6.20"
@@ -7324,16 +7307,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/query-editor@npm:0.0.3, @hashintel/query-editor@workspace:libs/@hashintel/query-editor":
+"@hashintel/query-editor@workspace:^, @hashintel/query-editor@workspace:libs/@hashintel/query-editor":
   version: 0.0.0-use.local
   resolution: "@hashintel/query-editor@workspace:libs/@hashintel/query-editor"
   dependencies:
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@mui/system": "npm:5.16.7"
     clsx: "npm:1.2.1"
@@ -7350,17 +7333,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/type-editor@npm:0.0.25, @hashintel/type-editor@workspace:libs/@hashintel/type-editor":
+"@hashintel/type-editor@workspace:^, @hashintel/type-editor@workspace:libs/@hashintel/type-editor":
   version: 0.0.0-use.local
   resolution: "@hashintel/type-editor@workspace:libs/@hashintel/type-editor"
   dependencies:
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
-    "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
+    "@hashintel/design-system": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
     "@mui/material": "npm:5.16.7"
     "@mui/system": "npm:5.16.7"
     "@types/lodash.memoize": "npm:4.1.9"
@@ -8189,12 +8172,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@local/advanced-types@npm:0.0.0-private, @local/advanced-types@workspace:libs/@local/advanced-types":
+"@local/advanced-types@workspace:^, @local/advanced-types@workspace:libs/@local/advanced-types":
   version: 0.0.0-use.local
   resolution: "@local/advanced-types@workspace:libs/@local/advanced-types"
   dependencies:
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     eslint: "npm:8.57.0"
     react: "npm:18.2.0"
     rimraf: "npm:6.0.1"
@@ -8202,14 +8185,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/eslint-config@npm:0.0.0-private, @local/eslint-config@workspace:libs/@local/eslint-config":
+"@local/eslint-config@workspace:^, @local/eslint-config@workspace:libs/@local/eslint-config":
   version: 0.0.0-use.local
   resolution: "@local/eslint-config@workspace:libs/@local/eslint-config"
   dependencies:
     "@babel/core": "npm:7.26.0"
     "@babel/eslint-parser": "npm:7.25.9"
     "@babel/preset-react": "npm:7.25.9"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/tsconfig": "workspace:^"
     "@types/eslint": "npm:8.56.12"
     "@types/node": "npm:22.10.0"
     "@typescript-eslint/eslint-plugin": "npm:7.2.0"
@@ -8236,9 +8219,9 @@ __metadata:
     "@effect/platform": "npm:0.69.26"
     "@effect/platform-node": "npm:0.64.28"
     "@effect/vitest": "npm:0.13.16"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
-    "@rust/harpc-wire-protocol": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
+    "@rust/harpc-wire-protocol": "workspace:^"
     "@types/node": "npm:22.10.0"
     "@vitest/coverage-istanbul": "npm:2.1.6"
     effect: "npm:3.10.17"
@@ -8248,25 +8231,25 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/hash-backend-utils@npm:0.0.0-private, @local/hash-backend-utils@workspace:libs/@local/hash-backend-utils":
+"@local/hash-backend-utils@workspace:^, @local/hash-backend-utils@workspace:libs/@local/hash-backend-utils":
   version: 0.0.0-use.local
   resolution: "@local/hash-backend-utils@workspace:libs/@local/hash-backend-utils"
   dependencies:
     "@aws-sdk/client-s3": "npm:3.700.0"
     "@aws-sdk/s3-request-presigner": "npm:3.700.0"
     "@blockprotocol/core": "npm:0.1.3"
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
     "@linear/sdk": "npm:6.0.0"
-    "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
-    "@local/internal-api-client": "npm:0.0.0-private"
-    "@local/status": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/advanced-types": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/hash-graph-sdk": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
+    "@local/internal-api-client": "workspace:^"
+    "@local/status": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@opensearch-project/opensearch": "npm:2.13.0"
     "@sentry/node": "npm:7.120.0"
     "@temporalio/activity": "npm:1.11.5"
@@ -8296,15 +8279,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/hash-graph-client@npm:0.0.0-private, @local/hash-graph-client@workspace:libs/@local/graph/client/typescript":
+"@local/hash-graph-client@workspace:^, @local/hash-graph-client@workspace:libs/@local/graph/client/typescript":
   version: 0.0.0-use.local
   resolution: "@local/hash-graph-client@workspace:libs/@local/graph/client/typescript"
   dependencies:
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@openapitools/openapi-generator-cli": "npm:2.15.3"
     "@redocly/cli": "npm:1.25.14"
-    "@rust/hash-graph-api": "npm:0.0.0-private"
+    "@rust/hash-graph-api": "workspace:^"
     "@types/node": "npm:22.10.0"
     axios: "npm:1.7.8"
     eslint: "npm:8.57.0"
@@ -8314,16 +8297,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/hash-graph-sdk@npm:0.0.0-private, @local/hash-graph-sdk@workspace:libs/@local/graph/sdk/typescript":
+"@local/hash-graph-sdk@workspace:^, @local/hash-graph-sdk@workspace:libs/@local/graph/sdk/typescript":
   version: 0.0.0-use.local
   resolution: "@local/hash-graph-sdk@workspace:libs/@local/graph/sdk/typescript"
   dependencies:
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@local/advanced-types": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/hash-graph-types": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@vitest/coverage-istanbul": "npm:2.1.6"
     eslint: "npm:8.57.0"
     rimraf: "npm:6.0.1"
@@ -8332,41 +8315,41 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/hash-graph-types@npm:0.0.0-private, @local/hash-graph-types@workspace:libs/@local/graph/types/typescript":
+"@local/hash-graph-types@workspace:^, @local/hash-graph-types@workspace:libs/@local/graph/types/typescript":
   version: 0.0.0-use.local
   resolution: "@local/hash-graph-types@workspace:libs/@local/graph/types/typescript"
   dependencies:
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
-    "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
+    "@local/advanced-types": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     eslint: "npm:8.57.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
   languageName: unknown
   linkType: soft
 
-"@local/hash-isomorphic-utils@npm:0.0.0-private, @local/hash-isomorphic-utils@workspace:libs/@local/hash-isomorphic-utils":
+"@local/hash-isomorphic-utils@workspace:^, @local/hash-isomorphic-utils@workspace:libs/@local/hash-isomorphic-utils":
   version: 0.0.0-use.local
   resolution: "@local/hash-isomorphic-utils@workspace:libs/@local/hash-isomorphic-utils"
   dependencies:
     "@apollo/client": "npm:3.10.5"
     "@blockprotocol/core": "npm:0.1.3"
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
     "@graphql-codegen/cli": "npm:5.0.3"
     "@graphql-codegen/fragment-matcher": "npm:3.3.3"
     "@graphql-codegen/typescript": "npm:2.8.8"
     "@graphql-codegen/typescript-operations": "npm:2.5.13"
-    "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/advanced-types": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/hash-graph-sdk": "workspace:^"
+    "@local/hash-graph-types": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@sentry/browser": "npm:7.120.0"
     "@sindresorhus/slugify": "npm:1.1.2"
     "@temporalio/workflow": "npm:1.11.5"
@@ -8402,17 +8385,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/hash-subgraph@npm:0.0.0-private, @local/hash-subgraph@workspace:libs/@local/hash-subgraph":
+"@local/hash-subgraph@workspace:^, @local/hash-subgraph@workspace:libs/@local/hash-subgraph":
   version: 0.0.0-use.local
   resolution: "@local/hash-subgraph@workspace:libs/@local/hash-subgraph"
   dependencies:
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
-    "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
+    "@local/advanced-types": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/hash-graph-sdk": "workspace:^"
+    "@local/hash-graph-types": "workspace:^"
     "@types/uuid": "npm:10.0.0"
     "@vitest/coverage-istanbul": "npm:2.1.6"
     typescript: "npm:5.6.3"
@@ -8421,11 +8404,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/internal-api-client@npm:0.0.0-private, @local/internal-api-client@workspace:libs/@local/internal-api-client/typescript":
+"@local/internal-api-client@workspace:^, @local/internal-api-client@workspace:libs/@local/internal-api-client/typescript":
   version: 0.0.0-use.local
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
   dependencies:
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
     "@openapitools/openapi-generator-cli": "npm:2.15.3"
     "@types/node": "npm:22.10.0"
     axios: "npm:1.7.8"
@@ -8440,8 +8423,8 @@ __metadata:
   resolution: "@local/repo-chores@workspace:libs/@local/repo-chores/node"
   dependencies:
     "@blockprotocol/core": "npm:0.1.3"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/fs-extra": "npm:9.0.13"
     "@types/prettier": "npm:2.7.3"
     chalk: "npm:4.1.2"
@@ -8457,12 +8440,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/status@npm:0.0.0-private, @local/status@workspace:libs/@local/status/typescript":
+"@local/status@workspace:^, @local/status@workspace:libs/@local/status/typescript":
   version: 0.0.0-use.local
   resolution: "@local/status@workspace:libs/@local/status/typescript"
   dependencies:
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@types/lodash-es": "npm:4.17.12"
     "@types/node": "npm:22.10.0"
     "@types/yargs": "npm:17.0.33"
@@ -8476,7 +8459,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/tsconfig@npm:0.0.0-private, @local/tsconfig@workspace:libs/@local/tsconfig":
+"@local/tsconfig@workspace:^, @local/tsconfig@workspace:libs/@local/tsconfig":
   version: 0.0.0-use.local
   resolution: "@local/tsconfig@workspace:libs/@local/tsconfig"
   languageName: unknown
@@ -11978,7 +11961,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/chonky@workspace:libs/chonky"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "workspace:^"
   languageName: unknown
   linkType: soft
 
@@ -11986,8 +11969,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/deer-desert@workspace:libs/deer/desert"
   dependencies:
-    "@rust/deer": "npm:0.0.0-reserved-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/deer": "workspace:^"
+    "@rust/error-stack": "workspace:^"
   languageName: unknown
   linkType: soft
 
@@ -11995,8 +11978,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/deer-json@workspace:libs/deer/json"
   dependencies:
-    "@rust/deer": "npm:0.0.0-reserved-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/deer": "workspace:^"
+    "@rust/error-stack": "workspace:^"
   languageName: unknown
   linkType: soft
 
@@ -12006,11 +11989,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/deer@npm:0.0.0-reserved-private, @rust/deer@workspace:libs/deer":
+"@rust/deer@workspace:^, @rust/deer@workspace:libs/deer":
   version: 0.0.0-use.local
   resolution: "@rust/deer@workspace:libs/deer"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "workspace:^"
   languageName: unknown
   linkType: soft
 
@@ -12018,141 +12001,141 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/error-stack-macros@workspace:libs/error-stack/macros"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/error-stack@npm:0.5.0, @rust/error-stack@workspace:libs/error-stack":
+"@rust/error-stack@workspace:^, @rust/error-stack@workspace:libs/error-stack":
   version: 0.0.0-use.local
   resolution: "@rust/error-stack@workspace:libs/error-stack"
   languageName: unknown
   linkType: soft
 
-"@rust/harpc-client@npm:0.0.0-private, @rust/harpc-client@workspace:libs/@local/harpc/client/rust":
+"@rust/harpc-client@workspace:^, @rust/harpc-client@workspace:libs/@local/harpc/client/rust":
   version: 0.0.0-use.local
   resolution: "@rust/harpc-client@workspace:libs/@local/harpc/client/rust"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/harpc-codec": "npm:0.0.0-private"
-    "@rust/harpc-net": "npm:0.0.0-private"
-    "@rust/harpc-system": "npm:0.0.0-private"
-    "@rust/harpc-tower": "npm:0.0.0-private"
-    "@rust/harpc-types": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/harpc-codec": "workspace:^"
+    "@rust/harpc-net": "workspace:^"
+    "@rust/harpc-system": "workspace:^"
+    "@rust/harpc-tower": "workspace:^"
+    "@rust/harpc-types": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/harpc-codec@npm:0.0.0-private, @rust/harpc-codec@workspace:libs/@local/harpc/codec":
+"@rust/harpc-codec@workspace:^, @rust/harpc-codec@workspace:libs/@local/harpc/codec":
   version: 0.0.0-use.local
   resolution: "@rust/harpc-codec@workspace:libs/@local/harpc/codec"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/harpc-types": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/harpc-types": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/harpc-net@npm:0.0.0-private, @rust/harpc-net@workspace:libs/@local/harpc/net":
+"@rust/harpc-net@workspace:^, @rust/harpc-net@workspace:libs/@local/harpc/net":
   version: 0.0.0-use.local
   resolution: "@rust/harpc-net@workspace:libs/@local/harpc/net"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/harpc-codec": "npm:0.0.0-private"
-    "@rust/harpc-types": "npm:0.0.0-private"
-    "@rust/harpc-wire-protocol": "npm:0.0.0-private"
-    "@rust/hash-codec": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/harpc-codec": "workspace:^"
+    "@rust/harpc-types": "workspace:^"
+    "@rust/harpc-wire-protocol": "workspace:^"
+    "@rust/hash-codec": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/harpc-server@npm:0.0.0-private, @rust/harpc-server@workspace:libs/@local/harpc/server":
+"@rust/harpc-server@workspace:^, @rust/harpc-server@workspace:libs/@local/harpc/server":
   version: 0.0.0-use.local
   resolution: "@rust/harpc-server@workspace:libs/@local/harpc/server"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/harpc-client": "npm:0.0.0-private"
-    "@rust/harpc-codec": "npm:0.0.0-private"
-    "@rust/harpc-net": "npm:0.0.0-private"
-    "@rust/harpc-system": "npm:0.0.0-private"
-    "@rust/harpc-tower": "npm:0.0.0-private"
-    "@rust/harpc-types": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/harpc-client": "workspace:^"
+    "@rust/harpc-codec": "workspace:^"
+    "@rust/harpc-net": "workspace:^"
+    "@rust/harpc-system": "workspace:^"
+    "@rust/harpc-tower": "workspace:^"
+    "@rust/harpc-types": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/harpc-system@npm:0.0.0-private, @rust/harpc-system@workspace:libs/@local/harpc/system":
+"@rust/harpc-system@workspace:^, @rust/harpc-system@workspace:libs/@local/harpc/system":
   version: 0.0.0-use.local
   resolution: "@rust/harpc-system@workspace:libs/@local/harpc/system"
   dependencies:
-    "@rust/harpc-tower": "npm:0.0.0-private"
-    "@rust/harpc-types": "npm:0.0.0-private"
+    "@rust/harpc-tower": "workspace:^"
+    "@rust/harpc-types": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/harpc-tower@npm:0.0.0-private, @rust/harpc-tower@workspace:libs/@local/harpc/tower":
+"@rust/harpc-tower@workspace:^, @rust/harpc-tower@workspace:libs/@local/harpc/tower":
   version: 0.0.0-use.local
   resolution: "@rust/harpc-tower@workspace:libs/@local/harpc/tower"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/harpc-codec": "npm:0.0.0-private"
-    "@rust/harpc-net": "npm:0.0.0-private"
-    "@rust/harpc-types": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/harpc-codec": "workspace:^"
+    "@rust/harpc-net": "workspace:^"
+    "@rust/harpc-types": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/harpc-types@npm:0.0.0-private, @rust/harpc-types@workspace:libs/@local/harpc/types":
+"@rust/harpc-types@workspace:^, @rust/harpc-types@workspace:libs/@local/harpc/types":
   version: 0.0.0-use.local
   resolution: "@rust/harpc-types@workspace:libs/@local/harpc/types"
   languageName: unknown
   linkType: soft
 
-"@rust/harpc-wire-protocol@npm:0.0.0-private, @rust/harpc-wire-protocol@workspace:libs/@local/harpc/wire-protocol":
+"@rust/harpc-wire-protocol@workspace:^, @rust/harpc-wire-protocol@workspace:libs/@local/harpc/wire-protocol":
   version: 0.0.0-use.local
   resolution: "@rust/harpc-wire-protocol@workspace:libs/@local/harpc/wire-protocol"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/harpc-types": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/harpc-types": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-codec@npm:0.0.0-private, @rust/hash-codec@workspace:libs/@local/codec":
+"@rust/hash-codec@workspace:^, @rust/hash-codec@workspace:libs/@local/codec":
   version: 0.0.0-use.local
   resolution: "@rust/hash-codec@workspace:libs/@local/codec"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/harpc-wire-protocol": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/harpc-wire-protocol": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-api@npm:0.0.0-private, @rust/hash-graph-api@workspace:libs/@local/graph/api":
+"@rust/hash-graph-api@workspace:^, @rust/hash-graph-api@workspace:libs/@local/graph/api":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-api@workspace:libs/@local/graph/api"
   dependencies:
-    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/harpc-client": "npm:0.0.0-private"
-    "@rust/harpc-codec": "npm:0.0.0-private"
-    "@rust/harpc-server": "npm:0.0.0-private"
-    "@rust/harpc-system": "npm:0.0.0-private"
-    "@rust/harpc-tower": "npm:0.0.0-private"
-    "@rust/harpc-types": "npm:0.0.0-private"
-    "@rust/hash-graph-authorization": "npm:0.0.0-private"
-    "@rust/hash-graph-postgres-store": "npm:0.0.0-private"
-    "@rust/hash-graph-store": "npm:0.0.0-private"
-    "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    "@rust/hash-graph-type-defs": "npm:0.0.0-private"
-    "@rust/hash-graph-type-fetcher": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
-    "@rust/hash-status": "npm:0.0.0-private"
-    "@rust/hash-temporal-client": "npm:0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:^"
+    "@rust/error-stack": "workspace:^"
+    "@rust/harpc-client": "workspace:^"
+    "@rust/harpc-codec": "workspace:^"
+    "@rust/harpc-server": "workspace:^"
+    "@rust/harpc-system": "workspace:^"
+    "@rust/harpc-tower": "workspace:^"
+    "@rust/harpc-types": "workspace:^"
+    "@rust/hash-graph-authorization": "workspace:^"
+    "@rust/hash-graph-postgres-store": "workspace:^"
+    "@rust/hash-graph-store": "workspace:^"
+    "@rust/hash-graph-temporal-versioning": "workspace:^"
+    "@rust/hash-graph-type-defs": "workspace:^"
+    "@rust/hash-graph-type-fetcher": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
+    "@rust/hash-status": "workspace:^"
+    "@rust/hash-temporal-client": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-authorization@npm:0.0.0-private, @rust/hash-graph-authorization@workspace:libs/@local/graph/authorization":
+"@rust/hash-graph-authorization@workspace:^, @rust/hash-graph-authorization@workspace:libs/@local/graph/authorization":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-authorization@workspace:libs/@local/graph/authorization"
   dependencies:
-    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-codec": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:^"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hash-codec": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
   languageName: unknown
   linkType: soft
 
@@ -12160,14 +12143,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-benches@workspace:tests/graph/benches"
   dependencies:
-    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/hash-graph-authorization": "npm:0.0.0-private"
-    "@rust/hash-graph-postgres-store": "npm:0.0.0-private"
-    "@rust/hash-graph-store": "npm:0.0.0-private"
-    "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    "@rust/hash-graph-test-data": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
-    "@rust/hash-repo-chores": "npm:0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:^"
+    "@rust/hash-graph-authorization": "workspace:^"
+    "@rust/hash-graph-postgres-store": "workspace:^"
+    "@rust/hash-graph-store": "workspace:^"
+    "@rust/hash-graph-temporal-versioning": "workspace:^"
+    "@rust/hash-graph-test-data": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
+    "@rust/hash-repo-chores": "workspace:^"
   languageName: unknown
   linkType: soft
 
@@ -12175,7 +12158,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-http-tests@workspace:tests/graph/http"
   dependencies:
-    "@apps/hash-graph": "npm:0.0.0-private"
+    "@apps/hash-graph": "workspace:^"
     httpyac: "npm:6.16.4"
   languageName: unknown
   linkType: soft
@@ -12184,20 +12167,20 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-integration@workspace:tests/graph/integration"
   dependencies:
-    "@apps/hash-graph": "npm:0.0.0-private"
-    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-graph-authorization": "npm:0.0.0-private"
-    "@rust/hash-graph-postgres-store": "npm:0.0.0-private"
-    "@rust/hash-graph-store": "npm:0.0.0-private"
-    "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    "@rust/hash-graph-test-data": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
-    "@rust/hash-tracing": "npm:0.0.0-private"
+    "@apps/hash-graph": "workspace:^"
+    "@blockprotocol/type-system-rs": "workspace:^"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hash-graph-authorization": "workspace:^"
+    "@rust/hash-graph-postgres-store": "workspace:^"
+    "@rust/hash-graph-store": "workspace:^"
+    "@rust/hash-graph-temporal-versioning": "workspace:^"
+    "@rust/hash-graph-test-data": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
+    "@rust/hash-tracing": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-migrations-macros@npm:0.0.0-private, @rust/hash-graph-migrations-macros@workspace:libs/@local/graph/migrations-macros":
+"@rust/hash-graph-migrations-macros@workspace:^, @rust/hash-graph-migrations-macros@workspace:libs/@local/graph/migrations-macros":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-migrations-macros@workspace:libs/@local/graph/migrations-macros"
   languageName: unknown
@@ -12207,176 +12190,176 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-migrations@workspace:libs/@local/graph/migrations"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-graph-migrations-macros": "npm:0.0.0-private"
-    "@rust/hash-tracing": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hash-graph-migrations-macros": "workspace:^"
+    "@rust/hash-tracing": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-postgres-store@npm:0.0.0-private, @rust/hash-graph-postgres-store@workspace:libs/@local/graph/postgres-store":
+"@rust/hash-graph-postgres-store@workspace:^, @rust/hash-graph-postgres-store@workspace:libs/@local/graph/postgres-store":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-postgres-store@workspace:libs/@local/graph/postgres-store"
   dependencies:
-    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-codec": "npm:0.0.0-private"
-    "@rust/hash-graph-authorization": "npm:0.0.0-private"
-    "@rust/hash-graph-store": "npm:0.0.0-private"
-    "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
-    "@rust/hash-graph-validation": "npm:0.0.0-private"
-    "@rust/hash-status": "npm:0.0.0-private"
-    "@rust/hash-temporal-client": "npm:0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:^"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hash-codec": "workspace:^"
+    "@rust/hash-graph-authorization": "workspace:^"
+    "@rust/hash-graph-store": "workspace:^"
+    "@rust/hash-graph-temporal-versioning": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
+    "@rust/hash-graph-validation": "workspace:^"
+    "@rust/hash-status": "workspace:^"
+    "@rust/hash-temporal-client": "workspace:^"
     tsx: "npm:4.19.2"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-store@npm:0.0.0-private, @rust/hash-graph-store@workspace:libs/@local/graph/store":
+"@rust/hash-graph-store@workspace:^, @rust/hash-graph-store@workspace:libs/@local/graph/store":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-store@workspace:libs/@local/graph/store"
   dependencies:
-    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-graph-authorization": "npm:0.0.0-private"
-    "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
-    "@rust/hash-temporal-client": "npm:0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:^"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hash-graph-authorization": "workspace:^"
+    "@rust/hash-graph-temporal-versioning": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
+    "@rust/hash-temporal-client": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-temporal-versioning@npm:0.0.0-private, @rust/hash-graph-temporal-versioning@workspace:libs/@local/graph/temporal-versioning":
+"@rust/hash-graph-temporal-versioning@workspace:^, @rust/hash-graph-temporal-versioning@workspace:libs/@local/graph/temporal-versioning":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-temporal-versioning@workspace:libs/@local/graph/temporal-versioning"
   dependencies:
-    "@rust/hash-codec": "npm:0.0.0-private"
+    "@rust/hash-codec": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-test-data@npm:0.0.0-private, @rust/hash-graph-test-data@workspace:tests/graph/test-data/rust":
+"@rust/hash-graph-test-data@workspace:^, @rust/hash-graph-test-data@workspace:tests/graph/test-data/rust":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-test-data@workspace:tests/graph/test-data/rust"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-test-server@npm:0.0.0-private, @rust/hash-graph-test-server@workspace:libs/@local/graph/test-server":
+"@rust/hash-graph-test-server@workspace:^, @rust/hash-graph-test-server@workspace:libs/@local/graph/test-server":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-test-server@workspace:libs/@local/graph/test-server"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-codec": "npm:0.0.0-private"
-    "@rust/hash-graph-api": "npm:0.0.0-private"
-    "@rust/hash-graph-authorization": "npm:0.0.0-private"
-    "@rust/hash-graph-postgres-store": "npm:0.0.0-private"
-    "@rust/hash-graph-store": "npm:0.0.0-private"
-    "@rust/hash-graph-type-defs": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
-    "@rust/hash-status": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hash-codec": "workspace:^"
+    "@rust/hash-graph-api": "workspace:^"
+    "@rust/hash-graph-authorization": "workspace:^"
+    "@rust/hash-graph-postgres-store": "workspace:^"
+    "@rust/hash-graph-store": "workspace:^"
+    "@rust/hash-graph-type-defs": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
+    "@rust/hash-status": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-type-defs@npm:0.0.0-private, @rust/hash-graph-type-defs@workspace:libs/@local/graph/type-defs":
+"@rust/hash-graph-type-defs@workspace:^, @rust/hash-graph-type-defs@workspace:libs/@local/graph/type-defs":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-type-defs@workspace:libs/@local/graph/type-defs"
   dependencies:
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/status": "npm:0.0.0-private"
-    "@rust/hash-status": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/status": "workspace:^"
+    "@rust/hash-status": "workspace:^"
     quicktype: "npm:16.0.43"
     tsx: "npm:4.19.2"
     typescript: "npm:5.6.3"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-type-fetcher@npm:0.0.0-private, @rust/hash-graph-type-fetcher@workspace:libs/@local/graph/type-fetcher":
+"@rust/hash-graph-type-fetcher@workspace:^, @rust/hash-graph-type-fetcher@workspace:libs/@local/graph/type-fetcher":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-type-fetcher@workspace:libs/@local/graph/type-fetcher"
   dependencies:
-    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-graph-authorization": "npm:0.0.0-private"
-    "@rust/hash-graph-store": "npm:0.0.0-private"
-    "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
-    "@rust/hash-temporal-client": "npm:0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:^"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hash-graph-authorization": "workspace:^"
+    "@rust/hash-graph-store": "workspace:^"
+    "@rust/hash-graph-temporal-versioning": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
+    "@rust/hash-temporal-client": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-types@npm:0.0.0-private, @rust/hash-graph-types@workspace:libs/@local/graph/types/rust":
+"@rust/hash-graph-types@workspace:^, @rust/hash-graph-types@workspace:libs/@local/graph/types/rust":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-types@workspace:libs/@local/graph/types/rust"
   dependencies:
-    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-codec": "npm:0.0.0-private"
-    "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    "@rust/hash-graph-test-data": "npm:0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:^"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hash-codec": "workspace:^"
+    "@rust/hash-graph-temporal-versioning": "workspace:^"
+    "@rust/hash-graph-test-data": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-validation@npm:0.0.0-private, @rust/hash-graph-validation@workspace:libs/@local/graph/validation":
+"@rust/hash-graph-validation@workspace:^, @rust/hash-graph-validation@workspace:libs/@local/graph/validation":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-validation@workspace:libs/@local/graph/validation"
   dependencies:
-    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-graph-store": "npm:0.0.0-private"
-    "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    "@rust/hash-graph-test-data": "npm:0.0.0-private"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
+    "@blockprotocol/type-system-rs": "workspace:^"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hash-graph-store": "workspace:^"
+    "@rust/hash-graph-temporal-versioning": "workspace:^"
+    "@rust/hash-graph-test-data": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-repo-chores@npm:0.0.0-private, @rust/hash-repo-chores@workspace:libs/@local/repo-chores/rust":
+"@rust/hash-repo-chores@workspace:^, @rust/hash-repo-chores@workspace:libs/@local/repo-chores/rust":
   version: 0.0.0-use.local
   resolution: "@rust/hash-repo-chores@workspace:libs/@local/repo-chores/rust"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-status@npm:0.0.0-private, @rust/hash-status@workspace:libs/@local/status/rust":
+"@rust/hash-status@workspace:^, @rust/hash-status@workspace:libs/@local/status/rust":
   version: 0.0.0-use.local
   resolution: "@rust/hash-status@workspace:libs/@local/status/rust"
   dependencies:
-    "@local/status": "npm:0.0.0-private"
+    "@local/status": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-temporal-client@npm:0.0.0-private, @rust/hash-temporal-client@workspace:libs/@local/temporal-client":
+"@rust/hash-temporal-client@workspace:^, @rust/hash-temporal-client@workspace:libs/@local/temporal-client":
   version: 0.0.0-use.local
   resolution: "@rust/hash-temporal-client@workspace:libs/@local/temporal-client"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-graph-types": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hash-graph-types": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hash-tracing@npm:0.0.0-private, @rust/hash-tracing@workspace:libs/@local/tracing":
+"@rust/hash-tracing@workspace:^, @rust/hash-tracing@workspace:libs/@local/tracing":
   version: 0.0.0-use.local
   resolution: "@rust/hash-tracing@workspace:libs/@local/tracing"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hql-cst@npm:0.0.0-private, @rust/hql-cst@workspace:libs/@local/hql/cst":
+"@rust/hql-cst@workspace:^, @rust/hql-cst@workspace:libs/@local/hql/cst":
   version: 0.0.0-use.local
   resolution: "@rust/hql-cst@workspace:libs/@local/hql/cst"
   dependencies:
-    "@rust/hql-span": "npm:0.0.0-private"
+    "@rust/hql-span": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hql-diagnostics@npm:0.0.0-private, @rust/hql-diagnostics@workspace:libs/@local/hql/diagnostics":
+"@rust/hql-diagnostics@workspace:^, @rust/hql-diagnostics@workspace:libs/@local/hql/diagnostics":
   version: 0.0.0-use.local
   resolution: "@rust/hql-diagnostics@workspace:libs/@local/hql/diagnostics"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
-    "@rust/hql-span": "npm:0.0.0-private"
+    "@rust/error-stack": "workspace:^"
+    "@rust/hql-span": "workspace:^"
   languageName: unknown
   linkType: soft
 
-"@rust/hql-span@npm:0.0.0-private, @rust/hql-span@workspace:libs/@local/hql/span":
+"@rust/hql-span@workspace:^, @rust/hql-span@workspace:libs/@local/hql/span":
   version: 0.0.0-use.local
   resolution: "@rust/hql-span@workspace:libs/@local/hql/span"
   languageName: unknown
@@ -12386,9 +12369,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hql-syntax-jexpr@workspace:libs/@local/hql/syntax-jexpr"
   dependencies:
-    "@rust/hql-cst": "npm:0.0.0-private"
-    "@rust/hql-diagnostics": "npm:0.0.0-private"
-    "@rust/hql-span": "npm:0.0.0-private"
+    "@rust/hql-cst": "workspace:^"
+    "@rust/hql-diagnostics": "workspace:^"
+    "@rust/hql-span": "workspace:^"
   languageName: unknown
   linkType: soft
 
@@ -15624,25 +15607,25 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@tests/hash-backend-integration@workspace:tests/hash-backend-integration"
   dependencies:
-    "@apps/hash-api": "npm:0.0.0-private"
-    "@apps/hash-graph": "npm:0.0.0-private"
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@apps/hash-api": "workspace:^"
+    "@apps/hash-graph": "workspace:^"
+    "@blockprotocol/graph": "workspace:^"
+    "@blockprotocol/type-system": "workspace:^"
     "@graphql-codegen/cli": "npm:5.0.3"
     "@graphql-codegen/introspection": "npm:2.2.3"
     "@graphql-codegen/typescript": "npm:2.8.8"
     "@graphql-codegen/typescript-graphql-request": "npm:4.5.9"
     "@graphql-codegen/typescript-resolvers": "npm:2.7.13"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-backend-utils": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
-    "@local/status": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
-    "@rust/hash-graph-type-defs": "npm:0.0.0-private"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-backend-utils": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/hash-graph-sdk": "workspace:^"
+    "@local/hash-graph-types": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
+    "@local/status": "workspace:^"
+    "@local/tsconfig": "workspace:^"
+    "@rust/hash-graph-type-defs": "workspace:^"
     "@types/node-fetch": "npm:2.6.12"
     "@vitest/coverage-istanbul": "npm:2.1.6"
     eslint: "npm:8.57.0"
@@ -15661,15 +15644,15 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@tests/hash-backend-load@workspace:tests/hash-backend-load"
   dependencies:
-    "@apps/hash-api": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-backend-utils": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@apps/hash-api": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-backend-utils": "workspace:^"
+    "@local/hash-graph-client": "workspace:^"
+    "@local/hash-graph-sdk": "workspace:^"
+    "@local/hash-graph-types": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@opentelemetry/api": "npm:1.9.0"
     "@opentelemetry/exporter-trace-otlp-grpc": "npm:0.55.0"
     "@opentelemetry/resources": "npm:1.28.0"
@@ -15696,17 +15679,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@tests/hash-playwright@workspace:tests/hash-playwright"
   dependencies:
-    "@apps/hash-frontend": "npm:0.0.0-private"
-    "@apps/hash-realtime": "npm:0.0.0-private"
-    "@apps/hash-search-loader": "npm:0.0.0-private"
-    "@apps/plugin-browser": "npm:0.0.8"
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@local/eslint-config": "npm:0.0.0-private"
-    "@local/hash-backend-utils": "npm:0.0.0-private"
-    "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/hash-subgraph": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
+    "@apps/hash-frontend": "workspace:^"
+    "@apps/hash-realtime": "workspace:^"
+    "@apps/hash-search-loader": "workspace:^"
+    "@apps/plugin-browser": "workspace:^"
+    "@blockprotocol/graph": "workspace:^"
+    "@local/eslint-config": "workspace:^"
+    "@local/hash-backend-utils": "workspace:^"
+    "@local/hash-graph-sdk": "workspace:^"
+    "@local/hash-isomorphic-utils": "workspace:^"
+    "@local/hash-subgraph": "workspace:^"
+    "@local/tsconfig": "workspace:^"
     "@playwright/test": "npm:1.49.0"
     eslint: "npm:8.57.0"
     execa: "npm:5.1.1"
@@ -18504,6 +18487,15 @@ __metadata:
     js-yaml: "npm:^3.10.0"
     tslib: "npm:^2.4.0"
   checksum: 10c0/a0c340e13129643162423d7e666061c0b39b143bfad3fc5a74c7d92a30fd740f6665d41cd4e61832c20375889d793eea1d1d103cacb39ed68f7acd168add8c53
+  languageName: node
+  linkType: hard
+
+"@yarnpkg/types@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "@yarnpkg/types@npm:4.0.0"
+  dependencies:
+    tslib: "npm:^2.4.0"
+  checksum: 10c0/41f67a4aa5c414c1e228f51453451fa15e0dd70c5cf2b1ae1ca142a3f018f25e4a37e60372cd0f5970c755e1804a2e31e208bff427add1cf13f899b0b9adc1e0
   languageName: node
   linkType: hard
 
@@ -28067,6 +28059,7 @@ __metadata:
     "@changesets/changelog-github": "npm:0.4.8"
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch"
     "@taplo/cli": "npm:0.7.0"
+    "@yarnpkg/types": "npm:^4.0.0"
     check-dependency-version-consistency: "npm:3.0.3"
     concurrently: "npm:7.6.0"
     cross-env: "npm:7.0.3"

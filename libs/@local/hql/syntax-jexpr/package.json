@@ -9,8 +9,8 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@rust/hql-cst": "0.0.0-private",
-    "@rust/hql-diagnostics": "0.0.0-private",
-    "@rust/hql-span": "0.0.0-private"
+    "@rust/hql-cst": "workspace:^",
+    "@rust/hql-diagnostics": "workspace:^",
+    "@rust/hql-span": "workspace:^"
   }
 }

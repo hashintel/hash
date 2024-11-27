@@ -20,15 +20,15 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0-canary.0",
-    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@blockprotocol/graph": "workspace:^",
+    "@blockprotocol/type-system": "workspace:^",
     "@fortawesome/free-regular-svg-icons": "6.7.1",
     "@fortawesome/free-solid-svg-icons": "6.7.1",
-    "@hashintel/design-system": "0.0.8",
+    "@hashintel/design-system": "workspace:^",
     "clsx": "1.2.1"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint-config": "workspace:^",
     "@mui/material": "5.16.7",
     "@mui/system": "5.16.7",
     "react": "18.2.0",

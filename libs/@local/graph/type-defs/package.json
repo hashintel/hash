@@ -10,11 +10,11 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@local/status": "0.0.0-private",
-    "@rust/hash-status": "0.0.0-private"
+    "@local/status": "workspace:^",
+    "@rust/hash-status": "workspace:^"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint-config": "workspace:^",
     "quicktype": "16.0.43",
     "tsx": "4.19.2",
     "typescript": "5.6.3"

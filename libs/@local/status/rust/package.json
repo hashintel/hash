@@ -8,6 +8,6 @@
     "lint:clippy": "just clippy"
   },
   "dependencies": {
-    "@local/status": "0.0.0-private"
+    "@local/status": "workspace:^"
   }
 }

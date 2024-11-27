@@ -11,12 +11,12 @@
     "test:integration": "PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1 PW_EXPERIMENTAL_TS_ESM=1 npx playwright test --project chromium"
   },
   "dependencies": {
-    "@local/eslint-config": "0.0.0-private",
-    "@local/hash-backend-utils": "0.0.0-private",
-    "@local/hash-graph-sdk": "0.0.0-private",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
-    "@local/hash-subgraph": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
+    "@local/eslint-config": "workspace:^",
+    "@local/hash-backend-utils": "workspace:^",
+    "@local/hash-graph-sdk": "workspace:^",
+    "@local/hash-isomorphic-utils": "workspace:^",
+    "@local/hash-subgraph": "workspace:^",
+    "@local/tsconfig": "workspace:^",
     "@playwright/test": "1.49.0",
     "eslint": "8.57.0",
     "execa": "5.1.1",
@@ -25,10 +25,10 @@
     "typescript": "5.6.3"
   },
   "devDependencies": {
-    "@apps/hash-frontend": "0.0.0-private",
-    "@apps/hash-realtime": "0.0.0-private",
-    "@apps/hash-search-loader": "0.0.0-private",
-    "@apps/plugin-browser": "0.0.8",
-    "@blockprotocol/graph": "0.4.0-canary.0"
+    "@apps/hash-frontend": "workspace:^",
+    "@apps/hash-realtime": "workspace:^",
+    "@apps/hash-search-loader": "workspace:^",
+    "@apps/plugin-browser": "workspace:^",
+    "@blockprotocol/graph": "workspace:^"
   }
 }

@@ -27,7 +27,7 @@
     "typescript": "5.6.3"
   },
   "devDependencies": {
-    "@local/tsconfig": "0.0.0-private",
+    "@local/tsconfig": "workspace:^",
     "@types/eslint": "8.56.12",
     "@types/node": "22.10.0"
   }
