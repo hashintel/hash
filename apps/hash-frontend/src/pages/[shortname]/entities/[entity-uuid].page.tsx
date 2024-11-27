@@ -442,6 +442,11 @@ const Page: NextPageWithLayout = () => {
           draftEntitySubgraph,
         );
 
+        setIsDirty(
+          JSON.stringify(newEntityTypeIds.sort()) !==
+            JSON.stringify(entityFromDb?.metadata.entityTypeIds.sort()),
+        );
+
         setDraftEntitySubgraph(newSubgraph);
       }}
       setEntity={(changedEntity) => {
