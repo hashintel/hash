@@ -339,6 +339,16 @@ describe("Entity type CRU", () => {
             ...(userType.schema.links ?? {}),
             ...(userType.schema.links ?? {}),
           },
+          allOf: [
+            {
+              depth: 0,
+              $id: systemEntityTypes.user.entityTypeId,
+            },
+            {
+              depth: 1,
+              $id: systemEntityTypes.actor.entityTypeId,
+            },
+          ],
         } satisfies ClosedEntityType,
       },
     ]);
@@ -394,6 +404,7 @@ describe("Entity type CRU", () => {
             $id: closedEntityType.schema.$id,
             title: closedEntityType.schema.title,
             description: closedEntityType.schema.description,
+            allOf: closedEntityType.schema.allOf,
           }) as ClosedMultiEntityType["allOf"][0],
       ),
     );
