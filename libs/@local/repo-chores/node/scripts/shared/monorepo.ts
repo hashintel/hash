@@ -10,17 +10,21 @@ export const monorepoRootDirPath = path.resolve(__dirname, "../../../../../..");
 
 type YarnWorkspaceInfo = {
   location: string;
-  workspaceDependencies: string[];
-  mismatchedWorkspaceDependencies: string[];
+  name: string;
 };
 
 export const getWorkspaceInfoLookup = async (): Promise<
   Record<string, YarnWorkspaceInfo>
 > => {
-  const { stdout } = await execa("yarn", ["--silent", "workspaces", "info"], {
+  const { stdout } = await execa("yarn", ["workspaces", "list", "--json"], {
     env: { PATH: process.env.PATH },
     extendEnv: false, // Avoid passing FORCE_COLOR to a sub-process
   });
 
-  return JSON.parse(stdout) as Record<string, YarnWorkspaceInfo>;
+  return Object.fromEntries(
+    stdout
+      .split("\n")
+      .map((line) => JSON.parse(line) as YarnWorkspaceInfo)
+      .map((workspaceInfo) => [workspaceInfo.name, workspaceInfo] as const),
+  );
 };
