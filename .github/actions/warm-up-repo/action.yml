@@ -35,6 +35,7 @@ runs:
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
           corepack enable
           YARN_ENABLE_HARDENED_MODE=0 yarn install
+          git diff yarn.lock
 
     - name: npx playwright install
       if: ${{ inputs.playwright-deps != '' }}
