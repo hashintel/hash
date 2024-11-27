@@ -29,11 +29,8 @@ runs:
         max_attempts: 3
         timeout_minutes: 10
         shell: bash
-        # refresh-lockfile doesn't work together with turbo prune, so we just use:
-        # a subset of hardened mode (https://yarnpkg.com/features/security)
         command: |
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
-          export YARN_ENABLE_HARDENED_MODE=0
           corepack enable
           yarn install
 
