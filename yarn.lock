@@ -27974,12 +27974,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hash-graph-rpc@workspace:libs/@local/hash-graph-rpc/pkg":
-  version: 0.0.0-use.local
-  resolution: "hash-graph-rpc@workspace:libs/@local/hash-graph-rpc/pkg"
-  languageName: unknown
-  linkType: soft
-
 "hash@workspace:.":
   version: 0.0.0-use.local
   resolution: "hash@workspace:."
