@@ -47,7 +47,7 @@ export const updateDraftEntitySubgraph = (
         ...currentSubgraph.vertices[newEntity.metadata.recordId.entityId],
         [newEntityRevisionId]: {
           kind: "entity",
-          inner: entity,
+          inner: newEntity,
         },
       },
     },

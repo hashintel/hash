@@ -135,6 +135,12 @@ export const useGetTypeChangeDetails = () => {
               );
             }
 
+            if ("items" in newValueOption) {
+              return (
+                JSON.stringify(newValueOption) === JSON.stringify(oldOption)
+              );
+            }
+
             return false;
           });
 

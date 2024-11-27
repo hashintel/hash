@@ -98,7 +98,7 @@ const CalloutMessage = ({
 
   if (totalChangeCount === 0) {
     messages.push(
-      "does not make any changes to properties or links for the entity.",
+      "does not make any changes to properties or links for the entity",
     );
   } else {
     {
@@ -386,76 +386,80 @@ export const EntityTypeChangeModal = ({
       processing={changeIsProcessing}
       type={shouldWarn ? "warning" : "info"}
     >
-      <Table
-        sx={({ palette }) => ({
-          background: palette.gray[10],
-          border: `1px solid ${palette.gray[30]}`,
-          borderRadius: 2,
-          borderCollapse: "separate",
-          th: {
-            background: palette.gray[20],
-            fontWeight: 600,
-            fontSize: 11,
-            textTransform: "uppercase",
-          },
-          td: {
-            fontWeight: 500,
-            fontSize: 14,
-          },
-          "& th, td": {
-            color: palette.gray[80],
-            lineHeight: 1,
-            px: 1.5,
-            py: 1.5,
-          },
-          "& tr:last-child td:first-of-type": {
-            borderBottomLeftRadius: 8,
-          },
-          "& tr:last-of-type td:last-of-type": {
-            borderBottomRightRadius: 8,
-          },
-          "& tbody tr:last-of-type td": {
-            pb: 2.25,
-          },
-          "& tbody tr:first-of-type td": {
-            pt: 2.25,
-          },
-        })}
-      >
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{ borderTopLeftRadius: 8 }}>#</TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell sx={{ borderTopRightRadius: 8 }}>Change</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {Object.entries(propertyChangesByTitle)
-            .sort(([aTitle], [bTitle]) => aTitle.localeCompare(bTitle))
-            .map(([propertyTitle, changes = []], index) => (
-              <TableRow key={propertyTitle}>
-                <TableCell>{index + 1}</TableCell>
-                <TableCell>{propertyTitle}</TableCell>
-                <TableCell>
-                  {changes.length > 1 ? "Multiple" : changes[0]!.change}
-                </TableCell>
-              </TableRow>
-            ))}
-          {Object.entries(linkChangseByTitle).map(
-            ([linkTitle, changes = []], index) => (
-              <TableRow key={linkTitle}>
-                <TableCell>#{index + 1 + propertyChanges.length}</TableCell>
-                <TableCell>{linkTitle}</TableCell>
-                <Tooltip title={changes.length > 1 ? <Box>Multiple</Box> : ""}>
+      {changeSummary.totalChangeCount !== 0 && (
+        <Table
+          sx={({ palette }) => ({
+            background: palette.gray[10],
+            border: `1px solid ${palette.gray[30]}`,
+            borderRadius: 2,
+            borderCollapse: "separate",
+            th: {
+              background: palette.gray[20],
+              fontWeight: 600,
+              fontSize: 11,
+              textTransform: "uppercase",
+            },
+            td: {
+              fontWeight: 500,
+              fontSize: 14,
+            },
+            "& th, td": {
+              color: palette.gray[80],
+              lineHeight: 1,
+              px: 1.5,
+              py: 1.5,
+            },
+            "& tr:last-child td:first-of-type": {
+              borderBottomLeftRadius: 8,
+            },
+            "& tr:last-of-type td:last-of-type": {
+              borderBottomRightRadius: 8,
+            },
+            "& tbody tr:last-of-type td": {
+              pb: 2.25,
+            },
+            "& tbody tr:first-of-type td": {
+              pt: 2.25,
+            },
+          })}
+        >
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ borderTopLeftRadius: 8 }}>#</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell sx={{ borderTopRightRadius: 8 }}>Change</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {Object.entries(propertyChangesByTitle)
+              .sort(([aTitle], [bTitle]) => aTitle.localeCompare(bTitle))
+              .map(([propertyTitle, changes = []], index) => (
+                <TableRow key={propertyTitle}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{propertyTitle}</TableCell>
                   <TableCell>
                     {changes.length > 1 ? "Multiple" : changes[0]!.change}
                   </TableCell>
-                </Tooltip>
-              </TableRow>
-            ),
-          )}
-        </TableBody>
-      </Table>
+                </TableRow>
+              ))}
+            {Object.entries(linkChangseByTitle).map(
+              ([linkTitle, changes = []], index) => (
+                <TableRow key={linkTitle}>
+                  <TableCell>#{index + 1 + propertyChanges.length}</TableCell>
+                  <TableCell>{linkTitle}</TableCell>
+                  <Tooltip
+                    title={changes.length > 1 ? <Box>Multiple</Box> : ""}
+                  >
+                    <TableCell>
+                      {changes.length > 1 ? "Multiple" : changes[0]!.change}
+                    </TableCell>
+                  </Tooltip>
+                </TableRow>
+              ),
+            )}
+          </TableBody>
+        </Table>
+      )}
     </AlertModal>
   );
 };

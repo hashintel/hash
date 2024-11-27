@@ -42,7 +42,10 @@ export const AlertModal: FunctionComponent<
       ]}
     >
       <Stack>
-        <Typography sx={{ p: { xs: 2, md: 2.5 }, py: { xs: 1.5, md: 2 } }}>
+        <Typography
+          component="div"
+          sx={{ p: { xs: 2, md: 2.5 }, py: { xs: 1.5, md: 2 } }}
+        >
           {header}
         </Typography>
         <Callout type={type}>{calloutMessage}</Callout>
