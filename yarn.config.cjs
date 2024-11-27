@@ -94,6 +94,8 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
   const eslint = Yarn.dependency({ workspace, ident: "eslint" });
   /** @type {Dependency} */
   const typescript = Yarn.dependency({ workspace, ident: "typescript" });
+  /** @type {Dependency} */
+  const crossEnv = Yarn.dependency({ workspace, ident: "cross-env" });
 
   const workspaces = Yarn.workspaces();
   for (const workspace of workspaces) {
@@ -128,6 +130,10 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
 
       if (value.includes("ts-node") || value.includes("tsc")) {
         workspace.set("devDependencies.typescript", typescript.range);
+      }
+
+      if (value.includes("cross-env")) {
+        workspace.set("devDependencies.cross-env", crossEnv.range);
       }
     }
   }
