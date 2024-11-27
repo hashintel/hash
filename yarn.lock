@@ -3700,28 +3700,28 @@
   dependencies:
     tslib "^2.0.0"
 
-"@effect/platform-node-shared@^0.19.26":
-  version "0.19.26"
-  resolved "https://registry.yarnpkg.com/@effect/platform-node-shared/-/platform-node-shared-0.19.26.tgz#31eef25d2f42d621636515f7d75f9ae8660adf2e"
-  integrity sha512-K73Xqr60Ia7WKAp47Ums7j3V1NlVkyzwqNLl4sHqPkiC00J+laLnH/VQm7QopPiS9UPLqv/SMJzMxKXBY86Djw==
+"@effect/platform-node-shared@^0.19.27":
+  version "0.19.27"
+  resolved "https://registry.yarnpkg.com/@effect/platform-node-shared/-/platform-node-shared-0.19.27.tgz#f6721e607a9dc4b6fe45753795c20180c8423d46"
+  integrity sha512-QoqTyTVvvH6/XNW06L0R9r9t0ds7iroiCOq8PJdf+tOx5D3/W/StT7FTpaTJg6yFm07MJ6fIC/GqEMd+WwwTGg==
   dependencies:
     "@parcel/watcher" "^2.4.1"
     multipasta "^0.2.5"
 
-"@effect/platform-node@0.64.27":
-  version "0.64.27"
-  resolved "https://registry.yarnpkg.com/@effect/platform-node/-/platform-node-0.64.27.tgz#cee364fea92872f0f9b51362e2c5b2b21198455b"
-  integrity sha512-sn+LwvDwqlLDfvUT4zGI3bPRLWEFOhFrPr6DNbI4WoYg1DIii0pUOK7qf+InNKjTSrYqBxLG3SuxReO/tSIhSg==
+"@effect/platform-node@0.64.28":
+  version "0.64.28"
+  resolved "https://registry.yarnpkg.com/@effect/platform-node/-/platform-node-0.64.28.tgz#c272383c5437bdb4279e73fde5c43f27f9e8ebde"
+  integrity sha512-QsgrKJ+fIh6xQCKDcFwOwkRVPvs04J9PHESaOkCRur72zMsFZIDU/Ye/gVGUmaRok71ZoptQGb+lXGsjim8aRQ==
   dependencies:
-    "@effect/platform-node-shared" "^0.19.26"
+    "@effect/platform-node-shared" "^0.19.27"
     mime "^3.0.0"
     undici "^6.19.7"
     ws "^8.18.0"
 
-"@effect/platform@0.69.25":
-  version "0.69.25"
-  resolved "https://registry.yarnpkg.com/@effect/platform/-/platform-0.69.25.tgz#d1a47ee41594fccfb03095713d6b98f20d10d1eb"
-  integrity sha512-95INMcJbmA0Mj3muf15lgpYKbkvXb9TZM0RM79lonPlnq0BlGurxVWAPwYt3iwVStbHsrcTznQkjc6WP+aMX1A==
+"@effect/platform@0.69.26":
+  version "0.69.26"
+  resolved "https://registry.yarnpkg.com/@effect/platform/-/platform-0.69.26.tgz#7ec6a74620056b38cdd1ad48e2116b577a99f236"
+  integrity sha512-psL2z526o5SCGyD8m3I5/YTNvoOZkAeAz7e7adbnxNPcJBBLD5TFZ2s7UlkUk38ndyu/ICy584QuU43ayzBZSg==
   dependencies:
     find-my-way-ts "^0.1.5"
     multipasta "^0.2.5"
@@ -16675,10 +16675,10 @@ ee-first@1.1.1:
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
   integrity "sha1-WQxhFWsK4vTwJVcyoViyZrxWsh0= sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="
 
-effect@3.10.16:
-  version "3.10.16"
-  resolved "https://registry.yarnpkg.com/effect/-/effect-3.10.16.tgz#908354b4462c718a3628a948efabc5e0c7c3c623"
-  integrity sha512-7d69IMsIgnJKzopBMHdZR7d3JWwdHgzaIyIXif5jpu8gtQujIrIpgABXXMe+47KNSuS5k12s9dMRL3B8Y9s+Sw==
+effect@3.10.17:
+  version "3.10.17"
+  resolved "https://registry.yarnpkg.com/effect/-/effect-3.10.17.tgz#b9ae16187ff2ad9a65b3a3605603216c62b7bf5c"
+  integrity sha512-OSLs3KTcN71166IJne5H2IRT9nh8VPMs4/iCU1JNY0QSr7KrEQl/xPjeNBuPvGsH+erzuM5moSJ0XjAO5qSZJw==
   dependencies:
     fast-check "^3.21.0"
 
