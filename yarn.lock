@@ -808,6 +808,7 @@ __metadata:
     "@babel/core": "npm:7.26.0"
     "@babel/eslint-parser": "npm:7.25.9"
     "@babel/plugin-proposal-class-properties": "npm:7.18.6"
+    "@babel/plugin-proposal-private-property-in-object": "npm:^7.16.7"
     "@babel/preset-env": "npm:7.26.0"
     "@babel/preset-react": "npm:7.25.9"
     "@blockprotocol/core": "npm:0.1.3"
