@@ -12571,7 +12571,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sentry/cli@npm:^2.36.1":
+"@sentry/cli@npm:^2.36.1, @sentry/cli@npm:^2.39.1":
   version: 2.39.1
   resolution: "@sentry/cli@npm:2.39.1"
   dependencies:
@@ -27981,6 +27981,7 @@ __metadata:
   dependencies:
     "@changesets/changelog-github": "npm:0.4.8"
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch"
+    "@sentry/cli": "npm:^2.39.1"
     "@taplo/cli": "npm:0.7.0"
     "@yarnpkg/types": "npm:^4.0.0"
     check-dependency-version-consistency: "npm:3.0.3"
