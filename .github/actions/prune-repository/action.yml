@@ -24,7 +24,7 @@ runs:
         # Nested crates are pruned in a way where the lockfile does not correctly reflect the pruned workspace, leading to an installation failure.
         # Check if any of the scopes start with @rust/deer
         # If any deer crate is in scope, include all deer crates
-        if [[ "$SCOPES" =~ "@rust/deer(-desert|-macros|-json)?" ]]; then
+        if echo "$SCOPES" | grep -q "@rust/deer\(-desert\|-macros\|-json\)\?"; then
           SCOPES="$SCOPES @rust/deer @rust/deer-desert @rust/deer-macros @rust/deer-json"
         fi
 
