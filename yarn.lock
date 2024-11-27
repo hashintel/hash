@@ -11910,7 +11910,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/deer-desert@workspace:libs/deer/desert":
+"@rust/deer-desert@npm:0.0.0-private, @rust/deer-desert@workspace:libs/deer/desert":
   version: 0.0.0-use.local
   resolution: "@rust/deer-desert@workspace:libs/deer/desert"
   dependencies:
@@ -11919,7 +11919,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/deer-json@workspace:libs/deer/json":
+"@rust/deer-json@npm:0.0.0-reserved-private, @rust/deer-json@workspace:libs/deer/json":
   version: 0.0.0-use.local
   resolution: "@rust/deer-json@workspace:libs/deer/json"
   dependencies:
@@ -11928,7 +11928,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/deer-macros@workspace:libs/deer/macros":
+"@rust/deer-macros@npm:0.0.0-reserved-private, @rust/deer-macros@workspace:libs/deer/macros":
   version: 0.0.0-use.local
   resolution: "@rust/deer-macros@workspace:libs/deer/macros"
   languageName: unknown
@@ -11938,6 +11938,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/deer@workspace:libs/deer"
   dependencies:
+    "@rust/deer-desert": "npm:0.0.0-private"
+    "@rust/deer-json": "npm:0.0.0-reserved-private"
+    "@rust/deer-macros": "npm:0.0.0-reserved-private"
     "@rust/error-stack": "npm:0.5.0"
   languageName: unknown
   linkType: soft
