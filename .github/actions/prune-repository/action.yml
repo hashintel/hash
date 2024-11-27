@@ -25,7 +25,7 @@ runs:
         # Check if any of the scopes start with @rust/deer
         # If any deer crate is in scope, include all deer crates
         if [[ "$SCOPES" =~ "@rust/deer(-desert|-macros|-json)?" ]]; then
-          SCOPES = "$SCOPES @rust/deer @rust/deer-desert @rust/deer-macros @rust/deer-json"
+          SCOPES="$SCOPES @rust/deer @rust/deer-desert @rust/deer-macros @rust/deer-json"
         fi
 
         # Deduplicate scopes
