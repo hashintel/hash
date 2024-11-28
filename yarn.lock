@@ -8173,7 +8173,7 @@ __metadata:
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
     "@types/node": "npm:22.10.0"
     "@vitest/coverage-istanbul": "npm:2.1.6"
-    effect: "npm:3.10.17"
+    effect: "npm:3.10.19"
     eslint: "npm:8.57.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
@@ -24044,12 +24044,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"effect@npm:3.10.17":
-  version: 3.10.17
-  resolution: "effect@npm:3.10.17"
+"effect@npm:3.10.19":
+  version: 3.10.19
+  resolution: "effect@npm:3.10.19"
   dependencies:
     fast-check: "npm:^3.21.0"
-  checksum: 10c0/8be90ce2c93f1af458a3e770779dd7dfe0dcd9b615a3b5a44e2ce712418613ad123dfc433df770a9c5475e83df42bdda066015cabc211c71c7fd1fd8f67d70d3
+  checksum: 10c0/0206a1c79591e499ad65ae6e3f0faf40bce66f5ba1a4d5836d5db2661b67d03ed443803810b7d7d2c490f0362ff404857096eb961fb80879957f7f41f7b168c9
   languageName: node
   linkType: hard
 

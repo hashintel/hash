@@ -19,7 +19,7 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "effect": "3.10.17"
+    "effect": "3.10.19"
   },
   "devDependencies": {
     "@effect/platform": "0.69.26",
