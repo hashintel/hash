@@ -422,7 +422,7 @@ describe("Entity type CRU", () => {
         Array.from(
           new Set(
             closedEntityTypes.flatMap(
-              (closedEntityType) => closedEntityType.schema.required,
+              (closedEntityType) => closedEntityType.schema.required ?? [],
             ),
           ),
         ).toSorted(),

@@ -144,7 +144,7 @@ export type ClosedEntityType = Omit<
 > & {
   allOf?: [EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]];
   properties: Record<BaseUrl, ValueOrArray<PropertyTypeReference>>;
-  required: [BaseUrl, ...BaseUrl[]];
+  required?: [BaseUrl, ...BaseUrl[]];
 };
 
 export type ClosedEntityTypeWithMetadata = {
