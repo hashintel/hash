@@ -56,10 +56,10 @@ import { useRouteNamespace } from "../shared/use-route-namespace";
 import type { EntityEditorProps } from "./[entity-uuid].page/entity-editor";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
-import { updateDraftEntitySubgraph } from "./[entity-uuid].page/shared/update-draft-entity-subgraph";
+import { createDraftEntitySubgraph } from "./[entity-uuid].page/shared/create-draft-entity-subgraph";
 import { useApplyDraftLinkEntityChanges } from "./[entity-uuid].page/shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./[entity-uuid].page/shared/use-draft-link-state";
-import { useGetClosedMultiEntityType } from "./[entity-uuid].page/shared/use-get-closed-multi-entity-type";
+import { useHandleTypeChanges } from "./[entity-uuid].page/shared/use-handle-type-changes";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -89,9 +89,6 @@ const Page: NextPageWithLayout = () => {
       >
     >();
 
-  const { getClosedMultiEntityType, loading: closedMultiEntityTypeLoading } =
-    useGetClosedMultiEntityType();
-
   const [dataFromDb, setDataFromDb] =
     useState<
       Pick<
@@ -105,6 +102,21 @@ const Page: NextPageWithLayout = () => {
 
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
     useState<Subgraph<EntityRootType>>();
+
+  const [
+    draftLinksToCreate,
+    setDraftLinksToCreate,
+    draftLinksToArchive,
+    setDraftLinksToArchive,
+  ] = useDraftLinkState();
+
+  const handleTypeChanges = useHandleTypeChanges({
+    entitySubgraph: draftEntitySubgraph,
+    setDraftEntityTypesDetails,
+    setDraftEntitySubgraph,
+    setDraftLinksToArchive,
+  });
+
   const [isReadOnly, setIsReadOnly] = useState(true);
 
   const entityFromDb =
@@ -157,13 +169,6 @@ const Page: NextPageWithLayout = () => {
       }),
     [draftId, lazyGetEntity],
   );
-
-  const [
-    draftLinksToCreate,
-    setDraftLinksToCreate,
-    draftLinksToArchive,
-    setDraftLinksToArchive,
-  ] = useDraftLinkState();
 
   const setStateFromGetEntityResponse = useCallback(
     (data?: GetEntitySubgraphQuery) => {
@@ -379,11 +384,11 @@ const Page: NextPageWithLayout = () => {
     [draftId, refetch, router, routeNamespace],
   );
 
-  if (loading || (!draftEntityTypesDetails && closedMultiEntityTypeLoading)) {
+  if (loading || !draftEntityTypesDetails) {
     return <EntityPageLoadingState />;
   }
 
-  if (!draftEntitySubgraph || !draftEntityTypesDetails) {
+  if (!draftEntitySubgraph) {
     return <PageErrorState />;
   }
 
@@ -392,7 +397,10 @@ const Page: NextPageWithLayout = () => {
     return <NextErrorComponent statusCode={404} />;
   }
 
-  const entityLabel = generateEntityLabel(draftEntitySubgraph, draftEntity);
+  const entityLabel = generateEntityLabel(
+    draftEntityTypesDetails.closedMultiEntityType,
+    draftEntity,
+  );
   const isModifyingEntity =
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
@@ -432,31 +440,23 @@ const Page: NextPageWithLayout = () => {
       entitySubgraph={draftEntitySubgraph}
       readonly={isReadOnly}
       onEntityUpdated={(entity) => onEntityUpdated(entity)}
-      setEntityTypes={async (newEntityTypeIds) => {
-        const newDetails = await getClosedMultiEntityType(newEntityTypeIds);
-        setDraftEntityTypesDetails(newDetails);
-
-        const newSubgraph = updateDraftEntitySubgraph(
-          draftEntity,
-          newEntityTypeIds,
-          draftEntitySubgraph,
-        );
+      handleTypesChange={async (change) => {
+        await handleTypeChanges(change);
 
         setIsDirty(
-          JSON.stringify(newEntityTypeIds.sort()) !==
-            JSON.stringify(entityFromDb?.metadata.entityTypeIds.sort()),
+          JSON.stringify(change.entityTypeIds.toSorted()) !==
+            JSON.stringify(entityFromDb?.metadata.entityTypeIds.toSorted()),
         );
-
-        setDraftEntitySubgraph(newSubgraph);
       }}
       setEntity={(changedEntity) => {
-        const newSubgraph = updateDraftEntitySubgraph(
-          changedEntity,
-          changedEntity.metadata.entityTypeIds,
-          draftEntitySubgraph,
+        setDraftEntitySubgraph((prev) =>
+          createDraftEntitySubgraph({
+            entity: changedEntity,
+            entityTypeIds: changedEntity.metadata.entityTypeIds,
+            currentSubgraph: prev,
+            omitProperties: [],
+          }),
         );
-
-        setDraftEntitySubgraph(newSubgraph);
       }}
     />
   );

@@ -78,9 +78,8 @@ export type GenerateEntitiesTableDataParams = {
   subgraph: SerializedSubgraph;
   hasSomeLinks?: boolean;
   hideColumns?: (keyof TypeEntitiesRow)[];
-  hidePageArchivedColumn?: boolean;
+  hideArchivedColumn?: boolean;
   hidePropertiesColumns: boolean;
-  isViewingOnlyPages?: boolean;
   usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
   webNameByOwnedById: Record<OwnedById, string>;
 };

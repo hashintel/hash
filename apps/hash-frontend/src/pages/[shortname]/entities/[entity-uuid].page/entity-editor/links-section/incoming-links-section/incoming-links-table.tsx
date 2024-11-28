@@ -270,6 +270,7 @@ export const IncomingLinksTable = memo(
       closedMultiEntityTypesMap,
       closedMultiEntityTypesDefinitions,
       customColumns,
+      draftLinksToArchive,
       entitySubgraph,
       onEntityClick,
     } = useEntityEditor();
@@ -330,6 +331,14 @@ export const IncomingLinksTable = memo(
         const linkEntity = linkEntityRevisions[0];
         if (!linkEntity) {
           throw new Error("Expected at least one link revision");
+        }
+
+        const isMarkedToArchive = draftLinksToArchive.some(
+          (markedLinkId) => markedLinkId === linkEntity.entityId,
+        );
+
+        if (isMarkedToArchive) {
+          continue;
         }
 
         const linkEntityTypeIds = linkEntity.metadata.entityTypeIds;
@@ -505,6 +514,7 @@ export const IncomingLinksTable = memo(
       closedMultiEntityTypesDefinitions,
       closedMultiEntityTypesMap,
       customColumns,
+      draftLinksToArchive,
       entitySubgraph,
       incomingLinksAndSources,
       onEntityClick,

@@ -1,5 +1,10 @@
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
-import { AlertModal, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  AlertModal,
+  FontAwesomeIcon,
+  LinkIcon,
+} from "@hashintel/design-system";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   Box,
   Stack,
@@ -11,10 +16,13 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 export type EntityTypeChangeDetails = {
-  onAccept: () => void;
+  onAccept: (args: {
+    removedPropertiesBaseUrls: BaseUrl[];
+    removedLinkTypesBaseUrls: BaseUrl[];
+  }) => void;
   proposedChange:
     | {
         entityTypeTitle: string;
@@ -28,10 +36,12 @@ export type EntityTypeChangeDetails = {
         type: "Remove";
       };
   linkChanges: {
+    linkTypeBaseUrl: BaseUrl;
     linkTitle: string;
     change:
       | "Added (optional)"
       | "Added (required)"
+      | "Link version changed"
       | "Now required"
       | "Min items changed"
       | "Max items changed"
@@ -39,6 +49,7 @@ export type EntityTypeChangeDetails = {
       | "Target type(s) changed";
   }[];
   propertyChanges: {
+    propertyBaseUrl: BaseUrl;
     propertyTitle: string;
     change:
       | "Added (optional)"
@@ -63,6 +74,7 @@ type ChangeSummary = {
     maxItemsChanged: number;
     nowRequired: number;
     removed: number;
+    versionChanged: number;
   };
   propertyChangeCount: {
     added: number;
@@ -158,6 +170,7 @@ const CalloutMessage = ({
         nowRequired,
         changedDestination,
         removed,
+        versionChanged,
       } = linkChangeCount;
       if (added > 0) {
         messages.push(`adds ${generateCountString(added, "link")}`);
@@ -183,6 +196,11 @@ const CalloutMessage = ({
       if (maxItemsChanged > 0) {
         messages.push(
           `changes the maximum number of items for ${generateCountString(maxItemsChanged, "link")}`,
+        );
+      }
+      if (versionChanged > 0) {
+        messages.push(
+          `changes the type version of ${generateCountString(versionChanged, "link")}`,
         );
       }
     }
@@ -284,6 +302,7 @@ export const EntityTypeChangeModal = ({
         maxItemsChanged: 0,
         nowRequired: 0,
         removed: 0,
+        versionChanged: 0,
       },
       propertyChangeCount: {
         added: 0,
@@ -336,6 +355,9 @@ export const EntityTypeChangeModal = ({
       ) {
         summary.linkChangeCount.added++;
       }
+      if (linkChange.change === "Link version changed") {
+        summary.linkChangeCount.versionChanged++;
+      }
       if (linkChange.change === "Min items changed") {
         summary.linkChangeCount.minItemsChanged++;
       }
@@ -370,9 +392,20 @@ export const EntityTypeChangeModal = ({
     (change) => change.linkTitle,
   );
 
+  const acceptCallback = useCallback(() => {
+    onAccept({
+      removedLinkTypesBaseUrls: linkChanges
+        .filter((change) => change.change === "Removed")
+        .map((change) => change.linkTypeBaseUrl),
+      removedPropertiesBaseUrls: propertyChanges
+        .filter((change) => change.change === "Removed")
+        .map((change) => change.propertyBaseUrl),
+    });
+  }, [linkChanges, onAccept, propertyChanges]);
+
   return (
     <AlertModal
-      callback={onAccept}
+      callback={acceptCallback}
       calloutMessage={
         <CalloutMessage
           changeSummary={changeSummary}
@@ -445,8 +478,18 @@ export const EntityTypeChangeModal = ({
             {Object.entries(linkChangseByTitle).map(
               ([linkTitle, changes = []], index) => (
                 <TableRow key={linkTitle}>
-                  <TableCell>#{index + 1 + propertyChanges.length}</TableCell>
-                  <TableCell>{linkTitle}</TableCell>
+                  <TableCell>{index + 1 + propertyChanges.length}</TableCell>
+                  <TableCell>
+                    <Stack alignItems="center" direction="row" gap={0.5}>
+                      {linkTitle}
+                      <LinkIcon
+                        sx={{
+                          fontSize: 12,
+                          color: ({ palette }) => palette.gray[50],
+                        }}
+                      />
+                    </Stack>
+                  </TableCell>
                   <Tooltip
                     title={changes.length > 1 ? <Box>Multiple</Box> : ""}
                   >

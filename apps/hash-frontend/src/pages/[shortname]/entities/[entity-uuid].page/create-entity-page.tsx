@@ -3,6 +3,7 @@ import { AlertModal } from "@hashintel/design-system";
 import type { PropertyObject } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Typography } from "@mui/material";
@@ -12,16 +13,17 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { Link } from "../../../../shared/ui/link";
+import { useGetClosedMultiEntityType } from "../../../shared/use-get-closed-multi-entity-type";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { EditBar } from "../../shared/edit-bar";
-import { createDraftEntitySubgraph } from "./create-entity-page/create-draft-entity-subgraph";
+import { createInitialDraftEntitySubgraph } from "./create-entity-page/create-initial-draft-entity-subgraph";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
-import { updateDraftEntitySubgraph } from "./shared/update-draft-entity-subgraph";
+import { createDraftEntitySubgraph } from "./shared/create-draft-entity-subgraph";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
-import { useGetClosedMultiEntityType } from "./shared/use-get-closed-multi-entity-type";
+import { useHandleTypeChanges } from "./shared/use-handle-type-changes";
 
 interface CreateEntityPageProps {
   entityTypeId: VersionedUrl;
@@ -51,9 +53,9 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       >
     >();
 
-  const [draftEntitySubgraph, setDraftEntitySubgraph] = useState(() =>
-    createDraftEntitySubgraph([entityTypeId]),
-  );
+  const [draftEntitySubgraph, setDraftEntitySubgraph] = useState<
+    Subgraph<EntityRootType> | undefined
+  >(() => createInitialDraftEntitySubgraph([entityTypeId]));
 
   const fetchAndSetTypeDetails = useCallback(
     async (entityTypeIds: VersionedUrl[]) => {
@@ -68,6 +70,13 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     void fetchAndSetTypeDetails([entityTypeId]);
   }, [entityTypeId, fetchAndSetTypeDetails]);
 
+  const handleTypeChanges = useHandleTypeChanges({
+    entitySubgraph: draftEntitySubgraph,
+    setDraftEntityTypesDetails,
+    setDraftEntitySubgraph,
+    setDraftLinksToArchive,
+  });
+
   const { activeWorkspace, activeWorkspaceOwnedById } =
     useContext(WorkspaceContext);
   const { createEntity } = useBlockProtocolCreateEntity(
@@ -75,6 +84,10 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   );
 
   const [creating, setCreating] = useState(false);
+
+  if (!draftEntitySubgraph) {
+    throw new Error("No draft entity subgraph");
+  }
 
   const entity = getRoots(draftEntitySubgraph)[0]!;
 
@@ -182,25 +195,16 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         isDirty
         isDraft
         handleSaveChanges={handleCreateEntity}
-        setEntityTypes={async (newEntityTypeIds) => {
-          const newDetails = await getClosedMultiEntityType(newEntityTypeIds);
-          setDraftEntityTypesDetails(newDetails);
-
-          const newSubgraph = updateDraftEntitySubgraph(
-            entity,
-            newEntityTypeIds,
-            draftEntitySubgraph,
-          );
-
-          setDraftEntitySubgraph(newSubgraph);
-        }}
+        handleTypesChange={handleTypeChanges}
         setEntity={(changedEntity) => {
-          const newSubgraph = updateDraftEntitySubgraph(
-            changedEntity,
-            changedEntity.metadata.entityTypeIds,
-            draftEntitySubgraph,
-          );
-          setDraftEntitySubgraph(newSubgraph);
+          setDraftEntitySubgraph((prev) => {
+            return createDraftEntitySubgraph({
+              currentSubgraph: prev,
+              entity: changedEntity,
+              entityTypeIds: changedEntity.metadata.entityTypeIds,
+              omitProperties: [],
+            });
+          });
         }}
         draftLinksToCreate={draftLinksToCreate}
         setDraftLinksToCreate={setDraftLinksToCreate}

@@ -2,6 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
+  BaseUrl,
   ClosedMultiEntityType,
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
@@ -37,11 +38,13 @@ export interface EntityEditorProps extends DraftLinkState {
   isDirty: boolean;
   entityLabel: string;
   entitySubgraph: Subgraph<EntityRootType>;
+  handleTypesChange: (args: {
+    entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
+    removedPropertiesBaseUrls: BaseUrl[];
+    removedLinkTypesBaseUrls: BaseUrl[];
+  }) => Promise<void>;
   onEntityClick: (entityId: EntityId) => void;
   setEntity: (entity: Entity) => void;
-  setEntityTypes: (
-    entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
-  ) => Promise<void>;
   readonly: boolean;
   onEntityUpdated: ((entity: Entity) => void) | null;
   /**

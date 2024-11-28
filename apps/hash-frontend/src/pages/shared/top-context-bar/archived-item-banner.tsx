@@ -43,19 +43,24 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
 
   const { unarchivePage } = useArchivePage();
 
+  const isEntityType = isItemEntityType(item);
+  const isPage = !isEntityType && isEntityPageEntity(item);
+
   const handleUnarchive = useCallback(async () => {
-    if (isItemEntityType(item)) {
+    if (isEntityType) {
       await unarchiveEntityType({
         variables: { entityTypeId: item.schema.$id },
       });
       await refetchEntityTypes();
-    } else if (isEntityPageEntity(item)) {
+    } else if (isPage) {
       await unarchivePage(item.metadata.recordId.entityId);
     } else {
       throw new Error("Unarchiving entities is not yet supported.");
     }
     onUnarchived();
   }, [
+    isEntityType,
+    isPage,
     item,
     refetchEntityTypes,
     onUnarchived,
@@ -64,14 +69,12 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
   ]);
 
   const archivedByAccountId = useMemo(() => {
-    if (isItemEntityType(item)) {
+    if (isEntityType) {
       return item.metadata.provenance.edition.archivedById!;
-    } else if (isEntityPageEntity(item)) {
-      return item.metadata.provenance.edition.createdById;
     } else {
-      throw new Error("Archived entities are not yet supported.");
+      return item.metadata.provenance.edition.createdById;
     }
-  }, [item]);
+  }, [isEntityType, item]);
 
   const archivedByUser =
     users && users.find(({ accountId }) => archivedByAccountId === accountId);
@@ -79,14 +82,14 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
   const archivedAt = useMemo(
     () =>
       new Date(
-        isItemEntityType(item)
+        isEntityType
           ? item.metadata.temporalVersioning.transactionTime.end.kind ===
             "exclusive"
             ? item.metadata.temporalVersioning.transactionTime.end.limit
             : 0
           : item.metadata.temporalVersioning.decisionTime.start.limit,
       ),
-    [item],
+    [isEntityType, item],
   );
 
   const timeSinceArchived = useMemo(
@@ -105,11 +108,6 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
   }, [archivedAt]);
 
-  const isBlockPage = useMemo(
-    () => !isItemEntityType(item) && isEntityPageEntity(item),
-    [item],
-  );
-
   return (
     <Box
       sx={({ palette }) => ({
@@ -123,7 +121,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
           alignItems: "center",
           py: 1,
           maxWidth: {
-            md: isBlockPage ? 860 : undefined,
+            md: isPage ? 860 : undefined,
           },
         }}
       >
@@ -138,7 +136,8 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
             }}
           />
           <strong>
-            This {isItemEntityType(item) ? "type" : "page"} was archived
+            This {isEntityType ? "type" : isPage ? "page" : "entity"} was
+            archived
           </strong>
           {archivedByUser ? (
             <>
@@ -152,10 +151,9 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
               >
                 <UserIcon
                   sx={{
-                    fontSize: 14,
+                    fontSize: 11,
                     position: "relative",
-                    top: 1,
-                    marginRight: 0.75,
+                    marginRight: 0.4,
                   }}
                 />
                 {archivedByUser.displayName}
@@ -166,53 +164,51 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
           <Box component="span">
             <CalendarIcon
               sx={{
-                fontSize: 14,
+                fontSize: 11,
                 position: "relative",
-                top: 1,
-                marginRight: 0.75,
+                marginRight: 0.4,
               }}
             />
             <strong>{archivedAtTimestamp}</strong> ({timeSinceArchived} ago).
           </Box>
         </Typography>
-        <Button
-          variant="secondary"
-          sx={({ palette }) => ({
-            marginLeft: 1.5,
-            minWidth: 0,
-            minHeight: 0,
-            paddingY: 0.5,
-            paddingX: 2,
-            background: palette.common.white,
-            borderColor: palette.gray[30],
-            color: palette.common.black,
-            fontWeight: 400,
-            fontSize: 14,
-            "&:hover": {
-              background: palette.blue[20],
-              borderColor: palette.blue[50],
-              color: palette.blue[100],
-              "& svg": {
-                color: palette.blue[50],
+        {(isEntityType || isPage) && (
+          <Button
+            variant="secondary"
+            sx={({ palette }) => ({
+              marginLeft: 1.5,
+              minWidth: 0,
+              minHeight: 0,
+              paddingY: 0.5,
+              paddingX: 2,
+              background: palette.common.white,
+              borderColor: palette.gray[30],
+              color: palette.common.black,
+              fontWeight: 400,
+              fontSize: 14,
+              "&:hover": {
+                background: palette.blue[20],
+                borderColor: palette.blue[50],
+                color: palette.blue[100],
+                "& svg": {
+                  color: palette.blue[50],
+                },
               },
-            },
-          })}
-          startIcon={
-            <FontAwesomeIcon
-              sx={{ fontSize: 14, color: ({ palette }) => palette.gray[50] }}
-              icon={faRotateRight}
-            />
-          }
-          onClick={handleUnarchive}
-        >
-          {`Restore ${
-            isItemEntityType(item)
-              ? "type"
-              : isEntityPageEntity(item)
-                ? "page"
-                : "entity"
-          }`}
-        </Button>
+            })}
+            startIcon={
+              <FontAwesomeIcon
+                sx={{
+                  fontSize: 14,
+                  color: ({ palette }) => palette.gray[50],
+                }}
+                icon={faRotateRight}
+              />
+            }
+            onClick={handleUnarchive}
+          >
+            {`Restore ${isEntityType ? "type" : "page"}`}
+          </Button>
+        )}
       </Container>
     </Box>
   );

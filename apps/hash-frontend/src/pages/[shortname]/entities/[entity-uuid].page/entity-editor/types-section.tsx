@@ -25,6 +25,7 @@ import { Link } from "../../../../../shared/ui/link";
 import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
 import { nonAssignableTypes } from "../../../../shared/hidden-types";
 import { SectionWrapper } from "../../../../shared/section-wrapper";
+import type { EntityEditorProps } from "../entity-editor";
 import { useEntityEditor } from "./entity-editor-context";
 import type { EntityTypeChangeDetails } from "./types-section/entity-type-change-modal";
 import { EntityTypeChangeModal } from "./types-section/entity-type-change-modal";
@@ -49,7 +50,7 @@ export const TypeButton = ({
   currentEntityType: MinimalTypeData;
   newerEntityType?: Pick<MinimalTypeData, "entityTypeId" | "version">;
 }) => {
-  const { disableTypeClick, readonly, setEntityTypes } = useEntityEditor();
+  const { disableTypeClick, readonly, handleTypesChange } = useEntityEditor();
 
   const newVersion = newerEntityType?.version;
 
@@ -60,9 +61,17 @@ export const TypeButton = ({
 
   const getTypeDetails = useGetTypeChangeDetails();
 
-  const handleUpdateTypes = async (newEntityTypeIds: VersionedUrl[]) => {
+  const handleUpdateTypes: EntityEditorProps["handleTypesChange"] = async ({
+    entityTypeIds,
+    removedLinkTypesBaseUrls,
+    removedPropertiesBaseUrls,
+  }) => {
     try {
-      await setEntityTypes(mustHaveAtLeastOne(newEntityTypeIds));
+      await handleTypesChange({
+        entityTypeIds,
+        removedPropertiesBaseUrls,
+        removedLinkTypesBaseUrls,
+      });
       setChangeDetails(null);
     } finally {
       setUpdatingTypes(false);
@@ -88,7 +97,16 @@ export const TypeButton = ({
       await getTypeDetails(newEntityTypeIds);
 
     setChangeDetails({
-      onAccept: () => handleUpdateTypes(newEntityTypeIds),
+      onAccept: async ({
+        removedLinkTypesBaseUrls,
+        removedPropertiesBaseUrls,
+      }) => {
+        await handleUpdateTypes({
+          entityTypeIds: mustHaveAtLeastOne(newEntityTypeIds),
+          removedPropertiesBaseUrls,
+          removedLinkTypesBaseUrls,
+        });
+      },
       proposedChange: {
         type: "Update",
         entityTypeTitle: currentEntityType.entityTypeTitle,
@@ -109,7 +127,12 @@ export const TypeButton = ({
       await getTypeDetails(newEntityTypeIds);
 
     setChangeDetails({
-      onAccept: () => handleUpdateTypes(newEntityTypeIds),
+      onAccept: ({ removedLinkTypesBaseUrls, removedPropertiesBaseUrls }) =>
+        handleUpdateTypes({
+          entityTypeIds: mustHaveAtLeastOne(newEntityTypeIds),
+          removedLinkTypesBaseUrls,
+          removedPropertiesBaseUrls,
+        }),
       proposedChange: {
         type: "Remove",
         entityTypeTitle: currentEntityType.entityTypeTitle,
@@ -159,7 +182,7 @@ export const TypeButton = ({
 };
 
 export const TypesSection = () => {
-  const { entitySubgraph, closedMultiEntityType, readonly, setEntityTypes } =
+  const { entitySubgraph, closedMultiEntityType, readonly, handleTypesChange } =
     useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
@@ -244,7 +267,11 @@ export const TypesSection = () => {
     try {
       setAddingType(true);
 
-      await setEntityTypes(newEntityTypeIds);
+      await handleTypesChange({
+        entityTypeIds: newEntityTypeIds,
+        removedPropertiesBaseUrls: [],
+        removedLinkTypesBaseUrls: [],
+      });
     } finally {
       setAddingType(false);
     }

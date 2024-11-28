@@ -213,7 +213,7 @@ export const TopContextBar = ({
           )}
         </Box>
       </Box>
-      {item && !(!isItemEntityType(item) && !isEntityPageEntity(item)) ? (
+      {item ? (
         <Collapse in={archived}>
           <ArchivedItemBanner
             item={item}

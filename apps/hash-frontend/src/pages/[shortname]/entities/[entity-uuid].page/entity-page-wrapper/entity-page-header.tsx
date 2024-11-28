@@ -1,13 +1,14 @@
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
+import type { ClosedMultiEntityType } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRouter } from "next/router";
 import type { ReactNode } from "react";
-import { useContext, useMemo } from "react";
+import { useContext } from "react";
 
 import { NotificationsWithLinksContextProvider } from "../../../../shared/notifications-with-links-context";
 import { TopContextBar } from "../../../../shared/top-context-bar";
@@ -16,6 +17,7 @@ import { EntityEditorTabs } from "../shared/entity-editor-tabs";
 import { DraftEntityBanner } from "./draft-entity-banner";
 
 export const EntityPageHeader = ({
+  closedMultiEntityType,
   entity,
   entitySubgraph,
   onEntityUpdated,
@@ -26,6 +28,7 @@ export const EntityPageHeader = ({
   isModifyingEntity,
   showTabs,
 }: {
+  closedMultiEntityType?: ClosedMultiEntityType;
   entity?: Entity;
   entitySubgraph?: Subgraph<EntityRootType>;
   onEntityUpdated: ((entity: Entity) => void) | null;
@@ -43,24 +46,9 @@ export const EntityPageHeader = ({
 
   const shortname = paramsShortname?.slice(1) ?? activeWorkspace?.shortname;
 
-  /**
-   * @todo H-3363 use the closed schema to get the first icon
-   */
-  const entityTypes = useMemo(
-    () =>
-      entity && entitySubgraph
-        ? entity.metadata.entityTypeIds.toSorted().map((entityTypeId) => {
-            const entityType = getEntityTypeById(entitySubgraph, entityTypeId);
-
-            if (!entityType) {
-              throw new Error(`Cannot find entity type ${entityTypeId}`);
-            }
-
-            return entityType;
-          })
-        : [],
-    [entity, entitySubgraph],
-  );
+  const icon = closedMultiEntityType
+    ? getDisplayFieldsForClosedEntityType(closedMultiEntityType).icon
+    : null;
 
   if (!shortname) {
     throw new Error("Cannot render before workspace is available");
@@ -84,7 +72,7 @@ export const EntityPageHeader = ({
             icon: (
               <EntityOrTypeIcon
                 entity={entity ?? null}
-                icon={entityTypes[0]?.schema.icon}
+                icon={icon}
                 isLink={!!entity?.linkData}
                 fill={({ palette }) => palette.gray[50]}
                 fontSize="inherit"
@@ -129,7 +117,7 @@ export const EntityPageHeader = ({
             <EntityOrTypeIcon
               entity={entity ?? null}
               fill={({ palette }) => palette.gray[50]}
-              icon={entityTypes[0]?.schema.icon}
+              icon={icon}
               isLink={!!entity?.linkData}
               fontSize={40}
             />

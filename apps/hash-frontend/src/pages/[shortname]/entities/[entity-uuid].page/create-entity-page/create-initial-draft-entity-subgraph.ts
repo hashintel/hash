@@ -17,9 +17,8 @@ import type {
 } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
-export const createDraftEntitySubgraph = (
+export const createInitialDraftEntitySubgraph = (
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
-  previousDraft?: Entity,
 ): Subgraph<EntityRootType> => {
   const now = new Date().toISOString() as Timestamp;
 
@@ -30,7 +29,7 @@ export const createDraftEntitySubgraph = (
   const creator = extractOwnedByIdFromEntityId(draftEntityVertexId.baseId);
 
   const serializedEntity: GraphApiEntity = {
-    properties: previousDraft?.properties ?? {},
+    properties: {},
     metadata: {
       recordId: {
         entityId: draftEntityVertexId.baseId,
@@ -72,7 +71,11 @@ export const createDraftEntitySubgraph = (
   const entity = new Entity(serializedEntity);
 
   return {
-    depths: zeroedGraphResolveDepths,
+    depths: {
+      ...zeroedGraphResolveDepths,
+      hasLeftEntity: { incoming: 1, outgoing: 1 },
+      hasRightEntity: { incoming: 1, outgoing: 1 },
+    },
     edges: {},
     roots: [draftEntityVertexId],
     temporalAxes: {
@@ -93,7 +96,7 @@ export const createDraftEntitySubgraph = (
           },
         },
       },
-    },
+    } as const,
     // @ts-expect-error -- Vertices expects OntologyVertices to be present. @todo overhaul subgraph
     vertices: {
       [draftEntityVertexId.baseId]: {
