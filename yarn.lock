@@ -5292,15 +5292,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/platform@npm:0.69.26":
-  version: 0.69.26
-  resolution: "@effect/platform@npm:0.69.26"
+"@effect/platform@npm:0.69.28":
+  version: 0.69.28
+  resolution: "@effect/platform@npm:0.69.28"
   dependencies:
     find-my-way-ts: "npm:^0.1.5"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    effect: ^3.10.17
-  checksum: 10c0/81a1f20b5c8078560d14262eecc212d065f89e066e99b29d86ad7f1ecee45b6f4e41d5c8db6d89a0c2473435b367e134e59e6468895fbc657ec2bb01b4854dcd
+    effect: ^3.10.19
+  checksum: 10c0/124a86f71a7a24af5669560dd90b0389e615f16d6618a5bf2a4fe28b16b1ef664547507c0215c10df2927aac8381fdf263dfd18f63ef387234d16cbe2a81103b
   languageName: node
   linkType: hard
 
@@ -8165,7 +8165,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/harpc-client@workspace:libs/@local/harpc/client/typescript"
   dependencies:
-    "@effect/platform": "npm:0.69.26"
+    "@effect/platform": "npm:0.69.28"
     "@effect/platform-node": "npm:0.64.28"
     "@effect/vitest": "npm:0.13.19"
     "@local/eslint-config": "npm:0.0.0-private"
