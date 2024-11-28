@@ -5,8 +5,8 @@ import { useCallback } from "react";
 import type {
   GetClosedMultiEntityTypeQuery,
   GetClosedMultiEntityTypeQueryVariables,
-} from "../../../../../graphql/api-types.gen";
-import { getClosedMultiEntityTypeQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
+} from "../../graphql/api-types.gen";
+import { getClosedMultiEntityTypeQuery } from "../../graphql/queries/ontology/entity-type.queries";
 
 export const useGetClosedMultiEntityType = () => {
   const [getMultiEntityType, { loading }] = useLazyQuery<

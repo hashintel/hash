@@ -48,10 +48,10 @@ import { Button, Link } from "../../../../shared/ui";
 import { SlideBackForwardCloseBar } from "../../../shared/shared/slide-back-forward-close-bar";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditor } from "./entity-editor";
-import { updateDraftEntitySubgraph } from "./shared/update-draft-entity-subgraph";
+import { createDraftEntitySubgraph } from "./shared/create-draft-entity-subgraph";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
-import { useGetClosedMultiEntityType } from "./shared/use-get-closed-multi-entity-type";
+import { useHandleTypeChanges } from "./shared/use-handle-type-changes";
 
 export interface EditEntitySlideOverProps {
   closedMultiEntityTypesMap?: ClosedMultiEntityTypesRootMap;
@@ -132,8 +132,9 @@ const EditEntitySlideOver = memo(
       );
     }
 
-    const [localEntitySubgraph, setLocalEntitySubgraph] =
-      useState<Subgraph<EntityRootType> | null>(providedEntitySubgraph ?? null);
+    const [localEntitySubgraph, setLocalEntitySubgraph] = useState<
+      Subgraph<EntityRootType> | undefined
+    >(providedEntitySubgraph);
 
     const [ownedByIdFromProvidedEntityId, entityUuid, draftId] =
       providedEntityId ? splitEntityId(providedEntityId) : [];
@@ -173,6 +174,21 @@ const EditEntitySlideOver = memo(
       | undefined
     >(providedTypeDetails);
 
+    const [
+      draftLinksToCreate,
+      setDraftLinksToCreate,
+      draftLinksToArchive,
+      setDraftLinksToArchive,
+    ] = useDraftLinkState();
+    const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
+
+    const handleTypeChanges = useHandleTypeChanges({
+      entitySubgraph: localEntitySubgraph,
+      setDraftEntityTypesDetails,
+      setDraftEntitySubgraph: setLocalEntitySubgraph,
+      setDraftLinksToArchive,
+    });
+
     useEffect(() => {
       if (
         entity?.metadata.entityTypeIds &&
@@ -185,8 +201,6 @@ const EditEntitySlideOver = memo(
         setDraftEntityTypesDetails(providedTypeDetails);
       }
     }, [entity?.metadata.entityTypeIds, providedTypeDetails]);
-
-    const { getClosedMultiEntityType } = useGetClosedMultiEntityType();
 
     const [animateOut, setAnimateOut] = useState(false);
 
@@ -352,14 +366,6 @@ const EditEntitySlideOver = memo(
         }
       }
     }
-
-    const [
-      draftLinksToCreate,
-      setDraftLinksToCreate,
-      draftLinksToArchive,
-      setDraftLinksToArchive,
-    ] = useDraftLinkState();
-    const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
     const [updateEntity] = useMutation<
       UpdateEntityMutation,
@@ -572,27 +578,29 @@ const EditEntitySlideOver = memo(
                 onEntityUpdated={null}
                 entityLabel={entityLabel}
                 entitySubgraph={localEntitySubgraph}
-                setEntityTypes={async (newEntityTypeIds) => {
-                  const newDetails =
-                    await getClosedMultiEntityType(newEntityTypeIds);
-                  setDraftEntityTypesDetails(newDetails);
+                handleTypesChange={async (change) => {
+                  await handleTypeChanges(change);
 
-                  const newSubgraph = updateDraftEntitySubgraph(
-                    entity,
-                    newEntityTypeIds,
-                    localEntitySubgraph,
+                  const originalEntity = originalEntitySubgraph
+                    ? getRoots(originalEntitySubgraph)[0]
+                    : undefined;
+
+                  setIsDirty(
+                    JSON.stringify(change.entityTypeIds.toSorted()) !==
+                      JSON.stringify(
+                        originalEntity?.metadata.entityTypeIds.toSorted(),
+                      ),
                   );
-
-                  setLocalEntitySubgraph(newSubgraph);
                 }}
                 setEntity={(changedEntity) => {
-                  const newSubgraph = updateDraftEntitySubgraph(
-                    changedEntity,
-                    changedEntity.metadata.entityTypeIds,
-                    localEntitySubgraph,
+                  setLocalEntitySubgraph((prev) =>
+                    createDraftEntitySubgraph({
+                      entity: changedEntity,
+                      entityTypeIds: changedEntity.metadata.entityTypeIds,
+                      currentSubgraph: prev,
+                      omitProperties: [],
+                    }),
                   );
-
-                  setLocalEntitySubgraph(newSubgraph);
                 }}
                 isDirty={isDirty}
                 onEntityClick={onEntityClick}

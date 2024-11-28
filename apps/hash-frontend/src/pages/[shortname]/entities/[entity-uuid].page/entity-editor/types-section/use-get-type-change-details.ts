@@ -1,10 +1,15 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { extractVersion } from "@blockprotocol/type-system/slim";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { getPropertyTypeForClosedEntityType } from "@local/hash-graph-sdk/entity";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  componentsFromVersionedUrl,
+  extractBaseUrl,
+} from "@local/hash-subgraph/type-system-patch";
 import { useCallback } from "react";
 
-import { useGetClosedMultiEntityType } from "../../shared/use-get-closed-multi-entity-type";
+import { useGetClosedMultiEntityType } from "../../../../../shared/use-get-closed-multi-entity-type";
 import { useEntityEditor } from "../entity-editor-context";
 import type { EntityTypeChangeDetails } from "./entity-type-change-modal";
 
@@ -60,6 +65,7 @@ export const useGetTypeChangeDetails = () => {
         if (!currentClosedType.properties[newPropertyBaseUrl]) {
           changeDetails.propertyChanges.push({
             change: required ? "Added (required)" : "Added (optional)",
+            propertyBaseUrl: newPropertyBaseUrl,
             propertyTitle,
           });
           continue;
@@ -77,6 +83,7 @@ export const useGetTypeChangeDetails = () => {
         if (required && !wasRequired) {
           changeDetails.propertyChanges.push({
             change: "Now required",
+            propertyBaseUrl: newPropertyBaseUrl,
             propertyTitle,
           });
         }
@@ -89,6 +96,7 @@ export const useGetTypeChangeDetails = () => {
         if (oldListSchema && !newListSchema) {
           changeDetails.propertyChanges.push({
             change: "No longer a list",
+            propertyBaseUrl: newPropertyBaseUrl,
             propertyTitle,
           });
         }
@@ -96,6 +104,7 @@ export const useGetTypeChangeDetails = () => {
         if (!oldListSchema && newListSchema) {
           changeDetails.propertyChanges.push({
             change: "Now a list",
+            propertyBaseUrl: newPropertyBaseUrl,
             propertyTitle,
           });
         }
@@ -104,6 +113,7 @@ export const useGetTypeChangeDetails = () => {
           if (oldListSchema.minItems !== newListSchema.minItems) {
             changeDetails.propertyChanges.push({
               change: "Min items changed",
+              propertyBaseUrl: newPropertyBaseUrl,
               propertyTitle,
             });
           }
@@ -111,6 +121,7 @@ export const useGetTypeChangeDetails = () => {
           if (oldListSchema.maxItems !== newListSchema.maxItems) {
             changeDetails.propertyChanges.push({
               change: "Max items changed",
+              propertyBaseUrl: newPropertyBaseUrl,
               propertyTitle,
             });
           }
@@ -122,6 +133,7 @@ export const useGetTypeChangeDetails = () => {
         if (newExpectedValues.length !== oldExpectedValues.length) {
           changeDetails.propertyChanges.push({
             change: "Value type changed",
+            propertyBaseUrl: newPropertyBaseUrl,
             propertyTitle,
           });
           continue;
@@ -135,23 +147,17 @@ export const useGetTypeChangeDetails = () => {
               );
             }
 
-            if ("items" in newValueOption) {
-              return (
-                JSON.stringify(newValueOption) === JSON.stringify(oldOption)
-              );
-            }
-
-            return false;
+            // @todo handle expected values of arrays and objects properly
+            return JSON.stringify(newValueOption) === JSON.stringify(oldOption);
           });
 
           if (!matchingOldOption) {
             changeDetails.propertyChanges.push({
               change: "Value type changed",
+              propertyBaseUrl: newPropertyBaseUrl,
               propertyTitle,
             });
           }
-
-          // @todo handle expected values of arrays and objects
         }
       }
 
@@ -169,6 +175,7 @@ export const useGetTypeChangeDetails = () => {
 
           changeDetails.propertyChanges.push({
             change: "Removed",
+            propertyBaseUrl: oldPropertyBaseUrl,
             propertyTitle,
           });
         }
@@ -185,7 +192,13 @@ export const useGetTypeChangeDetails = () => {
           throw new Error(`Minimal link type not found for ${newLinkTypeId}`);
         }
 
-        const oldLinkSchema = currentLinks[newLinkTypeId];
+        const { baseUrl: newLinkTypeBaseUrl, version: newLinkTypeVersion } =
+          componentsFromVersionedUrl(newLinkTypeId);
+
+        const [oldLinkTypeId, oldLinkSchema] =
+          typedEntries(currentLinks).find(
+            ([typeId]) => extractBaseUrl(typeId) === newLinkTypeBaseUrl,
+          ) ?? [];
 
         const newMinItems = newLinkSchema.minItems ?? 0;
         const newMaxItems = newLinkSchema.maxItems ?? 0;
@@ -195,19 +208,34 @@ export const useGetTypeChangeDetails = () => {
         if (!oldLinkSchema) {
           changeDetails.linkChanges.push({
             change: newMinItems > 0 ? "Added (required)" : "Added (optional)",
+            linkTypeBaseUrl: newLinkTypeBaseUrl,
             linkTitle: minimalLinkType.title,
           });
           continue;
         }
 
+        const oldLinkVersion = oldLinkTypeId
+          ? extractVersion(oldLinkTypeId)
+          : undefined;
+
+        if (oldLinkVersion && oldLinkVersion < newLinkTypeVersion) {
+          changeDetails.linkChanges.push({
+            change: "Link version changed",
+            linkTypeBaseUrl: newLinkTypeBaseUrl,
+            linkTitle: minimalLinkType.title,
+          });
+        }
+
         if (oldMinItems === 0 && newMinItems > 0) {
           changeDetails.linkChanges.push({
             change: "Now required",
+            linkTypeBaseUrl: newLinkTypeBaseUrl,
             linkTitle: minimalLinkType.title,
           });
         } else if (oldMinItems !== newMinItems) {
           changeDetails.linkChanges.push({
             change: "Min items changed",
+            linkTypeBaseUrl: newLinkTypeBaseUrl,
             linkTitle: minimalLinkType.title,
           });
         }
@@ -215,6 +243,7 @@ export const useGetTypeChangeDetails = () => {
         if (oldMaxItems !== newMaxItems) {
           changeDetails.linkChanges.push({
             change: "Max items changed",
+            linkTypeBaseUrl: newLinkTypeBaseUrl,
             linkTitle: minimalLinkType.title,
           });
         }
@@ -237,7 +266,30 @@ export const useGetTypeChangeDetails = () => {
         ) {
           changeDetails.linkChanges.push({
             change: "Target type(s) changed",
+            linkTypeBaseUrl: newLinkTypeBaseUrl,
             linkTitle: minimalLinkType.title,
+          });
+        }
+      }
+
+      for (const oldLinkTypeId of typedKeys(currentClosedType.links ?? {})) {
+        const oldBaseUrl = extractBaseUrl(oldLinkTypeId);
+
+        if (
+          !typedKeys(proposedClosedMultiType.links ?? {}).some(
+            (newLinkTypeId) => extractBaseUrl(newLinkTypeId) === oldBaseUrl,
+          )
+        ) {
+          const oldLinkType = currentDefinitions.entityTypes[oldLinkTypeId];
+
+          if (!oldLinkType) {
+            throw new Error(`Old link type not found for ${oldLinkTypeId}`);
+          }
+
+          changeDetails.linkChanges.push({
+            change: "Removed",
+            linkTypeBaseUrl: oldBaseUrl,
+            linkTitle: oldLinkType.title,
           });
         }
       }

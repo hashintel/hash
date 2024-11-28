@@ -13,7 +13,7 @@ import { IncomingLinksSection } from "./links-section/incoming-links-section";
 import { OutgoingLinksSection } from "./links-section/outgoing-links-section";
 
 export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
-  const { entitySubgraph } = useEntityEditor();
+  const { draftLinksToArchive, entitySubgraph } = useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
 
@@ -23,6 +23,8 @@ export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
     entity.metadata.temporalVersioning[
       entitySubgraph.temporalAxes.resolved.variable.axis
     ],
+  ).filter(
+    (incomingLink) => !draftLinksToArchive.includes(incomingLink.entityId),
   );
 
   const incomingLinksAndSources = getIncomingLinkAndSourceEntities(
@@ -34,6 +36,9 @@ export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
   ).filter((incomingLinkAndSource) => {
     return (
       incomingLinkAndSource.linkEntity[0] &&
+      !draftLinksToArchive.includes(
+        incomingLinkAndSource.linkEntity[0].entityId,
+      ) &&
       !incomingLinkAndSource.linkEntity[0].metadata.entityTypeIds.some(
         (typeId) => noisySystemTypeIds.includes(typeId as NoisySystemTypeId),
       ) &&

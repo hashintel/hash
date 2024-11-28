@@ -140,6 +140,10 @@ export const useRows = () => {
             (markedLinkId) => markedLinkId === recordId.entityId,
           );
 
+          if (!isMatching || isMarkedToArchive) {
+            continue;
+          }
+
           if (!closedMultiEntityTypesMap) {
             throw new Error("Expected closedMultiEntityTypesMap to be defined");
           }
@@ -164,14 +168,12 @@ export const useRows = () => {
             latestLinkEntityRevision,
           );
 
-          if (isMatching && !isMarkedToArchive) {
-            linkAndTargetEntities.push({
-              linkEntity: latestLinkEntityRevision,
-              linkEntityLabel,
-              rightEntity: latestTargetEntityRevision,
-              rightEntityLabel,
-            });
-          }
+          linkAndTargetEntities.push({
+            linkEntity: latestLinkEntityRevision,
+            linkEntityLabel,
+            rightEntity: latestTargetEntityRevision,
+            rightEntityLabel,
+          });
         }
 
         linkAndTargetEntities.push(...additions);
