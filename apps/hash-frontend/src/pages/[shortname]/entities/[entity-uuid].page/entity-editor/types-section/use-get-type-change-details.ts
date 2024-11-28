@@ -52,7 +52,7 @@ export const useGetTypeChangeDetails = () => {
         });
 
         const required =
-          proposedClosedMultiType.required.includes(newPropertyBaseUrl);
+          proposedClosedMultiType.required?.includes(newPropertyBaseUrl);
         const newListSchema = "items" in schema ? schema : undefined;
 
         const propertyTitle = newDetails.propertyType.title;
@@ -72,7 +72,7 @@ export const useGetTypeChangeDetails = () => {
         });
 
         const wasRequired =
-          currentClosedType.required.includes(newPropertyBaseUrl);
+          currentClosedType.required?.includes(newPropertyBaseUrl);
 
         if (required && !wasRequired) {
           changeDetails.propertyChanges.push({

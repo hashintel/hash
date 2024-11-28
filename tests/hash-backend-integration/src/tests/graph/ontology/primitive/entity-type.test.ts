@@ -311,7 +311,9 @@ describe("Entity type CRU", () => {
 
     // It's not specified how `required` is ordered, so we need to sort it before comparing
     for (const entityType of fetchedEntityType) {
-      entityType.schema.required.sort();
+      if (entityType.schema.required) {
+        entityType.schema.required.sort();
+      }
     }
 
     expect(fetchedEntityType).toEqual([
@@ -391,7 +393,9 @@ describe("Entity type CRU", () => {
       });
 
     // It's not specified how `required` is ordered, so we need to sort it before comparing
-    closedMultiEntityType.required.sort();
+    if (closedMultiEntityType.required) {
+      closedMultiEntityType.required.sort();
+    }
 
     const allOf = atLeastOne(
       closedEntityTypes.map(

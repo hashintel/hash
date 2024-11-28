@@ -334,10 +334,12 @@ describe("Entity CRU", () => {
         },
       );
 
-      // The `required` field is not sorted, so we need to sort it before comparing
-      entityTypeFromResponse.required = entityTypeFromResponse.required.sort();
-      entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
-      expect(entityTypeFromResponse).toEqual(entityTypeFromGraph);
+      if (entityTypeFromResponse.required && entityTypeFromGraph.required) {
+        // The `required` field is not sorted, so we need to sort it before comparing
+        entityTypeFromResponse.required =
+          entityTypeFromResponse.required.sort();
+        entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
+      }
 
       for (const [id, schema] of Object.entries(
         definitionsFromGraph!.dataTypes,

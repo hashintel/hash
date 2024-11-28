@@ -165,7 +165,7 @@ export type ClosedMultiEntityType = Omit<
 > & {
   allOf: [ClosedMultiEntityTypeMetadata, ...ClosedMultiEntityTypeMetadata[]];
   properties: Record<BaseUrl, ValueOrArray<PropertyTypeReference>>;
-  required: [BaseUrl, ...BaseUrl[]];
+  required?: [BaseUrl, ...BaseUrl[]];
 };
 
 export type ClosedMultiEntityTypesRootMap = {

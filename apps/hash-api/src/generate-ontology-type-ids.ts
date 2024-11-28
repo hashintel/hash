@@ -200,7 +200,6 @@ const generateOntologyIds = async () => {
       },
     },
     graphApi,
-    temporalClient: null,
   };
 
   const [hashOrg, googleOrg, linearOrg] = await Promise.all([
