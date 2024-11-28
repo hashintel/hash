@@ -1131,7 +1131,9 @@ where
         .collect::<Vec<_>>();
 
         let data_type_validator = DataTypeValidator;
-        for (data_type_id, schema) in data_types {
+        let num_data_types = data_types.len();
+        for (idx, (data_type_id, schema)) in data_types.into_iter().enumerate() {
+            tracing::debug!(data_type_id=%schema.id, "Reindexing schema {}/{}", idx + 1, num_data_types);
             let schema_metadata = ontology_type_resolver
                 .resolve_data_type_metadata(data_type_id)
                 .change_context(UpdateError)?;
