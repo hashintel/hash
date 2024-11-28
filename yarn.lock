@@ -3726,10 +3726,10 @@
     find-my-way-ts "^0.1.5"
     multipasta "^0.2.5"
 
-"@effect/vitest@0.13.16":
-  version "0.13.16"
-  resolved "https://registry.yarnpkg.com/@effect/vitest/-/vitest-0.13.16.tgz#d6d557eb1e977302081889f50b204d9cc7c7b30c"
-  integrity sha512-hZpSLj+FuV3R4dEyTNYQkkjZ9guP1XuNLcb/Xm0LV01vFpRN7EViQ/GTNa4wfyWyb66guQ41vwdDOKuDLLze7w==
+"@effect/vitest@0.13.19":
+  version "0.13.19"
+  resolved "https://registry.yarnpkg.com/@effect/vitest/-/vitest-0.13.19.tgz#c5e925e586a8f3acb71a688545eae0dcc0663b51"
+  integrity sha512-5Tixz44IuH+TgXk2WJFEXhdz2IlhrUfxdSagzqKr7qVERZceYvCYka2W+JCgf8pgajNX91fu24vjB0YjTFKNOQ==
 
 "@emnapi/runtime@^1.2.0":
   version "1.2.0"
