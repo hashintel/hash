@@ -61,6 +61,8 @@ export const getEntitySubgraphQuery = gql`
     $includePermissions: Boolean!
   ) {
     getEntitySubgraph(request: $request) {
+      closedMultiEntityTypes
+      definitions
       userPermissionsOnEntities @include(if: $includePermissions)
       subgraph {
         ...SubgraphFields

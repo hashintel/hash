@@ -30,7 +30,7 @@ import isEqual from "lodash/isEqual";
 
 import type { ImpureGraphContext } from "../../../context-types";
 import {
-  getEntitySubgraph,
+  getEntitySubgraphResponse,
   updateEntity,
 } from "../../../knowledge/primitive/entity";
 import { systemAccountId } from "../../../system-account";
@@ -62,44 +62,48 @@ export const upgradeWebEntities = async ({
 
   const webBotAuthentication = { actorId: webBotAccountId };
 
-  const subgraph = await getEntitySubgraph(context, webBotAuthentication, {
-    filter: {
-      all: [
-        {
-          any: entityTypeBaseUrls.map((baseUrl) => ({
-            all: [
+  const { subgraph } = await getEntitySubgraphResponse(
+    context,
+    webBotAuthentication,
+    {
+      filter: {
+        all: [
+          {
+            any: entityTypeBaseUrls.map((baseUrl) => ({
+              all: [
+                {
+                  equal: [
+                    { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+                    { parameter: baseUrl },
+                  ],
+                },
+                {
+                  less: [
+                    { path: ["type(inheritanceDepth = 0)", "version"] },
+                    { parameter: migrationState.entityTypeVersions[baseUrl] },
+                  ],
+                },
+              ],
+            })),
+          },
+          {
+            equal: [
+              { path: ["ownedById"] },
               {
-                equal: [
-                  { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
-                  { parameter: baseUrl },
-                ],
-              },
-              {
-                less: [
-                  { path: ["type(inheritanceDepth = 0)", "version"] },
-                  { parameter: migrationState.entityTypeVersions[baseUrl] },
-                ],
+                parameter: webOwnedById,
               },
             ],
-          })),
-        },
-        {
-          equal: [
-            { path: ["ownedById"] },
-            {
-              parameter: webOwnedById,
-            },
-          ],
-        },
-      ],
+          },
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        ...fullOntologyResolveDepths,
+      },
+      includeDrafts: true,
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      ...fullOntologyResolveDepths,
-    },
-    includeDrafts: true,
-    temporalAxes: currentTimeInstantTemporalAxes,
-  });
+  );
 
   const existingEntities = getRoots(subgraph);
 

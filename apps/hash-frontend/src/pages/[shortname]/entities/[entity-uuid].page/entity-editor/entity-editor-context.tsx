@@ -21,6 +21,9 @@ const EntityEditorContext = createContext<Props | null>(null);
 
 export const EntityEditorContextProvider = ({
   children,
+  closedMultiEntityType,
+  closedMultiEntityTypesDefinitions,
+  closedMultiEntityTypesMap,
   customColumns,
   defaultOutgoingLinkFilters,
   disableTypeClick,
@@ -35,6 +38,7 @@ export const EntityEditorContextProvider = ({
   setDraftLinksToArchive,
   setDraftLinksToCreate,
   setEntity,
+  setEntityTypes,
   slideContainerRef,
 }: PropsWithChildren<EntityEditorProps>) => {
   const [propertyExpandStatus, setPropertyExpandStatus] =
@@ -69,6 +73,9 @@ export const EntityEditorContextProvider = ({
 
   const state = useMemo(
     () => ({
+      closedMultiEntityType,
+      closedMultiEntityTypesDefinitions,
+      closedMultiEntityTypesMap,
       customColumns,
       defaultOutgoingLinkFilters,
       disableTypeClick,
@@ -84,10 +91,14 @@ export const EntityEditorContextProvider = ({
       setDraftLinksToArchive,
       setDraftLinksToCreate,
       setEntity,
+      setEntityTypes,
       slideContainerRef,
       togglePropertyExpand,
     }),
     [
+      closedMultiEntityType,
+      closedMultiEntityTypesDefinitions,
+      closedMultiEntityTypesMap,
       customColumns,
       defaultOutgoingLinkFilters,
       disableTypeClick,
@@ -103,6 +114,7 @@ export const EntityEditorContextProvider = ({
       setDraftLinksToArchive,
       setDraftLinksToCreate,
       setEntity,
+      setEntityTypes,
       slideContainerRef,
       togglePropertyExpand,
     ],

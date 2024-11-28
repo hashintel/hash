@@ -1,4 +1,4 @@
-import type { DataType } from "@blockprotocol/type-system";
+import type { ClosedDataType } from "@blockprotocol/type-system";
 import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
   fa100,
@@ -87,7 +87,7 @@ const identifierTypeTitles = ["URL", "URI"];
 
 export const getEditorSpecs = (
   editorType: EditorType,
-  dataType?: DataType,
+  dataType?: ClosedDataType,
 ): EditorSpec => {
   switch (editorType) {
     case "boolean":

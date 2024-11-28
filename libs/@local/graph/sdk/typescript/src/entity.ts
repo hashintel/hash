@@ -1,14 +1,8 @@
-import type {
-  ClosedMultiEntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
-  ClosedMultiEntityType as GraphApiClosedMultiEntityType,
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
-  GetEntitiesResponse,
-  GetEntitySubgraphResponse,
   GraphApi,
   OriginProvenance,
   PatchEntityParams as GraphApiPatchEntityParams,
@@ -46,7 +40,13 @@ import {
   isObjectMetadata,
   isValueMetadata,
 } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  ClosedEntityType,
+  ClosedMultiEntityType,
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
 import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   CreatedAtDecisionTime,
@@ -471,20 +471,128 @@ export const flattenPropertyMetadata = (
   return flattened;
 };
 
+export const getDisplayFieldsForClosedEntityType = (
+  closedType:
+    | Pick<ClosedMultiEntityType, "allOf">
+    | Pick<ClosedEntityType, "allOf" | "$id">,
+) => {
+  let foundLabelProperty = undefined;
+  let foundIcon = undefined;
+  let isLink = false;
+
+  const breadthFirstArray =
+    "$id" in closedType
+      ? /**
+         * This is a closed, single entity type. Its inheritance chain, including itself, is breadth-first in 'allOf'.
+         */
+        (closedType.allOf ?? [])
+      : /**
+         * This is a multi-entity-type, where each item in the root 'allOf' is a closed type,
+         * each of which has its inheritance chain (including itself) in a breadth-first order in its own 'allOf'.
+         * We need to sort all this by depth rather than going through the root 'allOf' directly,
+         * which would process the entire inheritance chain of each type in the multi-type before moving to the next one.
+         */
+        closedType.allOf
+          .flatMap((type) => type.allOf ?? [])
+          .sort((a, b) => a.depth - b.depth);
+
+  for (const { icon, labelProperty, $id } of breadthFirstArray) {
+    if (!foundIcon && icon) {
+      foundIcon = icon;
+    }
+    if (!foundLabelProperty && labelProperty) {
+      foundLabelProperty = labelProperty;
+    }
+
+    if (!isLink) {
+      isLink =
+        $id ===
+        /**
+         * Ideally this wouldn't be hardcoded but the only places to import it from would create a circular dependency between packages
+         * @todo do something about this
+         */
+        "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
+    }
+
+    if (foundIcon && foundLabelProperty && isLink) {
+      break;
+    }
+  }
+
+  return {
+    icon: foundIcon,
+    isLink,
+    labelProperty: foundLabelProperty,
+  };
+};
+
+export const isClosedMultiEntityTypeForEntityTypeIds = (
+  closedMultiEntityType: ClosedMultiEntityType,
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
+) => {
+  const entityTypeIdsSet = new Set(
+    entityTypeIds.map((entityTypeId) => entityTypeId),
+  );
+  const closedMultiEntityTypeIdsSet = new Set(
+    closedMultiEntityType.allOf.map((entityType) => entityType.$id),
+  );
+
+  if (entityTypeIdsSet.size !== closedMultiEntityTypeIdsSet.size) {
+    return false;
+  }
+
+  for (const value of entityTypeIdsSet) {
+    /**
+     * We can't use Set.isSubsetOf/isSupersetOf until using Node 22+ everywhere that might use this
+     */
+    if (!closedMultiEntityTypeIdsSet.has(value)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+export const getPropertyTypeForClosedMultiEntityType = (
+  closedMultiEntityType: ClosedMultiEntityType,
+  propertyTypeBaseUrl: BaseUrl,
+  definitions: ClosedMultiEntityTypesDefinitions,
+): PropertyType => {
+  const schema = closedMultiEntityType.properties[propertyTypeBaseUrl];
+
+  if (!schema) {
+    throw new Error(
+      `Expected ${propertyTypeBaseUrl} to appear in closed entity type properties`,
+    );
+  }
+
+  const propertyTypeId = "items" in schema ? schema.items.$ref : schema.$ref;
+
+  const propertyType = definitions.propertyTypes[propertyTypeId];
+
+  if (!propertyType) {
+    throw new Error(
+      `Expected ${propertyTypeId} to appear in definitions.propertyTypes`,
+    );
+  }
+
+  return propertyType;
+};
+
 /**
  * Retrieves a `ClosedMultiEntityType` from a given response based on a list of entity type IDs.
  *
- * @param response - The response object returned from the Graph API which contains the closed multi-entity types.
+ * @param closedMultiEntityTypes - The object returned from the Graph API which contains the closed multi-entity types.
  * @param entityTypesIds - An array of entity type IDs.
- * @returns Returns a `ClosedMultiEntityType` if found, otherwise returns `undefined`.
+ * @throws Error If the closed entity type for the given entityTypeIds is not found in the map.
+ * @returns ClosedMultiEntityType
  */
-export const getClosedMultiEntityTypesFromResponse = (
-  response: GetEntitySubgraphResponse | GetEntitiesResponse,
+export const getClosedMultiEntityTypeFromMap = (
+  closedMultiEntityTypes: ClosedMultiEntityTypesRootMap | undefined,
   entityTypesIds: [VersionedUrl, ...VersionedUrl[]],
-): ClosedMultiEntityType | undefined => {
-  // A response does not necessarily include closed multi-entity types.
-  if (!response.closedMultiEntityTypes) {
-    return;
+): ClosedMultiEntityType => {
+  if (!closedMultiEntityTypes) {
+    throw new Error(`Expected closedMultiEntityTypes to be defined`);
   }
 
   // The `closedMultiEntityTypes` field contains a nested map of closed entity types.
@@ -510,13 +618,65 @@ export const getClosedMultiEntityTypesFromResponse = (
   // Thus, we sort the entity type IDs and traverse the nested map to find the closed multi-entity type.
   // The first entity type ID is used to get the first level of the nested map. The rest of the entity
   // type IDs are used to traverse the nested map.
-  const [firstEntityTypeId, ...restEntityTypesIds] = entityTypesIds.toSorted();
-  return restEntityTypesIds.reduce(
-    (map, entity_type_id) => map?.inner?.[entity_type_id],
-    response.closedMultiEntityTypes[firstEntityTypeId!],
-  )?.schema satisfies GraphApiClosedMultiEntityType | undefined as
-    | ClosedMultiEntityType
-    | undefined;
+  const [firstEntityTypeId, ...restEntityTypesIds] =
+    entityTypesIds.toSorted() as typeof entityTypesIds;
+
+  const unMappedFirstEntityType = closedMultiEntityTypes[firstEntityTypeId];
+
+  if (!unMappedFirstEntityType) {
+    throw new Error(
+      `Could not find closed entity type for id ${firstEntityTypeId} in map`,
+    );
+  }
+
+  const unmappedClosedEntityType = restEntityTypesIds.reduce(
+    (map, entityTypeId) => {
+      const nextEntityType = map.inner?.[entityTypeId];
+      if (!nextEntityType) {
+        throw new Error(
+          `Could not find closed entity type for id ${entityTypeId} in map`,
+        );
+      }
+
+      return nextEntityType;
+    },
+    unMappedFirstEntityType,
+  );
+
+  return unmappedClosedEntityType.schema as ClosedMultiEntityType;
+};
+
+export const getPropertyTypeForClosedEntityType = ({
+  closedMultiEntityType,
+  definitions,
+  propertyTypeBaseUrl,
+}: {
+  closedMultiEntityType: ClosedMultiEntityType;
+  definitions: ClosedMultiEntityTypesDefinitions;
+  propertyTypeBaseUrl: BaseUrl;
+}) => {
+  const schema = closedMultiEntityType.properties[propertyTypeBaseUrl];
+
+  if (!schema) {
+    throw new Error(
+      `Expected ${propertyTypeBaseUrl} to appear in entity properties`,
+    );
+  }
+
+  const propertyTypeId = "items" in schema ? schema.items.$ref : schema.$ref;
+
+  const propertyType = definitions.propertyTypes[propertyTypeId];
+
+  if (!propertyType) {
+    throw new Error(
+      `Expected ${propertyTypeId} to appear in definitions.propertyTypes`,
+    );
+  }
+
+  return {
+    propertyType,
+    schema,
+  };
 };
 
 export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
@@ -635,13 +795,13 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       ...params
     }: PatchEntityParameters,
     /**
-     * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of the update.
-     *    I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId is changed, but
-     *    it isn't causing a compiler error:
+     * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of
+     *   the update. I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId
+     *   is changed, but it isn't causing a compiler error:
      *
      *    public async patch<NewPropertyMap extends EntityProperties = PropertyMap>(
-     *      // PatchEntityParams sets a specific VersionedUrl based on NewPropertyMap, but this is not enforced by the compiler
-     *      params: PatchEntityParameters<NewPropertyMap>,
+     *      // PatchEntityParams sets a specific VersionedUrl based on NewPropertyMap, but this is not enforced by the
+     *   compiler params: PatchEntityParameters<NewPropertyMap>,
      *    )
      */
   ): Promise<this> {

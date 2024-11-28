@@ -184,7 +184,7 @@ export const FilePreviewSection = () => {
     entity.properties as FileProperties,
   );
 
-  const title = displayName ?? generateEntityLabel(entitySubgraph);
+  const title = displayName ?? generateEntityLabel(entitySubgraph, entity);
 
   const alt = description ?? title;
 

@@ -1,14 +1,10 @@
-import type {
-  ClosedMultiEntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
-  EntityType,
   EntityTypePermission,
   GetClosedMultiEntityTypeParams,
   GetClosedMultiEntityTypeResponse as GetClosedMultiEntityTypeResponseGraphApi,
@@ -22,6 +18,7 @@ import type {
 } from "@local/hash-graph-client";
 import type {
   ClosedEntityTypeWithMetadata,
+  ClosedMultiEntityType,
   EntityTypeMetadata,
   EntityTypeResolveDefinitions,
   EntityTypeWithMetadata,
@@ -133,7 +130,8 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
  * Create an entity type.
  *
  * @param params.ownedById - the id of the account who owns the entity type
- * @param [params.webShortname] – the shortname of the web that owns the entity type, if the web entity does not yet exist.
+ * @param [params.webShortname] – the shortname of the web that owns the entity type, if the web entity does not yet
+ *   exist.
  *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
  * @param params.schema - the `EntityType`
  * @param params.actorId - the id of the account that is creating the entity type
@@ -190,11 +188,9 @@ export const createEntityType: ImpureGraphFunction<
  * @param params.query the structural query to filter entity types by.
  */
 export const getEntityTypeSubgraph: ImpureGraphFunction<
-  Omit<GetEntityTypeSubgraphParams, "includeDrafts"> & {
-    temporalClient?: TemporalClient;
-  },
+  Omit<GetEntityTypeSubgraphParams, "includeDrafts">,
   Promise<Subgraph<EntityTypeRootType>>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+> = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   return await graphApi
@@ -210,11 +206,9 @@ export const getEntityTypeSubgraph: ImpureGraphFunction<
 };
 
 export const getEntityTypes: ImpureGraphFunction<
-  Omit<GetEntityTypesParams, "includeDrafts" | "includeEntityTypes"> & {
-    temporalClient?: TemporalClient;
-  },
+  Omit<GetEntityTypesParams, "includeDrafts" | "includeEntityTypes">,
   Promise<EntityTypeWithMetadata[]>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+> = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   return await graphApi
@@ -232,7 +226,7 @@ export const getClosedEntityTypes: ImpureGraphFunction<
     temporalClient?: TemporalClient;
   },
   Promise<ClosedEntityTypeWithMetadata[]>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+> = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   const { data: response } = await graphApi.getEntityTypes(actorId, {
@@ -259,11 +253,9 @@ export type GetClosedMultiEntityTypeResponse = Omit<
 };
 
 export const getClosedMultiEntityType: ImpureGraphFunction<
-  GetClosedMultiEntityTypeParams & {
-    temporalClient?: TemporalClient;
-  },
+  GetClosedMultiEntityTypeParams,
   Promise<GetClosedMultiEntityTypeResponse>
-> = async ({ graphApi }, { actorId }, { temporalClient: _, ...request }) =>
+> = async ({ graphApi }, { actorId }, request) =>
   graphApi
     .getClosedMultiEntityType(actorId, request)
     .then(({ data: response }) => ({
@@ -309,7 +301,8 @@ export const getEntityTypeById: ImpureGraphFunction<
 /**
  * Get an entity type rooted subgraph by its versioned URL.
  *
- * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
+ * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type
+ * into the Graph.
  */
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
   Omit<GetEntityTypeSubgraphParams, "filter" | "includeDrafts"> & {
@@ -403,7 +396,7 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
   const parentTypes = await Promise.all(
     (allOf ?? []).map(async ({ $ref }) =>
       getEntityTypeById(context, authentication, {
-        entityTypeId: $ref as VersionedUrl,
+        entityTypeId: $ref,
       }),
     ),
   );

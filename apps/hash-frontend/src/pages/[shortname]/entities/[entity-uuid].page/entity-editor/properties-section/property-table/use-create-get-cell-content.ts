@@ -69,7 +69,7 @@ export const useCreateGetCellContent = (
 
         const guessedType = guessEditorTypeFromValue(
           row.value,
-          row.expectedTypes,
+          row.permittedDataTypes,
         );
 
         const isEmptyValue =
@@ -78,7 +78,7 @@ export const useCreateGetCellContent = (
           guessedType !== "emptyList";
 
         const shouldShowChangeTypeCell =
-          row.expectedTypes.length > 1 &&
+          row.permittedDataTypes.length > 1 &&
           !row.isArray &&
           !isEmptyValue &&
           !readonly;
@@ -119,19 +119,23 @@ export const useCreateGetCellContent = (
 
             return valueCell;
 
-          case "expectedTypes":
+          case "permittedDataTypes":
             if (hasChild) {
               return blankCell;
             }
 
             if (shouldShowChangeTypeCell) {
-              const currentType = row.expectedTypes.find((opt) =>
-                "type" in opt
-                  ? opt.type === guessedType
-                  : /**
-                     * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId from property metadata
-                     */
-                    opt.anyOf.some((subType) => subType.type === guessedType),
+              const currentType = row.permittedDataTypes.find(({ allOf }) =>
+                allOf.some((constraint) =>
+                  "type" in constraint
+                    ? constraint.type === guessedType
+                    : /**
+                       * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId from property metadata
+                       */
+                      constraint.anyOf.some(
+                        (subType) => subType.type === guessedType,
+                      ),
+                ),
               );
               if (!currentType) {
                 throw new Error(
@@ -158,10 +162,10 @@ export const useCreateGetCellContent = (
               kind: GridCellKind.Custom,
               allowOverlay: true,
               readonly: true,
-              copyData: String(row.expectedTypes),
+              copyData: String(row.permittedDataTypes),
               data: {
                 kind: "chip-cell",
-                chips: row.expectedTypes.map((type) => {
+                chips: row.permittedDataTypes.map((type) => {
                   const editorSpec = getEditorSpecs(
                     guessEditorTypeFromExpectedType(type),
                     type,

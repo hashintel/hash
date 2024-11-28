@@ -267,7 +267,7 @@ const generateTableData = async (
       const sourceEntityLabel = !source
         ? entity.linkData.leftEntityId
         : source.linkData
-          ? generateLinkEntityLabel(subgraph, source)
+          ? generateLinkEntityLabel(subgraph, source, null, null)
           : generateEntityLabel(subgraph, source);
 
       /**
@@ -294,7 +294,7 @@ const generateTableData = async (
       const targetEntityLabel = !target
         ? entity.linkData.leftEntityId
         : target.linkData
-          ? generateLinkEntityLabel(subgraph, target)
+          ? generateLinkEntityLabel(subgraph, target, null, null)
           : generateEntityLabel(subgraph, target);
 
       /**

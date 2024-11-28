@@ -1,6 +1,16 @@
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { AlertModal, FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import { useMemo } from "react";
 
 export type EntityTypeChangeDetails = {
@@ -20,42 +30,49 @@ export type EntityTypeChangeDetails = {
   linkChanges: {
     linkTitle: string;
     change:
-      | "Added"
-      | "Removed"
+      | "Added (optional)"
+      | "Added (required)"
       | "Now required"
-      | "Now array"
-      | "No longer array"
-      | "Target changed";
-    blocking: boolean;
+      | "Min items changed"
+      | "Max items changed"
+      | "Removed"
+      | "Target type(s) changed";
   }[];
   propertyChanges: {
     propertyTitle: string;
     change:
-      | "Added"
-      | "Removed"
+      | "Added (optional)"
+      | "Added (required)"
+      | "No longer a list"
+      | "Now a list"
       | "Now required"
-      | "Type changed"
+      | "Min items changed"
       | "Max items changed"
-      | "Min items changed";
-    blocking: boolean;
+      | "Removed"
+      | "Value type changed";
   }[];
 };
 
 type ChangeSummary = {
-  blockCount: number;
   shouldWarn: boolean;
   totalChangeCount: number;
   linkChangeCount: {
     added: number;
     changedDestination: number;
-    madeRequired: number;
+    minItemsChanged: number;
+    maxItemsChanged: number;
+    nowRequired: number;
     removed: number;
   };
   propertyChangeCount: {
     added: number;
-    changedType: number;
-    madeRequired: number;
+    minItemsChanged: number;
+    maxItemsChanged: number;
+    noLongerList: number;
+    nowList: number;
+    nowRequired: number;
     removed: number;
+    typeChanged: number;
   };
 };
 
@@ -64,11 +81,8 @@ const generateCountString = (count: number, type: "property" | "link") =>
     ? `${count} ${type === "property" ? "properties" : "links"}`
     : `${count} ${type}`;
 
-// @todo H-3408 – use this when changes are calculated by the parent component
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const CalloutMessage = ({
   changeSummary: {
-    blockCount,
     shouldWarn,
     totalChangeCount,
     linkChangeCount,
@@ -79,37 +93,72 @@ const CalloutMessage = ({
   changeSummary: ChangeSummary;
   type: "Update" | "Remove";
 }) => {
-  const prefix = `This ${type === "Update" ? "update" : "removal"} `;
+  const prefix = `This `;
   const messages: string[] = [];
 
   if (totalChangeCount === 0) {
     messages.push(
-      "does not make any changes to properties or links for the entity.",
+      "does not make any changes to properties or links for the entity",
     );
   } else {
     {
-      const { added, madeRequired, changedType, removed } = propertyChangeCount;
+      const {
+        added,
+        minItemsChanged,
+        maxItemsChanged,
+        noLongerList,
+        nowRequired,
+        nowList,
+        typeChanged,
+        removed,
+      } = propertyChangeCount;
       if (added > 0) {
         messages.push(`adds ${generateCountString(added, "property")}`);
       }
       if (removed > 0) {
         messages.push(`removes ${generateCountString(removed, "property")}`);
       }
-      if (changedType > 0) {
+      if (typeChanged > 0) {
         messages.push(
-          `changes the type of ${generateCountString(changedType, "property")}`,
+          `changes the expected type of ${generateCountString(typeChanged, "property")}`,
         );
       }
-      if (madeRequired > 0) {
+      if (nowRequired > 0) {
         messages.push(
-          `makes ${generateCountString(madeRequired, "property")} required`,
+          `makes ${generateCountString(nowRequired, "property")} required`,
+        );
+      }
+      if (nowList > 0) {
+        messages.push(
+          `makes ${generateCountString(nowList, "property")} a list`,
+        );
+      }
+      if (noLongerList > 0) {
+        messages.push(
+          `makes ${generateCountString(noLongerList, "property")} no longer a list`,
+        );
+      }
+      if (minItemsChanged > 0) {
+        messages.push(
+          `changes the minimum number of items for ${generateCountString(minItemsChanged, "property")}`,
+        );
+      }
+      if (maxItemsChanged > 0) {
+        messages.push(
+          `changes the maximum number of items for ${generateCountString(maxItemsChanged, "property")}`,
         );
       }
     }
 
     {
-      const { added, madeRequired, changedDestination, removed } =
-        linkChangeCount;
+      const {
+        added,
+        minItemsChanged,
+        maxItemsChanged,
+        nowRequired,
+        changedDestination,
+        removed,
+      } = linkChangeCount;
       if (added > 0) {
         messages.push(`adds ${generateCountString(added, "link")}`);
       }
@@ -121,15 +170,25 @@ const CalloutMessage = ({
           `changes the target of ${generateCountString(changedDestination, "link")}`,
         );
       }
-      if (madeRequired > 0) {
+      if (nowRequired > 0) {
         messages.push(
-          `makes ${generateCountString(madeRequired, "link")} required`,
+          `makes ${generateCountString(nowRequired, "link")} required`,
+        );
+      }
+      if (minItemsChanged > 0) {
+        messages.push(
+          `changes the minimum number of items for ${generateCountString(minItemsChanged, "link")}`,
+        );
+      }
+      if (maxItemsChanged > 0) {
+        messages.push(
+          `changes the maximum number of items for ${generateCountString(maxItemsChanged, "link")}`,
         );
       }
     }
   }
 
-  const detail =
+  const detail = `${
     prefix +
     messages.reduce((acc, message, index) => {
       if (index === 0) {
@@ -139,7 +198,8 @@ const CalloutMessage = ({
         return `${acc} and ${message}`;
       }
       return `${acc}, ${message}`;
-    }, "");
+    }, "")
+  }.`;
 
   return (
     <Typography
@@ -154,18 +214,10 @@ const CalloutMessage = ({
         sx={{
           fontWeight: 700,
           color: ({ palette }) =>
-            blockCount > 0
-              ? palette.red[70]
-              : shouldWarn
-                ? palette.yellow[80]
-                : palette.blue[70],
+            shouldWarn ? palette.yellow[80] : palette.blue[70],
         }}
       >
-        {blockCount > 0
-          ? `${blockCount} blocking conflicts`
-          : type === "Update"
-            ? "Update available"
-            : "Removal available"}
+        {type === "Update" ? "Update type" : "Removing type"}
         {". "}
       </Box>
       {detail}
@@ -179,11 +231,21 @@ const ModalHeader = ({
   proposedChange: EntityTypeChangeDetails["proposedChange"];
 }) => {
   return (
-    <Stack direction="row" alignItems="center" gap={0.6}>
+    <Stack
+      direction="row"
+      alignItems="center"
+      gap={0.6}
+      sx={{ fontWeight: 500, color: ({ palette }) => palette.gray[80] }}
+    >
       {proposedChange.type}
-      <strong> {proposedChange.entityTypeTitle}</strong>
+      <Box component="span" fontWeight={600}>
+        {" "}
+        {proposedChange.entityTypeTitle}
+      </Box>
       {" entity type "}
-      <strong>v{proposedChange.currentVersion}</strong>
+      <Box component="span" fontWeight={600}>
+        v{proposedChange.currentVersion}
+      </Box>
       {proposedChange.type === "Update" && (
         <>
           <FontAwesomeIcon icon={faArrowRight} sx={{ color: "gray.50" }} />
@@ -211,63 +273,83 @@ export const EntityTypeChangeModal = ({
   propertyChanges,
   open,
 }: EntityTypeChangeModalProps) => {
-  /**
-   * @todo H-3408 – use this summary to show a table of changes, which are blocking, etc.
-   */
   const changeSummary = useMemo<ChangeSummary>(() => {
     const summary: ChangeSummary = {
-      blockCount: 0,
       shouldWarn: false,
       totalChangeCount: linkChanges.length + propertyChanges.length,
       linkChangeCount: {
         added: 0,
         changedDestination: 0,
-        madeRequired: 0,
+        minItemsChanged: 0,
+        maxItemsChanged: 0,
+        nowRequired: 0,
         removed: 0,
       },
       propertyChangeCount: {
         added: 0,
-        changedType: 0,
-        madeRequired: 0,
+        minItemsChanged: 0,
+        maxItemsChanged: 0,
+        noLongerList: 0,
+        nowList: 0,
+        nowRequired: 0,
+        typeChanged: 0,
         removed: 0,
       },
     };
 
     for (const propertyChange of propertyChanges) {
-      if (propertyChange.blocking) {
-        summary.blockCount++;
-      }
-      if (propertyChange.change === "Added") {
+      if (
+        propertyChange.change === "Added (optional)" ||
+        propertyChange.change === "Added (required)"
+      ) {
         summary.propertyChangeCount.added++;
+      }
+      if (propertyChange.change === "Now required") {
+        summary.propertyChangeCount.nowRequired++;
+      }
+      if (propertyChange.change === "Min items changed") {
+        summary.propertyChangeCount.minItemsChanged++;
+      }
+      if (propertyChange.change === "Max items changed") {
+        summary.propertyChangeCount.maxItemsChanged++;
+      }
+      if (propertyChange.change === "Now a list") {
+        summary.propertyChangeCount.nowList++;
+      }
+      if (propertyChange.change === "No longer a list") {
+        summary.propertyChangeCount.noLongerList++;
       }
       if (propertyChange.change === "Removed") {
         summary.propertyChangeCount.removed++;
         summary.shouldWarn = true;
       }
-      if (propertyChange.change === "Now required") {
-        summary.propertyChangeCount.madeRequired++;
-      }
-      if (propertyChange.change === "Type changed") {
-        summary.propertyChangeCount.changedType++;
+      if (propertyChange.change === "Value type changed") {
+        summary.propertyChangeCount.typeChanged++;
         summary.shouldWarn = true;
       }
     }
 
     for (const linkChange of linkChanges) {
-      if (linkChange.blocking) {
-        summary.blockCount++;
-      }
-      if (linkChange.change === "Added") {
+      if (
+        linkChange.change === "Added (optional)" ||
+        linkChange.change === "Added (required)"
+      ) {
         summary.linkChangeCount.added++;
+      }
+      if (linkChange.change === "Min items changed") {
+        summary.linkChangeCount.minItemsChanged++;
+      }
+      if (linkChange.change === "Max items changed") {
+        summary.linkChangeCount.maxItemsChanged++;
+      }
+      if (linkChange.change === "Now required") {
+        summary.linkChangeCount.nowRequired++;
       }
       if (linkChange.change === "Removed") {
         summary.linkChangeCount.removed++;
         summary.shouldWarn = true;
       }
-      if (linkChange.change === "Now required") {
-        summary.linkChangeCount.madeRequired++;
-      }
-      if (linkChange.change === "Target changed") {
+      if (linkChange.change === "Target type(s) changed") {
         summary.linkChangeCount.changedDestination++;
         summary.shouldWarn = true;
       }
@@ -276,32 +358,108 @@ export const EntityTypeChangeModal = ({
     return summary;
   }, [linkChanges, propertyChanges]);
 
-  const { blockCount, shouldWarn } = changeSummary;
+  const { shouldWarn } = changeSummary;
+
+  const propertyChangesByTitle = Object.groupBy(
+    propertyChanges,
+    (change) => change.propertyTitle,
+  );
+
+  const linkChangseByTitle = Object.groupBy(
+    linkChanges,
+    (change) => change.linkTitle,
+  );
 
   return (
     <AlertModal
-      callback={blockCount ? undefined : onAccept}
+      callback={onAccept}
       calloutMessage={
-        <strong>Proceed with change?</strong>
-        // @todo H-3408 – uncomment this when changes are calculated by the parent component
-        // <CalloutMessage
-        //   changeSummary={changeSummary}
-        //   type={proposedChange.type}
-        // />
+        <CalloutMessage
+          changeSummary={changeSummary}
+          type={proposedChange.type}
+        />
       }
       close={onReject}
       confirmButtonText={`${proposedChange.type} entity type`}
       header={<ModalHeader proposedChange={proposedChange} />}
       open={open}
       processing={changeIsProcessing}
-      type={blockCount > 0 ? "error" : shouldWarn ? "warning" : "info"}
+      type={shouldWarn ? "warning" : "info"}
     >
-      {/* @todo H-3408 – replace this with a proper list of changes */}
-      <Typography variant="smallTextParagraphs" color="gray.80">
-        Updating the type an entity is assigned to may cause property values to
-        be removed, if properties have been removed from the type or if their
-        expected values have changed to be incompatible with existing data.
-      </Typography>
+      {changeSummary.totalChangeCount !== 0 && (
+        <Table
+          sx={({ palette }) => ({
+            background: palette.gray[10],
+            border: `1px solid ${palette.gray[30]}`,
+            borderRadius: 2,
+            borderCollapse: "separate",
+            th: {
+              background: palette.gray[20],
+              fontWeight: 600,
+              fontSize: 11,
+              textTransform: "uppercase",
+            },
+            td: {
+              fontWeight: 500,
+              fontSize: 14,
+            },
+            "& th, td": {
+              color: palette.gray[80],
+              lineHeight: 1,
+              px: 1.5,
+              py: 1.5,
+            },
+            "& tr:last-child td:first-of-type": {
+              borderBottomLeftRadius: 8,
+            },
+            "& tr:last-of-type td:last-of-type": {
+              borderBottomRightRadius: 8,
+            },
+            "& tbody tr:last-of-type td": {
+              pb: 2.25,
+            },
+            "& tbody tr:first-of-type td": {
+              pt: 2.25,
+            },
+          })}
+        >
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ borderTopLeftRadius: 8 }}>#</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell sx={{ borderTopRightRadius: 8 }}>Change</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {Object.entries(propertyChangesByTitle)
+              .sort(([aTitle], [bTitle]) => aTitle.localeCompare(bTitle))
+              .map(([propertyTitle, changes = []], index) => (
+                <TableRow key={propertyTitle}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{propertyTitle}</TableCell>
+                  <TableCell>
+                    {changes.length > 1 ? "Multiple" : changes[0]!.change}
+                  </TableCell>
+                </TableRow>
+              ))}
+            {Object.entries(linkChangseByTitle).map(
+              ([linkTitle, changes = []], index) => (
+                <TableRow key={linkTitle}>
+                  <TableCell>#{index + 1 + propertyChanges.length}</TableCell>
+                  <TableCell>{linkTitle}</TableCell>
+                  <Tooltip
+                    title={changes.length > 1 ? <Box>Multiple</Box> : ""}
+                  >
+                    <TableCell>
+                      {changes.length > 1 ? "Multiple" : changes[0]!.change}
+                    </TableCell>
+                  </Tooltip>
+                </TableRow>
+              ),
+            )}
+          </TableBody>
+        </Table>
+      )}
     </AlertModal>
   );
 };

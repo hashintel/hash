@@ -83,7 +83,6 @@ export const processEntityChange = async (
         type: "flow",
       },
     },
-    temporalClient: null,
   };
 
   const linearEntityToUpdate = entityTypeIds.some(

@@ -4,14 +4,21 @@ import type {
   OntologyElementMetadata as OntologyElementMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph";
+import type {
+  PropertyTypeReference,
+  ValueOrArray,
+} from "@blockprotocol/type-system";
 import { validateBaseUrl } from "@blockprotocol/type-system";
 import type {
   BaseUrl as BaseUrlBp,
   ClosedDataType,
-  ClosedEntityType,
+  ClosedEntityType as ClosedEntityTypeBp,
+  ClosedEntityTypeMetadata as ClosedEntityTypeMetadataBp,
+  ClosedMultiEntityType as ClosedMultiEntityTypeBp,
   DataType,
   EntityType,
-  PartialEntityType,
+  EntityTypeDisplayMetadata as EntityTypeDisplayMetadataBp,
+  PartialEntityType as PartialEntityTypeBp,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
@@ -20,7 +27,9 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ActorType,
+  ClosedMultiEntityTypeMap,
   EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
+  GetClosedMultiEntityTypeResponseDefinitions,
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
 } from "@local/hash-graph-client";
@@ -122,9 +131,58 @@ export type EntityTypeWithMetadata = Subtype<
   }
 >;
 
+export type EntityTypeDisplayMetadata = Omit<
+  EntityTypeDisplayMetadataBp,
+  "labelProperty"
+> & {
+  labelProperty?: BaseUrl;
+};
+
+export type ClosedEntityType = Omit<
+  ClosedEntityTypeBp,
+  "properties" | "required" | "allOf"
+> & {
+  allOf?: [EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]];
+  properties: Record<BaseUrl, ValueOrArray<PropertyTypeReference>>;
+  required?: [BaseUrl, ...BaseUrl[]];
+};
+
 export type ClosedEntityTypeWithMetadata = {
   schema: ClosedEntityType;
   metadata: EntityTypeMetadata;
+};
+
+export type ClosedMultiEntityTypeMetadata = Omit<
+  ClosedEntityTypeMetadataBp,
+  "allOf"
+> & {
+  allOf?: [EntityTypeDisplayMetadata, ...EntityTypeDisplayMetadata[]];
+};
+
+export type ClosedMultiEntityType = Omit<
+  ClosedMultiEntityTypeBp,
+  "allOf" | "properties" | "required"
+> & {
+  allOf: [ClosedMultiEntityTypeMetadata, ...ClosedMultiEntityTypeMetadata[]];
+  properties: Record<BaseUrl, ValueOrArray<PropertyTypeReference>>;
+  required?: [BaseUrl, ...BaseUrl[]];
+};
+
+export type ClosedMultiEntityTypesRootMap = {
+  [key: string]: ClosedMultiEntityTypeMap;
+};
+
+export type ClosedMultiEntityTypesDefinitions = Subtype<
+  GetClosedMultiEntityTypeResponseDefinitions,
+  {
+    dataTypes: { [key: VersionedUrl]: ClosedDataType };
+    entityTypes: { [key: VersionedUrl]: PartialEntityType };
+    propertyTypes: { [key: VersionedUrl]: PropertyType };
+  }
+>;
+
+export type PartialEntityType = Omit<PartialEntityTypeBp, "labelProperty"> & {
+  labelProperty: BaseUrl;
 };
 
 export type EntityTypeResolveDefinitions = Subtype<

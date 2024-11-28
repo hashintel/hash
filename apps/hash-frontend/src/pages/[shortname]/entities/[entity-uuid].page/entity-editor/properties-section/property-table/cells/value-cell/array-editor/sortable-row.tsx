@@ -1,4 +1,8 @@
 import type { JsonValue } from "@blockprotocol/core";
+import type {
+  ClosedDataType,
+  ValueConstraints,
+} from "@blockprotocol/type-system";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -7,7 +11,6 @@ import {
   faPencil,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Typography } from "@mui/material";
@@ -29,7 +32,7 @@ interface SortableRowProps {
   onSelect?: (id: string) => void;
   onEditClicked?: (id: string) => void;
   editing: boolean;
-  expectedTypes: DataTypeWithMetadata["schema"][];
+  expectedTypes: ClosedDataType[];
   onSaveChanges: (index: number, value: unknown) => void;
   onDiscardChanges: () => void;
 }
@@ -66,13 +69,40 @@ export const SortableRow = ({
   const editorType =
     overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
 
+  let valueConstraints: ValueConstraints;
+
+  /** @todo H-3374 don't guess the type, take it from the data type metadata */
+  /* eslint-disable no-labels */
+  outerLoop: for (const expectedType of expectedTypes) {
+    for (const constraint of expectedType.allOf) {
+      if ("type" in constraint) {
+        if (constraint.type === editorType) {
+          valueConstraints = constraint;
+          break outerLoop;
+        }
+      } else {
+        for (const innerConstraint of constraint.anyOf) {
+          if ("type" in innerConstraint) {
+            if (innerConstraint.type === editorType) {
+              valueConstraints = innerConstraint;
+              break outerLoop;
+            }
+          }
+        }
+      }
+    }
+  }
+  /* eslint-enable no-labels */
+
   const expectedType = expectedTypes.find((type) =>
-    "type" in type
-      ? type.type === editorType
-      : /**
-         * @todo H-3374 support multiple expected data types
-         */
-        type.anyOf.some((subType) => subType.type === editorType),
+    type.allOf.some((constraint) =>
+      "type" in constraint
+        ? constraint.type === editorType
+        : /**
+           * @todo H-3374 support multiple expected data types
+           */
+          constraint.anyOf.some((subType) => subType.type === editorType),
+    ),
   );
 
   const editorSpec = getEditorSpecs(editorType, expectedType);
@@ -136,11 +166,11 @@ export const SortableRow = ({
 
     return (
       <NumberOrTextInput
-        expectedType={expectedType}
         isNumber={editorType === "number"}
         onEnterPressed={saveChanges}
         /** @todo is this casting ok? */
         value={draftValue as number | string}
+        valueConstraints={valueConstraints}
         onChange={setDraftValue}
       />
     );

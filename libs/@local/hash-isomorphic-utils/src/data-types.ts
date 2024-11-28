@@ -1,5 +1,9 @@
 import type { JsonValue } from "@blockprotocol/core";
-import type { DataType, SingleValueSchema } from "@blockprotocol/type-system";
+import type {
+  ClosedDataType,
+  DataType,
+  SingleValueSchema,
+} from "@blockprotocol/type-system";
 import { getJsonSchemaTypeFromValue } from "@local/hash-subgraph/stdlib";
 
 export type FormattedValuePart = {
@@ -38,7 +42,7 @@ const createFormattedParts = ({
 
 export const formatDataValue = (
   value: JsonValue,
-  schema?: DataType | SingleValueSchema,
+  schema?: ClosedDataType | DataType | SingleValueSchema,
 ): FormattedValuePart[] => {
   /**
    * @todo H-3374 callers should always provide a schema, because the dataTypeId will be in the entity's metadata

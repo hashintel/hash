@@ -7,19 +7,21 @@ import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useContext, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { Link } from "../../../../shared/ui/link";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { EditBar } from "../../shared/edit-bar";
+import { createDraftEntitySubgraph } from "./create-entity-page/create-draft-entity-subgraph";
+import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
-import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
+import { updateDraftEntitySubgraph } from "./shared/update-draft-entity-subgraph";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
-import { useDraftEntitySubgraph } from "./shared/use-draft-entity-subgraph";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
+import { useGetClosedMultiEntityType } from "./shared/use-get-closed-multi-entity-type";
 
 interface CreateEntityPageProps {
   entityTypeId: VersionedUrl;
@@ -38,8 +40,33 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     setDraftLinksToArchive,
   ] = useDraftLinkState();
 
-  const [draftEntitySubgraph, setDraftEntitySubgraph, loading] =
-    useDraftEntitySubgraph(entityTypeId);
+  const { getClosedMultiEntityType, loading: closedTypeLoading } =
+    useGetClosedMultiEntityType();
+
+  const [draftEntityTypesDetails, setDraftEntityTypesDetails] =
+    useState<
+      Pick<
+        EntityEditorProps,
+        "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
+      >
+    >();
+
+  const [draftEntitySubgraph, setDraftEntitySubgraph] = useState(() =>
+    createDraftEntitySubgraph([entityTypeId]),
+  );
+
+  const fetchAndSetTypeDetails = useCallback(
+    async (entityTypeIds: VersionedUrl[]) => {
+      await getClosedMultiEntityType(entityTypeIds).then((result) => {
+        setDraftEntityTypesDetails(result);
+      });
+    },
+    [getClosedMultiEntityType],
+  );
+
+  useEffect(() => {
+    void fetchAndSetTypeDetails([entityTypeId]);
+  }, [entityTypeId, fetchAndSetTypeDetails]);
 
   const { activeWorkspace, activeWorkspaceOwnedById } =
     useContext(WorkspaceContext);
@@ -49,6 +76,8 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const [creating, setCreating] = useState(false);
 
+  const entity = getRoots(draftEntitySubgraph)[0]!;
+
   /**
    * `overrideProperties` is a quick hack to bypass the setting draftEntity state
    * I did this, because I was having trouble with the `setDraftEntitySubgraph` function,
@@ -56,7 +85,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
    * @todo find a better way to do this
    */
   const handleCreateEntity = async (overrideProperties?: PropertyObject) => {
-    if (!draftEntitySubgraph || !activeWorkspace) {
+    if (!activeWorkspace) {
       return;
     }
 
@@ -68,25 +97,25 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
     try {
       setCreating(true);
-      const { data: entity } = await createEntity({
+      const { data: createdEntity } = await createEntity({
         data: {
-          entityTypeIds: [entityTypeId],
+          entityTypeIds: entity.metadata.entityTypeIds,
           properties: overrideProperties ?? draftEntity.properties,
         },
       });
 
-      if (!entity) {
+      if (!createdEntity) {
         return;
       }
 
       await applyDraftLinkEntityChanges(
-        entity,
+        createdEntity,
         draftLinksToCreate,
         draftLinksToArchive,
       );
 
       const entityId = extractEntityUuidFromEntityId(
-        entity.metadata.recordId.entityId,
+        createdEntity.metadata.recordId.entityId,
       );
 
       void router.push(`/@${activeWorkspace.shortname}/entities/${entityId}`);
@@ -97,15 +126,18 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     }
   };
 
-  if (loading) {
+  if (!draftEntityTypesDetails && !closedTypeLoading) {
     return <EntityPageLoadingState />;
   }
 
-  if (!draftEntitySubgraph) {
+  if (!draftEntityTypesDetails) {
     return <PageErrorState />;
   }
 
-  const entityLabel = generateEntityLabel(draftEntitySubgraph);
+  const entityLabel = generateEntityLabel(
+    draftEntityTypesDetails.closedMultiEntityType,
+    entity,
+  );
 
   const isQueryEntity =
     entityTypeId === blockProtocolEntityTypes.query.entityTypeId;
@@ -126,6 +158,8 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         </AlertModal>
       )}
       <EntityEditorPage
+        {...draftEntityTypesDetails}
+        closedMultiEntityTypesMap={null}
         editBar={
           <EditBar
             label="- this entity has not been created yet"
@@ -148,8 +182,25 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         isDirty
         isDraft
         handleSaveChanges={handleCreateEntity}
-        setEntity={(entity) => {
-          updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
+        setEntityTypes={async (newEntityTypeIds) => {
+          const newDetails = await getClosedMultiEntityType(newEntityTypeIds);
+          setDraftEntityTypesDetails(newDetails);
+
+          const newSubgraph = updateDraftEntitySubgraph(
+            entity,
+            newEntityTypeIds,
+            draftEntitySubgraph,
+          );
+
+          setDraftEntitySubgraph(newSubgraph);
+        }}
+        setEntity={(changedEntity) => {
+          const newSubgraph = updateDraftEntitySubgraph(
+            changedEntity,
+            changedEntity.metadata.entityTypeIds,
+            draftEntitySubgraph,
+          );
+          setDraftEntitySubgraph(newSubgraph);
         }}
         draftLinksToCreate={draftLinksToCreate}
         setDraftLinksToCreate={setDraftLinksToCreate}

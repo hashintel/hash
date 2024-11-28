@@ -259,6 +259,8 @@ export const AcceptDraftEntityButton: FunctionComponent<
           }}
         >
           <LinkLabelWithSourceAndDestination
+            closedMultiEntityTypesMap={null}
+            closedMultiEntityTypesDefinitions={null}
             sx={{
               maxWidth: "100%",
             }}

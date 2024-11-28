@@ -2,7 +2,6 @@ import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 
 import {
   getCellHorizontalPadding,
@@ -135,9 +134,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     const entityChipInteractables: Interactable[] = [];
 
     // draw linked entity chips
-    for (const { rightEntity, sourceSubgraph } of sortedLinkedEntities) {
-      const label = generateEntityLabel(sourceSubgraph, rightEntity);
-
+    for (const { rightEntity, rightEntityLabel } of sortedLinkedEntities) {
       const imageSrc = getImageUrlFromEntityProperties(rightEntity.properties);
 
       const { width: chipWidth } = drawChipWithIcon({
@@ -147,7 +144,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
          * @todo H-1978 use entity type icon if present in its schema
          */
         icon: imageSrc ? { imageSrc } : { inbuiltIcon: "bpAsterisk" },
-        text: label,
+        text: rightEntityLabel,
         left: accumulatedLeft,
       });
 

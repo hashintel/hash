@@ -1,8 +1,8 @@
 import type { JsonValue } from "@blockprotocol/core";
+import type { ClosedDataType } from "@blockprotocol/type-system";
 import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
 import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
 
@@ -25,19 +25,22 @@ import { guessEditorTypeFromValue } from "./value-cell/utils";
 
 const guessDataTypeFromValue = (
   value: JsonValue,
-  expectedTypes: DataTypeWithMetadata["schema"][],
+  expectedTypes: ClosedDataType[],
 ) => {
   const editorType = guessEditorTypeFromValue(value, expectedTypes);
 
-  const expectedType = expectedTypes.find((type) =>
-    "type" in type
-      ? type.type === editorType
-      : /**
-         * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId
-         *   from property metadata
-         */
-        type.anyOf.some((subType) => subType.type === editorType),
+  const expectedType = expectedTypes.find(({ allOf }) =>
+    allOf.some((constraint) =>
+      "type" in constraint
+        ? constraint.type === editorType
+        : /**
+           * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId
+           *   from property metadata
+           */
+          constraint.anyOf.some((subType) => subType.type === editorType),
+    ),
   );
+
   if (!expectedType) {
     throw new Error(
       `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
@@ -59,7 +62,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
 
     const { readonly } = cell.data;
 
-    const { value, expectedTypes, isArray, isSingleUrl } =
+    const { value, permittedDataTypes, isArray, isSingleUrl } =
       cell.data.propertyRow;
 
     ctx.fillStyle = theme.textHeader;
@@ -68,15 +71,17 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const yCenter = getYCenter(args);
     const left = rect.x + getCellHorizontalPadding();
 
-    const editorType = guessEditorTypeFromValue(value, expectedTypes);
-    const relevantType = expectedTypes.find((type) =>
-      "type" in type
-        ? type.type === editorType
-        : /**
-           * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId
-           *   from property metadata
-           */
-          type.anyOf.some((subType) => subType.type === editorType),
+    const editorType = guessEditorTypeFromValue(value, permittedDataTypes);
+    const relevantType = permittedDataTypes.find(({ allOf }) =>
+      allOf.some((constraint) =>
+        "type" in constraint
+          ? constraint.type === editorType
+          : /**
+             * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId
+             *   from property metadata
+             */
+            constraint.anyOf.some((subType) => subType.type === editorType),
+      ),
     );
 
     const editorSpec = getEditorSpecs(editorType, relevantType);
@@ -90,7 +95,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     } else if (!isArray && editorSpec.shouldBeDrawnAsAChip) {
       const expectedType = guessDataTypeFromValue(
         value as JsonValue,
-        expectedTypes,
+        permittedDataTypes,
       );
 
       drawChipWithText({
@@ -103,7 +108,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     } else if (editorType === "boolean") {
       const expectedType = guessDataTypeFromValue(
         value as JsonValue,
-        expectedTypes,
+        permittedDataTypes,
       );
 
       // draw boolean
@@ -125,7 +130,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
         for (const [index, entry] of value.entries()) {
           const expectedType = guessDataTypeFromValue(
             entry as JsonValue,
-            expectedTypes,
+            permittedDataTypes,
           );
           valueParts.push(...formatDataValue(entry as JsonValue, expectedType));
           if (index < value.length - 1) {
@@ -139,7 +144,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       } else {
         const expectedType = guessDataTypeFromValue(
           value as JsonValue,
-          expectedTypes,
+          permittedDataTypes,
         );
         valueParts.push(...formatDataValue(value as JsonValue, expectedType));
       }

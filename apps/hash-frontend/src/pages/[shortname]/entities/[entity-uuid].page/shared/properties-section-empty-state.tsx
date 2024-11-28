@@ -8,7 +8,12 @@ export const PropertiesSectionEmptyState = () => {
   return (
     <SectionWrapper
       title="Properties"
-      titleStartContent={<Chip label="No properties" />}
+      titleStartContent={
+        <Chip
+          label="No properties"
+          sx={{ "& span": { fontSize: 13 }, ml: 1 }}
+        />
+      }
     >
       <SectionEmptyState
         title="This entity currently has no properties"

@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { EntityType } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type {
   SelectorAutocompleteProps,
@@ -6,8 +7,12 @@ import type {
 } from "@hashintel/design-system";
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  getClosedMultiEntityTypeFromMap,
+  getDisplayFieldsForClosedEntityType,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -15,13 +20,13 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import {
   entityIdFromComponents,
   extractDraftIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
-import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo, useState } from "react";
 
 import type {
@@ -41,13 +46,13 @@ type EntitySelectorProps<Multiple extends boolean = false> = Omit<
   | "dropdownProps"
 > & {
   dropdownProps?: Omit<TypeListSelectorDropdownProps, "query">;
-  expectedEntityTypes?: EntityTypeWithMetadata[];
+  expectedEntityTypes?: Pick<EntityType, "$id">[];
   entityIdsToFilterOut?: EntityId[];
   includeDrafts: boolean;
   multiple?: Multiple;
   onSelect: (
     event: Multiple extends true ? Entity[] : Entity,
-    sourceSubgraph: Subgraph<EntityRootType> | null,
+    closedMultiEntityTypeMap: ClosedMultiEntityTypesRootMap,
   ) => void;
   value?: Multiple extends true ? Entity : Entity[];
 };
@@ -71,19 +76,16 @@ export const EntitySelector = <Multiple extends boolean>({
           !expectedEntityTypes || expectedEntityTypes.length === 0
             ? { all: [] }
             : {
-                any: expectedEntityTypes.map(({ schema }) =>
-                  generateVersionedUrlMatchingFilter(schema.$id, {
+                any: expectedEntityTypes.map(({ $id }) =>
+                  generateVersionedUrlMatchingFilter($id, {
                     ignoreParents: true,
                   }),
                 ),
               },
         temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-        },
+        graphResolveDepths: zeroedGraphResolveDepths,
         includeDrafts,
+        includeEntityTypes: "resolved",
       },
       includePermissions: false,
     },
@@ -94,6 +96,9 @@ export const EntitySelector = <Multiple extends boolean>({
         entitiesData.getEntitySubgraph.subgraph,
       )
     : undefined;
+
+  const closedMultiEntityTypesRootMap =
+    entitiesData?.getEntitySubgraph.closedMultiEntityTypes;
 
   const sortedAndFilteredEntities = useMemo(() => {
     if (!entitiesSubgraph) {
@@ -167,7 +172,13 @@ export const EntitySelector = <Multiple extends boolean>({
     <SelectorAutocomplete<Entity, Multiple>
       loading={loading}
       onChange={(_, option) => {
-        onSelect(option, entitiesSubgraph ?? null);
+        if (!closedMultiEntityTypesRootMap) {
+          throw new Error(
+            "Cannot select an entity without a closed multi entity types map",
+          );
+        }
+
+        onSelect(option, closedMultiEntityTypesRootMap);
       }}
       inputValue={query}
       isOptionEqualToValue={(option, value) =>
@@ -176,32 +187,41 @@ export const EntitySelector = <Multiple extends boolean>({
       onInputChange={(_, value) => setQuery(value)}
       options={sortedAndFilteredEntities}
       optionToRenderData={(entity) => {
-        /**
-         * @todo H-3363 use the closed schema to get the first icon
-         */
-        const entityTypes = entity.metadata.entityTypeIds
-          .toSorted()
-          .map((entityTypeId) => {
-            const entityType = getEntityTypeById(
-              entitiesSubgraph!,
-              entityTypeId,
-            );
+        const typesMap = entitiesData?.getEntitySubgraph.closedMultiEntityTypes;
 
-            if (!entityType) {
-              throw new Error(`Cannot find entity type ${entityTypeId}`);
-            }
+        if (!typesMap) {
+          throw new Error(
+            "Cannot render an entity without a closed multi entity types map",
+          );
+        }
 
-            return entityType.schema;
-          });
+        const closedType = getClosedMultiEntityTypeFromMap(
+          typesMap,
+          entity.metadata.entityTypeIds,
+        );
+
+        const { icon: entityIcon } =
+          getDisplayFieldsForClosedEntityType(closedType);
 
         return {
           entityProperties: entity.properties,
           uniqueId: entity.metadata.recordId.entityId,
-          icon: entityTypes[0]?.icon ?? null,
+          icon: entityIcon ?? null,
           /**
            * @todo update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId
            * */
-          types: mustHaveAtLeastOne(entityTypes),
+          types: mustHaveAtLeastOne(
+            closedType.allOf.map((type) => {
+              const { icon: typeIcon } =
+                getDisplayFieldsForClosedEntityType(type);
+
+              return {
+                $id: type.$id,
+                icon: typeIcon,
+                title: type.title,
+              };
+            }),
+          ),
           title: generateEntityLabel(entitiesSubgraph!, entity),
           draft: !!extractDraftIdFromEntityId(
             entity.metadata.recordId.entityId,
