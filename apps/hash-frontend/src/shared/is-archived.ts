@@ -38,7 +38,14 @@ export const isItemArchived = (
   if (isType(item)) {
     return isTypeArchived(item);
   } else if (isEntityPageEntity(item)) {
+    /**
+     * @todo H-2633 use entity archival via temporal axes, not metadata boolean
+     */
     return isPageArchived(item);
   }
-  return false;
+
+  /**
+   * @todo H-2633 use entity archival via temporal axes, not metadata boolean
+   */
+  return "archived" in item.metadata && item.metadata.archived;
 };

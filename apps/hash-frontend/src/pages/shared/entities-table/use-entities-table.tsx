@@ -55,9 +55,8 @@ export const useEntitiesTable = (params: {
   subgraph?: Subgraph<EntityRootType>;
   hasSomeLinks?: boolean;
   hideColumns?: (keyof TypeEntitiesRow)[];
-  hidePageArchivedColumn?: boolean;
+  hideArchivedColumn?: boolean;
   hidePropertiesColumns: boolean;
-  isViewingOnlyPages?: boolean;
 }): { loading: boolean; tableData: EntitiesTableData | null } => {
   const {
     entities,
@@ -65,9 +64,8 @@ export const useEntitiesTable = (params: {
     subgraph,
     hasSomeLinks,
     hideColumns,
-    hidePageArchivedColumn = false,
+    hideArchivedColumn = false,
     hidePropertiesColumns,
-    isViewingOnlyPages = false,
     propertyTypes,
   } = params;
 
@@ -255,9 +253,8 @@ export const useEntitiesTable = (params: {
           subgraph: serializedSubgraph,
           hasSomeLinks,
           hideColumns,
-          hidePageArchivedColumn,
+          hideArchivedColumn,
           hidePropertiesColumns,
-          isViewingOnlyPages,
           usedPropertyTypesByEntityTypeId,
           webNameByOwnedById,
         },
@@ -272,9 +269,8 @@ export const useEntitiesTable = (params: {
     entityTypesWithMultipleVersionsPresent,
     hasSomeLinks,
     hideColumns,
-    hidePageArchivedColumn,
+    hideArchivedColumn,
     hidePropertiesColumns,
-    isViewingOnlyPages,
     propertyTypes,
     subgraph,
     usedPropertyTypesByEntityTypeId,

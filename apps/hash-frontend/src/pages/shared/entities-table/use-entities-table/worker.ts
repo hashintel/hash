@@ -109,9 +109,8 @@ const generateTableData = async (
     usedPropertyTypesByEntityTypeId,
     subgraph: serializedSubgraph,
     hideColumns,
-    hidePageArchivedColumn,
+    hideArchivedColumn,
     hidePropertiesColumns,
-    isViewingOnlyPages,
     webNameByOwnedById,
   } = params;
 
@@ -180,7 +179,7 @@ const generateTableData = async (
   ];
 
   const columnsToHide = hideColumns ?? [];
-  if (!isViewingOnlyPages || hidePageArchivedColumn) {
+  if (hideArchivedColumn) {
     columnsToHide.push("archived");
   }
 
@@ -359,7 +358,7 @@ const generateTableData = async (
       web,
       archived: isPage
         ? simplifyProperties(entity.properties as PageProperties).archived
-        : undefined,
+        : entity.metadata.archived,
       lastEdited,
       lastEditedBy: lastEditedBy ?? "loading",
       created,

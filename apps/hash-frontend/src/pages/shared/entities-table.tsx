@@ -131,9 +131,8 @@ export const EntitiesTable: FunctionComponent<{
     subgraph,
     hasSomeLinks,
     hideColumns,
-    hidePageArchivedColumn: !filterState.includeArchived,
+    hideArchivedColumn: !filterState.includeArchived,
     hidePropertiesColumns,
-    isViewingOnlyPages,
   });
 
   const {

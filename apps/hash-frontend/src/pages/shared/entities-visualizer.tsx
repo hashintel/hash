@@ -246,10 +246,13 @@ export const EntitiesVisualizer: FunctionComponent<{
             )) &&
         (filterState.includeArchived === undefined ||
         filterState.includeArchived ||
-        !includesPageEntityTypeId(entity.metadata.entityTypeIds)
-          ? true
-          : simplifyProperties(entity.properties as PageProperties).archived !==
-            true) &&
+        includesPageEntityTypeId(entity.metadata.entityTypeIds)
+          ? simplifyProperties(entity.properties as PageProperties).archived !==
+            true
+          : /**
+             * @todo H-2633 use entity archival via temporal axes, not metadata boolean
+             */
+            !entity.metadata.archived) &&
         (filterState.limitToWebs
           ? filterState.limitToWebs.includes(
               extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
