@@ -378,6 +378,9 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Person",
+        /**
+         * @todo when updating this, add plural title
+         */
         icon: "👤",
         /** @todo improve this desc */
         description: "A human being",

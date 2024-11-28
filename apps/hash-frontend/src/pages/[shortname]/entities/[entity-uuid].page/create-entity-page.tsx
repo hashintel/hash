@@ -139,7 +139,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     }
   };
 
-  if (!draftEntityTypesDetails && !closedTypeLoading) {
+  if (closedTypeLoading) {
     return <EntityPageLoadingState />;
   }
 

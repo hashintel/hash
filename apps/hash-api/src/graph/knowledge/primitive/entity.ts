@@ -13,6 +13,7 @@ import type {
   GraphResolveDepths,
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
+import type { ValidateEntityParamsComponents } from "@local/hash-graph-client/api";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -24,6 +25,7 @@ import type {
   EntityProperties,
   LinkData,
   PropertyObject,
+  PropertyObjectWithMetadata,
   PropertyPatchOperation,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -591,6 +593,25 @@ export const updateEntity = async <Properties extends EntityProperties>(
   }
 
   return updatedEntity;
+};
+
+export const validateEntity: ImpureGraphFunction<
+  {
+    components: ValidateEntityParamsComponents;
+    entityTypes: VersionedUrl[];
+    properties: PropertyObjectWithMetadata;
+  },
+  Promise<void>
+> = async (context, authentication, params) => {
+  const { components, entityTypes, properties } = params;
+
+  return await context.graphApi
+    .validateEntity(authentication.actorId, {
+      components,
+      entityTypes,
+      properties,
+    })
+    .then(({ data }) => data);
 };
 
 /**
