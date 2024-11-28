@@ -1,7 +1,7 @@
-diff --git a/node_modules/@tldraw/editor/dist-esm/lib/app/App.mjs b/node_modules/@tldraw/editor/dist-esm/lib/app/App.mjs
-index 83e38b0..0004cfe 100644
---- a/node_modules/@tldraw/editor/dist-esm/lib/app/App.mjs
-+++ b/node_modules/@tldraw/editor/dist-esm/lib/app/App.mjs
+diff --git a/dist-esm/lib/app/App.mjs b/dist-esm/lib/app/App.mjs
+index 83e38b0d509bf367d0339d128ed73a9232ead877..0004cfe40736bfb12e1dfe8a6336998e86e60b31 100644
+--- a/dist-esm/lib/app/App.mjs
++++ b/dist-esm/lib/app/App.mjs
 @@ -32,7 +32,10 @@ import {
    TLPage
  } from "@tldraw/tlschema";

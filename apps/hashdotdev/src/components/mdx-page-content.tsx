@@ -111,7 +111,6 @@ export const MdxPageContent: FunctionComponent<MdxPageContentProps> = ({
           ...(Array.isArray(wrapperSx) ? wrapperSx : [wrapperSx]),
         ]}
       >
-        {/* @ts-expect-error @todo fix this */}
         <MDXRemote {...serializedPage} components={mdxComponents} />
       </Box>
     </PageHeadingsContext.Provider>

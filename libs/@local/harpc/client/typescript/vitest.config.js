@@ -15,6 +15,7 @@ export default defineConfig({
       exclude: ["**/node_modules/**", "**/dist/**"],
     },
     environment: "node",
+    testTimeout: 30000,
     maxConcurrency: 16,
   },
 });

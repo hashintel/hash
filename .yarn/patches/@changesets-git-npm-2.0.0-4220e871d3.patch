@@ -1,7 +1,7 @@
-diff --git a/node_modules/@changesets/git/dist/git.cjs.dev.js b/node_modules/@changesets/git/dist/git.cjs.dev.js
-index 00f9ec2..84718ed 100644
---- a/node_modules/@changesets/git/dist/git.cjs.dev.js
-+++ b/node_modules/@changesets/git/dist/git.cjs.dev.js
+diff --git a/dist/git.cjs.dev.js b/dist/git.cjs.dev.js
+index 00f9ec2d277c1e081d152c731123143807ca4f0c..84718ed2ba8fd4596cb832bbadceaf5853b464e2 100644
+--- a/dist/git.cjs.dev.js
++++ b/dist/git.cjs.dev.js
 @@ -243,6 +243,9 @@ async function getChangedPackagesSinceRef({
    });
    return [...(await getPackages.getPackages(cwd)).packages] // sort packages by length of dir, so that we can check for subdirs first
@@ -12,10 +12,10 @@ index 00f9ec2..84718ed 100644
      const changedPackageFiles = [];
  
      for (let i = changedFiles.length - 1; i >= 0; i--) {
-diff --git a/node_modules/@changesets/git/dist/git.cjs.prod.js b/node_modules/@changesets/git/dist/git.cjs.prod.js
-index 2b4d620..4ad8906 100644
---- a/node_modules/@changesets/git/dist/git.cjs.prod.js
-+++ b/node_modules/@changesets/git/dist/git.cjs.prod.js
+diff --git a/dist/git.cjs.prod.js b/dist/git.cjs.prod.js
+index 2b4d620d5c1dd308753356573fd8576b44b0905a..4ad89065593d3edaacbe49331edcf75b64720066 100644
+--- a/dist/git.cjs.prod.js
++++ b/dist/git.cjs.prod.js
 @@ -141,6 +141,9 @@ async function getChangedPackagesSinceRef({cwd: cwd, ref: ref, changedFilePatter
      fullPath: !0
    });
@@ -26,10 +26,10 @@ index 2b4d620..4ad8906 100644
      const changedPackageFiles = [];
      for (let i = changedFiles.length - 1; i >= 0; i--) {
        const file = changedFiles[i];
-diff --git a/node_modules/@changesets/git/dist/git.esm.js b/node_modules/@changesets/git/dist/git.esm.js
-index 58f76fe..106e30e 100644
---- a/node_modules/@changesets/git/dist/git.esm.js
-+++ b/node_modules/@changesets/git/dist/git.esm.js
+diff --git a/dist/git.esm.js b/dist/git.esm.js
+index 58f76fe0cb21c35fa600e83f20fbbd23ee7d0ba0..106e30e9c11a6daf1a2ed8d290f07d9d69b940ec 100644
+--- a/dist/git.esm.js
++++ b/dist/git.esm.js
 @@ -231,6 +231,9 @@ async function getChangedPackagesSinceRef({
    });
    return [...(await getPackages(cwd)).packages] // sort packages by length of dir, so that we can check for subdirs first
@@ -40,10 +40,10 @@ index 58f76fe..106e30e 100644
      const changedPackageFiles = [];
  
      for (let i = changedFiles.length - 1; i >= 0; i--) {
-diff --git a/node_modules/@changesets/git/src/index.ts b/node_modules/@changesets/git/src/index.ts
-index 7e3aee5..49a00e3 100644
---- a/node_modules/@changesets/git/src/index.ts
-+++ b/node_modules/@changesets/git/src/index.ts
+diff --git a/src/index.ts b/src/index.ts
+index 7e3aee53439f3724886eacc2bb9ea8b9abc6b6cf..49a00e3de2e54fe0e82ac2ea6440cccc8f2f5834 100644
+--- a/src/index.ts
++++ b/src/index.ts
 @@ -262,6 +262,9 @@ export async function getChangedPackagesSinceRef({
        // sort packages by length of dir, so that we can check for subdirs first
        .sort((pkgA, pkgB) => pkgB.dir.length - pkgA.dir.length)

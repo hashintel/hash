@@ -1,7 +1,7 @@
-diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
-index d3c39db..2711ff4 100644
---- a/node_modules/blockprotocol/core.d.ts
-+++ b/node_modules/blockprotocol/core.d.ts
+diff --git a/core.d.ts b/core.d.ts
+index d3c39db829941fd8681fcbaecdc7c68f71438ecd..2711ff4097e7fc6dfbdf9bd16abd01d05e60d96d 100644
+--- a/core.d.ts
++++ b/core.d.ts
 @@ -1,3 +1,6 @@
 +import { BlockProtocolStyling } from "./styling"
 +export * from "./styling"
@@ -42,11 +42,11 @@ index d3c39db..2711ff4 100644
    linkGroups?: BlockProtocolLinkGroup[];
 -} & BlockProtocolFunctions;
 +} & BlockProtocolFunctions & BlockProtocolStyling;
-diff --git a/node_modules/blockprotocol/styling.d.ts b/node_modules/blockprotocol/styling.d.ts
+diff --git a/styling.d.ts b/styling.d.ts
 new file mode 100644
-index 0000000..ab93815
+index 0000000000000000000000000000000000000000..ab938158667c3658e80153a86e77ee0319c35e01
 --- /dev/null
-+++ b/node_modules/blockprotocol/styling.d.ts
++++ b/styling.d.ts
 @@ -0,0 +1,134 @@
 +/**
 + * Block Protocol theme is inspired by MUI
@@ -182,11 +182,11 @@ index 0000000..ab93815
 +export type BlockProtocolStyling = {
 +  theme?: BlockProtocolThemeOptions | undefined
 +}
-diff --git a/node_modules/blockprotocol/styling.js b/node_modules/blockprotocol/styling.js
+diff --git a/styling.js b/styling.js
 new file mode 100644
-index 0000000..f855b68
+index 0000000000000000000000000000000000000000..f855b68488786bc7911ca8f5b28fce9f4402d77a
 --- /dev/null
-+++ b/node_modules/blockprotocol/styling.js
++++ b/styling.js
 @@ -0,0 +1,2 @@
 +// Current version of this package only provides TypeScript types.
 +// Watch https://github.com/blockprotocol/blockprotocol for the updates!

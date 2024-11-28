@@ -8,17 +8,32 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Enable corepack
+      uses: ./.github/actions/enable-corepack
+
     - name: Install turbo
       uses: ./.github/actions/install-turbo
 
     - name: Prune repository
       shell: bash
       run: |
-        while IFS= read -r line; do
-          if [[ -n "$line" ]]; then
-            turbo prune --scope="$line"
-          fi
-        done <<< "${{ inputs.scope }}"
+        # Convert newline-separated input to space-separated arguments
+        SCOPES=$(echo "${{ inputs.scope }}" | tr '\n' ' ')
+
+        # TODO: remove once deer is in labs
+        #   see https://linear.app/hash/issue/H-3692/move-deer-to-labs
+        # Nested crates are pruned in a way where the lockfile does not correctly reflect the pruned workspace, leading to an installation failure.
+        # Check if any of the scopes start with @rust/deer
+        # If any deer crate is in scope, include all deer crates
+        if echo "$SCOPES" | grep -q "@rust/deer\(-desert\|-macros\|-json\)\?"; then
+          SCOPES="$SCOPES @rust/deer @rust/deer-desert @rust/deer-macros @rust/deer-json"
+        fi
+
+        # Deduplicate scopes
+        SCOPES=$(echo "$SCOPES" | tr ' ' '\n' | sort -u | tr '\n' ' ')
+
+        # Run turbo prune with all scopes as arguments
+        turbo prune $SCOPES
 
         while IFS= read -r line; do
           DIRECTORY=$(dirname "$line")
@@ -31,23 +46,16 @@ runs:
             echo "name = \"$(yq '.package.name' -p toml -oy $line)\"" >> "out/$DIRECTORY/Cargo.toml"
             echo "edition.workspace = true" >> "out/$DIRECTORY/Cargo.toml"
           fi
-        done < <(find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml)
+        done < <(find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | sed -e 's#/\*##g') -maxdepth 2 -name Cargo.toml | uniq)
 
     - name: Copy required files
       shell: bash
       run: |
-        cp -R yarn.lock patches Cargo.toml Cargo.lock rust-toolchain.toml out/
+        cp -R Cargo.toml Cargo.lock rust-toolchain.toml out/
 
         # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
         shopt -s extglob
         cp -R .[!.!(.git)]* .git?* out/
-
-    - name: Allow patch files to fail
-      shell: bash
-      run: |
-        # `patch-package` will always fail in CI if the package does not exist, `--error-on-fail` is not respected
-        # This allows `patch-package` to fail without failing the build
-        cat package.json | sed 's/\("postinstall".*patch-package.*\)"/\1 || true"/g' > out/package.json
 
     - name: Remove old repository files
       shell: bash

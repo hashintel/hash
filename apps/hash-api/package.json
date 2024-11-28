@@ -105,7 +105,7 @@
   },
   "devDependencies": {
     "@blockprotocol/graph": "0.4.0-canary.0",
-    "@graphql-codegen/cli": "5.0.3",
+    "@graphql-codegen/cli": "^5.0.3",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.8",
     "@graphql-codegen/typescript-resolvers": "2.7.13",
@@ -122,8 +122,12 @@
     "@types/mime-types": "2.1.4",
     "@types/nodemailer": "6.4.17",
     "@vitest/coverage-istanbul": "2.1.6",
+    "cross-env": "7.0.3",
     "eslint": "8.57.0",
+    "prettier": "3.3.3",
     "rimraf": "6.0.1",
-    "vitest": "2.1.6"
+    "typescript": "5.6.3",
+    "vitest": "2.1.6",
+    "wait-on": "8.0.1"
   }
 }

@@ -27,7 +27,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test:integration": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment functional; done"
+    "test:integration": "./scripts/test.sh"
   },
   "dependencies": {
     "@local/hash-backend-utils": "0.0.0-private",

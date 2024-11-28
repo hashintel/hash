@@ -1,7 +1,7 @@
-diff --git a/node_modules/@tldraw/tlschema/dist-esm/records/TLInstance.mjs b/node_modules/@tldraw/tlschema/dist-esm/records/TLInstance.mjs
-index 77f0999..cbecaf8 100644
---- a/node_modules/@tldraw/tlschema/dist-esm/records/TLInstance.mjs
-+++ b/node_modules/@tldraw/tlschema/dist-esm/records/TLInstance.mjs
+diff --git a/dist-esm/records/TLInstance.mjs b/dist-esm/records/TLInstance.mjs
+index 77f099976a9b020f32290fe4baef5fee11b27933..cbecaf8ff7c886c3cb5ce421242868967f285588 100644
+--- a/dist-esm/records/TLInstance.mjs
++++ b/dist-esm/records/TLInstance.mjs
 @@ -26,21 +26,12 @@ const instanceTypeValidator = T.model(
      userId: userIdValidator,
      currentPageId: pageIdValidator,

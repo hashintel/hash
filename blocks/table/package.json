@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.3.4",
-    "@glideapps/glide-data-grid": "6.0.3",
+    "@glideapps/glide-data-grid": "patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch",
     "@hashintel/block-design-system": "0.0.2",
     "@mui/material": "5.16.7",
     "clsx": "1.2.1",
@@ -48,13 +48,14 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/react-dom": "18.2.25",
     "@types/lodash.debounce": "4.0.9",
     "@types/lodash.isequal": "4.5.8",
     "@types/lodash.uniqueid": "4.0.9",
+    "@types/react-dom": "18.2.25",
     "block-scripts": "0.3.4",
     "eslint": "8.57.0",
     "mock-block-dock": "0.1.9",
+    "prettier": "3.3.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "5.6.3"

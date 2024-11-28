@@ -29,9 +29,13 @@ runs:
         max_attempts: 3
         timeout_minutes: 10
         shell: bash
+        # we disable hardened mode (https://yarnpkg.com/features/security), as it significantly slows down the installation
+        # immutable installs are still enforced in CI
         command: |
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
-          yarn install --frozen-lockfile --prefer-offline
+          export YARN_ENABLE_HARDENED_MODE=0
+          corepack enable
+          yarn install --immutable
 
     - name: npx playwright install
       if: ${{ inputs.playwright-deps != '' }}

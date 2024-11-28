@@ -25,7 +25,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.12",
+    "blockprotocol": "patch:blockprotocol@npm%3A0.0.12#~/.yarn/patches/blockprotocol-npm-0.0.12-2558a31f0a.patch",
     "lodash": "4.17.21",
     "twind": "0.16.19"
   },

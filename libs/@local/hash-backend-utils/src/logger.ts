@@ -34,12 +34,11 @@ const getDefaultLoggerLevel = () => {
  */
 const rewriteForConsole = format(
   (original: winston.Logform.TransformableInfo & { message: unknown }) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { message: fullMessage, ...metadata } = original;
 
     const { consolePrefix, ...restMetadata } = metadata;
 
-    if (!consolePrefix) {
+    if (typeof consolePrefix !== "string" || consolePrefix.length === 0) {
       return original;
     }
 
