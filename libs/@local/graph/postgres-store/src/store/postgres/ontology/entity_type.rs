@@ -1491,7 +1491,9 @@ where
         .collect::<Vec<_>>();
 
         let entity_type_validator = EntityTypeValidator;
-        for (entity_type_id, schema) in entity_types {
+        let num_entity_types = entity_types.len();
+        for (idx, (entity_type_id, schema)) in entity_types.into_iter().enumerate() {
+            tracing::debug!(entity_type_id=%schema.id, "Reindexing schema {}/{}", idx + 1, num_entity_types);
             let schema_metadata = ontology_type_resolver
                 .resolve_entity_type_metadata(entity_type_id)
                 .change_context(UpdateError)?;
