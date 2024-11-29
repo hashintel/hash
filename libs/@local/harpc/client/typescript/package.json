@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@effect/platform": "0.69.28",
-    "@effect/platform-node": "0.64.28",
+    "@effect/platform-node": "0.64.30",
     "@effect/vitest": "0.13.19",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",

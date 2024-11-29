@@ -5264,31 +5264,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/platform-node-shared@npm:^0.19.27":
-  version: 0.19.28
-  resolution: "@effect/platform-node-shared@npm:0.19.28"
+"@effect/platform-node-shared@npm:^0.19.29":
+  version: 0.19.29
+  resolution: "@effect/platform-node-shared@npm:0.19.29"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    "@effect/platform": ^0.69.27
-    effect: ^3.10.18
-  checksum: 10c0/ed5540268577f9b1d6c21f755091f78cbf0a908394f2d9add29ad48d78705404fbeccb1b236da486698cb111f9fe37b6f974b801a4447221a55c2a26cf752f62
+    "@effect/platform": ^0.69.28
+    effect: ^3.10.19
+  checksum: 10c0/9208b63bd1121ccecab7d89f1e2168e54d987c224e1b85a6f19b576866cd289e450559d6ce18592d3bc2eb744d3b7a6a60263c4cdca2f5d86690bcecf23544e2
   languageName: node
   linkType: hard
 
-"@effect/platform-node@npm:0.64.28":
-  version: 0.64.28
-  resolution: "@effect/platform-node@npm:0.64.28"
+"@effect/platform-node@npm:0.64.30":
+  version: 0.64.30
+  resolution: "@effect/platform-node@npm:0.64.30"
   dependencies:
-    "@effect/platform-node-shared": "npm:^0.19.27"
+    "@effect/platform-node-shared": "npm:^0.19.29"
     mime: "npm:^3.0.0"
     undici: "npm:^6.19.7"
     ws: "npm:^8.18.0"
   peerDependencies:
-    "@effect/platform": ^0.69.26
-    effect: ^3.10.17
-  checksum: 10c0/3f725129e673fa236a1c8712f603066b2776b781b56938402c42f3cc0a1041b4dc29e42dff5746f7fee04d589b3f1de242cc70deb1463e92cad9474608e886f3
+    "@effect/platform": ^0.69.28
+    effect: ^3.10.19
+  checksum: 10c0/164811bd4cf2b8c026d9a5a664db5ff4ecb56f25b6107b71ba670140f706205005069451dabe92f4082ed289b0d5f3888033d4e92bbf734ea91ac9f24ce1425b
   languageName: node
   linkType: hard
 
@@ -8166,7 +8166,7 @@ __metadata:
   resolution: "@local/harpc-client@workspace:libs/@local/harpc/client/typescript"
   dependencies:
     "@effect/platform": "npm:0.69.28"
-    "@effect/platform-node": "npm:0.64.28"
+    "@effect/platform-node": "npm:0.64.30"
     "@effect/vitest": "npm:0.13.19"
     "@local/eslint-config": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
