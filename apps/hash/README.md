@@ -432,9 +432,9 @@ This will automatically update the patch file with your changes. Do not forget t
 
 ### Removing a patch
 
-Locate any `patch:` protocol entries in any workspace `package.json` and remove them. The entry will look somewhat similar to: `patch:@changesets/assemble-release-plan@npm%3A5.2.4#~/.yarn/patches/@changesets-assemble-release-plan-npm-5.2.4-2920e4dc4c.patch`, to remove the patch simply extract out the package (everything after the `patch:` and before `#`) and url-decode it and extract the version from it, so for the example it would be `npm:5.2.4`. You should **not** completely remove the line from the `package.json`.
+Locate any `patch:` protocol entries in any workspace `package.json` and remove them. The entry will look somewhat similar to: `patch:@changesets/assemble-release-plan@npm%3A5.2.4#~/.yarn/patches/@changesets-assemble-release-plan-npm-5.2.4-2920e4dc4c.patch`, to remove the patch simply extract out the package (everything after the `patch:` and before `#`) and url-decode it and extract the version from it, so for the example it would be `5.2.4`. You should **not** completely remove the line from the `package.json`.
 
-In case the patch has been applied in the resolutions field you should also check if the resolution is made redundant. This is the case if the left side is the same as the right, e.g. `"react@npm:18.2.0": "18.2.0"` is redundant, same as `"react@npm:18.2.0": "npm:18.2.0"`, or `"react@npm:18.2.0": "npm:react@18.2.0"`, but `react: "npm:react@18.2.0"` is **not** redundant.
+In case the patch has been applied in the resolutions field you should also check if the resolution is made redundant. This is the case if the left side is the same as the right, e.g. `"react@npm:18.2.0": "18.2.0"` is redundant, same as `"react@npm:18.2.0": "npm:18.2.0"`, or `"react@npm:18.2.0": "npm:react@18.2.0"`, but `"react": "npm:react@18.2.0"` is **not** redundant.
 
 > A resolution specifier like `"react": "npm:react@18.2.0",` is also correct. Simply meaning that the react package should be resolved to the npm package `react@18.2.0`, in fact `"react": "18.2.0"` is simply a shorthand for `"react": "npm:react@18.2.0"`.
 >
