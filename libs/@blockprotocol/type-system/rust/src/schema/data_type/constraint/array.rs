@@ -44,7 +44,7 @@ pub enum ArrayTypeTag {
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum ArrayItemConstraints {
-    Boolean(BooleanSchema),
+    Boolean,
     Number(NumberSchema),
     String(StringSchema),
 }
@@ -55,9 +55,7 @@ impl Constraint for ArrayItemConstraints {
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         match (self, other) {
-            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs
-                .intersection(rhs)
-                .map(|(lhs, rhs)| (Self::Boolean(lhs), rhs.map(Self::Boolean))),
+            (Self::Boolean, Self::Boolean) => Ok((Self::Boolean, None)),
             (Self::Number(lhs), Self::Number(rhs)) => lhs
                 .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Number(lhs), rhs.map(Self::Number))),
@@ -74,7 +72,7 @@ impl ConstraintValidator<JsonValue> for ArrayItemConstraints {
 
     fn is_valid(&self, value: &JsonValue) -> bool {
         match self {
-            Self::Boolean(schema) => schema.is_valid(value),
+            Self::Boolean => BooleanSchema.is_valid(value),
             Self::Number(schema) => schema.is_valid(value),
             Self::String(schema) => schema.is_valid(value),
         }
@@ -82,7 +80,7 @@ impl ConstraintValidator<JsonValue> for ArrayItemConstraints {
 
     fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         match self {
-            Self::Boolean(schema) => schema.validate_value(value),
+            Self::Boolean => BooleanSchema.validate_value(value),
             Self::Number(schema) => schema.validate_value(value),
             Self::String(schema) => schema.validate_value(value),
         }
