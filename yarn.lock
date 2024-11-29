@@ -16713,7 +16713,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/js-yaml@npm:^4.0.0":
+"@types/js-yaml@npm:^4.0.0, @types/js-yaml@npm:^4.0.5":
   version: 4.0.9
   resolution: "@types/js-yaml@npm:4.0.9"
   checksum: 10c0/24de857aa8d61526bbfbbaa383aa538283ad17363fcd5bb5148e2c7f604547db36646440e739d78241ed008702a8920665d1add5618687b6743858fae00da211
@@ -20852,7 +20852,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chalk@npm:5.3.0, chalk@npm:^5.0.1, chalk@npm:^5.2.0, chalk@npm:^5.3.0, chalk@npm:~5.3.0":
+"chalk@npm:5.3.0, chalk@npm:^5.2.0, chalk@npm:^5.3.0, chalk@npm:~5.3.0":
   version: 5.3.0
   resolution: "chalk@npm:5.3.0"
   checksum: 10c0/8297d436b2c0f95801103ff2ef67268d362021b8210daf8ddbe349695333eb3610a71122172ff3b0272f1ef2cf7cc2c41fdaa4715f52e49ffe04c56340feed09
@@ -20996,20 +20996,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"check-dependency-version-consistency@npm:3.0.3":
-  version: 3.0.3
-  resolution: "check-dependency-version-consistency@npm:3.0.3"
+"check-dependency-version-consistency@npm:4.1.0":
+  version: 4.1.0
+  resolution: "check-dependency-version-consistency@npm:4.1.0"
   dependencies:
-    chalk: "npm:^5.0.1"
-    commander: "npm:^9.0.0"
+    "@types/js-yaml": "npm:^4.0.5"
+    chalk: "npm:^5.2.0"
+    commander: "npm:^10.0.1"
     edit-json-file: "npm:^1.7.0"
-    globby: "npm:^13.1.1"
-    semver: "npm:^7.3.5"
-    table: "npm:^6.7.1"
-    type-fest: "npm:^2.1.0"
+    globby: "npm:^13.1.4"
+    js-yaml: "npm:^4.1.0"
+    semver: "npm:^7.5.1"
+    table: "npm:^6.8.1"
+    type-fest: "npm:^3.11.0"
   bin:
     check-dependency-version-consistency: dist/bin/check-dependency-version-consistency.js
-  checksum: 10c0/7ff6a2bfd0e3208b095f04788f19b83dc2f8507148047f7f9e8ca7e7cd36ec39e43c4cccd072c1c9b1c05cfd9636a33b37af02f45e560f990f1471a838aadbb7
+  checksum: 10c0/6c063c17cc6cf7b20ea7233902978190e194fe3b2a045fdbbda6fe6fedf18c2379802ff7249a9838415e718495e63816b747a92eb25a2368f54e12c6d60fa7bd
   languageName: node
   linkType: hard
 
@@ -21720,13 +21722,6 @@ __metadata:
   version: 6.2.1
   resolution: "commander@npm:6.2.1"
   checksum: 10c0/85748abd9d18c8bc88febed58b98f66b7c591d9b5017cad459565761d7b29ca13b7783ea2ee5ce84bf235897333706c4ce29adf1ce15c8252780e7000e2ce9ea
-  languageName: node
-  linkType: hard
-
-"commander@npm:^9.0.0":
-  version: 9.5.0
-  resolution: "commander@npm:9.5.0"
-  checksum: 10c0/5f7784fbda2aaec39e89eb46f06a999e00224b3763dc65976e05929ec486e174fe9aac2655f03ba6a5e83875bd173be5283dc19309b7c65954701c02025b3c1d
   languageName: node
   linkType: hard
 
@@ -27338,7 +27333,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"globby@npm:^13.1.1":
+"globby@npm:^13.1.1, globby@npm:^13.1.4":
   version: 13.2.2
   resolution: "globby@npm:13.2.2"
   dependencies:
@@ -27902,7 +27897,7 @@ __metadata:
     "@sentry/cli": "npm:^2.39.1"
     "@taplo/cli": "npm:0.7.0"
     "@yarnpkg/types": "npm:^4.0.0"
-    check-dependency-version-consistency: "npm:3.0.3"
+    check-dependency-version-consistency: "npm:4.1.0"
     concurrently: "npm:7.6.0"
     cross-env: "npm:7.0.3"
     dotenv-flow: "npm:3.3.0"
@@ -40371,7 +40366,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"semver@npm:^7.1.1, semver@npm:^7.3.4, semver@npm:^7.3.5, semver@npm:^7.3.7, semver@npm:^7.5.2, semver@npm:^7.5.3, semver@npm:^7.5.4, semver@npm:^7.6.0, semver@npm:^7.6.3":
+"semver@npm:^7.1.1, semver@npm:^7.3.4, semver@npm:^7.3.5, semver@npm:^7.3.7, semver@npm:^7.5.1, semver@npm:^7.5.2, semver@npm:^7.5.3, semver@npm:^7.5.4, semver@npm:^7.6.0, semver@npm:^7.6.3":
   version: 7.6.3
   resolution: "semver@npm:7.6.3"
   bin:
@@ -42404,7 +42399,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"table@npm:^6.7.1":
+"table@npm:^6.8.1":
   version: 6.8.2
   resolution: "table@npm:6.8.2"
   dependencies:
@@ -43602,7 +43597,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"type-fest@npm:3.13.1":
+"type-fest@npm:3.13.1, type-fest@npm:^3.11.0":
   version: 3.13.1
   resolution: "type-fest@npm:3.13.1"
   checksum: 10c0/547d22186f73a8c04590b70dcf63baff390078c75ea8acd366bbd510fd0646e348bd1970e47ecf795b7cff0b41d26e9c475c1fedd6ef5c45c82075fbf916b629
@@ -43665,7 +43660,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"type-fest@npm:^2.1.0, type-fest@npm:^2.12.2, type-fest@npm:^2.19.0, type-fest@npm:^2.3.3, type-fest@npm:~2.19":
+"type-fest@npm:^2.12.2, type-fest@npm:^2.19.0, type-fest@npm:^2.3.3, type-fest@npm:~2.19":
   version: 2.19.0
   resolution: "type-fest@npm:2.19.0"
   checksum: 10c0/a5a7ecf2e654251613218c215c7493574594951c08e52ab9881c9df6a6da0aeca7528c213c622bc374b4e0cb5c443aa3ab758da4e3c959783ce884c3194e12cb

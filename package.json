@@ -122,7 +122,7 @@
     "@sentry/cli": "^2.39.1",
     "@taplo/cli": "0.7.0",
     "@yarnpkg/types": "^4.0.0",
-    "check-dependency-version-consistency": "3.0.3",
+    "check-dependency-version-consistency": "4.1.0",
     "concurrently": "7.6.0",
     "cross-env": "7.0.3",
     "dotenv-flow": "3.3.0",
