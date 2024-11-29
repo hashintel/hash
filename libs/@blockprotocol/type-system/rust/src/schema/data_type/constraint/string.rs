@@ -451,12 +451,28 @@ impl Constraint for StringConstraints {
             Some((lhs, rhs)) => Some(lhs.min(rhs)),
             None => self.max_length.or(other.max_length),
         };
-        match self.format.zip(other.format) {
-            Some((lhs, rhs)) if lhs == rhs => {}
-            Some((_, rhs)) => {
-                remainder.get_or_insert_default().format = Some(rhs);
+        self.format = match self.format.zip(other.format) {
+            Some((lhs, rhs)) => {
+                ensure!(
+                    lhs == rhs,
+                    ResolveClosedDataTypeError::IncompatibleConstraints(
+                        ValueConstraints::Typed(SingleValueConstraints::String(
+                            StringSchema::Constrained(Self {
+                                format: Some(lhs),
+                                ..Self::default()
+                            }),
+                        )),
+                        ValueConstraints::Typed(SingleValueConstraints::String(
+                            StringSchema::Constrained(Self {
+                                format: Some(rhs),
+                                ..Self::default()
+                            }),
+                        ))
+                    )
+                );
+                Some(lhs)
             }
-            None => self.format = self.format.or(other.format),
+            None => self.format.or(other.format),
         };
         match self.pattern.as_ref().zip(other.pattern.as_ref()) {
             Some((lhs, rhs)) if lhs.as_str() == rhs.as_str() => {}
@@ -854,7 +870,7 @@ mod tests {
 
     #[test]
     fn intersect_format_both_different() {
-        check_schema_intersection(
+        check_schema_intersection_error(
             [
                 json!({
                     "type": "string",
@@ -865,16 +881,22 @@ mod tests {
                     "format": "hostname",
                 }),
             ],
-            [
-                json!({
-                    "type": "string",
-                    "format": "uri",
-                }),
-                json!({
-                    "type": "string",
-                    "format": "hostname",
-                }),
-            ],
+            [ResolveClosedDataTypeError::IncompatibleConstraints(
+                from_value(json!(
+                    {
+                        "type": "string",
+                        "format": "uri",
+                    }
+                ))
+                .expect("schema should be a valid string schema"),
+                from_value(json!(
+                    {
+                        "type": "string",
+                        "format": "hostname",
+                    }
+                ))
+                .expect("schema should be a valid string schema"),
+            )],
         );
     }
 

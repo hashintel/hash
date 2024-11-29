@@ -72,6 +72,8 @@ pub enum ResolveClosedDataTypeError {
     ConflictingConstEnumValue(JsonValue, Vec<JsonValue>),
     #[error("The constraint is unsatisfiable: {}", json!(.0))]
     UnsatisfiableConstraint(ValueConstraints),
+    #[error("The constraints are incompatible: {} <=> {}", json!(.0), json!(.1))]
+    IncompatibleConstraints(ValueConstraints, ValueConstraints),
     #[error("The combined constraints results in an empty `anyOf`")]
     EmptyAnyOf,
 }
