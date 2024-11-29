@@ -182,12 +182,12 @@ impl ConstraintValidator<JsonValue> for ValueConstraints {
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum SingleValueConstraints {
-    Null(NullSchema),
-    Boolean(BooleanSchema),
+    Null,
+    Boolean,
     Number(NumberSchema),
     String(StringSchema),
     Array(ArraySchema),
-    Object(ObjectSchema),
+    Object,
 }
 
 impl Constraint for SingleValueConstraints {
@@ -196,12 +196,8 @@ impl Constraint for SingleValueConstraints {
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         match (self, other) {
-            (Self::Null(lhs), Self::Null(rhs)) => lhs
-                .intersection(rhs)
-                .map(|(lhs, rhs)| (Self::Null(lhs), rhs.map(Self::Null))),
-            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs
-                .intersection(rhs)
-                .map(|(lhs, rhs)| (Self::Boolean(lhs), rhs.map(Self::Boolean))),
+            (Self::Null, Self::Null) => Ok((Self::Null, None)),
+            (Self::Boolean, Self::Boolean) => Ok((Self::Boolean, None)),
             (Self::Number(lhs), Self::Number(rhs)) => lhs
                 .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Number(lhs), rhs.map(Self::Number))),
@@ -211,9 +207,7 @@ impl Constraint for SingleValueConstraints {
             (Self::Array(lhs), Self::Array(rhs)) => lhs
                 .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Array(lhs), rhs.map(Self::Array))),
-            (Self::Object(lhs), Self::Object(rhs)) => lhs
-                .intersection(rhs)
-                .map(|(lhs, rhs)| (Self::Object(lhs), rhs.map(Self::Object))),
+            (Self::Object, Self::Object) => Ok((Self::Object, None)),
             _ => bail!(ResolveClosedDataTypeError::IntersectedDifferentTypes),
         }
     }
@@ -224,23 +218,23 @@ impl ConstraintValidator<JsonValue> for SingleValueConstraints {
 
     fn is_valid(&self, value: &JsonValue) -> bool {
         match self {
-            Self::Null(schema) => schema.is_valid(value),
-            Self::Boolean(schema) => schema.is_valid(value),
+            Self::Null => NullSchema.is_valid(value),
+            Self::Boolean => BooleanSchema.is_valid(value),
             Self::Number(schema) => schema.is_valid(value),
             Self::String(schema) => schema.is_valid(value),
             Self::Array(schema) => schema.is_valid(value),
-            Self::Object(schema) => schema.is_valid(value),
+            Self::Object => ObjectSchema::Constrained(ObjectConstraints).is_valid(value),
         }
     }
 
     fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         match self {
-            Self::Null(schema) => schema.validate_value(value),
-            Self::Boolean(schema) => schema.validate_value(value),
+            Self::Null => NullSchema.validate_value(value),
+            Self::Boolean => BooleanSchema.validate_value(value),
             Self::Number(schema) => schema.validate_value(value),
             Self::String(schema) => schema.validate_value(value),
             Self::Array(schema) => schema.validate_value(value),
-            Self::Object(schema) => schema.validate_value(value),
+            Self::Object => ObjectSchema::Constrained(ObjectConstraints).validate_value(value),
         }
     }
 }
