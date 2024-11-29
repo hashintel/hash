@@ -8218,7 +8218,7 @@ __metadata:
     eslint: "npm:8.57.0"
     exponential-backoff: "npm:3.1.1"
     googleapis: "npm:133.0.0"
-    logform: "npm:2.6.1"
+    logform: "npm:2.7.0"
     redis: "npm:4.7.0"
     rimraf: "npm:6.0.1"
     slonik: "npm:24.2.0"
@@ -31658,21 +31658,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"logform@npm:2.6.1":
-  version: 2.6.1
-  resolution: "logform@npm:2.6.1"
-  dependencies:
-    "@colors/colors": "npm:1.6.0"
-    "@types/triple-beam": "npm:^1.3.2"
-    fecha: "npm:^4.2.0"
-    ms: "npm:^2.1.1"
-    safe-stable-stringify: "npm:^2.3.1"
-    triple-beam: "npm:^1.3.0"
-  checksum: 10c0/c20019336b1da8c08adea67dd7de2b0effdc6e35289c0156722924b571df94ba9f900ef55620c56bceb07cae7cc46057c9859accdee37a131251ba34d6789bce
-  languageName: node
-  linkType: hard
-
-"logform@npm:^2.6.0, logform@npm:^2.7.0":
+"logform@npm:2.7.0, logform@npm:^2.6.0, logform@npm:^2.7.0":
   version: 2.7.0
   resolution: "logform@npm:2.7.0"
   dependencies:
