@@ -99,10 +99,6 @@ const expectedValuesDisplayMap = {
     icon: faBracketsCurly,
     colors: chipColors.blue,
   },
-  emptyList: {
-    icon: faBracketsSquare,
-    colors: chipColors.blue,
-  },
   null: {
     icon: faEmptySet,
     colors: chipColors.blue,
@@ -190,10 +186,6 @@ const getArrayDataTypeDisplay = (
   let items: [ArrayItemsSchema, ...ArrayItemsSchema[]];
 
   if (isTupleConstraints(dataType)) {
-    if (!dataType.prefixItems) {
-      return expectedValuesDisplayMap.emptyList;
-    }
-
     items = dataType.prefixItems;
   } else if (!dataType.items) {
     return expectedValuesDisplayMap.mixedArray;

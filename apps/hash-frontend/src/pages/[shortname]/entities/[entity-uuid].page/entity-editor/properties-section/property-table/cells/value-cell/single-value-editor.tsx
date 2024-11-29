@@ -33,7 +33,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
         permittedDataTypes,
       );
 
-      if (guessedEditorType === "null" || guessedEditorType === "emptyList") {
+      if (guessedEditorType === "null") {
         return guessedEditorType;
       }
 
@@ -123,9 +123,9 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
-  if (editorType === "null" || editorType === "emptyList") {
+  if (editorType === "null") {
     const spec = getEditorSpecs(editorType);
-    const title = editorType === "null" ? "Null" : "Empty List";
+    const title = "Null";
 
     const shouldClearOnClick = value !== undefined;
 

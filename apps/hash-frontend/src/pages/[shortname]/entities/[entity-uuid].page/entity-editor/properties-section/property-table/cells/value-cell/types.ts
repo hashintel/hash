@@ -19,7 +19,6 @@ export type EditorType =
   | "number"
   | "string"
   | "object"
-  | "emptyList"
   | "null"
   | "unknown";
 

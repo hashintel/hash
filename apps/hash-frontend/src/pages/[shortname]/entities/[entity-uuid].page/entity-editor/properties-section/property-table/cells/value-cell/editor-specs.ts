@@ -49,13 +49,6 @@ const editorSpecs: Record<EditorType, EditorSpec> = {
     arrayEditException: "no-save-and-discard-buttons",
     shouldBeDrawnAsAChip: true,
   },
-  emptyList: {
-    icon: faBracketsSquare,
-    gridIcon: "bpBracketsSquare",
-    defaultValue: [],
-    arrayEditException: "no-edit-mode",
-    shouldBeDrawnAsAChip: true,
-  },
   null: {
     icon: faEmptySet,
     gridIcon: "bpEmptySet",
@@ -153,8 +146,6 @@ export const getEditorSpecs = (
       return editorSpecs.string;
     case "object":
       return editorSpecs.object;
-    case "emptyList":
-      return editorSpecs.emptyList;
     case "null":
       return editorSpecs.null;
     case "unknown":

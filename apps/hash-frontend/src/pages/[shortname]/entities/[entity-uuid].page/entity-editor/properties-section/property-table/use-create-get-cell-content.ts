@@ -72,10 +72,7 @@ export const useCreateGetCellContent = (
           row.permittedDataTypes,
         );
 
-        const isEmptyValue =
-          isValueEmpty(row.value) &&
-          guessedType !== "null" &&
-          guessedType !== "emptyList";
+        const isEmptyValue = isValueEmpty(row.value) && guessedType !== "null";
 
         const shouldShowChangeTypeCell =
           row.permittedDataTypes.length > 1 &&

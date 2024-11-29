@@ -65,17 +65,6 @@ export const formatDataValue = (
       throw new Error("Non-array value provided for array data type");
     }
 
-    if (schema && !("items" in schema)) {
-      // Handle the Empty List, which is a const [] with no 'items'
-      return [
-        {
-          color: "#37434F",
-          type: "value",
-          text: "Empty List",
-        },
-      ];
-    }
-
     const isTuple = schema && "prefixItems" in schema;
 
     const innerValue: string = value
