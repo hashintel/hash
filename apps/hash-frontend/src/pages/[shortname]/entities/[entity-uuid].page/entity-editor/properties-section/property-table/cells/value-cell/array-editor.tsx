@@ -26,10 +26,7 @@ import { SortableRow } from "./array-editor/sortable-row";
 import type { SortableItem } from "./array-editor/types";
 import { getEditorSpecs } from "./editor-specs";
 import type { ValueCellEditorComponent } from "./types";
-import {
-  guessEditorTypeFromExpectedType,
-  isBlankStringOrNullish,
-} from "./utils";
+import { getEditorTypeFromExpectedType, isBlankStringOrNullish } from "./utils";
 
 export const DRAFT_ROW_KEY = "draft";
 
@@ -75,7 +72,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     }
 
     if (permittedDataTypes.length === 1) {
-      const expectedType = guessEditorTypeFromExpectedType(
+      const expectedType = getEditorTypeFromExpectedType(
         permittedDataTypes[0]!,
       );
 
@@ -163,7 +160,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
     const onlyOneExpectedType = permittedDataTypes.length === 1;
     const expectedType = permittedDataTypes[0]!;
-    const editorType = guessEditorTypeFromExpectedType(expectedType);
+    const editorType = getEditorTypeFromExpectedType(expectedType);
     const editorSpec = getEditorSpecs(editorType, expectedType);
     const noEditMode = editorSpec.arrayEditException === "no-edit-mode";
 

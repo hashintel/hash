@@ -56,12 +56,6 @@ const editorSpecs: Record<EditorType, EditorSpec> = {
     arrayEditException: "no-edit-mode",
     shouldBeDrawnAsAChip: true,
   },
-  unknown: {
-    icon: faAsterisk,
-    gridIcon: "bpAsterisk",
-    defaultValue: "",
-    arrayEditException: "no-edit-mode",
-  },
 };
 
 const measurementTypeTitles = [
@@ -148,8 +142,6 @@ export const getEditorSpecs = (
       return editorSpecs.object;
     case "null":
       return editorSpecs.null;
-    case "unknown":
-      return editorSpecs.unknown;
     default:
       throw new Error(`Unknown editor type: ${editorType}`);
   }

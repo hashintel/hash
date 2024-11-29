@@ -6,7 +6,7 @@ import { getEditorSpecs } from "../editor-specs";
 import { EditorTypePicker } from "../editor-type-picker";
 import type { EditorType } from "../types";
 import {
-  guessEditorTypeFromExpectedType,
+  getEditorTypeFromExpectedType,
   isBlankStringOrNullish,
 } from "../utils";
 import { SortableRow } from "./sortable-row";
@@ -33,7 +33,7 @@ export const DraftRow = ({
       throw new Error("there is no expectedType found on property type");
     }
 
-    return guessEditorTypeFromExpectedType(expectedTypes[0]);
+    return getEditorTypeFromExpectedType(expectedTypes[0]);
   });
 
   if (!editorType) {

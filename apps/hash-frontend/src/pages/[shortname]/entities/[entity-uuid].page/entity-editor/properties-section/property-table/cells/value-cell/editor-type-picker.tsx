@@ -4,7 +4,7 @@ import { Box, ButtonBase, Typography } from "@mui/material";
 
 import { getEditorSpecs } from "./editor-specs";
 import type { OnTypeChange } from "./types";
-import { guessEditorTypeFromExpectedType } from "./utils";
+import { getEditorTypeFromExpectedType } from "./utils";
 
 const ExpectedTypeButton = ({
   onClick,
@@ -14,7 +14,7 @@ const ExpectedTypeButton = ({
   expectedType: ClosedDataType;
 }) => {
   const editorSpec = getEditorSpecs(
-    guessEditorTypeFromExpectedType(expectedType),
+    getEditorTypeFromExpectedType(expectedType),
     expectedType,
   );
 
@@ -75,7 +75,7 @@ export const EditorTypePicker = ({
               expectedType={expectedType}
               key={expectedType.$id}
               onClick={() =>
-                onTypeChange(guessEditorTypeFromExpectedType(expectedType))
+                onTypeChange(getEditorTypeFromExpectedType(expectedType))
               }
             />
           );

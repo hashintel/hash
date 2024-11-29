@@ -12,57 +12,65 @@ import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
 import { JsonInput } from "./inputs/json-input";
 import { NumberOrTextInput } from "./inputs/number-or-text-input";
-import type { EditorType, ValueCell, ValueCellEditorComponent } from "./types";
 import {
-  guessEditorTypeFromExpectedType,
-  guessEditorTypeFromValue,
+  AppliedDataTypeConstraints,
+  EditorType,
+  ValueCell,
+  ValueCellEditorComponent,
+} from "./types";
+import {
+  getValueSchemaFromTypeAndValue,
+  getEditorTypeFromExpectedType,
 } from "./utils";
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   const { value: cell, onChange, onFinishedEditing } = props;
-  const { permittedDataTypes, value } = cell.data.propertyRow;
+  const { permittedDataTypes, value, valueDataType } = cell.data.propertyRow;
 
   const textInputFormRef = useRef<HTMLFormElement>(null);
 
-  const [editorType, setEditorType] = useState<EditorType | null>(() => {
-    // if there are multiple expected types
-    if (permittedDataTypes.length > 1) {
-      // show type picker if value is empty, guess editor type using value if it's not
-      const guessedEditorType = guessEditorTypeFromValue(
-        value,
-        permittedDataTypes,
-      );
-
-      if (guessedEditorType === "null") {
-        return guessedEditorType;
+  const [chosenDataType, setChosenDataType] =
+    useState<AppliedDataTypeConstraints | null>(() => {
+      if (!valueDataType) {
+        return null;
       }
 
-      return isValueEmpty(value)
-        ? null
-        : guessEditorTypeFromValue(value, permittedDataTypes);
-    }
+      // if there are multiple expected types
+      if (permittedDataTypes.length > 1) {
+        // show type picker if value is empty, guess editor type using value if it's not
+        const guessedEditorType = getValueSchemaFromTypeAndValue(
+          value,
+          valueDataType,
+        );
 
-    const expectedType = permittedDataTypes[0];
+        if (guessedEditorType === "null") {
+          return guessedEditorType;
+        }
 
-    if (!expectedType) {
-      throw new Error("there is no expectedType found on property type");
-    }
+        return getValueSchemaFromTypeAndValue(value, valueDataType);
+      }
 
-    // if the value is empty, guess the editor type from expected type
-    if (isValueEmpty(value)) {
-      return guessEditorTypeFromExpectedType(expectedType);
-    }
+      const expectedType = permittedDataTypes[0];
 
-    // if the value is not empty, guess the editor type using value
-    return guessEditorTypeFromValue(value, permittedDataTypes);
-  });
+      if (!expectedType) {
+        throw new Error("there is no expectedType found on property type");
+      }
+
+      // if the value is empty, guess the editor type from expected type
+      if (isValueEmpty(value)) {
+        return getEditorTypeFromExpectedType(expectedType);
+      }
+
+      // if the value is not empty, guess the editor type using value
+      return getValueSchemaFromTypeAndValue(value, valueDataType);
+    });
 
   const latestValueCellRef = useRef<ValueCell>(cell);
   useEffect(() => {
     latestValueCellRef.current = cell;
   });
 
-  if (!editorType) {
+  if (!chosenDataType) {
     return (
       <GridEditorWrapper>
         <EditorTypePicker
@@ -79,14 +87,14 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
               return onFinishedEditing(newCell);
             }
 
-            setEditorType(type);
+            setChosenDataType(type);
           }}
         />
       </GridEditorWrapper>
     );
   }
 
-  if (editorType === "boolean") {
+  if (chosenDataType === "boolean") {
     return (
       <GridEditorWrapper sx={{ px: 2, alignItems: "flex-start" }}>
         <BooleanInput
@@ -104,7 +112,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
-  if (editorType === "object") {
+  if (chosenDataType === "object") {
     return (
       <JsonInput
         value={value}
@@ -123,8 +131,8 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
-  if (editorType === "null") {
-    const spec = getEditorSpecs(editorType);
+  if (chosenDataType === "null") {
+    const spec = getEditorSpecs(chosenDataType);
     const title = "Null";
 
     const shouldClearOnClick = value !== undefined;
@@ -154,14 +162,14 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   outerLoop: for (const expectedType of permittedDataTypes) {
     for (const constraint of expectedType.allOf) {
       if ("type" in constraint) {
-        if (constraint.type === editorType) {
+        if (constraint.type === chosenDataType) {
           valueConstraints = constraint;
           break outerLoop;
         }
       } else {
         for (const innerConstraint of constraint.anyOf) {
           if ("type" in innerConstraint) {
-            if (innerConstraint.type === editorType) {
+            if (innerConstraint.type === chosenDataType) {
               valueConstraints = innerConstraint;
               break outerLoop;
             }
@@ -174,7 +182,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
   if (!valueConstraints) {
     throw new Error(
-      `Could not find guessed editor type ${editorType} among expected types ${permittedDataTypes
+      `Could not find guessed editor type ${chosenDataType} among expected types ${permittedDataTypes
         .map((opt) => opt.$id)
         .join(", ")}`,
     );
@@ -235,7 +243,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
       >
         <NumberOrTextInput
           valueConstraints={valueConstraints}
-          isNumber={editorType === "number"}
+          isNumber={chosenDataType === "number"}
           value={(value as number | string | undefined) ?? ""}
           onChange={(newValue) => {
             if (

@@ -17,7 +17,7 @@ import { propertyGridIndexes } from "../constants";
 import type { PropertyRow } from "../types";
 import { getEditorSpecs } from "./value-cell/editor-specs";
 import type { ValueCell } from "./value-cell/types";
-import { guessEditorTypeFromExpectedType } from "./value-cell/utils";
+import { getEditorTypeFromExpectedType } from "./value-cell/utils";
 
 export interface ChangeTypeCellProps {
   readonly kind: "change-type-cell";
@@ -45,7 +45,7 @@ export const createRenderChangeTypeCell = (
       (cell.data as any).kind === "change-type-cell",
     draw: (args, cell) => {
       const { theme, rect, ctx, spriteManager } = args;
-      const { currentType } = cell.data;
+      const { currentType, propertyRow } = cell.data;
       const yCenter = getYCenter(args);
 
       const chipLeft = rect.x + theme.cellHorizontalPadding;
@@ -54,7 +54,7 @@ export const createRenderChangeTypeCell = (
       const changeTextWidth = ctx.measureText(changeText).width;
 
       const editorSpec = getEditorSpecs(
-        guessEditorTypeFromExpectedType(currentType),
+        getEditorTypeFromExpectedType(currentType),
         currentType,
       );
 

@@ -71,40 +71,6 @@ export const SortableRow = ({
 
   let valueConstraints: ValueConstraints;
 
-  /** @todo H-3374 don't guess the type, take it from the data type metadata */
-  /* eslint-disable no-labels */
-  outerLoop: for (const expectedType of expectedTypes) {
-    for (const constraint of expectedType.allOf) {
-      if ("type" in constraint) {
-        if (constraint.type === editorType) {
-          valueConstraints = constraint;
-          break outerLoop;
-        }
-      } else {
-        for (const innerConstraint of constraint.anyOf) {
-          if ("type" in innerConstraint) {
-            if (innerConstraint.type === editorType) {
-              valueConstraints = innerConstraint;
-              break outerLoop;
-            }
-          }
-        }
-      }
-    }
-  }
-  /* eslint-enable no-labels */
-
-  const expectedType = expectedTypes.find((type) =>
-    type.allOf.some((constraint) =>
-      "type" in constraint
-        ? constraint.type === editorType
-        : /**
-           * @todo H-3374 support multiple expected data types
-           */
-          constraint.anyOf.some((subType) => subType.type === editorType),
-    ),
-  );
-
   const editorSpec = getEditorSpecs(editorType, expectedType);
 
   const { arrayEditException } = editorSpec;
@@ -153,14 +119,6 @@ export const SortableRow = ({
             }
           }}
         />
-      );
-    }
-
-    if (!expectedType) {
-      throw new Error(
-        `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
-          .map((opt) => opt.$id)
-          .join(", ")}`,
       );
     }
 

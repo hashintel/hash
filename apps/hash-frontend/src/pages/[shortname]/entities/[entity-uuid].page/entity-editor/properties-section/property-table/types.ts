@@ -18,7 +18,7 @@ export type PropertyRow = {
   rowId: string;
   title: string;
   value: unknown;
-  valueMetadata: PropertyMetadata["metadata"];
+  valueDataType?: ClosedDataType;
   verticalLinesForEachIndent: VerticalIndentationLineDir[];
 };
 

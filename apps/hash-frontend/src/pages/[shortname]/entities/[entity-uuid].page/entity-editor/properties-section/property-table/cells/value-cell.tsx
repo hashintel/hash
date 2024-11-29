@@ -62,7 +62,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
 
     const { readonly } = cell.data;
 
-    const { value, permittedDataTypes, isArray, isSingleUrl } =
+    const { value, valueDataType, permittedDataTypes, isArray, isSingleUrl } =
       cell.data.propertyRow;
 
     ctx.fillStyle = theme.textHeader;

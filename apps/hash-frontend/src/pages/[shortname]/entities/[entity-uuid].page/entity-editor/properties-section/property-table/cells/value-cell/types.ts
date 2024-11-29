@@ -1,3 +1,9 @@
+import {
+  ArraySchema as BpArraySchema,
+  NumberConstraints,
+  StringConstraints,
+  ValueLabel,
+} from "@blockprotocol/type-system/slim";
 import type {
   CustomCell,
   ProvideEditorComponent,
@@ -15,12 +21,54 @@ export interface ValueCellProps extends TooltipCellProps {
 export type ValueCell = CustomCell<ValueCellProps>;
 
 export type EditorType =
+  | "array"
   | "boolean"
-  | "number"
-  | "string"
-  | "object"
+  | "mixed"
   | "null"
-  | "unknown";
+  | "number"
+  | "object"
+  | "string";
+
+type MergedNumberSchema = { type: "number" } & Omit<
+  NumberConstraints,
+  "multipleOf"
+> & { multipleOf?: number[] };
+
+type MergedStringSchema = { type: "string" } & Omit<
+  StringConstraints,
+  "pattern"
+> & { pattern?: string[] };
+
+type ConstSchema = { const: string | number | boolean };
+
+type EnumSchema = { enum: (string | number)[] };
+
+type ObjectSchema = { type: "object" };
+
+type NullSchema = { type: "null" };
+
+type BooleanSchema = { type: "boolean" };
+
+type ArraySchema = { type: "array" } & BpArraySchema;
+
+export type MergedValueSchema =
+  | MergedNumberSchema
+  | MergedStringSchema
+  | ConstSchema
+  | EnumSchema
+  | ObjectSchema
+  | NullSchema
+  | BooleanSchema
+  | ArraySchema;
+
+export type MergedDataTypeSingleSchema = {
+  description: string;
+  label?: ValueLabel;
+} & MergedValueSchema;
+
+export type MergedDataTypeSchema =
+  | MergedDataTypeSingleSchema
+  | { anyOf: MergedDataTypeSingleSchema[] };
 
 export type OnTypeChange = (type: EditorType) => void;
 

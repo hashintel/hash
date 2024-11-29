@@ -46,7 +46,7 @@ const isContextObject = (obj: unknown): obj is ContextObject =>
  *                   "sources": []
  *                 },
  */
-const extractValidationErrors = (err: unknown) => {
+export const extractEntityValidationErrors = (err: unknown) => {
   try {
     if (
       err &&
@@ -111,7 +111,7 @@ export const useValidateEntity = () => {
 
         return true;
       } catch (err) {
-        return extractValidationErrors(err);
+        return extractEntityValidationErrors(err);
       }
     },
     [validate],

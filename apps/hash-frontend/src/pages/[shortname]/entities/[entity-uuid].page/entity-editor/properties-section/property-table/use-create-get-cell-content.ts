@@ -15,7 +15,7 @@ import type { PropertyNameCell } from "./cells/property-name-cell";
 import { getEditorSpecs } from "./cells/value-cell/editor-specs";
 import type { ValueCell } from "./cells/value-cell/types";
 import {
-  guessEditorTypeFromExpectedType,
+  getEditorTypeFromExpectedType,
   guessEditorTypeFromValue,
 } from "./cells/value-cell/utils";
 import { propertyGridIndexes } from "./constants";
@@ -67,18 +67,10 @@ export const useCreateGetCellContent = (
           },
         };
 
-        const guessedType = guessEditorTypeFromValue(
-          row.value,
-          row.permittedDataTypes,
-        );
-
-        const isEmptyValue = isValueEmpty(row.value) && guessedType !== "null";
+        const { isArray, permittedDataTypes, value, valueDataType } = row;
 
         const shouldShowChangeTypeCell =
-          row.permittedDataTypes.length > 1 &&
-          !row.isArray &&
-          !isEmptyValue &&
-          !readonly;
+          permittedDataTypes.length > 1 && !isArray && !readonly;
 
         switch (columnKey) {
           case "title":
@@ -122,33 +114,19 @@ export const useCreateGetCellContent = (
             }
 
             if (shouldShowChangeTypeCell) {
-              const currentType = row.permittedDataTypes.find(({ allOf }) =>
-                allOf.some((constraint) =>
-                  "type" in constraint
-                    ? constraint.type === guessedType
-                    : /**
-                       * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId from property metadata
-                       */
-                      constraint.anyOf.some(
-                        (subType) => subType.type === guessedType,
-                      ),
-                ),
-              );
-              if (!currentType) {
-                throw new Error(
-                  `dataType for guessed type ${guessedType} not found`,
-                );
+              if (!valueDataType) {
+                throw new Error("valueDataType not found");
               }
 
               return {
                 kind: GridCellKind.Custom,
                 allowOverlay: false,
                 readonly: true,
-                copyData: guessedType,
+                copyData: valueDataType.$id,
                 cursor: "pointer",
                 data: {
                   kind: "change-type-cell",
-                  currentType,
+                  currentType: valueDataType,
                   propertyRow: row,
                   valueCellOfThisRow: valueCell,
                 },
@@ -164,7 +142,7 @@ export const useCreateGetCellContent = (
                 kind: "chip-cell",
                 chips: row.permittedDataTypes.map((type) => {
                   const editorSpec = getEditorSpecs(
-                    guessEditorTypeFromExpectedType(type),
+                    getEditorTypeFromExpectedType(type),
                     type,
                   );
 
