@@ -439,6 +439,8 @@ In case the patch has been applied in the resolutions field you should also chec
 > A resolution specifier like `"react": "npm:react@18.2.0",` is also correct. Simply meaning that the react package should be resolved to the npm package `react@18.2.0`, in fact `"react": "18.2.0"` is simply a shorthand for `"react": "npm:react@18.2.0"`.
 >
 > If the left hand of a resolution has no version specifier it is assumed to be `npm:*`, e.g. `"react": "18.2.0"` is equivalent to `"react@npm:*": "18.2.0"` (replace react with version `18.2.0` regardless of the dependency requirement).
+>
+> For more examples see the [yarn documentation](https://yarnpkg.com/configuration/manifest#resolutions)
 
 Then run `yarn install` to remove the patch.
 
