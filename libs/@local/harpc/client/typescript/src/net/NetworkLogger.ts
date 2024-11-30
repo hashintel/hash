@@ -11,47 +11,59 @@ export type TypeId = typeof TypeId;
 
 interface NetworkLogger extends ComponentLogger {
   readonly [TypeId]: TypeId;
+}
+
+interface NetworkLoggerImpl extends NetworkLogger {
   readonly formatters: ReadonlyRecord<
     string,
     (value: unknown) => Option.Option<string>
   >;
+
+  readonly runtime: Runtime.Runtime<never>;
+
+  logger(
+    name: string,
+    level: LogLevel.LogLevel,
+  ): (formatter: unknown, ...args: ReadonlyArray<unknown>) => void;
 }
 
-const NetworkLoggerProto: Omit<NetworkLogger, "formatters" | "forComponent"> = {
+const NetworkLoggerProto: Omit<
+  NetworkLoggerImpl,
+  "formatters" | "forComponent" | "runtime"
+> = {
   [TypeId]: TypeId,
+
+  logger(this: NetworkLoggerImpl, name: string, level: LogLevel.LogLevel) {
+    const fork = Runtime.runFork(this.runtime);
+
+    return (formatter: unknown, ...args: ReadonlyArray<unknown>) => {
+      const effect = internal
+        .format(this.formatters, level, formatter, args)
+        .pipe(Effect.withSpan(name));
+
+      fork(effect);
+    };
+  },
 };
 
 export type Formatter = internal.Formatter;
 export const DefaultFormatters = internal.defaultFormatters;
 
-const makeLogger = (
-  self: NetworkLogger,
-  runtime: Runtime.Runtime<never>,
-  level: LogLevel.LogLevel,
-  name: string,
-) => {
-  const fork = Runtime.runFork(runtime);
-
-  return (formatter: unknown, ...args: ReadonlyArray<unknown>) => {
-    const effect = internal
-      .format(self.formatters, level, formatter, args)
-      .pipe(Effect.withSpan(name));
-
-    fork(effect);
-  };
-};
-
 export const make = (
-  runtime: Runtime.Runtime<never>,
   formatters?: ReadonlyRecord<string, Formatter>,
-): NetworkLogger =>
-  createProto(NetworkLoggerProto, {
-    formatters: formatters ?? internal.defaultFormatters,
-    forComponent(this: NetworkLogger, name: string): Logger {
-      return Object.assign(makeLogger(this, runtime, LogLevel.Debug, name), {
-        error: makeLogger(this, runtime, LogLevel.Error, name),
-        trace: makeLogger(this, runtime, LogLevel.Trace, name),
-        enabled: true,
-      });
-    },
+): Effect.Effect<NetworkLogger> =>
+  Effect.gen(function* () {
+    const runtime = yield* Effect.runtime();
+
+    return createProto(NetworkLoggerProto, {
+      formatters: formatters ?? internal.defaultFormatters,
+      runtime,
+      forComponent(this: NetworkLoggerImpl, name: string): Logger {
+        return Object.assign(this.logger(name, LogLevel.Debug), {
+          error: this.logger(name, LogLevel.Error),
+          trace: this.logger(name, LogLevel.Trace),
+          enabled: true,
+        });
+      },
+    }) satisfies NetworkLoggerImpl;
   });
