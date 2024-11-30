@@ -14,7 +14,7 @@ import {
   Record,
   String,
 } from "effect";
-import { ReadonlyRecord } from "effect/Record";
+import type { ReadonlyRecord } from "effect/Record";
 import { CID } from "multiformats";
 import { base32 } from "multiformats/bases/base32";
 import { base58btc } from "multiformats/bases/base58";
@@ -115,6 +115,10 @@ export const format = (
 
     // try to get the name for the argument to be added to the context, if not possible, use `unknown${argumentIndex}`
     let argumentName = argument?.constructor.name;
+    if (argumentName !== undefined) {
+      argumentName = String.uncapitalize(argumentName);
+    }
+
     if (argumentName === undefined || Record.has(context, argumentName)) {
       argumentName = `unknown${argumentIndex}`;
     }

@@ -56,7 +56,7 @@ export const make = (
     const runtime = yield* Effect.runtime();
 
     return createProto(NetworkLoggerProto, {
-      formatters: formatters ?? internal.defaultFormatters,
+      formatters: formatters ?? DefaultFormatters,
       runtime,
       forComponent(this: NetworkLoggerImpl, name: string): Logger {
         return Object.assign(this.logger(name, LogLevel.Debug), {
