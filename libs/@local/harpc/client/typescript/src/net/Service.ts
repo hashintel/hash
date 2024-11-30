@@ -20,8 +20,6 @@ import { ResponseFromBytesStream } from "../wire-protocol/stream/index.js";
 import { Response } from "../wire-protocol/models/response/index.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Service");
-
-/** @internal */
 export type TypeId = typeof TypeId;
 
 export class TransportError extends Data.TaggedError("TransportError")<{

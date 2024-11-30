@@ -19,7 +19,7 @@ interface TransactionImpl extends Transaction {
   readonly read: Queue.Dequeue<Response.Response>;
   readonly write: Sink.Sink<Request.Request>;
 
-  readonly drop: Deferred.Deferred<Effect.Effect<void>>;
+  readonly drop: Deferred.Deferred<void>;
 }
 
 export const onDrop = (
@@ -29,5 +29,5 @@ export const onDrop = (
   Effect.gen(function* () {
     const impl = transaction as TransactionImpl;
 
-    return yield* Deferred.succeed(impl.drop, execute);
+    return yield* Deferred.completeWith(impl.drop, execute);
   });
