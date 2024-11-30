@@ -144,7 +144,7 @@ tower-layer        = { version = "=0.3.3", default-features = false }
 tower-service      = { version = "=0.3.3", default-features = false }
 tracing-appender   = { version = "=0.2.3", default-features = false }
 tracing-core       = { version = "=0.1.33", default-features = false }
-tracing-subscriber = { version = "=0.3.18", default-features = false }
+tracing-subscriber = { version = "=0.3.19", default-features = false }
 url                = { version = "=2.5.4", default-features = false }
 utoipa             = { version = "=4.2.3", default-features = false }
 uuid               = { version = "=1.11.0", default-features = false }
@@ -226,8 +226,8 @@ tokio-stream                = { version = "=0.1.16", default-features = false }
 tokio-test                  = { version = "=0.4.4", default-features = false }
 tower                       = { version = "=0.5.1", default-features = false }
 tower-test                  = { version = "=0.4.0", default-features = false }
-tracing                     = { version = "=0.1.40", default-features = false }
-tracing-error               = { version = "=0.2.0", default-features = false }
+tracing                     = { version = "=0.1.41", default-features = false }
+tracing-error               = { version = "=0.2.1", default-features = false }
 tracing-flame               = { version = "=0.2.0", default-features = false }
 tracing-opentelemetry       = { version = "=0.28.0", default-features = false }
 trait-variant               = { version = "=0.1.2", default-features = false }
