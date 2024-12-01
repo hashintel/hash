@@ -198,9 +198,7 @@ impl ConnectionTask {
             }
         }
 
-        // TODO: forced gc on timeout in upper layer
-
-        // we do not need to check for `EndOfRequest` here and forcefully close the channel, as the
+        // We do not need to check for `EndOfRequest` here and forcefully close the channel, as the
         // task is already doing this for us.
     }
 
