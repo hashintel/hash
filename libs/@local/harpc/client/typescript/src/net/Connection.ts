@@ -6,6 +6,7 @@ import {
   Deferred,
   Duration,
   Effect,
+  Function,
   MutableHashMap,
   Option,
   pipe,
@@ -14,7 +15,8 @@ import {
   Stream,
 } from "effect";
 
-import { Buffer, RequestIdProducer } from "../wire-protocol/index.js";
+import { createProto } from "../utils.js";
+import { Buffer } from "../wire-protocol/index.js";
 import type { RequestId } from "../wire-protocol/models/request/index.js";
 import { Request as WireRequest } from "../wire-protocol/models/request/index.js";
 import type { Response as WireResponse } from "../wire-protocol/models/response/index.js";
@@ -22,6 +24,8 @@ import { ResponseFlags } from "../wire-protocol/models/response/index.js";
 import { ResponseFromBytesStream } from "../wire-protocol/stream/index.js";
 import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
 import type * as internalTransport from "./internal/transport.js";
+import type * as Request from "./Request.js";
+import * as Transaction from "./Transaction.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Connection");
 export type TypeId = typeof TypeId;
@@ -74,7 +78,7 @@ export interface Connection {
   [TypeId]: TypeId;
 }
 
-interface TransactionTask {
+interface TransactionContext {
   queue: Queue.Enqueue<WireResponse.Response>;
   drop: Effect.Effect<void>;
 }
@@ -82,13 +86,20 @@ interface TransactionTask {
 interface ConnectionImpl extends Connection {
   readonly transactions: MutableHashMap.MutableHashMap<
     RequestId.RequestId,
-    TransactionTask
+    TransactionContext
   >;
 
   readonly duplex: ConnectionDuplex;
 
   readonly config: ConnectionConfig;
 }
+
+const ConnectionProto: Omit<
+  ConnectionImpl,
+  "transactions" | "duplex" | "config"
+> = {
+  [TypeId]: TypeId,
+};
 
 const makeSink = (connection: ConnectionImpl) =>
   // eslint-disable-next-line unicorn/no-array-for-each
@@ -134,7 +145,6 @@ const makeSink = (connection: ConnectionImpl) =>
     }).pipe(Effect.annotateLogs({ id: response.header.requestId })),
   );
 
-// TODO: get remove so we can close the transaction, transaction can register an effect that's run when it's closed / dropped
 const wrapDrop = (
   connection: ConnectionImpl,
   id: RequestId.RequestId,
@@ -218,27 +228,47 @@ export const makeUnchecked = (
 
     const duplex = { read: readStream, write: writeSink } as ConnectionDuplex;
 
-    // TODO: task
+    const self: ConnectionImpl = createProto(ConnectionProto, {
+      transactions: MutableHashMap.empty<
+        RequestId.RequestId,
+        TransactionContext
+      >(),
+      duplex,
+      config,
+    });
+
+    // TODO: we might want to observe the task, for that we would need to have a partial connection that we then patch
+    yield* Effect.fork(task(self));
+
+    return self as Connection;
   });
 
-export const send = <E, R>(
-  connection: Connection,
-  request: Request.Request<E, R>,
-) =>
-  Effect.gen(function* () {
-    const impl = connection as ConnectionImpl;
+export const send: {
+  <E, R>(
+    request: Request.Request<E, R>,
+  ): (self: Connection) => Effect.Effect<Transaction.Transaction>;
+  <E, R>(
+    self: Connection,
+    request: Request.Request<E, R>,
+  ): Effect.Effect<Transaction.Transaction>;
+} = Function.dual(
+  2,
+  <E, R>(self: ConnectionImpl, request: Request.Request<E, R>) =>
+    Effect.gen(function* () {
+      const deferredDrop = yield* Deferred.make<void>();
+      const drop = wrapDrop(self, request.id, deferredDrop);
 
-    const deferredDrop = yield* Deferred.make<void>();
+      const queue = yield* Queue.bounded<WireResponse.Response>(
+        self.config.responseBufferSize ?? 16,
+      );
 
-    const queue = yield* Queue.bounded(impl.config.responseBufferSize ?? 16);
-  });
+      const transactionContext: TransactionContext = {
+        queue,
+        drop,
+      };
 
-const transaction = (connection: ConnectionImpl) =>
-  Effect.gen(function* () {
-    const producer = yield* RequestIdProducer.RequestIdProducer;
+      MutableHashMap.set(self.transactions, request.id, transactionContext);
 
-    const id = yield* RequestIdProducer.next(producer);
-  });
-
-// TODO: Client that opens a stream to a server, then returns a connection, that connection can then be used to open a transaction!
-// TODO: cleanup - what if we finish the stream, we need to drop to close the connection (that we do over scope on make!)
+      return Transaction.makeUnchecked(request.id, queue, deferredDrop);
+    }),
+);

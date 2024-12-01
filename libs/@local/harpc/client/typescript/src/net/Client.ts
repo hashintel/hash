@@ -1,7 +1,7 @@
-import { Effect } from "effect";
+import { Effect, Function } from "effect";
 
 import { createProto } from "../utils.js";
-import type * as Connection from "./Connection.js";
+import * as Connection from "./Connection.js";
 import * as internalTransport from "./internal/transport.js";
 import type * as Transport from "./Transport.js";
 
@@ -19,9 +19,10 @@ export interface Client {
 
 interface ClientImpl extends Client {
   readonly client: internalTransport.Transport;
+  readonly config?: ClientConfig;
 }
 
-const ClientProto: Omit<ClientImpl, "client"> = {
+const ClientProto: Omit<ClientImpl, "client" | "config"> = {
   [TypeId]: TypeId,
 };
 
@@ -30,5 +31,20 @@ export const make = (config?: ClientConfig) =>
   Effect.gen(function* () {
     const client = yield* internalTransport.make(config?.transport);
 
-    return createProto(ClientProto, { client }) satisfies ClientImpl as Client;
+    return createProto(ClientProto, {
+      client,
+      config,
+    }) satisfies ClientImpl as Client;
   });
+
+export const connect: {
+  (
+    address: Transport.Address,
+  ): (self: Client) => Effect.Effect<Connection.Connection>;
+  (
+    self: Client,
+    address: Transport.Address,
+  ): Effect.Effect<Connection.Connection>;
+} = Function.dual(2, (self: ClientImpl, address: Transport.Address) =>
+  Connection.makeUnchecked(self.client, self.config?.connection ?? {}, address),
+);
