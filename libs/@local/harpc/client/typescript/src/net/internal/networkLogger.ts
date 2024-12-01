@@ -69,6 +69,7 @@ export const format = (
   input: unknown,
   args: readonly unknown[],
 ) => {
+  const inputArguments = [...args];
   const context: Record<string, unknown> = {};
 
   let formatString = "";
@@ -82,6 +83,9 @@ export const format = (
   } else {
     // predicate is an object, add it to the context and use the `%O` formatter
     context.object = input;
+    // push the object to the arguments
+    inputArguments.unshift(input);
+
     formatString = "%O";
   }
 
@@ -102,7 +106,7 @@ export const format = (
       continue;
     }
 
-    const argument = args[argumentIndex];
+    const argument = inputArguments[argumentIndex];
     if (argument === undefined) {
       output += `???`;
       continue;
