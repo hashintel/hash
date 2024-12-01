@@ -27,6 +27,7 @@ const ClientProto: Omit<ClientImpl, "client" | "config"> = {
 };
 
 // TODO: add a metrics compatability layer
+//  see: https://linear.app/hash/issue/H-3712/libp2p-metrics-compatibility-layer
 export const make = (config?: ClientConfig) =>
   Effect.gen(function* () {
     const client = yield* internalTransport.make(config?.transport);
