@@ -5264,43 +5264,43 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/platform-node-shared@npm:^0.19.29":
-  version: 0.19.29
-  resolution: "@effect/platform-node-shared@npm:0.19.29"
+"@effect/platform-node-shared@npm:^0.19.32":
+  version: 0.19.32
+  resolution: "@effect/platform-node-shared@npm:0.19.32"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    "@effect/platform": ^0.69.28
+    "@effect/platform": ^0.69.31
     effect: ^3.10.19
-  checksum: 10c0/9208b63bd1121ccecab7d89f1e2168e54d987c224e1b85a6f19b576866cd289e450559d6ce18592d3bc2eb744d3b7a6a60263c4cdca2f5d86690bcecf23544e2
+  checksum: 10c0/a6256806cc7c5f2dfb41f25f3d645b345c4877604f659120085ac2462495b56d4f59afe9cd8f33e3bbdef97873dc5703bc9dc1cb4cb5a53cbba1f9e135fd7516
   languageName: node
   linkType: hard
 
-"@effect/platform-node@npm:0.64.30":
-  version: 0.64.30
-  resolution: "@effect/platform-node@npm:0.64.30"
+"@effect/platform-node@npm:0.64.33":
+  version: 0.64.33
+  resolution: "@effect/platform-node@npm:0.64.33"
   dependencies:
-    "@effect/platform-node-shared": "npm:^0.19.29"
+    "@effect/platform-node-shared": "npm:^0.19.32"
     mime: "npm:^3.0.0"
     undici: "npm:^6.19.7"
     ws: "npm:^8.18.0"
   peerDependencies:
-    "@effect/platform": ^0.69.28
+    "@effect/platform": ^0.69.31
     effect: ^3.10.19
-  checksum: 10c0/164811bd4cf2b8c026d9a5a664db5ff4ecb56f25b6107b71ba670140f706205005069451dabe92f4082ed289b0d5f3888033d4e92bbf734ea91ac9f24ce1425b
+  checksum: 10c0/bf2777d2126cf7981376024917dfe8b17d0e62868ee15be4b92764d2dfea7a4f40330b40546967595f9a50103a4dd34592612b481e53fbb591774faab598be09
   languageName: node
   linkType: hard
 
-"@effect/platform@npm:0.69.28":
-  version: 0.69.28
-  resolution: "@effect/platform@npm:0.69.28"
+"@effect/platform@npm:0.69.31":
+  version: 0.69.31
+  resolution: "@effect/platform@npm:0.69.31"
   dependencies:
     find-my-way-ts: "npm:^0.1.5"
     multipasta: "npm:^0.2.5"
   peerDependencies:
     effect: ^3.10.19
-  checksum: 10c0/124a86f71a7a24af5669560dd90b0389e615f16d6618a5bf2a4fe28b16b1ef664547507c0215c10df2927aac8381fdf263dfd18f63ef387234d16cbe2a81103b
+  checksum: 10c0/ef4422642408cfd3900b4d750040fbca76be20eabea2df9f308e43c8df05536d22c6a0cdd7c08db2b9030ddcaa6cbe7673b2ecb8985b032d9840cdbcccef74b5
   languageName: node
   linkType: hard
 
@@ -8165,8 +8165,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/harpc-client@workspace:libs/@local/harpc/client/typescript"
   dependencies:
-    "@effect/platform": "npm:0.69.28"
-    "@effect/platform-node": "npm:0.64.30"
+    "@effect/platform": "npm:0.69.31"
+    "@effect/platform-node": "npm:0.64.33"
     "@effect/vitest": "npm:0.13.19"
     "@local/eslint-config": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
