@@ -1,9 +1,10 @@
-import { PeerId } from "@libp2p/interface";
-import { ConnectionManager } from "@libp2p/interface-internal";
-import { Multiaddr } from "@multiformats/multiaddr";
-import { Chunk, Data, Duration } from "effect";
+import type { PeerId } from "@libp2p/interface";
+import type { Multiaddr } from "@multiformats/multiaddr";
+import type { Chunk } from "effect";
 import {
+  Data,
   Deferred,
+  Duration,
   Effect,
   MutableHashMap,
   Option,
@@ -13,11 +14,14 @@ import {
   Stream,
 } from "effect";
 
-import { RequestIdProducer, Buffer } from "../wire-protocol/index.js";
-import { Request, RequestId } from "../wire-protocol/models/request/index.js";
-import type { Response } from "../wire-protocol/models/response/index.js";
+import { Buffer, RequestIdProducer } from "../wire-protocol/index.js";
+import type { RequestId } from "../wire-protocol/models/request/index.js";
+import { Request as WireRequest } from "../wire-protocol/models/request/index.js";
+import type { Response as WireResponse } from "../wire-protocol/models/response/index.js";
 import { ResponseFlags } from "../wire-protocol/models/response/index.js";
 import { ResponseFromBytesStream } from "../wire-protocol/stream/index.js";
+import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
+import type * as internalTransport from "./internal/transport.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Connection");
 export type TypeId = typeof TypeId;
@@ -31,8 +35,17 @@ export class TransportError extends Data.TaggedError("TransportError")<{
 }
 
 interface ConnectionDuplex {
-  readonly read: Stream.Stream<Response.Response>;
-  readonly write: Sink.Sink<Request.Request>;
+  readonly read: Stream.Stream<
+    WireResponse.Response,
+    TransportError | WireResponse.DecodeError | IncompleteResponseError
+  >;
+
+  readonly write: Sink.Sink<
+    void,
+    WireRequest.Request,
+    never,
+    TransportError | WireRequest.EncodeError
+  >;
 }
 
 export interface ConnectionConfig {
@@ -44,6 +57,15 @@ export interface ConnectionConfig {
    */
   lagTimeout?: Duration.DurationInput;
 
+  /**
+   * The size of the number of buffered responses to keep in memory.
+   * A larger buffer can improve performance and allows for more lenient timeouts,
+   * but consumes more memory. (a single response is a maximum of 64KiB)
+   *
+   * @default 16
+   */
+  responseBufferSize?: number;
+
   maxOutboundStreams?: number;
   runOnLimitedConnection?: boolean;
 }
@@ -53,7 +75,7 @@ export interface Connection {
 }
 
 interface TransactionTask {
-  queue: Queue.Enqueue<Response.Response>;
+  queue: Queue.Enqueue<WireResponse.Response>;
   drop: Effect.Effect<void>;
 }
 
@@ -72,7 +94,7 @@ interface ConnectionImpl extends Connection {
 
 const makeSink = (connection: ConnectionImpl) =>
   // eslint-disable-next-line unicorn/no-array-for-each
-  Sink.forEach((response: Response.Response) =>
+  Sink.forEach((response: WireResponse.Response) =>
     Effect.gen(function* () {
       const id = response.header.requestId;
 
@@ -148,13 +170,13 @@ const task = (connection: ConnectionImpl) =>
 
 /** @internal */
 export const makeUnchecked = (
-  manager: ConnectionManager,
+  transport: internalTransport.Transport,
   config: ConnectionConfig,
   peer: PeerId | Multiaddr | Multiaddr[],
 ) =>
   Effect.gen(function* () {
     const connection = yield* Effect.tryPromise((abort) =>
-      manager.openConnection(peer, { signal: abort }),
+      transport.dial(peer, { signal: abort }),
     );
 
     const stream = yield* Effect.acquireRelease(
@@ -184,17 +206,33 @@ export const makeUnchecked = (
           catch: (cause) => new TransportError({ cause }),
         }),
       ),
-      Sink.mapInputEffect((request: Request.Request) =>
+      Sink.mapInputEffect((request: WireRequest.Request) =>
         Effect.gen(function* () {
           const buffer = yield* Buffer.makeWrite();
 
-          yield* Request.encode(buffer, request);
+          yield* WireRequest.encode(buffer, request);
 
           const array = yield* Buffer.take(buffer);
           return new Uint8Array(array);
         }),
       ),
     );
+
+    const duplex = { read: readStream, write: writeSink } as ConnectionDuplex;
+
+    // TODO: task
+  });
+
+export const send = <E, R>(
+  connection: Connection,
+  request: WireRequest.Request<E, R>,
+) =>
+  Effect.gen(function* () {
+    const impl = connection as ConnectionImpl;
+
+    const deferredDrop = yield* Deferred.make<void>();
+
+    const queue = yield* Queue.bounded(impl.config.responseBufferSize ?? 16);
   });
 
 const transaction = (connection: ConnectionImpl) =>

@@ -32,7 +32,7 @@
     "it-stream-types": "2.0.2",
     "libp2p": "2.3.1",
     "multiformats": "13.3.1",
-    "weald": "1.0.4"
+    "uint8arraylist": "2.4.8"
   },
   "devDependencies": {
     "@effect/platform": "0.70.2",
