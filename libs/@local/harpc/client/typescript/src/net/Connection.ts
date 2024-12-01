@@ -90,8 +90,6 @@ interface ConnectionImpl extends Connection {
   readonly config: ConnectionConfig;
 }
 
-// TODO: close the connection if ConnectionImpl is closed (needs scope!)
-
 const makeSink = (connection: ConnectionImpl) =>
   // eslint-disable-next-line unicorn/no-array-for-each
   Sink.forEach((response: WireResponse.Response) =>
@@ -225,7 +223,7 @@ export const makeUnchecked = (
 
 export const send = <E, R>(
   connection: Connection,
-  request: WireRequest.Request<E, R>,
+  request: Request.Request<E, R>,
 ) =>
   Effect.gen(function* () {
     const impl = connection as ConnectionImpl;
