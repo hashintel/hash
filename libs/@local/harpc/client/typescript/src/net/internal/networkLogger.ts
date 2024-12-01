@@ -59,6 +59,22 @@ const tokenize = (format: string) => {
   return tokens;
 };
 
+const enrichContext = (
+  context: Record<string, unknown>,
+  index: number,
+  value: unknown,
+) => {
+  const name = pipe(
+    value?.constructor.name,
+    Option.fromNullable,
+    Option.map(String.uncapitalize),
+    Option.filter((_) => !Record.has(context, _)),
+    Option.getOrElse(() => `unknown${index}`),
+  );
+
+  context[name] = value;
+};
+
 /** @internal */
 export type Formatter = (value: unknown) => Option.Option<string>;
 
@@ -95,42 +111,35 @@ export const format = (
   let argumentIndex = 0;
 
   for (const token of tokens) {
-    if ("value" in token) {
+    if (Predicate.hasProperty(token, "value")) {
       output += token.value;
       continue;
     }
 
-    const formatter = formatters[token.type];
-    if (formatter === undefined) {
-      output += `???`;
+    if (argumentIndex >= inputArguments.length) {
+      output += "???";
       continue;
     }
 
     const argument = inputArguments[argumentIndex];
-    if (argument === undefined) {
-      output += `???`;
-      continue;
-    }
+    enrichContext(context, argumentIndex, argument);
+
+    argumentIndex += 1;
 
     const formatOutput = pipe(
-      formatter(argument),
+      formatters[token.type],
+      Option.liftPredicate(Predicate.isNotUndefined),
+      Option.ap(Option.some(argument)),
+      Option.flatten,
       Option.getOrElse(() => "???"),
     );
 
-    // try to get the name for the argument to be added to the context, if not possible, use `unknown${argumentIndex}`
-    let argumentName = argument?.constructor.name;
-    if (argumentName !== undefined) {
-      argumentName = String.uncapitalize(argumentName);
-    }
-
-    if (argumentName === undefined || Record.has(context, argumentName)) {
-      argumentName = `unknown${argumentIndex}`;
-    }
-
-    context[argumentName] = argument;
-
-    argumentIndex += 1;
     output += formatOutput;
+  }
+
+  // add any arguments to the context that were not used
+  for (let i = argumentIndex; i < inputArguments.length; i++) {
+    enrichContext(context, i, inputArguments[i]);
   }
 
   return Effect.logWithLevel(level, output).pipe(Effect.annotateLogs(context));
