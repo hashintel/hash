@@ -27,10 +27,7 @@ interface NetworkLoggerImpl extends NetworkLogger {
   ): (formatter: unknown, ...args: ReadonlyArray<unknown>) => void;
 }
 
-const NetworkLoggerProto: Omit<
-  NetworkLoggerImpl,
-  "formatters" | "forComponent" | "runtime"
-> = {
+const NetworkLoggerProto: Omit<NetworkLoggerImpl, "formatters" | "runtime"> = {
   [TypeId]: TypeId,
 
   logger(this: NetworkLoggerImpl, name: string, level: LogLevel.LogLevel) {
@@ -43,6 +40,14 @@ const NetworkLoggerProto: Omit<
 
       fork(effect);
     };
+  },
+
+  forComponent(this: NetworkLoggerImpl, name: string): Logger {
+    return Object.assign(this.logger(name, LogLevel.Debug), {
+      error: this.logger(name, LogLevel.Error),
+      trace: this.logger(name, LogLevel.Trace),
+      enabled: true,
+    });
   },
 };
 
@@ -58,12 +63,5 @@ export const make = (
     return createProto(NetworkLoggerProto, {
       formatters: formatters ?? DefaultFormatters,
       runtime,
-      forComponent(this: NetworkLoggerImpl, name: string): Logger {
-        return Object.assign(this.logger(name, LogLevel.Debug), {
-          error: this.logger(name, LogLevel.Error),
-          trace: this.logger(name, LogLevel.Trace),
-          enabled: true,
-        });
-      },
     }) satisfies NetworkLoggerImpl;
   });

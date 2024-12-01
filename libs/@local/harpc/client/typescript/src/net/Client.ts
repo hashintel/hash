@@ -28,7 +28,7 @@ export interface Client {
 }
 
 interface ClientImpl extends Client {
-  client: Libp2p<{ identify: Identify; ping: PingService }>;
+  readonly client: Libp2p<{ identify: Identify; ping: PingService }>;
 }
 
 const ClientProto: Omit<ClientImpl, "client"> = {
