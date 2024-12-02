@@ -304,7 +304,7 @@ impl<T> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap"))]
+    #[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap")))]
     /// </pre>
     pub fn push_appendix(&mut self, content: impl Into<String>) {
         self.inner_mut().extra_mut().appendix.push(content.into());
@@ -351,7 +351,7 @@ impl<T> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
+    #[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")))]
     /// </pre>
     pub fn push_body(&mut self, content: impl Into<String>) {
         self.inner_mut().extra_mut().body.push(content.into());

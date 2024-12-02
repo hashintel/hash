@@ -1,5 +1,3 @@
-#![expect(clippy::future_not_send)]
-
 use core::{error::Error, fmt};
 
 use serde::{Deserialize, Serialize};

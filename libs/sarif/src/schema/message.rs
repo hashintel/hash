@@ -76,7 +76,7 @@ use crate::schema::PropertyBag;
 /// ([§3.11.6]).
 ///
 /// Formatted messages **shall** be expressed in [GitHub-Flavored Markdown][GFM]. Since GFM is a
-/// superset of [CommonMark][CMARK], any CommonMark Markdown syntax is acceptable.
+/// superset of [CommonMark][CMARK], any `CommonMark` Markdown syntax is acceptable.
 ///
 ///
 /// ## Security implications
@@ -144,7 +144,7 @@ use crate::schema::PropertyBag;
 /// > In this example, the SARIF consumer will replace the placeholder `{0}` in `message.text`
 /// > with the value `"pBuffer"` from the 0 element of `message.arguments`.
 /// <blockquote><pre>
-#[doc = include_str!("doc/3.11.5-example-2.json")]
+#[cfg_attr(doc, doc = include_str!("doc/3.11.5-example-2.json"))]
 /// </pre></blockquote>
 ///
 ///
@@ -196,7 +196,7 @@ use crate::schema::PropertyBag;
 ///
 /// <blockquote>
 /// <pre>
-#[doc = include_str!("doc/3.11.6-example-1.json")]
+#[cfg_attr(doc, doc = include_str!("doc/3.11.6-example-1.json"))]
 /// </pre>
 /// </blockquote>
 ///
@@ -227,7 +227,7 @@ use crate::schema::PropertyBag;
 ///
 /// <blockquote>
 /// <pre>
-#[doc = include_str!("doc/3.11.6-example-2.json")]
+#[cfg_attr(doc, doc = include_str!("doc/3.11.6-example-2.json"))]
 /// </pre>
 /// </blockquote>
 ///
@@ -313,7 +313,7 @@ use crate::schema::PropertyBag;
 /// use the [`text`] property.
 ///
 /// The procedure is:
-#[doc = include_str!("doc/3.11.7-procedure.html")]
+#[cfg_attr(doc, doc = include_str!("doc/3.11.7-procedure.html"))]
 ///
 /// [`text`]: Self::text
 /// [`markdown`]: Self::markdown

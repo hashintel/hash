@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [package]
 name              = "chonky"
 description       = "General-purpose tooling for segmenting, chunking and embedding files"

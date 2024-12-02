@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2024-11-25&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2024-12-02&color=blue)][rust-version]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
 //! [libs.rs]: https://lib.rs/crates/error-stack
@@ -237,7 +237,7 @@
 //! This outputs something like:
 //!
 //! <pre>
-#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap"))]
+#![cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap")))]
 //! </pre>
 //!
 //! The `Suggestion` which was added via [`attach`] is not shown directly and only increases the
@@ -321,7 +321,7 @@
 //! well-defined type forces users to be conscious about how they classify and group their
 //! **custom** error types, which improves their usability in error-_handling_.
 //!
-//! ### Improving Result::Err Types
+//! ### Improving `Result::Err` Types
 //!
 //! By capturing the current [`Error`] in the type parameter, return types in function signatures
 //! continue to explicitly capture the perspective of the current code. This means that **more often
