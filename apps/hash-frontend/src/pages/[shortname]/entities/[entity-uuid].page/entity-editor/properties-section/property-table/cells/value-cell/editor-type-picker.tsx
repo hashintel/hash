@@ -1,10 +1,10 @@
 import type { ClosedDataType } from "@blockprotocol/type-system/slim";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { Box, ButtonBase, Typography } from "@mui/material";
 
 import { getEditorSpecs } from "./editor-specs";
 import type { OnTypeChange } from "./types";
-import { getEditorTypeFromExpectedType } from "./utils";
 
 const ExpectedTypeButton = ({
   onClick,
@@ -13,10 +13,15 @@ const ExpectedTypeButton = ({
   onClick: () => void;
   expectedType: ClosedDataType;
 }) => {
-  const editorSpec = getEditorSpecs(
-    getEditorTypeFromExpectedType(expectedType),
-    expectedType,
-  );
+  const schema = getMergedDataTypeSchema(expectedType);
+
+  if ("anyOf" in schema) {
+    throw new Error(
+      "Data types with different expected sets of constraints (anyOf) are not yet supported",
+    );
+  }
+
+  const editorSpec = getEditorSpecs(expectedType, schema);
 
   const { description, title } = expectedType;
 
@@ -74,9 +79,7 @@ export const EditorTypePicker = ({
             <ExpectedTypeButton
               expectedType={expectedType}
               key={expectedType.$id}
-              onClick={() =>
-                onTypeChange(getEditorTypeFromExpectedType(expectedType))
-              }
+              onClick={() => onTypeChange(expectedType)}
             />
           );
         })}

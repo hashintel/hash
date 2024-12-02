@@ -18,6 +18,7 @@ import {
 
 import type { CustomIcon } from "../../../../../../../../../components/grid/utils/custom-grid-icons";
 import type { EditorType } from "./types";
+import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 
 interface EditorSpec {
   icon: IconDefinition["icon"];
@@ -73,14 +74,14 @@ const measurementTypeTitles = [
 const identifierTypeTitles = ["URL", "URI"];
 
 export const getEditorSpecs = (
-  editorType: EditorType,
-  dataType?: ClosedDataType,
+  dataType: ClosedDataType,
+  schema: MergedDataTypeSingleSchema,
 ): EditorSpec => {
-  switch (editorType) {
+  switch (schema.type) {
     case "boolean":
       return editorSpecs.boolean;
     case "number":
-      if (dataType?.title && measurementTypeTitles.includes(dataType.title)) {
+      if (dataType.title && measurementTypeTitles.includes(dataType.title)) {
         return {
           ...editorSpecs.number,
           icon: faRulerRegular,
@@ -89,8 +90,8 @@ export const getEditorSpecs = (
       }
       return editorSpecs.number;
     case "string":
-      if (dataType && "format" in dataType) {
-        switch (dataType.format) {
+      if ("format" in schema) {
+        switch (schema.format) {
           case "uri":
             return {
               ...editorSpecs.string,
@@ -123,14 +124,14 @@ export const getEditorSpecs = (
             };
         }
       }
-      if (dataType?.title === "Email") {
+      if (dataType.title === "Email") {
         return {
           ...editorSpecs.string,
           icon: faAtRegular,
           gridIcon: "atRegular",
         };
       }
-      if (dataType?.title && identifierTypeTitles.includes(dataType.title)) {
+      if (dataType.title && identifierTypeTitles.includes(dataType.title)) {
         return {
           ...editorSpecs.string,
           icon: faInputPipeRegular,
@@ -143,6 +144,6 @@ export const getEditorSpecs = (
     case "null":
       return editorSpecs.null;
     default:
-      throw new Error(`Unknown editor type: ${editorType}`);
+      throw new Error(`Unhandled type: ${schema.type}`);
   }
 };

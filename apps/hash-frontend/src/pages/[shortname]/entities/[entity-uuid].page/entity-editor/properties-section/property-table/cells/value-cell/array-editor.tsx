@@ -13,6 +13,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { Box, styled } from "@mui/material";
 import produce from "immer";
 import { isNumber } from "lodash";
@@ -26,7 +27,7 @@ import { SortableRow } from "./array-editor/sortable-row";
 import type { SortableItem } from "./array-editor/types";
 import { getEditorSpecs } from "./editor-specs";
 import type { ValueCellEditorComponent } from "./types";
-import { getEditorTypeFromExpectedType, isBlankStringOrNullish } from "./utils";
+import { isBlankStringOrNullish } from "./utils";
 
 export const DRAFT_ROW_KEY = "draft";
 
@@ -47,6 +48,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const listWrapperRef = useRef<HTMLDivElement>(null);
   const {
     value: propertyValue,
+    valueDataType,
     permittedDataTypes,
     maxItems,
     minItems,
@@ -55,14 +57,19 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const items = useMemo(() => {
     const values = Array.isArray(propertyValue) ? propertyValue : [];
 
+    if (values.length && !valueDataType) {
+      throw new Error("Expected valueDataType to be set when there are values");
+    }
+
     const itemsArray: SortableItem[] = values.map((value, index) => ({
+      dataType: valueDataType!,
       index,
       id: `${index}_${String(value)}`,
       value,
     }));
 
     return itemsArray;
-  }, [propertyValue]);
+  }, [propertyValue, valueDataType]);
 
   const [selectedRow, setSelectedRow] = useState("");
   const [editingRow, setEditingRow] = useState(() => {
@@ -72,11 +79,20 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     }
 
     if (permittedDataTypes.length === 1) {
-      const expectedType = getEditorTypeFromExpectedType(
-        permittedDataTypes[0]!,
-      );
+      const expectedType = permittedDataTypes[0]!;
 
-      if (getEditorSpecs(expectedType).arrayEditException === "no-edit-mode") {
+      const schema = getMergedDataTypeSchema(expectedType);
+
+      if ("anyOf" in schema) {
+        throw new Error(
+          "Data types with different expected sets of constraints (anyOf) are not yet supported",
+        );
+      }
+
+      if (
+        getEditorSpecs(expectedType, schema).arrayEditException ===
+        "no-edit-mode"
+      ) {
         return "";
       }
     }
@@ -160,8 +176,17 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
     const onlyOneExpectedType = permittedDataTypes.length === 1;
     const expectedType = permittedDataTypes[0]!;
-    const editorType = getEditorTypeFromExpectedType(expectedType);
-    const editorSpec = getEditorSpecs(editorType, expectedType);
+
+    const schema = getMergedDataTypeSchema(expectedType);
+
+    if ("anyOf" in schema) {
+      throw new Error(
+        "Data types with different expected sets of constraints (anyOf) are not yet supported",
+      );
+    }
+
+    const editorSpec = getEditorSpecs(expectedType, schema);
+
     const noEditMode = editorSpec.arrayEditException === "no-edit-mode";
 
     // add the value on click instead of showing draftRow

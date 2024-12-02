@@ -6,6 +6,7 @@ import type {
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import produce from "immer";
 import type { RefObject } from "react";
 
@@ -17,7 +18,6 @@ import { propertyGridIndexes } from "../constants";
 import type { PropertyRow } from "../types";
 import { getEditorSpecs } from "./value-cell/editor-specs";
 import type { ValueCell } from "./value-cell/types";
-import { getEditorTypeFromExpectedType } from "./value-cell/utils";
 
 export interface ChangeTypeCellProps {
   readonly kind: "change-type-cell";
@@ -45,7 +45,7 @@ export const createRenderChangeTypeCell = (
       (cell.data as any).kind === "change-type-cell",
     draw: (args, cell) => {
       const { theme, rect, ctx, spriteManager } = args;
-      const { currentType, propertyRow } = cell.data;
+      const { currentType } = cell.data;
       const yCenter = getYCenter(args);
 
       const chipLeft = rect.x + theme.cellHorizontalPadding;
@@ -53,10 +53,15 @@ export const createRenderChangeTypeCell = (
       ctx.font = changeTextFont;
       const changeTextWidth = ctx.measureText(changeText).width;
 
-      const editorSpec = getEditorSpecs(
-        getEditorTypeFromExpectedType(currentType),
-        currentType,
-      );
+      const schema = getMergedDataTypeSchema(currentType);
+
+      if ("anyOf" in schema) {
+        throw new Error(
+          "Data types with different expected sets of constraints (anyOf) are not yet supported",
+        );
+      }
+
+      const editorSpec = getEditorSpecs(currentType, schema);
 
       const drawTheLeftChip = () =>
         drawChipWithIcon({

@@ -1,10 +1,12 @@
 import type { JsonValue } from "@blockprotocol/core";
-import type { ClosedDataType } from "@blockprotocol/type-system";
 import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
-import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
+import {
+  formatDataValue,
+  getMergedDataTypeSchema,
+} from "@local/hash-isomorphic-utils/data-types";
 
 import {
   getCellHorizontalPadding,
@@ -21,36 +23,6 @@ import { getEditorSpecs } from "./value-cell/editor-specs";
 import { ReadonlyPopup } from "./value-cell/readonly-popup";
 import { SingleValueEditor } from "./value-cell/single-value-editor";
 import type { ValueCell } from "./value-cell/types";
-import { guessEditorTypeFromValue } from "./value-cell/utils";
-
-const guessDataTypeFromValue = (
-  value: JsonValue,
-  expectedTypes: ClosedDataType[],
-) => {
-  const editorType = guessEditorTypeFromValue(value, expectedTypes);
-
-  const expectedType = expectedTypes.find(({ allOf }) =>
-    allOf.some((constraint) =>
-      "type" in constraint
-        ? constraint.type === editorType
-        : /**
-           * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId
-           *   from property metadata
-           */
-          constraint.anyOf.some((subType) => subType.type === editorType),
-    ),
-  );
-
-  if (!expectedType) {
-    throw new Error(
-      `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
-        .map((opt) => opt.$id)
-        .join(", ")}`,
-    );
-  }
-
-  return expectedType;
-};
 
 export const renderValueCell: CustomRenderer<ValueCell> = {
   kind: GridCellKind.Custom,
@@ -71,20 +43,23 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const yCenter = getYCenter(args);
     const left = rect.x + getCellHorizontalPadding();
 
-    const editorType = guessEditorTypeFromValue(value, permittedDataTypes);
-    const relevantType = permittedDataTypes.find(({ allOf }) =>
-      allOf.some((constraint) =>
-        "type" in constraint
-          ? constraint.type === editorType
-          : /**
-             * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId
-             *   from property metadata
-             */
-            constraint.anyOf.some((subType) => subType.type === editorType),
-      ),
-    );
+    const dataType = valueDataType ?? permittedDataTypes[0];
 
-    const editorSpec = getEditorSpecs(editorType, relevantType);
+    if (!dataType) {
+      throw new Error(
+        "Expected a data type to be set on the value or at least one permitted data type",
+      );
+    }
+
+    const schema = getMergedDataTypeSchema(dataType);
+
+    if ("anyOf" in schema) {
+      throw new Error(
+        "Data types with different expected sets of constraints (anyOf) are not yet supported",
+      );
+    }
+
+    const editorSpec = getEditorSpecs(dataType, schema);
 
     if (isValueEmpty(value)) {
       // draw empty value
@@ -93,28 +68,18 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       const emptyText = isArray ? "No values" : "No value";
       ctx.fillText(emptyText, left, yCenter);
     } else if (!isArray && editorSpec.shouldBeDrawnAsAChip) {
-      const expectedType = guessDataTypeFromValue(
-        value as JsonValue,
-        permittedDataTypes,
-      );
-
       drawChipWithText({
         args,
         left,
-        text: formatDataValue(value as JsonValue, expectedType)
+        text: formatDataValue(value as JsonValue, schema)
           .map((part) => part.text)
           .join(""),
       });
-    } else if (editorType === "boolean") {
-      const expectedType = guessDataTypeFromValue(
-        value as JsonValue,
-        permittedDataTypes,
-      );
-
+    } else if (schema.type === "boolean") {
       // draw boolean
       drawTextWithIcon({
         args,
-        text: formatDataValue(value as JsonValue, expectedType)
+        text: formatDataValue(value as JsonValue, schema)
           .map((part) => part.text)
           .join(""),
         icon: value ? "bpCheck" : "bpCross",
@@ -128,11 +93,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       const valueParts: FormattedValuePart[] = [];
       if (Array.isArray(value)) {
         for (const [index, entry] of value.entries()) {
-          const expectedType = guessDataTypeFromValue(
-            entry as JsonValue,
-            permittedDataTypes,
-          );
-          valueParts.push(...formatDataValue(entry as JsonValue, expectedType));
+          valueParts.push(...formatDataValue(entry as JsonValue, schema));
           if (index < value.length - 1) {
             valueParts.push({
               text: ", ",
@@ -142,11 +103,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
           }
         }
       } else {
-        const expectedType = guessDataTypeFromValue(
-          value as JsonValue,
-          permittedDataTypes,
-        );
-        valueParts.push(...formatDataValue(value as JsonValue, expectedType));
+        valueParts.push(...formatDataValue(value as JsonValue, schema));
       }
 
       let textOffset = left;

@@ -888,7 +888,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     return this.#entity.metadata.properties ?? { value: {} };
   }
 
-  public propertyMetadata(path: PropertyPath): PropertyMetadata["metadata"] {
+  public propertyMetadata(path: PropertyPath): PropertyMetadata | undefined {
     return path.reduce<PropertyMetadata | undefined>((map, key) => {
       if (!map || !("value" in map)) {
         return undefined;
@@ -904,7 +904,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       } else {
         return undefined;
       }
-    }, this.#entity.metadata.properties)?.metadata;
+    }, this.#entity.metadata.properties);
   }
 
   public flattenedPropertiesMetadata(): {

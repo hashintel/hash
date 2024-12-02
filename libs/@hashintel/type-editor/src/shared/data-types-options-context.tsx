@@ -16,7 +16,6 @@ import {
   fa100,
   faAtRegular,
   faBracketsCurly,
-  faBracketsSquare,
   faCalendarClockRegular,
   faCalendarRegular,
   faClockRegular,
@@ -186,6 +185,10 @@ const getArrayDataTypeDisplay = (
   let items: [ArrayItemsSchema, ...ArrayItemsSchema[]];
 
   if (isTupleConstraints(dataType)) {
+    if (!dataType.prefixItems) {
+      throw new Error("TupleConstraints must have prefixItems");
+    }
+
     items = dataType.prefixItems;
   } else if (!dataType.items) {
     return expectedValuesDisplayMap.mixedArray;

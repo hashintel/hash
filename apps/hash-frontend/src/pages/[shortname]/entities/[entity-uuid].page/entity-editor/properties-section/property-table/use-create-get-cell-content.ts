@@ -1,5 +1,6 @@
 import type { Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { useCallback } from "react";
 
 import type { BlankCell } from "../../../../../../../components/grid/utils";
@@ -9,15 +10,10 @@ import type { ChipCell } from "../../../../../../shared/chip-cell";
 import { useEntityEditor } from "../../entity-editor-context";
 import type { SummaryChipCell } from "../../shared/summary-chip-cell";
 import { getPropertyCountSummary } from "../get-property-count-summary";
-import { isValueEmpty } from "../is-value-empty";
 import type { ChangeTypeCell } from "./cells/change-type-cell";
 import type { PropertyNameCell } from "./cells/property-name-cell";
 import { getEditorSpecs } from "./cells/value-cell/editor-specs";
 import type { ValueCell } from "./cells/value-cell/types";
-import {
-  getEditorTypeFromExpectedType,
-  guessEditorTypeFromValue,
-} from "./cells/value-cell/utils";
 import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import type { PropertyRow } from "./types";
@@ -67,7 +63,7 @@ export const useCreateGetCellContent = (
           },
         };
 
-        const { isArray, permittedDataTypes, value, valueDataType } = row;
+        const { isArray, permittedDataTypes, valueDataType } = row;
 
         const shouldShowChangeTypeCell =
           permittedDataTypes.length > 1 && !isArray && !readonly;
@@ -141,10 +137,15 @@ export const useCreateGetCellContent = (
               data: {
                 kind: "chip-cell",
                 chips: row.permittedDataTypes.map((type) => {
-                  const editorSpec = getEditorSpecs(
-                    getEditorTypeFromExpectedType(type),
-                    type,
-                  );
+                  const schema = getMergedDataTypeSchema(type);
+
+                  if ("anyOf" in schema) {
+                    throw new Error(
+                      "Data types with different expected sets of constraints (anyOf) are not yet supported",
+                    );
+                  }
+
+                  const editorSpec = getEditorSpecs(type, schema);
 
                   return {
                     text: type.title,

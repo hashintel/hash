@@ -18,7 +18,7 @@ export type PropertyRow = {
   rowId: string;
   title: string;
   value: unknown;
-  valueDataType?: ClosedDataType;
+  valueDataType?: ClosedDataType | ClosedDataType[] | "object";
   verticalLinesForEachIndent: VerticalIndentationLineDir[];
 };
 
