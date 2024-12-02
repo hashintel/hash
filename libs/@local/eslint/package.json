@@ -1,0 +1,27 @@
+{
+  "name": "@local/eslint",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Shared ESLint configuration",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json"
+  },
+  "dependencies": {
+    "effect": "3.11.0",
+    "eslint": "9.16.0",
+    "eslint-config-sheriff": "25.3.0",
+    "eslint-define-config": "2.1.0",
+    "eslint-plugin-storybook": "0.11.1"
+  },
+  "devDependencies": {
+    "@types/eslint": "9.6.1",
+    "rimraf": "6.0.1",
+    "typescript": "5.7.2"
+  }
+}
