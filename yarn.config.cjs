@@ -111,7 +111,9 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
       for (const [key, { commands }] of Object.entries(
         supportedDevDependencies,
       )) {
-        if (commands.some((command) => script.includes(command))) {
+        const scriptSplit = script.split(" ");
+
+        if (commands.some((command) => scriptSplit.includes(command))) {
           dependsOn[key] = true;
         }
       }
