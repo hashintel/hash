@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [workspace]
 default-members = [
     "apps/hash-graph",

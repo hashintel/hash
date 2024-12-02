@@ -266,9 +266,9 @@ impl ConstraintValidator<[JsonValue]> for ArrayConstraints {
     type Error = [ArrayValidationError];
 
     fn is_valid(&self, value: &[JsonValue]) -> bool {
-        self.items.as_ref().map_or(true, |items| {
-            value.iter().all(|value| items.constraints.is_valid(value))
-        })
+        self.items
+            .as_ref()
+            .is_none_or(|items| value.iter().all(|value| items.constraints.is_valid(value)))
     }
 
     fn validate_value(&self, value: &[JsonValue]) -> Result<(), Report<[ArrayValidationError]>> {

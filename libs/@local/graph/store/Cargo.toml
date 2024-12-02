@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [package]
 name              = "hash-graph-store"
 version.workspace = true
