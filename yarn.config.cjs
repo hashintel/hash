@@ -66,18 +66,8 @@ function enforceConsistentDependenciesAcrossTheProject({ Yarn }) {
  * @param {Context} context - The Yarn constraint context.
  */
 function enforceNoDualTypeDependencies({ Yarn }) {
-  for (const dependency of Yarn.dependencies({ type: "devDependencies" })) {
-    const devDependency = Yarn.dependency({
-      workspace: dependency.workspace,
-      ident: dependency.ident,
-      type: "dependencies",
-    });
-
-    if (devDependency === null) {
-      continue;
-    }
-
-    dependency.workspace.unset(`dependency.${dependency.ident}`);
+  for (const devDependency of Yarn.dependencies({ type: "devDependencies" })) {
+    devDependency.workspace.unset(`dependency.${devDependency.ident}`);
   }
 }
 
