@@ -286,19 +286,13 @@ where
                 }
             }
 
-            for (edge_kind, table) in [
-                (
-                    OntologyEdgeKind::InheritsFrom,
-                    ReferenceTable::DataTypeInheritsFrom {
-                        // TODO: Use the resolve depths passed to the query
-                        inheritance_depth: Some(0),
-                    },
-                ),
-                (
-                    OntologyEdgeKind::ConstrainsValuesOn,
-                    ReferenceTable::DataTypeConstrainsValuesOn,
-                ),
-            ] {
+            for (edge_kind, table) in [(
+                OntologyEdgeKind::InheritsFrom,
+                ReferenceTable::DataTypeInheritsFrom {
+                    // TODO: Use the resolve depths passed to the query
+                    inheritance_depth: Some(0),
+                },
+            )] {
                 if let Some(traversal_data) = edges_to_traverse.get(&edge_kind) {
                     data_type_queue.extend(
                         Self::filter_data_types_by_permission(
@@ -344,7 +338,6 @@ where
                 "
                     DELETE FROM data_type_embeddings;
                     DELETE FROM data_type_inherits_from;
-                    DELETE FROM data_type_constrains_values_on;
                     DELETE FROM data_type_conversions;
                 ",
             )

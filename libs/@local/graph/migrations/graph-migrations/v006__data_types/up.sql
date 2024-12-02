@@ -21,12 +21,6 @@ SELECT
 FROM data_type_inherits_from
 GROUP BY data_type_inherits_from.source_data_type_ontology_id;
 
-
-CREATE TABLE data_type_constrains_values_on (
-    source_data_type_ontology_id UUID NOT NULL REFERENCES data_types,
-    target_data_type_ontology_id UUID NOT NULL REFERENCES data_types
-);
-
 CREATE TABLE data_type_embeddings (
     ontology_id UUID PRIMARY KEY REFERENCES data_types,
     embedding VECTOR(3072) NOT NULL,
