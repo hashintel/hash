@@ -9,6 +9,7 @@ const flatCompat = new FlatCompat();
 
 export interface Options {}
 
+// TODO: try again with a highly reduced set of rules from our base config
 export const create = (options: Partial<Options>): readonly ESConfig[] => {
   return pipe(
     fixupConfigRules(flatCompat.extends("airbnb")),
