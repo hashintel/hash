@@ -28373,13 +28373,11 @@ __metadata:
     check-dependency-version-consistency: "npm:3.0.3"
     concurrently: "npm:7.6.0"
     cross-env: "npm:7.0.3"
-    dotenv-flow: "npm:3.3.0"
     husky: "npm:8.0.3"
     lint-staged: "npm:15.2.10"
     lockfile-lint: "npm:4.14.0"
     markdownlint-cli: "npm:0.43.0"
     npm-run-all2: "npm:7.0.1"
-    postinstall-postinstall: "npm:2.1.0"
     prettier: "npm:3.4.1"
     prettier-plugin-packagejson: "npm:2.5.6"
     prettier-plugin-sh: "npm:0.14.0"
@@ -37888,13 +37886,6 @@ __metadata:
   dependencies:
     axios: "npm:^0.27.0"
   checksum: 10c0/5df24696dc8047def4a001cf9137c31ac32f46e9ba6a906fe3908641b9b468578af9d36c720b9f18c02981d2bb8137a85b35693d406e7955ac0d57aba9f9447e
-  languageName: node
-  linkType: hard
-
-"postinstall-postinstall@npm:2.1.0":
-  version: 2.1.0
-  resolution: "postinstall-postinstall@npm:2.1.0"
-  checksum: 10c0/70488447292c712afa7806126824d6fe93362392cbe261ae60166d9119a350713e0dbf4deb2ca91637c1037bc030ed1de78d61d9041bf2504513070f1caacdfd
   languageName: node
   linkType: hard
 
