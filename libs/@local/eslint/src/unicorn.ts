@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/prevent-abbreviations */
-import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
+import { defineConfig, ESConfig } from "./utils.js";
 
-const preventAbbreviations = (): FlatESLintConfig => ({
+const preventAbbreviations = (): ESConfig => ({
   rules: {
     "unicorn/prevent-abbreviations": [
       "error",
@@ -143,8 +143,8 @@ const preventAbbreviations = (): FlatESLintConfig => ({
   },
 });
 
-export const unicorn = (config: FlatESLintConfig[]): FlatESLintConfig[] =>
-  defineFlatConfig([
+export const unicorn = (config: readonly ESConfig[]): readonly ESConfig[] =>
+  defineConfig([
     ...config,
     {
       rules: {

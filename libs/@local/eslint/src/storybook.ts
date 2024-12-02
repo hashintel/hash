@@ -1,22 +1,22 @@
 // This configuration is here only as a stand-in until sheriff supports it, as flat configuration is currently only available in canary.
-import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
 import type { PartialDeep } from "type-fest";
 import type { Options } from "./index.js";
 
 import eslintPluginStorybook from "eslint-plugin-storybook";
+import { defineConfig, ESConfig } from "./utils.js";
 
 export const storybook =
   (options: PartialDeep<Options>) =>
-  (config: FlatESLintConfig[]): FlatESLintConfig[] => {
+  (config: readonly ESConfig[]): readonly ESConfig[] => {
     if (!options.enabled?.storybook) {
       return config;
     }
 
-    return defineFlatConfig([
+    return defineConfig([
       ...config,
       ...(eslintPluginStorybook.configs[
         "flat/recommended"
-      ] as unknown as FlatESLintConfig[]),
+      ] as unknown as readonly ESConfig[]),
       {
         rules: {
           "storybook/no-uninstalled-addons": "error",

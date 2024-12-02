@@ -1,8 +1,11 @@
 import { Option, pipe, Predicate, Array as ReadonlyArray } from "effect";
-import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
+import { defineFlatConfig } from "eslint-define-config";
 import type { PartialDeep } from "type-fest";
 
 import type { NoRestrictedImportsRule, Options } from "./index.js";
+import { Linter } from "eslint";
+
+import { ESConfig, defineConfig } from "./utils.js";
 
 const mergeRestrictedImports = (
   current: NoRestrictedImportsRule,
@@ -13,9 +16,9 @@ const mergeRestrictedImports = (
 });
 
 const noRestrictedImports = (
-  config: FlatESLintConfig[],
+  config: readonly ESConfig[],
   overrides: () => NoRestrictedImportsRule[],
-): FlatESLintConfig[] => {
+): readonly ESConfig[] => {
   // get the latest current `no-restricted-imports` rule value and merge with the
   // overrides
   const candidates = pipe(
@@ -44,7 +47,7 @@ const noRestrictedImports = (
 
   const currentRule = current as NoRestrictedImportsRule;
 
-  return defineFlatConfig([
+  return defineConfig([
     {
       rules: {
         "no-restricted-imports": [
@@ -52,14 +55,14 @@ const noRestrictedImports = (
           overrides().reduce(mergeRestrictedImports, currentRule),
         ],
       },
-    } satisfies FlatESLintConfig,
+    } satisfies ESConfig,
   ]);
 };
 
 export const builtIn =
   (options: PartialDeep<Options>) =>
-  (config: FlatESLintConfig[]): FlatESLintConfig[] =>
-    defineFlatConfig([
+  (config: readonly ESConfig[]): readonly ESConfig[] =>
+    defineConfig([
       ...config,
       {
         rules: {

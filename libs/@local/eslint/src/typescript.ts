@@ -1,8 +1,8 @@
 import { Predicate } from "effect";
 import type { Linter } from "eslint";
-import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
 
 import { JS_EXTENSIONS, JSX_EXTENSIONS } from "./constants.js";
+import { defineConfig, ESConfig } from "./utils.js";
 
 const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
   "error",
@@ -86,8 +86,8 @@ const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
   },
 ];
 
-export const typescript = (config: FlatESLintConfig[]): FlatESLintConfig[] =>
-  defineFlatConfig([
+export const typescript = (config: readonly ESConfig[]): readonly ESConfig[] =>
+  defineConfig([
     ...config,
     {
       rules: {

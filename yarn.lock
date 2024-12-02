@@ -6203,7 +6203,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/compat@npm:^1.1.1":
+"@eslint/compat@npm:1.2.3, @eslint/compat@npm:^1.1.1":
   version: 1.2.3
   resolution: "@eslint/compat@npm:1.2.3"
   peerDependencies:
@@ -6233,6 +6233,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@eslint/eslintrc@npm:3.2.0, @eslint/eslintrc@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "@eslint/eslintrc@npm:3.2.0"
+  dependencies:
+    ajv: "npm:^6.12.4"
+    debug: "npm:^4.3.2"
+    espree: "npm:^10.0.1"
+    globals: "npm:^14.0.0"
+    ignore: "npm:^5.2.0"
+    import-fresh: "npm:^3.2.1"
+    js-yaml: "npm:^4.1.0"
+    minimatch: "npm:^3.1.2"
+    strip-json-comments: "npm:^3.1.1"
+  checksum: 10c0/43867a07ff9884d895d9855edba41acf325ef7664a8df41d957135a81a477ff4df4196f5f74dc3382627e5cc8b7ad6b815c2cea1b58f04a75aced7c43414ab8b
+  languageName: node
+  linkType: hard
+
 "@eslint/eslintrc@npm:^2.1.4":
   version: 2.1.4
   resolution: "@eslint/eslintrc@npm:2.1.4"
@@ -6247,23 +6264,6 @@ __metadata:
     minimatch: "npm:^3.1.2"
     strip-json-comments: "npm:^3.1.1"
   checksum: 10c0/32f67052b81768ae876c84569ffd562491ec5a5091b0c1e1ca1e0f3c24fb42f804952fdd0a137873bc64303ba368a71ba079a6f691cee25beee9722d94cc8573
-  languageName: node
-  linkType: hard
-
-"@eslint/eslintrc@npm:^3.2.0":
-  version: 3.2.0
-  resolution: "@eslint/eslintrc@npm:3.2.0"
-  dependencies:
-    ajv: "npm:^6.12.4"
-    debug: "npm:^4.3.2"
-    espree: "npm:^10.0.1"
-    globals: "npm:^14.0.0"
-    ignore: "npm:^5.2.0"
-    import-fresh: "npm:^3.2.1"
-    js-yaml: "npm:^4.1.0"
-    minimatch: "npm:^3.1.2"
-    strip-json-comments: "npm:^3.1.1"
-  checksum: 10c0/43867a07ff9884d895d9855edba41acf325ef7664a8df41d957135a81a477ff4df4196f5f74dc3382627e5cc8b7ad6b815c2cea1b58f04a75aced7c43414ab8b
   languageName: node
   linkType: hard
 
@@ -8413,11 +8413,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/eslint@workspace:libs/@local/eslint"
   dependencies:
-    "@types/eslint": "npm:9.6.1"
+    "@eslint/compat": "npm:1.2.3"
+    "@eslint/eslintrc": "npm:3.2.0"
+    "@types/eslint__eslintrc": "npm:2.1.2"
     effect: "npm:3.11.0"
     eslint: "npm:9.16.0"
     eslint-config-sheriff: "npm:25.3.0"
-    eslint-define-config: "npm:2.1.0"
+    eslint-plugin-airbnb: "npm:0.0.1-security"
     eslint-plugin-storybook: "npm:0.11.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.2"
@@ -16741,7 +16743,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/eslint@npm:*, @types/eslint@npm:9.6.1":
+"@types/eslint@npm:*":
   version: 9.6.1
   resolution: "@types/eslint@npm:9.6.1"
   dependencies:
@@ -16758,6 +16760,15 @@ __metadata:
     "@types/estree": "npm:*"
     "@types/json-schema": "npm:*"
   checksum: 10c0/e4ca426abe9d55f82b69a3250bec78b6d340ad1e567f91c97ecc59d3b2d6a1d8494955ac62ad0ea14b97519db580611c02be8277cbea370bdfb0f96aa2910504
+  languageName: node
+  linkType: hard
+
+"@types/eslint__eslintrc@npm:2.1.2":
+  version: 2.1.2
+  resolution: "@types/eslint__eslintrc@npm:2.1.2"
+  dependencies:
+    "@types/eslint": "npm:*"
+  checksum: 10c0/ccbeb74886fbbee1b016ed9c920ad932cb0b970c42eec4cea27e04c2640d5a92c20e44d4610de73551c4c8f658963a769ddc9fd75eac72edf33f035129600637
   languageName: node
   linkType: hard
 
@@ -25632,13 +25643,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-define-config@npm:2.1.0":
-  version: 2.1.0
-  resolution: "eslint-define-config@npm:2.1.0"
-  checksum: 10c0/034bd6bfbfec2db6c720a51815de6b072efeef7afbf99d90c23a1871f9cd741bb77f9d34e0bc2465262298c6110c5c45b704714d8575c6567fd2df963fb792ea
-  languageName: node
-  linkType: hard
-
 "eslint-import-resolver-node@npm:^0.3.9":
   version: 0.3.9
   resolution: "eslint-import-resolver-node@npm:0.3.9"
@@ -25684,6 +25688,13 @@ __metadata:
     eslint:
       optional: true
   checksum: 10c0/4d8b46dcd525d71276f9be9ffac1d2be61c9d54cc53c992e6333cf957840dee09381842b1acbbb15fc6b255ebab99cd481c5007ab438e5455a14abe1a0468558
+  languageName: node
+  linkType: hard
+
+"eslint-plugin-airbnb@npm:0.0.1-security":
+  version: 0.0.1-security
+  resolution: "eslint-plugin-airbnb@npm:0.0.1-security"
+  checksum: 10c0/d7fc1c39a3da4e728521f0559b8d40b2eb7a393188bf0cfcdbd349b2558a8ae092e0606a1a75045950f7ea55dd37c638da39fd3f3429ab64ec49062320137a43
   languageName: node
   linkType: hard
 

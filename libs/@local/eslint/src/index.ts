@@ -9,7 +9,7 @@ import { stylistic } from "./stylistic.js";
 import { typescript } from "./typescript.js";
 import { unicorn } from "./unicorn.js";
 import { storybook } from "./storybook.js";
-import { defineFlatConfig, FlatESLintConfig } from "eslint-define-config";
+import { defineConfig, ESConfig } from "./utils.js";
 
 // A subset of the allowed rule config, because we're sane
 export interface NoRestrictedImportsPath {
@@ -44,7 +44,7 @@ export interface Options {
   mutableParametersRegex(): string[];
 }
 
-export const create = (options: PartialDeep<Options>): FlatESLintConfig[] => {
+export const create = (options: PartialDeep<Options>): readonly ESConfig[] => {
   const sheriffOptions: SheriffSettings = {
     react: options.enabled?.frontend === "react",
     next: options.enabled?.frontend === "next",
@@ -60,8 +60,8 @@ export const create = (options: PartialDeep<Options>): FlatESLintConfig[] => {
   };
 
   return pipe(
-    sheriff(sheriffOptions) as readonly FlatESLintConfig[],
-    defineFlatConfig,
+    sheriff(sheriffOptions) as readonly ESConfig[],
+    defineConfig,
     builtIn(options),
     importPlugin,
     unicorn,

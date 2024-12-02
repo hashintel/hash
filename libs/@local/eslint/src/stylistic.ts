@@ -1,7 +1,7 @@
-import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
+import { defineConfig, ESConfig } from "./utils.js";
 
-export const stylistic = (config: FlatESLintConfig[]): FlatESLintConfig[] =>
-  defineFlatConfig([
+export const stylistic = (config: readonly ESConfig[]): readonly ESConfig[] =>
+  defineConfig([
     ...config,
     {
       rules: {
