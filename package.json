@@ -36,7 +36,7 @@
     "generate-ontology-type-ids": "yarn workspace @apps/hash-api generate-ontology-type-ids",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "@TODO.1": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.2)",
-    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-dep=@blockprotocol/graph --ignore-dep=@sentry/webpack-plugin --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
+    "fix:constraints": "yarn constraints --fix",
     "fix:eslint": "turbo --continue fix:eslint --",
     "fix:taplo": "taplo fmt",
     "fix:markdownlint": "markdownlint --dot --fix .",
@@ -44,7 +44,7 @@
     "fix:yarn-deduplicate": "yarn dedupe --strategy highest",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "@TODO.2": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.1)",
-    "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-dep=@blockprotocol/graph --ignore-dep=@sentry/webpack-plugin --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
+    "lint:constraints": "yarn constraints",
     "lint:eslint": "turbo --continue lint:eslint --",
     "lint:license-in-workspaces": "yarn workspace @local/repo-chores exe scripts/check-license-in-workspaces.ts",
     "lint:lockfile-lint": "lockfile-lint --path yarn.lock --type yarn --allowed-hosts npm yarn",
@@ -69,7 +69,8 @@
   "lint-staged": {
     "**": [
       "suppress-exit-code markdownlint --fix",
-      "suppress-exit-code prettier --write"
+      "suppress-exit-code prettier --write",
+      "suppress-exit-code yarn constraints --fix"
     ]
   },
   "prettier": {
@@ -122,7 +123,6 @@
     "@sentry/cli": "^2.39.1",
     "@taplo/cli": "0.7.0",
     "@yarnpkg/types": "^4.0.0",
-    "check-dependency-version-consistency": "3.0.3",
     "concurrently": "7.6.0",
     "husky": "8.0.3",
     "lint-staged": "15.2.10",

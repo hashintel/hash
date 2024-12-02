@@ -215,14 +215,14 @@ jobs:
           cargo -Zscript run --manifest-path ".github/scripts/rust/sync-turborepo.rs" . | xargs yarn prettier --write >/dev/null
           git --no-pager diff --exit-code --color '**/package.json'
 
-      - name: Run yarn lint:dependency-version-consistency
+      - name: Run yarn lint:constraints
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:dependency-version-consistency; then
+          if ! yarn lint:constraints; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:dependency-version-consistency` locally to apply autofixes.'
+            echo 'Try running `yarn fix:constraints` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
