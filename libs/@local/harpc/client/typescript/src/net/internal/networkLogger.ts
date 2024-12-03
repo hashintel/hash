@@ -20,15 +20,54 @@ import { base32 } from "multiformats/bases/base32";
 import { base58btc } from "multiformats/bases/base58";
 import { base64 } from "multiformats/bases/base64";
 
-interface Instruction {
-  type: string; // single alpha character
+type Alpha =
+  | "a"
+  | "b"
+  | "c"
+  | "d"
+  | "e"
+  | "f"
+  | "g"
+  | "h"
+  | "i"
+  | "j"
+  | "k"
+  | "l"
+  | "m"
+  | "n"
+  | "o"
+  | "p"
+  | "q"
+  | "r"
+  | "s"
+  | "t"
+  | "u"
+  | "v"
+  | "w"
+  | "x"
+  | "y"
+  | "z";
+
+/** @internal */
+export type FormatterSpecifier = Alpha | Uppercase<Alpha>;
+
+/** @internal */
+export type Formatter = (value: unknown) => Option.Option<string>;
+
+/** @internal */
+export type FormatterCollection = Readonly<{
+  [key in FormatterSpecifier]?: Formatter;
+}>;
+
+interface Format {
+  type: FormatterSpecifier;
 }
 
 interface Literal {
   value: string;
 }
 
-type Token = Instruction | Literal;
+type Token = Format | Literal;
 
 const tokenize = (format: string) => {
   const tokens: Token[] = [];
@@ -50,7 +89,7 @@ const tokenize = (format: string) => {
     if (type === "%") {
       tokens.push({ value: "%" });
     } else {
-      tokens.push({ type });
+      tokens.push({ type: type as FormatterSpecifier });
     }
 
     rest = rest.slice(nextToken + 2);
@@ -76,11 +115,8 @@ const enrichContext = (
 };
 
 /** @internal */
-export type Formatter = (value: unknown) => Option.Option<string>;
-
-/** @internal */
 export const format = (
-  formatters: Record<string, Formatter>,
+  formatters: FormatterCollection,
   level: LogLevel.LogLevel,
   input: unknown,
   args: readonly unknown[],
@@ -153,7 +189,7 @@ const nonEmptyString = (value?: string) =>
   );
 
 // Taken from weald/debugjs
-export const debugJsFormatters: ReadonlyRecord<string, Formatter> = {
+const debugJsFormatters: FormatterCollection = {
   s: (value: unknown) => Option.liftPredicate(value, Predicate.isString),
   d: (value: unknown) =>
     pipe(
@@ -167,7 +203,7 @@ export const debugJsFormatters: ReadonlyRecord<string, Formatter> = {
 };
 
 // Taken from libp2p/logger
-export const libp2pFormatters: ReadonlyRecord<string, Formatter> = {
+const libp2pFormatters: FormatterCollection = {
   // custom (more sane) UTF-8 first formatter
   B: (value: unknown) =>
     pipe(
@@ -241,7 +277,7 @@ export const libp2pFormatters: ReadonlyRecord<string, Formatter> = {
 };
 
 /** @internal */
-export const defaultFormatters: ReadonlyRecord<string, Formatter> = {
+export const defaultFormatters: FormatterCollection = {
   ...debugJsFormatters,
   ...libp2pFormatters,
 };

@@ -1,7 +1,5 @@
 import type { ComponentLogger, Logger } from "@libp2p/interface";
-import type { Option } from "effect";
 import { Effect, LogLevel, Runtime } from "effect";
-import type { ReadonlyRecord } from "effect/Record";
 
 import { createProto } from "../utils.js";
 import * as internal from "./internal/networkLogger.js";
@@ -9,15 +7,16 @@ import * as internal from "./internal/networkLogger.js";
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Logger");
 export type TypeId = typeof TypeId;
 
+export type Formatter = internal.Formatter;
+export type FormatterSpecifier = internal.FormatterSpecifier;
+export type FormatterCollection = internal.FormatterCollection;
+
 interface NetworkLogger extends ComponentLogger {
   readonly [TypeId]: TypeId;
 }
 
 interface NetworkLoggerImpl extends NetworkLogger {
-  readonly formatters: ReadonlyRecord<
-    string,
-    (value: unknown) => Option.Option<string>
-  >;
+  readonly formatters: FormatterCollection;
 
   readonly runtime: Runtime.Runtime<never>;
 
@@ -51,11 +50,10 @@ const NetworkLoggerProto: Omit<NetworkLoggerImpl, "formatters" | "runtime"> = {
   },
 };
 
-export type Formatter = internal.Formatter;
 export const DefaultFormatters = internal.defaultFormatters;
 
 export const make = (
-  formatters?: ReadonlyRecord<string, Formatter>,
+  formatters?: FormatterCollection,
 ): Effect.Effect<NetworkLogger> =>
   Effect.gen(function* () {
     const runtime = yield* Effect.runtime();
