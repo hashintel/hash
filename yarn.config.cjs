@@ -6,6 +6,31 @@
 /** @type {import('@yarnpkg/types')} */
 const { defineConfig } = require(`@yarnpkg/types`);
 
+const enforcedDevDependencies = {
+  prettier: { commands: ["prettier"], ident: "prettier" },
+  waitOn: { commands: ["wait-on"], ident: "wait-on" },
+  rimraf: { commands: ["rimraf"], ident: "rimraf" },
+  eslint: { commands: ["eslint"], ident: "eslint" },
+  typescript: { commands: ["tsc", "ts-node"], ident: "typescript" },
+  crossEnv: { commands: ["cross-env"], ident: "cross-env" },
+};
+
+const ignoredDependencies = ["@blockprotocol/graph", "@sentry/webpack-plugin"];
+const ignoredWorkspaces = [
+  "@apps/hashdotdev",
+  "@blocks/embed",
+  "@blocks/person",
+];
+
+/**
+ *
+ * @param {Dependency} dependency
+ */
+const shouldIgnoreDependency = (dependency) =>
+  ignoredDependencies.includes(dependency.ident) ||
+  ignoredWorkspaces.includes(dependency.workspace.ident) ||
+  dependency.type === "peerDependencies";
+
 /**
  * Enforces consistent dependency versions across all workspaces in the project.
  *
@@ -15,15 +40,34 @@ const { defineConfig } = require(`@yarnpkg/types`);
  */
 function enforceConsistentDependenciesAcrossTheProject({ Yarn }) {
   for (const dependency of Yarn.dependencies()) {
-    if (dependency.type === `peerDependencies`) continue;
+    if (shouldIgnoreDependency(dependency)) {
+      continue;
+    }
 
     for (const otherDependency of Yarn.dependencies({
       ident: dependency.ident,
     })) {
-      if (otherDependency.type === `peerDependencies`) continue;
+      if (shouldIgnoreDependency(otherDependency)) {
+        continue;
+      }
 
       dependency.update(otherDependency.range);
     }
+  }
+}
+
+/**
+ * Enforces no dual-type dependencies across workspaces.
+ *
+ * This function ensures that a dependency is not listed in both "dependencies"
+ * and "devDependencies" for any workspace. If a dependency is found in both,
+ * it removes it from "dependencies", keeping it only in "devDependencies".
+ *
+ * @param {Context} context - The Yarn constraint context.
+ */
+function enforceNoDualTypeDependencies({ Yarn }) {
+  for (const devDependency of Yarn.dependencies({ type: "devDependencies" })) {
+    devDependency.workspace.unset(`dependency.${devDependency.ident}`);
   }
 }
 
@@ -74,35 +118,14 @@ function enforcePortalProtocolInsteadOfFileProtocol({ Yarn }) {
  * @param {Context} context - The Yarn constraint context.
  */
 function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
-  const rootWorkspace = Yarn.workspace();
+  const dependencies = Object.fromEntries(
+    Object.entries(enforcedDevDependencies).map(([key, { ident }]) => [
+      key,
+      Yarn.dependency({ ident }),
+    ]),
+  );
 
-  // get all required versions from @apps/hash-api
-  const workspace = Yarn.workspace({ ident: "@apps/hash-api" });
-
-  /** @type {Dependency} */
-  const prettier = Yarn.dependency({
-    workspace: rootWorkspace,
-    ident: "prettier",
-  });
-  const waitOn = Yarn.dependency({
-    workspace: rootWorkspace,
-    ident: "wait-on",
-  });
-  /** @type {Dependency} */
-  const rimraf = Yarn.dependency({ workspace, ident: "rimraf" });
-  /** @type {Dependency} */
-  const eslint = Yarn.dependency({ workspace, ident: "eslint" });
-  /** @type {Dependency} */
-  const typescript = Yarn.dependency({ workspace, ident: "typescript" });
-  /** @type {Dependency} */
-  const crossEnv = Yarn.dependency({ workspace, ident: "cross-env" });
-
-  const workspaces = Yarn.workspaces();
-  for (const workspace of workspaces) {
-    if (workspace.ident === rootWorkspace.ident) {
-      continue;
-    }
-
+  for (const workspace of Yarn.workspaces()) {
     /** @type {Record<string, string> | undefined} */
     const scripts = workspace.manifest.scripts;
 
@@ -110,31 +133,43 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
       continue;
     }
 
-    // scripts is a key-value object
-    for (const value of Object.values(scripts)) {
-      if (value.includes("prettier")) {
-        workspace.set("devDependencies.prettier", prettier.range);
+    const dependsOn = {
+      prettier: false,
+      waitOn: false,
+      rimraf: false,
+      eslint: false,
+      typescript: false,
+      crossEnv: false,
+    };
+
+    for (const script of Object.values(scripts)) {
+      for (const [key, { commands }] of Object.entries(
+        enforcedDevDependencies,
+      )) {
+        const scriptSplit = script.split(" ");
+
+        if (commands.some((command) => scriptSplit.includes(command))) {
+          dependsOn[key] = true;
+        }
+      }
+    }
+
+    for (const [key, value] of Object.entries(dependsOn)) {
+      if (!value) {
+        workspace.unset(`devDependencies.${dependencies[key].ident}`);
+        continue;
       }
 
-      if (value.includes("wait-on")) {
-        workspace.set("devDependencies.wait-on", waitOn.range);
+      const dependency = dependencies[key];
+
+      if (dependency === null) {
+        workspace.error(
+          `missing devDependency ${key}, unable to automatically determine the version`,
+        );
+        continue;
       }
 
-      if (value.includes("rimraf")) {
-        workspace.set("devDependencies.rimraf", rimraf.range);
-      }
-
-      if (value.includes("eslint")) {
-        workspace.set("devDependencies.eslint", eslint.range);
-      }
-
-      if (value.includes("ts-node") || value.includes("tsc")) {
-        workspace.set("devDependencies.typescript", typescript.range);
-      }
-
-      if (value.includes("cross-env")) {
-        workspace.set("devDependencies.cross-env", crossEnv.range);
-      }
+      workspace.set(`devDependencies.${dependency.ident}`, dependency.range);
     }
   }
 }
@@ -142,7 +177,8 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
 module.exports = defineConfig({
   async constraints(context) {
     // enforceWorkspaceDependenciesDeclaredAsSuch(context);
-    // enforceConsistentDependenciesAcrossTheProject(context);
+    enforceConsistentDependenciesAcrossTheProject(context);
+    enforceNoDualTypeDependencies(context);
     // enforcePortalProtocolInsteadOfFileProtocol(context);
     enforceDevDependenciesAreProperlyDeclared(context);
   },

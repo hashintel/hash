@@ -36,7 +36,7 @@
     "generate-ontology-type-ids": "yarn workspace @apps/hash-api generate-ontology-type-ids",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "@TODO.1": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.2)",
-    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-dep=@blockprotocol/graph --ignore-dep=@sentry/webpack-plugin --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
+    "fix:constraints": "yarn constraints --fix",
     "fix:eslint": "turbo --continue fix:eslint --",
     "fix:taplo": "taplo fmt",
     "fix:markdownlint": "markdownlint --dot --fix .",
@@ -44,7 +44,7 @@
     "fix:yarn-deduplicate": "yarn dedupe --strategy highest",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "@TODO.2": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.1)",
-    "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-dep=@blockprotocol/graph --ignore-dep=@sentry/webpack-plugin --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
+    "lint:constraints": "yarn constraints",
     "lint:eslint": "turbo --continue lint:eslint --",
     "lint:license-in-workspaces": "yarn workspace @local/repo-chores exe scripts/check-license-in-workspaces.ts",
     "lint:lockfile-lint": "lockfile-lint --path yarn.lock --type yarn --allowed-hosts npm yarn",
@@ -69,7 +69,8 @@
   "lint-staged": {
     "**": [
       "suppress-exit-code markdownlint --fix",
-      "suppress-exit-code prettier --write"
+      "suppress-exit-code prettier --write",
+      "suppress-exit-code yarn constraints --fix"
     ]
   },
   "prettier": {
@@ -122,22 +123,17 @@
     "@sentry/cli": "^2.39.1",
     "@taplo/cli": "0.7.0",
     "@yarnpkg/types": "^4.0.0",
-    "check-dependency-version-consistency": "3.0.3",
     "concurrently": "7.6.0",
-    "cross-env": "7.0.3",
-    "dotenv-flow": "3.3.0",
     "husky": "8.0.3",
     "lint-staged": "15.2.10",
     "lockfile-lint": "4.14.0",
     "markdownlint-cli": "0.43.0",
     "npm-run-all2": "7.0.1",
-    "postinstall-postinstall": "2.1.0",
     "prettier": "3.4.1",
     "prettier-plugin-packagejson": "2.5.6",
     "prettier-plugin-sh": "0.14.0",
     "suppress-exit-code": "3.2.0",
-    "turbo": "2.3.3",
-    "wait-on": "8.0.1"
+    "turbo": "2.3.3"
   },
   "packageManager": "yarn@4.5.3+sha512.3003a14012e2987072d244c720506549c1aab73ee728208f1b2580a9fd67b92d61ba6b08fe93f6dce68fd771e3af1e59a0afa28dd242dd0940d73b95fedd4e90"
 }
