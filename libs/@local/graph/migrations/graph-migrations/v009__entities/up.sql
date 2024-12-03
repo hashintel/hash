@@ -77,7 +77,7 @@ CREATE TABLE entity_has_left_entity (
     FOREIGN KEY (left_web_id, left_entity_uuid) REFERENCES entity_ids
 );
 CREATE INDEX entity_has_left_entity_source_idx
-    ON entity_has_left_entity(web_id, entity_uuid);
+ON entity_has_left_entity (web_id, entity_uuid);
 
 CREATE TABLE entity_has_right_entity (
     web_id UUID NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE entity_has_right_entity (
     FOREIGN KEY (right_web_id, right_entity_uuid) REFERENCES entity_ids
 );
 CREATE INDEX entity_has_right_entity_source_idx
-    ON entity_has_right_entity(web_id, entity_uuid);
+ON entity_has_right_entity (web_id, entity_uuid);
 
 CREATE TABLE entity_embeddings (
     web_id UUID NOT NULL,
