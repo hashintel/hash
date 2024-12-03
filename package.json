@@ -125,6 +125,7 @@
     "@yarnpkg/types": "^4.0.0",
     "concurrently": "7.6.0",
     "husky": "8.0.3",
+    "lefthook": "1.8.5",
     "lint-staged": "15.2.10",
     "lockfile-lint": "4.14.0",
     "markdownlint-cli": "0.43.0",

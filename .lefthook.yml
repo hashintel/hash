@@ -1,0 +1,18 @@
+$schema: https://json.schemastore.org/lefthook.json
+
+pre-commit:
+  parallel: true
+  skip:
+    - merge
+    - rebase
+  commands:
+    markdownlint:
+      tags: frontend style
+      glob: "**/*.md"
+      run: yarn run markdownlint --fix {staged_files} || true
+      stage_fixed: true
+    prettier:
+      tags: frontend style
+      glob: "**/*.{cjs,css,js,json,md,mdx,mjs,scss,ts,tsx,yml}"
+      run: yarn run prettier --write {staged_files} || true
+      stage_fixed: true
