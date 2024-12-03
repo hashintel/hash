@@ -9201,7 +9201,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@multiformats/multiaddr@npm:12.3.4":
+"@multiformats/multiaddr@npm:12.3.4, @multiformats/multiaddr@npm:^12.0.0, @multiformats/multiaddr@npm:^12.2.3":
   version: 12.3.4
   resolution: "@multiformats/multiaddr@npm:12.3.4"
   dependencies:
@@ -9212,20 +9212,6 @@ __metadata:
     uint8-varint: "npm:^2.0.1"
     uint8arrays: "npm:^5.0.0"
   checksum: 10c0/0fd1522e5e6e7ab5aa288188b33f958c866f32c754e8ad9270b232ee0842282a4572c15a7fd5480e7c35c237b53ab19862129a87acbf09aa38ea47a5619ae700
-  languageName: node
-  linkType: hard
-
-"@multiformats/multiaddr@npm:^12.0.0, @multiformats/multiaddr@npm:^12.2.3":
-  version: 12.3.3
-  resolution: "@multiformats/multiaddr@npm:12.3.3"
-  dependencies:
-    "@chainsafe/is-ip": "npm:^2.0.1"
-    "@chainsafe/netmask": "npm:^2.0.0"
-    "@multiformats/dns": "npm:^1.0.3"
-    multiformats: "npm:^13.0.0"
-    uint8-varint: "npm:^2.0.1"
-    uint8arrays: "npm:^5.0.0"
-  checksum: 10c0/242642a772fbfc83046eab81ab78c4960fbc5353bd9340f55f3342a454dcc588c51c6eb17a958000fcd33ab5bc4e98fbe2e1b2ad9704a8ed501d6d2ec68d895c
   languageName: node
   linkType: hard
 
