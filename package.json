@@ -53,7 +53,7 @@
     "lint:taplo": "taplo fmt --check",
     "lint:tsc": "turbo --continue lint:tsc --",
     "lint:yarn-deduplicate": "yarn dedupe --strategy highest --check",
-    "postinstall": "turbo run postinstall; husky install .config/husky",
+    "postinstall": "turbo run postinstall",
     "seed-data:opensearch": "yarn workspace @apps/hash-search-loader clear-opensearch",
     "seed-data:redis": "yarn workspace @apps/hash-realtime clear-redis",
     "seed-data": "concurrently \"yarn:seed-data:*\"",
@@ -65,13 +65,6 @@
     "bench:unit": "turbo run bench:unit --env-mode=loose --",
     "bench:integration": "turbo run bench:integration --env-mode=loose --",
     "prune-node-modules": "find . -type d -name \"node_modules\" -exec rm -rf {} +"
-  },
-  "lint-staged": {
-    "**": [
-      "suppress-exit-code markdownlint --fix",
-      "suppress-exit-code prettier --write",
-      "suppress-exit-code yarn constraints --fix"
-    ]
   },
   "prettier": {
     "plugins": [
@@ -124,8 +117,7 @@
     "@taplo/cli": "0.7.0",
     "@yarnpkg/types": "^4.0.0",
     "concurrently": "7.6.0",
-    "husky": "8.0.3",
-    "lint-staged": "15.2.10",
+    "lefthook": "1.8.5",
     "lockfile-lint": "4.14.0",
     "markdownlint-cli": "0.43.0",
     "npm-run-all2": "7.0.1",
