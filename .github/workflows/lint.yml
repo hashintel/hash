@@ -357,7 +357,7 @@ jobs:
 
       - name: Crate SQLFluff annotationss
         if: failure() && github.event.pull_request.head.repo.full_name == github.repository
-        run: sqlfluff lint --warn-unused-ignores --format github-annotation --write-output annotations.json --annotation-level notice --nofail
+        run: sqlfluff lint --warn-unused-ignores --format github-annotation --write-output annotations.json --annotation-level failure --nofail
 
       - name: Annotate
         uses: yuzutech/annotations-action@0e061a6e3ac848299310b6429b60d67cafd4e7f8 # v0.5.0
