@@ -1,7 +1,6 @@
 [sqlfluff]
 dialect = postgres
 encoding = utf-8
-exclude = ["libs/@local/graph/postgres-store/postgres_migrations/"]
 
 max_line_length = 100
 large_file_skip_byte_limit = 100000
