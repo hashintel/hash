@@ -19,7 +19,19 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "effect": "3.11.2"
+    "@chainsafe/libp2p-noise": "16.0.0",
+    "@chainsafe/libp2p-yamux": "7.0.1",
+    "@libp2p/crypto": "5.0.7",
+    "@libp2p/identify": "3.0.12",
+    "@libp2p/interface": "2.2.1",
+    "@libp2p/ping": "2.0.12",
+    "@libp2p/tcp": "10.0.13",
+    "@multiformats/multiaddr": "12.3.3",
+    "effect": "3.11.2",
+    "it-stream-types": "2.0.2",
+    "libp2p": "2.3.1",
+    "multiformats": "13.3.1",
+    "uint8arraylist": "2.4.8"
   },
   "devDependencies": {
     "@effect/platform": "0.70.2",

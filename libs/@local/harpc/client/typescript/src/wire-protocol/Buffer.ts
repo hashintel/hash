@@ -181,18 +181,6 @@ export const getU32 = getInt(4, (view, byteOffset) =>
   view.getUint32(byteOffset, false),
 );
 
-// TODO: U64 should make use of BigInt
-export const putU64: WriteSignature = Function.dual(
-  2,
-  putInt(8, (view, byteOffset, value) =>
-    view.setBigUint64(byteOffset, BigInt(value), false),
-  ),
-);
-
-export const getU64 = getInt(8, (view, byteOffset) =>
-  Number(view.getBigUint64(byteOffset, false)),
-);
-
 export const putSlice: {
   (value: Uint8Array): (buffer: Buffer<Write>) => WriteResult;
   (buffer: Buffer<Write>, value: Uint8Array): WriteResult;

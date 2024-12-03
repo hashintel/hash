@@ -12,6 +12,7 @@ import {
   ProtocolVersion,
 } from "../wire-protocol/models/index.js";
 import type { PayloadTooLargeError } from "../wire-protocol/models/Payload.js";
+import type { RequestId } from "../wire-protocol/models/request/index.js";
 import {
   Request,
   RequestBegin,
@@ -27,6 +28,8 @@ export type TypeId = typeof TypeId;
 export interface Request<E, R> {
   readonly [TypeId]: TypeId;
 
+  readonly id: RequestId.RequestId;
+
   readonly subsystem: SubsystemDescriptor.SubsystemDescriptor;
   readonly procedure: ProcedureDescriptor.ProcedureDescriptor;
 
@@ -35,7 +38,7 @@ export interface Request<E, R> {
 
 const RequestProto: Omit<
   Request<unknown, unknown>,
-  "subsystem" | "procedure" | "body"
+  "id" | "subsystem" | "procedure" | "body"
 > = {
   [TypeId]: TypeId,
 };
@@ -45,7 +48,18 @@ export const make = <E, R>(
   procedure: ProcedureDescriptor.ProcedureDescriptor,
 
   body: Stream.Stream<ArrayBuffer, E, R>,
-): Request<E, R> => createProto(RequestProto, { subsystem, procedure, body });
+) =>
+  Effect.gen(function* () {
+    const producer = yield* RequestIdProducer.RequestIdProducer;
+    const id = yield* RequestIdProducer.next(producer);
+
+    return createProto(RequestProto, {
+      id,
+      subsystem,
+      procedure,
+      body,
+    }) as Request<E, R>;
+  });
 
 interface Scratch {
   buffer: ArrayBuffer;
@@ -149,8 +163,7 @@ export interface EncodeOptions {
 
 const encodeImpl = <E, R>(self: Request<E, R>, options?: EncodeOptions) =>
   Effect.gen(function* () {
-    const requestIdProducer = yield* RequestIdProducer.RequestIdProducer;
-    const requestId = yield* RequestIdProducer.next(requestIdProducer);
+    const requestId = self.id;
 
     const nonEmpty = yield* Ref.make(false);
 

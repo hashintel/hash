@@ -11,7 +11,7 @@ import {
 const TypeId = Symbol("@local/harpc-client/net/Response");
 export type TypeId = typeof TypeId;
 
-class UnexpectedResponseTypeError extends Data.TaggedError(
+export class UnexpectedResponseTypeError extends Data.TaggedError(
   "UnexpectedResponseTypeError",
 )<{ expected: "Begin" | "Frame"; received: "Begin" | "Frame" }> {
   get message() {
@@ -19,7 +19,7 @@ class UnexpectedResponseTypeError extends Data.TaggedError(
   }
 }
 
-class EmptyResponseError extends Data.TaggedError("EmptyResponseError") {
+export class EmptyResponseError extends Data.TaggedError("EmptyResponseError") {
   get message() {
     return "No response received: expected at least one response in the stream";
   }
@@ -83,6 +83,10 @@ const bodyStream = <E, R>(
 
   return Stream.concat(beginBuffer, frameBuffer);
 };
+
+export type DecodeError<E = never> = Effect.Effect.Error<
+  ReturnType<typeof decode<E, never>>
+>;
 
 export const decode = <E, R>(stream: Stream.Stream<Response.Response, E, R>) =>
   Effect.gen(function* () {
