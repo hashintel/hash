@@ -352,8 +352,20 @@ jobs:
       - name: Install SQLFluff
         run: pip install sqlfluff
 
-      - name: Lint models
-        run: sqlfluff lint --format github-annotation-native
+      - name: SQLFluff
+        run: sqlfluff lint --warn-unused-ignores
+
+      - name: Crate SQLFluff annotationss
+        if: failure() && github.event.pull_request.head.repo.full_name == github.repository
+        run: sqlfluff lint --warn-unused-ignores --format github-annotation --write-output annotations.json
+
+      - name: Annotate
+        uses: yuzutech/annotations-action@0e061a6e3ac848299310b6429b60d67cafd4e7f8 # v0.5.0
+        if: failure() && github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          title: "SQLFluff Lint"
+          input: "annotations.json"
 
   passed:
     name: Linting passed
