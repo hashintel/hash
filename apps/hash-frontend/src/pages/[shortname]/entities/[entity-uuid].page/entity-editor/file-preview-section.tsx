@@ -170,7 +170,8 @@ export const FilePreviewSection = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(true);
 
-  const { isDirty, readonly, entitySubgraph } = useEntityEditor();
+  const { isDirty, readonly, closedMultiEntityType, entitySubgraph } =
+    useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
 
@@ -184,7 +185,8 @@ export const FilePreviewSection = () => {
     entity.properties as FileProperties,
   );
 
-  const title = displayName ?? generateEntityLabel(entitySubgraph, entity);
+  const title =
+    displayName ?? generateEntityLabel(closedMultiEntityType, entity);
 
   const alt = description ?? title;
 
