@@ -8,12 +8,12 @@ pre-commit:
   commands:
     markdownlint:
       tags: frontend style
-      glob: "**/*.md"
+      glob: "*.md"
       run: yarn run markdownlint --fix {staged_files} || true
       stage_fixed: true
     prettier:
       tags: frontend style
-      glob: "**/*.{cjs,css,js,json,md,mdx,mjs,scss,ts,tsx,yml}"
+      glob: "*.{cjs,css,js,json,md,mdx,mjs,scss,ts,tsx,yml}"
       run: yarn run prettier --write {staged_files} || true
       stage_fixed: true
     yarn:
@@ -23,11 +23,11 @@ pre-commit:
       stage_fixed: true
     sqlfluff:
       tags: backend style
-      glob: "**/*.sql"
+      glob: "*.sql"
       run: sqlfluff fix {staged_files} || true
       stage_fixed: true
     rust:
       tags: backend style
-      glob: "**/*.rs"
+      glob: "*.rs"
       run: cargo fmt -- {staged_files} || true
       stage_fixed: true
