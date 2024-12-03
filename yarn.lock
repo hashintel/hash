@@ -5304,13 +5304,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/vitest@npm:0.14.1":
-  version: 0.14.1
-  resolution: "@effect/vitest@npm:0.14.1"
+"@effect/vitest@npm:0.14.2":
+  version: 0.14.2
+  resolution: "@effect/vitest@npm:0.14.2"
   peerDependencies:
-    effect: ^3.11.1
+    effect: ^3.11.2
     vitest: ^2.0.5
-  checksum: 10c0/773498e607d4e4a22ae8f1f5958802695ae52ceda7b19d57d58f00663597c380c7eaf204a41d5c2722ded10326346c23aab256f3951b20aacabaafb5b9356763
+  checksum: 10c0/7a313a0bdafa34169ab5547389d14ee2fad7a6bdcc2b5c6a0a2e26cf215851a1002532e339be90e6bbbd8ae45de6d39e4907b704c2c3c1e7a3816d109213027b
   languageName: node
   linkType: hard
 
@@ -8160,7 +8160,7 @@ __metadata:
   dependencies:
     "@effect/platform": "npm:0.70.2"
     "@effect/platform-node": "npm:0.65.2"
-    "@effect/vitest": "npm:0.14.1"
+    "@effect/vitest": "npm:0.14.2"
     "@local/eslint-config": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
