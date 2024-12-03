@@ -53,7 +53,7 @@
     "lint:taplo": "taplo fmt --check",
     "lint:tsc": "turbo --continue lint:tsc --",
     "lint:yarn-deduplicate": "yarn dedupe --strategy highest --check",
-    "postinstall": "turbo run postinstall; husky install .config/husky",
+    "postinstall": "turbo run postinstall",
     "seed-data:opensearch": "yarn workspace @apps/hash-search-loader clear-opensearch",
     "seed-data:redis": "yarn workspace @apps/hash-realtime clear-redis",
     "seed-data": "concurrently \"yarn:seed-data:*\"",
