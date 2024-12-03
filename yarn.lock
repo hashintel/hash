@@ -320,7 +320,7 @@ __metadata:
     "@types/lodash.pickby": "npm:4.6.9"
     "@types/md5": "npm:2.3.5"
     "@types/mime-types": "npm:2.1.4"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     "@types/papaparse": "npm:5.3.15"
     "@types/sanitize-html": "npm:2.13.0"
     "@vitest/coverage-istanbul": "npm:2.1.8"
@@ -681,7 +681,7 @@ __metadata:
     "@local/eslint-config": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     "@types/set-interval-async": "npm:1.0.3"
     eslint: "npm:8.57.0"
     set-interval-async: "npm:2.0.3"
@@ -700,7 +700,7 @@ __metadata:
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     eslint: "npm:8.57.0"
     hot-shots: "npm:8.5.2"
     tsx: "npm:4.19.2"
@@ -760,7 +760,7 @@ __metadata:
     "@types/gtag.js": "npm:0.0.20"
     "@types/html-to-text": "npm:9.0.4"
     "@types/md5": "npm:2.3.5"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     "@types/prismjs": "npm:1.26.5"
     "@types/react": "npm:18.2.68"
     "@types/react-dom": "npm:18.2.25"
@@ -4111,7 +4111,7 @@ __metadata:
     "@local/eslint-config": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash.isequal": "npm:4.5.8"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     "@types/react": "npm:18.2.68"
     ajv: "npm:8.17.1"
     ajv-formats: "npm:3.0.1"
@@ -4200,7 +4200,7 @@ __metadata:
     "@rollup/plugin-node-resolve": "npm:15.3.0"
     "@rollup/plugin-typescript": "npm:12.1.1"
     "@rollup/plugin-wasm": "npm:6.2.2"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     "@types/react": "npm:18.2.68"
     "@vitest/coverage-istanbul": "npm:2.1.8"
     eslint: "npm:8.57.0"
@@ -8422,7 +8422,7 @@ __metadata:
     "@babel/preset-react": "npm:7.25.9"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/eslint": "npm:8.56.12"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     "@typescript-eslint/eslint-plugin": "npm:7.2.0"
     "@typescript-eslint/parser": "npm:7.2.0"
     eslint: "npm:8.57.0"
@@ -8458,7 +8458,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@multiformats/multiaddr": "npm:12.3.3"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     "@vitest/coverage-istanbul": "npm:2.1.8"
     effect: "npm:3.11.2"
     eslint: "npm:8.57.0"
@@ -8499,7 +8499,7 @@ __metadata:
     "@temporalio/worker": "npm:1.11.5"
     "@temporalio/workflow": "npm:1.11.5"
     "@types/dotenv-flow": "npm:3.3.3"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     "@types/wait-on": "npm:5.3.4"
     "@vitest/coverage-istanbul": "npm:2.1.8"
     agentkeepalive: "npm:4.5.0"
@@ -8529,7 +8529,7 @@ __metadata:
     "@openapitools/openapi-generator-cli": "npm:2.15.3"
     "@redocly/cli": "npm:1.25.14"
     "@rust/hash-graph-api": "npm:0.0.0-private"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     axios: "npm:1.7.8"
     fix-esm-import-path: "npm:1.10.1"
     rimraf: "npm:6.0.1"
@@ -8594,7 +8594,7 @@ __metadata:
     "@sindresorhus/slugify": "npm:1.1.2"
     "@temporalio/workflow": "npm:1.11.5"
     "@types/lodash-es": "npm:4.17.12"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     "@types/pluralize": "npm:0.0.33"
     "@vitest/coverage-istanbul": "npm:2.1.8"
     apollo-server-express: "npm:3.9.0"
@@ -8653,7 +8653,7 @@ __metadata:
   dependencies:
     "@local/eslint-config": "npm:0.0.0-private"
     "@openapitools/openapi-generator-cli": "npm:2.15.3"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     axios: "npm:1.7.8"
     prettier: "npm:3.4.1"
     rimraf: "npm:6.0.1"
@@ -8690,7 +8690,7 @@ __metadata:
     "@local/eslint-config": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash-es": "npm:4.17.12"
-    "@types/node": "npm:22.10.0"
+    "@types/node": "npm:22.10.1"
     "@types/yargs": "npm:17.0.33"
     eslint: "npm:8.57.0"
     execa: "npm:5.1.1"
@@ -17331,12 +17331,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:22.10.0, @types/node@npm:>=13.7.0":
-  version: 22.10.0
-  resolution: "@types/node@npm:22.10.0"
+"@types/node@npm:*, @types/node@npm:22.10.1, @types/node@npm:>=13.7.0":
+  version: 22.10.1
+  resolution: "@types/node@npm:22.10.1"
   dependencies:
     undici-types: "npm:~6.20.0"
-  checksum: 10c0/efb3783b6fe74b4300c5bdd4f245f1025887d9b1d0950edae584af58a30d95cc058c10b4b3428f8300e4318468b605240c2ede8fcfb6ead2e0f05bca31e54c1b
+  checksum: 10c0/0fbb6d29fa35d807f0223a4db709c598ac08d66820240a2cd6a8a69b8f0bc921d65b339d850a666b43b4e779f967e6ed6cf6f0fca3575e08241e6b900364c234
   languageName: node
   linkType: hard
 
