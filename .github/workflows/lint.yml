@@ -204,7 +204,8 @@ jobs:
     name: Global
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -342,6 +343,29 @@ jobs:
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
+
+      - name: Install Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: 3.12
+
+      - name: Install SQLFluff
+        run: pip install sqlfluff
+
+      - name: SQLFluff
+        run: sqlfluff lint --warn-unused-ignores
+
+      - name: Crate SQLFluff annotationss
+        if: failure() && github.event.pull_request.head.repo.full_name == github.repository
+        run: sqlfluff lint --warn-unused-ignores --format github-annotation --write-output annotations.json --annotation-level failure --nofail
+
+      - name: Annotate
+        uses: yuzutech/annotations-action@0e061a6e3ac848299310b6429b60d67cafd4e7f8 # v0.5.0
+        if: failure() && github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          title: "SQLFluff Lint"
+          input: "annotations.json"
 
   passed:
     name: Linting passed

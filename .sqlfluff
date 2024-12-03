@@ -1,0 +1,48 @@
+[sqlfluff]
+dialect = postgres
+encoding = utf-8
+
+max_line_length = 100
+large_file_skip_byte_limit = 100000
+
+
+[sqlfluff:indentation]
+indented_ctes = True
+indented_on_contents = False
+allow_implicit_indents = True
+
+[sqlfluff:rules]
+single_table_references = qualified
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.types]
+extended_capitalisation_policy = upper
+
+
+[sqlfluff:rules:convention.count_rows]
+prefer_count_1 = True
+
+[sqlfluff:rules:ambiguous.column_references]
+# GROUP BY/ORDER BY column references
+group_by_and_order_by_style = explicit
+
+
+[sqlfluff:rules:convention.not_equal]
+# Consistent usage of preferred "not equal to" comparison
+preferred_not_equal_style = c_style
+
+
+[sqlfluff:rules:convention.casting_style]
+# SQL type casting
+preferred_type_casting_style = shorthand
