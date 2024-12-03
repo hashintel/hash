@@ -16,6 +16,11 @@ pre-commit:
       glob: "**/*.{cjs,css,js,json,md,mdx,mjs,scss,ts,tsx,yml}"
       run: yarn run prettier --write {staged_files} || true
       stage_fixed: true
+    yarn:
+      tags: frontend style
+      glob: "**/package.json"
+      run: yarn fix:constraints && yarn fix:yarn-deduplicate
+      stage_fixed: true
     sqlfluff:
       tags: backend style
       glob: "**/*.sql"
