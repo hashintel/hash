@@ -14,7 +14,6 @@ import {
   Record,
   String,
 } from "effect";
-import type { ReadonlyRecord } from "effect/Record";
 import { CID } from "multiformats";
 import { base32 } from "multiformats/bases/base32";
 import { base58btc } from "multiformats/bases/base58";
