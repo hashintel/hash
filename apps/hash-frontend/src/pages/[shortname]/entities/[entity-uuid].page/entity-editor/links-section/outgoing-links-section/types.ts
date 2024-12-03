@@ -2,7 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { PartialEntityType } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 
 export type LinkAndTargetEntity = {
@@ -19,11 +19,10 @@ export type LinkRow = {
   isFile: boolean;
   isList: boolean;
   isUploading: boolean;
-  expectedEntityTypes: EntityTypeWithMetadata[];
-  expectedEntityTypeTitles: string[];
+  expectedEntityTypes: PartialEntityType[];
   linkAndTargetEntities: (LinkAndTargetEntity & {
-    // Adding the subgraph we found these in makes it easy to retrieve their type(s), e.g. for labelling
-    sourceSubgraph: Subgraph<EntityRootType> | null;
+    linkEntityLabel: string;
+    rightEntityLabel: string;
   })[];
   entitySubgraph: Subgraph<EntityRootType>;
   markLinkAsArchived: (linkEntityId: EntityId) => void;

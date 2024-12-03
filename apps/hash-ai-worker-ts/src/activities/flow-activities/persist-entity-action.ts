@@ -34,7 +34,7 @@ import { createInferredEntityNotification } from "../shared/create-inferred-enti
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
-import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url.js";
+import { createFileEntityFromUrl } from "./shared/create-file-entity-from-url.js";
 import {
   getEntityUpdate,
   getLatestEntityById,
@@ -44,7 +44,7 @@ import type { FlowActionActivity } from "./types.js";
 export const fileEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.file.entityTypeId,
   systemEntityTypes.image.entityTypeId,
-  systemEntityTypes.document.entityTypeId,
+  systemEntityTypes.documentFile.entityTypeId,
   systemEntityTypes.pdfDocument.entityTypeId,
   systemEntityTypes.docxDocument.entityTypeId,
   systemEntityTypes.spreadsheetFile.entityTypeId,
@@ -67,7 +67,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   const createEditionAsDraft = draft ?? false;
 
   const {
-    entityTypeId,
+    entityTypeIds,
     localEntityId,
     claims,
     properties,
@@ -80,7 +80,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     CreateEntityParameters,
     "relationships" | "ownedById" | "draft" | "linkData"
   > & { linkData: Entity["linkData"] } = {
-    entityTypeId,
+    entityTypeIds,
     properties: mergePropertyObjectAndMetadata(properties, propertyMetadata),
     linkData,
     provenance,
@@ -114,7 +114,9 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
    * by looking up the entity type's parents in the graph, rather than
    * relying on a hardcoded value.
    */
-  const isFileEntity = fileEntityTypeIds.includes(entityTypeId);
+  const isFileEntity = entityTypeIds.some((entityTypeId) =>
+    fileEntityTypeIds.includes(entityTypeId),
+  );
 
   const fileUrl = isFileEntity
     ? (properties as Partial<FileProperties>)[
@@ -129,18 +131,18 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   if (isFileEntity && fileUrl) {
     operation = "create";
 
-    const getFileEntityFromUrlStatus = await getFileEntityFromUrl({
+    const createFileEntityFromUrlStatus = await createFileEntityFromUrl({
       entityUuid,
       url: fileUrl,
       propertyMetadata,
       provenance,
-      entityTypeId,
+      entityTypeIds,
     });
 
-    if (getFileEntityFromUrlStatus.status !== "ok") {
+    if (createFileEntityFromUrlStatus.status !== "ok") {
       return {
         code: StatusCode.Internal,
-        message: getFileEntityFromUrlStatus.message,
+        message: createFileEntityFromUrlStatus.message,
         contents: [
           {
             outputs: [
@@ -158,7 +160,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       };
     }
 
-    const { entity: updatedEntity } = getFileEntityFromUrlStatus;
+    const { entity: updatedEntity } = createFileEntityFromUrlStatus;
 
     entity = updatedEntity;
   } else {
@@ -305,15 +307,18 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       includeDrafts: draft,
     });
 
+    const entityTypeId =
+      `https://hash.ai/@hash/types/entity-type/${linkType}/v/1` as const;
+
     return LinkEntity.create<T extends "has-subject" ? HasSubject : HasObject>(
       graphApiClient,
       { actorId: webBotActorId },
       {
         draft,
-        entityTypeId: `https://hash.ai/@hash/types/entity-type/${linkType}/v/1`,
+        entityTypeIds: [entityTypeId],
         ownedById: webId,
         provenance: {
-          ...claim.metadata.provenance,
+          sources: claim.metadata.provenance.edition.sources,
           actorType: "ai",
           origin: {
             type: "flow",

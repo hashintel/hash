@@ -131,7 +131,7 @@ const createColumnsForEntity = (
   for (const baseUrl of [...properties]) {
     const { propertyType } = getPropertyTypeForEntity(
       subgraph,
-      entityType.$id,
+      [entityType.$id],
       baseUrl,
     );
     columns[`properties.${baseUrl}`] = {
@@ -275,11 +275,14 @@ export const convertSubgraphToSheetRequests = ({
   for (const entity of sortedEntities) {
     const entityType = getEntityTypeById(
       subgraph,
-      entity.metadata.entityTypeId,
+      /**
+       * @todo H-3364 update Google Sheet output for multi-type entities (currently we assign entities to sheets based on type)
+       */
+      entity.metadata.entityTypeIds[0],
     );
     if (!entityType) {
       throw new Error(
-        `Entity type ${entity.metadata.entityTypeId} not found for entity ${entity.metadata.recordId.entityId}`,
+        `Entity type ${entity.metadata.entityTypeIds[0]} not found for entity ${entity.metadata.recordId.entityId}`,
       );
     }
 
@@ -539,6 +542,12 @@ export const convertSubgraphToSheetRequests = ({
             const { sheetId, rowIndex } = entityPosition;
             const linkedEntity = getEntityRevision(subgraph, leftEntityId);
 
+            if (!linkedEntity) {
+              throw new Error(
+                `Entity ${leftEntityId} not found in subgraph when processing link entity ${entity.metadata.recordId.entityId}`,
+              );
+            }
+
             /** Create the link from this sheet to the source entity */
             entityCells.push(
               createHyperlinkCell({
@@ -595,6 +604,12 @@ export const convertSubgraphToSheetRequests = ({
             const { sheetId, rowIndex } = entityPosition;
 
             const linkedEntity = getEntityRevision(subgraph, rightEntityId);
+
+            if (!linkedEntity) {
+              throw new Error(
+                `Entity ${rightEntityId} not found in subgraph when processing link entity ${entity.metadata.recordId.entityId}`,
+              );
+            }
 
             entityCells.push(
               createHyperlinkCell({

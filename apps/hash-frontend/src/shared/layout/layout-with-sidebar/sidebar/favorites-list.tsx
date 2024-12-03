@@ -122,7 +122,7 @@ export const FavoritesList = () => {
               {sortedFavorites.map((root) => (
                 <Collapse key={root.schema.$id}>
                   <EntityOrTypeSidebarItem
-                    entityType={root}
+                    entityType={root.schema}
                     href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(
                       root.schema.$id,
                     )}`}

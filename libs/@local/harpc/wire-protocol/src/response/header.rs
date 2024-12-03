@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use super::{ResponseBody, flags::ResponseFlags};
 use crate::{
@@ -17,6 +17,7 @@ pub enum ResponseHeaderDecodeError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct ResponseHeader {
     pub protocol: Protocol,
@@ -37,7 +38,7 @@ impl ResponseHeader {
 impl Encode for ResponseHeader {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -53,7 +54,7 @@ impl Decode for ResponseHeader {
     type Context = ();
     type Error = ResponseHeaderDecodeError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -81,7 +82,7 @@ mod test {
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
-        flags::BitFlagsOp,
+        flags::BitFlagsOp as _,
         protocol::{Protocol, ProtocolVersion},
         request::id::test_utils::mock_request_id,
         response::{

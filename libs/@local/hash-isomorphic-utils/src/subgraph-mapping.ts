@@ -1,7 +1,10 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
+  ClosedEntityType as GraphApiClosedEntityType,
+  ClosedMultiEntityType as GraphApiClosedMultiEntityType,
   DataTypeWithMetadata as GraphApiDataTypeWithMetadata,
   Entity as GraphApiEntity,
+  EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
   EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   PropertyTypeWithMetadata as GraphApiPropertyTypeWithMetadata,
@@ -17,7 +20,10 @@ import type {
 } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
+  ClosedEntityType,
+  ClosedMultiEntityType,
   DataTypeWithMetadata,
+  EntityTypeResolveDefinitions,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
@@ -206,14 +212,30 @@ export const deserializeSubgraph = <RootType extends SubgraphRootType>(
   temporalAxes: subgraph.temporalAxes,
 });
 
-export const mapGraphApiEntityTypeToEntityType = (
+export const mapGraphApiEntityTypesToEntityTypes = (
   entityTypes: GraphApiEntityTypeWithMetadata[],
 ) => entityTypes as EntityTypeWithMetadata[];
 
-export const mapGraphApiPropertyTypeToPropertyType = (
+export const mapGraphApiClosedEntityTypesToClosedEntityTypes = (
+  entityTypes: GraphApiClosedEntityType[],
+) => entityTypes as ClosedEntityType[];
+
+export const mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions =
+  (entityType: GraphApiEntityTypeResolveDefinitions) =>
+    entityType as EntityTypeResolveDefinitions;
+
+export const mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType = (
+  entityType: GraphApiClosedMultiEntityType,
+) => entityType as ClosedMultiEntityType;
+
+export const mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes = (
+  entityTypes: GraphApiClosedMultiEntityType[],
+) => entityTypes as ClosedMultiEntityType[];
+
+export const mapGraphApiPropertyTypesToPropertyTypes = (
   entityTypes: GraphApiPropertyTypeWithMetadata[],
 ) => entityTypes as PropertyTypeWithMetadata[];
 
-export const mapGraphApiDataTypeToDataType = (
+export const mapGraphApiDataTypesToDataTypes = (
   entityTypes: GraphApiDataTypeWithMetadata[],
 ) => entityTypes as DataTypeWithMetadata[];

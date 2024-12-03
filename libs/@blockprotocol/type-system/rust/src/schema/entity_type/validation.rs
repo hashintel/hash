@@ -1,5 +1,3 @@
-use thiserror::Error;
-
 use crate::{
     Valid, Validator,
     schema::{
@@ -9,29 +7,31 @@ use crate::{
     url::BaseUrl,
 };
 
-#[derive(Debug, Error)]
+#[derive(Debug, derive_more::Display, derive_more::Error, derive_more::From)]
 pub enum EntityTypeValidationError {
-    #[error("The property reference {} does not match the base URL {base_url}", reference.url)]
+    #[display("The property reference {} does not match the base URL {base_url}", reference.url)]
     InvalidPropertyReference {
         base_url: BaseUrl,
         reference: PropertyTypeReference,
     },
-    #[error("Property object validation failed: {0}")]
-    ObjectValidationFailed(#[from] ObjectSchemaValidationError),
+    #[display("Property object validation failed: {_0}")]
+    #[from]
+    ObjectValidationFailed(ObjectSchemaValidationError),
 }
 
+#[derive(Debug)]
 pub struct EntityTypeValidator;
 
 impl Validator<EntityType> for EntityTypeValidator {
     type Error = EntityTypeValidationError;
 
-    async fn validate_ref<'v>(
+    fn validate_ref<'v>(
         &self,
         value: &'v EntityType,
     ) -> Result<&'v Valid<EntityType>, Self::Error> {
-        ObjectSchemaValidator.validate_ref(value).await?;
+        ObjectSchemaValidator.validate_ref(value)?;
 
-        for (property, value) in &value.properties {
+        for (property, value) in &value.constraints.properties {
             let reference = match value {
                 ValueOrArray::Value(value) => value,
                 ValueOrArray::Array(array) => &array.items,
@@ -53,13 +53,13 @@ impl Validator<EntityType> for EntityTypeValidator {
 impl Validator<ClosedEntityType> for EntityTypeValidator {
     type Error = EntityTypeValidationError;
 
-    async fn validate_ref<'v>(
+    fn validate_ref<'v>(
         &self,
         value: &'v ClosedEntityType,
     ) -> Result<&'v Valid<ClosedEntityType>, Self::Error> {
-        ObjectSchemaValidator.validate_ref(value).await?;
+        ObjectSchemaValidator.validate_ref(value)?;
 
-        for (property, value) in &value.properties {
+        for (property, value) in &value.constraints.properties {
             let reference = match value {
                 ValueOrArray::Value(value) => value,
                 ValueOrArray::Array(array) => &array.items,

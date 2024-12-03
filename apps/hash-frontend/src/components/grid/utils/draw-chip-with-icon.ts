@@ -9,6 +9,63 @@ import { getYCenter } from "../utils";
 import type { CustomIcon } from "./custom-grid-icons";
 import { drawChip } from "./draw-chip";
 
+const filledIconCanvasCache: {
+  [originalUrl: string]: {
+    [fillColor: string]: HTMLCanvasElement;
+  };
+} = {};
+
+/**
+ * In order to fill SVGs with a new color, we draw them on an off-screen canvas,
+ * and fill the non-transparent parts of the image with the desired color.
+ */
+const getFilledCanvas = ({
+  fill,
+  iconUrl,
+  image,
+}: {
+  fill: string;
+  iconUrl: string;
+  image: HTMLImageElement | ImageBitmap;
+}): HTMLImageElement | ImageBitmap | HTMLCanvasElement => {
+  if (!iconUrl.endsWith(".svg")) {
+    return image;
+  }
+
+  const cachedCanvas = filledIconCanvasCache[iconUrl]?.[fill];
+
+  if (cachedCanvas) {
+    return cachedCanvas;
+  }
+
+  const offScreenCanvas = document.createElement("canvas");
+  const offScreenContext = offScreenCanvas.getContext("2d");
+
+  if (!offScreenContext) {
+    throw new Error("Could not create off-screen canvas");
+  }
+
+  offScreenCanvas.width = image.width;
+  offScreenCanvas.height = image.height;
+
+  // Draw the image onto the off-screen canvas
+  offScreenContext.drawImage(image, 0, 0);
+
+  offScreenContext.globalCompositeOperation = "source-in";
+  offScreenContext.fillStyle = fill;
+  offScreenContext.fillRect(
+    0,
+    0,
+    offScreenCanvas.width,
+    offScreenCanvas.height,
+  );
+
+  filledIconCanvasCache[iconUrl] ??= {};
+  filledIconCanvasCache[iconUrl][fill] = offScreenCanvas;
+
+  return offScreenCanvas;
+};
+
 const drawClippedImage = ({
   ctx,
   height,
@@ -71,6 +128,21 @@ const drawClippedImage = ({
   return width;
 };
 
+export type DrawChipWithIconProps = {
+  args: DrawArgs<CustomCell>;
+  icon?:
+    | {
+        inbuiltIcon: CustomIcon;
+      }
+    | { imageSrc: string }
+    | { entityTypeIcon: string };
+  iconFill?: string;
+  text: string;
+  left: number;
+  color: ChipCellColor;
+  variant?: ChipCellVariant;
+};
+
 /**
  * @param args draw args of cell
  * @param text text content of chip
@@ -84,26 +156,18 @@ const drawClippedImage = ({
  */
 export const drawChipWithIcon = ({
   args,
+  icon,
+  iconFill,
   text,
-  icon = "bpAsterisk",
-  imageSrc,
   left,
   color,
   variant,
-}: {
-  args: DrawArgs<CustomCell>;
-  text: string;
-  icon?: CustomIcon;
-  imageSrc?: string;
-  left: number;
-  color: ChipCellColor;
-  variant?: ChipCellVariant;
-}) => {
+}: DrawChipWithIconProps) => {
   const { ctx, theme, imageLoader, col, row } = args;
   const yCenter = getYCenter(args);
 
   const paddingX = 12;
-  const iconHeight = imageSrc ? 24 : 12;
+  const iconHeight = icon && "imageSrc" in icon ? 24 : 12;
   const gap = 8;
 
   const iconLeft = left + paddingX;
@@ -113,15 +177,22 @@ export const drawChipWithIcon = ({
 
   const iconTop = yCenter - iconHeight / 2;
 
-  const { bgColor, borderColor, iconColor, textColor } = getChipColors(
-    color,
-    variant,
-  );
+  const {
+    bgColor,
+    borderColor,
+    iconColor: defaultColor,
+    textColor,
+  } = getChipColors(color, variant);
+
+  const iconColor = iconFill ?? defaultColor;
 
   let chipWidth = iconHeight + gap + textWidth + 2 * paddingX;
 
-  if (imageSrc) {
-    const image = imageLoader.loadOrGetImage(imageSrc, col, row);
+  let chipHeight;
+  let chipTop;
+
+  if (icon && "imageSrc" in icon) {
+    const image = imageLoader.loadOrGetImage(icon.imageSrc, col, row);
 
     if (image) {
       const maxWidth = 80;
@@ -129,32 +200,95 @@ export const drawChipWithIcon = ({
       const proposedWidth = (image.width / image.height) * iconHeight;
 
       const width = Math.min(proposedWidth, maxWidth);
-      const height = (image.height / image.width) * width;
-      const top = iconTop + (iconHeight - height) / 2;
+      const imageHeight = (image.height / image.width) * width;
+      const imageTop = iconTop + (iconHeight - imageHeight) / 2;
 
       chipWidth = width + gap + textWidth + 2 * paddingX;
 
-      drawChip(args, left, chipWidth, bgColor, borderColor);
+      ({ height: chipHeight, top: chipTop } = drawChip(
+        args,
+        left,
+        chipWidth,
+        bgColor,
+        borderColor,
+      ));
+
       drawClippedImage({
         ctx,
         image,
         left: iconLeft,
-        top,
-        height,
+        top: imageTop,
+        height: imageHeight,
         width,
       });
+    } else {
+      throw new Error(`Image not loaded: ${icon.imageSrc}`);
     }
   } else {
-    drawChip(args, left, chipWidth, bgColor, borderColor);
-    args.spriteManager.drawSprite(
-      icon,
-      "normal",
-      ctx,
-      iconLeft,
-      iconTop,
-      iconHeight,
-      { ...theme, fgIconHeader: iconColor },
-    );
+    ({ height: chipHeight, top: chipTop } = drawChip(
+      args,
+      left,
+      chipWidth,
+      bgColor,
+      borderColor,
+    ));
+
+    if (icon && "inbuiltIcon" in icon) {
+      args.spriteManager.drawSprite(
+        icon.inbuiltIcon,
+        "normal",
+        ctx,
+        iconLeft,
+        iconTop,
+        iconHeight,
+        { ...theme, fgIconHeader: iconColor },
+      );
+    } else if (icon && "entityTypeIcon" in icon) {
+      if (icon.entityTypeIcon.match(/\p{Extended_Pictographic}$/u)) {
+        /**
+         * This is an emoji icon
+         */
+        ctx.fillStyle = iconColor;
+        const currentFont = ctx.font;
+        ctx.font = `bold ${iconHeight}px Inter`;
+        ctx.fillText(icon.entityTypeIcon, iconLeft, yCenter);
+        ctx.font = currentFont;
+      } else {
+        let iconUrl;
+        if (icon.entityTypeIcon.startsWith("/")) {
+          iconUrl = new URL(icon.entityTypeIcon, window.location.origin).href;
+        } else if (icon.entityTypeIcon.startsWith("https")) {
+          iconUrl = icon.entityTypeIcon;
+        }
+
+        if (iconUrl) {
+          const image = imageLoader.loadOrGetImage(iconUrl, col, row);
+
+          if (image) {
+            const canvasWithFill = getFilledCanvas({
+              fill: iconColor,
+              iconUrl,
+              image,
+            });
+
+            const aspectRatio = image.width / image.height;
+
+            const width =
+              aspectRatio > 1 ? iconHeight : iconHeight * aspectRatio;
+            const height =
+              aspectRatio > 1 ? iconHeight / aspectRatio : iconHeight;
+
+            ctx.drawImage(
+              canvasWithFill,
+              iconLeft + (iconHeight - width) / 2,
+              iconTop + (iconHeight - height) / 2,
+              width,
+              height,
+            );
+          }
+        }
+      }
+    }
   }
 
   const textLeft = left + chipWidth - paddingX - textWidth;
@@ -162,5 +296,9 @@ export const drawChipWithIcon = ({
   ctx.fillStyle = textColor;
   ctx.fillText(text, textLeft, yCenter);
 
-  return chipWidth;
+  return {
+    height: chipHeight,
+    width: chipWidth,
+    top: chipTop,
+  };
 };

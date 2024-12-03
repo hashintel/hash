@@ -54,8 +54,9 @@ export const generateProgressReport = (params: {
         .map((proposedEntity) =>
           simplifyProposedEntityForLlmConsumption({
             proposedEntity,
-            entityType:
-              allDereferencedEntityTypesById[proposedEntity.entityTypeId]!,
+            entityTypes: proposedEntity.entityTypeIds.map(
+              (entityTypeId) => allDereferencedEntityTypesById[entityTypeId]!,
+            ),
           }),
         )
         .join("\n")}
@@ -69,8 +70,9 @@ export const generateProgressReport = (params: {
         .map((proposedLink) =>
           simplifyProposedEntityForLlmConsumption({
             proposedEntity: proposedLink,
-            entityType:
-              allDereferencedEntityTypesById[proposedLink.entityTypeId]!,
+            entityTypes: proposedLink.entityTypeIds.map(
+              (entityTypeId) => allDereferencedEntityTypesById[entityTypeId]!,
+            ),
           }),
         )
         .join("\n")}
@@ -164,7 +166,7 @@ export const generateSystemPromptPrefix = (params: {
     params.input;
 
   return dedent(`
-    You are a coordinating agent for a research task.
+    You are a coordinating agent for a research task. The date is ${new Date().toUTCString()}.
     The user provides you with a research brief, and the types of entities that are relevant.
     Your job is to do research to gather claims about those types of entities, consistent with the research brief,
     as well as relevant entities that they link to – forming a graph.
@@ -209,6 +211,11 @@ export const generateSystemPromptPrefix = (params: {
     If it would be useful to split up the task into sub-tasks to find detailed information on specific entities, do so. 
     Don't start sub-tasks in parallel which duplicate or overlap, or where one will depend on the result of another (do it in sequence).
     For simpler research tasks you might not need sub-tasks.
+    
+    Ask the user questions if necessary to clarify the scope of the research task.
+    The user may want something brief and quick rather than a comprehensive report.
+    
+    Don't explore multiple URLs at once with identical goals. Wait to see if the first URL returns what you need before exploring another.
 
     The "complete" tool for completing the research task will only be available once entities have been discovered.
     When declaring the job complete, you specify which of the proposed entities should be included in the final return to the user.

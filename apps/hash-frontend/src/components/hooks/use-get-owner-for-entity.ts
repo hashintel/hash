@@ -13,8 +13,8 @@ export const useGetOwnerForEntity = () => {
    *
    * @todo H-2723 make it possible to request owners along with entities from the graph
    */
-  const { users = [], loading: usersLoading } = useUsers();
-  const { orgs = [], loading: orgsLoading } = useOrgs();
+  const { users, loading: usersLoading } = useUsers();
+  const { orgs, loading: orgsLoading } = useOrgs();
 
   const loading = usersLoading || orgsLoading;
 
@@ -25,7 +25,7 @@ export const useGetOwnerForEntity = () => {
           ? extractOwnedByIdFromEntityId(params.entityId)
           : params.ownedById;
 
-      if (loading) {
+      if (loading || !users?.length || !orgs?.length) {
         return {
           ownedById,
           shortname: "",

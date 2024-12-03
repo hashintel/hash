@@ -1,11 +1,15 @@
+import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import {
+  extractEntityUuidFromEntityId,
+  linkEntityTypeUrl,
+} from "@local/hash-subgraph";
 import {
   Box,
   Divider,
@@ -29,12 +33,9 @@ import type { Org, User } from "../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ArrowDownAZRegularIcon } from "../../shared/icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../shared/icons/arrow-up-a-z-regular-icon";
-import { CanvasIcon } from "../../shared/icons/canvas-icon";
 import { ClockRegularIcon } from "../../shared/icons/clock-regular-icon";
-import { PageLightIcon } from "../../shared/icons/page-light-icon";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { Button, Link, MenuItem } from "../../shared/ui";
-import { useEntityIcon } from "../../shared/use-entity-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { InlineSelect } from "../shared/inline-select";
 import type { ProfilePageTab } from "./util";
@@ -48,7 +49,7 @@ const EntityRow: FunctionComponent<{
   const label = generateEntityLabel(entitiesSubgraph, entity);
 
   const href = `/@${profile.shortname}/${
-    isPageEntityTypeId(entity.metadata.entityTypeId) ? "" : "entities/"
+    includesPageEntityTypeId(entity.metadata.entityTypeIds) ? "" : "entities/"
   }${extractEntityUuidFromEntityId(entity.metadata.recordId.entityId)}`;
 
   const updatedAt = new Date(
@@ -58,19 +59,6 @@ const EntityRow: FunctionComponent<{
   const updatedAtHumanReadable = isBefore(updatedAt, subWeeks(new Date(), 1))
     ? format(updatedAt, "d MMMM yyyy")
     : `${formatDistanceToNowStrict(updatedAt)} ago`;
-
-  const icon = useEntityIcon({
-    entity,
-    entityType,
-    pageIcon:
-      entity.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId ? (
-        <CanvasIcon
-          sx={{ fontSize: 20, fill: ({ palette }) => palette.gray[40] }}
-        />
-      ) : (
-        <PageLightIcon sx={{ fontSize: 18 }} />
-      ),
-  });
 
   return (
     <Link
@@ -89,17 +77,21 @@ const EntityRow: FunctionComponent<{
       }}
     >
       <Box sx={{ padding: 3 }}>
-        <Box
-          display="flex"
-          alignItems="center"
-          columnGap={1.5}
-          sx={{
-            "> svg": {
-              color: ({ palette }) => palette.gray[50],
-            },
-          }}
-        >
-          {icon}
+        <Box display="flex" alignItems="center" columnGap={1.5}>
+          <EntityOrTypeIcon
+            entity={null}
+            icon={entityType?.schema.icon}
+            fontSize={14}
+            fill={({ palette }) => palette.blue[70]}
+            isLink={
+              /**
+               * @todo H-3363 use closed schema to take account of indirectly inherited link status
+               */
+              !!entityType?.schema.allOf?.some(
+                (allOf) => allOf.$ref === linkEntityTypeUrl,
+              )
+            }
+          />
           <Typography component="h2" sx={{ fontWeight: 700, fontSize: 14 }}>
             {label}
           </Typography>

@@ -1,11 +1,7 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  EntityTypeIcon,
-  LinkTypeIcon,
-  OntologyChip,
-} from "@hashintel/design-system";
+import { EntityOrTypeIcon, OntologyChip } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
   EntityTypeFormProvider,
@@ -67,13 +63,13 @@ export const EntityTypePage = ({
   });
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
-    defaultValues: { allOf: [], properties: [], links: [] },
+    defaultValues: { allOf: [], properties: [], links: [], inverse: {} },
   });
   const { handleSubmit: wrapHandleSubmit, reset, watch } = formMethods;
 
   useEffect(() => {
     if (draftEntityType) {
-      reset(getFormDataFromEntityType(draftEntityType));
+      reset(getFormDataFromEntityType(draftEntityType.schema));
     }
   }, [draftEntityType, reset]);
 
@@ -91,8 +87,7 @@ export const EntityTypePage = ({
     (fetchedEntityType) => {
       // Load the initial form data after the entity type has been fetched
       reset({
-        ...getFormDataFromEntityType(fetchedEntityType),
-        icon: fetchedEntityType.metadata.icon,
+        ...getFormDataFromEntityType(fetchedEntityType.schema),
       });
     },
   );
@@ -135,21 +130,13 @@ export const EntityTypePage = ({
       return;
     }
 
-    const { labelProperty, schema: entityTypeSchema } =
-      getEntityTypeFromFormData(data);
+    const { schema: entityTypeSchema } = getEntityTypeFromFormData(data);
 
     if (draftEntityType) {
-      await publishDraft(
-        {
-          ...draftEntityType.schema,
-          ...entityTypeSchema,
-        },
-        {
-          icon: data.icon,
-          labelProperty:
-            (labelProperty as BaseUrl | null | undefined) ?? undefined,
-        },
-      );
+      await publishDraft({
+        ...draftEntityType.schema,
+        ...entityTypeSchema,
+      });
       reset(data);
     } else {
       const currentEntityTypeId = entityType?.schema.$id;
@@ -173,11 +160,7 @@ export const EntityTypePage = ({
         ),
       };
 
-      const res = await updateEntityType(schemaWithConsistentSelfReferences, {
-        icon: data.icon,
-        labelProperty:
-          (labelProperty as BaseUrl | null | undefined) ?? undefined,
-      });
+      const res = await updateEntityType(schemaWithConsistentSelfReferences);
 
       if (!res.errors?.length && res.data) {
         void router.push(
@@ -233,15 +216,12 @@ export const EntityTypePage = ({
     : extractVersion(entityType.schema.$id);
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
-    const { icon, labelProperty, schema } = getEntityTypeFromFormData(data);
+    const { schema } = getEntityTypeFromFormData(data);
 
-    const res = await updateEntityType(
-      {
-        ...schema,
-        allOf: [{ $ref: linkEntityTypeUrl }, ...(schema.allOf ?? [])],
-      },
-      { icon, labelProperty: labelProperty as BaseUrl },
-    );
+    const res = await updateEntityType({
+      ...schema,
+      allOf: [{ $ref: linkEntityTypeUrl }, ...(schema.allOf ?? [])],
+    });
 
     if (!res.errors?.length && res.data) {
       void router.push(
@@ -303,21 +283,15 @@ export const EntityTypePage = ({
                     title: entityType.schema.title,
                     href: "#",
                     id: entityType.schema.$id,
-                    icon:
-                      icon ??
-                      (isLink ? (
-                        <LinkTypeIcon
-                          sx={({ palette }) => ({
-                            stroke: palette.gray[50],
-                          })}
-                        />
-                      ) : (
-                        <EntityTypeIcon
-                          sx={({ palette }) => ({
-                            fill: palette.gray[50],
-                          })}
-                        />
-                      )),
+                    icon: (
+                      <EntityOrTypeIcon
+                        entity={null}
+                        fill={({ palette }) => palette.blue[70]}
+                        fontSize={24}
+                        icon={icon}
+                        isLink={isLink}
+                      />
+                    ),
                   },
                 ]}
                 scrollToTop={() => {}}

@@ -2,12 +2,11 @@ use alloc::sync::Arc;
 use core::{iter, net::Ipv4Addr, time::Duration};
 
 use bytes::Bytes;
-use error_stack::{Report, ResultExt};
-use futures::{prelude::stream, sink::SinkExt, stream::StreamExt};
-use harpc_codec::json::JsonCodec;
+use error_stack::{Report, ResultExt as _};
+use futures::{prelude::stream, sink::SinkExt as _, stream::StreamExt as _};
 use harpc_types::{
     procedure::{ProcedureDescriptor, ProcedureId},
-    service::{ServiceDescriptor, ServiceId},
+    subsystem::{SubsystemDescriptor, SubsystemId},
     version::Version,
 };
 use humansize::ISizeFormatter;
@@ -26,15 +25,15 @@ use crate::transport::{Transport, TransportConfig, TransportLayer, test::memory_
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct Descriptor {
-    pub service: ServiceDescriptor,
+    pub subsystem: SubsystemDescriptor,
     pub procedure: ProcedureDescriptor,
 }
 
 impl Default for Descriptor {
     fn default() -> Self {
         Self {
-            service: ServiceDescriptor {
-                id: ServiceId::new(0x00),
+            subsystem: SubsystemDescriptor {
+                id: SubsystemId::new(0x00),
                 version: Version { major: 1, minor: 1 },
             },
             procedure: ProcedureDescriptor {
@@ -52,17 +51,17 @@ enum PingError {
     Sink,
 }
 
-/// Simple Echo Service
+/// Simple Echo Subsystem
 ///
-/// Unlike the `EchoService` in `server/test.rs` this one doesn't keep track of statistics, to
+/// Unlike the `EchoSystem` in `server/test.rs` this one doesn't keep track of statistics, to
 /// remove as many variables as possible from RTT measurements.
-struct SimpleEchoService;
+struct SimpleEchoSystem;
 
-impl SimpleEchoService {
+impl SimpleEchoSystem {
     async fn handle(
         mut sink: TransactionSink,
         mut stream: TransactionStream,
-    ) -> error_stack::Result<(), PingError> {
+    ) -> Result<(), Report<PingError>> {
         while let Some(received) = stream.next().await {
             sink.send(Ok(received))
                 .await
@@ -103,13 +102,13 @@ fn server(
     transport_config: TransportConfig,
     session_config: server::SessionConfig,
     transport: impl Transport,
-) -> (server::SessionLayer<JsonCodec>, impl Drop) {
+) -> (server::SessionLayer, impl Drop) {
     let cancel = CancellationToken::new();
 
     let transport_layer = TransportLayer::start(transport_config, transport, cancel.clone())
         .expect("failed to start transport layer");
 
-    let session_layer = server::SessionLayer::new(session_config, transport_layer, JsonCodec);
+    let session_layer = server::SessionLayer::new(session_config, transport_layer);
 
     (session_layer, cancel.drop_guard())
 }
@@ -146,12 +145,6 @@ where
             .await
             .expect("should be able to listen on TCP");
 
-        // Give the swarm some time to acquire the external address
-        // This is necessary for CI, as otherwise the tests are a bit flaky.
-        // TODO: Implement waiting for server to be ready
-        //   see https://linear.app/hash/issue/H-2837
-        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-
         let address = server_ipc
             .external_addresses()
             .await
@@ -159,7 +152,7 @@ where
             .pop()
             .expect("should have at least one external address");
 
-        SimpleEchoService::spawn(server_stream);
+        SimpleEchoSystem::spawn(server_stream);
 
         address
     };
@@ -185,7 +178,7 @@ where
 
     let mut stream = connection
         .call(
-            descriptor.service,
+            descriptor.subsystem,
             descriptor.procedure,
             stream::iter(iter::once(payload)),
         )
@@ -259,7 +252,7 @@ async fn echo_client<const VERIFY: bool>(
 
     let mut stream = connection
         .call(
-            descriptor.service,
+            descriptor.subsystem,
             descriptor.procedure,
             stream::iter(iter::once(payload)),
         )
@@ -309,10 +302,6 @@ async fn echo_concurrent<T>(
             .await
             .expect("should be able to listen on TCP");
 
-        // Give the swarm some time to acquire the external address
-        // This is necessary for CI, as otherwise the tests are a bit flaky.
-        // TODO: `listen_on` should wait until the transport layer has acquired said address.
-        //   see https://linear.app/hash/issue/H-2837
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
         let address = server_ipc
@@ -322,7 +311,7 @@ async fn echo_concurrent<T>(
             .pop()
             .expect("should have at least one external address");
 
-        SimpleEchoService::spawn(server_stream);
+        SimpleEchoSystem::spawn(server_stream);
 
         address
     };

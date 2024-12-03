@@ -1,6 +1,6 @@
 use bytes::{Buf, BufMut};
-use error_stack::Result;
-use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+use error_stack::Report;
+use harpc_types::{procedure::ProcedureId, subsystem::SubsystemId, version::Version};
 
 use super::{Buffer, BufferError, Decode};
 use crate::codec::Encode;
@@ -8,7 +8,7 @@ use crate::codec::Encode;
 impl Encode for Version {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -23,7 +23,7 @@ impl Decode for Version {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -37,7 +37,7 @@ impl Decode for Version {
 impl Encode for ProcedureId {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -49,7 +49,7 @@ impl Decode for ProcedureId {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -57,10 +57,10 @@ impl Decode for ProcedureId {
     }
 }
 
-impl Encode for ServiceId {
+impl Encode for SubsystemId {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -68,11 +68,11 @@ impl Encode for ServiceId {
     }
 }
 
-impl Decode for ServiceId {
+impl Decode for SubsystemId {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -84,7 +84,7 @@ impl Decode for ServiceId {
 mod test {
     #![expect(clippy::needless_raw_strings)]
     use expect_test::expect;
-    use harpc_types::{service::ServiceId, version::Version};
+    use harpc_types::{subsystem::SubsystemId, version::Version};
 
     use crate::codec::test::{assert_codec, assert_decode, assert_encode};
 
@@ -109,20 +109,20 @@ mod test {
     }
 
     #[test]
-    fn encode_service_id() {
-        assert_encode(&ServiceId::new(0x01_02), expect![[r#"
+    fn encode_subsystem_id() {
+        assert_encode(&SubsystemId::new(0x01_02), expect![[r#"
                 0x01 0x02
             "#]]);
     }
 
     #[test]
-    fn decode_service_id() {
-        assert_decode(&[0x12_u8, 0x34] as &[_], &ServiceId::new(0x1234), ());
+    fn decode_subsystem_id() {
+        assert_decode(&[0x12_u8, 0x34] as &[_], &SubsystemId::new(0x1234), ());
     }
 
     #[test_strategy::proptest]
     #[cfg_attr(miri, ignore)]
-    fn codec_service_id(id: ServiceId) {
+    fn codec_subsystem_id(id: SubsystemId) {
         assert_codec(&id, ());
     }
 

@@ -1,0 +1,30 @@
+{
+  "description": "The contents of an Entity Type update request",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
+      ]
+    },
+    "kind": {
+      "enum": ["entityType"]
+    },
+    "type": {
+      "enum": ["object"]
+    },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "properties": { "$ref": "./shared.json#/definitions/PropertyTypeObject" },
+    "required": {
+      "type": "array",
+      "items": {
+        "$ref": "./shared.json#/definitions/BaseUrl"
+      }
+    },
+    "links": { "$ref": "./shared.json#/definitions/LinkTypeObject" }
+  },
+  "additionalProperties": false,
+  "required": ["$schema", "kind", "type", "title", "description", "properties"]
+}

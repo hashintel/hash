@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize, Serializer};
 
 pub use self::validation::{ObjectSchemaValidationError, ObjectSchemaValidator};
 use crate::{
-    schema::{ClosedEntityType, EntityType, PropertyTypeReference, ValueOrArray},
+    schema::{ClosedMultiEntityType, EntityType, PropertyTypeReference, ValueOrArray},
     url::BaseUrl,
 };
 
@@ -53,29 +53,29 @@ impl PropertyObjectSchema for EntityType {
     type Value = ValueOrArray<PropertyTypeReference>;
 
     fn properties(&self) -> &HashMap<BaseUrl, Self::Value> {
-        &self.properties
+        &self.constraints.properties
     }
 
     fn required(&self) -> &HashSet<BaseUrl> {
-        &self.required
+        &self.constraints.required
     }
 }
 
-impl PropertyObjectSchema for ClosedEntityType {
+impl PropertyObjectSchema for ClosedMultiEntityType {
     type Value = ValueOrArray<PropertyTypeReference>;
 
     fn properties(&self) -> &HashMap<BaseUrl, Self::Value> {
-        &self.properties
+        &self.constraints.properties
     }
 
     fn required(&self) -> &HashSet<BaseUrl> {
-        &self.required
+        &self.constraints.required
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr;
+    use core::str::FromStr as _;
 
     use serde_json::json;
 

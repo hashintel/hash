@@ -1,7 +1,5 @@
-cargo-features = ["edition2024"]
-
 [package]
-name = "hash-tracing"
+name              = "hash-tracing"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,26 +8,27 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true }
+error-stack   = { workspace = true, public = true }
+opentelemetry = { workspace = true, public = true }
 
 # Public third-party dependencies
-clap_builder = { workspace = true, public = true }
-tokio = { workspace = true, public = true }
-tracing-appender = { workspace = true, public = true }
-tracing-core = { workspace = true, public = true }
-tracing-subscriber = { workspace = true, public = true, features = ["ansi", "env-filter", "json"] }
-sentry-types = { workspace = true, public = true }
+clap_builder       = { workspace = true, public = true }
+sentry-types       = { workspace = true, public = true }
+tokio              = { workspace = true, public = true }
+tracing-appender   = { workspace = true, public = true }
+tracing-core       = { workspace = true, public = true }
+tracing-subscriber = { workspace = true, public = true, features = ["std", "ansi", "env-filter", "json"] }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-clap = { workspace = true, optional = true, features = ["derive", "env"] }
-opentelemetry = { workspace = true }
-opentelemetry-otlp = { workspace = true, features = ["trace", "grpc-tonic"] }
-opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
-sentry = { workspace = true }
-tracing = { workspace = true }
-tracing-error = { workspace = true }
+clap                  = { workspace = true, optional = true, features = ["derive", "env"] }
+derive_more           = { workspace = true, features = ["display", "error"] }
+opentelemetry-otlp    = { workspace = true, features = ["trace", "grpc-tonic"] }
+opentelemetry_sdk     = { workspace = true, features = ["rt-tokio"] }
+sentry                = { workspace = true }
+tracing               = { workspace = true }
+tracing-error         = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 
 [features]

@@ -11,6 +11,7 @@ import {
   researchTaskFlowDefinition,
   saveFileFromUrl,
 } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import { inferMetadataFromDocumentFlowDefinition } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
 import {
   goalFlowDefinition,
   goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
@@ -33,6 +34,7 @@ const exampleFlows: FlowDefinition[] = [
   researchTaskFlowDefinition,
   researchEntitiesFlowDefinition,
   ftseInvestorsFlowDefinition,
+  inferMetadataFromDocumentFlowDefinition,
   inferUserEntitiesFromWebPageFlowDefinition,
   answerQuestionFlow,
   saveFileFromUrl,

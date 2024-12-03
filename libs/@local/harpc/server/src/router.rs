@@ -5,10 +5,8 @@ use core::{
 };
 
 use frunk::{HCons, HNil};
-use futures::{FutureExt, Stream};
-use harpc_codec::encode::ErrorEncoder;
-use harpc_net::session::server::SessionEvent;
-use harpc_service::delegate::ServiceDelegate;
+use futures::FutureExt as _;
+use harpc_system::{Subsystem, delegate::SubsystemDelegate};
 use harpc_tower::{
     body::Body,
     net::pack::{PackLayer, PackService},
@@ -19,9 +17,10 @@ use tokio_util::sync::CancellationToken;
 use tower::{Layer, Service, ServiceBuilder, layer::util::Identity};
 
 use crate::{
-    delegate::ServiceDelegateHandler,
+    boxed::{BoxReqBody, BoxedRoute, BoxedRouter},
+    delegate::SubsystemDelegateService,
     route::{Handler, Route},
-    session::{self, SessionStorage},
+    session::{self, Session, SessionStorage},
 };
 
 pub struct RouterBuilder<R, L, S, C> {
@@ -57,16 +56,19 @@ impl<S, C> RouterBuilder<HNil, Identity, S, C> {
     }
 }
 
-type ServiceHandler<D, L, S, C> = Handler<<L as Layer<ServiceDelegateHandler<D, S, C>>>::Service>;
+type ServiceHandler<D, L, S, C> = Handler<
+    <L as Layer<SubsystemDelegateService<D, S, C>>>::Service,
+    <<D as SubsystemDelegate<C>>::Subsystem as Subsystem>::SubsystemId,
+>;
 
 impl<R, L, S, C> RouterBuilder<R, L, S, C> {
     pub fn with_builder<L2>(
         self,
-        builder: impl FnOnce(ServiceBuilder<L>, &C) -> ServiceBuilder<L2>,
+        builder: impl FnOnce(ServiceBuilder<L>) -> ServiceBuilder<L2>,
     ) -> RouterBuilder<R, L2, S, C> {
         RouterBuilder {
             routes: self.routes,
-            builder: builder(self.builder, &self.codec),
+            builder: builder(self.builder),
             session: self.session,
             codec: self.codec,
             cancel: self.cancel,
@@ -85,18 +87,18 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
         delegate: D,
     ) -> RouterBuilder<HCons<ServiceHandler<D, L, S, C>, R>, L, S, C>
     where
-        D: ServiceDelegate<S, C> + Clone + Send,
-        L: Layer<ServiceDelegateHandler<D, S, C>>,
+        D: SubsystemDelegate<C, ExecutionScope = Session<S>> + Clone + Send,
+        L: Layer<SubsystemDelegateService<D, S, C>>,
         S: Default + Send + Sync + 'static,
         C: Clone + Send + 'static,
     {
         let service =
-            ServiceDelegateHandler::new(delegate, Arc::clone(&self.session), self.codec.clone());
+            SubsystemDelegateService::new(delegate, Arc::clone(&self.session), self.codec.clone());
         let service = self.builder.service(service);
 
         RouterBuilder {
             routes: HCons {
-                head: Handler::new::<D::Service>(service),
+                head: Handler::new::<D::Subsystem>(service),
                 tail: self.routes,
             },
             builder: self.builder,
@@ -118,38 +120,30 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
     ///
     /// It is not necessary to spawn the task if the router is spawned, but it is **highly**
     /// recommended, as otherwise sessions will not be cleaned up, which will lead to memory leaks.
-    pub fn background_task<St, E>(&self, stream: St) -> session::Task<S, St>
-    where
-        S: Send + Sync + 'static,
-        St: Stream<Item = Result<SessionEvent, E>> + Send + 'static,
-    {
+    pub fn background_task<St>(&self, stream: St) -> session::Task<S, St> {
         Arc::clone(&self.session)
             .task(stream)
             .with_cancellation_token(self.cancel.child_token())
     }
 
-    pub fn build(self) -> Router<R, C>
+    pub fn build(self) -> Router<R>
     where
         R: Send + Sync + 'static,
-        C: ErrorEncoder + Clone + Send + Sync + 'static,
     {
         Router {
             routes: Arc::new(self.routes),
-            codec: self.codec,
         }
     }
 }
 
-pub struct RouterService<R, C> {
+pub struct RouterService<R> {
     routes: Arc<R>,
-    codec: C,
 }
 
-impl<R, C, ReqBody> Service<Request<ReqBody>> for RouterService<R, C>
+impl<R, ReqBody> Service<Request<ReqBody>> for RouterService<R>
 where
-    R: Route<ReqBody, C>,
+    R: Route<ReqBody>,
     ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
-    C: ErrorEncoder + Clone + Send + Sync + 'static,
 {
     type Error = !;
     type Response = Response<R::ResponseBody>;
@@ -161,24 +155,46 @@ where
     }
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        let codec = self.codec.clone();
-
-        self.routes.call(req, codec).map(Ok)
+        self.routes.call(req).map(Ok)
     }
 }
 
-pub struct Router<R, C> {
+pub struct Router<R> {
     routes: Arc<R>,
-    codec: C,
 }
 
-impl<R, C> Service<()> for Router<R, C>
-where
-    C: Clone,
-{
+impl<R> Router<R> {
+    /// Boxes the router, allowing it to be used as a dynamic trait object.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if called after any requests have been serviced.
+    #[expect(
+        clippy::arc_with_non_send_sync,
+        reason = "false positive, the router may still be Send + Sync, we just don't enforce it \
+                  on boxing"
+    )]
+    #[must_use]
+    pub fn boxed(self) -> BoxedRouter
+    where
+        R: Route<BoxReqBody, Future: Send + 'static, ResponseBody: Send + 'static> + 'static,
+    {
+        let routes = Arc::try_unwrap(self.routes).unwrap_or_else(|_routes| {
+            panic!("`Router::boxed()` should be called before any requests have been serviced")
+        });
+
+        let routes = BoxedRoute::new(routes);
+
+        Router {
+            routes: Arc::new(routes),
+        }
+    }
+}
+
+impl<R> Service<()> for Router<R> {
     type Error = !;
     type Future = Ready<Result<Self::Response, !>>;
-    type Response = PackService<RouterService<R, C>, C>;
+    type Response = PackService<RouterService<R>>;
 
     fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
@@ -186,12 +202,9 @@ where
 
     fn call(&mut self, (): ()) -> Self::Future {
         let routes = Arc::clone(&self.routes);
-        let codec = self.codec.clone();
 
-        let layer = PackLayer::new(codec.clone());
+        let layer = PackLayer::new();
 
-        future::ready(Ok(layer.layer(RouterService { routes, codec })))
+        future::ready(Ok(layer.layer(RouterService { routes })))
     }
 }
-
-// TODO: boxed variant

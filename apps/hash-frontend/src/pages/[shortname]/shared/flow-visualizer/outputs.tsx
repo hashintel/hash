@@ -30,7 +30,7 @@ import {
 import type { SvgIconProps } from "@mui/material";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
   FlowRun,
@@ -41,12 +41,12 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
+import { EntityEditorSlideStack } from "../../../shared/entity-editor-slide-stack";
 import { TypeSlideOverStack } from "../../../shared/entity-type-page/type-slide-over-stack";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../shared/get-file-properties";
 import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
-import { EditEntitySlideOver } from "../../entities/[entity-uuid].page/edit-entity-slide-over";
-import { ClaimsTable } from "./outputs/claims-table";
+import { ClaimsOutput } from "./outputs/claims-output";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
 import { EntityResultGraph } from "./outputs/entity-result-graph";
@@ -88,7 +88,7 @@ export const getDeliverables = (
       if (fileUrl) {
         deliverables.push({
           displayName,
-          entityTypeId: entity.metadata.entityTypeId,
+          entityTypeId: entity.metadata.entityTypeIds[0],
           fileName,
           fileUrl,
           type: "file",
@@ -259,7 +259,7 @@ const mockEntityFromProposedEntity = (
         entityId: proposedEntity.localEntityId,
         editionId,
       },
-      entityTypeIds: [proposedEntity.entityTypeId],
+      entityTypeIds: proposedEntity.entityTypeIds,
       temporalVersioning: {
         decisionTime: temporalInterval,
         transactionTime: temporalInterval,
@@ -351,61 +351,81 @@ export const Outputs = ({
     [persistedEntities],
   );
 
-  const { data: proposedEntitiesTypesData } = useQuery<
-    QueryEntityTypesQuery,
-    QueryEntityTypesQueryVariables
-  >(queryEntityTypesQuery, {
-    fetchPolicy: "cache-and-network",
-    variables: {
-      filter: {
-        any: proposedEntities.map((proposedEntity) =>
-          generateVersionedUrlMatchingFilter(proposedEntity.entityTypeId, {
-            forEntityType: true,
-          }),
-        ),
+  const {
+    data: proposedEntitiesTypesData,
+    previousData: previousProposedEntitiesTypesData,
+  } = useQuery<QueryEntityTypesQuery, QueryEntityTypesQueryVariables>(
+    queryEntityTypesQuery,
+    {
+      fetchPolicy: "cache-and-network",
+      variables: {
+        filter: {
+          any: [
+            ...new Set(
+              proposedEntities.flatMap(
+                (proposedEntity) => proposedEntity.entityTypeIds,
+              ),
+            ),
+          ].map((entityTypeId) =>
+            generateVersionedUrlMatchingFilter(entityTypeId, {
+              forEntityType: true,
+            }),
+          ),
+        },
+        ...fullOntologyResolveDepths,
       },
-      ...fullOntologyResolveDepths,
+      skip: proposedEntities.length === 0,
     },
-    skip: proposedEntities.length === 0,
-  });
+  );
 
   const proposedEntitiesTypesSubgraph = useMemo(() => {
     if (!proposedEntitiesTypesData) {
-      return undefined;
+      return previousProposedEntitiesTypesData
+        ? deserializeSubgraph(
+            previousProposedEntitiesTypesData.queryEntityTypes,
+          )
+        : undefined;
     }
 
     return deserializeSubgraph(proposedEntitiesTypesData.queryEntityTypes);
-  }, [proposedEntitiesTypesData]);
+  }, [proposedEntitiesTypesData, previousProposedEntitiesTypesData]);
 
-  const { data: entitiesSubgraphData } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
-    variables: {
-      includePermissions: false,
-      request: {
-        filter: persistedEntitiesFilter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          ...fullOntologyResolveDepths,
+  const {
+    data: persistedEntitiesSubgraphData,
+    previousData: previousPersistedEntitiesSubgraphData,
+  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
+    getEntitySubgraphQuery,
+    {
+      variables: {
+        includePermissions: false,
+        request: {
+          filter: persistedEntitiesFilter,
+          graphResolveDepths: {
+            ...zeroedGraphResolveDepths,
+            ...fullOntologyResolveDepths,
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: true,
         },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: true,
       },
+      skip: !persistedEntities.length,
+      fetchPolicy: "network-only",
     },
-    skip: !persistedEntities.length,
-    fetchPolicy: "network-only",
-  });
+  );
 
   const persistedEntitiesSubgraph = useMemo(() => {
-    if (!entitiesSubgraphData) {
-      return undefined;
+    if (!persistedEntitiesSubgraphData) {
+      return previousPersistedEntitiesSubgraphData
+        ? deserializeSubgraph<EntityRootType>(
+            previousPersistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
+          )
+        : undefined;
     }
 
     return deserializeSubgraph<EntityRootType>(
-      entitiesSubgraphData.getEntitySubgraph.subgraph,
+      persistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
     );
-  }, [entitiesSubgraphData]);
+  }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
 
   const selectedEntitySubgraph = useMemo(() => {
     const selectedEntityId =
@@ -413,6 +433,23 @@ export const Outputs = ({
 
     if (!selectedEntityId || !selectedFlowRun?.webId) {
       return undefined;
+    }
+
+    const persistedEntity = persistedEntities.find(
+      ({ entity }) =>
+        entity &&
+        new Entity(entity).metadata.recordId.entityId === selectedEntityId,
+    );
+
+    if (persistedEntity) {
+      if (!persistedEntitiesSubgraph) {
+        return undefined;
+      }
+
+      return generateEntityRootedSubgraph(
+        selectedEntityId,
+        persistedEntitiesSubgraph,
+      );
     }
 
     const proposedEntity = proposedEntities.find(
@@ -452,12 +489,12 @@ export const Outputs = ({
         {
           ...fullOntologyResolveDepths,
           hasLeftEntity: {
-            outgoing: 0,
+            outgoing: 1,
             incoming: 1,
           },
           hasRightEntity: {
             outgoing: 1,
-            incoming: 0,
+            incoming: 1,
           },
         },
         {
@@ -480,22 +517,20 @@ export const Outputs = ({
 
       return mockSubgraph;
     }
-
-    if (!persistedEntitiesSubgraph) {
-      return undefined;
-    }
-
-    return generateEntityRootedSubgraph(
-      selectedEntityId,
-      persistedEntitiesSubgraph,
-    );
   }, [
+    persistedEntities,
     persistedEntitiesSubgraph,
     proposedEntitiesTypesSubgraph,
     proposedEntities,
     selectedFlowRun?.webId,
     slideOver,
   ]);
+
+  useEffect(() => {
+    if (!hasClaims && visibleSection === "claims" && hasEntities) {
+      setVisibleSection("entities");
+    }
+  }, [hasClaims, hasEntities, visibleSection]);
 
   const entitiesForGraph = useMemo<EntityForGraphChart[]>(() => {
     const entities: EntityForGraphChart[] = [];
@@ -512,7 +547,7 @@ export const Outputs = ({
 
     for (const entity of proposedEntities) {
       const {
-        entityTypeId,
+        entityTypeIds,
         localEntityId,
         properties,
         sourceEntityId,
@@ -540,7 +575,7 @@ export const Outputs = ({
             editionId,
             entityId: localEntityId,
           },
-          entityTypeId,
+          entityTypeIds,
         },
         properties,
       });
@@ -567,15 +602,14 @@ export const Outputs = ({
           onClose={() => setSlideOver(null)}
         />
       )}
-      {selectedEntitySubgraph && (
-        <EditEntitySlideOver
+      {selectedEntitySubgraph && slideOver?.type === "entity" && (
+        <EntityEditorSlideStack
           entitySubgraph={selectedEntitySubgraph}
           hideOpenInNew={persistedEntities.length === 0}
-          onEntityClick={onEntityClick}
-          open={slideOver?.type === "entity"}
+          rootEntityId={slideOver.entityId}
           onClose={() => setSlideOver(null)}
           onSubmit={() => {
-            throw new Error("Editing not permitted in this context");
+            throw new Error(`Editing not yet supported from this screen`);
           }}
           readonly
         />
@@ -671,7 +705,7 @@ export const Outputs = ({
             />
           ))}
         {visibleSection === "claims" && (
-          <ClaimsTable
+          <ClaimsOutput
             onEntityClick={onEntityClick}
             proposedEntities={proposedEntities}
           />

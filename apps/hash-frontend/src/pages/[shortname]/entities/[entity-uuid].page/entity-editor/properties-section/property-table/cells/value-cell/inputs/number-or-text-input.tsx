@@ -1,6 +1,6 @@
+import type { ValueConstraints } from "@blockprotocol/type-system-rs/pkg/type-system";
 import type { TextFieldProps } from "@hashintel/design-system";
 import { TextField } from "@hashintel/design-system";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { format, formatISO, parseISO } from "date-fns";
 
 import type { CellInputProps } from "./types";
@@ -33,50 +33,53 @@ const convertDateTimeToLocalRFC3339 = (dateTimeStringWithoutOffset: string) => {
 };
 
 export const NumberOrTextInput = ({
-  expectedType,
+  isNumber,
   onBlur,
   onChange,
   onEnterPressed,
   value: uncheckedValue,
-  isNumber,
+  valueConstraints,
 }: CellInputProps<number | string | undefined> & {
-  onBlur?: TextFieldProps["onBlur"];
-  expectedType: DataTypeWithMetadata["schema"];
   isNumber: boolean;
+  onBlur?: TextFieldProps["onBlur"];
   onEnterPressed?: () => void;
+  valueConstraints: ValueConstraints;
 }) => {
   const minLength =
-    "minLength" in expectedType ? expectedType.minLength : undefined;
+    "minLength" in valueConstraints ? valueConstraints.minLength : undefined;
   const maxLength =
-    "maxLength" in expectedType ? expectedType.maxLength : undefined;
+    "maxLength" in valueConstraints ? valueConstraints.maxLength : undefined;
 
   const step =
-    "multipleOf" in expectedType && expectedType.multipleOf !== undefined
-      ? expectedType.multipleOf
+    "multipleOf" in valueConstraints &&
+    valueConstraints.multipleOf !== undefined
+      ? valueConstraints.multipleOf
       : 0.01;
 
   const exclusiveMinimum =
-    "exclusiveMinimum" in expectedType &&
-    typeof expectedType.exclusiveMinimum === "boolean"
-      ? expectedType.exclusiveMinimum
+    "exclusiveMinimum" in valueConstraints &&
+    typeof valueConstraints.exclusiveMinimum === "boolean"
+      ? valueConstraints.exclusiveMinimum
       : false;
   const minimum =
-    "minimum" in expectedType && typeof expectedType.minimum === "number"
-      ? expectedType.minimum + (exclusiveMinimum ? step : 0)
+    "minimum" in valueConstraints &&
+    typeof valueConstraints.minimum === "number"
+      ? valueConstraints.minimum + (exclusiveMinimum ? step : 0)
       : undefined;
 
   const exclusiveMaximum =
-    "exclusiveMaximum" in expectedType &&
-    typeof expectedType.exclusiveMaximum === "boolean"
-      ? expectedType.exclusiveMaximum
+    "exclusiveMaximum" in valueConstraints &&
+    typeof valueConstraints.exclusiveMaximum === "boolean"
+      ? valueConstraints.exclusiveMaximum
       : false;
   const maximum =
-    "maximum" in expectedType && typeof expectedType.maximum === "number"
-      ? expectedType.maximum - (exclusiveMaximum ? step : 0)
+    "maximum" in valueConstraints &&
+    typeof valueConstraints.maximum === "number"
+      ? valueConstraints.maximum - (exclusiveMaximum ? step : 0)
       : undefined;
 
   const jsonStringFormat =
-    "format" in expectedType ? expectedType.format : undefined;
+    "format" in valueConstraints ? valueConstraints.format : undefined;
 
   let inputType: TextFieldProps["type"] = isNumber ? "number" : "text";
   let value = uncheckedValue;
@@ -127,7 +130,7 @@ export const NumberOrTextInput = ({
       value={value}
       type={inputType}
       inputMode={isNumber ? "numeric" : "text"}
-      placeholder="Start typing..."
+      placeholder={isNumber ? "Enter a number" : "Start typing..."}
       onBlur={onBlur}
       onChange={({ target }) => {
         const isEmptyString = target.value === "";

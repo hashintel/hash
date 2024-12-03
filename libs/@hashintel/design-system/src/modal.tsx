@@ -6,6 +6,7 @@ import type {
 import { Box, Modal as MuiModal } from "@mui/material";
 import clsx from "clsx";
 import type { FunctionComponent } from "react";
+import { useEffect, useRef } from "react";
 
 import { fluidFontClassName } from "./fluid-fonts";
 
@@ -20,6 +21,19 @@ export const Modal: FunctionComponent<ModalProps> = ({
   contentStyle = [],
   ...props
 }) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      void Promise.resolve().then(() => {
+        if (!contentRef.current) {
+          return;
+        }
+        contentRef.current.scrollTo({ behavior: "auto", top: 0 });
+      });
+    }
+  }, [contentRef, open]);
+
   return (
     <MuiModal
       open={open}
@@ -33,6 +47,7 @@ export const Modal: FunctionComponent<ModalProps> = ({
       {...props}
     >
       <Box
+        ref={contentRef}
         sx={[
           {
             position: "absolute",

@@ -614,7 +614,10 @@ export const runFlowWorkflow = async (
      * Steps may error and be retried, or the whole workflow retried, while still producing the required outputs
      * – start with an initial status of OK if the outputs are present, to be adjusted if necessary.
      */
-    code: outputs.length ? StatusCode.Ok : StatusCode.Internal,
+    code:
+      outputs.length === flowDefinition.outputs.length
+        ? StatusCode.Ok
+        : StatusCode.Internal,
     contents: [{ outputs, stepErrors }],
   };
 };

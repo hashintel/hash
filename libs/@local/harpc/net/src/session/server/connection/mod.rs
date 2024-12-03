@@ -6,8 +6,9 @@ use alloc::sync::Arc;
 use core::{error::Error, fmt::Debug, future};
 use std::io;
 
-use futures::{FutureExt, Sink, Stream, StreamExt, stream};
-use harpc_codec::encode::ErrorEncoder;
+use error_stack::Report;
+use futures::{FutureExt as _, Sink, Stream, StreamExt as _, stream};
+use harpc_codec::error::NetworkError;
 use harpc_types::response_kind::ResponseKind;
 use harpc_wire_protocol::{
     request::{Request, body::RequestBody, id::RequestId},
@@ -61,7 +62,7 @@ where
     }
 }
 
-pub(crate) struct ConnectionTask<E> {
+pub(crate) struct ConnectionTask {
     pub peer: PeerId,
     pub session: SessionId,
 
@@ -70,19 +71,19 @@ pub(crate) struct ConnectionTask<E> {
     pub events: broadcast::Sender<SessionEvent>,
 
     pub config: SessionConfig,
-    pub encoder: E,
+
     pub _permit: OwnedSemaphorePermit,
 }
 
-impl<E> ConnectionTask<E>
-where
-    E: ErrorEncoder + Clone + Send + Sync + 'static,
-{
-    async fn respond_error<T>(&self, id: RequestId, error: T, tx: &mpsc::Sender<Response>)
+impl ConnectionTask {
+    async fn respond_error<E>(&self, id: RequestId, error: &E, tx: &mpsc::Sender<Response>)
     where
-        T: Error + serde::Serialize + Send + Sync,
+        E: Error + Sync,
     {
-        let (code, bytes) = self.encoder.clone().encode_error(error).into_parts();
+        let error = NetworkError::capture_error(error);
+
+        let code = error.code();
+        let bytes = error.into_bytes();
 
         let mut writer = ResponseWriter::new(
             WriterOptions { no_delay: false },
@@ -127,7 +128,7 @@ where
                         Err(error) => {
                             tracing::warn!("transaction limit reached, dropping transaction");
 
-                            self.respond_error(request_id, error, &tx).await;
+                            self.respond_error(request_id, &error, &tx).await;
                             return;
                         }
                     };
@@ -153,7 +154,7 @@ where
                         // be processed, this is also known as the "graceful shutdown" phase.
                         tracing::info!("supervisor has been dropped, dropping transaction");
 
-                        self.respond_error(request_id, ConnectionGracefulShutdownError, &tx)
+                        self.respond_error(request_id, &ConnectionGracefulShutdownError, &tx)
                             .await;
                         return;
                     }
@@ -165,7 +166,7 @@ where
 
                         self.transactions.release(request_id).await;
 
-                        self.respond_error(request_id, InstanceTransactionLimitReachedError, &tx)
+                        self.respond_error(request_id, &InstanceTransactionLimitReachedError, &tx)
                             .await;
                         return;
                     }
@@ -192,14 +193,12 @@ where
             }
             RequestBody::Frame(_) => {
                 if let Err(error) = self.transactions.send(request).await {
-                    self.respond_error(request_id, error, &tx).await;
+                    self.respond_error(request_id, &error, &tx).await;
                 }
             }
         }
 
-        // TODO: forced gc on timeout in upper layer
-
-        // we do not need to check for `EndOfRequest` here and forcefully close the channel, as the
+        // We do not need to check for `EndOfRequest` here and forcefully close the channel, as the
         // task is already doing this for us.
     }
 
@@ -215,7 +214,7 @@ where
         cancel: CancellationToken,
     ) where
         T: Sink<Response, Error: Debug + Send> + Send + 'static,
-        U: Stream<Item = error_stack::Result<Request, io::Error>> + Send,
+        U: Stream<Item = Result<Request, Report<io::Error>>> + Send,
     {
         let stream = stream.fuse();
         let stream = StreamNotifyClose::new(stream);

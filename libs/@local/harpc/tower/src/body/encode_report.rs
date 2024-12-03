@@ -1,16 +1,17 @@
 use core::{
+    error::Error,
     pin::Pin,
     task::{Context, Poll, ready},
 };
 
 use bytes::Bytes;
 use error_stack::Report;
-use harpc_codec::encode::ErrorEncoder;
+use harpc_codec::error::NetworkError;
 use harpc_types::response_kind::ResponseKind;
 
 use super::{Body, full::Full};
 use crate::{
-    body::{BodyExt, controlled::Controlled},
+    body::{BodyExt as _, controlled::Controlled},
     either::Either,
 };
 
@@ -52,27 +53,24 @@ pin_project_lite::pin_project! {
     /// While this method ensures safe error handling, it means that any data in the inner body
     /// after an error will not be processed.
     // We need a separate type for this because of the `Error` bound, `Report<C>` could implement `Error`, in that case we would have a conflicting implementation.
-    pub struct EncodeReport<B, E> {
+    pub struct EncodeReport<B> {
         #[pin]
         state: State<B>,
-        encoder: E,
     }
 }
 
-impl<B, E> EncodeReport<B, E> {
-    pub const fn new(inner: B, encoder: E) -> Self {
+impl<B> EncodeReport<B> {
+    pub const fn new(inner: B) -> Self {
         Self {
             state: State::Inner { inner },
-            encoder,
         }
     }
 }
 
-impl<B, E, C> Body for EncodeReport<B, E>
+impl<B, C> Body for EncodeReport<B>
 where
     B: Body<Error = Report<C>>,
-    E: ErrorEncoder + Clone,
-    C: error_stack::Context,
+    C: Error + Send + Sync + 'static,
 {
     type Control = Either<B::Control, ResponseKind>;
     type Data = Either<B::Data, Bytes>;
@@ -96,7 +94,7 @@ where
                             Some(Ok(frame.map_data(Either::Left).map_control(Either::Left)))
                         }
                         Some(Err(error)) => {
-                            let error = this.encoder.clone().encode_report(error);
+                            let error = NetworkError::capture_report(&error);
                             let (code, data) = error.into_parts();
 
                             let inner = Controlled::new(ResponseKind::Err(code), Full::new(data));
@@ -142,16 +140,16 @@ mod test {
 
     use bytes::Bytes;
     use error_stack::Report;
-    use harpc_codec::json::JsonCodec;
     use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
     use insta::assert_debug_snapshot;
 
     use crate::{
         body::{
-            Body, BodyState, Frame, SizeHint, encode_report::EncodeReport, test::poll_frame_unpin,
+            Body as _, BodyState, Frame, SizeHint, encode_report::EncodeReport,
+            test::poll_frame_unpin,
         },
         either::Either,
-        test::{PollExt, StaticBody},
+        test::{PollExt as _, StaticBody},
     };
 
     #[derive(Debug, thiserror::Error, serde::Serialize)]
@@ -161,7 +159,7 @@ mod test {
     #[test]
     fn encode_error() {
         let inner = StaticBody::<Bytes, !, Report<TestError>>::new([Err(Report::new(TestError))]);
-        let mut body = EncodeReport::new(inner, JsonCodec);
+        let mut body = EncodeReport::new(inner);
 
         let frame = poll_frame_unpin(&mut body)
             .expect("should be ready")
@@ -183,7 +181,7 @@ mod test {
         insta::assert_debug_snapshot!(frame, @r###"
         Data(
             Right(
-                b"\x01[{\"context\":\"test error\",\"attachments\":[],\"sources\":[]}]",
+                b"\0\0\0\ntest error",
             ),
         )
         "###);
@@ -197,7 +195,7 @@ mod test {
         let inner = StaticBody::<Bytes, !, Report<TestError>>::new([Ok(Frame::new_data(
             Bytes::from_static(b"test data"),
         ))]);
-        let mut body = EncodeReport::new(inner, JsonCodec);
+        let mut body = EncodeReport::new(inner);
 
         let frame = poll_frame_unpin(&mut body)
             .expect("should be ready")
@@ -214,7 +212,7 @@ mod test {
     fn passthrough_control() {
         let inner =
             StaticBody::<Bytes, i32, Report<TestError>>::new([Ok(Frame::new_control(2_i32))]);
-        let mut body = EncodeReport::new(inner, JsonCodec);
+        let mut body = EncodeReport::new(inner);
 
         let frame = poll_frame_unpin(&mut body)
             .expect("should be ready")
@@ -234,7 +232,7 @@ mod test {
         let inner = StaticBody::<Bytes, !, Report<TestError>>::new([Ok(Frame::new_data(
             Bytes::from_static(DATA),
         ))]);
-        let mut body = EncodeReport::new(inner, JsonCodec);
+        let mut body = EncodeReport::new(inner);
 
         assert_eq!(body.size_hint(), SizeHint::with_exact(DATA.len() as u64));
 
@@ -251,7 +249,7 @@ mod test {
             Err(Report::new(TestError)),
             Ok(Frame::new_data(Bytes::from_static(DATA))),
         ]);
-        let mut body = EncodeReport::new(inner, JsonCodec);
+        let mut body = EncodeReport::new(inner);
 
         // no error yet, so the size hint should be the size of the data
         assert_eq!(body.size_hint(), SizeHint::with_exact(DATA.len() as u64));
@@ -259,8 +257,8 @@ mod test {
         let _frame = poll_frame_unpin(&mut body);
 
         // we now have an error, therefore the size hint should include the error
-        // `40` is taken from the serialization in the unit test above
-        assert_eq!(body.size_hint(), SizeHint::with_exact(57));
+        // `14` is taken from the serialization in the unit test above
+        assert_eq!(body.size_hint(), SizeHint::with_exact(14));
 
         let _frame = poll_frame_unpin(&mut body);
 
@@ -273,7 +271,7 @@ mod test {
         let inner = StaticBody::<Bytes, !, Report<TestError>>::new([Ok(Frame::new_data(
             Bytes::from_static(b"test data"),
         ))]);
-        let mut body = EncodeReport::new(inner, JsonCodec);
+        let mut body = EncodeReport::new(inner);
 
         assert_eq!(body.state(), None);
 
@@ -285,7 +283,7 @@ mod test {
     #[test]
     fn state_on_error() {
         let inner = StaticBody::<Bytes, !, Report<TestError>>::new([Err(Report::new(TestError))]);
-        let mut body = EncodeReport::new(inner, JsonCodec);
+        let mut body = EncodeReport::new(inner);
 
         assert_eq!(body.state(), None);
 
@@ -304,7 +302,7 @@ mod test {
             Err(Report::new(TestError)),
             Ok(Frame::new_data(Bytes::from_static(b"test data"))),
         ]);
-        let mut body = EncodeReport::new(inner, JsonCodec);
+        let mut body = EncodeReport::new(inner);
 
         assert_eq!(body.state(), None);
 
@@ -321,7 +319,7 @@ mod test {
     #[test]
     fn size_hint_and_state_with_empty_body() {
         let inner = StaticBody::<Bytes, !, Report<TestError>>::new([]);
-        let body = EncodeReport::new(inner, JsonCodec);
+        let body = EncodeReport::new(inner);
 
         assert_eq!(body.size_hint(), SizeHint::with_exact(0));
         assert_eq!(body.state(), Some(BodyState::Complete));
@@ -336,7 +334,7 @@ mod test {
             Ok(Frame::new_control(())),
             Ok(Frame::new_data(Bytes::from_static(b"data3"))),
         ]);
-        let mut body = EncodeReport::new(inner, JsonCodec);
+        let mut body = EncodeReport::new(inner);
 
         let frame = poll_frame_unpin(&mut body)
             .expect("should be ready")
@@ -362,7 +360,7 @@ mod test {
         assert_debug_snapshot!(frame, @r###"
         Data(
             Right(
-                b"\x01[{\"context\":\"test error\",\"attachments\":[],\"sources\":[]}]",
+                b"\0\0\0\ntest error",
             ),
         )
         "###);

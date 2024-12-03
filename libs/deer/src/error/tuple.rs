@@ -81,7 +81,7 @@ macro_rules! properties {
             fn output<S>(
                 value: Self::Value<'_>,
                 map: &mut S,
-            ) -> error_stack::Result<(), [SerdeSerializeError]>
+            ) -> Result<(), Report<[SerdeSerializeError]>>
             where
                 S: SerializeMap,
             {
@@ -112,7 +112,7 @@ impl ErrorProperties for () {
 
     fn value<'a>(_: &[&'a Frame]) -> Self::Value<'a> {}
 
-    fn output<S>((): Self::Value<'_>, _: &mut S) -> error_stack::Result<(), [SerdeSerializeError]>
+    fn output<S>((): Self::Value<'_>, _: &mut S) -> Result<(), Report<[SerdeSerializeError]>>
     where
         S: SerializeMap,
     {

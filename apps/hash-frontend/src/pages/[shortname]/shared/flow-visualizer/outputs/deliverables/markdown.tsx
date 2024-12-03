@@ -1,4 +1,4 @@
-import { CopyIconRegular } from "@hashintel/design-system";
+import { CopyRegularIcon } from "@hashintel/design-system";
 import { Box, Stack, Tab, Typography } from "@mui/material";
 import { useState } from "react";
 
@@ -134,7 +134,7 @@ export const MarkdownDeliverable = ({
               >
                 {copyButtonText}
               </Typography>
-              <CopyIconRegular
+              <CopyRegularIcon
                 sx={{
                   fill: ({ palette }) => palette.gray[70],
                   fontSize: 14,

@@ -12,9 +12,8 @@ use core::{
     task::{Context, Poll, ready},
 };
 
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use futures::{Stream, stream::FusedStream};
-use harpc_codec::encode::ErrorEncoder;
 use libp2p::Multiaddr;
 use tokio::sync::{Semaphore, broadcast, mpsc};
 use tokio_util::task::TaskTracker;
@@ -23,10 +22,6 @@ pub use self::{config::SessionConfig, session_id::SessionId, transaction::Transa
 use self::{session_id::SessionIdProducer, task::Task};
 use super::error::SessionError;
 use crate::transport::TransportLayer;
-
-// TODO: encoding and decoding layer(?)
-// TODO: timeout layer - needs encoding layer (for error handling), and IPC to cancel a specific
-// request in a session
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SessionEvent {
@@ -144,9 +139,8 @@ impl FusedStream for EventStream {
 ///
 /// The session layer is responsible for accepting incoming connections, and splitting them up into
 /// dedicated sessions, these sessions are then used to form transactions.
-pub struct SessionLayer<E> {
+pub struct SessionLayer {
     config: SessionConfig,
-    encoder: E,
 
     events: broadcast::Sender<SessionEvent>,
 
@@ -155,18 +149,15 @@ pub struct SessionLayer<E> {
     tasks: TaskTracker,
 }
 
-impl<E> SessionLayer<E>
-where
-    E: ErrorEncoder + Clone + Send + Sync + 'static,
-{
-    pub fn new(config: SessionConfig, transport: TransportLayer, encoder: E) -> Self {
+impl SessionLayer {
+    #[must_use]
+    pub fn new(config: SessionConfig, transport: TransportLayer) -> Self {
         let tasks = transport.tasks().clone();
 
         let (events, _) = broadcast::channel(config.event_buffer_size.get());
 
         Self {
             config,
-            encoder,
 
             events,
 
@@ -220,7 +211,7 @@ where
             )),
             output,
             events: self.events.clone(),
-            encoder: self.encoder,
+
             _transport: self.transport,
         };
 

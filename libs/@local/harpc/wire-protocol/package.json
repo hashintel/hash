@@ -4,6 +4,7 @@
   "private": true,
   "license": "AGPL-3",
   "scripts": {
+    "build:cli": "cargo build --bin codec --features cli --release --target-dir dist",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "test:miri": "just miri",
@@ -11,7 +12,6 @@
   },
   "dependencies": {
     "@rust/error-stack": "0.5.0",
-    "@rust/harpc-codec": "0.0.0-private",
     "@rust/harpc-types": "0.0.0-private"
   }
 }

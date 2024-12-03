@@ -10,8 +10,8 @@ import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 
 import { Grid } from "../../../../../../components/grid/grid";
-import { renderChipCell } from "../../../../../shared/chip-cell";
-import { SectionWrapper } from "../../../../shared/section-wrapper";
+import { createRenderChipCell } from "../../../../../shared/chip-cell";
+import { SectionWrapper } from "../../../../../shared/section-wrapper";
 import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
 import { useEntityEditor } from "../entity-editor-context";
 import { renderSummaryChipCell } from "../shared/summary-chip-cell";
@@ -59,37 +59,31 @@ export const OutgoingLinksSection = ({
       )
     : null;
 
-  if (
-    rows.length === 0 ||
-    (readonly && outgoingLinksAndTargets?.length === 0)
-  ) {
-    return <LinksSectionEmptyState direction="Outgoing" />;
-  }
-
   return (
     <SectionWrapper
       title="Outgoing Links"
       titleTooltip="The links on an entity are determined by its type. To add a new link to this entity, specify an additional type or edit an existing one."
       titleStartContent={
         <Stack direction="row" spacing={1.5}>
-          <Chip size="xs" label={`${outgoingLinks.length} links`} />
-          <Stack direction="row" spacing={0.5}>
-            <IconButton
-              rounded
-              onClick={() => setShowSearch(true)}
-              sx={{ color: ({ palette }) => palette.gray[60] }}
-            >
-              <FontAwesomeIcon icon={faMagnifyingGlass} />
-            </IconButton>
-          </Stack>
+          <Chip
+            size="xs"
+            label={`${outgoingLinks.length} ${outgoingLinks.length === 1 ? "link" : "links"}`}
+          />
+          {!!rows.length && (
+            <Stack direction="row" spacing={0.5}>
+              <IconButton
+                rounded
+                onClick={() => setShowSearch(true)}
+                sx={{ color: ({ palette }) => palette.gray[60] }}
+              >
+                <FontAwesomeIcon icon={faMagnifyingGlass} />
+              </IconButton>
+            </Stack>
+          )}
         </Stack>
       }
     >
-      {readonly ? (
-        <OutgoingLinksTable
-          outgoingLinksAndTargets={outgoingLinksAndTargets!}
-        />
-      ) : (
+      {rows.length && !readonly ? (
         <Paper sx={{ overflow: "hidden" }}>
           <Grid
             columns={linkGridColumns}
@@ -104,10 +98,14 @@ export const OutgoingLinksSection = ({
               renderLinkCell,
               renderLinkedWithCell,
               renderSummaryChipCell,
-              renderChipCell,
+              createRenderChipCell(),
             ]}
           />
         </Paper>
+      ) : outgoingLinksAndTargets?.length ? (
+        <OutgoingLinksTable outgoingLinksAndTargets={outgoingLinksAndTargets} />
+      ) : (
+        <LinksSectionEmptyState direction="Outgoing" />
       )}
     </SectionWrapper>
   );

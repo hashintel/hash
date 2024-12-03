@@ -1,14 +1,12 @@
 #![feature(
     macro_metavar_expr,
-    const_fmt_arguments_new,
     error_generic_member_access,
     impl_trait_in_assoc_type
 )]
 
 use bytes::Buf;
-use futures_core::Stream;
+use futures_core::{Stream, TryStream};
 
-use self::{decode::ErrorDecoder, encode::ErrorEncoder};
 use crate::{decode::Decoder, encode::Encoder};
 
 pub mod decode;
@@ -18,10 +16,8 @@ pub mod error;
 pub mod json;
 
 pub trait Codec: Encoder + Decoder {}
-pub trait ErrorCodec: ErrorEncoder + ErrorDecoder {}
 
 impl<T> Codec for T where T: Encoder + Decoder {}
-impl<T> ErrorCodec for T where T: ErrorEncoder + ErrorDecoder {}
 
 pub struct SplitCodec<E, D> {
     pub encoder: E,
@@ -35,12 +31,14 @@ where
 {
     type Buf = E::Buf;
     type Error = E::Error;
-
-    fn encode<T>(
-        self,
-        input: impl Stream<Item = T> + Send + Sync,
-    ) -> impl Stream<Item = Result<Self::Buf, Self::Error>> + Send + Sync
+    type Output<Input>
+        = E::Output<Input>
     where
+        Input: Stream + Send;
+
+    fn encode<T, S>(self, input: S) -> Self::Output<S>
+    where
+        S: Stream<Item = T> + Send,
         T: serde::Serialize,
     {
         self.encoder.encode(input)
@@ -53,14 +51,16 @@ where
     D: Decoder,
 {
     type Error = D::Error;
-
-    fn decode<T, B, Err>(
-        self,
-        items: impl Stream<Item = Result<B, Err>> + Send + Sync,
-    ) -> impl Stream<Item = Result<T, Self::Error>> + Send + Sync
+    type Output<T, Input>
+        = D::Output<T, Input>
     where
         T: serde::de::DeserializeOwned,
-        B: Buf,
+        Input: TryStream<Ok: Buf> + Send;
+
+    fn decode<T, S>(self, items: S) -> Self::Output<T, S>
+    where
+        T: serde::de::DeserializeOwned,
+        S: TryStream<Ok: Buf> + Send,
     {
         self.decoder.decode(items)
     }

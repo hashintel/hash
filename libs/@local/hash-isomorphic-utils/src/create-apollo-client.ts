@@ -117,6 +117,9 @@ export const createApolloClient = (params?: {
         FlowRun: { keyFields: ["flowRunId"] },
       },
     }),
+    connectToDevTools:
+      process.env.NEXT_PUBLIC_VERCEL_ENV === "development" ||
+      process.env.NODE_ENV === "development",
     credentials: "include",
     link,
     name: params?.name,

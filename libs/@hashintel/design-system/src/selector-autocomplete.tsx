@@ -99,9 +99,10 @@ const TypeListSelectorDropdown = ({
                 sx={(theme) => ({
                   color: theme.palette.gray[60],
                   fontWeight: 600,
+                  textTransform: "capitalize",
                 })}
               >
-                {query}
+                {query.toLowerCase()}
               </Typography>
             </>
           ) : null}
@@ -109,25 +110,25 @@ const TypeListSelectorDropdown = ({
             <Chip
               color="teal"
               label={creationProps.variant.toUpperCase()}
-              sx={{ ml: 1.5 }}
+              sx={{ "& span": { fontSize: 13 }, fontSize: 13, ml: 1.5 }}
             />
           ) : creationProps.variant === "entity" ? (
             <Chip
               color="teal"
               label={creationProps.variant.toUpperCase()}
-              sx={{ ml: 1.5 }}
+              sx={{ "& span": { fontSize: 13 }, ml: 1.5 }}
             />
           ) : creationProps.variant === "link type" ? (
             <Chip
               color="aqua"
               label={creationProps.variant.toUpperCase()}
-              sx={{ ml: 1.5 }}
+              sx={{ "& span": { fontSize: 13 }, ml: 1.5 }}
             />
           ) : (
             <Chip
               color="purple"
               label={creationProps.variant.toUpperCase()}
-              sx={{ ml: 1.5 }}
+              sx={{ "& span": { fontSize: 13 }, ml: 1.5 }}
             />
           )}
         </Button>

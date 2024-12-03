@@ -190,13 +190,7 @@ export const useEntityTypeValue = (
   }, [entityTypeBaseUrl, refetch]);
 
   const updateCallback = useCallback(
-    async (
-      partialEntityType: Partial<ConstructEntityTypeParams>,
-      metadata: Pick<
-        EntityTypeWithMetadata["metadata"],
-        "icon" | "labelProperty"
-      >,
-    ) => {
+    async (partialEntityType: Partial<ConstructEntityTypeParams>) => {
       if (!stateEntityTypeRef.current) {
         throw new Error("Cannot update yet");
       }
@@ -212,7 +206,6 @@ export const useEntityTypeValue = (
             ...restOfEntityType,
             ...partialEntityType,
           },
-          ...metadata,
         },
       });
 
@@ -224,18 +217,11 @@ export const useEntityTypeValue = (
   );
 
   const publishDraft = useCallback(
-    async (
-      draftEntityType: EntityType,
-      metadata: Pick<
-        EntityTypeWithMetadata["metadata"],
-        "icon" | "labelProperty"
-      >,
-    ) => {
+    async (draftEntityType: EntityType) => {
       const res = await createEntityType({
         variables: {
           ownedById: accountId as OwnedById,
           entityType: draftEntityType,
-          ...metadata,
         },
       });
 

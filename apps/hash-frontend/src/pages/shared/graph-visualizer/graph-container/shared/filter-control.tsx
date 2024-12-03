@@ -1,16 +1,16 @@
-import { IconButton } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useEffect, useMemo } from "react";
 
 import { FilterLightIcon } from "../../../../../shared/icons/filter-light-icon";
-import type { GraphVizNode } from "../graph-data-loader";
-import { controlButtonSx, ControlPanel, ItemLabel } from "./control-components";
+import { GrayToBlueIconButton } from "../../../gray-to-blue-icon-button";
+import { ControlPanel, ItemLabel } from "./control-components";
 import {
   filterButtonSx,
   NodeTypeFilters,
 } from "./filter-control/node-type-filters";
 import { useGraphContext } from "./graph-context";
+import type { GraphVizNode } from "./types";
 
 type NodeTypesInData = {
   [nodeTypeId: string]: {
@@ -37,15 +37,21 @@ export type GraphVizFilters = {
 };
 
 const FilterPanel: FunctionComponent<{
+  defaultFilters?: GraphVizFilters;
   isFiltered: boolean;
   nodeTypesInData: NodeTypesInData;
   open: boolean;
   onClose: () => void;
-}> = ({ isFiltered, nodeTypesInData, open, onClose }) => {
+}> = ({ defaultFilters, isFiltered, nodeTypesInData, open, onClose }) => {
   const { filters, setFilters } = useGraphContext();
 
   return (
-    <ControlPanel onClose={onClose} open={open} title="Filters">
+    <ControlPanel
+      onClose={onClose}
+      open={open}
+      position="right"
+      title="Filters"
+    >
       <Box sx={{ pl: 1, pr: 2, pb: 0.5 }}>
         <Stack
           direction="row"
@@ -68,14 +74,18 @@ const FilterPanel: FunctionComponent<{
                      */
                     ...filters.includeByNodeTypeId,
                     /**
-                     * Reset all types in the current graph to visible.
+                     * Reset all types in the current graph to the default if provided
                      */
-                    ...Object.values(nodeTypesInData).reduce<
-                      Record<string, boolean>
-                    >((acc, type) => {
-                      acc[type.nodeTypeId] = true;
-                      return acc;
-                    }, {}),
+                    ...(defaultFilters
+                      ? defaultFilters.includeByNodeTypeId /**
+                         * Otherwise all types in the current graph to visible.
+                         */
+                      : Object.values(nodeTypesInData).reduce<
+                          Record<string, boolean>
+                        >((acc, type) => {
+                          acc[type.nodeTypeId] = true;
+                          return acc;
+                        }, {})),
                   },
                 });
               }}
@@ -91,7 +101,13 @@ const FilterPanel: FunctionComponent<{
   );
 };
 
-export const FilterControl = ({ nodes }: { nodes: GraphVizNode[] }) => {
+export const FilterControl = ({
+  defaultFilters,
+  nodes,
+}: {
+  defaultFilters?: GraphVizFilters;
+  nodes: GraphVizNode[];
+}) => {
   const { filters, filterPanelOpen, setFilters, setFilterPanelOpen } =
     useGraphContext();
 
@@ -161,17 +177,22 @@ export const FilterControl = ({ nodes }: { nodes: GraphVizNode[] }) => {
     );
   }, [filters.includeByNodeTypeId, nodeTypesInData]);
 
+  if (!Object.keys(nodeTypesInData).length) {
+    return null;
+  }
+
   return (
     <>
       <FilterPanel
+        defaultFilters={defaultFilters}
         isFiltered={isFiltered}
         nodeTypesInData={nodeTypesInData}
         open={filterPanelOpen}
         onClose={() => setFilterPanelOpen(false)}
       />
-      <IconButton
+      <GrayToBlueIconButton
         onClick={() => setFilterPanelOpen(true)}
-        sx={[controlButtonSx, { position: "absolute", top: 8, right: 13 }]}
+        sx={{ position: "absolute", top: 8, right: 46 }}
       >
         <FilterLightIcon
           sx={{
@@ -180,7 +201,7 @@ export const FilterControl = ({ nodes }: { nodes: GraphVizNode[] }) => {
             transition: ({ transitions }) => transitions.create("fill"),
           }}
         />
-      </IconButton>
+      </GrayToBlueIconButton>
     </>
   );
 };

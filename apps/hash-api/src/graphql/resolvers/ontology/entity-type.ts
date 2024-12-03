@@ -1,8 +1,5 @@
 import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
@@ -13,22 +10,26 @@ import {
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserPermissionsOnEntityType } from "@local/hash-isomorphic-utils/types";
 import type { SerializedSubgraph } from "@local/hash-subgraph";
+import { ApolloError } from "apollo-server-express";
 
 import {
   archiveEntityType,
   checkPermissionsOnEntityType,
   createEntityType,
+  getClosedMultiEntityType,
   getEntityTypeSubgraph,
   getEntityTypeSubgraphById,
   unarchiveEntityType,
   updateEntityType,
 } from "../../../graph/ontology/primitive/entity-type";
 import type {
+  GetClosedMultiEntityTypeResponse,
   MutationArchiveEntityTypeArgs,
   MutationCreateEntityTypeArgs,
   MutationUnarchiveEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
   QueryCheckUserPermissionsOnEntityTypeArgs,
+  QueryGetClosedMultiEntityTypeArgs,
   QueryGetEntityTypeArgs,
   QueryQueryEntityTypesArgs,
   ResolverFn,
@@ -50,8 +51,6 @@ export const createEntityTypeResolver: ResolverFn<
   const createdEntityType = await createEntityType(context, authentication, {
     ownedById: ownedById ?? (user.accountId as OwnedById),
     schema: entityType,
-    icon: params.icon ?? undefined,
-    labelProperty: (params.labelProperty as BaseUrl | undefined) ?? undefined,
     relationships: defaultEntityTypeAuthorizationRelationships,
   });
 
@@ -85,25 +84,28 @@ export const queryEntityTypesResolver: ResolverFn<
   };
 
   return serializeSubgraph(
-    await getEntityTypeSubgraph({ graphApi, provenance }, authentication, {
-      filter: latestOnly
-        ? filter
-          ? { all: [filter, latestOnlyFilter] }
-          : latestOnlyFilter
-        : { all: [] },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        inheritsFrom,
+    await getEntityTypeSubgraph(
+      { graphApi, provenance, temporalClient: temporal },
+      authentication,
+      {
+        filter: latestOnly
+          ? filter
+            ? { all: [filter, latestOnlyFilter] }
+            : latestOnlyFilter
+          : { all: [] },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn,
+          constrainsPropertiesOn,
+          constrainsLinksOn,
+          constrainsLinkDestinationsOn,
+          inheritsFrom,
+        },
+        temporalAxes: includeArchived
+          ? fullTransactionTimeAxis
+          : currentTimeInstantTemporalAxes,
       },
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
-      temporalClient: temporal,
-    }),
+    ),
   );
 };
 
@@ -147,6 +149,38 @@ export const getEntityTypeResolver: ResolverFn<
     ),
   );
 
+export const getClosedMultiEntityTypeResolver: ResolverFn<
+  Promise<GetClosedMultiEntityTypeResponse>,
+  Record<string, never>,
+  GraphQLContext,
+  QueryGetClosedMultiEntityTypeArgs
+> = async (_, args, graphQLContext) => {
+  const { entityTypeIds, includeDrafts, includeArchived } = args;
+
+  const { entityType, definitions } = await getClosedMultiEntityType(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    {
+      entityTypeIds,
+      // All references to other types are resolved, and those types provided under 'definitions' in the response
+      includeResolved: true,
+      includeDrafts: includeDrafts ?? false,
+      temporalAxes: includeArchived
+        ? fullTransactionTimeAxis
+        : currentTimeInstantTemporalAxes,
+    },
+  );
+
+  if (!definitions) {
+    throw new ApolloError("No definitions found for closed multi entity type");
+  }
+
+  return {
+    closedMultiEntityType: entityType,
+    definitions,
+  };
+};
+
 export const updateEntityTypeResolver: ResolverFn<
   Promise<EntityTypeWithMetadata>,
   Record<string, never>,
@@ -159,8 +193,6 @@ export const updateEntityTypeResolver: ResolverFn<
     {
       entityTypeId: params.entityTypeId,
       schema: params.updatedEntityType,
-      labelProperty: (params.labelProperty as BaseUrl | undefined) ?? undefined,
-      icon: params.icon ?? undefined,
       relationships: [
         {
           relation: "setting",

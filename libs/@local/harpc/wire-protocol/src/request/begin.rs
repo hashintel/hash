@@ -1,6 +1,6 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
-use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use error_stack::{Report, ResultExt as _};
+use harpc_types::{procedure::ProcedureDescriptor, subsystem::SubsystemDescriptor};
 
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},
@@ -12,9 +12,10 @@ use crate::{
 pub struct RequestBeginEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct RequestBegin {
-    pub service: ServiceDescriptor,
+    pub subsystem: SubsystemDescriptor,
     pub procedure: ProcedureDescriptor,
 
     pub payload: Payload,
@@ -23,11 +24,11 @@ pub struct RequestBegin {
 impl Encode for RequestBegin {
     type Error = RequestBeginEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
-        self.service
+        self.subsystem
             .encode(buffer)
             .change_context(RequestBeginEncodeError)?;
 
@@ -50,11 +51,11 @@ impl Decode for RequestBegin {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
-        let service = ServiceDescriptor::decode(buffer, ())?;
+        let subsystem = SubsystemDescriptor::decode(buffer, ())?;
         let procedure = ProcedureDescriptor::decode(buffer, ())?;
 
         // skip 13 bytes (reserved for future use)
@@ -63,7 +64,7 @@ impl Decode for RequestBegin {
         let payload = Payload::decode(buffer, ())?;
 
         Ok(Self {
-            service,
+            subsystem,
             procedure,
             payload,
         })
@@ -75,7 +76,7 @@ mod test {
     use expect_test::expect;
     use harpc_types::{
         procedure::{ProcedureDescriptor, ProcedureId},
-        service::{ServiceDescriptor, ServiceId},
+        subsystem::{SubsystemDescriptor, SubsystemId},
         version::Version,
     };
 
@@ -86,8 +87,8 @@ mod test {
     };
 
     static EXAMPLE_REQUEST: RequestBegin = RequestBegin {
-        service: ServiceDescriptor {
-            id: ServiceId::new(0x01_02),
+        subsystem: SubsystemDescriptor {
+            id: SubsystemId::new(0x01_02),
             version: Version {
                 major: 0x03,
                 minor: 0x04,
@@ -100,8 +101,8 @@ mod test {
     };
 
     const EXAMPLE_REQUEST_BYTES: &[u8] = &[
-        0x01, 0x02, // service id
-        0x03, 0x04, // service version
+        0x01, 0x02, // subsystem id
+        0x03, 0x04, // subsystem version
         0x05, 0x06, // procedure id
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, // reserved
@@ -122,8 +123,8 @@ mod test {
         assert_decode(
             EXAMPLE_REQUEST_BYTES,
             &RequestBegin {
-                service: ServiceDescriptor {
-                    id: ServiceId::new(0x01_02),
+                subsystem: SubsystemDescriptor {
+                    id: SubsystemId::new(0x01_02),
                     version: Version {
                         major: 0x03,
                         minor: 0x04,

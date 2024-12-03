@@ -246,7 +246,7 @@ impl Display for ArrayLengthError {
 #[cfg(test)]
 mod tests {
     #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::{borrow::ToOwned, vec};
+    use alloc::{borrow::ToOwned as _, vec};
 
     use serde_json::json;
 

@@ -1,7 +1,5 @@
-cargo-features = ["edition2024"]
-
 [package]
-name = "harpc-wire-protocol"
+name              = "harpc-wire-protocol"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,26 +10,35 @@ authors.workspace = true
 # Public workspace dependencies
 error-stack = { workspace = true, public = true }
 harpc-types = { workspace = true, public = true }
-harpc-codec = { workspace = true, public = true }
 
 # Public third-party dependencies
-bytes = { workspace = true, public = true }
+bytes      = { workspace = true, public = true }
 enumflags2 = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-thiserror = { workspace = true }
+base64     = { version = "0.22.1", optional = true }
+serde      = { workspace = true, features = ["derive"], optional = true }
+serde_json = { workspace = true, optional = true }
+thiserror  = { workspace = true }
 
 [dev-dependencies]
-proptest = { workspace = true }
-test-strategy = { workspace = true }
-harpc-types = { workspace = true, features = ["proptest"] }
-expect-test = { workspace = true }
+expect-test     = { workspace = true }
+harpc-types     = { workspace = true, features = ["proptest"] }
+proptest        = { workspace = true }
 similar-asserts = { workspace = true }
+test-strategy   = { workspace = true }
 
 [features]
 test-utils = []
+serde      = ["dep:serde", "enumflags2/serde", "bytes/serde", "harpc-types/serde"]
+cli        = ["dep:serde_json", "dep:base64", "serde"]
+
 
 [lints]
 workspace = true
+
+[[bin]]
+name              = "codec"
+required-features = ["cli"]

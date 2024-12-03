@@ -6,12 +6,12 @@ use alloc::sync::Arc;
 use core::ops::ControlFlow;
 
 use bytes::Bytes;
-use futures::{Stream, StreamExt, prelude::future::FutureExt};
+use futures::{Stream, StreamExt as _, prelude::future::FutureExt as _};
 use harpc_types::{
-    procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
+    procedure::ProcedureDescriptor, response_kind::ResponseKind, subsystem::SubsystemDescriptor,
 };
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     request::{Request, id::RequestId},
     response::{
         Response, begin::ResponseBegin, body::ResponseBody, flags::ResponseFlag,
@@ -183,7 +183,7 @@ where
 pub(crate) struct TransactionSendTask<S, P> {
     config: SessionConfig,
 
-    service: ServiceDescriptor,
+    subsystem: SubsystemDescriptor,
     procedure: ProcedureDescriptor,
 
     rx: S,
@@ -209,7 +209,7 @@ where
             },
             RequestContext {
                 id: self.permit.id(),
-                service: self.service,
+                subsystem: self.subsystem,
                 procedure: self.procedure,
             },
             &self.tx,
@@ -250,7 +250,7 @@ pub(crate) struct TransactionTask<S, P> {
     pub config: SessionConfig,
     pub permit: P,
 
-    pub service: ServiceDescriptor,
+    pub subsystem: SubsystemDescriptor,
     pub procedure: ProcedureDescriptor,
 
     pub response_rx: tachyonix::Receiver<Response>,
@@ -282,7 +282,7 @@ where
             TransactionSendTask {
                 config: self.config,
 
-                service: self.service,
+                subsystem: self.subsystem,
                 procedure: self.procedure,
 
                 rx: self.request_rx,

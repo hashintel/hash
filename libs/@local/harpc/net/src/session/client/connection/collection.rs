@@ -27,6 +27,7 @@ impl IsCancelled for TransactionState {
 
 pub(crate) type TransactionStorage = Arc<HashIndex<RequestId, TransactionState>>;
 
+#[derive(Debug)]
 pub(crate) struct TransactionCollection {
     config: SessionConfig,
     producer: RequestIdProducer,

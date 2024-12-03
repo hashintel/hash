@@ -2,14 +2,14 @@ mod constraint;
 mod conversion;
 
 pub use self::{
-    closed::{ClosedDataType, DataTypeResolveData, InheritanceDepth, ResolvedDataType},
+    closed::{ClosedDataType, DataTypeResolveData, ResolvedDataType},
     constraint::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
-        BooleanSchema, BooleanTypeTag, Constraint, ConstraintError, NullSchema, NullTypeTag,
-        NumberConstraints, NumberSchema, NumberTypeTag, NumberValidationError, ObjectConstraints,
-        ObjectSchema, ObjectTypeTag, ObjectValidationError, SingleValueConstraints,
-        SingleValueSchema, StringConstraints, StringFormat, StringFormatError, StringSchema,
-        StringTypeTag, StringValidationError, TupleConstraints,
+        BooleanSchema, BooleanTypeTag, ConstraintError, ConstraintValidator, NullSchema,
+        NullTypeTag, NumberConstraints, NumberSchema, NumberTypeTag, NumberValidationError,
+        ObjectConstraints, ObjectSchema, ObjectTypeTag, ObjectValidationError,
+        SingleValueConstraints, SingleValueSchema, StringConstraints, StringFormat,
+        StringFormatError, StringSchema, StringTypeTag, StringValidationError, TupleConstraints,
     },
     conversion::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, Operator,
@@ -24,19 +24,13 @@ mod closed;
 mod reference;
 mod validation;
 
-use alloc::{collections::BTreeSet, sync::Arc};
-use core::{fmt, mem};
-use std::collections::{HashMap, HashSet};
+use alloc::collections::BTreeSet;
+use core::fmt;
 
-use error_stack::{Report, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use thiserror::Error;
 
-use crate::{
-    schema::{DataTypeUuid, data_type::constraint::ValueConstraints},
-    url::VersionedUrl,
-};
+use crate::{schema::data_type::constraint::ValueConstraints, url::VersionedUrl};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -111,17 +105,9 @@ pub enum DataTypeSchemaTag {
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ValueSchemaMetadata {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: String,
     #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
     pub label: ValueLabel,
-}
-
-impl ValueSchemaMetadata {
-    #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        self.description.is_none() && self.label.is_empty()
-    }
 }
 
 mod raw {
@@ -133,12 +119,12 @@ mod raw {
     use super::{DataTypeSchemaTag, DataTypeTag, ValueSchemaMetadata};
     use crate::{
         schema::{
-            ArrayTypeTag, BooleanTypeTag, DataTypeReference, NullSchema, NullTypeTag,
-            NumberTypeTag, ObjectTypeTag, StringTypeTag,
+            ArrayTypeTag, BooleanTypeTag, DataTypeReference, NullTypeTag, NumberTypeTag,
+            ObjectTypeTag, StringTypeTag,
             data_type::constraint::{
-                AnyOfConstraints, ArrayConstraints, ArraySchema, BooleanSchema, NumberConstraints,
-                NumberSchema, ObjectConstraints, ObjectSchema, SingleValueConstraints,
-                StringConstraints, StringSchema, TupleConstraints, ValueConstraints,
+                AnyOfConstraints, ArrayConstraints, ArraySchema, NumberConstraints, NumberSchema,
+                SingleValueConstraints, StringConstraints, StringSchema, TupleConstraints,
+                ValueConstraints,
             },
         },
         url::VersionedUrl,
@@ -236,8 +222,6 @@ mod raw {
             base: DataTypeBase,
             #[serde(flatten)]
             metadata: ValueSchemaMetadata,
-            #[serde(flatten)]
-            constraints: ObjectConstraints,
         },
         Array {
             r#type: ArrayTypeTag,
@@ -306,7 +290,7 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Null(NullSchema)),
+                    ValueConstraints::Typed(SingleValueConstraints::Null),
                 ),
                 DataType::Boolean {
                     r#type: _,
@@ -315,7 +299,7 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Boolean(BooleanSchema)),
+                    ValueConstraints::Typed(SingleValueConstraints::Boolean),
                 ),
                 DataType::Number {
                     r#type: _,
@@ -393,13 +377,10 @@ mod raw {
                     r#type: _,
                     base,
                     metadata,
-                    constraints,
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Object(
-                        ObjectSchema::Constrained(constraints),
-                    )),
+                    ValueConstraints::Typed(SingleValueConstraints::Object),
                 ),
                 DataType::Array {
                     r#type: _,
@@ -459,8 +440,7 @@ pub struct DataType {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: String,
     #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
     pub label: ValueLabel,
     // Lexicographically ordered so we have a deterministic order for inheriting parent
@@ -486,153 +466,6 @@ impl DataType {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum DataTypeResolveError {
-    #[error("The data type ID is unknown")]
-    UnknownDataTypeId,
-    #[error("The data types have unresolved references: {}", serde_json::json!(schemas))]
-    MissingSchemas { schemas: HashSet<VersionedUrl> },
-    #[error("The closed data type metadata is missing")]
-    MissingClosedDataType,
-    #[error("Not all schemas are contained in the resolver")]
-    MissingDataTypes,
-}
-
-#[derive(Debug)]
-struct DataTypeCacheEntry {
-    data_type: Arc<DataType>,
-    resolve_data: Option<Arc<DataTypeResolveData>>,
-}
-
-#[derive(Debug, Default)]
-pub struct OntologyTypeResolver {
-    data_types: HashMap<DataTypeUuid, DataTypeCacheEntry>,
-}
-
-impl OntologyTypeResolver {
-    pub fn add_unresolved(&mut self, data_type_id: DataTypeUuid, data_type: Arc<DataType>) {
-        debug_assert_eq!(
-            data_type_id,
-            DataTypeUuid::from_url(&data_type.id),
-            "The data type ID must match the URL"
-        );
-        self.data_types
-            .entry(data_type_id)
-            .or_insert(DataTypeCacheEntry {
-                data_type,
-                resolve_data: None,
-            });
-    }
-
-    pub fn add_closed(
-        &mut self,
-        data_type_id: DataTypeUuid,
-        data_type: Arc<DataType>,
-        metadata: Arc<DataTypeResolveData>,
-    ) {
-        self.data_types.insert(data_type_id, DataTypeCacheEntry {
-            data_type,
-            resolve_data: Some(metadata),
-        });
-    }
-
-    fn close(
-        &mut self,
-        data_type_id: DataTypeUuid,
-        metadata: Arc<DataTypeResolveData>,
-    ) -> Result<(), DataTypeResolveError> {
-        let data_type_entry = self
-            .data_types
-            .get_mut(&data_type_id)
-            .ok_or(DataTypeResolveError::UnknownDataTypeId)?;
-        data_type_entry.resolve_data = Some(metadata);
-        Ok(())
-    }
-
-    /// Resolves the metadata for the given data types.
-    ///
-    /// This method resolves the metadata for the given data types and all their parents. It returns
-    /// the resolved metadata for all data types.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the metadata for any of the data types could not be resolved.
-    pub fn resolve_data_type_metadata(
-        &mut self,
-        data_type_id: DataTypeUuid,
-    ) -> Result<Arc<DataTypeResolveData>, Report<DataTypeResolveError>> {
-        let Some(data_type_entry) = self.data_types.get(&data_type_id) else {
-            bail!(DataTypeResolveError::UnknownDataTypeId);
-        };
-
-        let data_type = Arc::clone(&data_type_entry.data_type);
-
-        // We add all requested types to the cache to ensure that we can resolve all types. The
-        // cache will be updated with the resolved metadata. We extract the IDs so that we can
-        // resolve the metadata in the correct order.
-        // Double buffering is used to avoid unnecessary allocations.
-        let mut data_types_to_resolve = Vec::new();
-        let mut next_data_types_to_resolve = vec![data_type];
-
-        // We keep a list of all schemas that are missing from the cache. If we encounter a schema
-        // that is not in the cache, we add it to this list. If we are unable to resolve all
-        // schemas, we return an error with this list.
-        let mut missing_schemas = HashSet::new();
-
-        // The currently closed schema being resolved. This can be used later to resolve
-        let mut in_progress_schema = DataTypeResolveData::default();
-
-        let mut current_depth = 0;
-        while !next_data_types_to_resolve.is_empty() {
-            mem::swap(&mut data_types_to_resolve, &mut next_data_types_to_resolve);
-            #[expect(
-                clippy::iter_with_drain,
-                reason = "False positive, we re-use the iterator to avoid unnecessary allocations.\
-                          See https://github.com/rust-lang/rust-clippy/issues/8539"
-            )]
-            for data_type in data_types_to_resolve.drain(..) {
-                for (data_type_reference, edge) in data_type.data_type_references() {
-                    let data_type_reference_id = DataTypeUuid::from_url(&data_type_reference.url);
-
-                    let Some(data_type_entry) = self.data_types.get(&data_type_reference_id) else {
-                        // If the data type is not in the cache, we add it to the list of missing
-                        // schemas.
-                        missing_schemas.insert(data_type_reference.url.clone());
-                        continue;
-                    };
-
-                    in_progress_schema.add_edge(
-                        edge,
-                        Arc::clone(&data_type_entry.data_type),
-                        data_type_reference_id,
-                        current_depth,
-                    );
-
-                    if let Some(resolve_data) = &data_type_entry.resolve_data {
-                        in_progress_schema.extend_edges(current_depth + 1, resolve_data);
-                    } else {
-                        next_data_types_to_resolve.push(Arc::clone(&data_type_entry.data_type));
-                    }
-                }
-            }
-
-            current_depth += 1;
-        }
-
-        if missing_schemas.is_empty() {
-            // We create the resolved metadata for the current data type and update the cache so
-            // that we don't need to resolve it again.
-            let in_progress_schema = Arc::new(in_progress_schema);
-            self.close(data_type_id, Arc::clone(&in_progress_schema))?;
-            Ok(in_progress_schema)
-        } else {
-            Err(Report::from(DataTypeResolveError::MissingSchemas {
-                schemas: missing_schemas,
-            }))
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -646,7 +479,7 @@ mod tests {
     #[tokio::test]
     async fn value() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::VALUE_V1,
+            hash_graph_test_data::data_type::VALUE_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -656,7 +489,7 @@ mod tests {
     #[tokio::test]
     async fn text() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::TEXT_V1,
+            hash_graph_test_data::data_type::TEXT_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -666,7 +499,7 @@ mod tests {
     #[tokio::test]
     async fn number() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::NUMBER_V1,
+            hash_graph_test_data::data_type::NUMBER_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -676,7 +509,7 @@ mod tests {
     #[tokio::test]
     async fn boolean() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::BOOLEAN_V1,
+            hash_graph_test_data::data_type::BOOLEAN_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -686,7 +519,7 @@ mod tests {
     #[tokio::test]
     async fn null() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::NULL_V1,
+            hash_graph_test_data::data_type::NULL_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -696,7 +529,7 @@ mod tests {
     #[tokio::test]
     async fn object() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::OBJECT_V1,
+            hash_graph_test_data::data_type::OBJECT_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -706,7 +539,7 @@ mod tests {
     #[tokio::test]
     async fn list() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::LIST_V1,
+            hash_graph_test_data::data_type::LIST_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )

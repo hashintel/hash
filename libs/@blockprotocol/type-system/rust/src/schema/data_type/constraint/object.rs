@@ -1,16 +1,19 @@
-use error_stack::{Report, ResultExt, bail};
+use error_stack::{Report, ResultExt as _, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 
 type JsonObject = serde_json::Map<String, JsonValue>;
 
-use crate::schema::{Constraint, ConstraintError, JsonSchemaValueType};
+use crate::schema::{
+    ConstraintError, ConstraintValidator, JsonSchemaValueType,
+    data_type::{closed::ResolveClosedDataTypeError, constraint::Constraint},
+};
 
 #[derive(Debug, Error)]
 pub enum ObjectValidationError {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum ObjectTypeTag {
@@ -18,13 +21,29 @@ pub enum ObjectTypeTag {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, rename_all = "camelCase", deny_unknown_fields)]
 pub enum ObjectSchema {
     Constrained(ObjectConstraints),
 }
 
-impl Constraint<JsonValue> for ObjectSchema {
+impl Constraint for ObjectSchema {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Constrained(lhs), Self::Constrained(rhs)) => {
+                let (combined, remainder) = lhs.intersection(rhs)?;
+                (
+                    Self::Constrained(combined),
+                    remainder.map(Self::Constrained),
+                )
+            }
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for ObjectSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -47,7 +66,7 @@ impl Constraint<JsonValue> for ObjectSchema {
     }
 }
 
-impl Constraint<JsonObject> for ObjectSchema {
+impl ConstraintValidator<JsonObject> for ObjectSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonObject) -> bool {
@@ -67,15 +86,19 @@ impl Constraint<JsonObject> for ObjectSchema {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(
-    clippy::empty_structs_with_brackets,
-    reason = "This struct is a placeholder for future functionality."
-)]
-pub struct ObjectConstraints {}
+pub struct ObjectConstraints;
 
-impl Constraint<JsonObject> for ObjectConstraints {
+impl Constraint for ObjectConstraints {
+    fn intersection(
+        self,
+        _other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok((self, None))
+    }
+}
+
+impl ConstraintValidator<JsonObject> for ObjectConstraints {
     type Error = [ObjectValidationError];
 
     fn is_valid(&self, _value: &JsonObject) -> bool {

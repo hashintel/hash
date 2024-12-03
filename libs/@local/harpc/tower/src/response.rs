@@ -1,11 +1,11 @@
 use bytes::Bytes;
-use futures::{Stream, TryStreamExt, stream::MapOk};
-use harpc_codec::error::EncodedError;
+use futures::{Stream, TryStreamExt as _, stream::MapOk};
+use harpc_codec::error::NetworkError;
 use harpc_net::session::server::SessionId;
 use harpc_types::response_kind::ResponseKind;
 
 use crate::{
-    body::{Body, Frame, boxed::BoxBody, controlled::Controlled, full::Full, stream::StreamBody},
+    body::{Frame, boxed::BoxBody, controlled::Controlled, full::Full, stream::StreamBody},
     extensions::Extensions,
 };
 
@@ -32,12 +32,15 @@ pub struct Response<B> {
     body: B,
 }
 
-impl<B> Response<B>
-where
-    B: Body<Control: AsRef<ResponseKind>>,
-{
+// we specifically don't have a `B: Body<Control: AsRef<ResponseKind>>` bound here, to allow for
+// requests to carry streams
+impl<B> Response<B> {
     pub const fn from_parts(parts: Parts, body: B) -> Self {
         Self { head: parts, body }
+    }
+
+    pub fn into_parts(self) -> (Parts, B) {
+        (self.head, self.body)
     }
 }
 
@@ -75,7 +78,7 @@ impl<B> Response<B> {
 }
 
 impl Response<Controlled<ResponseKind, Full<Bytes>>> {
-    pub fn from_error(parts: Parts, error: EncodedError) -> Self {
+    pub fn from_error(parts: Parts, error: NetworkError) -> Self {
         let (code, bytes) = error.into_parts();
 
         Self {

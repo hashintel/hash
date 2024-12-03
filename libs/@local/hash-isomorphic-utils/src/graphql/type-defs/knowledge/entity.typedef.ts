@@ -1,21 +1,30 @@
 import { gql } from "apollo-server-express";
 
 export const entityTypedef = gql`
+  scalar ClosedMultiEntityTypesRootMap
+  scalar ClosedMultiEntityTypesDefinitions
   scalar EntityId
-  scalar EntityRecordId
-  scalar SerializedEntity
-  scalar PropertyObject
-  scalar PropertyObjectWithMetadata
   scalar EntityMetadata
+  scalar EntityRecordId
   scalar EntityRelationAndSubject
   scalar GetEntitySubgraphRequest
   scalar LinkData
-  scalar QueryOperationInput
+  scalar PropertyObject
+  scalar PropertyObjectWithMetadata
   scalar PropertyPatchOperation
+  scalar QueryOperationInput
+  scalar SerializedEntity
   scalar UserPermissions
   scalar UserPermissionsOnEntities
 
   type SubgraphAndPermissions {
+    userPermissionsOnEntities: UserPermissionsOnEntities!
+    subgraph: Subgraph!
+  }
+
+  type GetEntitySubgraphResponse {
+    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap
+    definitions: ClosedMultiEntityTypesDefinitions
     userPermissionsOnEntities: UserPermissionsOnEntities!
     subgraph: Subgraph!
   }
@@ -37,9 +46,9 @@ export const entityTypedef = gql`
     """
     existingEntityId: EntityId
     """
-    The type of the new entity.
+    The type(s) of the new entity.
     """
-    entityTypeId: VersionedUrl
+    entityTypeIds: [VersionedUrl!]
     """
     The properties of the new entity.
     """
@@ -114,7 +123,7 @@ export const entityTypedef = gql`
 
     getEntitySubgraph(
       request: GetEntitySubgraphRequest!
-    ): SubgraphAndPermissions!
+    ): GetEntitySubgraphResponse!
 
     """
     Get a subgraph rooted at an entity resolved by its id.
@@ -171,9 +180,9 @@ export const entityTypedef = gql`
     """
     propertyPatches: [PropertyPatchOperation!]!
     """
-    The new type of the updated entity
+    The new type(s) of the updated entity
     """
-    entityTypeId: VersionedUrl
+    entityTypeIds: [VersionedUrl!]
     """
     Whether the updated entity should be a draft
     """
@@ -190,9 +199,9 @@ export const entityTypedef = gql`
       """
       ownedById: OwnedById
       """
-      The type of the new entity.
+      The type(s) of the new entity.
       """
-      entityTypeId: VersionedUrl!
+      entityTypeIds: [VersionedUrl!]!
       """
       The properties of the new entity.
       """

@@ -1,7 +1,5 @@
-cargo-features = ["edition2024"]
-
 [package]
-name = "hql-span"
+name              = "hql-span"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -17,8 +15,8 @@ authors.workspace = true
 
 # Private third-party dependencies
 orx-concurrent-vec = { workspace = true }
-serde = { workspace = true, optional = true, features = ["alloc", "derive"] }
-text-size = { workspace = true }
+serde              = { workspace = true, optional = true, features = ["alloc", "derive"] }
+text-size          = { workspace = true }
 
 [features]
 serde = ["dep:serde", "text-size/serde"]

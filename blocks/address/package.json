@@ -33,8 +33,8 @@
   "dependencies": {
     "@blockprotocol/graph": "0.3.4",
     "@blockprotocol/service": "0.1.4",
-    "@fortawesome/free-regular-svg-icons": "6.6.0",
-    "@fortawesome/free-solid-svg-icons": "6.6.0",
+    "@fortawesome/free-regular-svg-icons": "6.7.1",
+    "@fortawesome/free-solid-svg-icons": "6.7.1",
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
     "@mui/material": "5.16.7",
@@ -47,10 +47,11 @@
     "@local/eslint-config": "0.0.0-private",
     "@types/lodash.debounce": "4.0.9",
     "@types/react-dom": "18.2.25",
-    "@types/uuid": "8.3.4",
+    "@types/uuid": "10.0.0",
     "block-scripts": "0.3.4",
+    "eslint": "8.57.0",
     "mock-block-dock": "0.1.9",
-    "prettier": "3.3.3",
+    "prettier": "3.4.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "5.6.3"
@@ -67,7 +68,6 @@
       "entryPoint": "react"
     },
     "displayName": "Address",
-    "examples": [],
     "icon": "public/address.svg",
     "image": "public/block-preview.png",
     "name": "@hash/address",

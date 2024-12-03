@@ -3,14 +3,12 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { NextSeo } from "next-seo";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
-import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
-import { EditEntitySlideOver } from "./edit-entity-slide-over";
+import { EntityEditorSlideStack } from "../../../shared/entity-editor-slide-stack";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditor } from "./entity-editor";
 import { EntityPageWrapper } from "./entity-page-wrapper";
@@ -48,35 +46,25 @@ export const EntityEditorPage = ({
 
   const [selectedEntity, setSelectedEntity] = useState<{
     entityId: EntityId;
-    subgraph?: Subgraph<EntityRootType>;
   } | null>(null);
 
-  const handleEntityClick = useCallback(
-    (entityId: EntityId) => {
-      try {
-        const subgraph = generateEntityRootedSubgraph(entityId, entitySubgraph);
-
-        setSelectedEntity({
-          entityId,
-          subgraph,
-        });
-      } catch (err) {
-        setSelectedEntity({ entityId });
-      }
-    },
-    [entitySubgraph],
-  );
+  const handleEntityClick = useCallback((entityId: EntityId) => {
+    try {
+      setSelectedEntity({
+        entityId,
+      });
+    } catch (err) {
+      setSelectedEntity({ entityId });
+    }
+  }, []);
 
   return (
     <>
       <NextSeo title={`${entityLabel} | Entity`} />
 
       {selectedEntity ? (
-        <EditEntitySlideOver
-          entitySubgraph={selectedEntity.subgraph}
-          entityId={selectedEntity.entityId}
-          onEntityClick={handleEntityClick}
-          open
+        <EntityEditorSlideStack
+          rootEntityId={selectedEntity.entityId}
           onClose={() => setSelectedEntity(null)}
           onSubmit={() => {
             throw new Error(`Editing not yet supported from this screen`);
@@ -114,6 +102,7 @@ export const EntityEditorPage = ({
         <EntityPageWrapper
           header={
             <EntityPageHeader
+              closedMultiEntityType={entityEditorProps.closedMultiEntityType}
               entity={entity}
               entitySubgraph={entitySubgraph}
               isModifyingEntity={isModifyingEntity}

@@ -128,8 +128,8 @@ export const TopContextBar = ({
 
   const isCanvasPage =
     item &&
-    "entityTypeId" in item &&
-    item.entityTypeId === systemEntityTypes.canvas.entityTypeId;
+    "entityTypeIds" in item.metadata &&
+    item.metadata.entityTypeIds.includes(systemEntityTypes.canvas.entityTypeId);
 
   // @todo make 'additional buttons' a prop and move this to the page page
   const setCanvasLockState = (shouldLock: boolean) => {
@@ -213,7 +213,7 @@ export const TopContextBar = ({
           )}
         </Box>
       </Box>
-      {item && !(!isItemEntityType(item) && !isEntityPageEntity(item)) ? (
+      {item ? (
         <Collapse in={archived}>
           <ArchivedItemBanner
             item={item}

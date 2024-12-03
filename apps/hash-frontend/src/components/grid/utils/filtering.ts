@@ -7,9 +7,11 @@ export type ColumnFilter<
   columnKey: ColumnKey;
   filterItems: {
     id: string;
+    doesNotApplyValue?: boolean;
     label: string;
+    count?: number;
   }[];
-  selectedFilterItemIds: string[];
-  setSelectedFilterItemIds: (selectedFilterItemIds: string[]) => void;
+  selectedFilterItemIds: Set<string>;
+  setSelectedFilterItemIds: (selectedFilterItemIds: Set<string>) => void;
   isRowFiltered: (row: RowType) => boolean;
 };

@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 //! Implementation of formatting, to enable colors and the use of box-drawing characters use the
 //! `pretty-print` feature.
 //!
@@ -124,13 +126,13 @@
 //! The output of `println!("{report:?}")`:
 //!
 //! <pre>
-#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap"))]
+#![cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap")))]
 //! </pre>
 //!
 //! The output of `println!("{report:#?}")`:
 //!
 //! <pre>
-#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap"))]
+#![cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap")))]
 //! </pre>
 //!
 //! ## Implementation Details
@@ -303,7 +305,7 @@ use alloc::{
     borrow::ToOwned,
     collections::VecDeque,
     format,
-    string::{String, ToString},
+    string::{String, ToString as _},
     vec,
     vec::Vec,
 };
@@ -754,7 +756,7 @@ fn collect<'a>(root: &'a Frame, prefix: &'a [&Frame]) -> (Vec<&'a Frame>, &'a [F
     (stack, next)
 }
 
-/// Partition the tree, this looks for the first `Context`,
+/// Partition the tree, this looks for the first context frame,
 /// then moves it up the chain and adds it to our results.
 /// Once we reach the end all remaining items on the stack are added to the prefix pile,
 /// which will be used in next iteration.

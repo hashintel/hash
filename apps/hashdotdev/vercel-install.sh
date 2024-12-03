@@ -7,7 +7,10 @@ echo "Installing prerequisites"
 yum install -y jq
 
 echo "Installing turbo"
-yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+npm install -g "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+
+echo "Enable corepack"
+corepack enable
 
 echo "Installing Rust"
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
@@ -16,4 +19,4 @@ source "$HOME/.cargo/env"
 for _ in {1..5}; do rustup show && break || sleep 5; done
 
 echo "Installing yarn dependencies"
-HUSKY=0 yarn install --frozen-lockfile --prefer-offline --force --build-from-source
+HUSKY=0 yarn install --immutable

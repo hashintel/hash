@@ -2,7 +2,7 @@ import { Chip } from "@hashintel/design-system";
 import type { LinkEntityAndLeftEntity } from "@local/hash-subgraph";
 import { Stack } from "@mui/material";
 
-import { SectionWrapper } from "../../../../shared/section-wrapper";
+import { SectionWrapper } from "../../../../../shared/section-wrapper";
 import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
 import { IncomingLinksTable } from "./incoming-links-section/incoming-links-table";
 
@@ -15,16 +15,13 @@ export const IncomingLinksSection = ({
   incomingLinksAndSources,
   isLinkEntity,
 }: IncomingLinksSectionProps) => {
-  if (incomingLinksAndSources.length === 0) {
-    if (isLinkEntity) {
-      /**
-       * We don't show the links tables for link entities unless they have some links already set,
-       * because we don't yet fully support linking to/from links in the UI.
-       * If they happen to have ended up with some via a different client / process, we show them.
-       */
-      return null;
-    }
-    return <LinksSectionEmptyState direction="Incoming" />;
+  if (incomingLinksAndSources.length === 0 && isLinkEntity) {
+    /**
+     * We don't show the links tables for link entities unless they have some links already set,
+     * because we don't yet fully support linking to/from links in the UI.
+     * If they happen to have ended up with some via a different client / process, we show them.
+     */
+    return null;
   }
 
   return (
@@ -33,11 +30,18 @@ export const IncomingLinksSection = ({
       titleTooltip="Links from other entities to this entity. These may only be edited on the source entity."
       titleStartContent={
         <Stack direction="row" spacing={1.5}>
-          <Chip size="xs" label={`${incomingLinksAndSources.length} links`} />
+          <Chip
+            size="xs"
+            label={`${incomingLinksAndSources.length} ${incomingLinksAndSources.length === 1 ? "link" : "links"}`}
+          />
         </Stack>
       }
     >
-      <IncomingLinksTable incomingLinksAndSources={incomingLinksAndSources} />
+      {incomingLinksAndSources.length ? (
+        <IncomingLinksTable incomingLinksAndSources={incomingLinksAndSources} />
+      ) : (
+        <LinksSectionEmptyState direction="Incoming" />
+      )}
     </SectionWrapper>
   );
 };

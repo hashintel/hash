@@ -21,7 +21,7 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  mapGraphApiPropertyTypeToPropertyType,
+  mapGraphApiPropertyTypesToPropertyTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
@@ -98,7 +98,7 @@ export const getPropertyTypes: ImpureGraphFunction<
   graphApi
     .getPropertyTypes(actorId, { includeDrafts: false, ...request })
     .then(({ data: response }) =>
-      mapGraphApiPropertyTypeToPropertyType(response.propertyTypes),
+      mapGraphApiPropertyTypesToPropertyTypes(response.propertyTypes),
     );
 
 /**

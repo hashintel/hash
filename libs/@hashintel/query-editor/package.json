@@ -22,8 +22,8 @@
   "dependencies": {
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@blockprotocol/type-system": "0.1.2-canary.0",
-    "@fortawesome/free-regular-svg-icons": "6.6.0",
-    "@fortawesome/free-solid-svg-icons": "6.6.0",
+    "@fortawesome/free-regular-svg-icons": "6.7.1",
+    "@fortawesome/free-solid-svg-icons": "6.7.1",
     "@hashintel/design-system": "0.0.8",
     "clsx": "1.2.1"
   },
@@ -31,9 +31,10 @@
     "@local/eslint-config": "0.0.0-private",
     "@mui/material": "5.16.7",
     "@mui/system": "5.16.7",
+    "eslint": "8.57.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-hook-form": "7.53.0",
+    "react-hook-form": "7.53.2",
     "typescript": "5.6.3"
   },
   "peerDependencies": {
@@ -41,6 +42,6 @@
     "@mui/system": "^5.14.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-hook-form": "7.53.0"
+    "react-hook-form": "7.53.2"
   }
 }

@@ -10,8 +10,8 @@ use std::{
 };
 
 use clap::Parser;
-use error_stack::{Report, ResultExt};
-use repo_chores::benches::{
+use error_stack::{Report, ResultExt as _};
+use hash_repo_chores::benches::{
     analyze::{AnalyzeError, BenchmarkAnalysis, criterion},
     report::Benchmark,
 };

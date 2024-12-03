@@ -18,13 +18,18 @@ const monorepoRoot = path.resolve(__dirname, "../../..");
  * Given a path from a .gitignore in a parent directory, this returns the equivalent paths if written in the current
  * directory
  *
- * @param pattern
- * @param workspaceDirPrefix
- * @returns {[string]}
+ * @param {string} pattern
+ * @param {string} workspaceDirPrefix
+ * @returns {string[]}
  */
 const getEquivalentIgnorePaths = (pattern, workspaceDirPrefix) => {
   // We want to traverse the components of the workspaceDirPrefix, and consume wild cards whenever they match.
   // On some wildcards there may be a branch of equivalent paths, e.g. for a "**" wildcard
+  /**
+   * @param {string[]} pathComponents
+   * @param {string[]} patternComponents
+   * @returns {Set<string>}
+   */
   const getEquivalentPaths = (pathComponents, patternComponents) => {
     const equivalentPaths = new Set();
 

@@ -10,7 +10,7 @@ use core::fmt::{Display, Formatter};
 use std::path::Path;
 
 use error_stack::{
-    Report, Result,
+    Report,
     fmt::{Charset, ColorMode},
 };
 
@@ -27,7 +27,7 @@ impl Display for ParseConfigError {
 
 impl core::error::Error for ParseConfigError {}
 
-fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
+fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
     _ = path.as_ref();
 
     /*
@@ -41,7 +41,7 @@ fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
 fn main() {
     // error-stack only uses ANSI codes for colors
     let supports_color = supports_color::on_cached(supports_color::Stream::Stdout)
-        .map_or(false, |level| level.has_basic);
+        .is_some_and(|level| level.has_basic);
 
     let color_mode = if supports_color {
         ColorMode::Color

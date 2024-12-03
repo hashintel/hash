@@ -86,6 +86,14 @@ To run HASH locally, please follow these steps:
 
 1. [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
 
+1. Enable [corepack](https://nodejs.org/api/corepack.html):
+
+```sh
+corepack enable
+```
+
+You might need to re-create your shell.
+
 1. Install dependencies:
 
    ```sh
@@ -378,6 +386,68 @@ New packages which are to be built as JavaScript, whether as an app or dependenc
 1. They must specify the paths exposed to consumers in `exports` and `typesVersions` in `package.json`, and `paths` in the base TSConfig
 1. They must have a `turbo.json` which extends the root and specifies the `outputs` for caching (see existing examples)
 
+### Authoring Patches
+
+Patches to JavaScript packages are managed by Yarn, using the [`yarn patch`](https://yarnpkg.com/cli/patch) command.
+
+#### Creating a new patch
+
+```sh
+yarn patch <package>
+# ➤ YN0000: Package <package>@npm:<version> got extracted with success!
+# ➤ YN0000: You can now edit the following folder: /private/var/folders/lk/j93xz9pd7nqgd5_2wlyxmbh00000gp/T/xfs-df787c87/user
+# ➤ YN0000: Once you are done run yarn patch-commit -s /private/var/folders/lk/j93xz9pd7nqgd5_2wlyxmbh00000gp/T/xfs-df787c87/user and Yarn will store a patchfile based on your changes.
+# ➤ YN0000: Done in 0s 702ms
+```
+
+Once you have completed your changes, run the command that was output to commit the patch:
+
+```sh
+yarn patch-commit -s /private/var/folders/lk/j93xz9pd7nqgd5_2wlyxmbh00000gp/T/xfs-df787c87/user
+```
+
+This will automatically create a patch file and put it into the `.yarn/patches` directory. If you're modifying a direct dependency in any workspace it will replace the `package.json` entry with a `patch:` reference to the patch file. In case you're patching an indirect dependency a new resolutions entry will be added to the root workspace `package.json`.
+
+You will need to run `yarn install` for the patch to be installed and applied to the lockfile.
+
+#### Modifying an existing patch
+
+The procedure to modify an existing patch is very similar, but instead of running `yarn patch <package>` you will need to run `yarn patch -u <package>`. This will apply existing patches and then extract the package for you to modify.
+
+```sh
+yarn patch -u <package>
+# ➤ YN0000: Package <package>@npm:<version> got extracted with success along with its current modifications!
+# ➤ YN0000: You can now edit the following folder: /private/var/folders/lk/j93xz9pd7nqgd5_2wlyxmbh00000gp/T/xfs-d772c076/user
+# ➤ YN0000: Once you are done run yarn patch-commit -s /private/var/folders/lk/j93xz9pd7nqgd5_2wlyxmbh00000gp/T/xfs-d772c076/user and Yarn will store a patchfile based on your changes.
+# ➤ YN0000: Done in 1s 455ms
+```
+
+Once you have completed your changes, run the command that was output to commit the patch:
+
+```sh
+yarn patch-commit -s /private/var/folders/lk/j93xz9pd7nqgd5_2wlyxmbh00000gp/T/xfs-d772c076/user
+```
+
+This will automatically update the patch file with your changes. Do not forget to run `yarn install` for the patch to be installed and applied to the lockfile.
+
+### Removing a patch
+
+Locate any `patch:` protocol entries in any workspace `package.json` and remove them. The entry will look somewhat similar to: `patch:@changesets/assemble-release-plan@npm%3A5.2.4#~/.yarn/patches/@changesets-assemble-release-plan-npm-5.2.4-2920e4dc4c.patch`, to remove the patch simply extract out the package (everything after the `patch:` and before `#`) and url-decode it and extract the version from it, so for the example it would be `5.2.4`. You should **not** completely remove the line from the `package.json`.
+
+In case the patch has been applied in the resolutions field you should also check if the resolution is made redundant. This is the case if the left side is the same as the right, e.g. `"react@npm:18.2.0": "18.2.0"` is redundant, same as `"react@npm:18.2.0": "npm:18.2.0"`, or `"react@npm:18.2.0": "npm:react@18.2.0"`, but `"react": "npm:react@18.2.0"` is **not** redundant.
+
+> A resolution specifier like `"react": "npm:react@18.2.0",` is also correct. Simply meaning that the react package should be resolved to the npm package `react@18.2.0`, in fact `"react": "18.2.0"` is simply a shorthand for `"react": "npm:react@18.2.0"`.
+>
+> If the left hand of a resolution has no version specifier it is assumed to be `npm:*`, e.g. `"react": "18.2.0"` is equivalent to `"react@npm:*": "18.2.0"` (replace react with version `18.2.0` regardless of the dependency requirement).
+>
+> For more examples see the [yarn documentation](https://yarnpkg.com/configuration/manifest#resolutions)
+
+Then run `yarn install` to remove the patch.
+
+You can then safely remove the patch file from `.yarn/patches`.
+
+> Yarn currently does not provide a command to remove a patch, so you will need to do this manually.
+
 ## Troubleshooting
 
 ### eslint `parserOptions.project`
@@ -443,6 +513,8 @@ If you want to use AWS for file uploads or emails, you will need to have it conf
 - `AWS_S3_UPLOADS_SECRET_ACCESS_KEY`: (optional) the AWS secret access key to use for file uploads.
 - `AWS_S3_UPLOADS_ENDPOINT`: (optional) the endpoint to use for S3 operations. If not, the AWS S3 default for the given region is used. Useful if you are using a different S3-compatible storage provider.
 - `AWS_S3_UPLOADS_FORCE_PATH_STYLE`: (optional) set `true` if your S3 setup requires path-style rather than virtual hosted-style S3 requests.
+
+For some in-browser functionality (e.g. document previewing), you must configure a Access-Control-Allow-Origin header on your bucket to be something other than '\*'.
 
 ### File uploads
 

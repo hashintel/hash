@@ -1,3 +1,4 @@
+import type { ClosedDataType } from "@blockprotocol/type-system";
 import type {
   CustomCell,
   CustomRenderer,
@@ -5,7 +6,6 @@ import type {
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import produce from "immer";
 import type { RefObject } from "react";
 
@@ -21,7 +21,7 @@ import { guessEditorTypeFromExpectedType } from "./value-cell/utils";
 
 export interface ChangeTypeCellProps {
   readonly kind: "change-type-cell";
-  currentType: DataTypeWithMetadata["schema"];
+  currentType: ClosedDataType;
   propertyRow: PropertyRow;
   valueCellOfThisRow: ValueCell;
 }
@@ -64,10 +64,10 @@ export const createRenderChangeTypeCell = (
           text: currentType.title,
           left: chipLeft,
           color: "blue",
-          icon: editorSpec.gridIcon,
+          icon: { inbuiltIcon: editorSpec.gridIcon },
         });
 
-      const chipWidth = drawTheLeftChip();
+      const { width: chipWidth } = drawTheLeftChip();
 
       const changeTextLeft = chipLeft + chipWidth + changeTextGap;
 

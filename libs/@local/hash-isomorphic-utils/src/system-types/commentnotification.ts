@@ -524,7 +524,9 @@ export type {
  * A notification related to a comment.
  */
 export type CommentNotification = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/comment-notification/v/6";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/comment-notification/v/6",
+  ];
   properties: CommentNotificationProperties;
   propertiesWithMetadata: CommentNotificationPropertiesWithMetadata;
 };
@@ -593,7 +595,9 @@ export type CommentNotificationTriggeredByUserLink = {
  * The comment that something replied to.
  */
 export type RepliedToComment = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1",
+  ];
   properties: RepliedToCommentProperties;
   propertiesWithMetadata: RepliedToCommentPropertiesWithMetadata;
 };
@@ -626,7 +630,9 @@ export type RepliedToCommentPropertiesWithMetadata2 = {
  * A comment that triggered something.
  */
 export type TriggeredByComment = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1",
+  ];
   properties: TriggeredByCommentProperties;
   propertiesWithMetadata: TriggeredByCommentPropertiesWithMetadata;
 };

@@ -3,14 +3,14 @@ use core::{
     ops::{Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
 
-use error_stack::{Report, ReportSink, Result, ResultExt, TryReportTupleExt};
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 
 use crate::{
     ArrayAccess, Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess,
     Reflection, Schema, StructVisitor,
     error::{
-        ArrayAccessError, DeserializeError, DuplicateField, DuplicateFieldError, Location, Variant,
-        VisitorError,
+        ArrayAccessError, DeserializeError, DuplicateField, DuplicateFieldError, Location,
+        Variant as _, VisitorError,
     },
     helpers::Properties,
     identifier,
@@ -44,7 +44,7 @@ where
         self,
         discriminant: Self::Discriminant,
         deserializer: D,
-    ) -> Result<Self::Value, VisitorError>
+    ) -> Result<Self::Value, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
@@ -96,7 +96,9 @@ where
 {
     type Reflection = BoundReflection<T::Reflection>;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_enum(BoundEnumVisitor(PhantomData))
             .change_context(DeserializeError)
@@ -123,7 +125,11 @@ where
     type Key = RangeIdent;
     type Value = ();
 
-    fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, VisitorError>
+    fn visit_value<D>(
+        self,
+        key: Self::Key,
+        deserializer: D,
+    ) -> Result<Self::Value, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
@@ -179,7 +185,7 @@ where
         R::document()
     }
 
-    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ArrayAccess<'de>,
     {
@@ -210,7 +216,7 @@ where
         Ok((start, end))
     }
 
-    fn visit_object<A>(self, mut object: A) -> Result<Self::Value, VisitorError>
+    fn visit_object<A>(self, mut object: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ObjectAccess<'de>,
     {
@@ -283,7 +289,7 @@ where
 {
     type Reflection = RangeReflection<T::Reflection, T::Reflection>;
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>,
     {
@@ -303,7 +309,7 @@ where
 {
     type Reflection = RangeReflection<T::Reflection, T::Reflection>;
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>,
     {
@@ -331,7 +337,7 @@ where
 {
     type Reflection = RangeReflection<T::Reflection, <Option<()> as Deserialize<'de>>::Reflection>;
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>,
     {
@@ -353,7 +359,7 @@ where
 {
     type Reflection = RangeReflection<<Option<()> as Deserialize<'de>>::Reflection, T::Reflection>;
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>,
     {
@@ -373,7 +379,7 @@ where
 {
     type Reflection = RangeReflection<<Option<()> as Deserialize<'de>>::Reflection, T::Reflection>;
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>,
     {
@@ -393,7 +399,7 @@ impl<'de> Deserialize<'de> for RangeFull {
         <Option<()> as Deserialize<'de>>::Reflection,
     >;
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>,
     {

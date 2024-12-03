@@ -4,6 +4,7 @@
  * @see https://github.com/hashintel/hash/pull/1384
  */
 module.exports = (ruleNames) => {
+  /** @type {import("eslint").Linter.RulesRecord} */
   const result = {};
 
   if (process.env.CHECK_TEMPORARILY_DISABLED_RULES === "true") {

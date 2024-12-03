@@ -1,7 +1,5 @@
-cargo-features = ["edition2024"]
-
 [package]
-name = "harpc-net"
+name              = "harpc-net"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -14,50 +12,51 @@ harpc-codec = { workspace = true, public = true }
 
 
 # Public third-party dependencies
-futures-core = { workspace = true, public = true }
-futures-io = { workspace = true, public = true }
-futures-sink = { workspace = true, public = true }
-futures-util = { workspace = true, public = true }
-libp2p-core = { workspace = true, public = true }
-libp2p-identity = { workspace = true, public = true }
-libp2p-ping = { workspace = true, public = true }
-libp2p-swarm = { workspace = true, public = true }
-libp2p-yamux = { workspace = true, public = true }
-prometheus-client = { workspace = true, public = true }
-multiaddr = { workspace = true, public = true }
+futures-core       = { workspace = true, public = true }
+futures-io         = { workspace = true, public = true }
+futures-sink       = { workspace = true, public = true }
+futures-util       = { workspace = true, public = true }
+libp2p-core        = { workspace = true, public = true }
+libp2p-identity    = { workspace = true, public = true }
+libp2p-ping        = { workspace = true, public = true }
+libp2p-swarm       = { workspace = true, public = true }
+libp2p-yamux       = { workspace = true, public = true }
+multiaddr          = { workspace = true, public = true }
 multistream-select = { workspace = true, public = true }
-tokio = { workspace = true, public = true, features = ["io-util", "macros"] }
+prometheus-client  = { workspace = true, public = true }
+tokio              = { workspace = true, public = true, features = ["io-util", "macros"] }
 
 # Private workspace dependencies
-codec = { workspace = true, features = ["harpc"] }
-error-stack = { workspace = true }
+error-stack         = { workspace = true }
+harpc-types         = { workspace = true }
 harpc-wire-protocol = { workspace = true }
-harpc-types = { workspace = true }
+hash-codec          = { workspace = true, features = ["harpc"] }
 
 # Private third-party dependencies
-bytes = { workspace = true }
-bytes-utils = { workspace = true }
-derive_more = { version = "1.0.0", features = ["display"] }
-futures = { workspace = true }
-libp2p = { workspace = true, features = ["metrics", "macros", "tcp", "noise", "yamux", "ping", "tokio", "identify"] }
-libp2p-stream = { workspace = true }
+bytes            = { workspace = true }
+bytes-utils      = { workspace = true }
+derive_more      = { workspace = true, features = ["display"] }
+futures          = { workspace = true }
+libp2p           = { workspace = true, features = ["metrics", "macros", "tcp", "noise", "yamux", "ping", "tokio", "identify"] }
+libp2p-stream    = { workspace = true }
 pin-project-lite = { workspace = true }
-scc = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-tachyonix = { workspace = true }
-thiserror = { workspace = true }
-tokio-stream = { workspace = true, features = ["time", "sync"] }
-tokio-util = { workspace = true, features = ["codec", "compat", "rt", "tracing"] }
-tracing = { workspace = true }
+scc              = { workspace = true }
+serde            = { workspace = true, features = ["derive"] }
+tachyonix        = { workspace = true }
+thiserror        = { workspace = true }
+tokio-stream     = { workspace = true, features = ["time", "sync"] }
+tokio-util       = { workspace = true, features = ["codec", "compat", "rt", "tracing"] }
+tracing          = { workspace = true }
 
 [dev-dependencies]
-harpc-codec = { workspace = true, features = ["json"] }
-harpc-types = { workspace = true }
+bytes               = { workspace = true, features = ["serde"] }
+harpc-codec         = { workspace = true, features = ["json"] }
+harpc-types         = { workspace = true }
 harpc-wire-protocol = { workspace = true, features = ["test-utils"] }
-humansize = { workspace = true }
-insta = { workspace = true }
-test-log = { workspace = true, features = ["trace"] }
-tokio = { workspace = true, features = ["rt-multi-thread"] }
+humansize           = { workspace = true }
+insta               = { workspace = true }
+test-log            = { workspace = true, features = ["trace"] }
+tokio               = { workspace = true, features = ["rt-multi-thread"] }
 
 [features]
 test-utils = []

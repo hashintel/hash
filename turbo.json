@@ -42,7 +42,7 @@
     },
     "start:healthcheck": {
       "cache": false,
-      "dependsOn": ["compile:release"]
+      "dependsOn": ["start:migrate"]
     },
 
     "start:test:migrate": {

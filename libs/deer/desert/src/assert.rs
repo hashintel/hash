@@ -2,7 +2,7 @@ use core::fmt::Debug;
 
 use deer::{
     Context, Deserialize,
-    error::{DeserializeError, ReportExt},
+    error::{DeserializeError, ReportExt as _},
 };
 use error_stack::Report;
 use serde_json::to_value;

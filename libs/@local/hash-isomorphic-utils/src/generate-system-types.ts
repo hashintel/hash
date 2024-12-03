@@ -43,21 +43,26 @@ const generateTypes = async (
     targets[`${slugify(name)}.ts`] = [{ sourceTypeId: entityTypeId }];
   }
 
-  await codegen({
-    outputFolder: `src/system-types${subFolder ? `/${subFolder}` : ""}`,
-    targets,
-    getFetchUrlFromTypeId: (typeId) => {
-      if (typeId.startsWith("https://hash.ai/")) {
-        const rewrittenTypeId = typeId.replace(
-          "https://hash.ai/",
-          "http://localhost:3000/",
-        ) as VersionedUrl;
+  const logLevel = process.env.LOG_LEVEL ?? "info";
 
-        return rewrittenTypeId;
-      }
-      return typeId;
+  await codegen(
+    {
+      outputFolder: `src/system-types${subFolder ? `/${subFolder}` : ""}`,
+      targets,
+      getFetchUrlFromTypeId: (typeId) => {
+        if (typeId.startsWith("https://hash.ai/")) {
+          const rewrittenTypeId = typeId.replace(
+            "https://hash.ai/",
+            "http://localhost:3000/",
+          ) as VersionedUrl;
+
+          return rewrittenTypeId;
+        }
+        return typeId;
+      },
     },
-  });
+    logLevel as Parameters<typeof codegen>[1],
+  );
 
   // eslint-disable-next-line no-console
   console.log(`Done generating ${label} types.`);

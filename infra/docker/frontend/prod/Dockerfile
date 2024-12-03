@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY package.json .
 RUN apk add --no-cache jq yq && \
-    yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+    npm install -g  "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-frontend' --docker && \
@@ -15,10 +15,6 @@ RUN turbo prune --scope='@apps/hash-frontend' --docker && \
         echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
       )' _ {} \; && \
     cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
-
-# Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
-# Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
-COPY patches /app/out/full/patches
 
 
 FROM node:20.13-slim AS rust
@@ -44,19 +40,19 @@ WORKDIR /usr/local/src/
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
-COPY --from=base /app/out/full/patches patches
+COPY --from=base /app/out/full/.yarn .yarn
 COPY --from=base /app/out/full/turbo.json turbo.json
 
-RUN yarn install --frozen-lockfile --prefer-offline \
+RUN yarn install --immutable \
     && yarn cache clean
 
 COPY --from=base /app/out/full/ .
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 ARG API_ORIGIN
-ENV API_ORIGIN ${API_ORIGIN}
+ENV API_ORIGIN=${API_ORIGIN}
 ARG FRONTEND_URL
-ENV FRONTEND_URL ${FRONTEND_URL}
+ENV FRONTEND_URL=${FRONTEND_URL}
 
 RUN yarn turbo build --filter '@apps/hash-frontend' && rm -rf target/
 
@@ -76,4 +72,4 @@ RUN groupadd --system --gid 60000 hash && \
 RUN chown -R frontend:hash .next
 
 USER frontend:hash
-ENV NODE_ENV production
+ENV NODE_ENV=production

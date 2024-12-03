@@ -163,6 +163,7 @@ export const setupFileDownloadProxyHandler = (
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- should likely be using express-async-handler
   app.get("/file/:key(*)", async (req, res) => {
     const key = req.params.key;
+    const urlOnly = req.query.urlOnly;
 
     // We purposefully return 404 for all error cases.
     if (!key) {
@@ -206,7 +207,7 @@ export const setupFileDownloadProxyHandler = (
 
     if (!isFileEntity(fileEntity)) {
       res.status(400).json({
-        error: `Found entity ${fileEntity.metadata.recordId.entityId} is not a file entity – has type ${fileEntity.metadata.entityTypeId}`,
+        error: `Found entity ${fileEntity.metadata.recordId.entityId} is not a file entity – has type(s) ${fileEntity.metadata.entityTypeIds.join(", ")}`,
       });
       return;
     }
@@ -275,6 +276,16 @@ export const setupFileDownloadProxyHandler = (
           `Could not set expiring cache entry for file download [key=${key}, presignUrl=${presignUrl}]. Error: ${error}`,
         );
       }
+    }
+
+    /**
+     * For certain browser-based flows, automatically redirecting to the presigned URL can cause CORS issues,
+     * because fetch requests following redirects automatically have an Origin of 'null'.
+     * This provides a way for the frontend code to handle fetching from the presigned URL directly.
+     */
+    if (urlOnly) {
+      res.json({ url: presignUrl });
+      return;
     }
 
     res.redirect(presignUrl);

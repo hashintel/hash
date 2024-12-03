@@ -1,0 +1,73 @@
+diff --git a/dist/assemble-release-plan.cjs.dev.js b/dist/assemble-release-plan.cjs.dev.js
+index e1376ca756d69816f8c79637ee7b45161f092167..7825c0cfbdf53e5070c21ff5dcf74242a7d4be41 100644
+--- a/dist/assemble-release-plan.cjs.dev.js
++++ b/dist/assemble-release-plan.cjs.dev.js
+@@ -151,6 +151,7 @@ function determineDependents({
+           } else if ((!releases.has(dependent) || releases.get(dependent).type === "none") && (config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents === "always" || !semverSatisfies__default['default'](incrementVersion(nextRelease, preInfo), versionRange))) {
+             switch (depType) {
+               case "dependencies":
++              case "devDependencies":
+               case "optionalDependencies":
+               case "peerDependencies":
+                 if (type !== "major" && type !== "minor") {
+@@ -158,14 +159,6 @@ function determineDependents({
+                 }
+ 
+                 break;
+-
+-              case "devDependencies":
+-                {
+-                  // We don't need a version bump if the package is only in the devDependencies of the dependent package
+-                  if (type !== "major" && type !== "minor" && type !== "patch") {
+-                    type = "none";
+-                  }
+-                }
+             }
+           }
+         }
+diff --git a/dist/assemble-release-plan.cjs.prod.js b/dist/assemble-release-plan.cjs.prod.js
+index 3a83720644a94cdf6e62fa188a72c51c0384d00e..4d41e9627b05bc7a71ed886b4687467c4a3cbb82 100644
+--- a/dist/assemble-release-plan.cjs.prod.js
++++ b/dist/assemble-release-plan.cjs.prod.js
+@@ -80,13 +80,11 @@ function determineDependents({releases: releases, packagesByName: packagesByName
+           onlyUpdatePeerDependentsWhenOutOfRange: config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.onlyUpdatePeerDependentsWhenOutOfRange
+         })) type = "major"; else if (!(releases.has(dependent) && "none" !== releases.get(dependent).type || "always" !== config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents && semverSatisfies__default.default(incrementVersion(nextRelease, preInfo), versionRange))) switch (depType) {
+          case "dependencies":
++         case "devDependencies":
+          case "optionalDependencies":
+          case "peerDependencies":
+           "major" !== type && "minor" !== type && (type = "patch");
+           break;
+-
+-         case "devDependencies":
+-          "major" !== type && "minor" !== type && "patch" !== type && (type = "none");
+         }
+       }
+       return releases.has(dependent) && releases.get(dependent).type === type && (type = void 0), 
+diff --git a/dist/assemble-release-plan.esm.js b/dist/assemble-release-plan.esm.js
+index 62891eb5dee97a33e6587514267c3cde5b314830..f0d058a69df3375f08aa0cbbdaf0897bb9fc20e7 100644
+--- a/dist/assemble-release-plan.esm.js
++++ b/dist/assemble-release-plan.esm.js
+@@ -140,6 +140,7 @@ function determineDependents({
+           } else if ((!releases.has(dependent) || releases.get(dependent).type === "none") && (config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents === "always" || !semverSatisfies(incrementVersion(nextRelease, preInfo), versionRange))) {
+             switch (depType) {
+               case "dependencies":
++              case "devDependencies":
+               case "optionalDependencies":
+               case "peerDependencies":
+                 if (type !== "major" && type !== "minor") {
+@@ -147,14 +148,6 @@ function determineDependents({
+                 }
+ 
+                 break;
+-
+-              case "devDependencies":
+-                {
+-                  // We don't need a version bump if the package is only in the devDependencies of the dependent package
+-                  if (type !== "major" && type !== "minor" && type !== "patch") {
+-                    type = "none";
+-                  }
+-                }
+             }
+           }
+         }

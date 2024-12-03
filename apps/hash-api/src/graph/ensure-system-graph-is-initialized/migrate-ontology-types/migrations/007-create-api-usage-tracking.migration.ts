@@ -380,6 +380,7 @@ const migrate: MigrationFunction = async ({
 
   const hashOrg = await getOrgByShortname(context, authentication, {
     shortname: "hash",
+    permitOlderVersions: true,
   });
   if (!hashOrg) {
     throw new Error(
@@ -428,8 +429,9 @@ const migrate: MigrationFunction = async ({
     );
 
     await createEntity<ServiceFeature>(context, authentication, {
-      entityTypeId: serviceFeatureEntityType.schema
-        .$id as ServiceFeature["entityTypeId"],
+      entityTypeIds: [
+        serviceFeatureEntityType.schema.$id,
+      ] as ServiceFeature["entityTypeIds"],
       properties: {
         value: {
           "https://hash.ai/@hash/types/property-type/service-name/": {

@@ -1,17 +1,22 @@
-use alloc::sync::Arc;
-use core::{num::NonZero, time::Duration};
+use alloc::{borrow::Cow, sync::Arc};
+use core::{
+    error::Error,
+    fmt::{self, Display},
+    num::NonZero,
+    time::Duration,
+};
 
-use bytes::{BufMut, Bytes};
-use harpc_codec::error::{EncodedError, ErrorBuffer};
+use bytes::Bytes;
+use harpc_codec::error::NetworkError;
 use harpc_types::{
     error_code::ErrorCode,
     procedure::{ProcedureDescriptor, ProcedureId},
     response_kind::ResponseKind,
-    service::{ServiceDescriptor, ServiceId},
+    subsystem::{SubsystemDescriptor, SubsystemId},
     version::Version,
 };
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
@@ -33,7 +38,7 @@ use harpc_wire_protocol::{
     test_utils::mock_request_id,
 };
 use tokio::{sync::mpsc, task::JoinHandle};
-use tokio_stream::StreamExt;
+use tokio_stream::StreamExt as _;
 use tokio_util::sync::CancellationToken;
 
 use super::{ServerTransactionPermit, TransactionStream};
@@ -74,7 +79,7 @@ impl ServerTransactionPermit for StaticTransactionPermit {
 fn setup_send(
     no_delay: bool,
 ) -> (
-    mpsc::Sender<Result<Bytes, EncodedError>>,
+    mpsc::Sender<Result<Bytes, NetworkError>>,
     mpsc::Receiver<Response>,
     JoinHandle<()>,
 ) {
@@ -151,7 +156,7 @@ async fn send_delay_perfect_buffer() {
 
     // send a message that fits perfectly into the buffer
     // this should not trigger any splitting
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -182,7 +187,7 @@ async fn send_delay_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a large message that needs to be split into multiple parts
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -218,7 +223,7 @@ async fn send_delay_split_large_multiple() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a large message that needs to be split into multiple parts
-    let payload = Bytes::from_static(&[0; (Payload::MAX_SIZE * 2) + 8]);
+    let payload = Bytes::from(vec![0; (Payload::MAX_SIZE * 2) + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -293,7 +298,7 @@ async fn send_delay_flush_remaining() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a packet that is to be split into multiple frames
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -431,15 +436,34 @@ async fn send_delay_empty_bytes() {
     });
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ExampleError {
+    code: ErrorCode,
+    message: Cow<'static, str>,
+}
+
+impl Display for ExampleError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.message, fmt)
+    }
+}
+
+impl Error for ExampleError {
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_value(self.code);
+    }
+}
+
 #[tokio::test]
 async fn send_delay_error_immediate() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut error = ErrorBuffer::error();
-    error.put_slice(&[0, 1, 2, 3, 4, 5, 6, 7]);
-    let error = error.finish(code);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("immediate delay"),
+        code,
+    });
 
     // send an error message
     let payload = error.bytes().clone();
@@ -473,7 +497,7 @@ async fn send_delay_error_delayed() {
 
     // if we send a packet that is too large, we'll split, but when we encounter an error we
     // will discard the remaining messages
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -482,11 +506,12 @@ async fn send_delay_error_delayed() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[0, 1, 2, 3, 4, 5, 6, 7]);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("delayed error"),
+        code,
+    });
 
     // send an error message
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     bytes_tx
@@ -528,10 +553,11 @@ async fn send_delay_error_multiple() {
     // fully buffered.
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[1; Payload::MAX_SIZE + 8]);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
 
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
@@ -573,14 +599,15 @@ async fn send_delay_error_interspersed() {
     // once we have an error message, we no longer send any more messages
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[1; Payload::MAX_SIZE + 8]);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
 
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
@@ -636,10 +663,11 @@ async fn send_delay_error_interspersed_small() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[1; 8]);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("interspersed delayed errors"),
+        code,
+    });
 
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
@@ -680,10 +708,11 @@ async fn send_delay_error_split_large() {
     // if we have a large payload we split it into multiple frames
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[1; Payload::MAX_SIZE + 8]);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
 
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     bytes_tx
@@ -719,7 +748,7 @@ async fn send_delay_error_split_large() {
 async fn send_no_delay_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -768,7 +797,7 @@ async fn send_no_delay_split_large() {
 async fn send_no_delay_split_large_multiple() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_ok = Bytes::from_static(&[0; (Payload::MAX_SIZE * 2) + 8]);
+    let payload_ok = Bytes::from(vec![0; (Payload::MAX_SIZE * 2) + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -973,10 +1002,11 @@ async fn send_no_delay_error_immediate() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(b"error");
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
 
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     bytes_tx
@@ -1015,9 +1045,11 @@ async fn send_no_delay_error_delayed() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(b"error");
-    let error = buffer.finish(code);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
     let payload_err = error.bytes().clone();
 
     bytes_tx
@@ -1067,9 +1099,11 @@ async fn send_no_delay_error_multiple() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(b"error");
-    let error = buffer.finish(code);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
     let payload_err = error.bytes().clone();
 
     bytes_tx
@@ -1122,9 +1156,11 @@ async fn send_no_delay_error_interspersed() {
     let payload_ok = Bytes::from_static(b"ok");
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(b"error");
-    let error = buffer.finish(code);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
     let payload_err = error.bytes().clone();
 
     for _ in 0..3 {
@@ -1176,9 +1212,11 @@ async fn send_no_delay_error_split_large() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[0; Payload::MAX_SIZE + 8]);
-    let error = buffer.finish(code);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("0".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
+
     let payload_err = error.bytes().clone();
 
     bytes_tx
@@ -1233,8 +1271,8 @@ fn make_begin(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Requ
             request_id: mock_request_id(0x01),
         },
         body: RequestBody::Begin(RequestBegin {
-            service: ServiceDescriptor {
-                id: ServiceId::new(0x00),
+            subsystem: SubsystemDescriptor {
+                id: SubsystemId::new(0x00),
                 version: Version {
                     major: 0x00,
                     minor: 0x00,

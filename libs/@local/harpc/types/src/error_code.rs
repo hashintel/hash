@@ -85,7 +85,21 @@ define_error_code_consts! {
         /// The combination of service and version requirement could not be found on the server.
         ///
         /// The HTTP equivalent is 404 Not Found.
-        NOT_FOUND
+        SUBSYSTEM_NOT_FOUND,
+        /// The service was found, but the procedure was not.
+        ///
+        /// The HTTP equivalent is 404 Not Found.
+        PROCEDURE_NOT_FOUND,
+        /// The resource was not found.
+        ///
+        /// The HTTP equivalent is 404 Not Found.
+        RESOURCE_NOT_FOUND,
+        /// The client is not allowed to call the procedure.
+        ///
+        /// The HTTP equivalent is 403 Forbidden.
+        FORBIDDEN,
+        /// The amount of items in the request stream does not match the expected amount.
+        REQUEST_EXPECTED_ITEM_COUNT_MISMATCH
     ],
     // 0xFF_xx = server errors
     /// Errors that occur in a session and are issued by the server.
@@ -112,14 +126,20 @@ define_error_code_consts! {
     ],
     /// Errors that occur due to malformed payloads in the tower layer.
     0xFF_10 => [
-        /// Encoded error encountered an invalid error tag.
+        /// Encoded transaction error encountered is partially encoded or has too many bytes.
         ///
-        /// The returned payload for an encoded error does not have a valid error tag to distinguish
-        /// between the different error encodings and could therefore not be properly encoded.
+        /// The returned payload for an encoded error does not have the correct length.
         ///
         /// This is a fault in the implementation of the server, either in the `codec` or
         /// the `tower` layer.
-        PACK_INVALID_ERROR_TAG
+        PARTIAL_TRANSACTION_ERROR,
+        /// Encoded network error encountered is partially encoded or has too many bytes.
+        ///
+        /// The returned payload for an encoded error does not have the correct length.
+        ///
+        /// This is a fault in the implementation of the server, either in the `codec` or
+        /// the `tower` layer.
+        PARTIAL_NETWORK_ERROR
     ],
     /// Generic server errors.
     0xFF_F0 => [

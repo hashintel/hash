@@ -7,8 +7,8 @@ use alloc::sync::Arc;
 
 use bytes::Bytes;
 use error_stack::Report;
-use futures::{Sink, Stream, StreamExt, prelude::future::FutureExt};
-use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use futures::{Sink, Stream, StreamExt as _, prelude::future::FutureExt as _};
+use harpc_types::{procedure::ProcedureDescriptor, subsystem::SubsystemDescriptor};
 use harpc_wire_protocol::{request::Request, response::Response};
 use scc::ebr::Guard;
 use tachyonix::SendTimeoutError;
@@ -77,7 +77,7 @@ struct ConnectionResponseDelegateTask<S> {
 
 impl<S> ConnectionResponseDelegateTask<S>
 where
-    S: Stream<Item = error_stack::Result<Response, io::Error>> + Send,
+    S: Stream<Item = Result<Response, Report<io::Error>>> + Send,
 {
     pub(crate) async fn route(
         config: SessionConfig,
@@ -244,6 +244,7 @@ pub(crate) struct ConnectionParts<'a> {
     pub cancel: CancellationToken,
 }
 
+#[derive(Debug)]
 pub struct Connection {
     config: SessionConfig,
 
@@ -258,7 +259,6 @@ pub struct Connection {
     _guard: DropGuard,
 }
 
-// TODO: BufferedResponse that will only return the last (valid) response
 impl Connection {
     pub(crate) fn spawn<S, T>(
         ConnectionParts {
@@ -335,10 +335,10 @@ impl Connection {
     /// connection is currently in its process of being closed.
     pub async fn call(
         &self,
-        service: ServiceDescriptor,
+        subsystem: SubsystemDescriptor,
         procedure: ProcedureDescriptor,
         payload: impl Stream<Item = Bytes> + Send + 'static,
-    ) -> error_stack::Result<ResponseStream, ConnectionPartiallyClosedError> {
+    ) -> Result<ResponseStream, Report<ConnectionPartiallyClosedError>> {
         // While not strictly necessary (as the transaction will immediately terminate if the
         // underlying connection is closed) and the `ResponseStream` will return `None` it is a good
         // indicator to the user that the connection is unhealthy, and as to why, as these tasks
@@ -362,7 +362,7 @@ impl Connection {
         let task = TransactionTask {
             config: self.config,
             permit,
-            service,
+            subsystem,
             procedure,
             response_rx,
             response_tx: stream_tx,

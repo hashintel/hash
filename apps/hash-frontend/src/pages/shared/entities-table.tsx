@@ -1,23 +1,32 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
+import type {
+  EntityType,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
+import type {
+  CustomCell,
+  Item,
+  NumberCell,
+  SizedGridColumn,
+  TextCell,
+} from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, useTheme } from "@mui/material";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { Box, Stack, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent, RefObject } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  RefObject,
+} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { GridProps } from "../../components/grid/grid";
 import {
@@ -29,237 +38,129 @@ import type { BlankCell } from "../../components/grid/utils";
 import { blankCell } from "../../components/grid/utils";
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import type { ColumnFilter } from "../../components/grid/utils/filtering";
-import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
-import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import { tableContentSx } from "../../shared/table-content";
 import type { FilterState } from "../../shared/table-header";
-import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
-import type { MinimalActor } from "../../shared/use-actors";
+import { tableHeaderHeight } from "../../shared/table-header";
 import { isAiMachineActor } from "../../shared/use-actors";
-import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
-import { useAuthenticatedUser } from "./auth-info-context";
-import { renderChipCell } from "./chip-cell";
-import { GridView } from "./entities-table/grid-view";
+import type { ChipCellProps } from "./chip-cell";
+import { createRenderChipCell } from "./chip-cell";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
-import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
-import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
-import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
-import { EntityGraphVisualizer } from "./entity-graph-visualizer";
-import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
-import { generateEntityRootedSubgraph } from "./subgraphs";
-import { TableHeaderToggle } from "./table-header-toggle";
-import type { TableView } from "./table-views";
-import { tableViewIcons } from "./table-views";
+import type { TypeEntitiesRow } from "./entities-table/use-entities-table/types";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { UrlCellProps } from "./url-cell";
 import { createRenderUrlCell } from "./url-cell";
 
-/**
- * @todo: avoid having to maintain this list, potentially by
- * adding an `isFile` boolean to the generated ontology IDs file.
- */
-const allFileEntityTypeOntologyIds = [
-  systemEntityTypes.file,
-  systemEntityTypes.image,
-  systemEntityTypes.documentFile,
-  systemEntityTypes.docxDocument,
-  systemEntityTypes.pdfDocument,
-  systemEntityTypes.presentationFile,
-  systemEntityTypes.pptxPresentation,
-];
+const noneString = "none";
 
-const allFileEntityTypeIds = allFileEntityTypeOntologyIds.map(
-  ({ entityTypeId }) => entityTypeId,
-) as VersionedUrl[];
+const firstColumnLeftPadding = 16;
 
-const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
-  ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
-);
+const emptyTableData = {
+  columns: [],
+  rows: [],
+  filterData: {
+    createdByActors: [],
+    lastEditedByActors: [],
+    entityTypeTitles: {},
+    noSourceCount: 0,
+    noTargetCount: 0,
+    sources: [],
+    targets: [],
+    webs: {},
+  },
+};
 
 export const EntitiesTable: FunctionComponent<{
-  hideEntityTypeVersionColumn?: boolean;
+  currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
+  currentlyDisplayedRowsRef: RefObject<TypeEntitiesRow[]>;
+  disableTypeClick?: boolean;
+  entities: Entity[];
+  entityTypes: EntityType[];
+  filterState: FilterState;
+  handleEntityClick: (
+    entityId: EntityId,
+    modalContainerRef?: RefObject<HTMLDivElement>,
+  ) => void;
+  hasSomeLinks: boolean;
   hidePropertiesColumns?: boolean;
-}> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns = false }) => {
+  hideColumns?: (keyof TypeEntitiesRow)[];
+  loading: boolean;
+  loadingComponent: ReactElement;
+  isViewingOnlyPages: boolean;
+  maxHeight?: string | number;
+  propertyTypes: PropertyType[];
+  readonly?: boolean;
+  selectedRows: TypeEntitiesRow[];
+  setSelectedRows: (rows: TypeEntitiesRow[]) => void;
+  setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
+  setShowSearch: (showSearch: boolean) => void;
+  showSearch: boolean;
+  subgraph: Subgraph<EntityRootType>;
+}> = ({
+  currentlyDisplayedColumnsRef,
+  currentlyDisplayedRowsRef,
+  disableTypeClick,
+  entities,
+  entityTypes,
+  filterState,
+  hasSomeLinks,
+  handleEntityClick,
+  hideColumns,
+  hidePropertiesColumns = false,
+  loading: entityDataLoading,
+  loadingComponent,
+  isViewingOnlyPages,
+  maxHeight,
+  propertyTypes,
+  readonly,
+  selectedRows,
+  setSelectedRows,
+  showSearch,
+  setShowSearch,
+  setSelectedEntityType,
+  subgraph,
+}) => {
   const router = useRouter();
 
-  const { authenticatedUser } = useAuthenticatedUser();
-
-  const [filterState, setFilterState] = useState<FilterState>({
-    includeGlobal: false,
-    limitToWebs: false,
-  });
-  const [showSearch, setShowSearch] = useState<boolean>(false);
-
-  const [selectedEntityType, setSelectedEntityType] = useState<{
-    entityTypeId: VersionedUrl;
-    slideContainerRef?: RefObject<HTMLDivElement>;
-  } | null>(null);
-
-  const {
-    entityTypeBaseUrl,
-    entityTypeId,
-    entities: lastLoadedEntities,
-    entityTypes,
-    hadCachedContent,
-    loading,
-    propertyTypes,
-    subgraph: subgraphWithoutLinkedEntities,
-  } = useEntityTypeEntitiesContext();
-
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
-
-  const isDisplayingFilesOnly = useMemo(
-    () =>
-      /**
-       * To allow the `Grid` view to come into view on first render where
-       * possible, we check whether `entityTypeId` or `entityTypeBaseUrl`
-       * matches a `File` entity type from a statically defined list.
-       */
-      (entityTypeId && allFileEntityTypeIds.includes(entityTypeId)) ||
-      (entityTypeBaseUrl &&
-        allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
-      /**
-       * Otherwise we check the fetched `entityTypes` as a fallback.
-       */
-      (entityTypes?.length &&
-        entityTypes.every(
-          ({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile,
-        )),
-    [entityTypeBaseUrl, entityTypeId, entityTypes, isSpecialEntityTypeLookup],
-  );
-
-  const supportGridView = isDisplayingFilesOnly;
-
-  const [view, setView] = useState<TableView>(
-    isDisplayingFilesOnly ? "Grid" : "Table",
-  );
-
-  useEffect(() => {
-    if (isDisplayingFilesOnly) {
-      setView("Grid");
-    } else {
-      setView("Table");
-    }
-  }, [isDisplayingFilesOnly]);
-
-  const { subgraph: subgraphWithLinkedEntities } = useEntityTypeEntities({
-    entityTypeBaseUrl,
-    entityTypeId,
-    graphResolveDepths: {
-      constrainsLinksOn: { outgoing: 255 },
-      constrainsLinkDestinationsOn: { outgoing: 255 },
-      constrainsPropertiesOn: { outgoing: 255 },
-      constrainsValuesOn: { outgoing: 255 },
-      inheritsFrom: { outgoing: 255 },
-      isOfType: { outgoing: 1 },
-      hasLeftEntity: { outgoing: 1, incoming: 1 },
-      hasRightEntity: { outgoing: 1, incoming: 1 },
-    },
-  });
-
-  /**
-    The subgraphWithLinkedEntities can take a long time to load with many entities.
-    If absent, we pass the subgraph without linked entities so that there is _some_ data to load into the slideover,
-    which will be missing links until they load in by specifically fetching selectedEntity.entityId
-   */
-  const subgraph = subgraphWithLinkedEntities ?? subgraphWithoutLinkedEntities;
-
-  const entities = useMemo(
-    /**
-     * If a network request is in process and there is no cached content for the request, return undefined.
-     * There may be stale data in the context related to an earlier request with different variables.
-     */
-    () => (loading && !hadCachedContent ? undefined : lastLoadedEntities),
-    [hadCachedContent, loading, lastLoadedEntities],
-  );
-
-  const isViewingPages = useMemo(
-    () =>
-      !!entities?.length &&
-      entities.every(({ metadata }) =>
-        isPageEntityTypeId(metadata.entityTypeId),
-      ),
-    [entities],
-  );
-
-  useEffect(() => {
-    if (isViewingPages && filterState.includeArchived === undefined) {
-      setFilterState((prev) => ({ ...prev, includeArchived: false }));
-    }
-  }, [isViewingPages, filterState]);
-
-  const internalWebIds = useMemo(() => {
-    return [
-      authenticatedUser.accountId,
-      ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
-    ];
-  }, [authenticatedUser]);
-
-  const filteredEntities = useMemo(
-    () =>
-      entities?.filter(
-        (entity) =>
-          (filterState.includeGlobal
-            ? true
-            : internalWebIds.includes(
-                extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
-              )) &&
-          (filterState.includeArchived === undefined ||
-          filterState.includeArchived ||
-          !isPageEntityTypeId(entity.metadata.entityTypeId)
-            ? true
-            : simplifyProperties(entity.properties as PageProperties)
-                .archived !== true) &&
-          (filterState.limitToWebs
-            ? filterState.limitToWebs.includes(
-                extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
-              )
-            : true),
-      ),
-    [entities, filterState, internalWebIds],
-  );
-
-  const { columns, rows } = useEntitiesTable({
-    entities: filteredEntities,
+  const { tableData, loading: tableDataCalculating } = useEntitiesTable({
+    entities,
     entityTypes,
     propertyTypes,
     subgraph,
-    hidePageArchivedColumn: !filterState.includeArchived,
-    hideEntityTypeVersionColumn,
+    hasSomeLinks,
+    hideColumns,
+    hideArchivedColumn: !filterState.includeArchived,
     hidePropertiesColumns,
-    isViewingPages,
   });
 
-  const [selectedRows, setSelectedRows] = useState<TypeEntitiesRow[]>([]);
-
-  const [selectedEntity, setSelectedEntity] = useState<{
-    entityId: EntityId;
-    slideContainerRef?: RefObject<HTMLDivElement>;
-    subgraph: Subgraph<EntityRootType>;
-  } | null>(null);
-
-  const handleEntityClick = useCallback(
-    (entityId: EntityId, modalContainerRef?: RefObject<HTMLDivElement>) => {
-      if (subgraph) {
-        const entitySubgraph = generateEntityRootedSubgraph(entityId, subgraph);
-
-        setSelectedEntity({
-          entityId,
-          slideContainerRef: modalContainerRef,
-          subgraph: entitySubgraph,
-        });
-      }
+  const {
+    columns,
+    rows,
+    filterData: {
+      createdByActors,
+      lastEditedByActors,
+      entityTypeTitles,
+      noSourceCount,
+      noTargetCount,
+      sources,
+      targets,
+      webs,
     },
-    [subgraph],
-  );
+  } = tableData ?? emptyTableData;
+
+  // eslint-disable-next-line no-param-reassign
+  currentlyDisplayedColumnsRef.current = columns;
+
+  const theme = useTheme();
 
   const createGetCellContent = useCallback(
     (entityRows: TypeEntitiesRow[]) =>
       ([colIndex, rowIndex]: Item):
         | TextIconCell
         | TextCell
+        | NumberCell
         | BlankCell
         | CustomCell => {
         const columnId = columns[colIndex]?.id;
@@ -289,46 +190,128 @@ export const EntitiesTable: FunctionComponent<{
               copyData: row.entityLabel,
               cursor: "pointer",
               data: {
-                kind: "text-icon-cell",
-                icon: "bpAsterisk",
-                value: row.entityLabel,
-                onClick: () => {
-                  if (isViewingPages) {
-                    void router.push(
-                      `/${row.web}/${extractEntityUuidFromEntityId(
-                        row.entityId,
-                      )}`,
-                    );
-                  } else {
-                    handleEntityClick(row.entityId);
-                  }
-                },
+                kind: "chip-cell",
+                chips: [
+                  {
+                    text: row.entityLabel,
+                    icon: row.entityIcon
+                      ? { entityTypeIcon: row.entityIcon }
+                      : {
+                          inbuiltIcon: row.sourceEntity
+                            ? "bpLink"
+                            : "bpAsterisk",
+                        },
+                    iconFill: theme.palette.gray[50],
+                    onClick: () => {
+                      if (isViewingOnlyPages) {
+                        void router.push(
+                          `/${row.web}/${extractEntityUuidFromEntityId(
+                            row.entityId,
+                          )}`,
+                        );
+                      } else {
+                        handleEntityClick(row.entityId);
+                      }
+                    },
+                  },
+                ],
+                color: "white",
+                variant: "outlined",
               },
             };
-          } else if (["web", "entityTypeVersion"].includes(columnId)) {
-            const cellValue = row[columnId];
-            const stringValue = String(cellValue);
+          } else if (columnId === "entityTypes") {
+            return {
+              kind: GridCellKind.Custom,
+              allowOverlay: false,
+              readonly: true,
+              copyData: row.entityTypes.map((type) => type.title).join(", "),
+              cursor: disableTypeClick ? "default" : "pointer",
+              data: {
+                kind: "chip-cell",
+                chips: row.entityTypes.map((value) => ({
+                  text: value.title,
+                  icon: value.icon
+                    ? { entityTypeIcon: value.icon }
+                    : { inbuiltIcon: value.isLink ? "bpLink" : "bpAsterisk" },
+                  iconFill: theme.palette.blue[70],
+                  onClick: disableTypeClick
+                    ? undefined
+                    : () => {
+                        setSelectedEntityType({
+                          entityTypeId: value.entityTypeId,
+                        });
+                      },
+                })),
+                color: "white",
+                variant: "outlined",
+              } satisfies ChipCellProps,
+            };
+          } else if (columnId === "webId") {
+            const shortname = row[columnId];
 
             return {
               kind: GridCellKind.Custom,
               allowOverlay: false,
               readonly: true,
               cursor: "pointer",
-              copyData: stringValue,
+              copyData: shortname,
               data: {
                 kind: "text-icon-cell",
                 icon: null,
-                value: stringValue,
+                value: shortname,
                 onClick: () => {
-                  if (columnId === "web") {
-                    void router.push(`/${cellValue}`);
-                  } else {
-                    setSelectedEntityType({ entityTypeId: row.entityTypeId });
-                  }
+                  void router.push(`/${shortname}`);
                 },
               },
             };
-          } else if (columnId === "archived") {
+          } else if (
+            columnId === "sourceEntity" ||
+            columnId === "targetEntity"
+          ) {
+            const entity = row[columnId] as TypeEntitiesRow["sourceEntity"];
+            if (!entity) {
+              const data = "Does not apply";
+              return {
+                kind: GridCellKind.Text,
+                allowOverlay: true,
+                readonly: true,
+                displayData: data,
+                data,
+                themeOverride: {
+                  bgCell: theme.palette.gray[5],
+                  textDark: theme.palette.gray[50],
+                },
+              };
+            }
+
+            return {
+              kind: GridCellKind.Custom,
+              allowOverlay: false,
+              readonly: true,
+              copyData: entity.label,
+              cursor: "pointer",
+              data: {
+                kind: "chip-cell",
+                chips: [
+                  {
+                    icon: entity.icon
+                      ? { entityTypeIcon: entity.icon }
+                      : {
+                          inbuiltIcon: entity.isLink ? "bpLink" : "bpAsterisk",
+                        },
+                    iconFill: theme.palette.gray[50],
+                    text: entity.label,
+                    onClick: () => {
+                      handleEntityClick(entity.entityId);
+                    },
+                  },
+                ],
+                color: "white",
+                variant: "outlined",
+              },
+            };
+          }
+          if (columnId === "archived") {
             const value = row.archived ? "Yes" : "No";
             return {
               kind: GridCellKind.Text,
@@ -388,13 +371,15 @@ export const EntitiesTable: FunctionComponent<{
                   ? [
                       {
                         text: actorName,
-                        icon: actorIcon,
+                        icon: actorIcon
+                          ? { inbuiltIcon: actorIcon }
+                          : undefined,
                       },
                     ]
                   : [],
                 color: "gray",
                 variant: "filled",
-              },
+              } satisfies ChipCellProps,
             };
           }
 
@@ -424,74 +409,136 @@ export const EntitiesTable: FunctionComponent<{
               };
             }
 
+            const isNumber = typeof propertyCellValue === "number";
+
+            if (isNumber) {
+              return {
+                kind: GridCellKind.Number,
+                allowOverlay: true,
+                readonly: true,
+                displayData: propertyCellValue.toString(),
+                data: propertyCellValue,
+              };
+            }
+
+            const stringValue = stringifyPropertyValue(propertyCellValue);
+
             return {
               kind: GridCellKind.Text,
               allowOverlay: true,
               readonly: true,
-              displayData: String(propertyCellValue),
-              data: propertyCellValue,
+              displayData: stringValue,
+              data: stringValue,
             };
           }
+
+          const appliesToEntity = row.applicableProperties.includes(
+            columnId as BaseUrl,
+          );
+
+          const data = appliesToEntity ? "–" : "Does not apply";
+
+          return {
+            kind: GridCellKind.Text,
+            allowOverlay: true,
+            readonly: true,
+            displayData: data,
+            data,
+            themeOverride: appliesToEntity
+              ? {
+                  textDark: theme.palette.gray[50],
+                }
+              : {
+                  bgCell: theme.palette.gray[5],
+                  textDark: theme.palette.gray[50],
+                },
+          };
         }
 
         return blankCell;
       },
-    [columns, handleEntityClick, router, isViewingPages],
+    [
+      columns,
+      disableTypeClick,
+      handleEntityClick,
+      router,
+      isViewingOnlyPages,
+      setSelectedEntityType,
+      theme.palette,
+    ],
   );
-
-  const theme = useTheme();
-
-  const webs = useMemo(
-    () =>
-      rows
-        ?.map(({ web }) => web)
-        .filter((web, index, all) => all.indexOf(web) === index) ?? [],
-    [rows],
-  );
-
-  const [selectedWebs, setSelectedWebs] = useState<string[]>(webs);
-
-  useEffect(() => {
-    setSelectedWebs(webs);
-  }, [webs]);
 
   const sortRows = useCallback<
     NonNullable<GridProps<TypeEntitiesRow>["sortRows"]>
   >((unsortedRows, sort, previousSort) => {
     return unsortedRows.toSorted((a, b) => {
+      const value1 = a[sort.columnKey];
+      const value2 = b[sort.columnKey];
+
+      if (typeof value1 === "number" && typeof value2 === "number") {
+        const difference =
+          (value1 - value2) * (sort.direction === "asc" ? 1 : -1);
+        return difference;
+      }
+
+      if (sort.columnKey === "entityTypes") {
+        const entityType1 = a.entityTypes
+          .map(({ title }) => title)
+          .sort()
+          .join(", ");
+        const entityType2 = b.entityTypes
+          .map(({ title }) => title)
+          .sort()
+          .join(", ");
+        return (
+          entityType1.localeCompare(entityType2) *
+          (sort.direction === "asc" ? 1 : -1)
+        );
+      }
+
       const isActorSort = ["lastEditedBy", "createdBy"].includes(
         sort.columnKey,
       );
 
-      const value1: string = isActorSort
+      const isEntitySort = ["sourceEntity", "targetEntity"].includes(
+        sort.columnKey,
+      );
+
+      const stringValue1: string = isActorSort
         ? a[sort.columnKey].displayName
-        : String(a[sort.columnKey]);
+        : isEntitySort
+          ? (a[sort.columnKey]?.label ?? "")
+          : String(a[sort.columnKey]);
 
-      const value2: string = isActorSort
+      const stringValue2: string = isActorSort
         ? b[sort.columnKey].displayName
-        : String(b[sort.columnKey]);
+        : isEntitySort
+          ? (b[sort.columnKey]?.label ?? "")
+          : String(b[sort.columnKey]);
 
-      const previousSortWasActorSort =
-        previousSort &&
-        ["lastEditedBy", "createdBy"].includes(previousSort.columnKey);
+      let comparison = stringValue1.localeCompare(stringValue2);
 
-      const previousValue1: string = previousSort?.columnKey
-        ? previousSortWasActorSort
-          ? a[previousSort.columnKey].displayName
-          : String(a[previousSort.columnKey])
-        : undefined;
+      if (comparison === 0) {
+        const previousSortWasActorSort =
+          previousSort &&
+          ["lastEditedBy", "createdBy"].includes(previousSort.columnKey);
 
-      const previousValue2: string = previousSort?.columnKey
-        ? previousSortWasActorSort
-          ? b[previousSort.columnKey].displayName
-          : String(b[previousSort.columnKey])
-        : undefined;
+        const previousValue1: string = previousSort?.columnKey
+          ? previousSortWasActorSort
+            ? a[previousSort.columnKey].displayName
+            : String(a[previousSort.columnKey])
+          : undefined;
 
-      let comparison = value1.localeCompare(value2);
+        const previousValue2: string = previousSort?.columnKey
+          ? previousSortWasActorSort
+            ? b[previousSort.columnKey].displayName
+            : String(b[previousSort.columnKey])
+          : undefined;
 
-      if (comparison === 0 && previousValue1 && previousValue2) {
-        // if the two keys are equal, we sort by the previous sort
-        comparison = previousValue1.localeCompare(previousValue2);
+        if (previousValue1 && previousValue2) {
+          // if the two keys are equal, we sort by the previous sort
+          comparison = previousValue1.localeCompare(previousValue2);
+        }
       }
 
       if (sort.direction === "desc") {
@@ -503,85 +550,109 @@ export const EntitiesTable: FunctionComponent<{
     });
   }, []);
 
-  const entityTypeVersions = useMemo(
-    () =>
-      rows
-        ?.map(({ entityTypeVersion }) => entityTypeVersion)
-        .filter(
-          (entityTypeVersion, index, all) =>
-            all.indexOf(entityTypeVersion) === index,
-        ) ?? [],
-    [rows],
-  );
+  const [selectedArchivedStatus, setSelectedArchivedStatus] = useState<
+    Set<"archived" | "not-archived">
+  >(new Set(["archived", "not-archived"]));
 
-  const [selectedEntityTypeVersions, setSelectedEntityTypeVersions] =
-    useState<string[]>(entityTypeVersions);
+  const [selectedEntityTypeTitles, setSelectedEntityTypeTitles] = useState<
+    Set<string>
+  >(new Set(Object.keys(entityTypeTitles)));
 
   useEffect(() => {
-    setSelectedEntityTypeVersions(entityTypeVersions);
-  }, [entityTypeVersions]);
-
-  const [selectedArchivedStatus, setSelectedArchivedStatus] = useState<
-    ("archived" | "not-archived")[]
-  >(["archived", "not-archived"]);
-
-  const { createdByActors, lastEditedByActors } = useMemo(() => {
-    const lastEditedBySet = new Set<MinimalActor>();
-    const createdBySet = new Set<MinimalActor>();
-    for (const row of rows ?? []) {
-      if (row.lastEditedBy && row.lastEditedBy !== "loading") {
-        lastEditedBySet.add(row.lastEditedBy);
-      }
-      if (row.createdBy && row.createdBy !== "loading") {
-        createdBySet.add(row.createdBy);
-      }
-    }
-    return {
-      lastEditedByActors: [...lastEditedBySet],
-      createdByActors: [...createdBySet],
-    };
-  }, [rows]);
+    setSelectedEntityTypeTitles(new Set(Object.keys(entityTypeTitles)));
+  }, [entityTypeTitles]);
 
   const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
-    useState<string[]>(lastEditedByActors.map(({ accountId }) => accountId));
+    useState<Set<string>>(
+      new Set(lastEditedByActors.map(({ accountId }) => accountId)),
+    );
 
   const [selectedCreatedByAccountIds, setSelectedCreatedByAccountIds] =
-    useState<string[]>(createdByActors.map(({ accountId }) => accountId));
+    useState<Set<string>>(
+      new Set(createdByActors.map(({ accountId }) => accountId)),
+    );
 
   useEffect(() => {
     setSelectedLastEditedByAccountIds(
-      lastEditedByActors.map(({ accountId }) => accountId),
+      new Set(lastEditedByActors.map(({ accountId }) => accountId)),
     );
   }, [lastEditedByActors]);
 
   useEffect(() => {
     setSelectedCreatedByAccountIds(
-      createdByActors.map(({ accountId }) => accountId),
+      new Set(createdByActors.map(({ accountId }) => accountId)),
     );
   }, [createdByActors]);
+
+  const [selectedWebs, setSelectedWebs] = useState<Set<string>>(
+    new Set(Object.keys(webs)),
+  );
+
+  useEffect(() => {
+    setSelectedWebs(new Set(Object.keys(webs)));
+  }, [webs]);
+
+  const [selectedSourceEntities, setSelectedSourceEntities] = useState(() => {
+    const selectedSources = new Set(sources.map(({ entityId }) => entityId));
+    if (noSourceCount) {
+      selectedSources.add(noneString);
+    }
+    return selectedSources;
+  });
+
+  useEffect(() => {
+    const selectedSources = new Set(sources.map(({ entityId }) => entityId));
+    if (noSourceCount) {
+      selectedSources.add(noneString);
+    }
+    setSelectedSourceEntities(selectedSources);
+  }, [sources, noSourceCount]);
+
+  const [selectedTargetEntities, setSelectedTargetEntities] = useState(() => {
+    const selectedTargets = new Set(targets.map(({ entityId }) => entityId));
+    if (noTargetCount) {
+      selectedTargets.add(noneString);
+    }
+    return selectedTargets;
+  });
+
+  useEffect(() => {
+    const selectedTargets = new Set(targets.map(({ entityId }) => entityId));
+    if (noTargetCount) {
+      selectedTargets.add(noneString);
+    }
+    setSelectedTargetEntities(selectedTargets);
+  }, [targets, noTargetCount]);
 
   const columnFilters = useMemo<ColumnFilter<string, TypeEntitiesRow>[]>(
     () => [
       {
         columnKey: "web",
-        filterItems: webs.map((web) => ({
+        filterItems: Object.entries(webs).map(([web, count]) => ({
           id: web,
           label: web,
+          count,
         })),
         selectedFilterItemIds: selectedWebs,
         setSelectedFilterItemIds: setSelectedWebs,
-        isRowFiltered: (row) => !selectedWebs.includes(row.web),
+        isRowFiltered: (row) => !selectedWebs.has(row.web),
       },
       {
-        columnKey: "entityTypeVersion",
-        filterItems: entityTypeVersions.map((entityTypeVersion) => ({
-          id: entityTypeVersion,
-          label: entityTypeVersion,
-        })),
-        selectedFilterItemIds: selectedEntityTypeVersions,
-        setSelectedFilterItemIds: setSelectedEntityTypeVersions,
-        isRowFiltered: (row) =>
-          !selectedEntityTypeVersions.includes(row.entityTypeVersion),
+        columnKey: "entityTypes",
+        filterItems: Object.entries(entityTypeTitles).map(
+          ([entityTypeTitle, count]) => ({
+            id: entityTypeTitle,
+            label: entityTypeTitle,
+            count,
+          }),
+        ),
+        selectedFilterItemIds: selectedEntityTypeTitles,
+        setSelectedFilterItemIds: setSelectedEntityTypeTitles,
+        isRowFiltered: (row) => {
+          return !row.entityTypes.some(({ title }) =>
+            selectedEntityTypeTitles.has(title),
+          );
+        },
       },
       {
         columnKey: "archived",
@@ -598,12 +669,12 @@ export const EntitiesTable: FunctionComponent<{
         selectedFilterItemIds: selectedArchivedStatus,
         setSelectedFilterItemIds: (filterItemIds) =>
           setSelectedArchivedStatus(
-            filterItemIds as ("archived" | "not-archived")[],
+            new Set(filterItemIds as Set<"archived" | "not-archived">),
           ),
         isRowFiltered: (row) =>
           row.archived
-            ? !selectedArchivedStatus.includes("archived")
-            : !selectedArchivedStatus.includes("not-archived"),
+            ? !selectedArchivedStatus.has("archived")
+            : !selectedArchivedStatus.has("not-archived"),
       },
       {
         columnKey: "lastEditedBy",
@@ -615,9 +686,7 @@ export const EntitiesTable: FunctionComponent<{
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
         isRowFiltered: (row) =>
           row.lastEditedBy && row.lastEditedBy !== "loading"
-            ? !selectedLastEditedByAccountIds.includes(
-                row.lastEditedBy.accountId,
-              )
+            ? !selectedLastEditedByAccountIds.has(row.lastEditedBy.accountId)
             : false,
       },
       {
@@ -630,180 +699,144 @@ export const EntitiesTable: FunctionComponent<{
         setSelectedFilterItemIds: setSelectedCreatedByAccountIds,
         isRowFiltered: (row) =>
           row.createdBy && row.createdBy !== "loading"
-            ? !selectedCreatedByAccountIds.includes(row.createdBy.accountId)
+            ? !selectedCreatedByAccountIds.has(row.createdBy.accountId)
             : false,
+      },
+      {
+        columnKey: "sourceEntity",
+        filterItems: (() => {
+          const items: ColumnFilter<string, TypeEntitiesRow>["filterItems"] =
+            [];
+          if (noSourceCount) {
+            items.push({
+              id: noneString,
+              doesNotApplyValue: true,
+              label: "Does not apply",
+              count: noSourceCount,
+            });
+          }
+          items.push(
+            ...sources.map((source) => ({
+              id: source.entityId,
+              label: source.label,
+              count: source.count,
+            })),
+          );
+
+          return items;
+        })(),
+        selectedFilterItemIds: selectedSourceEntities,
+        setSelectedFilterItemIds: setSelectedSourceEntities,
+        isRowFiltered: (row) =>
+          row.sourceEntity
+            ? !selectedSourceEntities.has(row.sourceEntity.entityId)
+            : !selectedSourceEntities.has(noneString),
+      },
+      {
+        columnKey: "targetEntity",
+        filterItems: (() => {
+          const items: ColumnFilter<string, TypeEntitiesRow>["filterItems"] =
+            [];
+          if (noTargetCount) {
+            items.push({
+              id: noneString,
+              doesNotApplyValue: true,
+              label: "Does not apply",
+              count: noTargetCount,
+            });
+          }
+          items.push(
+            ...targets.map((target) => ({
+              id: target.entityId,
+              label: target.label,
+              count: target.count,
+            })),
+          );
+
+          return items;
+        })(),
+        selectedFilterItemIds: selectedTargetEntities,
+        setSelectedFilterItemIds: setSelectedTargetEntities,
+        isRowFiltered: (row) =>
+          row.targetEntity
+            ? !selectedTargetEntities.has(row.targetEntity.entityId)
+            : !selectedTargetEntities.has(noneString),
       },
     ],
     [
       createdByActors,
       webs,
       selectedWebs,
-      entityTypeVersions,
-      selectedEntityTypeVersions,
+      entityTypeTitles,
+      selectedEntityTypeTitles,
       lastEditedByActors,
       selectedCreatedByAccountIds,
       selectedLastEditedByAccountIds,
       selectedArchivedStatus,
+      selectedSourceEntities,
+      selectedTargetEntities,
+      noSourceCount,
+      noTargetCount,
+      sources,
+      targets,
     ],
   );
 
-  const currentlyDisplayedRowsRef = useRef<TypeEntitiesRow[] | null>(null);
+  const maximumTableHeight =
+    maxHeight ??
+    `calc(100vh - (${
+      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 185 + tableHeaderHeight
+    }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
 
-  const { getEntitiesTableAdditionalCsvData } =
-    useGetEntitiesTableAdditionalCsvData({
-      currentlyDisplayedRowsRef,
-      propertyTypes,
-      /**
-       * If the properties columns are hidden, we want to add
-       * them to the CSV file.
-       */
-      addPropertiesColumns: hidePropertiesColumns,
-    });
-
-  const maximumTableHeight = `calc(100vh - (${
-    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 185 + tableHeaderHeight
-  }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
-
-  const isPrimaryEntity = useCallback(
-    (entity: Entity) =>
-      entityTypeBaseUrl
-        ? extractBaseUrl(entity.metadata.entityTypeId) === entityTypeBaseUrl
-        : entityTypeId
-          ? entityTypeId === entity.metadata.entityTypeId
-          : false,
-    [entityTypeId, entityTypeBaseUrl],
-  );
-
-  const filterEntity = useCallback(
-    (entity: Entity) =>
-      filterState.includeGlobal
-        ? true
-        : internalWebIds.includes(
-            extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
-          ),
-    [filterState, internalWebIds],
-  );
+  if (entityDataLoading || tableDataCalculating) {
+    return (
+      <Stack
+        alignItems="center"
+        justifyContent="center"
+        sx={[
+          {
+            height: maximumTableHeight,
+            width: "100%",
+          },
+          tableContentSx,
+        ]}
+      >
+        <Box>{loadingComponent}</Box>
+      </Stack>
+    );
+  }
 
   return (
-    <>
-      {selectedEntityType && (
-        <TypeSlideOverStack
-          rootTypeId={selectedEntityType.entityTypeId}
-          onClose={() => setSelectedEntityType(null)}
-          slideContainerRef={selectedEntityType.slideContainerRef}
-        />
-      )}
-      {selectedEntity ? (
-        <EntityEditorSlideStack
-          /*
-            The subgraphWithLinkedEntities can take a long time to load with many entities.
-            We pass the subgraph without linked entities so that there is _some_ data to load into the editor,
-            which will be missing links. passing entityId below means the slideover fetches the entity
-            with its links, so they'll load in shortly.
-            It's unlikely subgraphWithLinkedEntities will be used but if it happens to be available already,
-            it means the links will load in immediately.
-           */
-          entitySubgraph={selectedEntity.subgraph}
-          rootEntityId={selectedEntity.entityId}
-          onClose={() => setSelectedEntity(null)}
-          onSubmit={() => {
-            throw new Error(`Editing not yet supported from this screen`);
-          }}
-          readonly
-          /*
-             If we've been given a specific DOM element to contain the modal, pass it here.
-             This is for use when attaching to the body is not suitable (e.g. a specific DOM element is full-screened).
-           */
-          slideContainerRef={selectedEntity.slideContainerRef}
-        />
-      ) : null}
-      <Box>
-        <TableHeader
-          internalWebIds={internalWebIds}
-          itemLabelPlural={isViewingPages ? "pages" : "entities"}
-          items={entities}
-          selectedItems={
-            entities?.filter((entity) =>
-              selectedRows.some(
-                ({ entityId }) =>
-                  entity.metadata.recordId.entityId === entityId,
-              ),
-            ) ?? []
-          }
-          title="Entities"
-          columns={columns}
-          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
-          endAdornment={
-            <TableHeaderToggle
-              value={view}
-              setValue={setView}
-              options={(
-                [
-                  "Table",
-                  ...(supportGridView ? (["Grid"] as const) : []),
-                  "Graph",
-                ] as const satisfies TableView[]
-              ).map((optionValue) => ({
-                icon: tableViewIcons[optionValue],
-                label: `${optionValue} view`,
-                value: optionValue,
-              }))}
-            />
-          }
-          filterState={filterState}
-          setFilterState={setFilterState}
-          toggleSearch={
-            view === "Table" ? () => setShowSearch(true) : undefined
-          }
-          onBulkActionCompleted={() => setSelectedRows([])}
-        />
-        {view === "Graph" && subgraph ? (
-          <Box height={maximumTableHeight}>
-            <EntityGraphVisualizer
-              entities={filteredEntities}
-              isPrimaryEntity={isPrimaryEntity}
-              filterEntity={filterEntity}
-              onEntityClick={handleEntityClick}
-              subgraphWithTypes={subgraph}
-            />
-          </Box>
-        ) : view === "Grid" ? (
-          <GridView entities={entities} />
-        ) : (
-          <Grid
-            showSearch={showSearch}
-            onSearchClose={() => setShowSearch(false)}
-            columns={columns}
-            columnFilters={columnFilters}
-            dataLoading={loading}
-            rows={rows}
-            enableCheckboxSelection
-            selectedRows={selectedRows}
-            onSelectedRowsChange={(updatedSelectedRows) =>
-              setSelectedRows(updatedSelectedRows)
-            }
-            sortRows={sortRows}
-            firstColumnLeftPadding={16}
-            height={`
+    <Grid
+      showSearch={showSearch}
+      onSearchClose={() => setShowSearch(false)}
+      columns={columns}
+      columnFilters={columnFilters}
+      dataLoading={false}
+      rows={rows}
+      enableCheckboxSelection={!readonly}
+      selectedRows={selectedRows}
+      onSelectedRowsChange={(updatedSelectedRows) =>
+        setSelectedRows(updatedSelectedRows)
+      }
+      sortRows={sortRows}
+      firstColumnLeftPadding={firstColumnLeftPadding}
+      height={`
                min(
                  ${maximumTableHeight},
                 calc(
                  ${gridHeaderHeightWithBorder}px +
-                 (${rows?.length ? rows.length : 1} * ${gridRowHeight}px) +
+                 (${rows.length ? rows.length : 1} * ${gridRowHeight}px) +
                  ${gridHorizontalScrollbarHeight}px)
                )`}
-            createGetCellContent={createGetCellContent}
-            customRenderers={[
-              createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-              createRenderUrlCell({ firstColumnLeftPadding: 16 }),
-              renderChipCell,
-            ]}
-            freezeColumns={1}
-            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          />
-        )}
-      </Box>
-    </>
+      createGetCellContent={createGetCellContent}
+      customRenderers={[
+        createRenderTextIconCell({ firstColumnLeftPadding }),
+        createRenderUrlCell({ firstColumnLeftPadding }),
+        createRenderChipCell({ firstColumnLeftPadding }),
+      ]}
+      freezeColumns={1}
+      currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+    />
   );
 };

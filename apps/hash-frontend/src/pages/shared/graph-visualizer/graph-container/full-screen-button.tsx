@@ -1,25 +1,25 @@
 import {
   ArrowDownLeftAndArrowUpRightToCenterIcon,
   ArrowUpRightAndArrowDownLeftFromCenterIcon,
-  IconButton,
 } from "@hashintel/design-system";
 
-import { controlButtonSx } from "./shared/control-components";
+import { GrayToBlueIconButton } from "../../gray-to-blue-icon-button";
 import { useFullScreen } from "./shared/full-screen-context";
 
 export const FullScreenButton = () => {
   const { isFullScreen, toggleFullScreen } = useFullScreen();
 
+  if (!document.fullscreenEnabled) {
+    return null;
+  }
+
   return (
-    <IconButton
-      onClick={toggleFullScreen}
-      sx={[controlButtonSx, { position: "absolute", top: 8, left: 13 }]}
-    >
+    <GrayToBlueIconButton onClick={toggleFullScreen}>
       {isFullScreen ? (
         <ArrowDownLeftAndArrowUpRightToCenterIcon />
       ) : (
         <ArrowUpRightAndArrowDownLeftFromCenterIcon />
       )}
-    </IconButton>
+    </GrayToBlueIconButton>
   );
 };

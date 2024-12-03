@@ -187,7 +187,7 @@ mod test {
             (ValueKind::Object(lhs), serde_json::Value::Object(rhs)) => {
                 lhs.iter().all(|(key, val)| {
                     rhs.get(key.value.as_ref())
-                        .map_or(false, |rhs| partial_eq(val, rhs))
+                        .is_some_and(|rhs| partial_eq(val, rhs))
                 })
             }
             _ => false,

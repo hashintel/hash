@@ -1,7 +1,5 @@
-cargo-features = ["edition2024"]
-
 [package]
-name = "hql-syntax-jexpr"
+name              = "hql-syntax-jexpr"
 authors.workspace = true
 version.workspace = true
 edition.workspace = true
@@ -10,30 +8,30 @@ publish.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hql-cst = { workspace = true, public = true }
+hql-cst         = { workspace = true, public = true }
 hql-diagnostics = { workspace = true, public = true }
-hql-span = { workspace = true, public = true }
+hql-span        = { workspace = true, public = true }
 
 # Public third-party dependencies
-jsonptr = { workspace = true, public = true }
+jsonptr   = { workspace = true, public = true }
 text-size = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-ecow = { workspace = true }
-hifijson = { workspace = true, features = ["alloc"] }
-json-number = { workspace = true }
-logos = { workspace = true, features = ["export_derive"] }
+ecow          = { workspace = true }
+hifijson      = { workspace = true, features = ["alloc"] }
+json-number   = { workspace = true }
+logos         = { workspace = true, features = ["export_derive"] }
 unicode-ident = { workspace = true }
-winnow = { workspace = true, features = ["std"] }
+winnow        = { workspace = true, features = ["std"] }
 
 [lints]
 workspace = true
 
 [dev-dependencies]
-ariadne = { workspace = true }
-insta = { workspace = true }
+ariadne    = { workspace = true }
+insta      = { workspace = true }
+serde      = { workspace = true }
 serde_json = { workspace = true }
-serde = { workspace = true }
-test-fuzz = { workspace = true }
+test-fuzz  = { workspace = true }

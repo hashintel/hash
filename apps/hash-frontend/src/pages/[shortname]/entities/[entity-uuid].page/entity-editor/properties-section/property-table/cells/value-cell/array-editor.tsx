@@ -50,7 +50,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const listWrapperRef = useRef<HTMLDivElement>(null);
   const {
     value: propertyValue,
-    expectedTypes,
+    permittedDataTypes,
     maxItems,
     minItems,
   } = cell.data.propertyRow;
@@ -74,8 +74,10 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       return "";
     }
 
-    if (expectedTypes.length === 1) {
-      const expectedType = guessEditorTypeFromExpectedType(expectedTypes[0]!);
+    if (permittedDataTypes.length === 1) {
+      const expectedType = guessEditorTypeFromExpectedType(
+        permittedDataTypes[0]!,
+      );
 
       if (getEditorSpecs(expectedType).arrayEditException === "no-edit-mode") {
         return "";
@@ -159,8 +161,8 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const handleAddAnotherClick = () => {
     setSelectedRow("");
 
-    const onlyOneExpectedType = expectedTypes.length === 1;
-    const expectedType = expectedTypes[0]!;
+    const onlyOneExpectedType = permittedDataTypes.length === 1;
+    const expectedType = permittedDataTypes[0]!;
     const editorType = guessEditorTypeFromExpectedType(expectedType);
     const editorSpec = getEditorSpecs(editorType, expectedType);
     const noEditMode = editorSpec.arrayEditException === "no-edit-mode";
@@ -207,7 +209,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
                 editing={editingRow === item.id}
                 selected={selectedRow === item.id}
                 onSelect={toggleSelectedRow}
-                expectedTypes={expectedTypes}
+                expectedTypes={permittedDataTypes}
               />
             ))}
           </SortableContext>
@@ -224,7 +226,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       {isAddingDraft && (
         <DraftRow
           existingItemCount={items.length}
-          expectedTypes={expectedTypes}
+          expectedTypes={permittedDataTypes}
           onDraftSaved={addItem}
           onDraftDiscarded={() => setEditingRow("")}
         />

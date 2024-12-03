@@ -1,6 +1,6 @@
 use bytes::{Buf, BufMut};
 use enumflags2::BitFlags;
-use error_stack::Result;
+use error_stack::Report;
 
 use super::body::RequestBody;
 use crate::{
@@ -19,6 +19,7 @@ pub enum RequestFlag {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct RequestFlags(
     #[cfg_attr(test, strategy(proptest::arbitrary::any::<u8>()))]
@@ -60,7 +61,7 @@ impl From<RequestFlag> for RequestFlags {
 impl Encode for RequestFlags {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -74,7 +75,7 @@ impl Decode for RequestFlags {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -91,7 +92,7 @@ mod test {
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
-        flags::BitFlagsOp,
+        flags::BitFlagsOp as _,
         request::flags::{RequestFlag, RequestFlags},
     };
 

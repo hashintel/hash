@@ -1,3 +1,4 @@
+import type { ValueConstraints } from "@blockprotocol/type-system-rs/pkg/type-system";
 import { Chip } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import { Box } from "@mui/material";
@@ -19,15 +20,18 @@ import {
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   const { value: cell, onChange, onFinishedEditing } = props;
-  const { expectedTypes, value } = cell.data.propertyRow;
+  const { permittedDataTypes, value } = cell.data.propertyRow;
 
   const textInputFormRef = useRef<HTMLFormElement>(null);
 
   const [editorType, setEditorType] = useState<EditorType | null>(() => {
     // if there are multiple expected types
-    if (expectedTypes.length > 1) {
+    if (permittedDataTypes.length > 1) {
       // show type picker if value is empty, guess editor type using value if it's not
-      const guessedEditorType = guessEditorTypeFromValue(value, expectedTypes);
+      const guessedEditorType = guessEditorTypeFromValue(
+        value,
+        permittedDataTypes,
+      );
 
       if (guessedEditorType === "null" || guessedEditorType === "emptyList") {
         return guessedEditorType;
@@ -35,10 +39,10 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
       return isValueEmpty(value)
         ? null
-        : guessEditorTypeFromValue(value, expectedTypes);
+        : guessEditorTypeFromValue(value, permittedDataTypes);
     }
 
-    const expectedType = expectedTypes[0];
+    const expectedType = permittedDataTypes[0];
 
     if (!expectedType) {
       throw new Error("there is no expectedType found on property type");
@@ -50,7 +54,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     }
 
     // if the value is not empty, guess the editor type using value
-    return guessEditorTypeFromValue(value, expectedTypes);
+    return guessEditorTypeFromValue(value, permittedDataTypes);
   });
 
   const latestValueCellRef = useRef<ValueCell>(cell);
@@ -62,7 +66,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     return (
       <GridEditorWrapper>
         <EditorTypePicker
-          expectedTypes={expectedTypes}
+          expectedTypes={permittedDataTypes}
           onTypeChange={(type) => {
             const editorSpec = getEditorSpecs(type);
 
@@ -144,18 +148,33 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
-  const expectedType = expectedTypes.find((type) =>
-    "type" in type
-      ? type.type === editorType
-      : /**
-         * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId from property metadata
-         */
-        type.anyOf.some((subType) => subType.type === editorType),
-  );
+  let valueConstraints: ValueConstraints | undefined;
+  /** @todo H-3374 don't guess the type, take it from the data type metadata */
+  /* eslint-disable no-labels */
+  outerLoop: for (const expectedType of permittedDataTypes) {
+    for (const constraint of expectedType.allOf) {
+      if ("type" in constraint) {
+        if (constraint.type === editorType) {
+          valueConstraints = constraint;
+          break outerLoop;
+        }
+      } else {
+        for (const innerConstraint of constraint.anyOf) {
+          if ("type" in innerConstraint) {
+            if (innerConstraint.type === editorType) {
+              valueConstraints = innerConstraint;
+              break outerLoop;
+            }
+          }
+        }
+      }
+    }
+  }
+  /* eslint-enable no-labels */
 
-  if (!expectedType) {
+  if (!valueConstraints) {
     throw new Error(
-      `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
+      `Could not find guessed editor type ${editorType} among expected types ${permittedDataTypes
         .map((opt) => opt.$id)
         .join(", ")}`,
     );
@@ -215,24 +234,26 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
         ref={textInputFormRef}
       >
         <NumberOrTextInput
-          expectedType={expectedType}
+          valueConstraints={valueConstraints}
           isNumber={editorType === "number"}
           value={(value as number | string | undefined) ?? ""}
           onChange={(newValue) => {
             if (
-              ("format" in expectedType &&
-                expectedType.format &&
+              ("format" in valueConstraints &&
+                valueConstraints.format &&
                 /**
                  * We use the native browser date/time inputs which handle validation for us,
                  * and the validation click handler assumes there will be a click outside after a change
                  * - which there won't for those inputs, because clicking to select a value closes the input.
                  */
-                !["date", "date-time", "time"].includes(expectedType.format)) ||
-              "minLength" in expectedType ||
-              "maxLength" in expectedType ||
-              "minimum" in expectedType ||
-              "maximum" in expectedType ||
-              "step" in expectedType
+                !["date", "date-time", "time"].includes(
+                  valueConstraints.format,
+                )) ||
+              "minLength" in valueConstraints ||
+              "maxLength" in valueConstraints ||
+              "minimum" in valueConstraints ||
+              "maximum" in valueConstraints ||
+              "step" in valueConstraints
             ) {
               /**
                * Add the validation enforcer if there are any validation rules.

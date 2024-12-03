@@ -25,7 +25,7 @@ export const blockCollectionContents: ResolverFn<
     graphQLContext.authentication,
     {
       blockCollectionEntityId: blockCollection.metadata.recordId.entityId,
-      blockCollectionEntityTypeId: blockCollection.metadata.entityTypeId,
+      blockCollectionEntityTypeIds: blockCollection.metadata.entityTypeIds,
     },
   );
 

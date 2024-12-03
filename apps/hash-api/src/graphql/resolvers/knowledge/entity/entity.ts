@@ -1,3 +1,4 @@
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
@@ -17,6 +18,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { splitEntityId } from "@local/hash-subgraph";
 import {
   ApolloError,
@@ -31,7 +33,7 @@ import {
   checkEntityPermission,
   createEntityWithLinks,
   getEntityAuthorizationRelationships,
-  getEntitySubgraph,
+  getEntitySubgraphResponse,
   getLatestEntityById,
   modifyEntityAuthorizationRelationships,
   removeEntityAdministrator,
@@ -70,7 +72,7 @@ import {
 } from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
+import { getUserPermissionsOnSubgraph } from "../shared/get-user-permissions-on-subgraph";
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,
@@ -82,7 +84,7 @@ export const createEntityResolver: ResolverFn<
   {
     ownedById,
     properties,
-    entityTypeId,
+    entityTypeIds,
     linkedEntities,
     linkData,
     draft,
@@ -122,7 +124,7 @@ export const createEntityResolver: ResolverFn<
         leftEntityId,
         rightEntityId,
       },
-      entityTypeId,
+      entityTypeIds: mustHaveAtLeastOne(entityTypeIds),
       relationships:
         relationships ??
         createDefaultAuthorizationRelationships(authentication),
@@ -131,7 +133,7 @@ export const createEntityResolver: ResolverFn<
   } else {
     entity = await createEntityWithLinks(context, authentication, {
       ownedById: ownedById ?? (user.accountId as OwnedById),
-      entityTypeId,
+      entityTypeIds: mustHaveAtLeastOne(entityTypeIds),
       properties,
       linkedEntities: linkedEntities ?? undefined,
       relationships: createDefaultAuthorizationRelationships(authentication),
@@ -180,28 +182,37 @@ export const queryEntitiesResolver: NonNullable<
     );
   }
 
-  const entitySubgraph = await getEntitySubgraph(context, authentication, {
-    filter,
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-      constrainsLinksOn,
-      constrainsLinkDestinationsOn,
-      inheritsFrom,
-      isOfType,
-      hasLeftEntity,
-      hasRightEntity,
+  const { subgraph: entitySubgraph } = await getEntitySubgraphResponse(
+    context,
+    authentication,
+    {
+      filter,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
+        isOfType,
+        hasLeftEntity,
+        hasRightEntity,
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: includeDrafts ?? false,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: includeDrafts ?? false,
-  });
+  );
 
-  return createSubgraphAndPermissionsReturn(
+  const userPermissionsOnEntities = await getUserPermissionsOnSubgraph(
     graphQLContext,
     info,
     entitySubgraph,
   );
+
+  return {
+    subgraph: serializeSubgraph(entitySubgraph),
+    userPermissionsOnEntities,
+  };
 };
 
 export const getEntitySubgraphResolver: ResolverFn<
@@ -210,18 +221,23 @@ export const getEntitySubgraphResolver: ResolverFn<
   GraphQLContext,
   QueryGetEntitySubgraphArgs
 > = async (_, { request }, graphQLContext, info) => {
-  const context = graphQLContextToImpureGraphContext(graphQLContext);
-
-  const subgraph = await getEntitySubgraph(
+  const { subgraph, ...rest } = await getEntitySubgraphResponse(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
-    {
-      temporalClient: context.temporalClient,
-      ...request,
-    },
+    request,
   );
 
-  return createSubgraphAndPermissionsReturn(graphQLContext, info, subgraph);
+  const userPermissionsOnEntities = await getUserPermissionsOnSubgraph(
+    graphQLContext,
+    info,
+    subgraph,
+  );
+
+  return {
+    subgraph: serializeSubgraph(subgraph),
+    userPermissionsOnEntities,
+    ...rest,
+  };
 };
 
 export const getEntityResolver: ResolverFn<
@@ -283,7 +299,7 @@ export const getEntityResolver: ResolverFn<
       }
     : currentTimeInstantTemporalAxes;
 
-  const entitySubgraph = await getEntitySubgraph(
+  const { subgraph: entitySubgraph } = await getEntitySubgraphResponse(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     {
@@ -304,11 +320,16 @@ export const getEntityResolver: ResolverFn<
     },
   );
 
-  return createSubgraphAndPermissionsReturn(
+  const userPermissionsOnEntities = await getUserPermissionsOnSubgraph(
     graphQLContext,
     info,
     entitySubgraph,
   );
+
+  return {
+    subgraph: serializeSubgraph(entitySubgraph),
+    userPermissionsOnEntities,
+  };
 };
 
 export const updateEntityResolver: ResolverFn<
@@ -318,7 +339,7 @@ export const updateEntityResolver: ResolverFn<
   MutationUpdateEntityArgs
 > = async (
   _,
-  { entityUpdate: { draft, entityId, propertyPatches, entityTypeId } },
+  { entityUpdate: { draft, entityId, propertyPatches, entityTypeIds } },
   graphQLContext,
 ) => {
   const { authentication, user } = graphQLContext;
@@ -350,7 +371,9 @@ export const updateEntityResolver: ResolverFn<
   } else {
     updatedEntity = await updateEntity(context, authentication, {
       entity,
-      entityTypeId: entityTypeId ?? undefined,
+      entityTypeIds: entityTypeIds
+        ? mustHaveAtLeastOne(entityTypeIds)
+        : undefined,
       propertyPatches,
       draft: draft ?? undefined,
     });

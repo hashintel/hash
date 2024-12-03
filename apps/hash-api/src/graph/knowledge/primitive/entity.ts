@@ -34,6 +34,7 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   mapGraphApiEntityToEntity,
+  mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
@@ -59,6 +60,7 @@ import { ApolloError } from "apollo-server-errors";
 
 import type {
   EntityDefinition,
+  GetEntitySubgraphResponse,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { isTestEnv } from "../../../lib/env-config";
@@ -112,7 +114,7 @@ export const createEntity = async <Properties extends EntityProperties>(
   let properties = params.properties;
 
   for (const beforeCreateHook of beforeCreateEntityHooks) {
-    if (beforeCreateHook.entityTypeId === createParams.entityTypeId) {
+    if (createParams.entityTypeIds.includes(beforeCreateHook.entityTypeId)) {
       const { properties: hookReturnedProperties } =
         await beforeCreateHook.callback({
           context,
@@ -145,7 +147,7 @@ export const createEntity = async <Properties extends EntityProperties>(
   }
 
   for (const afterCreateHook of afterCreateEntityHooks) {
-    if (afterCreateHook.entityTypeId === entity.metadata.entityTypeId) {
+    if (entity.metadata.entityTypeIds.includes(afterCreateHook.entityTypeId)) {
       void afterCreateHook.callback({
         context,
         entity,
@@ -160,7 +162,7 @@ export const createEntity = async <Properties extends EntityProperties>(
 export const getEntities: ImpureGraphFunction<
   GetEntitiesRequest & { temporalClient?: TemporalClient },
   Promise<Entity[]>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...params }) => {
+> = async ({ graphApi, temporalClient }, { actorId }, params) => {
   await rewriteSemanticFilter(params.filter, temporalClient);
 
   const isRequesterAdmin = isTestEnv
@@ -185,12 +187,15 @@ export const getEntities: ImpureGraphFunction<
  *
  * @param params.query the structural query to filter entities by.
  */
-export const getEntitySubgraph: ImpureGraphFunction<
-  GetEntitySubgraphRequest & {
-    temporalClient?: TemporalClient;
-  },
-  Promise<Subgraph<EntityRootType>>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...params }) => {
+export const getEntitySubgraphResponse: ImpureGraphFunction<
+  GetEntitySubgraphRequest,
+  Promise<
+    Omit<
+      GetEntitySubgraphResponse,
+      "userPermissionsOnEntities" | "subgraph"
+    > & { subgraph: Subgraph<EntityRootType> }
+  >
+> = async ({ graphApi, temporalClient }, { actorId }, params) => {
   await rewriteSemanticFilter(params.filter, temporalClient);
 
   const isRequesterAdmin = isTestEnv
@@ -202,8 +207,15 @@ export const getEntitySubgraph: ImpureGraphFunction<
       );
 
   return await graphApi.getEntitySubgraph(actorId, params).then(({ data }) => {
+    const {
+      subgraph: unfilteredSubgraph,
+      definitions,
+      closedMultiEntityTypes,
+      ...rest
+    } = data;
+
     const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-      data.subgraph,
+      unfilteredSubgraph,
       actorId,
       isRequesterAdmin,
     );
@@ -223,7 +235,16 @@ export const getEntitySubgraph: ImpureGraphFunction<
       }
     }
 
-    return subgraph;
+    return {
+      closedMultiEntityTypes,
+      definitions: definitions
+        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
+            definitions,
+          )
+        : undefined,
+      subgraph,
+      ...rest,
+    };
   });
 };
 
@@ -239,7 +260,7 @@ export const countEntities: ImpureGraphFunction<
  * This function does NOT implement:
  * 1. The ability to get the latest draft version without knowing its id.
  * 2. The ability to get ALL versions of an entity at a given timestamp, i.e. if there is a live and one or more drafts
- *    – use {@link getEntitySubgraph} instead, includeDrafts, and match on its ownedById and uuid
+ *    – use {@link getEntitySubgraphResponse} instead, includeDrafts, and match on its ownedById and uuid
  *
  * @param params.entityId the id of the entity, in one of the following formats:
  *    - `[webUuid]~[entityUuid]` for the 'live', non-draft version of the entity
@@ -404,7 +425,7 @@ export const createEntityWithLinks = async <
   ...args: Parameters<CreateEntityWithLinksFunction<Properties>>
 ): ReturnType<CreateEntityWithLinksFunction<Properties>> => {
   const [context, authentication, params] = args;
-  const { entityTypeId, properties, linkedEntities, ...createParams } = params;
+  const { entityTypeIds, properties, linkedEntities, ...createParams } = params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -413,7 +434,7 @@ export const createEntityWithLinks = async <
     "entity"
   >(
     {
-      entityTypeId,
+      entityTypeIds,
       entityProperties: properties,
       linkedEntities,
     },
@@ -432,10 +453,10 @@ export const createEntityWithLinks = async <
 
       if (
         !existingEntityId &&
-        (!definition.entityProperties || !definition.entityTypeId)
+        (!definition.entityProperties || !definition.entityTypeIds)
       ) {
         throw new Error(
-          `One of existingEntityId or (entityProperties && entityTypeId) must be provided in linked entity definition: ${JSON.stringify(
+          `One of existingEntityId or (entityProperties && entityTypeIds) must be provided in linked entity definition: ${JSON.stringify(
             definition,
           )}`,
         );
@@ -454,7 +475,8 @@ export const createEntityWithLinks = async <
         : await createEntity<Properties>(context, authentication, {
             ...createParams,
             properties: definition.entityProperties!,
-            entityTypeId: definition.entityTypeId!,
+            entityTypeIds:
+              definition.entityTypeIds as Properties["entityTypeIds"],
           });
 
       return {
@@ -496,7 +518,7 @@ export const createEntityWithLinks = async <
             leftEntityId: parentEntity.entity.metadata.recordId.entityId,
             rightEntityId: entity.metadata.recordId.entityId,
           },
-          entityTypeId: link.meta.linkEntityTypeId,
+          entityTypeIds: [link.meta.linkEntityTypeId],
           draft:
             /** If either side of the link is a draft entity, the link entity must be draft also */
             params.draft ||
@@ -513,7 +535,7 @@ type UpdateEntityFunction<Properties extends EntityProperties> =
   ImpureGraphFunction<
     {
       entity: Entity<Properties>;
-      entityTypeId?: VersionedUrl;
+      entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
       propertyPatches?: PropertyPatchOperation[];
       draft?: boolean;
     },
@@ -529,10 +551,10 @@ export const updateEntity = async <Properties extends EntityProperties>(
   ...args: Parameters<UpdateEntityFunction<Properties>>
 ): ReturnType<UpdateEntityFunction<Properties>> => {
   const [context, authentication, params] = args;
-  const { entity, entityTypeId, propertyPatches } = params;
+  const { entity, entityTypeIds, propertyPatches } = params;
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
-    if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
+    if (entity.metadata.entityTypeIds.includes(beforeUpdateHook.entityTypeId)) {
       await beforeUpdateHook.callback({
         context,
         previousEntity: entity,
@@ -549,7 +571,7 @@ export const updateEntity = async <Properties extends EntityProperties>(
     graphApi,
     { actorId },
     {
-      entityTypeId,
+      entityTypeIds,
       draft: params.draft,
       propertyPatches,
       provenance: context.provenance,
@@ -557,7 +579,7 @@ export const updateEntity = async <Properties extends EntityProperties>(
   );
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
-    if (afterUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
+    if (entity.metadata.entityTypeIds.includes(afterUpdateHook.entityTypeId)) {
       void afterUpdateHook.callback({
         context,
         previousEntity: entity,
@@ -749,39 +771,45 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { entity, graphResolveDepths } = params;
 
-  return await getEntitySubgraph(context, authentication, {
-    filter: {
-      all: [
-        {
-          equal: [
-            { path: ["uuid"] },
-            {
-              parameter: extractEntityUuidFromEntityId(
-                entity.metadata.recordId.entityId,
-              ),
-            },
-          ],
-        },
-        {
-          equal: [
-            { path: ["ownedById"] },
-            {
-              parameter: extractOwnedByIdFromEntityId(
-                entity.metadata.recordId.entityId,
-              ),
-            },
-          ],
-        },
-        { equal: [{ path: ["archived"] }, { parameter: false }] },
-      ],
+  const { subgraph } = await getEntitySubgraphResponse(
+    context,
+    authentication,
+    {
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  entity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          },
+          {
+            equal: [
+              { path: ["ownedById"] },
+              {
+                parameter: extractOwnedByIdFromEntityId(
+                  entity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        ...graphResolveDepths,
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      ...graphResolveDepths,
-    },
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: false,
-  });
+  );
+
+  return subgraph;
 };
 
 export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
@@ -853,9 +881,9 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
 
   const { entityId } = entity.metadata.recordId;
 
-  const isAccountGroup =
-    entity.metadata.entityTypeId ===
-    systemEntityTypes.organization.entityTypeId;
+  const isAccountGroup = entity.metadata.entityTypeIds.includes(
+    systemEntityTypes.organization.entityTypeId,
+  );
 
   const isPublicUser = actorId === publicUserAccountId;
 

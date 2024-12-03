@@ -38,7 +38,7 @@ impl<T> ObjectSchemaRef<'_, T> {
 impl<T: Sync> Validator<PropertyValueObject<T>> for ObjectSchemaValidator {
     type Error = ObjectSchemaValidationError;
 
-    async fn validate_ref<'v>(
+    fn validate_ref<'v>(
         &self,
         value: &'v PropertyValueObject<T>,
     ) -> Result<&'v Valid<PropertyValueObject<T>>, Self::Error> {
@@ -55,13 +55,13 @@ impl<T: Sync> Validator<PropertyValueObject<T>> for ObjectSchemaValidator {
 impl Validator<EntityType> for ObjectSchemaValidator {
     type Error = ObjectSchemaValidationError;
 
-    async fn validate_ref<'v>(
+    fn validate_ref<'v>(
         &self,
         value: &'v EntityType,
     ) -> Result<&'v Valid<EntityType>, Self::Error> {
         ObjectSchemaRef {
-            properties: &value.properties,
-            required: &value.required,
+            properties: &value.constraints.properties,
+            required: &value.constraints.required,
         }
         .validate()?;
 
@@ -72,13 +72,13 @@ impl Validator<EntityType> for ObjectSchemaValidator {
 impl Validator<ClosedEntityType> for ObjectSchemaValidator {
     type Error = ObjectSchemaValidationError;
 
-    async fn validate_ref<'v>(
+    fn validate_ref<'v>(
         &self,
         value: &'v ClosedEntityType,
     ) -> Result<&'v Valid<ClosedEntityType>, Self::Error> {
         ObjectSchemaRef {
-            properties: &value.properties,
-            required: &value.required,
+            properties: &value.constraints.properties,
+            required: &value.constraints.required,
         }
         .validate()?;
 

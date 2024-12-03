@@ -170,8 +170,8 @@ export const mapHashEntityToLinearUpdateInput = async <
   } of mapping.outgoingLinkMappings) {
     const matchingOutgoingLinksWithRightEntities = await Promise.all(
       outgoingLinks
-        .filter(
-          (linkEntity) => linkEntity.metadata.entityTypeId === linkEntityTypeId,
+        .filter((linkEntity) =>
+          linkEntity.metadata.entityTypeIds.includes(linkEntityTypeId),
         )
         .map(async (linkEntity) => ({
           linkEntity,

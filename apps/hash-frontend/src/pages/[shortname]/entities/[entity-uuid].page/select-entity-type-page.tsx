@@ -13,8 +13,8 @@ import { useContext, useState } from "react";
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
 import { Button } from "../../../../shared/ui";
 import { EntityTypeSelector } from "../../../shared/entity-type-selector";
+import { SectionWrapper } from "../../../shared/section-wrapper";
 import { WorkspaceContext } from "../../../shared/workspace-context";
-import { SectionWrapper } from "../../shared/section-wrapper";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 import { LinksSectionEmptyState } from "./shared/links-section-empty-state";
@@ -98,6 +98,7 @@ export const SelectEntityTypePage = () => {
             >
               {isSelectingType ? (
                 <EntityTypeSelector
+                  excludeLinkTypes
                   onCancel={() => setIsSelectingType(false)}
                   onSelect={async (entityType) => {
                     try {

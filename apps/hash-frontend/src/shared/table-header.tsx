@@ -2,8 +2,8 @@ import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
   CheckIcon,
   Chip,
-  EyeIconRegular,
-  EyeSlashIconRegular,
+  EyeRegularIcon,
+  EyeSlashRegularIcon,
   IconButton,
 } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -16,7 +16,7 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import {
   extractOwnedByIdFromEntityId,
   isExternalOntologyElementMetadata,
@@ -43,7 +43,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import type { Row } from "../components/grid/utils/rows";
 import type { MinimalUser } from "../lib/user-and-org";
-import type { TypeEntitiesRow } from "../pages/shared/entities-table/use-entities-table";
+import type { TypeEntitiesRow } from "../pages/shared/entities-table/use-entities-table/types";
 import type { TypesTableRow } from "../pages/types/[[...type-kind]].page/types-table";
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
@@ -112,12 +112,9 @@ export type FilterState = {
   limitToWebs: string[] | false;
 };
 
-export type GetAdditionalCsvDataFunction = () => Promise<{
-  prependedData: string[][];
-  appendedData: string[][];
-} | null>;
-
 type TableHeaderProps = {
+  hideExportToCsv?: boolean;
+  hideFilters?: boolean;
   internalWebIds: (AccountId | AccountGroupId)[];
   itemLabelPlural: "entities" | "pages" | "types";
   items?: (
@@ -135,9 +132,8 @@ type TableHeaderProps = {
   filterState: FilterState;
   endAdornment?: ReactNode;
   title: string;
-  columns: SizedGridColumn[];
+  currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
   currentlyDisplayedRowsRef: MutableRefObject<Row[] | null>;
-  getAdditionalCsvData?: GetAdditionalCsvDataFunction;
   setFilterState: Dispatch<SetStateAction<FilterState>>;
   toggleSearch?: () => void;
   onBulkActionCompleted?: () => void;
@@ -150,19 +146,20 @@ const commonChipSx = {
 } as const satisfies SxProps<Theme>;
 
 export const TableHeader: FunctionComponent<TableHeaderProps> = ({
+  currentlyDisplayedColumnsRef,
+  currentlyDisplayedRowsRef,
+  endAdornment,
+  filterState,
+  hideExportToCsv,
+  hideFilters,
   internalWebIds,
   itemLabelPlural,
   items,
-  selectedItems,
-  filterState,
-  endAdornment,
-  title,
-  columns,
-  currentlyDisplayedRowsRef,
-  getAdditionalCsvData,
-  setFilterState,
-  toggleSearch,
   onBulkActionCompleted,
+  selectedItems,
+  setFilterState,
+  title,
+  toggleSearch,
 }) => {
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
   const [publicFilterHovered, setPublicFilterHovered] =
@@ -171,7 +168,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   const numberOfUserWebItems = useMemo(
     () =>
       items?.filter(({ metadata }) =>
-        "entityTypeId" in metadata
+        "entityTypeIds" in metadata
           ? internalWebIds.includes(
               extractOwnedByIdFromEntityId(metadata.recordId.entityId),
             )
@@ -187,29 +184,22 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
       ? items.length - numberOfUserWebItems
       : undefined;
 
-  const generateCsvFile = useCallback<GenerateCsvFileFunction>(async () => {
+  const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
     const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
     if (!currentlyDisplayedRows) {
       return null;
     }
 
-    const additionalCsvData = getAdditionalCsvData
-      ? await getAdditionalCsvData()
-      : undefined;
-
-    const { prependedData, appendedData } = additionalCsvData ?? {};
-
-    const prependedColumnTitles = prependedData?.[0];
-    const prependedRows = prependedData?.splice(1);
-
-    const appendedColumnTitles = appendedData?.[0];
-    const appendedRows = appendedData?.splice(1);
+    const currentlyDisplayedColumns = currentlyDisplayedColumnsRef.current;
+    if (!currentlyDisplayedColumns) {
+      return null;
+    }
 
     // Entity metadata columns (i.e. what's already being displayed in the entities table)
 
-    const columnRowKeys = columns.map(({ id }) => id).flat();
+    const columnRowKeys = currentlyDisplayedColumns.map(({ id }) => id).flat();
 
-    const tableContentColumnTitles = columns.map((column) =>
+    const tableContentColumnTitles = currentlyDisplayedColumns.map((column) =>
       /**
        * If the column is the entity label column, add the word "label" to the
        * column title. Otherwise we'd end up with an "Entity" or "Page" column title,
@@ -220,12 +210,8 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
 
     // Collate the contents of the CSV file row by row (including the header)
     const content: string[][] = [
-      [
-        ...(prependedColumnTitles ?? []),
-        ...tableContentColumnTitles,
-        ...(appendedColumnTitles ?? []),
-      ],
-      ...currentlyDisplayedRows.map((row, i) => {
+      tableContentColumnTitles,
+      ...currentlyDisplayedRows.map((row) => {
         const tableCells = columnRowKeys.map((key) => {
           const value = row[key];
 
@@ -235,32 +221,24 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             const user = value as MinimalUser | undefined;
 
             return user?.displayName ?? "";
-          } else if (isBaseUrl(key)) {
-            /**
-             * If the key is a base URL, then the value needs to be obtained
-             * from the nested `properties` field on the row.
-             */
-            return (row as TypeEntitiesRow).properties?.[key] ?? "";
           } else if (key === "archived") {
             return (row as TypesTableRow).archived ? "Yes" : "No";
+          } else if (key === "sourceEntity" || key === "targetEntity") {
+            return (row as TypeEntitiesRow).sourceEntity?.label ?? "";
+          } else if (key === "entityTypes") {
+            return (row as TypeEntitiesRow).entityTypes
+              .map((type) => type.title)
+              .join(", ");
+          } else {
+            return stringifyPropertyValue(value);
           }
-
-          return "";
         });
-
-        const prependedCells = prependedRows?.[i];
-        const appendedCells = appendedRows?.[i];
-
-        return [
-          ...(prependedCells ?? []),
-          ...tableCells,
-          ...(appendedCells ?? []),
-        ];
+        return tableCells;
       }),
     ];
 
     return { title, content };
-  }, [title, columns, currentlyDisplayedRowsRef, getAdditionalCsvData]);
+  }, [title, currentlyDisplayedColumnsRef, currentlyDisplayedRowsRef]);
 
   return (
     <Box
@@ -285,7 +263,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             selectedItems={selectedItems}
             onBulkActionCompleted={onBulkActionCompleted}
           />
-        ) : (
+        ) : hideFilters ? null : (
           <>
             <NoMaxWidthTooltip
               title="Visible to you inside your personal web and organizations you belong to"
@@ -328,7 +306,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                 icon={
                   filterState.includeGlobal ? (
                     publicFilterHovered ? (
-                      <EyeSlashIconRegular
+                      <EyeSlashRegularIcon
                         sx={{ fill: ({ palette }) => palette.primary.main }}
                       />
                     ) : (
@@ -337,7 +315,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                       />
                     )
                   ) : publicFilterHovered ? (
-                    <EyeIconRegular
+                    <EyeRegularIcon
                       sx={{ fill: ({ palette }) => palette.primary.main }}
                     />
                   ) : (
@@ -360,74 +338,78 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             </NoMaxWidthTooltip>
           </>
         )}
-
+      </Box>
+      <Box display="flex" alignItems="center" columnGap={1}>
+        {!hideFilters && (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              background: ({ palette }) =>
+                displayFilters ||
+                Object.values(filterState).some((value) => value)
+                  ? palette.common.white
+                  : "transparent",
+              transition: ({ transitions }) => transitions.create("background"),
+              borderRadius: 15,
+            }}
+          >
+            <TableHeaderButton
+              variant="tertiary_quiet"
+              onClick={() => setDisplayFilters(!displayFilters)}
+              startIcon={<FilterListIcon />}
+            >
+              Filter
+            </TableHeaderButton>
+            <Box
+              sx={{
+                transition: ({ transitions }) =>
+                  transitions.create("max-width"),
+                maxWidth: displayFilters ? 500 : 0,
+                overflow: "hidden",
+              }}
+            >
+              <Box
+                display="flex"
+                flexWrap="nowrap"
+                alignItems="center"
+                height="100%"
+                paddingRight={2}
+              >
+                {filterState.includeArchived !== undefined ? (
+                  <CheckboxFilter
+                    label="Include archived"
+                    checked={filterState.includeArchived}
+                    onChange={(checked) =>
+                      setFilterState((prev) => ({
+                        ...prev,
+                        includeArchived: checked,
+                      }))
+                    }
+                  />
+                ) : null}
+                <CheckboxFilter
+                  label="Include external"
+                  checked={filterState.includeGlobal}
+                  onChange={(checked) =>
+                    setFilterState((prev) => ({
+                      ...prev,
+                      includeGlobal: checked,
+                    }))
+                  }
+                />
+              </Box>
+            </Box>
+          </Box>
+        )}
+        {!hideExportToCsv && (
+          <ExportToCsvButton generateCsvFile={generateCsvFile} />
+        )}
         {toggleSearch ? (
           <IconButton onClick={toggleSearch}>
             <MagnifyingGlassRegularIcon />
           </IconButton>
         ) : null}
-      </Box>
-      <Box display="flex" alignItems="center" columnGap={1}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            background: ({ palette }) =>
-              displayFilters ||
-              Object.values(filterState).some((value) => value)
-                ? palette.common.white
-                : "transparent",
-            transition: ({ transitions }) => transitions.create("background"),
-            borderRadius: 15,
-          }}
-        >
-          <TableHeaderButton
-            variant="tertiary_quiet"
-            onClick={() => setDisplayFilters(!displayFilters)}
-            startIcon={<FilterListIcon />}
-          >
-            Filter
-          </TableHeaderButton>
-          <Box
-            sx={{
-              transition: ({ transitions }) => transitions.create("max-width"),
-              maxWidth: displayFilters ? 500 : 0,
-              overflow: "hidden",
-            }}
-          >
-            <Box
-              display="flex"
-              flexWrap="nowrap"
-              alignItems="center"
-              height="100%"
-              paddingRight={2}
-            >
-              {filterState.includeArchived !== undefined ? (
-                <CheckboxFilter
-                  label="Include archived"
-                  checked={filterState.includeArchived}
-                  onChange={(checked) =>
-                    setFilterState((prev) => ({
-                      ...prev,
-                      includeArchived: checked,
-                    }))
-                  }
-                />
-              ) : null}
-              <CheckboxFilter
-                label="Include external"
-                checked={filterState.includeGlobal}
-                onChange={(checked) =>
-                  setFilterState((prev) => ({
-                    ...prev,
-                    includeGlobal: checked,
-                  }))
-                }
-              />
-            </Box>
-          </Box>
-        </Box>
-        <ExportToCsvButton generateCsvFile={generateCsvFile} />
         {endAdornment}
       </Box>
     </Box>

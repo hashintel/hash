@@ -23,7 +23,7 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@local/status": "0.0.0-private",
-    "@rust/graph-type-defs": "0.0.0-private",
+    "@rust/hash-graph-type-defs": "0.0.0-private",
     "execa": "5.1.1",
     "fractional-indexing": "2.1.0",
     "graphql": "16.9.0",
@@ -32,18 +32,18 @@
   },
   "devDependencies": {
     "@blockprotocol/graph": "0.4.0-canary.0",
-    "@graphql-codegen/cli": "5.0.3",
+    "@graphql-codegen/cli": "^5.0.3",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.8",
     "@graphql-codegen/typescript-graphql-request": "4.5.9",
     "@graphql-codegen/typescript-resolvers": "2.7.13",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/node-fetch": "2.6.11",
-    "@vitest/coverage-istanbul": "2.1.2",
+    "@types/node-fetch": "2.6.12",
+    "@vitest/coverage-istanbul": "2.1.8",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
     "typescript": "5.6.3",
-    "vitest": "2.1.2"
+    "vitest": "2.1.8"
   }
 }

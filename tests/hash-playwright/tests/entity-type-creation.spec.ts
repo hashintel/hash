@@ -37,12 +37,16 @@ test("user can create entity type", async ({ page }) => {
 
   // Fill up entity creation form
   await page.fill(
-    '[data-testid=entity-type-creation-form] input[name="name"]',
+    '[data-testid=entity-type-creation-form] input[name="title"]',
     entityName,
   );
   await page.fill(
     '[data-testid=entity-type-creation-form] textarea[name="description"]',
     "Test Entity",
+  );
+  await page.fill(
+    '[data-testid=entity-type-creation-form] input[name="titlePlural"]',
+    `${entityName}s`,
   );
 
   // Submit entity creation form and wait for page load

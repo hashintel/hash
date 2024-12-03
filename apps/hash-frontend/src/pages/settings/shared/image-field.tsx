@@ -65,7 +65,7 @@ export const ImageField = ({
                   zIndex: 2,
                 }}
               >
-                <ArrowLeftIcon sx={{ width: 13, height: 13 }} />
+                <ArrowLeftIcon />
               </GrayToBlueIconButton>{" "}
             </Box>
           ) : null}

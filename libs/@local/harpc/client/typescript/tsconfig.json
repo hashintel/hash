@@ -1,0 +1,10 @@
+{
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "ES2023", "ESNext"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["vitest/importMeta"]
+  },
+  "include": ["src", "tests"]
+}

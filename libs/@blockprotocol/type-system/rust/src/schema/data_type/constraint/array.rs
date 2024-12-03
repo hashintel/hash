@@ -1,12 +1,18 @@
-use codec::serde::constant::ConstBool;
-use error_stack::{Report, ReportSink, ResultExt, TryReportIteratorExt, bail};
+use core::cmp;
+
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail};
+use hash_codec::serde::constant::ConstBool;
+use itertools::{EitherOrBoth, Itertools as _};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 
 use crate::schema::{
     ConstraintError, JsonSchemaValueType, NumberSchema, StringSchema, ValueLabel,
-    data_type::constraint::{Constraint, boolean::BooleanSchema},
+    data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{Constraint, ConstraintValidator, boolean::BooleanSchema},
+    },
 };
 
 #[derive(Debug, Error)]
@@ -38,17 +44,35 @@ pub enum ArrayTypeTag {
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum ArrayItemConstraints {
-    Boolean(BooleanSchema),
+    Boolean,
     Number(NumberSchema),
     String(StringSchema),
 }
 
-impl Constraint<JsonValue> for ArrayItemConstraints {
+impl Constraint for ArrayItemConstraints {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        match (self, other) {
+            (Self::Boolean, Self::Boolean) => Ok((Self::Boolean, None)),
+            (Self::Number(lhs), Self::Number(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::Number(lhs), rhs.map(Self::Number))),
+            (Self::String(lhs), Self::String(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::String(lhs), rhs.map(Self::String))),
+            _ => bail!(ResolveClosedDataTypeError::IntersectedDifferentTypes),
+        }
+    }
+}
+
+impl ConstraintValidator<JsonValue> for ArrayItemConstraints {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
         match self {
-            Self::Boolean(schema) => schema.is_valid(value),
+            Self::Boolean => BooleanSchema.is_valid(value),
             Self::Number(schema) => schema.is_valid(value),
             Self::String(schema) => schema.is_valid(value),
         }
@@ -56,7 +80,7 @@ impl Constraint<JsonValue> for ArrayItemConstraints {
 
     fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         match self {
-            Self::Boolean(schema) => schema.validate_value(value),
+            Self::Boolean => BooleanSchema.validate_value(value),
             Self::Number(schema) => schema.validate_value(value),
             Self::String(schema) => schema.validate_value(value),
         }
@@ -72,6 +96,33 @@ pub struct ArrayItemsSchema {
     pub label: ValueLabel,
     #[serde(flatten)]
     pub constraints: ArrayItemConstraints,
+}
+
+impl Constraint for ArrayItemsSchema {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        let (combined, remainder) = self.constraints.intersection(other.constraints)?;
+        let (description, label) = if self.description.is_none() && self.label.is_empty() {
+            (other.description, other.label)
+        } else {
+            (self.description, self.label)
+        };
+
+        Ok((
+            Self {
+                description,
+                label,
+                constraints: combined,
+            },
+            remainder.map(|remainder| Self {
+                constraints: remainder,
+                description: None,
+                label: ValueLabel::default(),
+            }),
+        ))
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -104,7 +155,36 @@ pub enum ArraySchema {
     Tuple(TupleConstraints),
 }
 
-impl Constraint<JsonValue> for ArraySchema {
+impl Constraint for ArraySchema {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Constrained(lhs), Self::Constrained(rhs)) => {
+                let (combined, remainder) = lhs.intersection(rhs)?;
+                (
+                    Self::Constrained(combined),
+                    remainder.map(Self::Constrained),
+                )
+            }
+            (Self::Tuple(lhs), Self::Constrained(rhs)) => {
+                // Combining tuple and array constraints is not supported, yet
+                (Self::Tuple(lhs), Some(Self::Constrained(rhs)))
+            }
+            (Self::Constrained(lhs), Self::Tuple(rhs)) => {
+                // Combining tuple and array constraints is not supported, yet
+                (Self::Constrained(lhs), Some(Self::Tuple(rhs)))
+            }
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => {
+                let (combined, remainder) = lhs.intersection(rhs)?;
+                (Self::Tuple(combined), remainder.map(Self::Tuple))
+            }
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for ArraySchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -127,7 +207,7 @@ impl Constraint<JsonValue> for ArraySchema {
     }
 }
 
-impl Constraint<[JsonValue]> for ArraySchema {
+impl ConstraintValidator<[JsonValue]> for ArraySchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &[JsonValue]) -> bool {
@@ -158,13 +238,37 @@ pub struct ArrayConstraints {
     pub items: Option<ArrayItemsSchema>,
 }
 
-impl Constraint<[JsonValue]> for ArrayConstraints {
+impl Constraint for ArrayConstraints {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        match (self.items, other.items) {
+            (Some(lhs), Some(rhs)) => {
+                let (combined, remainder) = lhs.intersection(rhs)?;
+
+                Ok((
+                    Self {
+                        items: Some(combined),
+                    },
+                    remainder.map(|remainder| Self {
+                        items: Some(remainder),
+                    }),
+                ))
+            }
+            (Some(items), None) | (None, Some(items)) => Ok((Self { items: Some(items) }, None)),
+            (None, None) => Ok((Self { items: None }, None)),
+        }
+    }
+}
+
+impl ConstraintValidator<[JsonValue]> for ArrayConstraints {
     type Error = [ArrayValidationError];
 
     fn is_valid(&self, value: &[JsonValue]) -> bool {
-        self.items.as_ref().map_or(true, |items| {
-            value.iter().all(|value| items.constraints.is_valid(value))
-        })
+        self.items
+            .as_ref()
+            .is_none_or(|items| value.iter().all(|value| items.constraints.is_valid(value)))
     }
 
     fn validate_value(&self, value: &[JsonValue]) -> Result<(), Report<[ArrayValidationError]>> {
@@ -198,7 +302,44 @@ pub struct TupleConstraints {
     pub prefix_items: Vec<ArrayItemsSchema>,
 }
 
-impl Constraint<[JsonValue]> for TupleConstraints {
+impl Constraint for TupleConstraints {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        let mut prefix_items =
+            Vec::with_capacity(cmp::max(self.prefix_items.len(), other.prefix_items.len()));
+
+        for zipped in self.prefix_items.iter().zip_longest(&other.prefix_items) {
+            match zipped {
+                EitherOrBoth::Both(lhs, rhs) => {
+                    // We need to clone the constraints to fall back to the original values in case
+                    // the intersection has a remainder. With a remainder it's not possible to
+                    // create a combined value.
+                    let (combined, None) = lhs.clone().intersection(rhs.clone())? else {
+                        // With a remainder we can't create a combined value.
+                        return Ok((self, Some(other)));
+                    };
+
+                    prefix_items.push(combined);
+                }
+                EitherOrBoth::Left(item) | EitherOrBoth::Right(item) => {
+                    prefix_items.push(item.clone());
+                }
+            }
+        }
+
+        Ok((
+            Self {
+                items: ConstBool,
+                prefix_items,
+            },
+            None,
+        ))
+    }
+}
+
+impl ConstraintValidator<[JsonValue]> for TupleConstraints {
     type Error = [ArrayValidationError];
 
     fn is_valid(&self, value: &[JsonValue]) -> bool {
@@ -255,7 +396,9 @@ mod tests {
         NumberValidationError,
         data_type::constraint::{
             ValueConstraints,
-            tests::{check_constraints, check_constraints_error, read_schema},
+            tests::{
+                check_constraints, check_constraints_error, check_schema_intersection, read_schema,
+            },
         },
     };
 
@@ -407,5 +550,282 @@ mod tests {
             "prefixItems": [{"type": "number"}],
         }))
         .expect_err("Deserialized array schema with mixed properties");
+    }
+
+    #[test]
+    fn intersect_combinable_arrays() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 8,
+                        "description": "A string with a minimum length of 8 characters",
+                    },
+                }),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "maxLength": 12,
+                        "description": "A string with a maximum length of 12 characters",
+                    },
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 12,
+                    "description": "A string with a minimum length of 8 characters",
+                },
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_non_combinable_arrays() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "ipv4",
+                        "description": "An IPv4 address",
+                    },
+                }),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "hostname",
+                        "description": "A hostname",
+                    },
+                }),
+            ],
+            [
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "ipv4",
+                        "description": "An IPv4 address",
+                    },
+                }),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "hostname"
+                    },
+                }),
+            ],
+        );
+    }
+
+    #[test]
+    fn intersect_array_and_tuple() {
+        let array = json!({
+            "type": "array",
+            "items": {
+                "type": "string",
+                "minLength": 8,
+                "description": "A string with a minimum length of 8 characters",
+            },
+        });
+        let tuple = json!({
+            "type": "array",
+            "items": false,
+            "prefixItems": [{
+                "type": "string",
+                "maxLength": 12,
+                "description": "A string with a maximum length of 12 characters",
+            }],
+        });
+        check_schema_intersection([array.clone(), tuple.clone()], [
+            array.clone(),
+            tuple.clone(),
+        ]);
+        check_schema_intersection([tuple.clone(), array.clone()], [tuple, array]);
+    }
+
+    #[test]
+    #[expect(clippy::too_many_lines)]
+    fn intersect_combinable_tuples() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "minLength": 8,
+                        "description": "A string with a minimum length of 8 characters",
+                    }],
+                }),
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "maxLength": 12,
+                        "description": "A string with a maximum length of 12 characters",
+                    }],
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "items": false,
+                "prefixItems": [{
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 12,
+                    "description": "A string with a minimum length of 8 characters",
+                }],
+            })],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [
+                        {
+                            "type": "string",
+                            "minLength": 8,
+                            "description": "A string with a minimum length of 8 characters",
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 8,
+                            "description": "A string with a minimum length of 8 characters",
+                        }
+                    ],
+                }),
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "maxLength": 12,
+                        "description": "A string with a maximum length of 12 characters",
+                    }],
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "items": false,
+                "prefixItems": [
+                    {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 12,
+                        "description": "A string with a minimum length of 8 characters",
+                    },
+                    {
+                        "type": "string",
+                        "minLength": 8,
+                        "description": "A string with a minimum length of 8 characters",
+                    }
+                ],
+            })],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "minLength": 8,
+                        "description": "A string with a minimum length of 8 characters",
+                    }],
+                }),
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [
+                        {
+                            "type": "string",
+                            "maxLength": 12,
+                            "description": "A string with a maximum length of 12 characters",
+                        },
+                        {
+                            "type": "string",
+                            "maxLength": 12,
+                            "description": "A string with a maximum length of 12 characters",
+                        }
+                    ],
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "items": false,
+                "prefixItems": [
+                    {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 12,
+                        "description": "A string with a minimum length of 8 characters",
+                    },
+                    {
+                        "type": "string",
+                        "maxLength": 12,
+                        "description": "A string with a maximum length of 12 characters",
+                    }
+                ],
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_non_combinable_tuples() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "pattern": "ipv4",
+                        "description": "An IPv4 address",
+                    }],
+                }),
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "pattern": "hostname",
+                        "description": "A hostname",
+                    }],
+                }),
+            ],
+            [
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "pattern": "ipv4",
+                        "description": "An IPv4 address",
+                    }],
+                }),
+                json!({
+                    "type": "array",
+                    "items": false,
+                    "prefixItems": [{
+                        "type": "string",
+                        "pattern": "hostname",
+                        "description": "A hostname",
+                    }],
+                }),
+            ],
+        );
     }
 }

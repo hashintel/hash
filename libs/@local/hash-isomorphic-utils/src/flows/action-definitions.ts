@@ -12,8 +12,9 @@ const actionDefinitionIds = [
   "getFileFromUrl",
   "getWebPageByUrl",
   "getWebPageSummary",
-  "processAutomaticBrowsingSettings",
+  "inferMetadataFromDocument",
   "inferEntitiesFromContent",
+  "processAutomaticBrowsingSettings",
   "persistEntities",
   "persistEntity",
   "researchEntities",
@@ -189,6 +190,37 @@ const actionDefinitionsAsConst = {
         payloadKind: "ProposedEntity",
         name: "proposedEntities",
         array: true,
+        required: true,
+      },
+    ],
+  },
+  inferMetadataFromDocument: {
+    actionDefinitionId: "inferMetadataFromDocument",
+    name: "Infer Metadata From Document",
+    description:
+      "Infer metadata from a document file (document kind, title, number of pages, etc), add the relevant type to the associated entity, and propose new entities representing its author, publisher etc.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "documentEntityId",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "ProposedEntity",
+        description: "The entities inferred from the document, e.g. authors",
+        name: "proposedEntities",
+        array: true,
+        required: true,
+      },
+      {
+        payloadKind: "PersistedEntity",
+        description: "The entity representing the Google Sheet synced to.",
+        name: "updatedDocumentEntity",
+        array: false,
         required: true,
       },
     ],

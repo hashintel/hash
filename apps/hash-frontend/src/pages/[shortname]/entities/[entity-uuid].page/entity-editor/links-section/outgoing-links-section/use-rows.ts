@@ -1,8 +1,9 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import type { PartialEntityType } from "@local/hash-graph-types/ontology";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
-  getEntityTypeAndParentsById,
-  getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getRoots,
   intervalCompareWithInterval,
@@ -17,6 +18,9 @@ import type { LinkRow } from "./types";
 
 export const useRows = () => {
   const {
+    closedMultiEntityType,
+    closedMultiEntityTypesDefinitions,
+    closedMultiEntityTypesMap,
     entitySubgraph,
     draftLinksToArchive,
     draftLinksToCreate,
@@ -31,10 +35,6 @@ export const useRows = () => {
 
   const rows = useMemo<LinkRow[]>(() => {
     const entity = getRoots(entitySubgraph)[0]!;
-    const entityTypeAndAncestors = getEntityTypeAndParentsById(
-      entitySubgraph,
-      entity.metadata.entityTypeId,
-    );
 
     const variableAxis = entitySubgraph.temporalAxes.resolved.variable.axis;
     const entityInterval = entity.metadata.temporalVersioning[variableAxis];
@@ -45,148 +45,173 @@ export const useRows = () => {
       entityInterval,
     );
 
-    return entityTypeAndAncestors.flatMap((entityType) =>
-      typedEntries(entityType.schema.links ?? {}).map(
-        ([linkEntityTypeId, linkSchema]) => {
-          const linkEntityType = getEntityTypeById(
-            entitySubgraph,
+    const processedLinkEntityTypeIds = new Set<VersionedUrl>();
+
+    return typedEntries(closedMultiEntityType.links ?? {}).flatMap(
+      ([linkEntityTypeId, linkSchema]) => {
+        if (processedLinkEntityTypeIds.has(linkEntityTypeId)) {
+          return [];
+        }
+
+        const linkEntityType =
+          closedMultiEntityTypesDefinitions.entityTypes[linkEntityTypeId];
+
+        if (!linkEntityType) {
+          throw new Error(
+            `Could not find link entity type with id ${linkEntityTypeId} in definitions`,
+          );
+        }
+
+        const relevantUpload = uploads.find(
+          (upload) =>
+            upload.status !== "complete" &&
+            upload.linkedEntityData?.linkedEntityId ===
+              entity.metadata.recordId.entityId &&
+            upload.linkedEntityData.linkEntityTypeId === linkEntityTypeId,
+        );
+
+        const isLoading =
+          !!relevantUpload &&
+          relevantUpload.status !== "complete" &&
+          relevantUpload.status !== "error";
+
+        const isErroredUpload = relevantUpload?.status === "error";
+
+        let expectedEntityTypes: PartialEntityType[] = [];
+
+        if ("oneOf" in linkSchema.items) {
+          expectedEntityTypes = linkSchema.items.oneOf.map(({ $ref }) => {
+            const expectedEntityType =
+              closedMultiEntityTypesDefinitions.entityTypes[$ref];
+
+            if (!expectedEntityType) {
+              throw new Error(`entity type ${$ref} not found in definitions`);
+            }
+
+            return expectedEntityType;
+          });
+        }
+
+        const additions = draftLinksToCreate.filter((draftToCreate) =>
+          draftToCreate.linkEntity.metadata.entityTypeIds.includes(
             linkEntityTypeId,
+          ),
+        );
+
+        const linkAndTargetEntities: LinkRow["linkAndTargetEntities"] = [];
+
+        for (const entities of outgoingLinkAndTargetEntities) {
+          const linkEntityRevisions = [...entities.linkEntity];
+          linkEntityRevisions.sort((entityA, entityB) =>
+            intervalCompareWithInterval(
+              entityA.metadata.temporalVersioning[variableAxis],
+              entityB.metadata.temporalVersioning[variableAxis],
+            ),
           );
 
-          if (!linkEntityType) {
+          const latestLinkEntityRevision = linkEntityRevisions.at(-1);
+
+          if (!latestLinkEntityRevision) {
             throw new Error(
-              `Could not find link entity type with id ${linkEntityTypeId} in subgraph`,
+              `Couldn't find a latest link entity revision from ${entity.metadata.recordId.entityId}, this is likely an implementation bug in the stdlib`,
             );
           }
 
-          const relevantUpload = uploads.find(
-            (upload) =>
-              upload.status !== "complete" &&
-              upload.linkedEntityData?.linkedEntityId ===
-                entity.metadata.recordId.entityId &&
-              upload.linkedEntityData.linkEntityTypeId === linkEntityTypeId,
+          const targetEntityRevisions = [...entities.rightEntity];
+          targetEntityRevisions.sort((entityA, entityB) =>
+            intervalCompareWithInterval(
+              entityA.metadata.temporalVersioning[variableAxis],
+              entityB.metadata.temporalVersioning[variableAxis],
+            ),
           );
 
-          const isLoading =
-            !!relevantUpload &&
-            relevantUpload.status !== "complete" &&
-            relevantUpload.status !== "error";
+          const latestTargetEntityRevision = targetEntityRevisions.at(-1);
 
-          const isErroredUpload = relevantUpload?.status === "error";
-
-          let expectedEntityTypes: EntityTypeWithMetadata[] = [];
-
-          if ("oneOf" in linkSchema.items) {
-            expectedEntityTypes = linkSchema.items.oneOf.map(({ $ref }) => {
-              const expectedEntityType = getEntityTypeById(
-                entitySubgraph,
-                $ref,
-              );
-
-              if (!expectedEntityType) {
-                throw new Error("entity type not found");
-              }
-
-              return expectedEntityType;
-            });
+          if (!latestTargetEntityRevision) {
+            throw new Error(
+              `Couldn't find a target link entity revision from ${entity.metadata.recordId.entityId}, this is likely an implementation bug in the stdlib`,
+            );
           }
 
-          const additions = draftLinksToCreate.filter(
-            (draftToCreate) =>
-              draftToCreate.linkEntity.metadata.entityTypeId ===
-              linkEntityTypeId,
+          const { entityTypeIds, recordId } = latestLinkEntityRevision.metadata;
+
+          const isMatching = entityTypeIds.includes(linkEntityTypeId);
+          const isMarkedToArchive = draftLinksToArchive.some(
+            (markedLinkId) => markedLinkId === recordId.entityId,
           );
 
-          const linkAndTargetEntities = [];
-
-          for (const entities of outgoingLinkAndTargetEntities) {
-            const linkEntityRevisions = [...entities.linkEntity];
-            linkEntityRevisions.sort((entityA, entityB) =>
-              intervalCompareWithInterval(
-                entityA.metadata.temporalVersioning[variableAxis],
-                entityB.metadata.temporalVersioning[variableAxis],
-              ),
-            );
-
-            const latestLinkEntityRevision = linkEntityRevisions.at(-1);
-
-            if (!latestLinkEntityRevision) {
-              throw new Error(
-                `Couldn't find a latest link entity revision from ${entity.metadata.recordId.entityId}, this is likely an implementation bug in the stdlib`,
-              );
-            }
-
-            const targetEntityRevisions = [...entities.rightEntity];
-            targetEntityRevisions.sort((entityA, entityB) =>
-              intervalCompareWithInterval(
-                entityA.metadata.temporalVersioning[variableAxis],
-                entityB.metadata.temporalVersioning[variableAxis],
-              ),
-            );
-
-            const latestTargetEntityRevision = targetEntityRevisions.at(-1);
-
-            if (!latestTargetEntityRevision) {
-              throw new Error(
-                `Couldn't find a target link entity revision from ${entity.metadata.recordId.entityId}, this is likely an implementation bug in the stdlib`,
-              );
-            }
-
-            const { entityTypeId, recordId } =
-              latestLinkEntityRevision.metadata;
-
-            const isMatching = entityTypeId === linkEntityTypeId;
-            const isMarkedToArchive = draftLinksToArchive.some(
-              (markedLinkId) => markedLinkId === recordId.entityId,
-            );
-
-            if (isMatching && !isMarkedToArchive) {
-              linkAndTargetEntities.push({
-                linkEntity: latestLinkEntityRevision,
-                rightEntity: latestTargetEntityRevision,
-                sourceSubgraph: entitySubgraph,
-              });
-            }
+          if (!isMatching || isMarkedToArchive) {
+            continue;
           }
 
-          linkAndTargetEntities.push(...additions);
+          if (!closedMultiEntityTypesMap) {
+            throw new Error("Expected closedMultiEntityTypesMap to be defined");
+          }
 
-          const expectedEntityTypeTitles = expectedEntityTypes.map(
-            (val) => val.schema.title,
+          const targetEntityClosedType = getClosedMultiEntityTypeFromMap(
+            closedMultiEntityTypesMap,
+            latestTargetEntityRevision.metadata.entityTypeIds,
           );
 
-          const isFile = expectedEntityTypes.some(
-            (expectedType) =>
-              isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isFile,
+          const rightEntityLabel = generateEntityLabel(
+            targetEntityClosedType,
+            latestTargetEntityRevision,
           );
 
-          const retryErroredUpload =
-            relevantUpload?.status === "error"
-              ? () => uploadFile(relevantUpload)
-              : undefined;
+          const linkEntityClosedType = getClosedMultiEntityTypeFromMap(
+            closedMultiEntityTypesMap,
+            latestLinkEntityRevision.metadata.entityTypeIds,
+          );
 
-          return {
-            rowId: linkEntityTypeId,
-            linkEntityTypeId,
-            linkTitle: linkEntityType.schema.title,
-            linkAndTargetEntities,
-            maxItems: linkSchema.maxItems,
-            isErroredUpload,
-            isFile,
-            isUploading: isLoading,
-            isList:
-              linkSchema.maxItems === undefined || linkSchema.maxItems > 1,
-            expectedEntityTypes,
-            expectedEntityTypeTitles,
-            entitySubgraph,
-            markLinkAsArchived: markLinkEntityToArchive,
-            onEntityClick,
-            retryErroredUpload,
-          };
-        },
-      ),
+          const linkEntityLabel = generateEntityLabel(
+            linkEntityClosedType,
+            latestLinkEntityRevision,
+          );
+
+          linkAndTargetEntities.push({
+            linkEntity: latestLinkEntityRevision,
+            linkEntityLabel,
+            rightEntity: latestTargetEntityRevision,
+            rightEntityLabel,
+          });
+        }
+
+        linkAndTargetEntities.push(...additions);
+
+        const isFile = expectedEntityTypes.some(
+          (expectedType) =>
+            isSpecialEntityTypeLookup?.[expectedType.$id]?.isFile,
+        );
+
+        const retryErroredUpload =
+          relevantUpload?.status === "error"
+            ? () => uploadFile(relevantUpload)
+            : undefined;
+
+        processedLinkEntityTypeIds.add(linkEntityTypeId);
+
+        return {
+          rowId: linkEntityTypeId,
+          linkEntityTypeId,
+          linkTitle: linkEntityType.title,
+          linkAndTargetEntities,
+          maxItems: linkSchema.maxItems,
+          isErroredUpload,
+          isFile,
+          isUploading: isLoading,
+          isList: linkSchema.maxItems === undefined || linkSchema.maxItems > 1,
+          expectedEntityTypes,
+          entitySubgraph,
+          markLinkAsArchived: markLinkEntityToArchive,
+          onEntityClick,
+          retryErroredUpload,
+        };
+      },
     );
   }, [
+    closedMultiEntityType,
+    closedMultiEntityTypesMap,
+    closedMultiEntityTypesDefinitions,
     entitySubgraph,
     draftLinksToArchive,
     draftLinksToCreate,

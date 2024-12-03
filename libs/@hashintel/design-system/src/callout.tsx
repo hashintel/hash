@@ -1,4 +1,8 @@
-import { faCircleInfo, faWarning } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCircleInfo,
+  faTriangleExclamation,
+  faWarning,
+} from "@fortawesome/free-solid-svg-icons";
 import type { SxProps, Theme } from "@mui/material";
 import { Stack, Typography } from "@mui/material";
 import type { PropsWithChildren, ReactNode } from "react";
@@ -7,7 +11,7 @@ import { FontAwesomeIcon } from "./fontawesome-icon";
 
 type CalloutProps = {
   children: ReactNode;
-  type: "info" | "warning";
+  type: "info" | "warning" | "error";
   sx?: SxProps<Theme>;
 };
 
@@ -23,9 +27,17 @@ export const Callout = ({
       sx={[
         ({ palette }) => ({
           background:
-            type === "warning" ? palette.yellow[20] : palette.blue[20],
+            type === "warning"
+              ? palette.yellow[20]
+              : type === "error"
+                ? palette.red[20]
+                : palette.blue[20],
           borderY: `1px solid ${
-            type === "warning" ? palette.yellow[40] : palette.blue[30]
+            type === "warning"
+              ? palette.yellow[40]
+              : type === "error"
+                ? palette.blue[30]
+                : palette.blue[30]
           }`,
           px: 2.5,
           py: 2,
@@ -35,9 +47,20 @@ export const Callout = ({
       ]}
     >
       <FontAwesomeIcon
-        icon={type === "warning" ? faWarning : faCircleInfo}
+        icon={
+          type === "warning"
+            ? faWarning
+            : type === "error"
+              ? faTriangleExclamation
+              : faCircleInfo
+        }
         sx={({ palette }) => ({
-          color: type === "warning" ? palette.yellow[70] : palette.blue[70],
+          color:
+            type === "warning"
+              ? palette.yellow[70]
+              : type === "error"
+                ? palette.red[70]
+                : palette.blue[70],
           fontSize: 32,
           mr: 3,
         })}

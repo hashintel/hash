@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import { getEntitySubgraphResponse } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
@@ -92,14 +92,18 @@ beforeAll(async () => {
 
   graphContext = createTestImpureGraphContext();
 
-  const entities = await getEntitySubgraph(graphContext, authentication, {
-    filter: {
-      all: [],
+  const entities = await getEntitySubgraphResponse(
+    graphContext,
+    authentication,
+    {
+      filter: {
+        all: [],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     },
-    graphResolveDepths: zeroedGraphResolveDepths,
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: false,
-  }).then(getRoots);
+  ).then(({ subgraph }) => getRoots(subgraph));
 
   expect(entities.length).toBe(12);
 
@@ -202,7 +206,7 @@ describe("Single linked list", () => {
   // │ Entity D │◄────┤ Link CD │◄──┤ Entity C │
   // └──────────┘     └─────────┘   └──────────┘
   it("finds AB", async () => {
-    const subgraph = await getEntitySubgraph(
+    const { subgraph } = await getEntitySubgraphResponse(
       graphContext,
       authentication,
       createRequest(
@@ -231,7 +235,7 @@ describe("Single linked list", () => {
   });
 
   it("finds AB and travels back", async () => {
-    const subgraph = await getEntitySubgraph(
+    const { subgraph } = await getEntitySubgraphResponse(
       graphContext,
       authentication,
       createRequest(
@@ -270,7 +274,7 @@ describe("Single linked list", () => {
   });
 
   it("finds B", async () => {
-    const subgraph = await getEntitySubgraph(
+    const { subgraph } = await getEntitySubgraphResponse(
       graphContext,
       authentication,
       createRequest(
@@ -313,7 +317,7 @@ describe("Single linked list", () => {
   });
 
   it("finds B and travels back", async () => {
-    const subgraph = await getEntitySubgraph(
+    const { subgraph } = await getEntitySubgraphResponse(
       graphContext,
       authentication,
       createRequest(
@@ -413,7 +417,7 @@ describe("Single linked list", () => {
   });
 
   it("finds D", async () => {
-    const subgraph = await getEntitySubgraph(
+    const { subgraph } = await getEntitySubgraphResponse(
       graphContext,
       authentication,
       createRequest(
@@ -533,7 +537,7 @@ describe("Double linked list", () => {
   //                └────►│ Link DC ├────┘
   //                      └─────────┘
   it("finds AB/AD", async () => {
-    const subgraph = await getEntitySubgraph(
+    const { subgraph } = await getEntitySubgraphResponse(
       graphContext,
       authentication,
       createRequest({
@@ -560,7 +564,7 @@ describe("Double linked list", () => {
   });
 
   it("finds AD/DA and travels back", async () => {
-    const subgraph = await getEntitySubgraph(
+    const { subgraph } = await getEntitySubgraphResponse(
       graphContext,
       authentication,
       createRequest({
@@ -607,7 +611,7 @@ describe("Double linked list", () => {
   });
 
   it("finds B/D", async () => {
-    const subgraph = await getEntitySubgraph(
+    const { subgraph } = await getEntitySubgraphResponse(
       graphContext,
       authentication,
       createRequest({
@@ -666,7 +670,7 @@ describe("Double linked list", () => {
   });
 
   it("finds B/D and travels back", async () => {
-    const subgraph = await getEntitySubgraph(
+    const { subgraph } = await getEntitySubgraphResponse(
       graphContext,
       authentication,
       createRequest({
@@ -881,7 +885,7 @@ describe("Double linked list", () => {
   });
 
   it("finds D/A", async () => {
-    const subgraph = await getEntitySubgraph(
+    const { subgraph } = await getEntitySubgraphResponse(
       graphContext,
       authentication,
       createRequest({

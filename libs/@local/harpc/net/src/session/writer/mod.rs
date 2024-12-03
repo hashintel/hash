@@ -1,13 +1,13 @@
 #[cfg(test)]
 mod test;
 
-use bytes::{Buf, Bytes};
+use bytes::{Buf as _, Bytes};
 use bytes_utils::SegmentedBuf;
 use harpc_types::{
-    procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
+    procedure::ProcedureDescriptor, response_kind::ResponseKind, subsystem::SubsystemDescriptor,
 };
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
@@ -62,7 +62,7 @@ pub(crate) trait NetworkPacket {
 pub(crate) struct RequestContext {
     pub id: RequestId,
 
-    pub service: ServiceDescriptor,
+    pub subsystem: SubsystemDescriptor,
     pub procedure: ProcedureDescriptor,
 }
 
@@ -83,7 +83,7 @@ impl NetworkPacket for Request {
         Self {
             header: new_request_header(*context),
             body: RequestBody::Begin(RequestBegin {
-                service: context.service,
+                subsystem: context.subsystem,
                 procedure: context.procedure,
                 payload: Payload::new(bytes),
             }),

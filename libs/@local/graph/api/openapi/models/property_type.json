@@ -1,0 +1,34 @@
+{
+  "title": "Property Type",
+  "description": "Specifies the structure of a Block Protocol property type",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
+      ]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["propertyType"]
+    },
+    "$id": {
+      "$ref": "./shared.json#/definitions/VersionedUrl"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "oneOf": {
+      "type": "array",
+      "items": {
+        "$ref": "./shared.json#/definitions/PropertyValues"
+      }
+    }
+  },
+  "required": ["$schema", "kind", "$id", "title", "description", "oneOf"],
+  "additionalProperties": false
+}

@@ -58,10 +58,10 @@ export const BlockSelectDataModal: FunctionComponent<
     if (!blockDataEntity) {
       return;
     }
-    const { recordId, entityTypeId } = blockDataEntity.metadata;
+    const { recordId, entityTypeIds } = blockDataEntity.metadata;
 
     const { subgraph } = await fetchBlockSubgraph(
-      entityTypeId,
+      entityTypeIds,
       recordId.entityId,
     );
 
@@ -77,10 +77,10 @@ export const BlockSelectDataModal: FunctionComponent<
       blockSubgraph,
       blockDataEntity.metadata.recordId.entityId,
     )
-      .filter(
-        ({ linkEntity: linkEntityRevisions }) =>
-          linkEntityRevisions[0]?.metadata.entityTypeId ===
+      .filter(({ linkEntity: linkEntityRevisions }) =>
+        linkEntityRevisions[0]?.metadata.entityTypeIds.includes(
           blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
+        ),
       )
       .map(({ rightEntity }) => rightEntity[0] as Entity<Query>);
 
@@ -136,7 +136,7 @@ export const BlockSelectDataModal: FunctionComponent<
 
         const { data: queryEntity } = await createEntity({
           data: {
-            entityTypeId: blockProtocolEntityTypes.query.entityTypeId,
+            entityTypeIds: [blockProtocolEntityTypes.query.entityTypeId],
             properties: {
               "https://blockprotocol.org/@hash/types/property-type/query/":
                 query,
@@ -151,8 +151,9 @@ export const BlockSelectDataModal: FunctionComponent<
 
         await createEntity({
           data: {
-            entityTypeId:
+            entityTypeIds: [
               blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
+            ],
             linkData: {
               leftEntityId: blockDataEntity.metadata.recordId.entityId,
               rightEntityId: queryEntity.metadata.recordId.entityId,

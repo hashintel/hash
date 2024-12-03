@@ -29,7 +29,7 @@ export const renderLinkCell: CustomRenderer<LinkCell> = {
     ctx.font = theme.baseFontStyle;
 
     const yCenter = getYCenter(args);
-    const iconLeft = rect.x + getCellHorizontalPadding(true);
+    const iconLeft = rect.x + getCellHorizontalPadding(false);
 
     const iconSize = 16;
     spriteManager.drawSprite(

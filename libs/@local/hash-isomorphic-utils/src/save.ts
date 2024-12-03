@@ -171,7 +171,7 @@ const calculateSaveActions = (
           ownedById,
           entityPlaceholderId: placeholderId,
           entity: {
-            entityTypeId,
+            entityTypeIds: [entityTypeId],
             entityProperties: mergePropertyObjectAndMetadata(
               draftEntity.properties,
               undefined,
@@ -442,9 +442,13 @@ const mapEntityToGqlBlock = (
   entity: Entity<Block>,
   entitySubgraph: Subgraph<EntityRootType>,
 ): GqlBlock => {
-  if (entity.metadata.entityTypeId !== systemEntityTypes.block.entityTypeId) {
+  if (
+    !entity.metadata.entityTypeIds.includes(
+      systemEntityTypes.block.entityTypeId,
+    )
+  ) {
     throw new Error(
-      `Entity with type ${entity.metadata.entityTypeId} is not a block`,
+      `Entity with types ${entity.metadata.entityTypeIds.join(",")} is not a block`,
     );
   }
 
@@ -454,8 +458,9 @@ const mapEntityToGqlBlock = (
   ).find(
     ({ linkEntity: linkEntityRevisions }) =>
       linkEntityRevisions[0] &&
-      linkEntityRevisions[0].metadata.entityTypeId ===
+      linkEntityRevisions[0].metadata.entityTypeIds.includes(
         systemLinkEntityTypes.hasData.linkEntityTypeId,
+      ),
   )?.rightEntity[0];
 
   if (!blockChildEntity) {
@@ -525,11 +530,13 @@ export const save = async ({
             rightEntity: rightEntityRevisions,
           }) =>
             linkEntityRevisions[0] &&
-            linkEntityRevisions[0].metadata.entityTypeId ===
-              systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId &&
+            linkEntityRevisions[0].metadata.entityTypeIds.includes(
+              systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+            ) &&
             rightEntityRevisions[0] &&
-            rightEntityRevisions[0].metadata.entityTypeId ===
+            rightEntityRevisions[0].metadata.entityTypeIds.includes(
               systemEntityTypes.block.entityTypeId,
+            ),
         )
         .sort(({ linkEntity: a }, { linkEntity: b }) =>
           sortBlockCollectionLinks(a[0]!, b[0]!),

@@ -1,13 +1,11 @@
 import { useMutation } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   CaretDownSolidIcon,
   IconButton,
-  RotateIconRegular,
+  RotateRegularIcon,
 } from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
-  EntityId,
   EntityMetadata,
   EntityRecordId,
 } from "@local/hash-graph-types/entity";
@@ -73,21 +71,25 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
       ? entity.localEntityId
       : entity.metadata.recordId.entityId;
 
-  const entityTypeId =
-    "entityTypeId" in entity
-      ? entity.entityTypeId
-      : entity.metadata.entityTypeId;
+  const entityTypeIds =
+    "entityTypeIds" in entity
+      ? entity.entityTypeIds
+      : entity.metadata.entityTypeIds;
 
-  const entityLabel = generateEntityLabel(null, {
-    properties: entity.properties,
-    metadata: {
-      recordId: {
-        editionId: "irrelevant-here",
-        entityId: `ownedBy~${entityId}` as EntityId,
-      } satisfies EntityRecordId,
-      entityTypeId: entityTypeId satisfies VersionedUrl,
-    } as EntityMetadata,
-  });
+  const entityLabel = generateEntityLabel(
+    null,
+    {
+      properties: entity.properties,
+      metadata: {
+        recordId: {
+          editionId: "irrelevant-here",
+          entityId,
+        } satisfies EntityRecordId,
+        entityTypeIds,
+      } as EntityMetadata,
+    },
+    true,
+  );
 
   return entityLabel;
 };
@@ -249,7 +251,7 @@ const Checkpoint = ({ log }: { log: CheckpointLog }) => {
           onClick={triggerReset}
           sx={{ p: 0.6, borderRadius: "50%" }}
         >
-          <RotateIconRegular sx={{ width: 13, height: 13 }} />
+          <RotateRegularIcon sx={{ width: 13, height: 13 }} />
         </IconButton>
       )}
     </Stack>

@@ -1,7 +1,7 @@
-use bytes::{Buf, Bytes};
+use bytes::{Buf as _, Bytes};
 use harpc_types::response_kind::ResponseKind;
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     response::flags::{ResponseFlag, ResponseFlags},
     test_utils::mock_request_id,
@@ -101,7 +101,7 @@ async fn flush_calls_write() {
         },
         &tx,
     );
-    writer.push(Bytes::from_static(&[0; Payload::MAX_SIZE + 8]));
+    writer.push(Bytes::from(vec![0; Payload::MAX_SIZE + 8]));
     writer.flush().await.expect("infallible");
 
     // we should have sent 2 responses
@@ -148,7 +148,7 @@ async fn split_single() {
         &tx,
     );
 
-    let bytes = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let bytes = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     writer.push(bytes.clone());
     assert_eq!(writer.buffer.segments(), 1);
@@ -183,7 +183,7 @@ async fn split_multiple() {
         &tx,
     );
 
-    let bytes = Bytes::from_static(&[0; Payload::MAX_SIZE * 2 + 8]);
+    let bytes = Bytes::from(vec![0; Payload::MAX_SIZE * 2 + 8]);
 
     writer.push(bytes.clone());
     assert_eq!(writer.buffer.segments(), 1);
@@ -228,7 +228,7 @@ async fn delay_push_merge_on_write() {
         &tx,
     );
 
-    let bytes = Bytes::from_static(&[0; Payload::MAX_SIZE]);
+    let bytes = Bytes::from(vec![0; Payload::MAX_SIZE]);
 
     writer.push(bytes.slice(..Payload::MAX_SIZE / 2));
     writer.push(bytes.slice(Payload::MAX_SIZE / 2..));

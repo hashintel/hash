@@ -3,7 +3,7 @@
 use core::fmt::Display;
 
 use bytes::{Buf, BufMut};
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
 
@@ -22,6 +22,7 @@ pub enum ProtocolVersionDecodeError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct ProtocolVersion(#[cfg_attr(test, strategy(1..=1_u8))] u8);
 
@@ -40,7 +41,7 @@ impl Display for ProtocolVersion {
 impl Encode for ProtocolVersion {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -52,7 +53,7 @@ impl Decode for ProtocolVersion {
     type Context = ();
     type Error = ProtocolVersionDecodeError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -71,6 +72,21 @@ impl Decode for ProtocolVersion {
     }
 }
 
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for ProtocolVersion {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = u8::deserialize(deserializer)?;
+
+        match Self(value) {
+            Self::V1 => Ok(Self::V1),
+            _ => Err(serde::de::Error::custom("unsupported version")),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 pub enum ProtocolDecodeError {
     #[error("invalid packet identifier: expected {expected:?}, actual {actual:?}")]
@@ -85,6 +101,7 @@ pub enum ProtocolDecodeError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct Protocol {
     pub version: ProtocolVersion,
@@ -93,7 +110,7 @@ pub struct Protocol {
 impl Encode for Protocol {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -107,7 +124,7 @@ impl Decode for Protocol {
     type Context = ();
     type Error = ProtocolDecodeError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {

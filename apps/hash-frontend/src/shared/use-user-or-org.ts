@@ -99,7 +99,7 @@ export const useUserOrOrg = (
       },
     },
     skip: !("accountOrAccountGroupId" in params) && !("shortname" in params),
-    fetchPolicy: "network-only",
+    fetchPolicy: "cache-and-network",
   });
 
   return useMemo(() => {
@@ -118,7 +118,7 @@ export const useUserOrOrg = (
             !isEntityOrgEntity(currentEntity)
           ) {
             throw new Error(
-              `Entity with type ${currentEntity.metadata.entityTypeId} is not a user or an org entity`,
+              `Entity with type(s) ${currentEntity.metadata.entityTypeIds.join(", ")} is not a user or an org entity`,
             );
           }
 

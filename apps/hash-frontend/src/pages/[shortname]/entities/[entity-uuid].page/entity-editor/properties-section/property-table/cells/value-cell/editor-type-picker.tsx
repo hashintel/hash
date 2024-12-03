@@ -1,5 +1,5 @@
+import type { ClosedDataType } from "@blockprotocol/type-system/slim";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { Box, ButtonBase, Typography } from "@mui/material";
 
 import { getEditorSpecs } from "./editor-specs";
@@ -11,7 +11,7 @@ const ExpectedTypeButton = ({
   expectedType,
 }: {
   onClick: () => void;
-  expectedType: DataTypeWithMetadata["schema"];
+  expectedType: ClosedDataType;
 }) => {
   const editorSpec = getEditorSpecs(
     guessEditorTypeFromExpectedType(expectedType),
@@ -51,7 +51,7 @@ const ExpectedTypeButton = ({
 };
 
 interface EditorTypePickerProps {
-  expectedTypes: DataTypeWithMetadata["schema"][];
+  expectedTypes: ClosedDataType[];
   onTypeChange: OnTypeChange;
 }
 

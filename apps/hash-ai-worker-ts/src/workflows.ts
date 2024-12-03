@@ -390,7 +390,9 @@ export const updateEntityEmbeddings = async (
        * types should be skipped when generating embeddings.
        */
       if (
-        systemEntityTypes.flowRun.entityTypeId === entity.metadata.entityTypeId
+        entity.metadata.entityTypeIds.includes(
+          systemEntityTypes.flowRun.entityTypeId,
+        )
       ) {
         continue;
       }
@@ -402,10 +404,9 @@ export const updateEntityEmbeddings = async (
         authentication: params.authentication,
         request: {
           filter: {
-            equal: [
-              { path: ["versionedUrl"] },
-              { parameter: entity.metadata.entityTypeId },
-            ],
+            any: entity.metadata.entityTypeIds.map((entityTypeId) => ({
+              equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+            })),
           },
           graphResolveDepths: {
             inheritsFrom: { outgoing: 255 },

@@ -145,7 +145,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
     version,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
-      reset(getFormDataFromEntityType(fetchedEntityType));
+      reset(getFormDataFromEntityType(fetchedEntityType.schema));
     },
   );
 
@@ -233,7 +233,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
                   isLink={
                     !!entityTypesContext.isSpecialEntityTypeLookup?.[
                       remoteEntityType.schema.$id
-                    ]?.isFile
+                    ]?.isLink
                   }
                   ontologyChip={
                     <CopyableOntologyChip entityType={remoteEntityType} />

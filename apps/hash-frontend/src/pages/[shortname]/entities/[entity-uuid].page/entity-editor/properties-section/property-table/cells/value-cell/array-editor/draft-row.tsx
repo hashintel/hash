@@ -1,4 +1,4 @@
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { ClosedDataType } from "@blockprotocol/type-system";
 import { useState } from "react";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
@@ -12,7 +12,7 @@ import {
 import { SortableRow } from "./sortable-row";
 
 interface DraftRowProps {
-  expectedTypes: DataTypeWithMetadata["schema"][];
+  expectedTypes: ClosedDataType[];
   existingItemCount: number;
   onDraftSaved: (value: unknown) => void;
   onDraftDiscarded: () => void;

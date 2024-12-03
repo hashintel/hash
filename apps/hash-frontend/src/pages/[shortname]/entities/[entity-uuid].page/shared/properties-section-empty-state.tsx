@@ -1,14 +1,19 @@
 import { Chip } from "@hashintel/design-system";
 
 import { LinksIcon } from "../../../../../shared/icons";
+import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { SectionEmptyState } from "../../../shared/section-empty-state";
-import { SectionWrapper } from "../../../shared/section-wrapper";
 
 export const PropertiesSectionEmptyState = () => {
   return (
     <SectionWrapper
       title="Properties"
-      titleStartContent={<Chip label="No properties" />}
+      titleStartContent={
+        <Chip
+          label="No properties"
+          sx={{ "& span": { fontSize: 13 }, ml: 1 }}
+        />
+      }
     >
       <SectionEmptyState
         title="This entity currently has no properties"

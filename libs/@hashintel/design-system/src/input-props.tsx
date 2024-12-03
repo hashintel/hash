@@ -8,40 +8,74 @@ import {
   InputAdornment,
   inputClasses,
   outlinedInputClasses,
+  Tooltip,
 } from "@mui/material";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
+import { LoadingSpinner } from "./loading-spinner";
 
 export type TextFieldProps = {
+  /**
+   * If `error` is true, this text will appear in a tooltip when hovering over the ! at the right of the input
+   */
+  errorText?: string;
+  /**
+   * If `true`, a loading spinner will be shown at the right of the input
+   */
+  loading?: boolean;
+  /**
+   * If `true`, a check icon will be shown at the right of the input
+   */
   success?: boolean;
+  /**
+   * If `true`, the word 'Required' or 'Optional' will be appended to the label
+   */
   showLabelCornerHint?: boolean;
   autoResize?: boolean;
+  /**
+   * Provide an informative tooltip when hovering over the input's label
+   */
+  tooltipText?: string;
 } & MuiTextFieldProps;
 
 export const getInputProps = ({
   success,
   variant,
   error,
+  errorText,
+  loading,
   multiline,
   autoResize,
   ...otherProps
 }: InputProps &
   Pick<
     TextFieldProps,
-    "success" | "error" | "multiline" | "autoResize" | "variant"
+    | "success"
+    | "error"
+    | "errorText"
+    | "loading"
+    | "multiline"
+    | "autoResize"
+    | "variant"
   > = {}): InputProps => {
   const { sx: InputPropsSx = [], ...otherInputProps } = otherProps;
 
   const renderEndAdornment = () => {
-    if (!!error || success) {
+    if (!!error || !!success || loading) {
       return (
         <InputAdornment position="end">
-          <FontAwesomeIcon
-            icon={success ? faCheckCircle : faCircleExclamation}
-            sx={({ palette }) => ({
-              color: success ? palette.blue[70] : palette.red[60],
-            })}
-          />
+          {loading ? (
+            <LoadingSpinner size={16} />
+          ) : (
+            <Tooltip title={error && errorText ? errorText : ""}>
+              <FontAwesomeIcon
+                icon={success ? faCheckCircle : faCircleExclamation}
+                sx={({ palette }) => ({
+                  color: success ? palette.blue[70] : palette.red[60],
+                })}
+              />
+            </Tooltip>
+          )}
         </InputAdornment>
       );
     }
@@ -71,7 +105,9 @@ export const getInputProps = ({
     ...(variant === "outlined" ? { notched: false } : {}),
     ...otherInputProps,
     endAdornment:
-      !!error || success ? renderEndAdornment() : otherProps.endAdornment,
+      !!error || !!success || loading
+        ? renderEndAdornment()
+        : otherProps.endAdornment,
   };
 };
 export const inputLabelProps = {
