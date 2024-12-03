@@ -18,7 +18,7 @@ pre-commit:
       stage_fixed: true
     yarn:
       tags: frontend style
-      glob: "**/package.json"
+      glob: "{*/package.json, package.json}"
       run: yarn fix:constraints && yarn fix:yarn-deduplicate
       stage_fixed: true
     sqlfluff:
