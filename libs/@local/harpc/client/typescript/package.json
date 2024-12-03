@@ -26,7 +26,7 @@
     "@libp2p/interface": "2.2.1",
     "@libp2p/ping": "2.0.12",
     "@libp2p/tcp": "10.0.13",
-    "@multiformats/multiaddr": "12.3.3",
+    "@multiformats/multiaddr": "12.3.4",
     "effect": "3.11.2",
     "it-stream-types": "2.0.2",
     "libp2p": "2.3.1",

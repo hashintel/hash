@@ -8456,7 +8456,7 @@ __metadata:
     "@libp2p/tcp": "npm:10.0.13"
     "@local/eslint-config": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@multiformats/multiaddr": "npm:12.3.3"
+    "@multiformats/multiaddr": "npm:12.3.4"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
     "@types/node": "npm:22.10.0"
     "@vitest/coverage-istanbul": "npm:2.1.8"
@@ -9201,7 +9201,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@multiformats/multiaddr@npm:12.3.3, @multiformats/multiaddr@npm:^12.0.0, @multiformats/multiaddr@npm:^12.2.3":
+"@multiformats/multiaddr@npm:12.3.4":
+  version: 12.3.4
+  resolution: "@multiformats/multiaddr@npm:12.3.4"
+  dependencies:
+    "@chainsafe/is-ip": "npm:^2.0.1"
+    "@chainsafe/netmask": "npm:^2.0.0"
+    "@multiformats/dns": "npm:^1.0.3"
+    multiformats: "npm:^13.0.0"
+    uint8-varint: "npm:^2.0.1"
+    uint8arrays: "npm:^5.0.0"
+  checksum: 10c0/0fd1522e5e6e7ab5aa288188b33f958c866f32c754e8ad9270b232ee0842282a4572c15a7fd5480e7c35c237b53ab19862129a87acbf09aa38ea47a5619ae700
+  languageName: node
+  linkType: hard
+
+"@multiformats/multiaddr@npm:^12.0.0, @multiformats/multiaddr@npm:^12.2.3":
   version: 12.3.3
   resolution: "@multiformats/multiaddr@npm:12.3.3"
   dependencies:
