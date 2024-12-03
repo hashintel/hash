@@ -31,3 +31,8 @@ pre-commit:
       glob: "*.rs"
       run: cargo fmt -- {staged_files} || true
       stage_fixed: true
+    toml:
+      tags: backend style
+      glob: "*.toml"
+      run: yarn run taplo format {staged_files} || true
+      stage_fixed: true
