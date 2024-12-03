@@ -5264,43 +5264,43 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/platform-node-shared@npm:^0.19.32":
-  version: 0.19.32
-  resolution: "@effect/platform-node-shared@npm:0.19.32"
+"@effect/platform-node-shared@npm:^0.20.2":
+  version: 0.20.2
+  resolution: "@effect/platform-node-shared@npm:0.20.2"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    "@effect/platform": ^0.69.31
-    effect: ^3.10.19
-  checksum: 10c0/a6256806cc7c5f2dfb41f25f3d645b345c4877604f659120085ac2462495b56d4f59afe9cd8f33e3bbdef97873dc5703bc9dc1cb4cb5a53cbba1f9e135fd7516
+    "@effect/platform": ^0.70.2
+    effect: ^3.11.2
+  checksum: 10c0/caab1d994dc501beb54aea2a3c043aa574f9c154bb0f4648034737841ae54b138682564b9be4c9d6d306c42b3b3ade6a17c84d767c82638423c38c8c6812212b
   languageName: node
   linkType: hard
 
-"@effect/platform-node@npm:0.64.33":
-  version: 0.64.33
-  resolution: "@effect/platform-node@npm:0.64.33"
+"@effect/platform-node@npm:0.65.2":
+  version: 0.65.2
+  resolution: "@effect/platform-node@npm:0.65.2"
   dependencies:
-    "@effect/platform-node-shared": "npm:^0.19.32"
+    "@effect/platform-node-shared": "npm:^0.20.2"
     mime: "npm:^3.0.0"
     undici: "npm:^6.19.7"
     ws: "npm:^8.18.0"
   peerDependencies:
-    "@effect/platform": ^0.69.31
-    effect: ^3.10.19
-  checksum: 10c0/bf2777d2126cf7981376024917dfe8b17d0e62868ee15be4b92764d2dfea7a4f40330b40546967595f9a50103a4dd34592612b481e53fbb591774faab598be09
+    "@effect/platform": ^0.70.2
+    effect: ^3.11.2
+  checksum: 10c0/2e28486cc93b7295cb3318a1c690e6ae2897e1eb925b3c7a106756c7f92896d701b0bdcf5a94f85072f396f08d6ccdb3356ea159bec9bf87dbdf06923fc9ba3a
   languageName: node
   linkType: hard
 
-"@effect/platform@npm:0.69.31":
-  version: 0.69.31
-  resolution: "@effect/platform@npm:0.69.31"
+"@effect/platform@npm:0.70.2":
+  version: 0.70.2
+  resolution: "@effect/platform@npm:0.70.2"
   dependencies:
     find-my-way-ts: "npm:^0.1.5"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    effect: ^3.10.19
-  checksum: 10c0/ef4422642408cfd3900b4d750040fbca76be20eabea2df9f308e43c8df05536d22c6a0cdd7c08db2b9030ddcaa6cbe7673b2ecb8985b032d9840cdbcccef74b5
+    effect: ^3.11.2
+  checksum: 10c0/9ef4a5b0a9468292f71e40a3830ee96e843173fd50a459e6d8c36050628dc563c8eaa8fe6b0cabd2a061f41475948df584b8e4fe355f21e71ed1a53c027848ba
   languageName: node
   linkType: hard
 
@@ -8158,15 +8158,15 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/harpc-client@workspace:libs/@local/harpc/client/typescript"
   dependencies:
-    "@effect/platform": "npm:0.69.31"
-    "@effect/platform-node": "npm:0.64.33"
+    "@effect/platform": "npm:0.70.2"
+    "@effect/platform-node": "npm:0.65.2"
     "@effect/vitest": "npm:0.14.1"
     "@local/eslint-config": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
     "@types/node": "npm:22.10.0"
     "@vitest/coverage-istanbul": "npm:2.1.8"
-    effect: "npm:3.10.19"
+    effect: "npm:3.11.2"
     eslint: "npm:8.57.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
@@ -24163,12 +24163,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"effect@npm:3.10.19":
-  version: 3.10.19
-  resolution: "effect@npm:3.10.19"
+"effect@npm:3.11.2":
+  version: 3.11.2
+  resolution: "effect@npm:3.11.2"
   dependencies:
     fast-check: "npm:^3.21.0"
-  checksum: 10c0/0206a1c79591e499ad65ae6e3f0faf40bce66f5ba1a4d5836d5db2661b67d03ed443803810b7d7d2c490f0362ff404857096eb961fb80879957f7f41f7b168c9
+  checksum: 10c0/04a04326c59d4557050744617eb2c6c5e1a1694990e7dddfda56c6023292197691d21c5b7598ba79a726a12adef1745246e262511991edcc62fb7300097b2989
   languageName: node
   linkType: hard
 

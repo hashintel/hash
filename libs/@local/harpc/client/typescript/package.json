@@ -19,11 +19,11 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "effect": "3.10.19"
+    "effect": "3.11.2"
   },
   "devDependencies": {
-    "@effect/platform": "0.69.31",
-    "@effect/platform-node": "0.64.33",
+    "@effect/platform": "0.70.2",
+    "@effect/platform-node": "0.65.2",
     "@effect/vitest": "0.14.1",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
