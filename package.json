@@ -66,13 +66,6 @@
     "bench:integration": "turbo run bench:integration --env-mode=loose --",
     "prune-node-modules": "find . -type d -name \"node_modules\" -exec rm -rf {} +"
   },
-  "lint-staged": {
-    "**": [
-      "suppress-exit-code markdownlint --fix",
-      "suppress-exit-code prettier --write",
-      "suppress-exit-code yarn constraints --fix"
-    ]
-  },
   "prettier": {
     "plugins": [
       "prettier-plugin-packagejson",
@@ -124,9 +117,7 @@
     "@taplo/cli": "0.7.0",
     "@yarnpkg/types": "^4.0.0",
     "concurrently": "7.6.0",
-    "husky": "8.0.3",
     "lefthook": "1.8.5",
-    "lint-staged": "15.2.10",
     "lockfile-lint": "4.14.0",
     "markdownlint-cli": "0.43.0",
     "npm-run-all2": "7.0.1",
