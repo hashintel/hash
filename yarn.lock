@@ -5330,43 +5330,43 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/platform-node-shared@npm:^0.20.2":
-  version: 0.20.2
-  resolution: "@effect/platform-node-shared@npm:0.20.2"
+"@effect/platform-node-shared@npm:^0.20.3":
+  version: 0.20.3
+  resolution: "@effect/platform-node-shared@npm:0.20.3"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    "@effect/platform": ^0.70.2
+    "@effect/platform": ^0.70.3
     effect: ^3.11.2
-  checksum: 10c0/caab1d994dc501beb54aea2a3c043aa574f9c154bb0f4648034737841ae54b138682564b9be4c9d6d306c42b3b3ade6a17c84d767c82638423c38c8c6812212b
+  checksum: 10c0/f3a916b12f01d13d2ce7f961b04d41f9081fb25c0495627696be895bf08b797160ab8207fb9b2da492a7ece09985a203f51fc9732f825494dad531bc36689921
   languageName: node
   linkType: hard
 
-"@effect/platform-node@npm:0.65.2":
-  version: 0.65.2
-  resolution: "@effect/platform-node@npm:0.65.2"
+"@effect/platform-node@npm:0.65.3":
+  version: 0.65.3
+  resolution: "@effect/platform-node@npm:0.65.3"
   dependencies:
-    "@effect/platform-node-shared": "npm:^0.20.2"
+    "@effect/platform-node-shared": "npm:^0.20.3"
     mime: "npm:^3.0.0"
     undici: "npm:^6.19.7"
     ws: "npm:^8.18.0"
   peerDependencies:
-    "@effect/platform": ^0.70.2
+    "@effect/platform": ^0.70.3
     effect: ^3.11.2
-  checksum: 10c0/2e28486cc93b7295cb3318a1c690e6ae2897e1eb925b3c7a106756c7f92896d701b0bdcf5a94f85072f396f08d6ccdb3356ea159bec9bf87dbdf06923fc9ba3a
+  checksum: 10c0/a6d5e24c718a9ea7b174d698a969332767bfeecea2dc74a565dd0d6a4700c315a50f633275b6cecc83504909ff7143a8e3f4a8d4453382f9f98344b1f5a1f698
   languageName: node
   linkType: hard
 
-"@effect/platform@npm:0.70.2":
-  version: 0.70.2
-  resolution: "@effect/platform@npm:0.70.2"
+"@effect/platform@npm:0.70.3":
+  version: 0.70.3
+  resolution: "@effect/platform@npm:0.70.3"
   dependencies:
     find-my-way-ts: "npm:^0.1.5"
     multipasta: "npm:^0.2.5"
   peerDependencies:
     effect: ^3.11.2
-  checksum: 10c0/9ef4a5b0a9468292f71e40a3830ee96e843173fd50a459e6d8c36050628dc563c8eaa8fe6b0cabd2a061f41475948df584b8e4fe355f21e71ed1a53c027848ba
+  checksum: 10c0/d6afb4d60ebce291b845873ae7323437844f0b2e9dc622dd429385306bf0aade78c10b29f5201c21475e572eeac8035bbfe93cc38beafe65b81d4f02dfc97777
   languageName: node
   linkType: hard
 
@@ -8446,8 +8446,8 @@ __metadata:
   dependencies:
     "@chainsafe/libp2p-noise": "npm:16.0.0"
     "@chainsafe/libp2p-yamux": "npm:7.0.1"
-    "@effect/platform": "npm:0.70.2"
-    "@effect/platform-node": "npm:0.65.2"
+    "@effect/platform": "npm:0.70.3"
+    "@effect/platform-node": "npm:0.65.3"
     "@effect/vitest": "npm:0.14.2"
     "@libp2p/crypto": "npm:5.0.7"
     "@libp2p/identify": "npm:3.0.12"
