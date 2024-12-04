@@ -765,7 +765,7 @@ __metadata:
     "@types/react": "npm:18.2.68"
     "@types/react-dom": "npm:18.2.25"
     "@types/react-html-parser": "npm:2.0.6"
-    "@types/unist": "npm:2.0.11"
+    "@types/unist": "npm:3.0.3"
     axios: "npm:1.7.9"
     babel-loader: "npm:9.2.1"
     calculation-block: "npm:0.2.2"
@@ -17779,14 +17779,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/unist@npm:*, @types/unist@npm:^3.0.0":
+"@types/unist@npm:*, @types/unist@npm:3.0.3, @types/unist@npm:^3.0.0":
   version: 3.0.3
   resolution: "@types/unist@npm:3.0.3"
   checksum: 10c0/2b1e4adcab78388e088fcc3c0ae8700f76619dbcb4741d7d201f87e2cb346bfc29a89003cfea2d76c996e1061452e14fcd737e8b25aacf949c1f2d6b2bc3dd60
   languageName: node
   linkType: hard
 
-"@types/unist@npm:2.0.11, @types/unist@npm:^2, @types/unist@npm:^2.0.0":
+"@types/unist@npm:^2, @types/unist@npm:^2.0.0":
   version: 2.0.11
   resolution: "@types/unist@npm:2.0.11"
   checksum: 10c0/24dcdf25a168f453bb70298145eb043cfdbb82472db0bc0b56d6d51cd2e484b9ed8271d4ac93000a80da568f2402e9339723db262d0869e2bf13bc58e081768d
