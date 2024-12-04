@@ -13,6 +13,11 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import type { PropertyMetadataArray } from "@local/hash-graph-types/entity";
+import {
+  isArrayMetadata,
+  isValueMetadata,
+} from "@local/hash-graph-types/entity";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { Box, styled } from "@mui/material";
 import produce from "immer";
@@ -48,8 +53,9 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const listWrapperRef = useRef<HTMLDivElement>(null);
   const {
     value: propertyValue,
-    valueDataType,
+    valueMetadata,
     permittedDataTypes,
+    setPropertyMetadata,
     maxItems,
     minItems,
   } = cell.data.propertyRow;
@@ -57,19 +63,55 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const items = useMemo(() => {
     const values = Array.isArray(propertyValue) ? propertyValue : [];
 
-    if (values.length && !valueDataType) {
-      throw new Error("Expected valueDataType to be set when there are values");
+    if (values.length && !valueMetadata) {
+      throw new Error("Expected valueMetadata to be set when there are values");
     }
 
-    const itemsArray: SortableItem[] = values.map((value, index) => ({
-      dataType: valueDataType!,
-      index,
-      id: `${index}_${String(value)}`,
-      value,
-    }));
+    if (valueMetadata && !isArrayMetadata(valueMetadata)) {
+      throw new Error(
+        `Expected array metadata for value '${JSON.stringify(values)}', got ${JSON.stringify(valueMetadata)}`,
+      );
+    }
+
+    const itemsArray: SortableItem[] = values.map((value, index) => {
+      const arrayItemMetadata = (valueMetadata as PropertyMetadataArray).value[
+        index
+      ];
+
+      if (!arrayItemMetadata) {
+        throw new Error(
+          `Expected metadata for array item at index ${index} in value '${JSON.stringify(value)}'`,
+        );
+      }
+
+      if (!isValueMetadata(arrayItemMetadata)) {
+        throw new Error(
+          `Expected single value metadata for array item at index ${index} in value '${JSON.stringify(value)}', got ${JSON.stringify(arrayItemMetadata)}`,
+        );
+      }
+
+      const dataTypeId = arrayItemMetadata.metadata.dataTypeId;
+
+      const dataType = permittedDataTypes.find(
+        (type) => type.$id === dataTypeId,
+      );
+
+      if (!dataType) {
+        throw new Error(
+          "Expected a data type to be set on the value or at least one permitted data type",
+        );
+      }
+
+      return {
+        dataType,
+        index,
+        id: `${index}_${String(value)}`,
+        value,
+      };
+    });
 
     return itemsArray;
-  }, [propertyValue, valueDataType]);
+  }, [propertyValue, valueMetadata, permittedDataTypes]);
 
   const [selectedRow, setSelectedRow] = useState("");
   const [editingRow, setEditingRow] = useState(() => {

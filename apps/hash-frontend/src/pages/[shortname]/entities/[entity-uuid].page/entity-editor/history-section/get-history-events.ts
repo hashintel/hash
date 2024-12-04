@@ -2,7 +2,11 @@ import { extractBaseUrl, type VersionedUrl } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { EntityTypeIdDiff } from "@local/hash-graph-client";
-import type { EntityId, PropertyPath } from "@local/hash-graph-types/entity";
+import {
+  EntityId,
+  isValueMetadata,
+  PropertyPath,
+} from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
@@ -153,13 +157,19 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
 
     if (diffData.diff.properties) {
       for (const propertyDiff of diffData.diff.properties) {
-        const propertyProvenance = changedEntityEdition.propertyMetadata(
+        const propertyMetadata = changedEntityEdition.propertyMetadata(
           propertyDiff.path as PropertyPath,
-        )?.provenance;
+        );
 
-        /**
-         * @todo H-2775 – handle property objects and changes to array contents
-         */
+        if (!propertyMetadata || !isValueMetadata(propertyMetadata)) {
+          /**
+           * @todo H-2775 – handle property objects and changes to array contents
+           */
+          continue;
+        }
+
+        const propertyProvenance = propertyMetadata.metadata.provenance;
+
         const propertyBaseUrl = propertyDiff.path[0] as BaseUrl;
         try {
           const propertyTypeWithMetadata = getPropertyTypeForEntity(
@@ -207,12 +217,16 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
   for (const [index, [key, value]] of typedEntries(
     firstEntityEdition.properties,
   ).entries()) {
-    /**
-     * @todo H-2775 – handle property objects and changes to array contents
-     */
-    const propertyProvenance = firstEntityEdition.propertyMetadata([
-      key,
-    ])?.provenance;
+    const propertyMetadata = firstEntityEdition.propertyMetadata([key]);
+
+    if (!propertyMetadata || !isValueMetadata(propertyMetadata)) {
+      /**
+       * @todo H-2775 – handle property objects and changes to array contents
+       */
+      continue;
+    }
+
+    const propertyProvenance = propertyMetadata.metadata.provenance;
 
     try {
       const propertyTypeWithMetadata = getPropertyTypeForEntity(

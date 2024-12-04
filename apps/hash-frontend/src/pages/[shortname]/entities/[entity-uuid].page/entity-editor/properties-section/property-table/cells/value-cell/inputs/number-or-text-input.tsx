@@ -1,9 +1,9 @@
 import type { TextFieldProps } from "@hashintel/design-system";
 import { TextField } from "@hashintel/design-system";
+import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 import { format, formatISO, parseISO } from "date-fns";
 
 import type { CellInputProps } from "./types";
-import { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 
 /**
  * Get the current offset from UTC according to the user's device.

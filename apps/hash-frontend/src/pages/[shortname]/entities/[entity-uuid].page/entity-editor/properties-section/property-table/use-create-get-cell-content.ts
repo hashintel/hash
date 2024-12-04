@@ -1,5 +1,6 @@
 import type { Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import { isValueMetadata } from "@local/hash-graph-types/entity";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { useCallback } from "react";
 
@@ -63,7 +64,7 @@ export const useCreateGetCellContent = (
           },
         };
 
-        const { isArray, permittedDataTypes, valueDataType } = row;
+        const { isArray, permittedDataTypes, valueMetadata } = row;
 
         const shouldShowChangeTypeCell =
           permittedDataTypes.length > 1 && !isArray && !readonly;
@@ -110,19 +111,39 @@ export const useCreateGetCellContent = (
             }
 
             if (shouldShowChangeTypeCell) {
-              if (!valueDataType) {
-                throw new Error("valueDataType not found");
+              if (!valueMetadata) {
+                throw new Error(
+                  `Expected value metadata to be set when showing change type cell`,
+                );
+              }
+
+              if (!isValueMetadata(valueMetadata)) {
+                throw new Error(
+                  `Expected single value when showing change type cell`,
+                );
+              }
+
+              const dataTypeId = valueMetadata.metadata.dataTypeId;
+
+              const dataType = permittedDataTypes.find(
+                (type) => type.$id === dataTypeId,
+              );
+
+              if (!dataType) {
+                throw new Error(
+                  "Expected a data type to be set on the value or at least one permitted data type",
+                );
               }
 
               return {
                 kind: GridCellKind.Custom,
                 allowOverlay: false,
                 readonly: true,
-                copyData: valueDataType.$id,
+                copyData: dataType.$id,
                 cursor: "pointer",
                 data: {
                   kind: "change-type-cell",
-                  currentType: valueDataType,
+                  currentType: dataType,
                   propertyRow: row,
                   valueCellOfThisRow: valueCell,
                 },

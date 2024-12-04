@@ -1,22 +1,33 @@
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { useEntityEditor } from "../../../entity-editor-context";
 import type { PropertyRow } from "../types";
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
+import {
+  PropertyMetadataValue,
+  PropertyPath,
+} from "@local/hash-graph-types/entity";
 
 export const usePropertyRowsFromEntity = (): PropertyRow[] => {
   const {
-    entitySubgraph,
+    entity,
     closedMultiEntityType,
     closedMultiEntityTypesDefinitions,
+    setEntity,
   } = useEntityEditor();
 
-  return useMemo(() => {
-    const entity = getRoots(entitySubgraph)[0]!;
+  const setPropertyMetadata = useCallback(
+    (propertyPath: PropertyPath, metadata: PropertyMetadataValue) => {
+      const updatedEntity = entity.setPropertyMetadata(propertyPath, metadata);
 
+      setEntity(updatedEntity);
+    },
+    [entity, setEntity],
+  );
+
+  return useMemo(() => {
     const processedPropertyTypes = new Set<BaseUrl>();
 
     return typedKeys(closedMultiEntityType.properties).flatMap(
@@ -46,9 +57,5 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
         });
       },
     );
-  }, [
-    entitySubgraph,
-    closedMultiEntityType,
-    closedMultiEntityTypesDefinitions,
-  ]);
+  }, [entity, closedMultiEntityType, closedMultiEntityTypesDefinitions]);
 };

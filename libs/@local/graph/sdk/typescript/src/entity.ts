@@ -27,7 +27,9 @@ import type {
   Property,
   PropertyArrayWithMetadata,
   PropertyMetadata,
+  PropertyMetadataArray,
   PropertyMetadataObject,
+  PropertyMetadataValue,
   PropertyObject,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
@@ -905,6 +907,85 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
         return undefined;
       }
     }, this.#entity.metadata.properties);
+  }
+
+  public setPropertyMetadata(
+    path: PropertyPath,
+    metadata: PropertyMetadataValue,
+  ): this {
+    const clonedMetadata = JSON.parse(
+      JSON.stringify(this.#entity.metadata.properties),
+    ) as PropertyMetadataObject | undefined;
+
+    if (!clonedMetadata) {
+      throw new Error(
+        `Expected metadata to be an object, but got metadata for property array: ${JSON.stringify(
+          clonedMetadata,
+          null,
+          2,
+        )}`,
+      );
+    }
+
+    const firstKey = path[0];
+
+    if (!firstKey) {
+      throw new Error("Expected path to have at least one key");
+    }
+
+    if (typeof firstKey === "number") {
+      throw new Error(`Expected first key to be a string, but got ${firstKey}`);
+    }
+
+    const propertyMetadata = clonedMetadata.value[firstKey];
+
+    const secondKey = path[1];
+
+    const remainingKeys = path.slice(2);
+
+    if (!propertyMetadata) {
+      if (typeof secondKey === "number") {
+        if (remainingKeys[0]) {
+          if (typeof remainingKeys[0] === "number") {
+            throw new Error(
+              `Multi-dimensional arrays as property values are not yet supported`,
+            );
+          } else {
+            throw new Error(`Arrays of property objects are not yet supported`);
+          }
+        }
+
+        clonedMetadata.value[firstKey] = {
+          value: [metadata],
+        };
+        this.#entity.metadata.properties = clonedMetadata;
+        return this;
+      }
+    } else if (typeof secondKey === "number") {
+      if (!isArrayMetadata(propertyMetadata)) {
+        throw new Error(
+          `Expected property metadata to be an array at path ${JSON.stringify([firstKey, secondKey])}, but got ${JSON.stringify(
+            propertyMetadata,
+          )}`,
+        );
+      }
+
+      if (remainingKeys[0]) {
+        if (typeof remainingKeys[0] === "number") {
+          throw new Error(
+            `Multi-dimensional arrays as property values are not yet supported`,
+          );
+        } else {
+          throw new Error(`Arrays of property objects are not yet supported`);
+        }
+      }
+
+      propertyMetadata.value[secondKey] = metadata;
+      this.#entity.metadata.properties = clonedMetadata;
+      return this;
+    }
+
+    // @todo handle property objects
   }
 
   public flattenedPropertiesMetadata(): {

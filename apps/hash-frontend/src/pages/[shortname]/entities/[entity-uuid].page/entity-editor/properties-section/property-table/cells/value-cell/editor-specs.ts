@@ -2,10 +2,8 @@ import type { ClosedDataType } from "@blockprotocol/type-system";
 import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
   fa100,
-  faAsterisk,
   faAtRegular,
   faBracketsCurly,
-  faBracketsSquare,
   faCalendarClockRegular,
   faCalendarRegular,
   faClockRegular,
@@ -15,10 +13,10 @@ import {
   faSquareCheck,
   faText,
 } from "@hashintel/design-system";
+import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 
 import type { CustomIcon } from "../../../../../../../../../components/grid/utils/custom-grid-icons";
 import type { EditorType } from "./types";
-import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 
 interface EditorSpec {
   icon: IconDefinition["icon"];

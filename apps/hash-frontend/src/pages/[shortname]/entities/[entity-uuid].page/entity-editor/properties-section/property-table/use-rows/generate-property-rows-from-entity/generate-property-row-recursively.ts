@@ -59,6 +59,7 @@ export const generatePropertyRowRecursively = ({
   requiredPropertyTypes,
   depth = 0,
   propertyRefSchema,
+  setPropertyMetadata,
 }: {
   closedMultiEntityType: ClosedMultiEntityType;
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
@@ -68,6 +69,7 @@ export const generatePropertyRowRecursively = ({
   requiredPropertyTypes: BaseUrl[];
   depth?: number;
   propertyRefSchema: ValueOrArray<PropertyTypeReference>;
+  setPropertyMetadata: Entity["setPropertyMetadata"];
 }): PropertyRow => {
   const propertyTypeId =
     "$ref" in propertyRefSchema
@@ -81,12 +83,22 @@ export const generatePropertyRowRecursively = ({
     throw new Error(`Property type ${propertyTypeId} not found in definitions`);
   }
 
-  const { isArray: isPropertyTypeArray, expectedTypes } =
-    getExpectedTypesOfPropertyType(
-      propertyType,
-      closedMultiEntityTypesDefinitions,
-    );
+  const {
+    /**
+     * Whether the property type specifies that it expects an array of values.
+     */
+    isArray: isPropertyTypeArray,
+    expectedTypes,
+  } = getExpectedTypesOfPropertyType(
+    propertyType,
+    closedMultiEntityTypesDefinitions,
+  );
 
+  /**
+   * Whether the entity type has specified that it expects multiple instances of whatever value this property expects.
+   * Note that the editor currently only supports 1D arrays, and therefore does not support
+   * isPropertyTypeArray && isAllowMultiple, which would be a 2D array.
+   */
   const isAllowMultiple = "type" in propertyRefSchema;
 
   const isArray = isPropertyTypeArray || isAllowMultiple;
@@ -96,7 +108,7 @@ export const generatePropertyRowRecursively = ({
   const value = get(entity.properties, propertyKeyChain);
   const valueMetadata = entity.propertyMetadata(propertyKeyChain);
 
-  if (!valueMetadata?.metadata) {
+  if (value !== undefined && !valueMetadata) {
     throw new Error(`Property metadata not found for path ${propertyKeyChain}`);
   }
 
@@ -126,6 +138,7 @@ export const generatePropertyRowRecursively = ({
           requiredPropertyTypes,
           depth: depth + 1,
           propertyRefSchema: subPropertyRefSchema,
+          setPropertyMetadata,
         }),
       );
     }
@@ -164,54 +177,6 @@ export const generatePropertyRowRecursively = ({
     }
   }
 
-  let valueDataType: PropertyRow["valueDataType"];
-  if (isFirstOneOfNested) {
-    valueDataType = "object";
-  } else if (isFirstOneOfArray) {
-    if (!("value" in valueMetadata) || !Array.isArray(valueMetadata.value)) {
-      throw new Error("Expected metadata for value to be an array");
-    }
-    valueDataType = valueMetadata.value.map((item) => {
-      if (
-        !item.metadata ||
-        !("dataTypeId" in item.metadata) ||
-        !item.metadata.dataTypeId
-      ) {
-        throw new Error("Expected dataTypeId to be in array item metadata");
-      }
-      const dataType =
-        closedMultiEntityTypesDefinitions.dataTypes[item.metadata.dataTypeId];
-
-      if (!dataType) {
-        throw new Error(
-          `DataType ${item.metadata.dataTypeId} not found in definitions`,
-        );
-      }
-
-      return dataType;
-    });
-  } else {
-    if (
-      !("dataTypeId" in valueMetadata.metadata) ||
-      !valueMetadata.metadata.dataTypeId
-    ) {
-      throw new Error("Expected dataTypeId to be in valueMetadata");
-    }
-
-    const dataType =
-      closedMultiEntityTypesDefinitions.dataTypes[
-        valueMetadata.metadata.dataTypeId
-      ];
-
-    if (!dataType) {
-      throw new Error(
-        `DataType ${valueMetadata.metadata.dataTypeId} not found in definitions`,
-      );
-    }
-
-    valueDataType = dataType;
-  }
-
   return {
     ...minMaxConfig,
     children,
@@ -223,9 +188,10 @@ export const generatePropertyRowRecursively = ({
     propertyKeyChain,
     required,
     rowId,
+    setPropertyMetadata,
     title: propertyType.title,
     value,
-    valueDataType,
+    valueMetadata,
     /**
      * this will be filled by `fillRowIndentCalculations`
      * this is not filled here, because we'll use the whole flattened tree,

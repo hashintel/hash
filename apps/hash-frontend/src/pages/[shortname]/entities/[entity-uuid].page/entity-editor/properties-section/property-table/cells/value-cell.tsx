@@ -2,6 +2,10 @@ import type { JsonValue } from "@blockprotocol/core";
 import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
+import {
+  isArrayMetadata,
+  isValueMetadata,
+} from "@local/hash-graph-types/entity";
 import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
 import {
   formatDataValue,
@@ -19,7 +23,6 @@ import { InteractableManager } from "../../../../../../../../components/grid/uti
 import { drawInteractableTooltipIcons } from "../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import { isValueEmpty } from "../../is-value-empty";
 import { ArrayEditor } from "./value-cell/array-editor";
-import { getEditorSpecs } from "./value-cell/editor-specs";
 import { ReadonlyPopup } from "./value-cell/readonly-popup";
 import { SingleValueEditor } from "./value-cell/single-value-editor";
 import type { ValueCell } from "./value-cell/types";
@@ -34,7 +37,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
 
     const { readonly } = cell.data;
 
-    const { value, valueDataType, permittedDataTypes, isArray, isSingleUrl } =
+    const { value, valueMetadata, permittedDataTypes, isArray, isSingleUrl } =
       cell.data.propertyRow;
 
     ctx.fillStyle = theme.textHeader;
@@ -43,45 +46,23 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const yCenter = getYCenter(args);
     const left = rect.x + getCellHorizontalPadding();
 
-    const dataType = valueDataType ?? permittedDataTypes[0];
-
-    if (!dataType) {
-      throw new Error(
-        "Expected a data type to be set on the value or at least one permitted data type",
-      );
-    }
-
-    const schema = getMergedDataTypeSchema(dataType);
-
-    if ("anyOf" in schema) {
-      throw new Error(
-        "Data types with different expected sets of constraints (anyOf) are not yet supported",
-      );
-    }
-
-    const editorSpec = getEditorSpecs(dataType, schema);
-
     if (isValueEmpty(value)) {
       // draw empty value
       ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
       const emptyText = isArray ? "No values" : "No value";
       ctx.fillText(emptyText, left, yCenter);
-    } else if (!isArray && editorSpec.shouldBeDrawnAsAChip) {
+    } else if (!isArray && typeof value === "object") {
       drawChipWithText({
         args,
         left,
-        text: formatDataValue(value as JsonValue, schema)
-          .map((part) => part.text)
-          .join(""),
+        text: !value ? "null" : JSON.stringify(value),
       });
-    } else if (schema.type === "boolean") {
+    } else if (typeof value === "boolean") {
       // draw boolean
       drawTextWithIcon({
         args,
-        text: formatDataValue(value as JsonValue, schema)
-          .map((part) => part.text)
-          .join(""),
+        text: value.toString(),
         icon: value ? "bpCheck" : "bpCross",
         left,
         iconColor: customColors.gray[50],
@@ -90,9 +71,55 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     } else if (readonly && isSingleUrl) {
       drawUrlAsLink({ args, url: value as string, left });
     } else {
+      if (!valueMetadata) {
+        throw new Error(
+          `Expected value metadata to be set when value '${value}' is not empty`,
+        );
+      }
+
       const valueParts: FormattedValuePart[] = [];
       if (Array.isArray(value)) {
         for (const [index, entry] of value.entries()) {
+          if (!isArrayMetadata(valueMetadata)) {
+            throw new Error(
+              `Expected array metadata for value '${JSON.stringify(value)}', got ${JSON.stringify(valueMetadata)}`,
+            );
+          }
+
+          const arrayItemMetadata = valueMetadata.value[index];
+
+          if (!arrayItemMetadata) {
+            throw new Error(
+              `Expected metadata for array item at index ${index} in value '${JSON.stringify(value)}'`,
+            );
+          }
+
+          if (!isValueMetadata(arrayItemMetadata)) {
+            throw new Error(
+              `Expected single value metadata for array item at index ${index} in value '${JSON.stringify(value)}', got ${JSON.stringify(arrayItemMetadata)}`,
+            );
+          }
+
+          const dataTypeId = arrayItemMetadata.metadata.dataTypeId;
+
+          const dataType = permittedDataTypes.find(
+            (type) => type.$id === dataTypeId,
+          );
+
+          if (!dataType) {
+            throw new Error(
+              "Expected a data type to be set on the value or at least one permitted data type",
+            );
+          }
+
+          const schema = getMergedDataTypeSchema(dataType);
+
+          if ("anyOf" in schema) {
+            throw new Error(
+              "Data types with different expected sets of constraints (anyOf) are not yet supported",
+            );
+          }
+
           valueParts.push(...formatDataValue(entry as JsonValue, schema));
           if (index < value.length - 1) {
             valueParts.push({
@@ -103,6 +130,32 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
           }
         }
       } else {
+        if (!isValueMetadata(valueMetadata)) {
+          throw new Error(
+            `Expected single value metadata for value '${value}', got ${JSON.stringify(valueMetadata)}`,
+          );
+        }
+
+        const dataTypeId = valueMetadata.metadata.dataTypeId;
+
+        const dataType = permittedDataTypes.find(
+          (type) => type.$id === dataTypeId,
+        );
+
+        if (!dataType) {
+          throw new Error(
+            "Expected a data type to be set on the value or at least one permitted data type",
+          );
+        }
+
+        const schema = getMergedDataTypeSchema(dataType);
+
+        if ("anyOf" in schema) {
+          throw new Error(
+            "Data types with different expected sets of constraints (anyOf) are not yet supported",
+          );
+        }
+
         valueParts.push(...formatDataValue(value as JsonValue, schema));
       }
 

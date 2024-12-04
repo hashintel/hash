@@ -1,6 +1,7 @@
 import type { ClosedDataType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
+import { isValueMetadata } from "@local/hash-graph-types/entity";
 import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { Box } from "@mui/material";
@@ -17,7 +18,13 @@ import type { ValueCell, ValueCellEditorComponent } from "./types";
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   const { value: cell, onChange, onFinishedEditing } = props;
-  const { permittedDataTypes, value, valueDataType } = cell.data.propertyRow;
+  const {
+    permittedDataTypes,
+    propertyKeyChain,
+    setPropertyMetadata,
+    value,
+    valueMetadata,
+  } = cell.data.propertyRow;
 
   const textInputFormRef = useRef<HTMLFormElement>(null);
 
@@ -25,14 +32,46 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     dataType: ClosedDataType;
     schema: MergedDataTypeSingleSchema;
   } | null>(() => {
-    if (!valueDataType) {
+    if (permittedDataTypes.length === 1) {
+      const dataType = permittedDataTypes[0]!;
+      const schema = getMergedDataTypeSchema(dataType);
+
+      if ("anyOf" in schema) {
+        throw new Error(
+          "Data types with different expected sets of constraints (anyOf) are not yet supported",
+        );
+      }
+
+      return {
+        dataType,
+        schema,
+      };
+    }
+
+    if (!valueMetadata) {
       /**
        * We don't yet have a value set
        */
       return null;
     }
 
-    const schema = getMergedDataTypeSchema(valueDataType);
+    if (!isValueMetadata(valueMetadata)) {
+      throw new Error(
+        `Expected single value metadata in SingleValueEditor, got ${JSON.stringify(valueMetadata)}`,
+      );
+    }
+
+    const dataTypeId = valueMetadata.metadata.dataTypeId;
+
+    const dataType = permittedDataTypes.find((type) => type.$id === dataTypeId);
+
+    if (!dataType) {
+      throw new Error(
+        "Expected a data type to be set on the value or at least one permitted data type",
+      );
+    }
+
+    const schema = getMergedDataTypeSchema(dataType);
 
     if ("anyOf" in schema) {
       throw new Error(
@@ -41,10 +80,20 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     }
 
     return {
-      dataType: valueDataType,
+      dataType,
       schema,
     };
   });
+
+  useEffect(() => {
+    if (chosenDataType) {
+      setPropertyMetadata(propertyKeyChain, {
+        metadata: {
+          dataTypeId: chosenDataType.dataType.$id,
+        },
+      });
+    }
+  }, [chosenDataType, propertyKeyChain, setPropertyMetadata]);
 
   const latestValueCellRef = useRef<ValueCell>(cell);
   useEffect(() => {
