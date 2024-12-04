@@ -294,6 +294,7 @@ pub fn add_structural_embedding(
 #[cfg(test)]
 mod tests {
     use insta::{assert_binary_snapshot, assert_snapshot};
+    use serde_json::to_string_pretty;
     use tokio::fs;
 
     use super::*;
@@ -306,7 +307,17 @@ mod tests {
             .await
             .change_context(ChonkyError::ImageError)?;
         // source of truth found by decoding base64 encoding to get same image
-        assert_binary_snapshot!("page_1.json", base64_json(image_data).to_string().into());
+        // must use string_pretty since there is autoformating done by compiler with addition of
+        // newline
+        assert_binary_snapshot!(
+            "page_1.json",
+            format!(
+                "{}\n",
+                to_string_pretty(&base64_json(image_data))
+                    .change_context(ChonkyError::ImageError)?
+            )
+            .into()
+        );
         Ok(())
     }
 
@@ -332,8 +343,13 @@ mod tests {
             .await
             .change_context(ChonkyError::ImageError)?;
 
+        //project id
+
+        let project_id =
+            std::env::var("GOOGLE_PROJECT_ID").change_context(ChonkyError::VertexAPI)?;
+
         let test_embedding =
-            make_multimodal_api_request("hash-embed", Some(image_data), None).await?;
+            make_multimodal_api_request(&project_id, Some(image_data), None).await?;
 
         //find cosine similarity of vectors
 
