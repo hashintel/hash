@@ -1,0 +1,6 @@
+---
+source: libs/chonky/src/embedding/multi_modal_embedding.rs
+expression: base64_json(image_data)?.into()
+extension: json
+snapshot_kind: binary
+---
