@@ -210,8 +210,13 @@ pub async fn make_multimodal_api_request(
     if !response.status().is_success() {
         return Err(
             Report::new(ChonkyError::VertexAPI).attach_printable(format!(
-                "Received the error code {} in the response status",
-                response.status()
+                "Received the error code {} in the response status with error text {:?}",
+                response.status(),
+                response
+                    .error_for_status()
+                    .change_context(ChonkyError::VertexAPI)?
+                    .text()
+                    .await,
             )),
         );
     }
