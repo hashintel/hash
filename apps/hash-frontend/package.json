@@ -65,7 +65,7 @@
     "@tldraw/tldraw": "2.0.0-alpha.12",
     "@tldraw/tlvalidate": "2.0.0-alpha.12",
     "@types/prismjs": "1.26.5",
-    "axios": "1.7.8",
+    "axios": "1.7.9",
     "buffer": "6.0.3",
     "clsx": "1.2.1",
     "date-fns": "4.1.0",
