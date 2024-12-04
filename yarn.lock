@@ -326,7 +326,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:2.1.8"
     ajv: "npm:8.17.1"
     ajv-formats: "npm:3.0.1"
-    axios: "npm:1.7.8"
+    axios: "npm:1.7.9"
     cache-manager: "npm:5.7.6"
     dedent: "npm:0.7.0"
     dotenv-flow: "npm:3.3.0"
@@ -427,7 +427,7 @@ __metadata:
     apollo-server-errors: "npm:3.3.1"
     apollo-server-express: "npm:3.9.0"
     app-root-path: "npm:3.1.0"
-    axios: "npm:1.7.8"
+    axios: "npm:1.7.9"
     body-parser: "npm:1.20.3"
     clipboardy: "npm:2.3.0"
     cors: "npm:2.8.5"
@@ -551,7 +551,7 @@ __metadata:
     "@types/url-regex-safe": "npm:1.0.2"
     "@types/uuid": "npm:10.0.0"
     "@welldone-software/why-did-you-render": "npm:8.0.3"
-    axios: "npm:1.7.8"
+    axios: "npm:1.7.9"
     buffer: "npm:6.0.3"
     clsx: "npm:1.2.1"
     date-fns: "npm:4.1.0"
@@ -664,7 +664,7 @@ __metadata:
     "@temporalio/workflow": "npm:1.11.5"
     "@types/dotenv-flow": "npm:3.3.3"
     agentkeepalive: "npm:4.5.0"
-    axios: "npm:1.7.8"
+    axios: "npm:1.7.9"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:8.57.0"
     rimraf: "npm:6.0.1"
@@ -766,7 +766,7 @@ __metadata:
     "@types/react-dom": "npm:18.2.25"
     "@types/react-html-parser": "npm:2.0.6"
     "@types/unist": "npm:2.0.11"
-    axios: "npm:1.7.8"
+    axios: "npm:1.7.9"
     babel-loader: "npm:9.2.1"
     calculation-block: "npm:0.2.2"
     chalk: "npm:5.3.0"
@@ -8504,7 +8504,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:2.1.8"
     agentkeepalive: "npm:4.5.0"
     apollo-datasource: "npm:3.3.2"
-    axios: "npm:1.7.8"
+    axios: "npm:1.7.9"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:8.57.0"
     exponential-backoff: "npm:3.1.1"
@@ -8530,7 +8530,7 @@ __metadata:
     "@redocly/cli": "npm:1.25.15"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.10.1"
-    axios: "npm:1.7.8"
+    axios: "npm:1.7.9"
     fix-esm-import-path: "npm:1.10.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
@@ -8654,7 +8654,7 @@ __metadata:
     "@local/eslint-config": "npm:0.0.0-private"
     "@openapitools/openapi-generator-cli": "npm:2.15.3"
     "@types/node": "npm:22.10.1"
-    axios: "npm:1.7.8"
+    axios: "npm:1.7.9"
     prettier: "npm:3.4.2"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
@@ -20069,14 +20069,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.7.8, axios@npm:^1.4.0, axios@npm:^1.6.0, axios@npm:^1.6.1, axios@npm:^1.7.7":
-  version: 1.7.8
-  resolution: "axios@npm:1.7.8"
+"axios@npm:1.7.9, axios@npm:^1.4.0, axios@npm:^1.6.0, axios@npm:^1.6.1, axios@npm:^1.7.7":
+  version: 1.7.9
+  resolution: "axios@npm:1.7.9"
   dependencies:
     follow-redirects: "npm:^1.15.6"
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/23ae2d0105aea9170c34ac9b6f30d9b2ab2fa8b1370205d2f7ce98b9f9510ab420148c13359ee837ea5a4bf2fb028ff225bd2fc92052fb0c478c6b4a836e2d5f
+  checksum: 10c0/b7a41e24b59fee5f0f26c1fc844b45b17442832eb3a0fb42dd4f1430eb4abc571fe168e67913e8a1d91c993232bd1d1ab03e20e4d1fee8c6147649b576fc1b0b
   languageName: node
   linkType: hard
 

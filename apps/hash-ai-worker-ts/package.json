@@ -64,7 +64,7 @@
     "@temporalio/workflow": "1.11.5",
     "ajv": "8.17.1",
     "ajv-formats": "3.0.1",
-    "axios": "1.7.8",
+    "axios": "1.7.9",
     "cache-manager": "5.7.6",
     "dedent": "0.7.0",
     "dotenv-flow": "3.3.0",
