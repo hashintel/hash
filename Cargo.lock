@@ -1203,7 +1203,7 @@ dependencies = [
  "image",
  "insta",
  "pdfium-render",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
 ]
 
 [[package]]
@@ -2083,7 +2083,7 @@ dependencies = [
  "spin 0.9.8",
  "supports-color",
  "supports-unicode",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "tracing",
  "tracing-error",
  "tracing-subscriber",
@@ -2604,7 +2604,7 @@ dependencies = [
  "multiaddr",
  "serde",
  "serde-value",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "tokio-util",
  "tower 0.5.1",
 ]
@@ -2622,7 +2622,7 @@ dependencies = [
  "pin-project-lite",
  "serde",
  "serde_json",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "tokio",
 ]
 
@@ -2660,7 +2660,7 @@ dependencies = [
  "serde",
  "tachyonix",
  "test-log",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -2688,7 +2688,7 @@ dependencies = [
  "multiaddr",
  "scc",
  "serde",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "tokio",
  "tokio-util",
  "tower 0.5.1",
@@ -2721,7 +2721,7 @@ dependencies = [
  "pin-project",
  "pin-project-lite",
  "serde",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "tokio",
  "tokio-test",
  "tokio-util",
@@ -2755,7 +2755,7 @@ dependencies = [
  "serde_json",
  "similar-asserts",
  "test-strategy",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
 ]
 
 [[package]]
@@ -3011,7 +3011,7 @@ dependencies = [
  "postgres-types",
  "serde",
  "serde_json",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "tokio",
  "tokio-postgres",
  "tracing",
@@ -3106,7 +3106,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "time",
  "tokio",
  "trait-variant",
@@ -3129,7 +3129,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "tokio",
  "type-system",
  "url",
@@ -3152,7 +3152,7 @@ dependencies = [
  "inferno",
  "serde",
  "serde_json",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "tokio",
  "walkdir",
 ]
@@ -3174,7 +3174,7 @@ dependencies = [
  "serde_json",
  "temporal-client",
  "temporal-sdk-core-protos",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "url",
  "uuid",
 ]
@@ -3382,7 +3382,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "text-size",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
 ]
 
 [[package]]
@@ -4157,7 +4157,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -7483,11 +7483,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.3"
+version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c006c85c7651b3cf2ada4584faa36773bd07bac24acfb39f3c431b36d7e667aa"
+checksum = "2f49a1853cf82743e3b7950f77e0f4d622ca36cf4317cba00c767838bac8d490"
 dependencies = [
- "thiserror-impl 2.0.3",
+ "thiserror-impl 2.0.4",
 ]
 
 [[package]]
@@ -7503,9 +7503,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.3"
+version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f077553d607adc1caf65430528a576c757a71ed73944b66ebb58ef2bbd243568"
+checksum = "8381894bb3efe0c4acac3ded651301ceee58a15d47c2e34885ed1908ad667061"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8135,7 +8135,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "tokio",
  "tsify",
  "url",
@@ -8665,7 +8665,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
