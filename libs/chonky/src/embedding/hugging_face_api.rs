@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use error_stack::{Report, ResultExt as _};
 use reqwest::{
     Client,
@@ -28,7 +30,9 @@ fn get_hugging_face_token() -> Result<String, Report<ChonkyError>> {
     std::env::var("HUGGING_FACE_TOKEN").change_context(ChonkyError::HuggingFaceAPI)
 }
 
-async fn get_binary_image_data(image_path: &str) -> Result<Vec<u8>, Report<ChonkyError>> {
+async fn get_binary_image_data(
+    image_path: impl AsRef<Path> + core::marker::Send + core::marker::Sync,
+) -> Result<Vec<u8>, Report<ChonkyError>> {
     fs::read(image_path)
         .await
         .change_context(ChonkyError::ImageError)
@@ -45,13 +49,13 @@ fn extract_bounding_boxes(json_payload: &str) -> Result<Vec<TablePrediction>, Re
 ///
 /// [`ChonkyError::HuggingFaceAPI`] when there are HTTP request errors
 pub async fn make_table_recognition_request(
-    image_path: &str,
+    image_path: impl AsRef<Path> + core::marker::Send + core::marker::Sync,
     retry: bool,
 ) -> Result<Vec<TablePrediction>, Report<ChonkyError>> {
     let url = "https://api-inference.huggingface.co/models/microsoft/table-transformer-detection";
 
     let access_token = get_hugging_face_token()?;
-    let payload = get_binary_image_data(image_path).await?;
+    let payload = get_binary_image_data(&image_path).await?;
 
     // Create a new reqwest async client
     let client = Client::new();

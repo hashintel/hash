@@ -1,14 +1,16 @@
+use std::path::PathBuf;
+
 use base64::{Engine as _, engine::general_purpose};
 use error_stack::{Report, ResultExt as _};
-use image::DynamicImage;
 use reqwest::{
     Client,
     header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue},
 };
-use serde_json::{Value, json};
+use serde_json::{Value as JsonValue, json};
 
 use crate::{
-    ChonkyError, DocumentEmbeddings, Embedding, StructuralEmbedding, StructuralMetadata,
+    ChonkyError, DocumentEmbeddings, Embedding, ImageEmbedding, PageImageObjects,
+    PageImageObjectsEmbeddings, StructuralEmbedding, StructuralMetadata,
     pdf_segmentation::ExtractedTable,
 };
 
@@ -17,7 +19,8 @@ fn get_vertex_access_token() -> Result<String, Report<ChonkyError>> {
         std::process::Command::new("gcloud")
             .args(["auth", "print-access-token"])
             .output()
-            .change_context(ChonkyError::VertexAPI)?
+            .change_context(ChonkyError::VertexAPI)
+            .attach_printable("Issues getting the Google Cloud Auth Token")?
             .stdout,
     )
     .change_context(ChonkyError::VertexAPI)?
@@ -25,9 +28,10 @@ fn get_vertex_access_token() -> Result<String, Report<ChonkyError>> {
     .to_owned())
 }
 
-fn base64_json(image_data: Vec<u8>) -> Result<String, Report<ChonkyError>> {
+fn base64_json(image_data: Vec<u8>) -> JsonValue {
     let base64_encoded_img = general_purpose::STANDARD.encode(image_data);
-    let formatted_json = serde_json::to_string_pretty(&json!({
+
+    json!({
         "instances": [
             {
                 "image": {
@@ -35,28 +39,20 @@ fn base64_json(image_data: Vec<u8>) -> Result<String, Report<ChonkyError>> {
                 }
             }
         ]
-    }))
-    .change_context(ChonkyError::VertexAPI)?;
-
-    // add newline that is appended by yarn in the snapshot
-    Ok(format!("{formatted_json}\n"))
+    })
 }
 
-fn text_json(text: &[String]) -> Result<String, Report<ChonkyError>> {
+fn text_json(text: &[String]) -> JsonValue {
     //merge all text into one without seperator for now
-    let mut text = text.join("");
+    let mut text = text.concat();
     text.truncate(1000);
-    let formatted_json = serde_json::to_string_pretty(&json!({
+    json!({
         "instances": [
             {
                 "text": text
             }
         ]
-    }))
-    .change_context(ChonkyError::VertexAPI)?;
-
-    // add newline that is appended by yarn in the snapshot
-    Ok(format!("{formatted_json}\n"))
+    })
 }
 
 /// Given the extracted images from the pdf, embeds them
@@ -65,12 +61,14 @@ fn text_json(text: &[String]) -> Result<String, Report<ChonkyError>> {
 ///
 /// [`ChonkyError::VertexAPI`] when there are HTTP request errors
 pub async fn embed_pdf_object_images(
-    pdf_image_extract: Vec<Vec<DynamicImage>>,
+    pdf_image_extract: Vec<PageImageObjects>,
     project_id: &str,
-) -> Result<Vec<Vec<Vec<f64>>>, Report<ChonkyError>> {
+) -> Result<Vec<PageImageObjectsEmbeddings>, Report<ChonkyError>> {
     let mut embeddings = Vec::new();
     for page_images in pdf_image_extract {
-        embeddings.push(embed_screenshots(page_images, project_id).await?);
+        embeddings.push(PageImageObjectsEmbeddings {
+            _embeddings: embed_screenshots(page_images, project_id).await?,
+        });
     }
     Ok(embeddings)
 }
@@ -81,11 +79,11 @@ pub async fn embed_pdf_object_images(
 ///
 /// [`ChonkyError::VertexAPI`] when there are HTTP request errors
 pub async fn embed_screenshots(
-    pdf_image_extract: Vec<DynamicImage>,
+    pdf_image_extract: PageImageObjects,
     project_id: &str,
-) -> Result<Vec<Vec<f64>>, Report<ChonkyError>> {
+) -> Result<Vec<ImageEmbedding>, Report<ChonkyError>> {
     let mut embeddings = Vec::new();
-    for image in pdf_image_extract {
+    for image in pdf_image_extract.page_image_objects {
         let mut buffer = Vec::new();
         let encoder = image::codecs::png::PngEncoder::new(&mut buffer);
 
@@ -93,8 +91,20 @@ pub async fn embed_screenshots(
             .write_with_encoder(encoder)
             .change_context(ChonkyError::ImageError)?;
 
-        embeddings
-            .push(make_multimodal_api_request(project_id, Some(image.into_bytes()), None).await?);
+        // at this point we are transfering ownership of images, cannot use reference without
+        // cloning?
+        embeddings.push(ImageEmbedding {
+            embedding: Embedding {
+                _model_used: "Google Multimodal Embeddings".to_owned(),
+                embedding_vector: make_multimodal_api_request(
+                    project_id,
+                    Some(image.clone().into_bytes()),
+                    None,
+                )
+                .await?,
+            },
+            _image: image,
+        });
     }
     Ok(embeddings)
 }
@@ -161,7 +171,7 @@ pub async fn make_multimodal_api_request(
         "https://us-central1-aiplatform.googleapis.com/v1/projects/{project_id}/locations/us-central1/publishers/google/models/multimodalembedding@001:predict"
     );
 
-    let access_token = get_vertex_access_token()?; // Assuming this function is synchronous
+    let access_token = get_vertex_access_token()?; // assuming this function is synchronous
 
     // Create the reqwest async client
     let client = Client::new();
@@ -178,70 +188,82 @@ pub async fn make_multimodal_api_request(
         HeaderValue::from_static("application/json; charset=utf-8"),
     );
 
-    // Prepare payload
-    let mut payload = String::new();
+    // Prepare payload make sure its initialized
+    let mut payload = json!(null);
     if let Some(image_payload) = image_data {
-        payload = base64_json(image_payload)?; // Assuming this function prepares the JSON
+        payload = base64_json(image_payload);
     } else if let Some(text_payload) = text_data {
-        payload = text_json(&text_payload)?; // Assuming this function prepares the JSON
+        payload = text_json(&text_payload);
     }
 
     // Make the POST request
     let response = client
         .post(&url)
         .headers(headers)
-        .body(payload)
+        .body(payload.to_string())
         .send()
         .await
-        .change_context(ChonkyError::VertexAPI)?;
+        .change_context(ChonkyError::VertexAPI)
+        .attach_printable("Failed to build post request for Vertex API")?;
 
     // Check the response status
     if !response.status().is_success() {
-        return Err(Report::new(ChonkyError::VertexAPI));
+        return Err(
+            Report::new(ChonkyError::VertexAPI).attach_printable(format!(
+                "Received the error code {} in the response status",
+                response.status()
+            )),
+        );
     }
 
     // Read and process the response
     let response_text = response
-        .text()
+        .json()
         .await
         .change_context(ChonkyError::VertexAPI)?;
 
     extract_embedding(&response_text)
 }
 
-// Parses the response to extract the image embedding vector
-fn extract_embedding(response_text: &str) -> Result<Vec<f64>, Report<ChonkyError>> {
-    let parsed: Value =
-        serde_json::from_str(response_text).change_context(ChonkyError::VertexAPI)?;
+// Parses the response to extract the image or text embedding vector
+fn extract_embedding(response: &JsonValue) -> Result<Vec<f64>, Report<ChonkyError>> {
+    let prediction = response
+        .as_object()
+        .and_then(|obj| obj.get("predictions"))
+        .and_then(JsonValue::as_array)
+        .and_then(|arr| arr.first())
+        .ok_or_else(|| Report::new(ChonkyError::VertexAPI))
+        .attach_printable("Unexpected response format")?;
 
-    let image_embedding = parsed["predictions"][0]["imageEmbedding"]
-        .as_array()
-        .map(|arr| {
-            arr.iter()
-                .map(|x| x.as_f64().ok_or(ChonkyError::VertexAPI))
-                .collect::<Result<Vec<f64>, _>>()
-        });
-
-    let text_embedding = parsed["predictions"][0]["textEmbedding"]
-        .as_array()
-        .map(|arr| {
-            arr.iter()
-                .map(|x| x.as_f64().ok_or(ChonkyError::VertexAPI))
-                .collect::<Result<Vec<f64>, _>>()
-        });
-
-    // Ensure only one of the embeddings exists
-    match (image_embedding, text_embedding) {
-        (Some(Ok(image_embed)), None) => Ok(image_embed),
-        (None, Some(Ok(text_embed))) => Ok(text_embed),
-        _ => Err(ChonkyError::VertexAPI).change_context(ChonkyError::VertexAPI),
-    }
+    let embedding = match (
+        prediction.get("imageEmbedding"),
+        prediction.get("textEmbedding"),
+    ) {
+        (Some(embedding), None) | (None, Some(embedding)) => embedding
+            .as_array()
+            .ok_or(ChonkyError::VertexAPI)
+            .attach_printable("Unexpected response format")?,
+        (None, None) => {
+            return Err(ChonkyError::VertexAPI).attach_printable("No embedding found in response");
+        }
+        (Some(_), Some(_)) => {
+            return Err(ChonkyError::VertexAPI)
+                .attach_printable("Embedding found in both image and text fields");
+        }
+    };
+    embedding
+        .iter()
+        .map(|x| {
+            x.as_f64()
+                .ok_or_else(|| Report::new(ChonkyError::VertexAPI))
+        })
+        .collect()
 }
 
 pub fn add_structural_embedding(
     document_embeddings: &mut DocumentEmbeddings,
     page_number: usize,
-    file_path: String,
+    file_path: PathBuf,
     embedding_vector: Vec<f64>,
 ) {
     let structural_metadata = StructuralMetadata {
@@ -251,7 +273,7 @@ pub fn add_structural_embedding(
 
     let embedding = Embedding {
         _model_used: "VertexAPIMultiModalEmbeddings".to_owned(),
-        _embedding_vector: embedding_vector,
+        embedding_vector,
     };
 
     let structural_embedding = StructuralEmbedding {
@@ -263,21 +285,23 @@ pub fn add_structural_embedding(
         .structural_embeddings
         .push(structural_embedding);
 }
+
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
     use insta::{assert_binary_snapshot, assert_snapshot};
+    use tokio::fs;
 
     use super::*;
     use crate::create_document_embedding;
 
-    #[test]
-    fn base64_conversion() -> Result<(), Report<ChonkyError>> {
-        let test_path = "./tests/docs/page_1.png";
-        let image_data: Vec<u8> = fs::read(test_path).change_context(ChonkyError::ImageError)?;
+    #[tokio::test]
+    async fn base64_conversion() -> Result<(), Report<ChonkyError>> {
+        let test_path = PathBuf::from("./tests/docs/page_1.png");
+        let image_data: Vec<u8> = fs::read(test_path)
+            .await
+            .change_context(ChonkyError::ImageError)?;
         // source of truth found by decoding base64 encoding to get same image
-        assert_binary_snapshot!("page_1.json", base64_json(image_data)?.into());
+        assert_binary_snapshot!("page_1.json", base64_json(image_data).to_string().into());
         Ok(())
     }
 
@@ -286,18 +310,24 @@ mod tests {
         //since embeddings are nondeterminatic they vary slightly
         //thus a good way to test is to check if cosine similarity close to 1
 
-        let test_image_path = "./tests/docs/page_1.png";
+        let test_image_path = PathBuf::from("./tests/docs/page_1.png");
 
-        let test_json_path = "./src/snapshots/google_test_embedding_page_1.json";
+        let test_json_path = PathBuf::from("./src/snapshots/google_test_embedding_page_1.json");
 
-        let source_embedding: Vec<f64> = extract_embedding(
-            &fs::read_to_string(test_json_path).change_context(ChonkyError::VertexAPI)?,
+        let source_embedding = extract_embedding(
+            &serde_json::from_slice(
+                &fs::read(test_json_path)
+                    .await
+                    .change_context(ChonkyError::ImageError)?,
+            )
+            .change_context(ChonkyError::ImageError)?,
         )?;
 
-        let image_data: Vec<u8> =
-            fs::read(test_image_path).change_context(ChonkyError::ImageError)?;
+        let image_data: Vec<u8> = fs::read(test_image_path)
+            .await
+            .change_context(ChonkyError::ImageError)?;
 
-        let test_embedding: Vec<f64> =
+        let test_embedding =
             make_multimodal_api_request("hash-embed", Some(image_data), None).await?;
 
         //find cosine similarity of vectors
@@ -330,9 +360,12 @@ mod tests {
     fn create_embedding_data() {
         let mut document_embeddings = create_document_embedding();
 
-        add_structural_embedding(&mut document_embeddings, 1, "test/path".to_owned(), vec![
-            0.1, 0.2, 0.3,
-        ]);
+        add_structural_embedding(
+            &mut document_embeddings,
+            1,
+            PathBuf::from("test/path"),
+            vec![0.1, 0.2, 0.3],
+        );
         assert_snapshot!(format!("{:?}", document_embeddings));
     }
 }
