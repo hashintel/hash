@@ -4,6 +4,7 @@ extern crate alloc;
 
 #[cfg(not(feature = "static"))]
 use alloc::borrow::Cow;
+use std::path::PathBuf;
 #[cfg(not(feature = "static"))]
 use std::{env, path::Path};
 
@@ -33,7 +34,7 @@ pub enum ChonkyError {
 
 pub mod embedding;
 
-pub use crate::embedding::multi_modal_embedding;
+pub use embedding::{hugging_face_api, multi_modal_embedding};
 
 /// Attempts to link to the `PDFium` library.
 ///
@@ -79,14 +80,14 @@ pub struct DocumentEmbeddings {
 
 #[derive(Debug, Clone)]
 pub struct PageContentEmbedding {
-    _image: Vec<ImageEmbedding>,
+    _image: PageImageObjectsEmbeddings,
     _table: Vec<TableEmbedding>,
     _text: TextEmbedding,
 }
 
 #[derive(Debug, Clone)]
 pub struct ImageEmbedding {
-    _embedding: Embedding,
+    pub embedding: Embedding,
     _image: DynamicImage,
 }
 
@@ -103,20 +104,40 @@ pub struct TextEmbedding {
 
 #[derive(Debug, Clone)]
 pub struct Embedding {
-    _model_used: String,         //model name reveals image or text embedding model
-    _embedding_vector: Vec<f64>, //the actual embedding vector
+    _model_used: String,            //model name reveals image or text embedding model
+    pub embedding_vector: Vec<f64>, //the actual embedding vector
 }
 
 #[derive(Debug, Clone)]
 pub struct StructuralMetadata {
-    _page_number: usize, //discuss additional metadata useful here
-    _image_path: String, //location of pdf image for embedding
+    _page_number: usize,  //discuss additional metadata useful here
+    _image_path: PathBuf, //location of pdf image for embedding
 }
 
 #[derive(Debug, Clone)]
 pub struct StructuralEmbedding {
     _metadata: StructuralMetadata,
     _embedding: Embedding,
+}
+
+#[derive(Debug, Clone)]
+pub struct PageImageObjects {
+    pub page_image_objects: Vec<DynamicImage>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PageImageObjectsEmbeddings {
+    _embeddings: Vec<ImageEmbedding>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PageTableObjects {
+    _page_image_objects: Vec<DynamicImage>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PageScreenshot {
+    _page_image_objects: Vec<DynamicImage>,
 }
 
 #[must_use]
@@ -128,7 +149,11 @@ pub const fn create_document_embedding() -> DocumentEmbeddings {
 }
 
 pub mod pdf_segmentation {
+
+    use std::path::PathBuf;
+
     use error_stack::{Report, ResultExt as _};
+    use futures::future::try_join_all;
     use image::{DynamicImage, GrayImage, RgbaImage};
     use pdfium_render::prelude::{
         PdfBitmap, PdfBitmapFormat, PdfDocument, PdfPageObjectCommon as _,
@@ -136,10 +161,12 @@ pub mod pdf_segmentation {
     };
 
     use crate::{
-        ChonkyError, DocumentEmbeddings, Embedding, ImageEmbedding, PageContentEmbedding,
+        ChonkyError, DocumentEmbeddings, Embedding, PageContentEmbedding, PageImageObjects,
         TableEmbedding, TextEmbedding,
-        embedding::hugging_face_api::make_table_recognition_request,
-        multi_modal_embedding::{embed_pdf_object_images, embed_tables, embed_text},
+        embedding::{
+            hugging_face_api::make_table_recognition_request,
+            multi_modal_embedding::{embed_pdf_object_images, embed_tables, embed_text},
+        },
     };
 
     #[derive(Debug, Clone)]
@@ -156,21 +183,34 @@ pub mod pdf_segmentation {
     /// permission to read it.
     pub fn load_pdf<'a>(
         pdfium: &'a Pdfium,
-        file_path: &str,
+        file_path: &PathBuf,
     ) -> Result<PdfDocument<'a>, Report<ChonkyError>> {
         pdfium
-            .load_pdf_from_file(file_path, None)
+            .load_pdf_from_file(&file_path, None)
             .map_err(|err| Report::new(err).change_context(ChonkyError::Pdfium))
     }
 
-    fn extract_tables(
-        pdf: &PdfDocument,
-        images: &[String],
+    #[expect(
+        clippy::future_not_send,
+        reason = "Will Implement Safe Data Sending of Pdfium Documents in future"
+    )]
+    async fn extract_tables(
+        pdf: &PdfDocument<'_>,
+        images: &[PathBuf],
         config: &PdfRenderConfig,
     ) -> Result<Vec<Vec<ExtractedTable>>, Report<ChonkyError>> {
+        let table_predictions_list = try_join_all(
+            images
+                .iter()
+                .map(|image_path| make_table_recognition_request(image_path, false)),
+        )
+        .await?;
+
         let mut pdf_table_bounds = Vec::new();
+
+        //task::spawn_blocking(move || {
         for (index, page) in pdf.pages().iter().enumerate() {
-            let table_predictions = make_table_recognition_request(images[index].clone())?;
+            let table_predictions = &table_predictions_list[index];
 
             let mut page_table_bounds: Vec<ExtractedTable> = Vec::new();
             //convert the pixels back to pdf points
@@ -178,7 +218,7 @@ pub mod pdf_segmentation {
                 if table.score < 0.95 {
                     continue;
                 }
-                let bbox = table.bounding_box;
+                let bbox = &table.bounding_box;
 
                 // Convert to i32 safely
                 let xmin: i32 = num_traits::cast(bbox.xmin).ok_or(ChonkyError::Pdfium)?;
@@ -288,7 +328,7 @@ pub mod pdf_segmentation {
         pages_text_extract
     }
 
-    fn extract_images(pdf: &PdfDocument) -> Vec<Vec<DynamicImage>> {
+    fn extract_images(pdf: &PdfDocument) -> Vec<PageImageObjects> {
         let mut pdf_image_extract = Vec::new();
 
         for page in pdf.pages().iter() {
@@ -306,7 +346,9 @@ pub mod pdf_segmentation {
             //     page_image_extract.len(),
             //     _index
             // );
-            pdf_image_extract.push(page_image_extract);
+            pdf_image_extract.push(PageImageObjects {
+                page_image_objects: page_image_extract,
+            });
         }
         pdf_image_extract
     }
@@ -319,77 +361,67 @@ pub mod pdf_segmentation {
     /// [`ChonkyError::Pdfium`] if pdf rendering of tables fails
     /// [`ChonkyError::VertexAPI`] if the Multimodal Embedding Model fails
     /// [`ChonkyError::HuggingFaceAPI`] if there are issues parsing the table
-    pub fn embed_pdf<'a>(
-        pdf: &PdfDocument,
-        images: &[String],
+    #[expect(
+        clippy::future_not_send,
+        reason = "Will Implement Safe Data Sending of Pdfium Documents in future"
+    )]
+    pub async fn embed_pdf<'a>(
+        pdf: &PdfDocument<'_>,
+        images: &[PathBuf],
         document_embeddings: &'a mut DocumentEmbeddings,
     ) -> Result<&'a mut DocumentEmbeddings, Report<ChonkyError>> {
         let project_id =
             std::env::var("GOOGLE_PROJECT_ID").change_context(ChonkyError::VertexAPI)?;
 
-        let pdf_table_bounds = extract_tables(pdf, images, &create_config())?;
+        let pdf_table_bounds = extract_tables(pdf, images, &create_config()).await?;
 
         let pdf_text_extract = extract_text(pdf, &pdf_table_bounds);
 
         let pdf_image_extract = extract_images(pdf);
 
-        let image_embeddings = embed_pdf_object_images(pdf_image_extract.clone(), &project_id)?;
+        let image_embeddings =
+            embed_pdf_object_images(pdf_image_extract.clone(), &project_id).await?;
 
-        let table_embeddings = embed_tables(pdf_table_bounds.clone(), &project_id)?;
+        let table_embeddings = embed_tables(pdf_table_bounds.clone(), &project_id).await?;
 
-        let pdf_text_embeddings = embed_text(pdf_text_extract.clone(), &project_id)?;
+        let pdf_text_embeddings = embed_text(pdf_text_extract.clone(), &project_id).await?;
 
         //TODO: implement in a way to prevent so much unnecessary cloning
 
+        //turn image embedding vector into iterator
+        let mut image_embeddings = image_embeddings.into_iter();
+
         for index in 0..(pdf.pages().len() as usize) {
-            //image embeddings
-            let mut image_embedding_struct: Vec<ImageEmbedding> = Vec::new();
-
-            //track inside loop for all content types
-            let mut i = 0;
-
-            for image_embed in image_embeddings[index].clone() {
-                let image_embedding = ImageEmbedding {
-                    _embedding: Embedding {
-                        _model_used: "Google Multimodal Embeddings".to_owned(),
-                        _embedding_vector: image_embed,
-                    },
-                    _image: pdf_image_extract[index][i].clone(),
-                };
-                image_embedding_struct.push(image_embedding);
-                i += 1;
-            }
-
-            i = 0;
-
             //same for table
             let mut table_embedding_struct: Vec<TableEmbedding> = Vec::new();
-            for table_embed in table_embeddings[index].clone() {
+            for (i, table_embed) in table_embeddings[index].clone().into_iter().enumerate() {
                 let table_embedding = TableEmbedding {
                     _embedding: Embedding {
                         _model_used: "Google Multimodal Embeddings".to_owned(),
-                        _embedding_vector: table_embed,
+                        embedding_vector: table_embed,
                     },
                     _table: pdf_table_bounds[index][i].clone(),
                 };
                 table_embedding_struct.push(table_embedding);
-                i += 1;
             }
 
-            //lastly perform on text
-            //Googles Text can only take 1024 characters, for now we only take the first 100 words
-            //but at this point we will apply chunking next
+            // lastly perform on text
+            // Googles Text can only take 1024 characters, for now we only take the first 100 words
+            // but at this point in the future we will apply chunking next
             let text_embedding = TextEmbedding {
                 _embedding: Embedding {
                     _model_used: "Google Multimodal Embeddings".to_owned(),
-                    _embedding_vector: pdf_text_embeddings[index].clone(),
+                    embedding_vector: pdf_text_embeddings[index].clone(),
                 },
                 _text: pdf_text_extract[index].clone().join(""),
             };
 
             //create Page content embedding now
             let page_content_embedding = PageContentEmbedding {
-                _image: image_embedding_struct,
+                _image: image_embeddings
+                    .next()
+                    .ok_or(ChonkyError::VertexAPI)
+                    .attach_printable("Missing Page Image Object Embeddings")?,
                 _table: table_embedding_struct,
                 _text: text_embedding,
             };
@@ -547,16 +579,16 @@ pub mod pdf_segmentation {
         use super::*;
         use crate::{create_document_embedding, link_pdfium};
 
-        #[test]
-        fn pdf_table_extraction() -> Result<(), Report<ChonkyError>> {
+        #[tokio::test]
+        async fn pdf_table_extraction() -> Result<(), Report<ChonkyError>> {
             let pdfium = link_pdfium()?;
-            let file_path = "./tests/docs/table-testing.pdf";
+            let file_path = PathBuf::from("./tests/docs/table-testing.pdf");
 
-            let pdf = load_pdf(&pdfium, file_path).change_context(ChonkyError::Pdfium)?;
+            let pdf = load_pdf(&pdfium, &file_path).change_context(ChonkyError::Pdfium)?;
 
-            let images = vec!["./tests/docs/table-testing.png".to_owned()];
+            let images = vec![PathBuf::from("./tests/docs/table-testing.png")];
 
-            let table_info = extract_tables(&pdf, &images, &create_config())?;
+            let table_info = extract_tables(&pdf, &images, &create_config()).await?;
             //just take first vector
 
             let table = table_info[0][0].clone();
@@ -575,16 +607,16 @@ pub mod pdf_segmentation {
             Ok(())
         }
 
-        #[test]
-        fn pdf_text_extraction() -> Result<(), Report<ChonkyError>> {
+        #[tokio::test]
+        async fn pdf_text_extraction() -> Result<(), Report<ChonkyError>> {
             let pdfium = link_pdfium()?;
-            let file_path = "./tests/docs/table-testing.pdf";
+            let file_path = PathBuf::from("./tests/docs/table-testing.pdf");
 
-            let pdf = load_pdf(&pdfium, file_path).change_context(ChonkyError::Pdfium)?;
+            let pdf = load_pdf(&pdfium, &file_path).change_context(ChonkyError::Pdfium)?;
 
-            let images = vec!["./tests/docs/table-testing.png".to_owned()];
+            let images = vec![PathBuf::from("./tests/docs/table-testing.png")];
 
-            let table_info = extract_tables(&pdf, &images, &create_config())?;
+            let table_info = extract_tables(&pdf, &images, &create_config()).await?;
             //just take first vector
 
             let text_info = extract_text(&pdf, &table_info);
@@ -600,9 +632,10 @@ pub mod pdf_segmentation {
         #[test]
         fn pdf_image_extract() -> Result<(), Report<ChonkyError>> {
             let pdfium = link_pdfium()?;
-            let file_path = "./tests/docs/test-doc.pdf";
 
-            let pdf = load_pdf(&pdfium, file_path).change_context(ChonkyError::Pdfium)?;
+            let file_path = PathBuf::from("./tests/docs/test-doc.pdf");
+
+            let pdf = load_pdf(&pdfium, &file_path).change_context(ChonkyError::Pdfium)?;
 
             let images = extract_images(&pdf);
 
@@ -610,7 +643,7 @@ pub mod pdf_segmentation {
             let encoder = image::codecs::bmp::BmpEncoder::new(&mut buffer);
 
             //the third page has an image to verify
-            images[2][0]
+            images[2].page_image_objects[0]
                 .write_with_encoder(encoder)
                 .expect("image should be able to be encoded into a bitmap");
             assert_binary_snapshot!("extracted_image.bmp", buffer);
@@ -618,17 +651,18 @@ pub mod pdf_segmentation {
             Ok(())
         }
 
-        #[test]
-        fn content_embeddings() -> Result<(), Report<ChonkyError>> {
+        #[tokio::test]
+        async fn content_embeddings() -> Result<(), Report<ChonkyError>> {
             let pdfium = link_pdfium()?;
-            let file_path = "./tests/docs/table-testing.pdf";
 
-            let pdf = load_pdf(&pdfium, file_path).change_context(ChonkyError::Pdfium)?;
+            let file_path = PathBuf::from("./tests/docs/table-testing.pdf");
 
-            let images = vec!["./tests/docs/table-testing.png".to_owned()];
+            let pdf = load_pdf(&pdfium, &file_path).change_context(ChonkyError::Pdfium)?;
+
+            let images = vec![PathBuf::from("./tests/docs/table-testing.png")];
 
             let mut document_embeddings = create_document_embedding();
-            let document_embeddings = embed_pdf(&pdf, &images, &mut document_embeddings)?;
+            let document_embeddings = embed_pdf(&pdf, &images, &mut document_embeddings).await?;
 
             //cannot use binary snapshot since embeddings vary
             //check vector length since we individually check embeddings in other tests
@@ -664,6 +698,8 @@ pub mod pdf_segmentation {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use error_stack::{Report, ResultExt as _};
     use insta::assert_binary_snapshot;
 
@@ -673,9 +709,9 @@ mod tests {
     fn pdf_load_success() -> Result<(), Report<ChonkyError>> {
         let pdfium = link_pdfium()?;
 
-        let test_pdf_string = "tests/docs/test-doc.pdf";
+        let test_pdf_string = PathBuf::from("tests/docs/test-doc.pdf");
 
-        let _pdf = pdf_segmentation::load_pdf(&pdfium, test_pdf_string)
+        let _pdf = pdf_segmentation::load_pdf(&pdfium, &test_pdf_string)
             .change_context(ChonkyError::Pdfium)?;
 
         Ok(())
@@ -685,10 +721,10 @@ mod tests {
     fn pdf_load_failure() -> Result<(), Report<ChonkyError>> {
         let pdfium = link_pdfium()?;
 
-        let test_pdf_string = "tests/docs/invalid.pdf";
+        let test_pdf_string = PathBuf::from("tests/docs/invalid.pdf");
 
         // Should return an error when loading an invalid PDF
-        let result = pdf_segmentation::load_pdf(&pdfium, test_pdf_string)
+        let result = pdf_segmentation::load_pdf(&pdfium, &test_pdf_string)
             .change_context(ChonkyError::Pdfium);
 
         if result.is_err() {
@@ -704,9 +740,9 @@ mod tests {
     fn pdf_image_conversion() -> Result<(), Report<ChonkyError>> {
         let pdfium = link_pdfium()?;
 
-        let test_pdf_string = "tests/docs/test-doc.pdf";
+        let test_pdf_string = PathBuf::from("tests/docs/test-doc.pdf");
 
-        let pdf = pdf_segmentation::load_pdf(&pdfium, test_pdf_string)
+        let pdf = pdf_segmentation::load_pdf(&pdfium, &test_pdf_string)
             .change_context(ChonkyError::Pdfium)?;
 
         //number of pages of pdf

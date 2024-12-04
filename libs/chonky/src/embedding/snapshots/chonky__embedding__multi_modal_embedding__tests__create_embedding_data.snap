@@ -1,0 +1,6 @@
+---
+source: libs/chonky/src/embedding/multi_modal_embedding.rs
+expression: "format!(\"{:?}\", document_embeddings)"
+snapshot_kind: text
+---
+DocumentEmbeddings { structural_embeddings: [StructuralEmbedding { _metadata: StructuralMetadata { _page_number: 1, _image_path: "test/path" }, _embedding: Embedding { _model_used: "VertexAPIMultiModalEmbeddings", embedding_vector: [0.1, 0.2, 0.3] } }], content_embeddings: [] }

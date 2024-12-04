@@ -1,5 +1,5 @@
 ---
-source: libs/chonky/src/embedding.rs
+source: libs/chonky/src/embedding/hugging_face_api.rs
 expression: "format!(\"{:?}\", table_predictions)"
 snapshot_kind: text
 ---
