@@ -99,6 +99,9 @@ blocks/**/.env
 # fleet IDEs config
 **/.fleet/
 
+# Python uv
+uv.lock
+
 # Python virtual environment
 **/venv
 **/.venv
