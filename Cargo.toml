@@ -129,7 +129,7 @@ prometheus-client  = { version = "=0.22.3", default-features = false }
 regex              = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 reqwest            = { version = "=0.12.9", default-features = false, features = ["rustls-tls"] }
 semver             = { version = "=1.0.23", default-features = false }
-sentry-types       = { version = "=0.34.0", default-features = false }
+sentry-types       = { version = "=0.35.0", default-features = false }
 serde              = { version = "=1.0.215", default-features = false }
 serde_json         = { version = "=1.0.133" }
 text-size          = { version = "=1.1.1", default-features = false }
@@ -203,7 +203,7 @@ rand                        = { version = "=0.8.5", default-features = false }
 refinery                    = { version = "=0.8.14", default-features = false }
 rustc_version               = { version = "=0.4.1", default-features = false }
 scc                         = { version = "=2.2.5", default-features = false }
-sentry                      = { version = "=0.34.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
+sentry                      = { version = "=0.35.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
 seq-macro                   = { version = "=0.3.5", default-features = false }
 serde_plain                 = { version = "=1.0.2", default-features = false }
 serde_with                  = { version = "=3.11.0", default-features = false }
