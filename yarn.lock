@@ -8654,7 +8654,6 @@ __metadata:
     "@local/eslint-config": "npm:0.0.0-private"
     "@openapitools/openapi-generator-cli": "npm:2.15.3"
     "@types/node": "npm:22.10.1"
-
     axios: "npm:1.7.9"
     prettier: "npm:3.4.2"
     rimraf: "npm:6.0.1"
