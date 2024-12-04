@@ -82,6 +82,9 @@ blocks/**/.env
 .env.local
 .env.*.local
 
+# Generated credentials from google-github-actions/auth
+gha-creds-*.json
+
 # macOS directory file
 **/.DS_Store
 
