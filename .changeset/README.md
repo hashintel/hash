@@ -21,4 +21,4 @@ See the "Adding a changeset" [multi-package repository instructions](https://git
 
 ## What is the `config.json` file in this directory?
 
-Read about [config file options](https://github.com/changesets/changesets/blob/main/docs/config-file-options.md) in the `changesets` docs.
+Read about the main [config file options](https://github.com/changesets/changesets/blob/main/docs/config-file-options.md) and available [experimental options](https://github.com/changesets/changesets/blob/main/docs/experimental-options.md) in the `changesets` docs.
