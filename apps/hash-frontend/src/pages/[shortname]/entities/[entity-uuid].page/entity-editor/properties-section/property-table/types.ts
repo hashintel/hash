@@ -1,8 +1,9 @@
 import type { ClosedDataType } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   PropertyMetadata,
+  PropertyMetadataObject,
+  PropertyMetadataValue,
   PropertyPath,
 } from "@local/hash-graph-types/entity";
 
@@ -11,6 +12,24 @@ import type { VerticalIndentationLineDir } from "../../../../../../../components
 export type PropertyRow = {
   children: PropertyRow[];
   depth: number;
+  generateNewMetadataObject: (args: {
+    /**
+     * The path to the property in the entity's properties (i.e. row.propertyKeyChain)
+     */
+    propertyKeyChain: PropertyPath;
+    /**
+     * The path to the leaf value in the entity's properties,
+     * which will start with propertyKeyChain, but may have additional array indices (depending on the property's structure)
+     */
+    valuePath: PropertyPath;
+    /**
+     * The metadata to set for the leaf value
+     */
+    valueMetadata: PropertyMetadataValue | "delete";
+  }) => {
+    entityPropertiesMetadata: PropertyMetadataObject;
+    propertyMetadata: PropertyMetadata | undefined;
+  };
   indent: number;
   isArray: boolean;
   isSingleUrl: boolean;
@@ -20,7 +39,6 @@ export type PropertyRow = {
   propertyKeyChain: PropertyPath;
   required: boolean;
   rowId: string;
-  setPropertyMetadata: Entity["setPropertyMetadata"];
   title: string;
   value: unknown;
   valueMetadata?: PropertyMetadata;

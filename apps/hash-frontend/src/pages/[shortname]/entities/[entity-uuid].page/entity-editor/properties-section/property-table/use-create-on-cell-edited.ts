@@ -26,7 +26,7 @@ export const useCreateOnCellEdited = () => {
           return;
         }
 
-        const valueCell = newValue as ValueCell;
+        const newValueCell = newValue as ValueCell;
 
         const key = propertyGridIndexes[colIndex];
         const row = rows[rowIndex];
@@ -42,6 +42,8 @@ export const useCreateOnCellEdited = () => {
 
         const updatedProperties = cloneDeep(entity.properties);
 
+        const updatedMetadata = cloneDeep(entity.metadata);
+
         const { propertyKeyChain } = row;
 
         /**
@@ -52,12 +54,19 @@ export const useCreateOnCellEdited = () => {
         set(
           updatedProperties,
           propertyKeyChain,
-          valueCell.data.propertyRow.value,
+          newValueCell.data.propertyRow.value,
+        );
+
+        set(
+          updatedMetadata,
+          ["properties", "value", ...propertyKeyChain],
+          newValueCell.data.propertyRow.valueMetadata,
         );
 
         setEntity(
           new Entity({
             ...entity.toJSON(),
+            metadata: updatedMetadata,
             properties: updatedProperties,
           }),
         );

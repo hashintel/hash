@@ -115,6 +115,7 @@ export const createRenderChangeTypeCell = (
 
       const newContent = produce(valueCellOfThisRow, (draft) => {
         draft.data.propertyRow.value = undefined;
+        draft.data.propertyRow.valueMetadata = undefined;
       });
 
       /**

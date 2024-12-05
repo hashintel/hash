@@ -2,11 +2,8 @@ import { extractBaseUrl, type VersionedUrl } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { EntityTypeIdDiff } from "@local/hash-graph-client";
-import {
-  EntityId,
-  isValueMetadata,
-  PropertyPath,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyPath } from "@local/hash-graph-types/entity";
+import { isValueMetadata } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,

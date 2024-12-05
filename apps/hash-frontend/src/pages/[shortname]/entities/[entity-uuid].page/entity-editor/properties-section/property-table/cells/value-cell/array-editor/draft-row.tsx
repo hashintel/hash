@@ -1,4 +1,4 @@
-import type { ClosedDataType } from "@blockprotocol/type-system";
+import type { ClosedDataType, VersionedUrl } from "@blockprotocol/type-system";
 import { useState } from "react";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
@@ -9,7 +9,7 @@ import { SortableRow } from "./sortable-row";
 interface DraftRowProps {
   expectedTypes: ClosedDataType[];
   existingItemCount: number;
-  onDraftSaved: (value: unknown) => void;
+  onDraftSaved: (value: unknown, dataTypeId: VersionedUrl) => void;
   onDraftDiscarded: () => void;
 }
 
@@ -56,7 +56,7 @@ export const DraftRow = ({
           return onDraftDiscarded();
         }
 
-        onDraftSaved(value);
+        onDraftSaved(value, dataType.$id);
       }}
       onDiscardChanges={onDraftDiscarded}
       expectedTypes={expectedTypes}

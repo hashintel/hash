@@ -64,10 +64,13 @@ export const useCreateGetCellContent = (
           },
         };
 
-        const { isArray, permittedDataTypes, valueMetadata } = row;
+        const { isArray, permittedDataTypes, value, valueMetadata } = row;
 
         const shouldShowChangeTypeCell =
-          permittedDataTypes.length > 1 && !isArray && !readonly;
+          permittedDataTypes.length > 1 &&
+          !isArray &&
+          typeof value !== "undefined" &&
+          !readonly;
 
         switch (columnKey) {
           case "title":

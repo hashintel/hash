@@ -53,23 +53,23 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
 export const generatePropertyRowRecursively = ({
   closedMultiEntityType,
   closedMultiEntityTypesDefinitions,
+  generateNewMetadataObject,
   propertyTypeBaseUrl,
   propertyKeyChain,
   entity,
   requiredPropertyTypes,
   depth = 0,
   propertyRefSchema,
-  setPropertyMetadata,
 }: {
   closedMultiEntityType: ClosedMultiEntityType;
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
+  generateNewMetadataObject: PropertyRow["generateNewMetadataObject"];
   propertyTypeBaseUrl: BaseUrl;
   propertyKeyChain: BaseUrl[];
   entity: Entity;
   requiredPropertyTypes: BaseUrl[];
   depth?: number;
   propertyRefSchema: ValueOrArray<PropertyTypeReference>;
-  setPropertyMetadata: Entity["setPropertyMetadata"];
 }): PropertyRow => {
   const propertyTypeId =
     "$ref" in propertyRefSchema
@@ -127,6 +127,7 @@ export const generatePropertyRowRecursively = ({
         generatePropertyRowRecursively({
           closedMultiEntityType,
           closedMultiEntityTypesDefinitions,
+          generateNewMetadataObject,
           propertyTypeBaseUrl: subPropertyTypeBaseUrl as BaseUrl,
           propertyKeyChain: [
             ...propertyKeyChain,
@@ -138,7 +139,6 @@ export const generatePropertyRowRecursively = ({
           requiredPropertyTypes,
           depth: depth + 1,
           propertyRefSchema: subPropertyRefSchema,
-          setPropertyMetadata,
         }),
       );
     }
@@ -181,6 +181,7 @@ export const generatePropertyRowRecursively = ({
     ...minMaxConfig,
     children,
     depth,
+    generateNewMetadataObject,
     indent,
     isArray,
     isSingleUrl,
@@ -188,7 +189,6 @@ export const generatePropertyRowRecursively = ({
     propertyKeyChain,
     required,
     rowId,
-    setPropertyMetadata,
     title: propertyType.title,
     value,
     valueMetadata,

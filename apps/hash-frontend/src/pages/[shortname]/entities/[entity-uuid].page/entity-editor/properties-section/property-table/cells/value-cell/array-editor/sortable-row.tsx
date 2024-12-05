@@ -13,7 +13,7 @@ import {
   getMergedDataTypeSchema,
 } from "@local/hash-isomorphic-utils/data-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import { Box, Divider, Typography } from "@mui/material";
+import { Box, Divider, Stack, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 
 import { getEditorSpecs } from "../editor-specs";
@@ -148,9 +148,16 @@ export const SortableRow = ({
 
     return (
       <ValueChip
-        title={formatDataValue(value as JsonValue, schema)
-          .map((part) => part.text)
-          .join("")}
+        title={
+          <Stack direction="row">
+            {formatDataValue(value as JsonValue, schema).map((part, idx) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <Box component="span" key={idx} sx={{ color: part.color }}>
+                {part.text}
+              </Box>
+            ))}
+          </Stack>
+        }
         selected={!!selected}
         icon={{ icon: editorSpec.icon }}
         tooltip={dataType.title}

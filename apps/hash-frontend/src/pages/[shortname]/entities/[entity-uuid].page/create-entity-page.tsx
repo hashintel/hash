@@ -1,5 +1,10 @@
+import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
+import {
+  Entity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import type { PropertyObject } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -10,9 +15,17 @@ import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useContext, useEffect, useState } from "react";
 
-import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { PageErrorState } from "../../../../components/page-error-state";
+import type {
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import {
+  createEntityMutation,
+  getEntitySubgraphQuery,
+} from "../../../../graphql/queries/knowledge/entity.queries";
 import { Link } from "../../../../shared/ui/link";
+import { generateUseEntityTypeEntitiesQueryVariables } from "../../../../shared/use-entity-type-entities";
 import { useGetClosedMultiEntityType } from "../../../shared/use-get-closed-multi-entity-type";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { EditBar } from "../../shared/edit-bar";
@@ -79,9 +92,25 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const { activeWorkspace, activeWorkspaceOwnedById } =
     useContext(WorkspaceContext);
-  const { createEntity } = useBlockProtocolCreateEntity(
-    activeWorkspaceOwnedById ?? null,
-  );
+
+  const [createEntity] = useMutation<
+    CreateEntityMutation,
+    CreateEntityMutationVariables
+  >(createEntityMutation, {
+    refetchQueries: [
+      /**
+       * This refetch query accounts for the "Entities" section
+       * in the sidebar being updated when the first instance of
+       * a type is created by a user that is from a different web.
+       */
+      {
+        query: getEntitySubgraphQuery,
+        variables: generateUseEntityTypeEntitiesQueryVariables({
+          ownedById: activeWorkspaceOwnedById,
+        }),
+      },
+    ],
+  });
 
   const [creating, setCreating] = useState(false);
 
@@ -110,12 +139,20 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
     try {
       setCreating(true);
-      const { data: createdEntity } = await createEntity({
-        data: {
+      const { data } = await createEntity({
+        variables: {
           entityTypeIds: entity.metadata.entityTypeIds,
-          properties: overrideProperties ?? draftEntity.properties,
+          ownedById: activeWorkspaceOwnedById,
+          properties: mergePropertyObjectAndMetadata(
+            overrideProperties ?? draftEntity.properties,
+            draftEntity.metadata.properties,
+          ),
         },
       });
+
+      const createdEntity = data?.createEntity
+        ? new Entity(data.createEntity)
+        : null;
 
       if (!createdEntity) {
         return;

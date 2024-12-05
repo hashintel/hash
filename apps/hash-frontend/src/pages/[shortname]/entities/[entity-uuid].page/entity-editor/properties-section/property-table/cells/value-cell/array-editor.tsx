@@ -1,3 +1,4 @@
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
   closestCenter,
@@ -54,8 +55,9 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const {
     value: propertyValue,
     valueMetadata,
+    generateNewMetadataObject,
     permittedDataTypes,
-    setPropertyMetadata,
+    propertyKeyChain,
     maxItems,
     minItems,
   } = cell.data.propertyRow;
@@ -146,14 +148,22 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     setSelectedRow((prevId) => (id === prevId ? "" : id));
   };
 
-  const addItem = (value: unknown) => {
+  const addItem = (value: unknown, dataTypeId: VersionedUrl) => {
     setEditingRow("");
+
+    const { propertyMetadata } = generateNewMetadataObject({
+      propertyKeyChain,
+      valuePath: [...propertyKeyChain, items.length],
+      valueMetadata: { metadata: { dataTypeId } },
+    });
 
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.propertyRow.value = [
         ...items.map((item) => item.value),
         value,
       ];
+
+      draftCell.data.propertyRow.valueMetadata = propertyMetadata;
     });
     onChange(newCell);
 
@@ -166,11 +176,20 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   };
 
   const removeItem = (indexToRemove: number) => {
+    const { propertyMetadata } = generateNewMetadataObject({
+      propertyKeyChain,
+      valuePath: [...propertyKeyChain, indexToRemove],
+      valueMetadata: "delete",
+    });
+
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.propertyRow.value = items
         .filter((_, index) => indexToRemove !== index)
         .map(({ value }) => value);
+
+      draftCell.data.propertyRow.valueMetadata = propertyMetadata;
     });
+
     onChange(newCell);
   };
 
@@ -192,6 +211,25 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       const newItems = arrayMove(items, oldIndex, newIndex);
 
       draftCell.data.propertyRow.value = newItems.map(({ value }) => value);
+
+      if (!valueMetadata) {
+        throw new Error(
+          "Expected valueMetadata to be set when there are values",
+        );
+      }
+
+      if (!isArrayMetadata(valueMetadata)) {
+        throw new Error(
+          `Expected array metadata for value '${JSON.stringify(newItems)}', got ${JSON.stringify(valueMetadata)}`,
+        );
+      }
+
+      const newMetadata = arrayMove(valueMetadata.value, oldIndex, newIndex);
+
+      draftCell.data.propertyRow.valueMetadata = {
+        ...valueMetadata,
+        value: newMetadata,
+      };
     });
     onChange(newCell);
   };
@@ -233,7 +271,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
     // add the value on click instead of showing draftRow
     if (onlyOneExpectedType && noEditMode) {
-      return addItem(editorSpec.defaultValue);
+      return addItem(editorSpec.defaultValue, expectedType.$id);
     }
 
     setEditingRow(DRAFT_ROW_KEY);

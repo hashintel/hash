@@ -1,6 +1,7 @@
 import type { ClosedDataType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
+import type { PropertyMetadataValue } from "@local/hash-graph-types/entity";
 import { isValueMetadata } from "@local/hash-graph-types/entity";
 import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
@@ -19,9 +20,9 @@ import type { ValueCell, ValueCellEditorComponent } from "./types";
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   const { value: cell, onChange, onFinishedEditing } = props;
   const {
+    generateNewMetadataObject,
     permittedDataTypes,
     propertyKeyChain,
-    setPropertyMetadata,
     value,
     valueMetadata,
   } = cell.data.propertyRow;
@@ -86,21 +87,42 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   });
 
   useEffect(() => {
-    if (chosenDataType) {
-      setPropertyMetadata(propertyKeyChain, {
-        metadata: {
-          dataTypeId: chosenDataType.dataType.$id,
+    if (
+      chosenDataType &&
+      (valueMetadata as PropertyMetadataValue | undefined)?.metadata
+        .dataTypeId !== chosenDataType.dataType.$id
+    ) {
+      const { propertyMetadata } = generateNewMetadataObject({
+        propertyKeyChain,
+        valuePath: propertyKeyChain,
+        valueMetadata: {
+          metadata: {
+            dataTypeId: chosenDataType.dataType.$id,
+          },
         },
       });
+
+      const newCell = produce(cell, (draftCell) => {
+        draftCell.data.propertyRow.valueMetadata = propertyMetadata;
+      });
+
+      onChange(newCell);
     }
-  }, [chosenDataType, propertyKeyChain, setPropertyMetadata]);
+  }, [
+    cell,
+    chosenDataType,
+    generateNewMetadataObject,
+    onChange,
+    propertyKeyChain,
+    valueMetadata,
+  ]);
 
   const latestValueCellRef = useRef<ValueCell>(cell);
   useEffect(() => {
     latestValueCellRef.current = cell;
   });
 
-  if (!chosenDataType) {
+  if (!chosenDataType || !cell.data.propertyRow.valueMetadata) {
     return (
       <GridEditorWrapper>
         <EditorTypePicker
@@ -116,19 +138,22 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
             const editorSpec = getEditorSpecs(type, schema);
 
-            // if no edit mode supported for selected type, set the default value and close the editor
-            if (editorSpec.arrayEditException === "no-edit-mode") {
-              const newCell = produce(cell, (draftCell) => {
-                draftCell.data.propertyRow.value = editorSpec.defaultValue;
-              });
-
-              return onFinishedEditing(newCell);
-            }
-
             setChosenDataType({
               dataType: type,
               schema,
             });
+
+            // if no edit mode supported for selected type, set the default value and close the editor
+            if (editorSpec.arrayEditException === "no-edit-mode") {
+              const newCell = produce(cell, (draftCell) => {
+                draftCell.data.propertyRow.value = editorSpec.defaultValue;
+                draftCell.data.propertyRow.valueMetadata = {
+                  metadata: { dataTypeId: type.$id },
+                };
+              });
+
+              return onFinishedEditing(newCell);
+            }
           }}
         />
       </GridEditorWrapper>

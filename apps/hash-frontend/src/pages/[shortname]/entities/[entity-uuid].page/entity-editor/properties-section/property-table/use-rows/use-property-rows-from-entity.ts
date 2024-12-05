@@ -1,31 +1,72 @@
 import { typedKeys } from "@local/advanced-types/typed-entries";
+import {
+  Entity,
+  generateChangedPropertyMetadataObject,
+} from "@local/hash-graph-sdk/entity";
+import type {
+  PropertyMetadataObject,
+  PropertyMetadataValue,
+  PropertyPath,
+} from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 
 import { useEntityEditor } from "../../../entity-editor-context";
 import type { PropertyRow } from "../types";
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
-import {
-  PropertyMetadataValue,
-  PropertyPath,
-} from "@local/hash-graph-types/entity";
 
 export const usePropertyRowsFromEntity = (): PropertyRow[] => {
-  const {
-    entity,
-    closedMultiEntityType,
-    closedMultiEntityTypesDefinitions,
-    setEntity,
-  } = useEntityEditor();
+  const { entity, closedMultiEntityType, closedMultiEntityTypesDefinitions } =
+    useEntityEditor();
 
-  const setPropertyMetadata = useCallback(
-    (propertyPath: PropertyPath, metadata: PropertyMetadataValue) => {
-      const updatedEntity = entity.setPropertyMetadata(propertyPath, metadata);
+  /**
+   * Generate a new metadata object based on applying a patch to the previous version.
+   *
+   * We can't use the Entity's metadata as a base each time because the ArrayEditor allows adding multiple items
+   * before the editor is closed and before the Entity in state is updated. So we need to keep a record of changes to the metadata object,
+   * which are reset when the entity in the context state is actually updated (after the editor is closed).
+   */
+  const generateNewMetadataObject = useMemo<
+    PropertyRow["generateNewMetadataObject"]
+  >(() => {
+    let basePropertiesMetadata = JSON.parse(
+      JSON.stringify(
+        entity.metadata.properties ??
+          ({ value: {} } satisfies PropertyMetadataObject),
+      ),
+    );
 
-      setEntity(updatedEntity);
-    },
-    [entity, setEntity],
-  );
+    return ({
+      propertyKeyChain,
+      valuePath,
+      valueMetadata,
+    }: {
+      propertyKeyChain: PropertyPath;
+      valuePath: PropertyPath;
+      valueMetadata: PropertyMetadataValue | "delete";
+    }) => {
+      basePropertiesMetadata = generateChangedPropertyMetadataObject(
+        valuePath,
+        valueMetadata,
+        basePropertiesMetadata,
+      );
+
+      const temporaryEntity = new Entity({
+        ...entity.toJSON(),
+        metadata: {
+          ...entity.metadata,
+          properties: basePropertiesMetadata,
+        },
+      });
+
+      const pathMetadata = temporaryEntity.propertyMetadata(propertyKeyChain);
+
+      return {
+        propertyMetadata: pathMetadata,
+        entityPropertiesMetadata: basePropertiesMetadata,
+      };
+    };
+  }, [entity]);
 
   return useMemo(() => {
     const processedPropertyTypes = new Set<BaseUrl>();
@@ -48,6 +89,7 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
         return generatePropertyRowRecursively({
           closedMultiEntityType,
           closedMultiEntityTypesDefinitions,
+          generateNewMetadataObject,
           propertyTypeBaseUrl: propertyTypeBaseUrl as BaseUrl,
           propertyKeyChain: [propertyTypeBaseUrl as BaseUrl],
           entity,
@@ -57,5 +99,10 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
         });
       },
     );
-  }, [entity, closedMultiEntityType, closedMultiEntityTypesDefinitions]);
+  }, [
+    entity,
+    closedMultiEntityType,
+    closedMultiEntityTypesDefinitions,
+    generateNewMetadataObject,
+  ]);
 };
