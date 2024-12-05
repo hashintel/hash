@@ -56,7 +56,7 @@
     "@emotion/styled": "11.13.5",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@mui/material": "5.16.8",
+    "@mui/material": "5.16.9",
     "@mui/system": "5.16.8",
     "@storybook/react": "7.6.20",
     "@types/react": "18.2.68",
@@ -71,7 +71,7 @@
     "@emotion/cache": "11.13.5",
     "@emotion/react": "11.13.5",
     "@emotion/styled": "11.13.5",
-    "@mui/material": "5.16.8",
+    "@mui/material": "5.16.9",
     "@mui/system": "5.16.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
