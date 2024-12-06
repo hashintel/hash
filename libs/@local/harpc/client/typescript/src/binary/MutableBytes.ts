@@ -114,6 +114,10 @@ export const appendArray = (
 ) => {
   const impl = self as MutableBytesImpl;
 
+  if (bytes.length === 0) {
+    return self;
+  }
+
   const totalLength = bytes.reduce((acc, b) => acc + b.byteLength, 0);
 
   reserve(self, totalLength);
@@ -129,15 +133,17 @@ export const appendArray = (
 export const appendBuffer = (
   self: MutableBytes,
   ...buffers: readonly ArrayBuffer[]
-) => {
-  return appendArray(self, ...buffers.map((buffer) => new Uint8Array(buffer)));
-};
+) => appendArray(self, ...buffers.map((buffer) => new Uint8Array(buffer)));
 
 export const append = (
   self: MutableBytes,
   ...other: readonly MutableBytes[]
 ) => {
   const impl = self as MutableBytesImpl;
+
+  if (other.length === 0) {
+    return self;
+  }
 
   const totalLength = other.reduce((acc, b) => acc + length(b), 0);
 
