@@ -1,5 +1,6 @@
 // This code is written in a way that be *easily* auto generated, which is why we use the classes.
 
+import { ClientError } from "@local/harpc-client";
 import { Decoder, Encoder } from "@local/harpc-client/codec";
 import { Connection, Request, Transaction } from "@local/harpc-client/net";
 import {
@@ -48,6 +49,8 @@ export class AccountSubsystem {
     const items = decoder.decode(response.body, Schema.String);
     const item = yield* Stream.runHead(items);
 
-    return Option.getOrThrowWith(item, () => new Error("No response"));
+    return Option.getOrThrowWith(item, () =>
+      ClientError.ExpectedItemCountMismatchError.exactly(1, 0),
+    );
   });
 }

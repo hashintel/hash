@@ -1,6 +1,7 @@
 import { Data, Effect, Option, pipe, Stream } from "effect";
 
 import { MutableBytes } from "../binary/index.js";
+import { InvalidUtf8Error } from "../ClientError.js";
 import { type ErrorCode, ResponseKind } from "../types/index.js";
 import { createProto } from "../utils.js";
 import type { Response } from "../wire-protocol/models/response/index.js";
@@ -23,14 +24,6 @@ export class UnexpectedResponseTypeError extends Data.TaggedError(
 export class EmptyResponseError extends Data.TaggedError("EmptyResponseError") {
   get message() {
     return "No response received: expected at least one response in the stream";
-  }
-}
-
-export class InvalidUtf8Error extends Data.TaggedError("InvalidUtf8Error")<{
-  cause: unknown;
-}> {
-  get message() {
-    return "Invalid UTF-8 encoding";
   }
 }
 
@@ -79,8 +72,8 @@ const flattenResponseStream = <E, R>(
 ) =>
   pipe(
     stream,
-    Stream.takeWhile(
-      (response) => !ResponseFlags.isEndOfResponse(response.header.flags),
+    Stream.takeUntil((response) =>
+      ResponseFlags.isEndOfResponse(response.header.flags),
     ),
     Stream.mapConcat((response) => {
       const output = [] as ResponseSegment[];
