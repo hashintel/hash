@@ -28265,7 +28265,7 @@ __metadata:
     "@taplo/cli": "npm:0.7.0"
     "@yarnpkg/types": "npm:^4.0.0"
     concurrently: "npm:7.6.0"
-    lefthook: "npm:1.8.5"
+    lefthook: "npm:1.9.0"
     lockfile-lint: "npm:4.14.0"
     markdownlint-cli: "npm:0.43.0"
     npm-run-all2: "npm:7.0.1"
@@ -31596,90 +31596,90 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lefthook-darwin-arm64@npm:1.8.5":
-  version: 1.8.5
-  resolution: "lefthook-darwin-arm64@npm:1.8.5"
+"lefthook-darwin-arm64@npm:1.9.0":
+  version: 1.9.0
+  resolution: "lefthook-darwin-arm64@npm:1.9.0"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-darwin-x64@npm:1.8.5":
-  version: 1.8.5
-  resolution: "lefthook-darwin-x64@npm:1.8.5"
+"lefthook-darwin-x64@npm:1.9.0":
+  version: 1.9.0
+  resolution: "lefthook-darwin-x64@npm:1.9.0"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-freebsd-arm64@npm:1.8.5":
-  version: 1.8.5
-  resolution: "lefthook-freebsd-arm64@npm:1.8.5"
+"lefthook-freebsd-arm64@npm:1.9.0":
+  version: 1.9.0
+  resolution: "lefthook-freebsd-arm64@npm:1.9.0"
   conditions: os=freebsd & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-freebsd-x64@npm:1.8.5":
-  version: 1.8.5
-  resolution: "lefthook-freebsd-x64@npm:1.8.5"
+"lefthook-freebsd-x64@npm:1.9.0":
+  version: 1.9.0
+  resolution: "lefthook-freebsd-x64@npm:1.9.0"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-linux-arm64@npm:1.8.5":
-  version: 1.8.5
-  resolution: "lefthook-linux-arm64@npm:1.8.5"
+"lefthook-linux-arm64@npm:1.9.0":
+  version: 1.9.0
+  resolution: "lefthook-linux-arm64@npm:1.9.0"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-linux-x64@npm:1.8.5":
-  version: 1.8.5
-  resolution: "lefthook-linux-x64@npm:1.8.5"
+"lefthook-linux-x64@npm:1.9.0":
+  version: 1.9.0
+  resolution: "lefthook-linux-x64@npm:1.9.0"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-openbsd-arm64@npm:1.8.5":
-  version: 1.8.5
-  resolution: "lefthook-openbsd-arm64@npm:1.8.5"
+"lefthook-openbsd-arm64@npm:1.9.0":
+  version: 1.9.0
+  resolution: "lefthook-openbsd-arm64@npm:1.9.0"
   conditions: os=openbsd & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-openbsd-x64@npm:1.8.5":
-  version: 1.8.5
-  resolution: "lefthook-openbsd-x64@npm:1.8.5"
+"lefthook-openbsd-x64@npm:1.9.0":
+  version: 1.9.0
+  resolution: "lefthook-openbsd-x64@npm:1.9.0"
   conditions: os=openbsd & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-windows-arm64@npm:1.8.5":
-  version: 1.8.5
-  resolution: "lefthook-windows-arm64@npm:1.8.5"
+"lefthook-windows-arm64@npm:1.9.0":
+  version: 1.9.0
+  resolution: "lefthook-windows-arm64@npm:1.9.0"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-windows-x64@npm:1.8.5":
-  version: 1.8.5
-  resolution: "lefthook-windows-x64@npm:1.8.5"
+"lefthook-windows-x64@npm:1.9.0":
+  version: 1.9.0
+  resolution: "lefthook-windows-x64@npm:1.9.0"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook@npm:1.8.5":
-  version: 1.8.5
-  resolution: "lefthook@npm:1.8.5"
+"lefthook@npm:1.9.0":
+  version: 1.9.0
+  resolution: "lefthook@npm:1.9.0"
   dependencies:
-    lefthook-darwin-arm64: "npm:1.8.5"
-    lefthook-darwin-x64: "npm:1.8.5"
-    lefthook-freebsd-arm64: "npm:1.8.5"
-    lefthook-freebsd-x64: "npm:1.8.5"
-    lefthook-linux-arm64: "npm:1.8.5"
-    lefthook-linux-x64: "npm:1.8.5"
-    lefthook-openbsd-arm64: "npm:1.8.5"
-    lefthook-openbsd-x64: "npm:1.8.5"
-    lefthook-windows-arm64: "npm:1.8.5"
-    lefthook-windows-x64: "npm:1.8.5"
+    lefthook-darwin-arm64: "npm:1.9.0"
+    lefthook-darwin-x64: "npm:1.9.0"
+    lefthook-freebsd-arm64: "npm:1.9.0"
+    lefthook-freebsd-x64: "npm:1.9.0"
+    lefthook-linux-arm64: "npm:1.9.0"
+    lefthook-linux-x64: "npm:1.9.0"
+    lefthook-openbsd-arm64: "npm:1.9.0"
+    lefthook-openbsd-x64: "npm:1.9.0"
+    lefthook-windows-arm64: "npm:1.9.0"
+    lefthook-windows-x64: "npm:1.9.0"
   dependenciesMeta:
     lefthook-darwin-arm64:
       optional: true
@@ -31703,7 +31703,7 @@ __metadata:
       optional: true
   bin:
     lefthook: bin/index.js
-  checksum: 10c0/71f16a752c38f732b9bf1163dd552c9e92231df173c4ebb908f7ab634c5c01a813f6b3b325f1e749bc92c07c0cacf44613bb1251f97cd49d160c360344c3aa48
+  checksum: 10c0/f013cca0257758e023abc68525793c18ab29353c222670e16a907274346483c8ca3d3a9f8d2f7d51dc9154e356da9f069c2423500eb055991930ebdc2c6f26c6
   languageName: node
   linkType: hard
 
