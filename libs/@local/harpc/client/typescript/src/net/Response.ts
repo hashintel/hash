@@ -1,12 +1,25 @@
-import { Data, Effect, pipe, Stream } from "effect";
+import {
+  Data,
+  Effect,
+  Either,
+  Function,
+  Option,
+  pipe,
+  Ref,
+  Stream,
+} from "effect";
 
 import { MutableBytes } from "../binary/index.js";
-import type { ErrorCode, ResponseKind } from "../types/index.js";
+import { ErrorCode, ResponseKind } from "../types/index.js";
 import { createProto } from "../utils.js";
-import type { Response } from "../wire-protocol/models/response/index.js";
+import type {
+  Response,
+  ResponseBegin,
+} from "../wire-protocol/models/response/index.js";
 import {
   ResponseBody,
   ResponseFlags,
+  ResponseFrame,
 } from "../wire-protocol/models/response/index.js";
 
 const TypeId = Symbol("@local/harpc-client/net/Response");
@@ -58,52 +71,144 @@ const ResponseProto: Omit<Response<unknown, unknown>, "kind" | "body"> = {
   [TypeId]: TypeId,
 };
 
-const make = <E, R>(
-  kind: ResponseKind.ResponseKind,
-  body: Stream.Stream<ArrayBuffer, E, R>,
-): Response<E, R> =>
+const make = <E, R>(body: Stream.Stream<ArrayBuffer, E, R>): Response<E, R> =>
   createProto(ResponseProto, {
-    kind,
     body,
   });
 
+interface Context {
+  readonly partialError: Ref.Ref<Option.Option<NetworkError>>;
+  readonly leftover: Ref.Ref<ArrayBuffer[]>;
+
+  readonly finishError: Effect.Effect<Option.Option<NetworkError>>;
+  readonly replaceError: (
+    code: ErrorCode.ErrorCode,
+    initialArray: Uint8Array,
+  ) => Effect.Effect<void>;
+}
+
+interface ProcessingResult {
+  error: Option.Option<NetworkError>;
+  output: ArrayBuffer[];
+}
+
+const handleResponseFrame = (cx: Context, frame: ResponseFrame.ResponseFrame) =>
+  Effect.gen(function* () {
+    const partialError = yield* cx.partialError.get;
+    const payloadArray = frame.payload.buffer;
+
+    return Option.match(partialError, {
+      onNone: (): ProcessingResult => ({
+        error: Option.none(),
+        output: [payloadArray.buffer as ArrayBuffer],
+      }),
+      onSome: (error): ProcessingResult => {
+        MutableBytes.appendArray(error.bytes, payloadArray);
+
+        return {
+          error: Option.none(),
+          output: [],
+        };
+      },
+    });
+  });
+
+const handleResponseBegin = (cx: Context, begin: ResponseBegin.ResponseBegin) =>
+  Effect.gen(function* () {
+    const payloadArray = begin.payload.buffer;
+
+    // we need to check if we have completed an error
+    // TODO: in case we're okay, we need to frontload that... stuff
+    const error = yield* cx.finishError;
+
+    const kind = begin.kind;
+    if (ResponseKind.isOk(kind)) {
+      return {
+        error,
+        output: [payloadArray.buffer as ArrayBuffer],
+      } satisfies ProcessingResult as ProcessingResult;
+    }
+
+    yield* cx.replaceError(kind.code, payloadArray);
+
+    return {
+      error,
+      output: [],
+    } satisfies ProcessingResult as ProcessingResult;
+  });
+
+const handleResponse = (cx: Context, response: Response.Response) =>
+  Effect.gen(function* () {
+    const body = ResponseBody.mapBoth(response.body, Function.identity);
+
+    const output = yield* ResponseFrame.isResponseFrame(body)
+      ? handleResponseFrame(cx, body)
+      : handleResponseBegin(cx, body);
+
+    if (ResponseFlags.isEndOfResponse(response.header.flags)) {
+      yield* Ref.set(cx.exhausted, true);
+      const error = yield* cx.finishError;
+    }
+
+    return output;
+  });
+
 const bodyStream = <E, R>(
-  begin: Response.Response,
-  frames: Stream.Stream<Response.Response, E, R>,
+  responses: Stream.Stream<Response.Response, E, R>,
 ) => {
-  const beginArray = ResponseBody.mapBoth(
-    begin.body,
-    (_) => _.payload.buffer.buffer,
-  );
+  let partialError: Option.Option<NetworkError> = Option.none();
 
-  const beginBuffer = Stream.sync(() => beginArray);
+  const finishError = Effect.gen(function* () {
+    // we need to check if we have completed an error
+    const error = partialError;
+    partialError = Option.none();
 
-  if (ResponseFlags.isEndOfResponse(begin.header.flags)) {
-    return beginBuffer;
-  }
+    if (Option.isSome(error)) {
+      yield* error.value;
+    }
+  });
 
-  const frameBuffer = pipe(
-    frames,
-    Stream.takeWhile(
-      (response) => !ResponseFlags.isEndOfResponse(response.header.flags),
-    ),
-    Stream.mapEffect((response) =>
-      pipe(
-        response.body,
-        ResponseBody.getFrame,
-        Effect.map((_) => _.payload.buffer.buffer),
-        Effect.mapError(
-          (_) =>
-            new UnexpectedResponseTypeError({
-              expected: "Frame",
-              received: "Begin",
+  return pipe(
+    responses,
+    Stream.mapConcatEffect((response) =>
+      ResponseBody.match(response.body, {
+        onFrame: (frame) =>
+          Effect.succeed(
+            Option.match(partialError, {
+              onNone: () => [frame.payload.buffer.buffer as ArrayBuffer],
+              onSome: (error) => {
+                MutableBytes.appendArray(error.bytes, frame.payload.buffer);
+
+                return [] as ArrayBuffer[];
+              },
             }),
-        ),
-      ),
+          ),
+        onBegin: (begin) =>
+          Effect.gen(function* () {
+            // we need to check if we have completed an error
+            yield* finishError;
+
+            const kind = begin.kind;
+            if (ResponseKind.isOk(kind)) {
+              return [];
+            }
+
+            const errorCode = kind.code;
+            const bytes = MutableBytes.make();
+            MutableBytes.appendArray(bytes, begin.payload.buffer);
+
+            partialError = Option.some(
+              new NetworkError({
+                code: errorCode,
+                bytes,
+              }),
+            );
+
+            return [];
+          }),
+      }),
     ),
   );
-
-  return Stream.concat(beginBuffer, frameBuffer);
 };
 
 export type DecodeError<E = never> = Effect.Effect.Error<
