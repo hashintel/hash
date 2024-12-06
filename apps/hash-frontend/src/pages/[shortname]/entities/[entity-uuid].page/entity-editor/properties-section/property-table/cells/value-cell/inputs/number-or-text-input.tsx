@@ -1,6 +1,6 @@
-import type { ValueConstraints } from "@blockprotocol/type-system-rs/pkg/type-system";
 import type { TextFieldProps } from "@hashintel/design-system";
 import { TextField } from "@hashintel/design-system";
+import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 import { format, formatISO, parseISO } from "date-fns";
 
 import type { CellInputProps } from "./types";
@@ -37,49 +37,46 @@ export const NumberOrTextInput = ({
   onBlur,
   onChange,
   onEnterPressed,
+  schema,
   value: uncheckedValue,
-  valueConstraints,
 }: CellInputProps<number | string | undefined> & {
   isNumber: boolean;
   onBlur?: TextFieldProps["onBlur"];
+  schema: MergedDataTypeSingleSchema;
   onEnterPressed?: () => void;
-  valueConstraints: ValueConstraints;
 }) => {
-  const minLength =
-    "minLength" in valueConstraints ? valueConstraints.minLength : undefined;
-  const maxLength =
-    "maxLength" in valueConstraints ? valueConstraints.maxLength : undefined;
+  const minLength = "minLength" in schema ? schema.minLength : undefined;
+  const maxLength = "maxLength" in schema ? schema.maxLength : undefined;
+
+  if ("multipleOf" in schema && schema.multipleOf?.[1] !== undefined) {
+    throw new Error("multipleOf with multiple values is not supported");
+  }
 
   const step =
-    "multipleOf" in valueConstraints &&
-    valueConstraints.multipleOf !== undefined
-      ? valueConstraints.multipleOf
-      : 0.01;
+    "multipleOf" in schema && schema.multipleOf?.[0] !== undefined
+      ? schema.multipleOf[0]
+      : 0.001;
 
   const exclusiveMinimum =
-    "exclusiveMinimum" in valueConstraints &&
-    typeof valueConstraints.exclusiveMinimum === "boolean"
-      ? valueConstraints.exclusiveMinimum
+    "exclusiveMinimum" in schema && typeof schema.exclusiveMinimum === "boolean"
+      ? schema.exclusiveMinimum
       : false;
+
   const minimum =
-    "minimum" in valueConstraints &&
-    typeof valueConstraints.minimum === "number"
-      ? valueConstraints.minimum + (exclusiveMinimum ? step : 0)
+    "minimum" in schema && typeof schema.minimum === "number"
+      ? schema.minimum + (exclusiveMinimum ? step : 0)
       : undefined;
 
   const exclusiveMaximum =
-    "exclusiveMaximum" in valueConstraints &&
-    typeof valueConstraints.exclusiveMaximum === "boolean"
-      ? valueConstraints.exclusiveMaximum
+    "exclusiveMaximum" in schema && typeof schema.exclusiveMaximum === "boolean"
+      ? schema.exclusiveMaximum
       : false;
   const maximum =
-    "maximum" in valueConstraints &&
-    typeof valueConstraints.maximum === "number"
-      ? valueConstraints.maximum - (exclusiveMaximum ? step : 0)
+    "maximum" in schema && typeof schema.maximum === "number"
+      ? schema.maximum - (exclusiveMaximum ? step : 0)
       : undefined;
 
-  const jsonStringFormat =
-    "format" in valueConstraints ? valueConstraints.format : undefined;
+  const jsonStringFormat = "format" in schema ? schema.format : undefined;
 
   let inputType: TextFieldProps["type"] = isNumber ? "number" : "text";
   let value = uncheckedValue;

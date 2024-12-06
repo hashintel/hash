@@ -39,6 +39,7 @@ import {
   removeEntityAdministrator,
   removeEntityEditor,
   updateEntity,
+  validateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import {
   createLinkEntity,
@@ -63,6 +64,7 @@ import type {
   QueryGetEntitySubgraphArgs,
   QueryIsEntityPublicArgs,
   QueryResolvers,
+  QueryValidateEntityArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import {
@@ -399,6 +401,20 @@ export const updateEntitiesResolver: ResolverFn<
   );
 
   return updatedEntities;
+};
+
+export const validateEntityResolver: ResolverFn<
+  Promise<true>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  QueryValidateEntityArgs
+> = async (_, params, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  await validateEntity(context, authentication, params);
+
+  return true;
 };
 
 export const archiveEntityResolver: ResolverFn<
