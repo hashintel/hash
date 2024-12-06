@@ -1,4 +1,4 @@
-import { Match, Pipeable, Predicate } from "effect";
+import { Match, Option, Pipeable, Predicate } from "effect";
 
 import { createProto } from "../utils.js";
 
@@ -155,6 +155,28 @@ export const append = (
   }
 
   return self;
+};
+
+/**
+ * Split the bytes object, so that bytes object contains `[at,length)` and the rest is returned as a new bytes object
+ */
+export const splitTo = (self: MutableBytes, at: number) => {
+  if (at > length(self)) {
+    return Option.none();
+  }
+
+  const impl = self as MutableBytesImpl;
+
+  const destination = make({
+    initialCapacity: at,
+    growthStragegy: impl.growthStrategy,
+  });
+  appendBuffer(destination, impl.inner.slice(0, at));
+
+  impl.inner = impl.inner.slice(at);
+  impl.length -= at;
+
+  return Option.some(destination);
 };
 
 export const isBytes = (value: unknown): value is MutableBytes =>

@@ -1,5 +1,6 @@
-import { Data, Effect, pipe, Sink, Stream } from "effect";
+import { Data, Effect, pipe, Stream } from "effect";
 
+import { MutableBytes } from "../binary/index.js";
 import type { ErrorCode, ResponseKind } from "../types/index.js";
 import { createProto } from "../utils.js";
 import type { Response } from "../wire-protocol/models/response/index.js";
@@ -7,7 +8,6 @@ import {
   ResponseBody,
   ResponseFlags,
 } from "../wire-protocol/models/response/index.js";
-import { Uint8ArrayList } from "uint8arraylist";
 
 const TypeId = Symbol("@local/harpc-client/net/Response");
 export type TypeId = typeof TypeId;
@@ -26,21 +26,25 @@ export class EmptyResponseError extends Data.TaggedError("EmptyResponseError") {
   }
 }
 
-export interface Buffer {
-  readonly inner: ArrayBuffer;
-  readonly length: number;
+export class InvalidUtf8Error extends Data.TaggedError("InvalidUtf8Error")<{
+  cause: unknown;
+}> {
+  get message() {
+    return "Invalid UTF-8 encoding";
+  }
 }
 
 export class NetworkError extends Data.TaggedError("NetworkError")<{
   code: ErrorCode.ErrorCode;
-  bytes: Buffer;
+  bytes: MutableBytes.MutableBytes;
 }> {
-  display() {
+  get display() {
     const decoder = new TextDecoder("utf-8", { fatal: true });
 
-    return Effect.try(() =>
-      decoder.decode(this.bytes.inner.slice(0, this.bytes.length)),
-    );
+    return Effect.try({
+      try: () => decoder.decode(MutableBytes.asBuffer(this.bytes)),
+      catch: (cause) => new InvalidUtf8Error({ cause }),
+    });
   }
 }
 
