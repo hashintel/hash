@@ -1,4 +1,4 @@
-import type { FastCheck } from "effect";
+import { FastCheck, Option } from "effect";
 import {
   Effect,
   Equal,
@@ -185,6 +185,14 @@ export const match: {
     }
   },
 );
+
+export const getErr = (
+  self: ResponseKind,
+): Option.Option<ErrorCode.ErrorCode> =>
+  match(self, {
+    onOk: Option.none,
+    onErr: Option.some,
+  });
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc.oneof(fc.constant(ok()), ErrorCode.arbitrary(fc).map(err));

@@ -153,6 +153,46 @@ const handleResponse = (cx: Context, response: Response.Response) =>
     return output;
   });
 
+type ResponseSegment = Data.TaggedEnum<{
+  ControlFlow: {
+    readonly code: Option.Option<ErrorCode.ErrorCode>;
+  };
+  Body: {
+    readonly data: ArrayBuffer;
+  };
+}>;
+
+const ResponseSegment = Data.taggedEnum<ResponseSegment>();
+
+const flattenResponseStream = <E, R>(
+  stream: Stream.Stream<Response.Response, E, R>,
+) =>
+  pipe(
+    stream,
+    Stream.takeWhile(
+      (response) => !ResponseFlags.isEndOfResponse(response.header.flags),
+    ),
+    Stream.mapConcat((response) => {
+      const output = [] as ResponseSegment[];
+
+      const begin = ResponseBody.getBegin(response.body);
+      if (Option.isSome(begin)) {
+        const kind = begin.value.kind;
+        const code = ResponseKind.getErr(kind);
+
+        output.push(ResponseSegment.ControlFlow({ code }));
+      }
+
+      const payload = ResponseBody.mapBoth(
+        response.body,
+        (beginOrFrame) => beginOrFrame.payload.buffer.buffer as ArrayBuffer,
+      );
+
+      output.push(ResponseSegment.Body({ data: payload }));
+      return output;
+    }),
+  );
+
 const bodyStream = <E, R>(
   responses: Stream.Stream<Response.Response, E, R>,
 ) => {
