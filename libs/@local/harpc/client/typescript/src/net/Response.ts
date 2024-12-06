@@ -1,12 +1,13 @@
 import { Data, Effect, pipe, Sink, Stream } from "effect";
 
-import type { ResponseKind } from "../types/index.js";
+import type { ErrorCode, ResponseKind } from "../types/index.js";
 import { createProto } from "../utils.js";
 import type { Response } from "../wire-protocol/models/response/index.js";
 import {
   ResponseBody,
   ResponseFlags,
 } from "../wire-protocol/models/response/index.js";
+import { Uint8ArrayList } from "uint8arraylist";
 
 const TypeId = Symbol("@local/harpc-client/net/Response");
 export type TypeId = typeof TypeId;
@@ -25,10 +26,27 @@ export class EmptyResponseError extends Data.TaggedError("EmptyResponseError") {
   }
 }
 
+export interface Buffer {
+  readonly inner: ArrayBuffer;
+  readonly length: number;
+}
+
+export class NetworkError extends Data.TaggedError("NetworkError")<{
+  code: ErrorCode.ErrorCode;
+  bytes: Buffer;
+}> {
+  display() {
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+
+    return Effect.try(() =>
+      decoder.decode(this.bytes.inner.slice(0, this.bytes.length)),
+    );
+  }
+}
+
 export interface Response<E, R> {
   readonly [TypeId]: TypeId;
 
-  readonly kind: ResponseKind.ResponseKind;
   readonly body: Stream.Stream<ArrayBuffer, E, R>;
 }
 
@@ -90,24 +108,29 @@ export type DecodeError<E = never> = Effect.Effect.Error<
 
 export const decode = <E, R>(stream: Stream.Stream<Response.Response, E, R>) =>
   Effect.gen(function* () {
-    const [beginResponseMaybe, frameResponse] = yield* Stream.peel(
-      stream,
-      Sink.head(),
-    );
-
-    const beginResponse = yield* Effect.mapError(
-      beginResponseMaybe,
-      () => new EmptyResponseError(),
-    );
-
-    const begin = yield* Effect.mapError(
-      ResponseBody.getBegin(beginResponse.body),
-      () =>
-        new UnexpectedResponseTypeError({
-          expected: "Begin",
-          received: "Frame",
-        }),
-    );
-
-    return make(begin.kind, bodyStream(beginResponse, frameResponse));
+    // any error that occurs on the stream is caught and wrapped in a `NetworkError`
   });
+
+// export const decode = <E, R>(stream: Stream.Stream<Response.Response, E, R>) =>
+//   Effect.gen(function* () {
+//     const [beginResponseMaybe, frameResponse] = yield* Stream.peel(
+//       stream,
+//       Sink.head(),
+//     );
+
+//     const beginResponse = yield* Effect.mapError(
+//       beginResponseMaybe,
+//       () => new EmptyResponseError(),
+//     );
+
+//     const begin = yield* Effect.mapError(
+//       ResponseBody.getBegin(beginResponse.body),
+//       () =>
+//         new UnexpectedResponseTypeError({
+//           expected: "Begin",
+//           received: "Frame",
+//         }),
+//     );
+
+//     return make(begin.kind, bodyStream(beginResponse, frameResponse));
+//   });
