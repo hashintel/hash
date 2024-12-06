@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@mui/material": "5.16.8",
+    "@mui/material": "5.16.9",
     "@mui/system": "5.16.8",
     "eslint": "8.57.0",
     "react": "18.2.0",

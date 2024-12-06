@@ -95,7 +95,7 @@ axum               = { version = "0.7.5" }
 axum-core          = { version = "0.4.3" }
 bumpalo            = { version = "=3.16.0", default-features = false }
 bytes              = { version = "1.6.0" }
-clap_builder       = { version = "=4.5.21", default-features = false, features = ["std"] }
+clap_builder       = { version = "=4.5.23", default-features = false, features = ["std"] }
 criterion          = { version = "=0.5.1" }
 deadpool           = { version = "=0.12.1", default-features = false }
 deadpool-postgres  = { version = "=0.14.0", default-features = false }
@@ -110,7 +110,7 @@ futures-io         = { version = "=0.3.31", default-features = false }
 futures-sink       = { version = "=0.3.31", default-features = false }
 futures-util       = { version = "=0.3.31", default-features = false }
 hashbrown          = { version = "=0.15.2", default-features = false, features = ["inline-more", "nightly"] }
-http               = { version = "=1.1.0", default-features = false }
+http               = { version = "=1.2.0", default-features = false }
 image              = { version = "0.25.0", default-features = false }
 inferno            = { version = "=0.12.0", default-features = false }
 iso8601-duration   = { version = "=0.2.0", default-features = false }
@@ -129,14 +129,14 @@ prometheus-client  = { version = "=0.22.3", default-features = false }
 regex              = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 reqwest            = { version = "=0.12.9", default-features = false, features = ["rustls-tls"] }
 semver             = { version = "=1.0.23", default-features = false }
-sentry-types       = { version = "=0.34.0", default-features = false }
+sentry-types       = { version = "=0.35.0", default-features = false }
 serde              = { version = "=1.0.215", default-features = false }
 serde_json         = { version = "=1.0.133" }
 text-size          = { version = "=1.1.1", default-features = false }
 time               = { version = "=0.3.37", default-features = false }
 tokio              = { version = "=1.42.0", default-features = false }
 tokio-postgres     = { version = "=0.7.12", default-features = false }
-tokio-util         = { version = "=0.7.12", default-features = false }
+tokio-util         = { version = "=0.7.13", default-features = false }
 tower-http         = { version = "=0.6.2", features = ["trace"] }
 tower-layer        = { version = "=0.3.3", default-features = false }
 tower-service      = { version = "=0.3.3", default-features = false }
@@ -155,10 +155,10 @@ approx                      = { version = "=0.5.1", default-features = false }
 async-scoped                = { version = "=0.9.0", default-features = false }
 async-trait                 = { version = "=0.1.83", default-features = false }
 aws-config                  = { version = "=1.5.10" }
-aws-sdk-s3                  = { version = "=1.63.0", default-features = false }
+aws-sdk-s3                  = { version = "=1.65.0", default-features = false }
 bitvec                      = { version = "=1.0.1", default-features = false }
 bytes-utils                 = { version = "=0.1.4", default-features = false }
-clap                        = { version = "=4.5.21", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
+clap                        = { version = "=4.5.23", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_complete               = { version = "=4.5.38", default-features = false }
 convert_case                = { version = "=0.6.0", default-features = false }
 criterion-macro             = { version = "=0.4.0", default-features = false }
@@ -179,7 +179,7 @@ justjson                    = { version = "=0.3.0", default-features = false }
 lexical                     = { version = "=7.0.2", default-features = false }
 libp2p                      = { version = "=0.54.1", default-features = false }
 libp2p-stream               = { version = "=0.2.0-alpha", default-features = false }
-logos                       = { version = "=0.14.2", default-features = false }
+logos                       = { version = "=0.14.3", default-features = false }
 memchr                      = { version = "=2.7.4", default-features = false }
 mimalloc                    = { version = "=0.1.43", default-features = false }
 mime                        = { version = "=0.3.17", default-features = false }
@@ -203,7 +203,7 @@ rand                        = { version = "=0.8.5", default-features = false }
 refinery                    = { version = "=0.8.14", default-features = false }
 rustc_version               = { version = "=0.4.1", default-features = false }
 scc                         = { version = "=2.2.5", default-features = false }
-sentry                      = { version = "=0.34.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
+sentry                      = { version = "=0.35.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
 seq-macro                   = { version = "=0.3.5", default-features = false }
 serde_plain                 = { version = "=1.0.2", default-features = false }
 serde_with                  = { version = "=3.11.0", default-features = false }
@@ -219,7 +219,7 @@ temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "htt
 test-fuzz                   = { version = "=7.0.1", default-features = false }
 test-log                    = { version = "=0.2.16", default-features = false }
 test-strategy               = { version = "=0.4.0", default-features = false }
-thiserror                   = { version = "=2.0.3", default-features = false }
+thiserror                   = { version = "=2.0.4", default-features = false }
 tokio-stream                = { version = "=0.1.16", default-features = false }
 tokio-test                  = { version = "=0.4.4", default-features = false }
 tower                       = { version = "=0.5.1", default-features = false }
