@@ -156,7 +156,7 @@
     "sass": "1.82.0",
     "typescript": "5.6.3",
     "wait-on": "8.0.1",
-    "webpack": "5.97.0"
+    "webpack": "5.97.1"
   },
   "engines": {
     "node": ">= v20"
