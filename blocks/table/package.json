@@ -34,7 +34,7 @@
     "@blockprotocol/graph": "0.3.4",
     "@glideapps/glide-data-grid": "patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch",
     "@hashintel/block-design-system": "0.0.2",
-    "@mui/material": "5.16.8",
+    "@mui/material": "5.16.9",
     "clsx": "1.2.1",
     "immer": "9.0.21",
     "lodash.debounce": "4.0.8",
@@ -55,7 +55,7 @@
     "block-scripts": "0.3.4",
     "eslint": "8.57.0",
     "mock-block-dock": "0.1.9",
-    "prettier": "3.4.1",
+    "prettier": "3.4.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "5.6.3"
