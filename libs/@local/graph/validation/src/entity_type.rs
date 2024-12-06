@@ -1,5 +1,6 @@
+use alloc::collections::BTreeSet;
 use core::borrow::Borrow as _;
-use std::collections::{BTreeSet, HashSet, hash_map::RawEntryMut};
+use std::collections::{HashSet, hash_map::RawEntryMut};
 
 use error_stack::{FutureExt as _, Report, ReportSink, ResultExt as _, TryReportStreamExt as _};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
