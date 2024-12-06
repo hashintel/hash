@@ -29,8 +29,6 @@ impl Validator<EntityType> for EntityTypeValidator {
         &self,
         value: &'v EntityType,
     ) -> Result<&'v Valid<EntityType>, Self::Error> {
-        ObjectSchemaValidator.validate_ref(value)?;
-
         for (property, value) in &value.constraints.properties {
             let reference = match value {
                 ValueOrArray::Value(value) => value,
@@ -42,8 +40,6 @@ impl Validator<EntityType> for EntityTypeValidator {
                     reference: reference.clone(),
                 });
             }
-            // TODO: Validate reference
-            //   see https://linear.app/hash/issue/H-3046
         }
 
         Ok(Valid::new_ref_unchecked(value))
@@ -70,8 +66,6 @@ impl Validator<ClosedEntityType> for EntityTypeValidator {
                     reference: reference.clone(),
                 });
             }
-            // TODO: Validate reference
-            //   see https://linear.app/hash/issue/H-3046
         }
 
         Ok(Valid::new_ref_unchecked(value))

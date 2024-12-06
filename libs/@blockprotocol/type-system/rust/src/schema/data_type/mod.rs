@@ -2,7 +2,7 @@ mod constraint;
 mod conversion;
 
 pub use self::{
-    closed::{ClosedDataType, DataTypeResolveData, ResolvedDataType},
+    closed::{ClosedDataType, DataTypeResolveData},
     constraint::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
         BooleanSchema, BooleanTypeTag, ConstraintError, ConstraintValidator, NullSchema,

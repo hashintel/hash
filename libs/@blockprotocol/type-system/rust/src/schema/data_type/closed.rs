@@ -9,22 +9,12 @@ use serde_json::{Value as JsonValue, json};
 use thiserror::Error;
 
 use crate::{
-    Valid,
     schema::{
         DataType, DataTypeUuid, InheritanceDepth, ValueLabel,
         data_type::{DataTypeEdge, constraint::ValueConstraints},
     },
     url::VersionedUrl,
 };
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-// #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-pub struct ResolvedDataType {
-    #[serde(flatten)]
-    pub schema: Arc<DataType>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty", rename = "$defs")]
-    pub definitions: HashMap<VersionedUrl, Arc<DataType>>,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -111,14 +101,6 @@ impl ClosedDataType {
             )?,
             r#abstract: data_type.r#abstract,
         })
-    }
-}
-
-impl ResolvedDataType {
-    #[must_use]
-    pub fn data_type(&self) -> &Valid<DataType> {
-        // Valid closed schemas imply that the schema is valid
-        Valid::new_ref_unchecked(&self.schema)
     }
 }
 
