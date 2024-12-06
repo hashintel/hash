@@ -1,14 +1,4 @@
-import {
-  Cause,
-  Effect,
-  Either,
-  Function,
-  Option,
-  pipe,
-  Predicate,
-  Ref,
-  Stream,
-} from "effect";
+import { Effect, Function, Option, pipe, Predicate, Ref, Stream } from "effect";
 
 import type {
   ProcedureDescriptor,
@@ -21,7 +11,6 @@ import {
   Protocol,
   ProtocolVersion,
 } from "../wire-protocol/models/index.js";
-import { PayloadTooLargeError } from "../wire-protocol/models/Payload.js";
 import type { RequestId } from "../wire-protocol/models/request/index.js";
 import {
   Request,
@@ -171,7 +160,10 @@ export interface EncodeOptions {
   readonly noDelay?: boolean;
 }
 
-const encodeImpl = <E, R>(self: Request<E, R>, options?: EncodeOptions) =>
+const encodeImpl = <E, R>(
+  self: Request<E, R>,
+  options?: EncodeOptions,
+): Stream.Stream<Request.Request, E, R> =>
   Effect.gen(function* () {
     const requestId = self.id;
 
@@ -247,20 +239,14 @@ const isStream = (
   Predicate.hasProperty(value, Stream.StreamTypeId) || Effect.isEffect(value);
 
 export const encode: {
-  (
-    options?: EncodeOptions,
-  ): <E, R>(
-    self: Request<E, R>,
-  ) => Stream.Stream<
-    Request.Request,
-    E,
-    R | RequestIdProducer.RequestIdProducer
-  >;
-
   <E, R>(
     self: Request<E, R>,
     options?: EncodeOptions,
-  ): Stream.Stream<Request.Request, E, R | RequestIdProducer.RequestIdProducer>;
+  ): Stream.Stream<Request.Request, E, R>;
+
+  (
+    options?: EncodeOptions,
+  ): <E, R>(self: Request<E, R>) => Stream.Stream<Request.Request, E, R>;
 } = Function.dual(
   // data-last if no options are provided, or if the first argument **is not** a stream.
   (args) => args.length === 0 || !isStream(args[0]),

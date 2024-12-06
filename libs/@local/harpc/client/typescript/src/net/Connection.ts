@@ -1,6 +1,6 @@
 import type { PeerId } from "@libp2p/interface";
 import type { Multiaddr } from "@multiformats/multiaddr";
-import type { Chunk } from "effect";
+import type { Chunk, Scope } from "effect";
 import {
   Data,
   Deferred,
@@ -251,14 +251,19 @@ export const makeUnchecked = (
 export const send: {
   <R>(
     request: Request.Request<never, R>,
-  ): (self: Connection) => Effect.Effect<Transaction.Transaction>;
+  ): (
+    self: Connection,
+  ) => Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>>;
   <R>(
     self: Connection,
     request: Request.Request<never, R>,
-  ): Effect.Effect<Transaction.Transaction>;
+  ): Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>>;
 } = Function.dual(
   2,
-  <R>(self: ConnectionImpl, request: Request.Request<never, R>) =>
+  <R>(
+    self: ConnectionImpl,
+    request: Request.Request<never, R>,
+  ): Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>> =>
     Effect.gen(function* () {
       const deferredDrop = yield* Deferred.make<void>();
       const drop = wrapDrop(self, request.id, deferredDrop);
@@ -277,7 +282,7 @@ export const send: {
       yield* Effect.fork(
         pipe(
           request, //
-          Request.encode,
+          Request.encode(),
           Stream.run(self.duplex.write),
         ),
       );

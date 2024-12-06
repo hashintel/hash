@@ -43,11 +43,11 @@ export class AccountSubsystem {
     );
 
     const transaction = yield* Connection.send(connection, request);
-    const response = yield* Transaction.read(transaction);
+    const response = Transaction.read(transaction);
 
     const items = decoder.decode(response.body, Schema.String);
     const item = yield* Stream.runHead(items);
 
     return Option.getOrThrowWith(item, () => new Error("No response"));
-  }, Effect.scoped);
+  });
 }
