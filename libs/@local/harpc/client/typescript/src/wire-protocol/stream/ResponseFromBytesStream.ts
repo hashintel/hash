@@ -18,7 +18,7 @@ export class IncompleteResponseError extends Data.TaggedError(
 const makeScratch = () =>
   MutableBytes.make({
     initialCapacity: 2 * 1024 * 64,
-    growthStragegy: "doubling",
+    growthStrategy: "doubling",
   });
 
 const tryDecodePacket = (scratch: MutableBytes.MutableBytes) =>

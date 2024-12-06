@@ -35,15 +35,25 @@ const MutableBytesProto: Omit<
 };
 
 export const make = (options?: {
+  /**
+   * The initial capacity of the buffer.
+   *
+   * @default 1024
+   */
   readonly initialCapacity?: number;
-  readonly growthStragegy: GrowthStrategy;
+  /**
+   * The strategy for growing the buffer when more space is needed.
+   *
+   * @default "doubling"
+   */
+  readonly growthStrategy?: GrowthStrategy;
 }): MutableBytes =>
   createProto(MutableBytesProto, {
     inner: new ArrayBuffer(
       options?.initialCapacity ?? DEFAULT_INITIAL_CAPACITY,
     ),
     initialCapacity: options?.initialCapacity ?? DEFAULT_INITIAL_CAPACITY,
-    growthStrategy: options?.growthStragegy ?? "doubling",
+    growthStrategy: options?.growthStrategy ?? "doubling",
   }) satisfies MutableBytesImpl as MutableBytes;
 
 export const capacity = (self: MutableBytes) =>
@@ -169,7 +179,7 @@ export const splitTo = (self: MutableBytes, at: number) => {
 
   const destination = make({
     initialCapacity: at,
-    growthStragegy: impl.growthStrategy,
+    growthStrategy: impl.growthStrategy,
   });
   appendBuffer(destination, impl.inner.slice(0, at));
 
