@@ -204,57 +204,52 @@ where
             return validation_report;
         };
 
-        // We track that at least one link type was found to avoid reporting an error if no
-        // link type was found.
-        let mut found_link_match = false;
-        let entity_type_ids = schema
+        let Some(maybe_allowed_targets) = schema
             .all_of
             .iter()
             .flat_map(|entity_type| &entity_type.all_of)
             .map(|entity_type| &entity_type.id)
-            .collect::<HashSet<_>>();
+            .find_map(|link_type_id| left_entity_type.constraints.links.get(link_type_id))
+        else {
+            validation_report.link_type = Some(LinkError::UnexpectedEntityType {
+                data: UnexpectedEntityType {
+                    actual: schema
+                        .all_of
+                        .iter()
+                        .flat_map(|entity_type| &entity_type.all_of)
+                        .map(|entity_type| entity_type.id.clone())
+                        .collect(),
+                    expected: left_entity_type.constraints.links.keys().cloned().collect(),
+                },
+            });
+            return validation_report;
+        };
 
-        for link_type_id in &entity_type_ids {
-            let Some(maybe_allowed_targets) = left_entity_type.constraints.links.get(link_type_id)
-            else {
-                continue;
-            };
+        let Some(allowed_targets) = &maybe_allowed_targets.items else {
+            // For a given target there was an unconstrained link destination, so we can
+            // skip the rest of the checks
+            return validation_report;
+        };
 
-            // At least one correct link type was found
-            found_link_match = true;
+        let Some(right_entity_type) = &right_entity_type else {
+            // We cannot further validate the links if the right type is not known.
+            return validation_report;
+        };
 
-            let Some(allowed_targets) = &maybe_allowed_targets.items else {
-                // For a given target there was an unconstrained link destination, so we can
-                // skip the rest of the checks
-                break;
-            };
+        // Link destinations are constrained, search for the right entity's type
+        let found_match = allowed_targets.possibilities.iter().any(|allowed_target| {
+            right_entity_type.all_of.iter().any(|entity_type| {
+                // We check that the base URL matches for the exact type or the versioned URL
+                // for the parent types
+                entity_type.id.base_url == allowed_target.url.base_url
+                    || entity_type
+                        .all_of
+                        .iter()
+                        .any(|entity_type| entity_type.id == allowed_target.url)
+            })
+        });
 
-            // We cannot further validate the links if the right type is not known. We also found a
-            // link match already, so we can `break` instead of `continue`.
-            let Some(right_entity_type) = &right_entity_type else {
-                break;
-            };
-
-            // Link destinations are constrained, search for the right entity's type
-            let mut found_match = false;
-            for allowed_target in &allowed_targets.possibilities {
-                if right_entity_type.all_of.iter().any(|entity_type| {
-                    // We check that the base URL matches for the exact type or the versioned URL
-                    // for the parent types
-                    entity_type.id.base_url == allowed_target.url.base_url
-                        || entity_type
-                            .all_of
-                            .iter()
-                            .any(|entity_type| entity_type.id == allowed_target.url)
-                }) {
-                    found_match = true;
-                    break;
-                }
-            }
-
-            if found_match {
-                break;
-            }
+        if !found_match {
             validation_report.target_type = Some(LinkTargetError::UnexpectedEntityType {
                 data: UnexpectedEntityType {
                     actual: right_entity_type
@@ -267,15 +262,6 @@ where
                         .iter()
                         .map(|entity_type| entity_type.url.clone())
                         .collect(),
-                },
-            });
-        }
-
-        if !found_link_match {
-            validation_report.link_type = Some(LinkError::UnexpectedEntityType {
-                data: UnexpectedEntityType {
-                    actual: entity_type_ids.into_iter().cloned().collect(),
-                    expected: left_entity_type.constraints.links.keys().cloned().collect(),
                 },
             });
         }
