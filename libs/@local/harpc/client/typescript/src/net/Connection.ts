@@ -246,17 +246,19 @@ export const makeUnchecked = (
     return self as Connection;
   });
 
+// these bounds are stricter than required, as we have no way to inform the remote about a failure in the underlying stream,
+// see: https://linear.app/hash/issue/H-3748/request-interruption
 export const send: {
-  <E, R>(
-    request: Request.Request<E, R>,
+  <R>(
+    request: Request.Request<never, R>,
   ): (self: Connection) => Effect.Effect<Transaction.Transaction>;
-  <E, R>(
+  <R>(
     self: Connection,
-    request: Request.Request<E, R>,
+    request: Request.Request<never, R>,
   ): Effect.Effect<Transaction.Transaction>;
 } = Function.dual(
   2,
-  <E, R>(self: ConnectionImpl, request: Request.Request<E, R>) =>
+  <R>(self: ConnectionImpl, request: Request.Request<never, R>) =>
     Effect.gen(function* () {
       const deferredDrop = yield* Deferred.make<void>();
       const drop = wrapDrop(self, request.id, deferredDrop);

@@ -5,15 +5,11 @@ import { Connection, Request, Transaction } from "@local/harpc-client/net";
 import {
   ProcedureDescriptor,
   ProcedureId,
-  ResponseKind,
   SubsystemDescriptor,
   SubsystemId,
   Version,
 } from "@local/harpc-client/types";
-import { Effect, Option, Schema, Stream } from "effect";
-
-// This should probably move into @local/harpc-client
-export class
+import { Effect, Option, pipe, Schema, Stream } from "effect";
 
 export class AccountSubsystem {
   static #subsystemId = 0x00;
@@ -27,9 +23,14 @@ export class AccountSubsystem {
     const encoder = yield* Encoder.Encoder;
     const decoder = yield* Decoder.Decoder;
 
-    const requestStream = encoder.encode(
-      Stream.succeed(payload),
-      Schema.String,
+    // buffer the stream, to send any encoding errors straight to the client
+    // see: https://linear.app/hash/issue/H-3748/request-interruption
+    const requestStream = yield* pipe(
+      payload,
+      Stream.succeed,
+      encoder.encode(Schema.String),
+      Stream.runCollect,
+      Effect.map(Stream.fromChunk),
     );
 
     const request = yield* Request.make(
