@@ -1318,8 +1318,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": "The validation passed"
+          "200": {
+            "description": "The validation report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/EntityValidationReport"
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "The entity validation failed"
@@ -4754,9 +4764,84 @@
           }
         }
       },
+      "EntityTypesError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "empty"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "entityTypeRetrieval"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "resolveClosedEntityType"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
       "EntityUuid": {
         "type": "string",
         "format": "uuid"
+      },
+      "EntityValidationReport": {
+        "type": "object",
+        "properties": {
+          "link": {
+            "$ref": "#/components/schemas/LinkValidationReport"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MetadataValidationReport"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/PropertyValidationReport"
+          }
+        }
       },
       "EntityValidationType": {
         "type": "array",
@@ -6187,6 +6272,217 @@
         },
         "additionalProperties": false
       },
+      "LinkDataStateError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "missing"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "unexpected"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "LinkDataValidationReport": {
+        "type": "object",
+        "properties": {
+          "leftEntity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinkedEntityError"
+              }
+            ],
+            "nullable": true
+          },
+          "linkType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinkError"
+              }
+            ],
+            "nullable": true
+          },
+          "rightEntity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinkedEntityError"
+              }
+            ],
+            "nullable": true
+          },
+          "targetType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinkTargetError"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "LinkError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/UnexpectedEntityType"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "unexpectedEntityType"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "LinkTargetError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/UnexpectedEntityType"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "unexpectedEntityType"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "LinkValidationReport": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LinkDataValidationReport"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "linkData": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/LinkDataStateError"
+                  }
+                ],
+                "nullable": true
+              }
+            }
+          }
+        ]
+      },
+      "LinkedEntityError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "entityRetrieval"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "entityTypeRetrieval"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "resolveClosedEntityType"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
       "LoadExternalDataTypeRequest": {
         "oneOf": [
           {
@@ -6361,6 +6657,22 @@
           }
         ]
       },
+      "MetadataValidationReport": {
+        "type": "object",
+        "properties": {
+          "entityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypesError"
+              }
+            ],
+            "nullable": true
+          },
+          "properties": {
+            "$ref": "#/components/schemas/PropertyMetadataValidationReport"
+          }
+        }
+      },
       "ModifyDataTypeAuthorizationRelationship": {
         "type": "object",
         "required": [
@@ -6464,6 +6776,9 @@
             "$ref": "#/components/schemas/OwnedById"
           }
         }
+      },
+      "MultiReport": {
+        "$ref": "./models/multi_report.json"
       },
       "NullOrdering": {
         "type": "string",
@@ -7236,6 +7551,10 @@
         },
         "additionalProperties": false
       },
+      "PropertyMetadataValidationReport": {
+        "default": null,
+        "nullable": true
+      },
       "PropertyObject": {
         "type": "object",
         "additionalProperties": {
@@ -7659,6 +7978,19 @@
           }
         }
       },
+      "PropertyValidationReport": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Report"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
       "PropertyWithMetadata": {
         "oneOf": [
           {
@@ -7964,6 +8296,9 @@
         ],
         "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in queries\nthat return [`Subgraph`]s.\n\nThe [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided\nbounds an inclusive bound at the timestamp at point of resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph"
       },
+      "Report": {
+        "$ref": "./models/report.json"
+      },
       "RightBoundedTemporalInterval": {
         "type": "object",
         "required": [
@@ -8217,6 +8552,27 @@
           }
         },
         "additionalProperties": false
+      },
+      "UnexpectedEntityType": {
+        "type": "object",
+        "required": [
+          "actual",
+          "expected"
+        ],
+        "properties": {
+          "actual": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          },
+          "expected": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          }
+        }
       },
       "UnresolvedRightBoundedTemporalInterval": {
         "type": "object",

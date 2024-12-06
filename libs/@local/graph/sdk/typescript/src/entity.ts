@@ -3,6 +3,7 @@ import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
+  EntityValidationReport,
   GraphApi,
   OriginProvenance,
   PatchEntityParams as GraphApiPatchEntityParams,
@@ -779,10 +780,10 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     params: Omit<ValidateEntityParams, "properties"> & {
       properties: PropertyObjectWithMetadata;
     },
-  ): Promise<void> {
+  ): Promise<EntityValidationReport | undefined> {
     return await graphAPI
       .validateEntity(authentication.actorId, params)
-      .then(({ data }) => data);
+      .then(({ data }) => data["0"]);
   }
 
   public async patch(

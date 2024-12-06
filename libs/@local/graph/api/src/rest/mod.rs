@@ -457,6 +457,8 @@ impl Modify for ExternalRefAddon {
                 ("PartialEntityType", "partial_entity_type"),
                 ("ClosedMultiEntityType", "closed_multi_entity_type"),
                 ("Status", "status"),
+                ("Report", "report"),
+                ("MultiReport", "multi_report"),
             ] {
                 *components.schemas.entry(name.to_owned()).or_default() =
                     Ref::new(format!("./models/{model}.json")).into();

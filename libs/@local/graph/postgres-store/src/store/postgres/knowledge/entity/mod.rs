@@ -4,7 +4,7 @@ use alloc::{borrow::Cow, collections::BTreeSet};
 use core::{borrow::Borrow as _, iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{Report, ReportSink, ResultExt as _, bail};
+use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, bail, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_authorization::{
     AuthorizationApi,
@@ -17,11 +17,12 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::{
     entity::{
-        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, EntityQueryPath,
-        EntityQuerySorting, EntityStore, EntityValidationType, GetEntitiesParams,
-        GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
-        QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
-        ValidateEntityError, ValidateEntityParams,
+        ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, EmptyEntityTypes,
+        EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
+        EntityValidationReport, EntityValidationType, GetEntitiesParams, GetEntitiesResponse,
+        GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
+        PropertyValidationReport, QueryConversion, UpdateEntityEmbeddingsParams,
+        ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::IncludeEntityTypeOption,
     error::{InsertionError, QueryError, UpdateError},
@@ -62,7 +63,7 @@ use hash_graph_types::{
     ontology::{DataTypeLookup, OntologyTypeProvider},
     owned_by_id::OwnedById,
 };
-use hash_graph_validation::{EntityPreprocessor, EntityValidationError, Validate as _};
+use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde_json::Value as JsonValue;
@@ -770,7 +771,8 @@ where
             authorization: Some((actor_id, Consistency::FullyConsistent)),
         };
 
-        for mut params in params {
+        let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
+        for (index, mut params) in params.into_iter().enumerate() {
             let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
                 stream::iter(&params.entity_type_ids)
                     .then(|entity_type_url| async {
@@ -787,19 +789,22 @@ where
             )
             .change_context(InsertionError)?;
 
-            let mut validation_components = if params.draft {
-                ValidateEntityComponents::draft()
-            } else {
-                ValidateEntityComponents::full()
+            let mut preprocessor = EntityPreprocessor {
+                components: if params.draft {
+                    ValidateEntityComponents::draft()
+                } else {
+                    ValidateEntityComponents::full()
+                },
             };
-            validation_components.link_validation = self.settings.validate_links;
-            EntityPreprocessor {
-                components: validation_components,
+            preprocessor.components.link_validation = self.settings.validate_links;
+
+            if let Err(error) = preprocessor
+                .visit_object(&entity_type, &mut params.properties, &validator_provider)
+                .await
+            {
+                validation_reports.entry(index).or_default().properties =
+                    PropertyValidationReport { error: Some(error) };
             }
-            .visit_object(&entity_type, &mut params.properties, &validator_provider)
-            .await
-            .attach(StatusCode::InvalidArgument)
-            .change_context(InsertionError)?;
 
             let (properties, property_metadata) = params.properties.into_parts();
 
@@ -927,7 +932,7 @@ where
                 },
             });
 
-            validation_params.push((entity_type, validation_components));
+            validation_params.push((entity_type, preprocessor.components));
 
             let current_num_relationships = relationships.len();
             relationships.extend(
@@ -1090,12 +1095,23 @@ where
             authorization: Some((actor_id, Consistency::FullyConsistent)),
         };
 
-        for (entity, (schema, components)) in entities.iter().zip(validation_params) {
-            entity
+        for (index, (entity, (schema, components))) in
+            entities.iter().zip(validation_params).enumerate()
+        {
+            let validation_report = entity
                 .validate(&schema, components, &validator_provider)
-                .await
-                .change_context(InsertionError)?;
+                .await;
+            if !validation_report.is_valid() {
+                let report = validation_reports.entry(index).or_default();
+                report.link = validation_report.link;
+                report.metadata.properties = validation_report.property_metadata;
+            }
         }
+
+        ensure!(
+            validation_reports.is_empty(),
+            Report::new(InsertionError).attach(validation_reports)
+        );
 
         let commit_result = transaction.commit().await.change_context(InsertionError);
         if let Err(error) = commit_result {
@@ -1141,8 +1157,8 @@ where
         actor_id: AccountId,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
-    ) -> Result<(), Report<ValidateEntityError>> {
-        let mut status = ReportSink::new();
+    ) -> HashMap<usize, EntityValidationReport> {
+        let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
 
         let validator_provider = StoreProvider {
             store: self,
@@ -1150,61 +1166,76 @@ where
             authorization: Some((actor_id, Consistency::FullyConsistent)),
         };
 
-        for mut params in params {
+        for (index, mut params) in params.into_iter().enumerate() {
+            let mut validation_report = EntityValidationReport::default();
+
             let schema = match params.entity_types {
                 EntityValidationType::ClosedSchema(schema) => schema,
-                EntityValidationType::Id(entity_type_urls) => Cow::Owned(
-                    ClosedMultiEntityType::from_multi_type_closed_schema(
-                        stream::iter(entity_type_urls.as_ref())
-                            .then(|entity_type_url| async {
-                                OntologyTypeProvider::<ClosedEntityType>::provide_type(
-                                    &validator_provider,
-                                    entity_type_url,
-                                )
-                                .await
-                                .map(|entity_type| (*entity_type).clone())
+                EntityValidationType::Id(entity_type_urls) => {
+                    let entity_type = stream::iter(entity_type_urls.as_ref())
+                        .then(|entity_type_url| {
+                            OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                                &validator_provider,
+                                entity_type_url,
+                            )
+                            .change_context_lazy(|| {
+                                EntityTypeRetrieval {
+                                    entity_type_url: entity_type_url.clone(),
+                                }
                             })
-                            .try_collect::<Vec<ClosedEntityType>>()
-                            .await
-                            .change_context(ValidateEntityError)?,
-                    )
-                    .change_context(ValidateEntityError)?,
-                ),
+                        })
+                        .map_ok(|entity_type| (*entity_type).clone())
+                        .try_collect_reports::<Vec<ClosedEntityType>>()
+                        .await
+                        .map_err(EntityTypesError::EntityTypeRetrieval)
+                        .and_then(|entity_types| {
+                            ClosedMultiEntityType::from_multi_type_closed_schema(entity_types)
+                                .map_err(EntityTypesError::ResolveClosedEntityType)
+                        });
+                    match entity_type {
+                        Ok(entity_type) => Cow::Owned(entity_type),
+                        Err(error) => {
+                            validation_report.metadata.entity_types = Some(error);
+                            validation_reports.insert(index, validation_report);
+                            continue;
+                        }
+                    }
+                }
             };
 
             if schema.all_of.is_empty() {
-                let error = Report::new(EntityValidationError::EmptyEntityTypes);
-                status.append(error);
+                validation_report.metadata.entity_types =
+                    Some(EntityTypesError::Empty(Report::new(EmptyEntityTypes)));
             };
 
-            let pre_process_result = EntityPreprocessor {
+            let mut preprocessor = EntityPreprocessor {
                 components: params.components,
-            }
-            .visit_object(
-                schema.as_ref(),
-                params.properties.to_mut(),
-                &validator_provider,
-            )
-            .await
-            .change_context(EntityValidationError::InvalidProperties);
-            if let Err(error) = pre_process_result {
-                status.append(error);
+            };
+
+            if let Err(error) = preprocessor
+                .visit_object(
+                    schema.as_ref(),
+                    params.properties.to_mut(),
+                    &validator_provider,
+                )
+                .await
+            {
+                validation_reports.entry(index).or_default().properties =
+                    PropertyValidationReport { error: Some(error) };
             }
 
-            if let Err(error) = params
+            validation_report.link = params
                 .link_data
                 .as_deref()
                 .validate(&schema, params.components, &validator_provider)
-                .await
-            {
-                status.append(error);
+                .await;
+
+            if !validation_report.is_valid() {
+                validation_reports.insert(index, validation_report);
             }
         }
 
-        status
-            .finish()
-            .change_context(ValidateEntityError)
-            .attach(StatusCode::InvalidArgument)
+        validation_reports
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
@@ -1698,15 +1729,19 @@ where
         };
         validation_components.link_validation = transaction.settings.validate_links;
 
+        let mut validation_report = EntityValidationReport::default();
         let (properties, property_metadata) =
             if let PropertyWithMetadata::Object(mut object) = properties_with_metadata {
-                EntityPreprocessor {
+                let mut preprocessor = EntityPreprocessor {
                     components: validation_components,
+                };
+                if let Err(error) = preprocessor
+                    .visit_object(&entity_type, &mut object, &validator_provider)
+                    .await
+                {
+                    validation_report.properties = PropertyValidationReport { error: Some(error) };
                 }
-                .visit_object(&entity_type, &mut object, &validator_provider)
-                .await
-                .attach(StatusCode::InvalidArgument)
-                .change_context(UpdateError)?;
+
                 let (properties, property_metadata) = object.into_parts();
                 (properties, property_metadata)
             } else {
@@ -1891,10 +1926,19 @@ where
             cache: store_cache,
             authorization: Some((actor_id, Consistency::FullyConsistent)),
         };
-        entities[0]
+        let post_validation_report = entities[0]
             .validate(&entity_type, validation_components, &validator_provider)
-            .await
-            .change_context(UpdateError)?;
+            .await;
+        validation_report.link = post_validation_report.link;
+        validation_report.metadata.properties = post_validation_report.property_metadata;
+
+        ensure!(
+            validation_report.is_valid(),
+            Report::new(UpdateError).attach(HashMap::from([(
+                entities[0].metadata.record_id.entity_id,
+                validation_report
+            )]))
+        );
 
         transaction.commit().await.change_context(UpdateError)?;
 
