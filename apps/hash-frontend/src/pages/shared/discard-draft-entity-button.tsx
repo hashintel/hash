@@ -17,7 +17,7 @@ import type {
 } from "../../graphql/api-types.gen";
 import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
-import { useNotificationEntities } from "../../shared/notification-entities-context";
+import { useNotificationCount } from "../../shared/notification-entities-context";
 import type { ButtonProps } from "../../shared/ui";
 import { Button } from "../../shared/ui";
 import { useNotificationsWithLinks } from "./notifications-with-links-context";
@@ -36,7 +36,7 @@ export const DiscardDraftEntityButton: FunctionComponent<
 }) => {
   const { refetch: refetchDraftEntities } = useDraftEntities();
 
-  const { archiveNotification } = useNotificationEntities();
+  const { archiveNotification } = useNotificationCount();
 
   const { notifications } = useNotificationsWithLinks();
 

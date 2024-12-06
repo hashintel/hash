@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
@@ -39,52 +40,46 @@ import {
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { pollInterval } from "./poll-interval";
 
-export type NotificationEntitiesContextValues = {
-  notificationEntities?: Entity<
-    | Notification
-    | MentionNotification
-    | CommentNotification
-    | GraphChangeNotification
-  >[];
+export type NotificationCountContextValues = {
   numberOfUnreadNotifications?: number;
   loading: boolean;
   refetch: () => Promise<void>;
   markNotificationAsRead: (params: {
-    notificationEntity: Entity;
+    notificationEntityId: EntityId;
   }) => Promise<void>;
   markNotificationsAsRead: (params: {
-    notificationEntities: Entity[];
+    notificationEntityIds: EntityId[];
   }) => Promise<void>;
   archiveNotification: (params: {
-    notificationEntity: Entity;
+    notificationEntityId: EntityId;
   }) => Promise<void>;
   archiveNotifications: (params: {
-    notificationEntities: Entity[];
+    notificationEntityIds: EntityId[];
   }) => Promise<void>;
 };
 
-export const NotificationEntitiesContext =
-  createContext<null | NotificationEntitiesContextValues>(null);
+export const NotificationCountContext =
+  createContext<null | NotificationCountContextValues>(null);
 
-export const useNotificationEntities = () => {
-  const notificationsEntitiesContext = useContext(NotificationEntitiesContext);
+export const useNotificationCount = () => {
+  const notificationCountContext = useContext(NotificationCountContext);
 
-  if (!notificationsEntitiesContext) {
+  if (!notificationCountContext) {
     throw new Error("Context missing");
   }
 
-  return notificationsEntitiesContext;
+  return notificationCountContext;
 };
 
-export const NotificationEntitiesContextProvider: FunctionComponent<
+export const NotificationCountContextProvider: FunctionComponent<
   PropsWithChildren
 > = ({ children }) => {
   const { authenticatedUser } = useAuthInfo();
 
   const {
-    data: notificationEntitiesData,
-    loading: loadingNotificationEntities,
-    refetch: refetchNotificationEntities,
+    data: notificationCountData,
+    loading: loadingNotificationCount,
+    refetch: refetchNotificationCount,
   } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
     getEntitySubgraphQuery,
     {
@@ -110,6 +105,8 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
           graphResolveDepths: zeroedGraphResolveDepths,
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: false,
+          includeCount: true,
+          limit: 0,
         },
       },
       skip: !authenticatedUser,
@@ -117,51 +114,27 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     },
   );
 
-  const notificationEntitiesSubgraph = useMemo(
-    () =>
-      notificationEntitiesData
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<Notification>>(
-            notificationEntitiesData.getEntitySubgraph.subgraph,
-          )
-        : undefined,
-    [notificationEntitiesData],
-  );
-
-  const notificationEntities = useMemo<
-    | Entity<
-        | Notification
-        | MentionNotification
-        | CommentNotification
-        | GraphChangeNotification
-      >[]
-    | undefined
-  >(
-    () =>
-      notificationEntitiesSubgraph
-        ? getRoots(notificationEntitiesSubgraph)
-        : undefined,
-    [notificationEntitiesSubgraph],
-  );
-
   const refetch = useCallback(async () => {
-    await refetchNotificationEntities();
-  }, [refetchNotificationEntities]);
+    await refetchNotificationCount();
+  }, [refetchNotificationCount]);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
-  const markNotificationAsRead = useCallback(
-    async (params: { notificationEntity: Entity }) => {
-      const { notificationEntity } = params;
+  const markNotificationAsRead = useCallback<
+    NotificationCountContextValues["markNotificationAsRead"]
+  >(
+    async (params) => {
+      const { notificationEntityId } = params;
 
       const now = new Date();
 
       await updateEntity({
         variables: {
           entityUpdate: {
-            entityId: notificationEntity.metadata.recordId.entityId,
+            entityId: notificationEntityId,
             propertyPatches: [
               {
                 op: "add",
@@ -191,16 +164,17 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     UpdateEntitiesMutationVariables
   >(updateEntitiesMutation);
 
-  const markNotificationsAsRead = useCallback(
-    async (params: { notificationEntities: Entity[] }) => {
+  const markNotificationsAsRead = useCallback<
+    NotificationCountContextValues["markNotificationsAsRead"]
+  >(
+    async (params) => {
       const now = new Date();
 
       await updateEntities({
         variables: {
-          entityUpdates: params.notificationEntities.map(
-            (notificationEntity) => ({
-              entityId: notificationEntity.metadata.recordId.entityId,
-              entityTypeIds: notificationEntity.metadata.entityTypeIds,
+          entityUpdates: params.notificationEntityIds.map(
+            (notificationEntityId) => ({
+              entityId: notificationEntityId,
               propertyPatches: [
                 {
                   op: "add",
@@ -226,15 +200,16 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     [updateEntities, refetch],
   );
 
-  const archiveNotification = useCallback(
-    async (params: { notificationEntity: Entity; shouldRefetch?: boolean }) => {
-      const { notificationEntity, shouldRefetch = true } = params;
+  const archiveNotification = useCallback<
+    NotificationCountContextValues["archiveNotification"]
+  >(
+    async (params) => {
+      const { notificationEntityId } = params;
 
       await updateEntity({
         variables: {
           entityUpdate: {
-            entityId: notificationEntity.metadata.recordId.entityId,
-            entityTypeIds: notificationEntity.metadata.entityTypeIds,
+            entityId: notificationEntityId,
             propertyPatches: [
               {
                 op: "add",
@@ -254,21 +229,20 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
         },
       });
 
-      if (shouldRefetch) {
-        await refetch();
-      }
+      await refetch();
     },
     [updateEntity, refetch],
   );
 
-  const archiveNotifications = useCallback(
-    async (params: { notificationEntities: Entity[] }) => {
+  const archiveNotifications = useCallback<
+    NotificationCountContextValues["archiveNotifications"]
+  >(
+    async (params) => {
       await updateEntities({
         variables: {
-          entityUpdates: params.notificationEntities.map(
-            (notificationEntity) => ({
-              entityId: notificationEntity.metadata.recordId.entityId,
-              entityTypeIds: notificationEntity.metadata.entityTypeIds,
+          entityUpdates: params.notificationEntityIds.map(
+            (notificationEntityId) => ({
+              entityId: notificationEntityId,
               propertyPatches: [
                 {
                   op: "add",
@@ -293,42 +267,30 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     [updateEntities, refetch],
   );
 
-  const numberOfUnreadNotifications = useMemo(
-    () =>
-      notificationEntities?.filter(({ properties }) => {
-        const { readAt } = simplifyProperties(properties);
-
-        return !readAt;
-      }).length,
-    [notificationEntities],
-  );
-
-  const value = useMemo<NotificationEntitiesContextValues>(
+  const value = useMemo<NotificationCountContextValues>(
     () => ({
-      notificationEntities,
-      numberOfUnreadNotifications,
-      loading: loadingNotificationEntities,
+      archiveNotification,
       archiveNotifications,
-      refetch,
+      loading: loadingNotificationCount,
       markNotificationAsRead,
       markNotificationsAsRead,
-      archiveNotification,
+      numberOfUnreadNotifications: notificationCountData?.getEntitySubgraph,
+      refetch,
     }),
     [
-      notificationEntities,
-      numberOfUnreadNotifications,
+      archiveNotification,
       archiveNotifications,
-      loadingNotificationEntities,
-      refetch,
+      loadingNotificationCount,
       markNotificationAsRead,
       markNotificationsAsRead,
-      archiveNotification,
+      notificationCountData,
+      refetch,
     ],
   );
 
   return (
-    <NotificationEntitiesContext.Provider value={value}>
+    <NotificationCountContext.Provider value={value}>
       {children}
-    </NotificationEntitiesContext.Provider>
+    </NotificationCountContext.Provider>
   );
 };

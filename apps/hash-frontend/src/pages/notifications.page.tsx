@@ -36,7 +36,7 @@ import { useUserOrOrgShortnameByOwnedById } from "../components/hooks/use-user-o
 import { constructPageRelativeUrl } from "../lib/routes";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
-import { useNotificationEntities } from "../shared/notification-entities-context";
+import { useNotificationCount } from "../shared/notification-entities-context";
 import { Button, Link } from "../shared/ui";
 import type {
   GraphChangeNotification,
@@ -173,7 +173,7 @@ const PageRelatedNotificationContent = ({
 const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
   notification,
 }) => {
-  const { markNotificationAsRead } = useNotificationEntities();
+  const { markNotificationAsRead } = useNotificationCount();
 
   const handleNotificationClick = useCallback(async () => {
     await markNotificationAsRead({ notificationEntity: notification.entity });

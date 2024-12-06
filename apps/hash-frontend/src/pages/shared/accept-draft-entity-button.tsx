@@ -17,7 +17,7 @@ import type {
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
-import { useNotificationEntities } from "../../shared/notification-entities-context";
+import { useNotificationCount } from "../../shared/notification-entities-context";
 import type { ButtonProps } from "../../shared/ui";
 import { Button } from "../../shared/ui";
 import { LinkLabelWithSourceAndDestination } from "./link-label-with-source-and-destination";
@@ -138,7 +138,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
 
   const { refetch: refetchDraftEntities } = useDraftEntities();
 
-  const { markNotificationAsRead } = useNotificationEntities();
+  const { markNotificationAsRead } = useNotificationCount();
   const { notifications } = useNotificationsWithLinks();
 
   /**

@@ -22,7 +22,7 @@ import { ArrowRightToLineIcon } from "../../icons";
 import { BoltLightIcon } from "../../icons/bolt-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
-import { useNotificationEntities } from "../../notification-entities-context";
+import { useNotificationCount } from "../../notification-entities-context";
 import { useRoutePageInfo } from "../../routing";
 import { useUserPreferences } from "../../use-user-preferences";
 import { AccountEntitiesList } from "./sidebar/account-entities-list";
@@ -72,7 +72,7 @@ export const PageSidebar: FunctionComponent = () => {
 
   const { hashInstance } = useHashInstance();
 
-  const { numberOfUnreadNotifications } = useNotificationEntities();
+  const { numberOfUnreadNotifications } = useNotificationCount();
 
   const { draftEntities } = useDraftEntities();
 

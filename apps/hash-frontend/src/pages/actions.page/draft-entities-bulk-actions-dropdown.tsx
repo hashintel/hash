@@ -30,7 +30,7 @@ import {
 } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { LayerGroupLightIcon } from "../../shared/icons/layer-group-light-icon";
-import { useNotificationEntities } from "../../shared/notification-entities-context";
+import { useNotificationCount } from "../../shared/notification-entities-context";
 import { Button, MenuItem } from "../../shared/ui";
 import { useNotificationsWithLinks } from "../shared/notifications-with-links-context";
 
@@ -46,7 +46,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
   const { draftEntities, refetch: refetchDraftEntities } = useDraftEntities();
   const { notifications } = useNotificationsWithLinks();
   const { archiveNotifications, markNotificationsAsRead } =
-    useNotificationEntities();
+    useNotificationCount();
 
   const popupState = usePopupState({
     variant: "popover",
