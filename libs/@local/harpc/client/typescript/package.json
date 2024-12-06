@@ -9,6 +9,22 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./codec": {
+      "import": "./dist/codec/index.js",
+      "types": "./dist/codec/index.d.ts"
+    },
+    "./net": {
+      "import": "./dist/net/index.js",
+      "types": "./dist/net/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./wire-protocol": {
+      "import": "./dist/wire-protocol/index.js",
+      "types": "./dist/wire-protocol/index.d.ts"
     }
   },
   "scripts": {

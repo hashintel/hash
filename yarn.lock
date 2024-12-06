@@ -8440,7 +8440,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/harpc-client@workspace:libs/@local/harpc/client/typescript":
+"@local/harpc-client@workspace:*, @local/harpc-client@workspace:libs/@local/harpc/client/typescript":
   version: 0.0.0-use.local
   resolution: "@local/harpc-client@workspace:libs/@local/harpc/client/typescript"
   dependencies:
@@ -8544,10 +8544,12 @@ __metadata:
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint-config": "npm:0.0.0-private"
+    "@local/harpc-client": "workspace:*"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:2.1.8"
+    effect: "npm:3.11.2"
     eslint: "npm:8.57.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"

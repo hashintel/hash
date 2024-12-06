@@ -1,4 +1,14 @@
-import { Effect, Function, Option, pipe, Predicate, Ref, Stream } from "effect";
+import {
+  Cause,
+  Effect,
+  Either,
+  Function,
+  Option,
+  pipe,
+  Predicate,
+  Ref,
+  Stream,
+} from "effect";
 
 import type {
   ProcedureDescriptor,
@@ -11,7 +21,7 @@ import {
   Protocol,
   ProtocolVersion,
 } from "../wire-protocol/models/index.js";
-import type { PayloadTooLargeError } from "../wire-protocol/models/Payload.js";
+import { PayloadTooLargeError } from "../wire-protocol/models/Payload.js";
 import type { RequestId } from "../wire-protocol/models/request/index.js";
 import {
   Request,
@@ -190,7 +200,7 @@ const encodeImpl = <E, R>(self: Request<E, R>, options?: EncodeOptions) =>
             flags,
           );
 
-          const payload = yield* Payload.make(new Uint8Array(buffer));
+          const payload = yield* Payload.makeAssert(new Uint8Array(buffer));
 
           const body = isFirst
             ? RequestBegin.make(self.subsystem, self.procedure, payload).pipe(
@@ -219,7 +229,7 @@ const encodeImpl = <E, R>(self: Request<E, R>, options?: EncodeOptions) =>
                       RequestBegin.make(
                         self.subsystem,
                         self.procedure,
-                        yield* Payload.make(new Uint8Array()),
+                        yield* Payload.makeAssert(new Uint8Array()),
                       ).pipe(RequestBody.makeBegin),
                     ),
                   ]
@@ -243,18 +253,14 @@ export const encode: {
     self: Request<E, R>,
   ) => Stream.Stream<
     Request.Request,
-    E | PayloadTooLargeError,
+    E,
     R | RequestIdProducer.RequestIdProducer
   >;
 
   <E, R>(
     self: Request<E, R>,
     options?: EncodeOptions,
-  ): Stream.Stream<
-    Request.Request,
-    E | PayloadTooLargeError,
-    R | RequestIdProducer.RequestIdProducer
-  >;
+  ): Stream.Stream<Request.Request, E, R | RequestIdProducer.RequestIdProducer>;
 } = Function.dual(
   // data-last if no options are provided, or if the first argument **is not** a stream.
   (args) => args.length === 0 || !isStream(args[0]),

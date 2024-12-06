@@ -67,7 +67,7 @@ const EncoderProto: Omit<EncoderImpl, "encode"> = {
   },
 };
 
-export const Encoder = GenericTag<Encoder>("@local/harpc-client/codec/Encoder");
+export const Encoder = GenericTag<Encoder>(TypeId.description!);
 
 export const make = <E = EncodingError, R = never>(
   encode: <

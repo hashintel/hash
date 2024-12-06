@@ -1,4 +1,5 @@
 import { Effect, Function } from "effect";
+import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
 import * as Connection from "./Connection.js";
@@ -25,6 +26,8 @@ interface ClientImpl extends Client {
 const ClientProto: Omit<ClientImpl, "client" | "config"> = {
   [TypeId]: TypeId,
 };
+
+export const Client = GenericTag<Client>(TypeId.description!);
 
 // TODO: add a metrics compatability layer
 //  see: https://linear.app/hash/issue/H-3712/libp2p-metrics-compatibility-layer

@@ -14,6 +14,7 @@ import {
   Sink,
   Stream,
 } from "effect";
+import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
 import { Buffer } from "../wire-protocol/index.js";
@@ -24,7 +25,7 @@ import { ResponseFlags } from "../wire-protocol/models/response/index.js";
 import { ResponseFromBytesStream } from "../wire-protocol/stream/index.js";
 import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
 import type * as internalTransport from "./internal/transport.js";
-import type * as Request from "./Request.js";
+import * as Request from "./Request.js";
 import * as Transaction from "./Transaction.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Connection");
@@ -100,6 +101,8 @@ const ConnectionProto: Omit<
 > = {
   [TypeId]: TypeId,
 };
+
+export const Connection = GenericTag<Connection>(TypeId.description!);
 
 const makeSink = (connection: ConnectionImpl) =>
   // eslint-disable-next-line unicorn/no-array-for-each
@@ -268,6 +271,14 @@ export const send: {
       };
 
       MutableHashMap.set(self.transactions, request.id, transactionContext);
+
+      yield* Effect.fork(
+        pipe(
+          request, //
+          Request.encode,
+          Stream.run(self.duplex.write),
+        ),
+      );
 
       return Transaction.makeUnchecked(request.id, queue, deferredDrop);
     }),
