@@ -1,5 +1,5 @@
 use core::borrow::Borrow as _;
-use std::collections::{HashSet, hash_map::RawEntryMut};
+use std::collections::{BTreeSet, HashSet, hash_map::RawEntryMut};
 
 use error_stack::{FutureExt as _, Report, ReportSink, ResultExt as _, TryReportStreamExt as _};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
@@ -203,13 +203,16 @@ where
         let Some(left_entity_type) = left_entity_type else {
             return validation_report;
         };
-
-        let Some(maybe_allowed_targets) = schema
+        let link_entity_ids = schema
             .all_of
             .iter()
             .flat_map(|entity_type| &entity_type.all_of)
-            .map(|entity_type| &entity_type.id)
-            .find_map(|link_type_id| left_entity_type.constraints.links.get(link_type_id))
+            .map(|entity_type| (entity_type.depth, &entity_type.id))
+            .collect::<BTreeSet<_>>();
+
+        let Some(maybe_allowed_targets) = link_entity_ids
+            .iter()
+            .find_map(|(_, link_type_id)| left_entity_type.constraints.links.get(link_type_id))
         else {
             validation_report.link_type = Some(LinkError::UnexpectedEntityType {
                 data: UnexpectedEntityType {
@@ -252,10 +255,9 @@ where
         if !found_match {
             validation_report.target_type = Some(LinkTargetError::UnexpectedEntityType {
                 data: UnexpectedEntityType {
-                    actual: right_entity_type
-                        .all_of
-                        .iter()
-                        .map(|entity_type| entity_type.id.clone())
+                    actual: link_entity_ids
+                        .into_iter()
+                        .map(|(_, entity_type_id)| entity_type_id.clone())
                         .collect(),
                     expected: allowed_targets
                         .possibilities
