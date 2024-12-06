@@ -12438,6 +12438,7 @@ __metadata:
     "@rust/hash-graph-type-defs": "npm:0.0.0-private"
     "@rust/hash-graph-type-fetcher": "npm:0.0.0-private"
     "@rust/hash-graph-types": "npm:0.0.0-private"
+    "@rust/hash-graph-validation": "npm:0.0.0-private"
     "@rust/hash-status": "npm:0.0.0-private"
     "@rust/hash-temporal-client": "npm:0.0.0-private"
   languageName: unknown
