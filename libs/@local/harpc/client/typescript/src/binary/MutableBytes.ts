@@ -48,13 +48,18 @@ export const make = (options?: {
    */
   readonly growthStrategy?: GrowthStrategy;
 }): MutableBytes =>
-  createProto(MutableBytesProto, {
-    inner: new ArrayBuffer(
-      options?.initialCapacity ?? DEFAULT_INITIAL_CAPACITY,
-    ),
-    initialCapacity: options?.initialCapacity ?? DEFAULT_INITIAL_CAPACITY,
-    growthStrategy: options?.growthStrategy ?? "doubling",
-  }) satisfies MutableBytesImpl as MutableBytes;
+  createProto(
+    MutableBytesProto,
+    {
+      initialCapacity: options?.initialCapacity ?? DEFAULT_INITIAL_CAPACITY,
+      growthStrategy: options?.growthStrategy ?? "doubling",
+    },
+    {
+      inner: new ArrayBuffer(
+        options?.initialCapacity ?? DEFAULT_INITIAL_CAPACITY,
+      ),
+    },
+  ) satisfies MutableBytesImpl as MutableBytes;
 
 export const capacity = (self: MutableBytes) =>
   (self as MutableBytesImpl).inner.byteLength;

@@ -20,7 +20,7 @@ export interface Client {
 
 interface ClientImpl extends Client {
   readonly client: internalTransport.Transport;
-  readonly config?: ClientConfig;
+  readonly config?: ClientConfig | undefined;
 }
 
 const ClientProto: Omit<ClientImpl, "client" | "config"> = {
@@ -51,7 +51,7 @@ export const connect: {
     self: Client,
   ) => Effect.Effect<
     Connection.Connection,
-    Connection.TransportError,
+    Transport.TransportError,
     Scope.Scope
   >;
   (
@@ -59,7 +59,7 @@ export const connect: {
     address: Transport.Address,
   ): Effect.Effect<
     Connection.Connection,
-    Connection.TransportError,
+    Transport.TransportError,
     Scope.Scope
   >;
 } = Function.dual(
@@ -69,7 +69,7 @@ export const connect: {
     address: Transport.Address,
   ): Effect.Effect<
     Connection.Connection,
-    Connection.TransportError,
+    Transport.TransportError,
     Scope.Scope
   > =>
     Connection.makeUnchecked(

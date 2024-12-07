@@ -21,6 +21,7 @@ import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
@@ -28,11 +29,13 @@ import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
 import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import * as Sentry from "@sentry/node";
 import bodyParser from "body-parser";
 import cors from "cors";
+import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
 import proxy from "express-http-proxy";
 import type { Options as RateLimitOptions } from "express-rate-limit";
 import { rateLimit } from "express-rate-limit";
@@ -94,6 +97,9 @@ import {
   setupStorageProviders,
 } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
+import { RuntimeException } from "effect/Cause";
+import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
+import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -519,6 +525,47 @@ const main = async () => {
 
   app.get("/", (_req, res) => {
     res.send("Hello World");
+  });
+
+  /** RPC */
+  const rpcClient = RpcClient.layer();
+
+  const runtime = ManagedRuntime.make(
+    Layer.mergeAll(
+      rpcClient,
+      RequestIdProducer.layer,
+      JsonDecoder.layer,
+      JsonEncoder.layer,
+    ),
+  );
+
+  shutdown.addCleanup("ManagedRuntime", () => runtime.dispose());
+
+  app.get("/rpc/hello", (req, res, next) => {
+    // eslint-disable-next-line func-names
+    const effect = Effect.gen(function* () {
+      const textQueryParam = req.query.text;
+      if (typeof textQueryParam !== "string") {
+        return yield* new RuntimeException("text query parameter is required");
+      }
+
+      const response = yield* EchoSubsystem.echo(textQueryParam);
+      res.status(200).send(response);
+    }).pipe(
+      Effect.provide(
+        RpcClient.connectLayer(Transport.multiaddr("/ip4/127.0.0.1/tcp/4002")),
+      ),
+      Logger.withMinimumLogLevel(LogLevel.Trace),
+    );
+
+    runtime.runCallback(effect, {
+      onExit: (exit) => {
+        console.log(exit);
+        if (Exit.isFailure(exit)) {
+          next(exit.cause);
+        }
+      },
+    });
   });
 
   // Used by AWS Application Load Balancer (ALB) for health checks

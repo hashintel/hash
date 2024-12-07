@@ -2,7 +2,13 @@
 
 import { ClientError } from "@local/harpc-client";
 import { Decoder, Encoder } from "@local/harpc-client/codec";
-import { Connection, Request, Transaction } from "@local/harpc-client/net";
+import {
+  Connection,
+  Request,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- otherwise TypeScript will fail on inference, I don't know why
+  Response,
+  Transaction,
+} from "@local/harpc-client/net";
 import {
   ProcedureDescriptor,
   ProcedureId,
@@ -10,9 +16,56 @@ import {
   SubsystemId,
   Version,
 } from "@local/harpc-client/types";
-import { Effect, Option, pipe, Schema, Stream } from "effect";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- otherwise TypeScript will fail on inference, I don't know why
+import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
+import {
+  Effect,
+  Either,
+  Function,
+  Option,
+  pipe,
+  Predicate,
+  Schema,
+  Stream,
+} from "effect";
 
-export class AccountSubsystem {
+const ServerResult = <A, I, R>(ok: Schema.Schema<A, I, R>) =>
+  Schema.transform(
+    Schema.Union(
+      Schema.Struct({
+        Ok: ok,
+      }),
+      Schema.Struct({
+        Err: Schema.Unknown,
+      }),
+    ),
+    Schema.Either({
+      left: Schema.instanceOf(ClientError.ServerError),
+      right: Schema.typeSchema(ok),
+    }),
+    {
+      strict: true,
+      decode: (value) => {
+        if (Predicate.hasProperty(value, "Ok")) {
+          return { _tag: "Right", right: value.Ok } as const;
+        }
+
+        return {
+          _tag: "Left",
+          left: new ClientError.ServerError({ cause: value.Err }),
+        } as const;
+      },
+      encode: (value) => {
+        if (value._tag === "Right") {
+          return { Ok: value.right };
+        }
+
+        return { Err: value.left.cause } as const;
+      },
+    },
+  );
+
+export class EchoSubsystem {
   static #subsystemId = 0x00;
   static #version = Version.make(0x00, 0x00);
 
@@ -36,8 +89,8 @@ export class AccountSubsystem {
 
     const request = yield* Request.make(
       SubsystemDescriptor.make(
-        yield* SubsystemId.make(AccountSubsystem.#subsystemId),
-        AccountSubsystem.#version,
+        yield* SubsystemId.make(EchoSubsystem.#subsystemId),
+        EchoSubsystem.#version,
       ),
       ProcedureDescriptor.make(yield* ProcedureId.make(procedureId)),
       requestStream,
@@ -46,11 +99,13 @@ export class AccountSubsystem {
     const transaction = yield* Connection.send(connection, request);
     const response = Transaction.read(transaction);
 
-    const items = decoder.decode(response.body, Schema.String);
+    const items = decoder.decode(response.body, ServerResult(Schema.String));
     const item = yield* Stream.runHead(items);
 
-    return Option.getOrThrowWith(item, () =>
+    const eitherItem = Option.getOrThrowWith(item, () =>
       ClientError.ExpectedItemCountMismatchError.exactly(1, 0),
     );
-  });
+
+    return yield* eitherItem;
+  }, Effect.map(Function.identity));
 }

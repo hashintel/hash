@@ -5,7 +5,6 @@ import type {
   SubsystemDescriptor,
 } from "../types/index.js";
 import { createProto } from "../utils.js";
-import { RequestIdProducer } from "../wire-protocol/index.js";
 import {
   Payload,
   Protocol,
@@ -20,6 +19,7 @@ import {
   RequestFrame,
   RequestHeader,
 } from "../wire-protocol/models/request/index.js";
+import * as RequestIdProducer from "../wire-protocol/RequestIdProducer.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Request");
 export type TypeId = typeof TypeId;
@@ -247,8 +247,4 @@ export const encode: {
   (
     options?: EncodeOptions,
   ): <E, R>(self: Request<E, R>) => Stream.Stream<Request.Request, E, R>;
-} = Function.dual(
-  // data-last if no options are provided, or if the first argument **is not** a stream.
-  (args) => args.length === 0 || !isStream(args[0]),
-  encodeImpl,
-);
+} = Function.dual(2, encodeImpl);

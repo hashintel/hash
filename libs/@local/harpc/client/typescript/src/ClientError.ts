@@ -1,10 +1,18 @@
-import { Data, Match, Option, pipe } from "effect";
+import { Data, Inspectable, Match, Option, pipe } from "effect";
 
 export class InvalidUtf8Error extends Data.TaggedError("InvalidUtf8Error")<{
   readonly cause: unknown;
 }> {
   get message() {
     return "Invalid UTF-8 encoding";
+  }
+}
+
+export class ServerError extends Data.TaggedError("ServerError")<{
+  readonly cause: unknown;
+}> {
+  get message() {
+    return `Server error: ${Inspectable.toStringUnknown(this.cause)}`;
   }
 }
 

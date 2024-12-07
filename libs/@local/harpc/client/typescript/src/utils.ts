@@ -1,26 +1,44 @@
-import { Function, Record } from "effect";
+import { Function, Record, Tuple } from "effect";
 
 import type * as Buffer from "./wire-protocol/Buffer.js";
 
 export const createProto = <
   T extends object,
-  P extends Readonly<Record<string, unknown>>,
+  ReadableProperties extends Readonly<Record<string, unknown>>,
+  WriteableProperties extends Readonly<Record<string, unknown>>,
 >(
   proto: T,
-  properties: P,
-): T & P => {
+  readableProperties: ReadableProperties,
+  writeableProperties?: WriteableProperties,
+): T & ReadableProperties & WriteableProperties => {
+  const readablePropertyDescriptors = Record.map(
+    readableProperties,
+    (value): PropertyDescriptor => ({
+      enumerable: true,
+      configurable: false,
+      writable: false,
+      value,
+    }),
+  );
+
+  const writeablePropertyDescriptors = Record.map(
+    writeableProperties ?? {},
+    (value): PropertyDescriptor => ({
+      enumerable: true,
+      configurable: false,
+      writable: true,
+      value,
+    }),
+  );
+
   return Object.create(
     proto,
-    Record.map(
-      properties,
-      (value): PropertyDescriptor => ({
-        enumerable: true,
-        configurable: false,
-        writable: false,
-        value,
-      }),
+    Record.union(
+      readablePropertyDescriptors,
+      writeablePropertyDescriptors,
+      Function.untupled(Tuple.getFirst),
     ),
-  ) as T & P;
+  ) as T & ReadableProperties & WriteableProperties;
 };
 
 // This is more strictly typed than necessary, but this allows us to give better type hints

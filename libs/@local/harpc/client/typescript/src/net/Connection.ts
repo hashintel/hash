@@ -1,6 +1,6 @@
+import type { NewStreamOptions } from "@libp2p/interface";
 import type { Chunk, Scope } from "effect";
 import {
-  Data,
   Deferred,
   Duration,
   Effect,
@@ -22,33 +22,27 @@ import type { Response as WireResponse } from "../wire-protocol/models/response/
 import { ResponseFlags } from "../wire-protocol/models/response/index.js";
 import { ResponseFromBytesStream } from "../wire-protocol/stream/index.js";
 import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
-import type * as internalTransport from "./internal/transport.js";
+import * as internalTransport from "./internal/transport.js";
 import * as Request from "./Request.js";
 import * as Transaction from "./Transaction.js";
-import type * as Transport from "./Transport.js";
+import * as Transport from "./Transport.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Connection");
 export type TypeId = typeof TypeId;
 
-export class TransportError extends Data.TaggedError("TransportError")<{
-  cause: unknown;
-}> {
-  get message() {
-    return "Underlying transport stream experienced an error";
-  }
-}
-
 interface ConnectionDuplex {
   readonly read: Stream.Stream<
     WireResponse.Response,
-    TransportError | WireResponse.DecodeError | IncompleteResponseError
+    | Transport.TransportError
+    | WireResponse.DecodeError
+    | IncompleteResponseError
   >;
 
   readonly write: Sink.Sink<
     void,
     WireRequest.Request,
     never,
-    TransportError | WireRequest.EncodeError
+    Transport.TransportError | WireRequest.EncodeError
   >;
 }
 
@@ -185,28 +179,31 @@ export const makeUnchecked = (
   peer: Transport.Address,
 ) =>
   Effect.gen(function* () {
-    const connection = yield* Effect.tryPromise({
-      try: (abort) => transport.dial(peer, { signal: abort }),
-      catch: (cause) => new TransportError({ cause }),
-    });
+    const connection = yield* internalTransport.connect(transport, peer);
 
     const stream = yield* Effect.acquireRelease(
       Effect.tryPromise({
-        try: (abort) =>
-          connection.newStream("/harpc/1.0.0", {
-            signal: abort,
-            maxOutboundStreams: config.maxOutboundStreams,
-            runOnLimitedConnection: config.runOnLimitedConnection,
-          }),
-        catch: (cause) => new TransportError({ cause }),
+        try: (abort) => {
+          const options: NewStreamOptions = { signal: abort };
+
+          if (config.maxOutboundStreams) {
+            options.maxOutboundStreams = config.maxOutboundStreams;
+          }
+          if (config.runOnLimitedConnection) {
+            options.runOnLimitedConnection = config.runOnLimitedConnection;
+          }
+
+          return connection.newStream("/harpc/1.0.0", options);
+        },
+        catch: (cause) => new Transport.TransportError({ cause }),
       }),
-      (_) => Effect.promise(() => _.close()),
+      (_) => Effect.promise((abort) => _.close({ signal: abort })),
     );
 
     const readStream = pipe(
       Stream.fromAsyncIterable(
         stream.source,
-        (cause) => new TransportError({ cause }),
+        (cause) => new Transport.TransportError({ cause }),
       ),
       Stream.mapConcat((list) => list),
       ResponseFromBytesStream.make,
@@ -216,7 +213,7 @@ export const makeUnchecked = (
       Sink.forEachChunk((chunk: Chunk.Chunk<Uint8Array>) =>
         Effect.try({
           try: () => stream.sink(chunk),
-          catch: (cause) => new TransportError({ cause }),
+          catch: (cause) => new Transport.TransportError({ cause }),
         }),
       ),
       Sink.mapInputEffect((request: WireRequest.Request) =>
