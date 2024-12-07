@@ -3091,6 +3091,24 @@
       "ClosedDataType": {
         "$ref": "./models/closed_data_type.json"
       },
+      "ClosedDataTypeDefinition": {
+        "type": "object",
+        "required": [
+          "schema",
+          "parents"
+        ],
+        "properties": {
+          "parents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          },
+          "schema": {
+            "$ref": "#/components/schemas/ClosedDataType"
+          }
+        }
+      },
       "ClosedEntityType": {
         "$ref": "./models/closed_entity_type.json"
       },
@@ -4658,7 +4676,7 @@
           "dataTypes": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/ClosedDataType"
+              "$ref": "#/components/schemas/ClosedDataTypeDefinition"
             }
           },
           "entityTypes": {
@@ -5140,7 +5158,12 @@
             "type": "boolean"
           },
           "includeResolved": {
-            "type": "boolean"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeResolvedEntityTypeOption"
+              }
+            ],
+            "nullable": true
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -5933,7 +5956,15 @@
         "type": "string",
         "enum": [
           "closed",
-          "resolved"
+          "resolved",
+          "resolvedWithDataTypeChildren"
+        ]
+      },
+      "IncludeResolvedEntityTypeOption": {
+        "type": "string",
+        "enum": [
+          "resolved",
+          "resolvedWithDataTypeChildren"
         ]
       },
       "InferredEntityProvenance": {

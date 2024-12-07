@@ -172,10 +172,15 @@ export type ClosedMultiEntityTypesRootMap = {
   [key: string]: ClosedMultiEntityTypeMap;
 };
 
+export interface ClosedDataTypeDefinition {
+  schema: ClosedDataType;
+  parents: VersionedUrl[];
+}
+
 export type ClosedMultiEntityTypesDefinitions = Subtype<
   GetClosedMultiEntityTypeResponseDefinitions,
   {
-    dataTypes: { [key: VersionedUrl]: ClosedDataType };
+    dataTypes: { [key: VersionedUrl]: ClosedDataTypeDefinition };
     entityTypes: { [key: VersionedUrl]: PartialEntityType };
     propertyTypes: { [key: VersionedUrl]: PropertyType };
   }
@@ -188,7 +193,7 @@ export type PartialEntityType = Omit<PartialEntityTypeBp, "labelProperty"> & {
 export type EntityTypeResolveDefinitions = Subtype<
   EntityTypeResolveDefinitionsGraphApi,
   {
-    dataTypes: Record<VersionedUrl, ClosedDataType>;
+    dataTypes: Record<VersionedUrl, ClosedDataTypeDefinition>;
     propertyTypes: Record<VersionedUrl, PropertyType>;
     entityTypes: Record<VersionedUrl, PartialEntityType>;
   }

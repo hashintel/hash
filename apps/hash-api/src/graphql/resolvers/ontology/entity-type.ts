@@ -163,7 +163,7 @@ export const getClosedMultiEntityTypeResolver: ResolverFn<
     {
       entityTypeIds,
       // All references to other types are resolved, and those types provided under 'definitions' in the response
-      includeResolved: true,
+      includeResolved: "resolved",
       includeDrafts: includeDrafts ?? false,
       temporalAxes: includeArchived
         ? fullTransactionTimeAxis
