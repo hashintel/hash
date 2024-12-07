@@ -59,7 +59,7 @@ export const connect = (transport: Transport, address: Address) =>
     if (Option.isSome(peerId)) {
       yield* Effect.logTrace(
         "peer has been dialed before, attempting to reuse connection",
-      ).pipe(Effect.annotateLogs({ peerId, address }));
+      ).pipe(Effect.annotateLogs({ peerId: peerId.value, address }));
 
       // we may have an existing connection
       const existingConnection = pipe(
@@ -69,7 +69,11 @@ export const connect = (transport: Transport, address: Address) =>
 
       if (Option.isSome(existingConnection)) {
         yield* Effect.logDebug("reusing existing connection to peer").pipe(
-          Effect.annotateLogs({ peerId, address, existingConnection }),
+          Effect.annotateLogs({
+            peerId: peerId.value,
+            address,
+            existingConnection: existingConnection.value,
+          }),
         );
 
         return existingConnection.value;
