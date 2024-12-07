@@ -134,7 +134,7 @@ const makeSink = (connection: ConnectionImpl) =>
       }
 
       if (ResponseFlags.isEndOfResponse(response.header.flags)) {
-        yield* Effect.logDebug("end of response");
+        yield* Effect.logTrace("end of response, running drop");
 
         yield* transaction.value.drop;
       }

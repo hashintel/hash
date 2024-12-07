@@ -560,7 +560,6 @@ const main = async () => {
 
     runtime.runCallback(effect, {
       onExit: (exit) => {
-        console.log(exit);
         if (Exit.isFailure(exit)) {
           next(exit.cause);
         }
