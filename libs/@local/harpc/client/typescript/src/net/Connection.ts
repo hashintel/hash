@@ -1,5 +1,3 @@
-import type { PeerId } from "@libp2p/interface";
-import type { Multiaddr } from "@multiformats/multiaddr";
 import type { Chunk, Scope } from "effect";
 import {
   Data,
@@ -27,6 +25,7 @@ import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFr
 import type * as internalTransport from "./internal/transport.js";
 import * as Request from "./Request.js";
 import * as Transaction from "./Transaction.js";
+import type * as Transport from "./Transport.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Connection");
 export type TypeId = typeof TypeId;
@@ -183,21 +182,24 @@ const task = (connection: ConnectionImpl) =>
 export const makeUnchecked = (
   transport: internalTransport.Transport,
   config: ConnectionConfig,
-  peer: PeerId | Multiaddr | Multiaddr[],
+  peer: Transport.Address,
 ) =>
   Effect.gen(function* () {
-    const connection = yield* Effect.tryPromise((abort) =>
-      transport.dial(peer, { signal: abort }),
-    );
+    const connection = yield* Effect.tryPromise({
+      try: (abort) => transport.dial(peer, { signal: abort }),
+      catch: (cause) => new TransportError({ cause }),
+    });
 
     const stream = yield* Effect.acquireRelease(
-      Effect.tryPromise((abort) =>
-        connection.newStream("/harpc/1.0.0", {
-          signal: abort,
-          maxOutboundStreams: config.maxOutboundStreams,
-          runOnLimitedConnection: config.runOnLimitedConnection,
-        }),
-      ),
+      Effect.tryPromise({
+        try: (abort) =>
+          connection.newStream("/harpc/1.0.0", {
+            signal: abort,
+            maxOutboundStreams: config.maxOutboundStreams,
+            runOnLimitedConnection: config.runOnLimitedConnection,
+          }),
+        catch: (cause) => new TransportError({ cause }),
+      }),
       (_) => Effect.promise(() => _.close()),
     );
 

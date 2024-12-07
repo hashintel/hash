@@ -1,4 +1,4 @@
-import { Effect, Function } from "effect";
+import { Effect, Function, Layer, type Scope } from "effect";
 import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
@@ -41,14 +41,50 @@ export const make = (config?: ClientConfig) =>
     }) satisfies ClientImpl as Client;
   });
 
+export const layer = (config?: ClientConfig) =>
+  Layer.scoped(Client, make(config));
+
 export const connect: {
   (
     address: Transport.Address,
-  ): (self: Client) => Effect.Effect<Connection.Connection>;
+  ): (
+    self: Client,
+  ) => Effect.Effect<
+    Connection.Connection,
+    Connection.TransportError,
+    Scope.Scope
+  >;
   (
     self: Client,
     address: Transport.Address,
-  ): Effect.Effect<Connection.Connection>;
-} = Function.dual(2, (self: ClientImpl, address: Transport.Address) =>
-  Connection.makeUnchecked(self.client, self.config?.connection ?? {}, address),
+  ): Effect.Effect<
+    Connection.Connection,
+    Connection.TransportError,
+    Scope.Scope
+  >;
+} = Function.dual(
+  2,
+  (
+    self: ClientImpl,
+    address: Transport.Address,
+  ): Effect.Effect<
+    Connection.Connection,
+    Connection.TransportError,
+    Scope.Scope
+  > =>
+    Connection.makeUnchecked(
+      self.client,
+      self.config?.connection ?? {},
+      address,
+    ),
 );
+
+export const connectLayer = (address: Transport.Address) =>
+  Layer.scoped(
+    Connection.Connection,
+    Effect.gen(function* () {
+      const client = yield* Client;
+
+      return yield* connect(client, address);
+    }),
+  );
