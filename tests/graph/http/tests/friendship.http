@@ -83,20 +83,9 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-    "filter": {
-        "equal": [
-            {
-                "path": [
-                    "inheritsFrom",
-                    "*",
-                    "versionedUrl"
-                ]
-            },
-            {
-                "parameter": "http://localhost:3000/@alice/types/data-type/length/v/1"
-            }
-        ]
-    },
+  "filter": {
+    "all": []
+  },
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -748,8 +737,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         }
     }
   },
-  "includeDrafts": false,
-  "includeEntityTypes": "resolvedWithDataTypeChildren"
+  "includeDrafts": false
 }
 
 > {%
