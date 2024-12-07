@@ -182,10 +182,8 @@ export const TypeButton = ({
 };
 
 export const TypesSection = () => {
-  const { entitySubgraph, closedMultiEntityType, readonly, handleTypesChange } =
+  const { entity, closedMultiEntityType, readonly, handleTypesChange } =
     useEntityEditor();
-
-  const entity = getRoots(entitySubgraph)[0]!;
 
   const { data: latestEntityTypesData } = useQuery<
     QueryEntityTypesQuery,

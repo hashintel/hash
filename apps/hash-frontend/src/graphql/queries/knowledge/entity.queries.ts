@@ -188,3 +188,17 @@ export const getEntityDiffsQuery = gql`
     }
   }
 `;
+
+export const validateEntityQuery = gql`
+  query validateEntity(
+    $components: ValidateEntityParamsComponents!
+    $entityTypes: [VersionedUrl!]!
+    $properties: PropertyObjectWithMetadata!
+  ) {
+    validateEntity(
+      components: $components
+      entityTypes: $entityTypes
+      properties: $properties
+    )
+  }
+`;

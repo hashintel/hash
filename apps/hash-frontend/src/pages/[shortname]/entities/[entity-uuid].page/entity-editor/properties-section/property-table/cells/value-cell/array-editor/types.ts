@@ -1,9 +1,8 @@
-import type { EditorType } from "../types";
+import type { ClosedDataType } from "@blockprotocol/type-system";
 
 export interface SortableItem {
   value: unknown;
   id: string;
   index: number;
-  // if overriddenEditorType is defined, sortable item's editor type will be this editor type
-  overriddenEditorType?: EditorType;
+  dataType: ClosedDataType;
 }

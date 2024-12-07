@@ -2,10 +2,7 @@ import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityProperties } from "@local/hash-graph-types/entity";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 
@@ -33,7 +30,7 @@ export const OutgoingLinksSection = ({
 }: OutgoingLinksSectionPropsProps) => {
   const [showSearch, setShowSearch] = useState(false);
 
-  const { entitySubgraph, readonly } = useEntityEditor();
+  const { entitySubgraph, entity, readonly } = useEntityEditor();
 
   const rows = useRows();
   const createGetCellContent = useCreateGetCellContent();
@@ -46,8 +43,6 @@ export const OutgoingLinksSection = ({
      */
     return null;
   }
-
-  const entity = getRoots(entitySubgraph)[0]!;
 
   const outgoingLinksAndTargets = readonly
     ? getOutgoingLinkAndTargetEntities(

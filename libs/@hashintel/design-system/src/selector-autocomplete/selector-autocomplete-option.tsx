@@ -100,7 +100,17 @@ export const SelectorAutocompleteOption = ({
                 src={imageUrl}
                 sx={{ mb: 1 }}
               />
-              <Typography sx={{ fontWeight: 500 }}>{title}</Typography>
+              <Typography
+                sx={{
+                  fontWeight: 500,
+                  display: "block",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {title}
+              </Typography>
               {subtitle && (
                 <Typography variant="smallTextLabels" mt={1.5}>
                   {subtitle}
@@ -144,7 +154,7 @@ export const SelectorAutocompleteOption = ({
               component="span"
               display="flex"
               alignItems="center"
-              maxWidth="50%"
+              maxWidth="60%"
             >
               <Stack
                 direction="row"
@@ -154,6 +164,7 @@ export const SelectorAutocompleteOption = ({
                   border: `1px solid ${palette.gray[30]}`,
                   borderRadius: 4,
                   height: 26,
+                  maxWidth: "100%",
                 })}
               >
                 <Box

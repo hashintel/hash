@@ -1,3 +1,6 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { PropsWithChildren } from "react";
 import {
@@ -13,6 +16,8 @@ import type { EntityEditorProps } from "../entity-editor";
 export type TableExpandStatus = Record<string, boolean>;
 
 interface Props extends EntityEditorProps {
+  entity: Entity<EntityProperties>;
+  isLocalDraftOnly: boolean;
   propertyExpandStatus: TableExpandStatus;
   togglePropertyExpand: (id: string) => void;
 }
@@ -50,8 +55,10 @@ export const EntityEditorContextProvider = ({
     });
   }, []);
 
-  useMemo(() => {
+  const entity = useMemo(() => {
     const roots = getRoots(entitySubgraph);
+
+    const foundEntity = roots[0];
 
     if (roots.length > 1) {
       /**
@@ -69,6 +76,12 @@ export const EntityEditorContextProvider = ({
           .join(", ")}`,
       );
     }
+
+    if (!foundEntity) {
+      throw new Error("No root entity found in entity editor subgraph");
+    }
+
+    return foundEntity;
   }, [entitySubgraph]);
 
   const state = useMemo(
@@ -81,10 +94,14 @@ export const EntityEditorContextProvider = ({
       disableTypeClick,
       draftLinksToArchive,
       draftLinksToCreate,
+      entity,
       entityLabel,
       entitySubgraph,
       handleTypesChange,
       isDirty,
+      isLocalDraftOnly:
+        extractEntityUuidFromEntityId(entity.metadata.recordId.entityId) ===
+        "draft",
       onEntityClick,
       onEntityUpdated,
       propertyExpandStatus,
@@ -104,6 +121,7 @@ export const EntityEditorContextProvider = ({
       disableTypeClick,
       draftLinksToArchive,
       draftLinksToCreate,
+      entity,
       entityLabel,
       entitySubgraph,
       handleTypesChange,

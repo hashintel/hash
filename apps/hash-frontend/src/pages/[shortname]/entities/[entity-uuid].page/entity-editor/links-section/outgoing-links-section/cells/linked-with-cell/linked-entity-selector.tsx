@@ -5,7 +5,6 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { PaperProps } from "@mui/material";
 import { Stack, Typography } from "@mui/material";
 import {
@@ -69,10 +68,9 @@ export const LinkedEntitySelector = ({
   entityIdsToFilterOut,
   linkEntityTypeId,
 }: LinkedEntitySelectorProps) => {
-  const { entitySubgraph, readonly } = useEntityEditor();
+  const { entity, readonly } = useEntityEditor();
 
-  const entityId = getRoots(entitySubgraph)[0]?.metadata.recordId
-    .entityId as EntityId;
+  const entityId = entity.metadata.recordId.entityId;
 
   const [showUploadFileMenu, setShowUploadFileMenu] = useState(false);
 
@@ -127,13 +125,13 @@ export const LinkedEntitySelector = ({
         },
         makePublic: false,
         onComplete: (upload) => {
-          const entity = upload.createdEntities.fileEntity;
+          const fileEntity = upload.createdEntities.fileEntity;
 
           const label =
-            entity.properties[
+            fileEntity.properties[
               "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
             ] ??
-            entity.properties[
+            fileEntity.properties[
               "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"
             ] ??
             "File";
@@ -183,15 +181,15 @@ export const LinkedEntitySelector = ({
         expectedEntityTypes={expectedEntityTypes}
         includeDrafts={includeDrafts}
         multiple={false}
-        onSelect={(entity, closedMultiEntityTypeMap) => {
+        onSelect={(selectedEntity, closedMultiEntityTypeMap) => {
           const closedType = getClosedMultiEntityTypeFromMap(
             closedMultiEntityTypeMap,
-            entity.metadata.entityTypeIds,
+            selectedEntity.metadata.entityTypeIds,
           );
 
-          const label = generateEntityLabel(closedType, entity);
+          const label = generateEntityLabel(closedType, selectedEntity);
 
-          onSelect(entity, label);
+          onSelect(selectedEntity, label);
         }}
         className={GRID_CLICK_IGNORE_CLASS}
         open
