@@ -528,44 +528,53 @@ const main = async () => {
   });
 
   /** RPC */
-  const rpcClient = RpcClient.layer();
+  if (process.env.HASH_RPC_ENABLED === "true") {
+    const rpcClient = RpcClient.layer();
 
-  const runtime = ManagedRuntime.make(
-    Layer.mergeAll(
-      rpcClient,
-      RequestIdProducer.layer,
-      JsonDecoder.layer,
-      JsonEncoder.layer,
-    ),
-  );
-
-  shutdown.addCleanup("ManagedRuntime", () => runtime.dispose());
-
-  app.get("/rpc/echo", (req, res, next) => {
-    // eslint-disable-next-line func-names
-    const effect = Effect.gen(function* () {
-      const textQueryParam = req.query.text;
-      if (typeof textQueryParam !== "string") {
-        return yield* new RuntimeException("text query parameter is required");
-      }
-
-      const response = yield* EchoSubsystem.echo(textQueryParam);
-      res.status(200).send(response);
-    }).pipe(
-      Effect.provide(
-        RpcClient.connectLayer(Transport.multiaddr("/ip4/127.0.0.1/tcp/4002")),
+    const runtime = ManagedRuntime.make(
+      Layer.mergeAll(
+        rpcClient,
+        RequestIdProducer.layer,
+        JsonDecoder.layer,
+        JsonEncoder.layer,
       ),
-      Logger.withMinimumLogLevel(LogLevel.Trace),
     );
 
-    runtime.runCallback(effect, {
-      onExit: (exit) => {
-        if (Exit.isFailure(exit)) {
-          next(exit.cause);
+    shutdown.addCleanup("ManagedRuntime", () => runtime.dispose());
+
+    const rpcHost = process.env.HASH_RPC_HOST ?? "127.0.0.1";
+    const rpcPort = parseInt(process.env.HASH_RPC_PORT ?? "4002", 10);
+
+    app.get("/rpc/echo", (req, res, next) => {
+      // eslint-disable-next-line func-names
+      const effect = Effect.gen(function* () {
+        const textQueryParam = req.query.text;
+        if (typeof textQueryParam !== "string") {
+          return yield* new RuntimeException(
+            "text query parameter is required",
+          );
         }
-      },
+
+        const response = yield* EchoSubsystem.echo(textQueryParam);
+        res.status(200).send(response);
+      }).pipe(
+        Effect.provide(
+          RpcClient.connectLayer(
+            Transport.multiaddr(`/ip4/${rpcHost}/tcp/${rpcPort}`),
+          ),
+        ),
+        Logger.withMinimumLogLevel(LogLevel.Trace),
+      );
+
+      runtime.runCallback(effect, {
+        onExit: (exit) => {
+          if (Exit.isFailure(exit)) {
+            next(exit.cause);
+          }
+        },
+      });
     });
-  });
+  }
 
   // Used by AWS Application Load Balancer (ALB) for health checks
   app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
