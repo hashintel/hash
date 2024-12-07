@@ -1,10 +1,11 @@
-import { FastCheck, Option } from "effect";
 import {
   Effect,
   Equal,
+  type FastCheck,
   Function,
   Hash,
   Inspectable,
+  Option,
   pipe,
   Pipeable,
   Predicate,

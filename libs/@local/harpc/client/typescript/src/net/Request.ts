@@ -1,4 +1,4 @@
-import { Effect, Function, Option, pipe, Predicate, Ref, Stream } from "effect";
+import { Effect, Function, Option, pipe, Ref, Stream } from "effect";
 
 import type {
   ProcedureDescriptor,
@@ -232,11 +232,6 @@ const encodeImpl = <E, R>(
       ),
     );
   }).pipe(Stream.unwrap);
-
-const isStream = (
-  value: unknown,
-): value is Stream.Stream<unknown, unknown, unknown> =>
-  Predicate.hasProperty(value, Stream.StreamTypeId) || Effect.isEffect(value);
 
 export const encode: {
   <E, R>(
