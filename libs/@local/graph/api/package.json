@@ -23,6 +23,7 @@
     "@rust/hash-graph-type-defs": "0.0.0-private",
     "@rust/hash-graph-type-fetcher": "0.0.0-private",
     "@rust/hash-graph-types": "0.0.0-private",
+    "@rust/hash-graph-validation": "0.0.0-private",
     "@rust/hash-status": "0.0.0-private",
     "@rust/hash-temporal-client": "0.0.0-private"
   }

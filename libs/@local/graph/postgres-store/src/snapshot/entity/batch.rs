@@ -1,10 +1,15 @@
-use error_stack::{Report, ResultExt as _};
+use std::collections::HashMap;
+
+use error_stack::{Report, ResultExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_authorization::{
     AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject,
 };
 use hash_graph_store::{
-    entity::{EntityStore as _, ValidateEntityComponents},
+    entity::{
+        EntityStore as _, EntityValidationReport, PropertyValidationReport,
+        ValidateEntityComponents,
+    },
     error::InsertionError,
     filter::Filter,
     query::Read,
@@ -305,7 +310,8 @@ where
         let mut properties_updates = Vec::new();
         let mut metadata_updates = Vec::new();
 
-        for mut entity in entities {
+        let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
+        for (index, mut entity) in entities.into_iter().enumerate() {
             let validation_components = if entity.metadata.record_id.entity_id.draft_id.is_some() {
                 ValidateEntityComponents::draft()
             } else {
@@ -333,16 +339,21 @@ where
             )
             .change_context(InsertionError)?;
 
-            EntityPreprocessor {
+            let mut preprocessor = EntityPreprocessor {
                 components: validation_components,
+            };
+
+            if let Err(error) = preprocessor
+                .visit_object(
+                    &entity_type,
+                    &mut property_with_metadata,
+                    &validator_provider,
+                )
+                .await
+            {
+                validation_reports.entry(index).or_default().properties =
+                    PropertyValidationReport { error: Some(error) };
             }
-            .visit_object(
-                &entity_type,
-                &mut property_with_metadata,
-                &validator_provider,
-            )
-            .await
-            .change_context(InsertionError)?;
 
             let (properties, metadata) = property_with_metadata.into_parts();
             let mut changed = false;
@@ -364,10 +375,14 @@ where
             };
             validation_components.link_validation = postgres_client.settings.validate_links;
 
-            entity
+            let validation_report = entity
                 .validate(&entity_type, validation_components, &validator_provider)
-                .await
-                .change_context(InsertionError)?;
+                .await;
+            if !validation_report.is_valid() {
+                let validation = validation_reports.entry(index).or_default();
+                validation.link = validation_report.link;
+                validation.metadata.properties = validation_report.property_metadata;
+            }
 
             if changed {
                 edition_ids_updates.push(entity.metadata.record_id.edition_id);
@@ -375,6 +390,11 @@ where
                 metadata_updates.push(entity.metadata.properties);
             }
         }
+
+        ensure!(
+            validation_reports.is_empty(),
+            Report::new(InsertionError).attach(validation_reports)
+        );
 
         postgres_client
             .as_client()

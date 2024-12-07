@@ -2842,6 +2842,7 @@ dependencies = [
  "hash-graph-type-defs",
  "hash-graph-type-fetcher",
  "hash-graph-types",
+ "hash-graph-validation",
  "hash-status",
  "hash-temporal-client",
  "http 1.2.0",
@@ -3129,6 +3130,7 @@ dependencies = [
 name = "hash-graph-validation"
 version = "0.0.0"
 dependencies = [
+ "derive_more 1.0.0",
  "error-stack",
  "futures",
  "hash-graph-store",
