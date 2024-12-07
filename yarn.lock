@@ -434,7 +434,7 @@ __metadata:
     cors: "npm:2.8.5"
     cross-env: "npm:7.0.3"
     dedent: "npm:0.7.0"
-    effect: "npm:3.11.2"
+    effect: "npm:3.11.3"
     eslint: "npm:8.57.0"
     exponential-backoff: "npm:3.1.1"
     express: "npm:4.21.1"
@@ -8462,7 +8462,7 @@ __metadata:
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
     "@types/node": "npm:22.10.1"
     "@vitest/coverage-istanbul": "npm:2.1.8"
-    effect: "npm:3.11.2"
+    effect: "npm:3.11.3"
     eslint: "npm:8.57.0"
     it-stream-types: "npm:2.0.2"
     libp2p: "npm:2.3.1"
@@ -8551,7 +8551,7 @@ __metadata:
     "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:2.1.8"
-    effect: "npm:3.11.2"
+    effect: "npm:3.11.3"
     eslint: "npm:8.57.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
@@ -24434,12 +24434,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"effect@npm:3.11.2":
-  version: 3.11.2
-  resolution: "effect@npm:3.11.2"
+"effect@npm:3.11.3":
+  version: 3.11.3
+  resolution: "effect@npm:3.11.3"
   dependencies:
     fast-check: "npm:^3.21.0"
-  checksum: 10c0/04a04326c59d4557050744617eb2c6c5e1a1694990e7dddfda56c6023292197691d21c5b7598ba79a726a12adef1745246e262511991edcc62fb7300097b2989
+  checksum: 10c0/a343a20d833112e21b27f17f404e97a33240fafe09d638428381d8bb96b4f0d2eccdaebe43453dce4982242134e1c8cfbab1d63e364fea79de02faeb92940c04
   languageName: node
   linkType: hard
 
