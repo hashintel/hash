@@ -689,31 +689,34 @@ where
                 } else {
                     None
                 },
-                #[expect(
-                    clippy::if_then_some_else_none,
-                    reason = "False positive, use of `await`"
-                )]
-                definitions: if params.include_entity_types
-                    == Some(IncludeEntityTypeOption::Resolved)
-                {
-                    let entity_type_uuids = root_entities
-                        .iter()
-                        .flat_map(|(entity, _)| {
-                            entity
-                                .metadata
-                                .entity_type_ids
-                                .iter()
-                                .map(EntityTypeUuid::from_url)
-                        })
-                        .collect::<HashSet<_>>()
-                        .into_iter()
-                        .collect::<Vec<_>>();
+                definitions: match params.include_entity_types {
                     Some(
-                        self.get_entity_type_resolve_definitions(actor_id, &entity_type_uuids)
+                        IncludeEntityTypeOption::Resolved
+                        | IncludeEntityTypeOption::ResolvedWithDataTypeChildren,
+                    ) => {
+                        let entity_type_uuids = root_entities
+                            .iter()
+                            .flat_map(|(entity, _)| {
+                                entity
+                                    .metadata
+                                    .entity_type_ids
+                                    .iter()
+                                    .map(EntityTypeUuid::from_url)
+                            })
+                            .collect::<HashSet<_>>()
+                            .into_iter()
+                            .collect::<Vec<_>>();
+                        Some(
+                            self.get_entity_type_resolve_definitions(
+                                actor_id,
+                                &entity_type_uuids,
+                                params.include_entity_types
+                                    == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),
+                            )
                             .await?,
-                    )
-                } else {
-                    None
+                        )
+                    }
+                    None | Some(IncludeEntityTypeOption::Closed) => None,
                 },
                 entities: root_entities
                     .into_iter()
@@ -1385,33 +1388,36 @@ where
                 } else {
                     None
                 },
-                #[expect(
-                    clippy::if_then_some_else_none,
-                    reason = "False positive, use of `await`"
-                )]
-                definitions: if params.include_entity_types
-                    == Some(IncludeEntityTypeOption::Resolved)
-                {
-                    let entity_type_uuids = subgraph
-                        .vertices
-                        .entities
-                        .values()
-                        .flat_map(|entity| {
-                            entity
-                                .metadata
-                                .entity_type_ids
-                                .iter()
-                                .map(EntityTypeUuid::from_url)
-                        })
-                        .collect::<HashSet<_>>()
-                        .into_iter()
-                        .collect::<Vec<_>>();
+                definitions: match params.include_entity_types {
                     Some(
-                        self.get_entity_type_resolve_definitions(actor_id, &entity_type_uuids)
+                        IncludeEntityTypeOption::Resolved
+                        | IncludeEntityTypeOption::ResolvedWithDataTypeChildren,
+                    ) => {
+                        let entity_type_uuids = subgraph
+                            .vertices
+                            .entities
+                            .values()
+                            .flat_map(|entity| {
+                                entity
+                                    .metadata
+                                    .entity_type_ids
+                                    .iter()
+                                    .map(EntityTypeUuid::from_url)
+                            })
+                            .collect::<HashSet<_>>()
+                            .into_iter()
+                            .collect::<Vec<_>>();
+                        Some(
+                            self.get_entity_type_resolve_definitions(
+                                actor_id,
+                                &entity_type_uuids,
+                                params.include_entity_types
+                                    == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),
+                            )
                             .await?,
-                    )
-                } else {
-                    None
+                        )
+                    }
+                    None | Some(IncludeEntityTypeOption::Closed) => None,
                 },
                 subgraph,
                 cursor,
