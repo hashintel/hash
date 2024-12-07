@@ -21,7 +21,9 @@ import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 import { Client as RpcClient, Transport } from "@local/harpc-client/net";
+import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
 import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
@@ -36,6 +38,7 @@ import * as Sentry from "@sentry/node";
 import bodyParser from "body-parser";
 import cors from "cors";
 import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
+import { RuntimeException } from "effect/Cause";
 import proxy from "express-http-proxy";
 import type { Options as RateLimitOptions } from "express-rate-limit";
 import { rateLimit } from "express-rate-limit";
@@ -97,9 +100,6 @@ import {
   setupStorageProviders,
 } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
-import { RuntimeException } from "effect/Cause";
-import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
-import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -541,7 +541,7 @@ const main = async () => {
 
   shutdown.addCleanup("ManagedRuntime", () => runtime.dispose());
 
-  app.get("/rpc/hello", (req, res, next) => {
+  app.get("/rpc/echo", (req, res, next) => {
     // eslint-disable-next-line func-names
     const effect = Effect.gen(function* () {
       const textQueryParam = req.query.text;
