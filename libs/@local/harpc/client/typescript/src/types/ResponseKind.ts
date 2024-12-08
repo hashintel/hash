@@ -1,10 +1,11 @@
-import type { FastCheck } from "effect";
 import {
   Effect,
   Equal,
+  type FastCheck,
   Function,
   Hash,
   Inspectable,
+  Option,
   pipe,
   Pipeable,
   Predicate,
@@ -185,6 +186,14 @@ export const match: {
     }
   },
 );
+
+export const getErr = (
+  self: ResponseKind,
+): Option.Option<ErrorCode.ErrorCode> =>
+  match(self, {
+    onOk: Option.none,
+    onErr: Option.some,
+  });
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc.oneof(fc.constant(ok()), ErrorCode.arbitrary(fc).map(err));

@@ -67,7 +67,7 @@ const DecoderProto: Omit<DecoderImpl, "decode"> = {
   },
 };
 
-export const Decoder = GenericTag<Decoder>("@local/harpc-client/codec/Decoder");
+export const Decoder = GenericTag<Decoder>(TypeId.description!);
 
 export const make = <E = DecodingError, R = never>(
   decode: <

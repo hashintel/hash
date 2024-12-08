@@ -1,7 +1,7 @@
 import type { Uint8ArrayList } from "uint8arraylist";
 
-export { Config as YamuxConfig } from "@chainsafe/libp2p-yamux/config";
-export { TCPOptions as TCPConfig, TCPSocketOptions } from "@libp2p/tcp";
+export type { Config as YamuxConfig } from "@chainsafe/libp2p-yamux/config";
+export type { TCPOptions as TCPConfig, TCPSocketOptions } from "@libp2p/tcp";
 
 // Vendored from @chainsafe/libp2p-noise
 export interface NoiseExtensions {

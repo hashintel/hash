@@ -189,7 +189,8 @@ const nonEmptyString = (value?: string) =>
 
 // Taken from weald/debugjs
 const debugJsFormatters: FormatterCollection = {
-  s: (value: unknown) => Option.liftPredicate(value, Predicate.isString),
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+  s: (value: unknown) => Option.some((value as object).toString()),
   d: (value: unknown) =>
     pipe(
       Option.liftPredicate(value, Predicate.isNumber), //
