@@ -20,7 +20,6 @@ import {
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
 import {
   Effect,
-  Either,
   Function,
   Option,
   pipe,

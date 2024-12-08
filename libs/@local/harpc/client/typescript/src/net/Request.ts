@@ -1,4 +1,4 @@
-import { Effect, Function, Option, pipe, Ref, Stream } from "effect";
+import { Effect, Function, Option, pipe, Predicate, Ref, Stream } from "effect";
 
 import type {
   ProcedureDescriptor,
@@ -233,6 +233,9 @@ const encodeImpl = <E, R>(
     );
   }).pipe(Stream.unwrap);
 
+export const isRequest = (value: unknown): value is Request<unknown, unknown> =>
+  Predicate.hasProperty(value, TypeId);
+
 export const encode: {
   <E, R>(
     self: Request<E, R>,
@@ -242,4 +245,8 @@ export const encode: {
   (
     options?: EncodeOptions,
   ): <E, R>(self: Request<E, R>) => Stream.Stream<Request.Request, E, R>;
-} = Function.dual(2, encodeImpl);
+} = Function.dual(
+  // function is `DataFirst` (will be executed immediately), if:
+  (args) => isRequest(args[0]),
+  encodeImpl,
+);
