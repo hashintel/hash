@@ -28,7 +28,7 @@ impl IntoFuture for TemporalClientConfig {
             Ok(TemporalClient {
                 client: self
                     .options
-                    .connect("HASH", None, None)
+                    .connect("HASH", None)
                     .await
                     .change_context(ConnectionError)?,
             })
