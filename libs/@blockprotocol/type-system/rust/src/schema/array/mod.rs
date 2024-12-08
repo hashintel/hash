@@ -1,7 +1,9 @@
 mod raw;
+mod validation;
 
 use serde::{Deserialize, Serialize, Serializer};
 
+pub use self::validation::{ArraySchemaValidationError, ArraySchemaValidator};
 use crate::schema::{OneOfSchema, PropertyType, PropertyValues};
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

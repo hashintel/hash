@@ -6,7 +6,7 @@ use thiserror::Error;
 
 use crate::{
     Valid, Validator,
-    schema::{ClosedDataType, DataType, DataTypeReference, ResolvedDataType},
+    schema::{ClosedDataType, DataType, DataTypeReference},
     url::VersionedUrl,
 };
 
@@ -72,44 +72,8 @@ impl Validator<DataType> for DataTypeValidator {
             return Err(ValidateDataTypeError::NonPrimitiveValueInheritance);
         }
 
-        // TODO: Implement validation for data types
-        //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
-        Ok(Valid::new_ref_unchecked(value))
-    }
-}
-
-impl Validator<ResolvedDataType> for DataTypeValidator {
-    type Error = ValidateDataTypeError;
-
-    fn validate_ref<'v>(
-        &self,
-        value: &'v ResolvedDataType,
-    ) -> Result<&'v Valid<ResolvedDataType>, Self::Error> {
-        let mut checked_types = HashSet::new();
-        let mut types_to_check = value
-            .schema
-            .data_type_references()
-            .map(|(reference, _)| reference)
-            .collect::<Vec<_>>();
-        while let Some(reference) = types_to_check.pop() {
-            if !checked_types.insert(reference) || reference.url == value.schema.id {
-                continue;
-            }
-
-            let data_type = value.definitions.get(&reference.url).ok_or_else(|| {
-                ValidateDataTypeError::MissingDataType {
-                    data_type_id: reference.url.clone(),
-                }
-            })?;
-            types_to_check.extend(
-                data_type
-                    .data_type_references()
-                    .map(|(reference, _)| reference),
-            );
-        }
-
-        // TODO: Implement validation for data types
-        //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
+        // Unsatisfiable constraints will automatically be checked when attempting to close the
+        // schema so it's not needed to check constraints here.
         Ok(Valid::new_ref_unchecked(value))
     }
 }
@@ -121,8 +85,7 @@ impl Validator<ClosedDataType> for DataTypeValidator {
         &self,
         value: &'v ClosedDataType,
     ) -> Result<&'v Valid<ClosedDataType>, Self::Error> {
-        // TODO: Validate ontology types on creation
-        //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
+        // Closed data types are validated on creation
         Ok(Valid::new_ref_unchecked(value))
     }
 }

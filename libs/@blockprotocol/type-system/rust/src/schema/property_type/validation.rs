@@ -3,6 +3,7 @@ use crate::{
     schema::{
         ObjectSchemaValidationError, ObjectSchemaValidator, OneOfSchemaValidationError,
         OneOfSchemaValidator, PropertyType, PropertyTypeReference, PropertyValues, ValueOrArray,
+        array::{ArraySchemaValidationError, ArraySchemaValidator},
     },
     url::BaseUrl,
 };
@@ -17,6 +18,9 @@ pub enum PropertyTypeValidationError {
     #[display("Property object validation failed: {_0}")]
     #[from]
     ObjectValidationFailed(ObjectSchemaValidationError),
+    #[display("Property array validation failed: {_0}")]
+    #[from]
+    ArrayValidationFailed(ArraySchemaValidationError),
     #[display("OneOf validation failed: {_0}")]
     #[from]
     OneOfValidationFailed(OneOfSchemaValidationError),
@@ -48,16 +52,16 @@ impl Validator<PropertyValues> for PropertyTypeValidator {
         value: &'v PropertyValues,
     ) -> Result<&'v Valid<PropertyValues>, Self::Error> {
         match value {
-            PropertyValues::DataTypeReference(_) => {
-                // TODO: Validate reference
-                //   see https://linear.app/hash/issue/H-3046
-            }
+            PropertyValues::DataTypeReference(_) => {}
             PropertyValues::PropertyTypeObject(object) => {
                 ObjectSchemaValidator.validate_ref(object)?;
                 for (property, value) in &object.properties {
                     let reference = match value {
                         ValueOrArray::Value(value) => value,
-                        ValueOrArray::Array(array) => &array.items,
+                        ValueOrArray::Array(array) => {
+                            ArraySchemaValidator.validate_ref(array)?;
+                            &array.items
+                        }
                     };
                     if *property != reference.url.base_url {
                         return Err(PropertyTypeValidationError::InvalidPropertyReference {
@@ -65,8 +69,6 @@ impl Validator<PropertyValues> for PropertyTypeValidator {
                             reference: reference.clone(),
                         });
                     }
-                    // TODO: Validate reference
-                    //   see https://linear.app/hash/issue/H-3046
                 }
             }
             PropertyValues::ArrayOfPropertyValues(array) => {
