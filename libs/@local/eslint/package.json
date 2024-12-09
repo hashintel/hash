@@ -13,15 +13,17 @@
     "build": "rimraf dist && tsc --build tsconfig.build.json"
   },
   "dependencies": {
-    "@eslint/compat": "1.2.3",
+    "@eslint/compat": "1.2.4",
     "@eslint/eslintrc": "3.2.0",
     "effect": "3.11.0",
     "eslint": "9.16.0",
     "eslint-config-sheriff": "25.3.0",
     "eslint-plugin-airbnb": "0.0.1-security",
-    "eslint-plugin-react-hooks": "5.0.0",
+    "eslint-plugin-react-hooks": "5.1.0",
     "eslint-plugin-storybook": "0.11.1",
-    "eslint-unicorn": "55.0.0"
+    "eslint-unicorn": "55.0.0",
+    "globals": "15.13.0",
+    "typescript-eslint": "8.17.0"
   },
   "devDependencies": {
     "@types/eslint__eslintrc": "2.1.2",
