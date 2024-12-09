@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import { defineConfig } from "vitest/config";
 
 // This is super hacky, but basically adds the `?url` suffix to any wasm import
@@ -12,14 +11,15 @@ import { defineConfig } from "vitest/config";
 const rewriteWasmToUrl = {
   name: "vite-replace-wasm-import",
   enforce: "pre",
-  async load(id) {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async load(id: string) {
     if (!id.endsWith(".wasm")) {
       return null;
     }
 
     return `export * from "${id}?url"`;
   },
-};
+} as const;
 
 export default defineConfig({
   plugins: [rewriteWasmToUrl],

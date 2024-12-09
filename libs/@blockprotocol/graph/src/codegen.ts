@@ -1,7 +1,7 @@
 /**
  * Defines utilities for generating TypeScript types from elements of the Block Protocol Type System.
  */
-import * as path from "node:path";
+import path from "node:path";
 
 import { compile } from "./codegen/compile.js";
 import {

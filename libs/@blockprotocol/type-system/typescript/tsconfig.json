@@ -1,6 +1,6 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["scripts", "src", "test"],
+  "include": ["scripts", "src", "test", "eslint.config.js", "vitest.config.ts"],
   "exclude": ["dist"],
   "compilerOptions": {
     /**
