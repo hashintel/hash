@@ -453,7 +453,7 @@ const EditEntitySlideOver = memo(
 
         resetEntityEditor();
         onSubmit();
-      } catch (err) {
+      } catch {
         setSavingChanges(false);
       }
     }, [

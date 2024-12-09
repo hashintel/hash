@@ -18,7 +18,7 @@ const typeUrlRegExp =
  * 3. Specifies whether the returned href points to a different site or not
  */
 export const generateLinkParameters = (
-  hrefToCheck?: string | Url | undefined,
+  hrefToCheck?: string | Url,
 ): {
   isExternal: boolean;
   href: string;

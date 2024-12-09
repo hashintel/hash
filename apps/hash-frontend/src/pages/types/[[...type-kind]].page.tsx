@@ -22,6 +22,8 @@ import {
 } from "./[[...type-kind]].page/types-page-tabs";
 import { TypesTable } from "./[[...type-kind]].page/types-table";
 
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const parsedQueryParams = [
   "entity-type",
   "link-type",

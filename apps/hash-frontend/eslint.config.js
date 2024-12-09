@@ -94,5 +94,8 @@ export default [
         "import/no-default-export": "off",
       },
     },
+    {
+      ignores: ["buildstamp.js", "next.config.js"],
+    },
   ]),
 ];

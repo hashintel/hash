@@ -36,8 +36,11 @@ const ErrorView: FunctionComponent<ErrorProps> = ({ errored }) => {
 const defaultErrorProps = { errored: false };
 
 export const createErrorPlugin = (renderPortal: RenderPortal) => {
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
   const key = new PluginKey<ErrorProps>();
+
   return [
+    // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
     new Plugin<ErrorProps>({
       key,
       state: {
@@ -73,6 +76,7 @@ export const createErrorPlugin = (renderPortal: RenderPortal) => {
           },
         };
       },
+      // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
     }) as Plugin<unknown>,
     (tr: Transaction) => {
       // @todo log

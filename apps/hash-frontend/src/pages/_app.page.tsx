@@ -2,6 +2,8 @@
 import "./_app.page/why-did-you-render";
 
 // @todo have webpack polyfill this
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 require("setimmediate");
 
 import "./globals.scss";

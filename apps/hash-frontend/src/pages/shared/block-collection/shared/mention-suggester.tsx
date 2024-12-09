@@ -91,7 +91,9 @@ export type MentionKind = Mention["kind"];
 
 export interface MentionSuggesterProps {
   search?: string;
-  onChange(mention: Mention): void;
+  // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+  // before this was: onChange(mention: Mention): void;
+  onChange: (mention: Mention) => void;
   ownedById: OwnedById;
 }
 

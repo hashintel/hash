@@ -1,6 +1,6 @@
 import { StatusError } from "./status-error";
 
-const makePlain = (html?: string | null | undefined) => {
+const makePlain = (html?: string | null) => {
   const elt = document.createElement("div");
   elt.innerHTML = html ?? "";
   return elt.textContent?.replace(/\n[^]*|\s+$/g, "") ?? "";

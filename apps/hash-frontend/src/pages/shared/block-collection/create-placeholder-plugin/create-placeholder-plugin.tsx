@@ -15,11 +15,13 @@ interface PlaceholderPluginState {
 
 const defaultState = { focused: false, editable: true };
 
+// eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
 const placeholderPluginKey = new PluginKey<PlaceholderPluginState>(
   "placeholderPlugin",
 );
 
 export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
   return new Plugin<PlaceholderPluginState>({
     key: placeholderPluginKey,
     state: {
@@ -123,5 +125,6 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
         },
       },
     },
+    // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
   }) as Plugin<unknown>;
 };
