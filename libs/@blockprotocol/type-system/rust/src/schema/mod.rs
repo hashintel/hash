@@ -48,6 +48,6 @@ pub use self::{
     one_of::{OneOfSchema, OneOfSchemaValidationError, OneOfSchemaValidator},
     property_type::{
         PropertyType, PropertyTypeReference, PropertyTypeValidationError, PropertyTypeValidator,
-        PropertyValueSchema, PropertyValues,
+        PropertyValueSchema, PropertyValueType, PropertyValues,
     },
 };

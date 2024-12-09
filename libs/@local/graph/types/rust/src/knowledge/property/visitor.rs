@@ -1,12 +1,14 @@
 use core::{borrow::Borrow as _, future::Future};
+use std::collections::{HashMap, HashSet};
 
-use error_stack::{Report, ReportSink, ResultExt as _, bail};
+use error_stack::{Report, ReportSink, ResultExt as _};
+use futures::FutureExt as _;
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::{
         DataTypeReference, JsonSchemaValueType, PropertyObjectSchema, PropertyType,
-        PropertyTypeReference, PropertyValueArray, PropertyValueSchema, PropertyValues,
-        ValueOrArray,
+        PropertyTypeReference, PropertyValueArray, PropertyValueSchema, PropertyValueType,
+        PropertyValues, ValueOrArray,
     },
     url::{BaseUrl, VersionedUrl},
 };
@@ -15,7 +17,6 @@ use crate::{
     knowledge::property::{
         PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
         PropertyWithMetadataValue, ValueMetadata,
-        error::{Actual, Expected},
     },
     ontology::{DataTypeLookup, DataTypeWithMetadata, OntologyTypeProvider},
 };
@@ -96,6 +97,271 @@ pub enum TraversalError {
     },
 }
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Could not read the data type {}", data_type_reference.url)]
+#[must_use]
+pub struct DataTypeRetrieval {
+    pub data_type_reference: DataTypeReference,
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Could not read the property type {}", property_type_reference.url)]
+#[must_use]
+pub struct PropertyTypeRetrieval {
+    pub property_type_reference: PropertyTypeReference,
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Could not find a conversion from {} to {}", current.url, target.url)]
+#[must_use]
+pub struct ConversionRetrieval {
+    pub current: DataTypeReference,
+    pub target: DataTypeReference,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct JsonSchemaValueTypeMismatch {
+    pub actual: JsonSchemaValueType,
+    pub expected: JsonSchemaValueType,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct PropertyValueTypeMismatch {
+    pub actual: PropertyValueType,
+    pub expected: PropertyValueType,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct InvalidCanonicalValue {
+    pub key: BaseUrl,
+    pub expected: f64,
+    pub actual: f64,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", content = "report", rename_all = "camelCase")]
+#[must_use]
+pub enum PropertyValidationError {
+    Value(Report<[TraversalError]>),
+    Array(Report<[TraversalError]>),
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", rename_all = "camelCase")]
+#[must_use]
+pub enum DataTypeInferenceError {
+    Retrieval {
+        error: Report<DataTypeRetrieval>,
+    },
+    Abstract {
+        data: VersionedUrl,
+    },
+    Ambiguous {
+        #[cfg_attr(feature = "utoipa", schema(value_type = [VersionedUrl]))]
+        data: HashSet<VersionedUrl>,
+    },
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", rename_all = "camelCase")]
+#[must_use]
+pub enum DataTypeConversionError {
+    Retrieval { error: Report<ConversionRetrieval> },
+    WrongType { data: JsonSchemaValueTypeMismatch },
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", rename_all = "camelCase")]
+#[must_use]
+pub enum DataTypeCanonicalCalculation {
+    Retrieval { error: Report<DataTypeRetrieval> },
+    WrongType { data: JsonSchemaValueTypeMismatch },
+    InvalidValue { data: InvalidCanonicalValue },
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", rename_all = "camelCase")]
+#[must_use]
+pub enum PropertyValueValidationReport {
+    Retrieval { error: Report<DataTypeRetrieval> },
+    WrongType { data: PropertyValueTypeMismatch },
+    ValueValidation { error: Report<[TraversalError]> },
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "status", content = "data", rename_all = "camelCase")]
+#[must_use]
+// Should be an `Option` or a generic `OneOfValidationStatus<T>` but `utoipa` is not capable of
+// properly deal with that.
+pub enum OneOfValueValidationStatus {
+    Success,
+    Failure(PropertyValueValidationReport),
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct OneOfPropertyValidationReports {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validations: Option<Vec<OneOfValueValidationStatus>>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub data_type_inference: Vec<DataTypeInferenceError>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value_conversion: Option<DataTypeConversionError>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub canonical_value: Vec<DataTypeCanonicalCalculation>,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", content = "data", rename_all = "camelCase")]
+#[must_use]
+pub enum PropertyArrayValidationReport {
+    WrongType(PropertyValueTypeMismatch),
+    ArrayValidation(ArrayValidationReport),
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "status", content = "data", rename_all = "camelCase")]
+#[must_use]
+// Should be an `Option` or a generic `OneOfValidationStatus<T>` but `utoipa` is not capable of
+// properly deal with that.
+pub enum OneOfArrayValidationStatus {
+    Success,
+    Failure(PropertyArrayValidationReport),
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct OneOfArrayValidationReports {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validations: Option<Vec<OneOfArrayValidationStatus>>,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", rename_all = "camelCase")]
+#[must_use]
+pub enum PropertyObjectValidationReport {
+    WrongType { data: PropertyValueTypeMismatch },
+    ObjectValidation(ObjectValidationReport),
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "status", content = "data", rename_all = "camelCase")]
+#[must_use]
+// Should be an `Option` or a generic `OneOfValidationStatus<T>` but `utoipa` is not capable of
+// properly deal with that.
+pub enum OneOfObjectValidationStatus {
+    Success,
+    Failure(PropertyObjectValidationReport),
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct OneOfObjectValidationReports {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validations: Option<Vec<OneOfObjectValidationStatus>>,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", rename_all = "camelCase")]
+#[must_use]
+pub enum PropertyValidationReport {
+    Value(OneOfPropertyValidationReports),
+    Array(OneOfArrayValidationReports),
+    Object(OneOfObjectValidationReports),
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", content = "data", rename_all = "camelCase")]
+#[must_use]
+pub enum ArrayItemNumberMismatch {
+    TooFew { actual: usize, min: usize },
+    TooMany { actual: usize, max: usize },
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+#[must_use]
+pub struct ArrayValidationReport {
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub properties: HashMap<usize, PropertyValidationReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub num_items: Option<ArrayItemNumberMismatch>,
+}
+
+impl ArrayValidationReport {
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        self.properties.is_empty() && self.num_items.is_none()
+    }
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+#[must_use]
+pub struct ObjectValidationReport {
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub properties: HashMap<BaseUrl, ObjectPropertyValidationReport>,
+}
+
+impl ObjectValidationReport {
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        self.properties.is_empty()
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", rename_all = "camelCase")]
+#[must_use]
+pub enum ObjectPropertyValidationReport {
+    Unexpected,
+    Retrieval {
+        error: Report<PropertyTypeRetrieval>,
+    },
+    WrongType {
+        data: PropertyValueTypeMismatch,
+    },
+    Value(OneOfPropertyValidationReports),
+    Array(OneOfArrayValidationReports),
+    Object(OneOfObjectValidationReports),
+    PropertyArray(ArrayValidationReport),
+    Missing,
+}
+
+impl From<PropertyValidationReport> for ObjectPropertyValidationReport {
+    fn from(property_validation: PropertyValidationReport) -> Self {
+        match property_validation {
+            PropertyValidationReport::Value(report) => Self::Value(report),
+            PropertyValidationReport::Array(report) => Self::Array(report),
+            PropertyValidationReport::Object(report) => Self::Object(report),
+        }
+    }
+}
+
 // TODO: Allow usage of other error types
 pub trait EntityVisitor: Sized + Send + Sync {
     /// Visits a leaf value.
@@ -122,7 +388,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &PropertyType,
         property: &mut PropertyWithMetadata,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), PropertyValidationReport>> + Send
     where
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
@@ -137,12 +403,21 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &PropertyValueArray<T>,
         array: &mut PropertyWithMetadataArray,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), ArrayValidationReport>> + Send
     where
         T: PropertyValueSchema + Sync,
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
-        walk_array(self, schema, array, type_provider)
+        walk_array(self, schema, array, type_provider).map(|properties| {
+            if properties.is_empty() {
+                Ok(())
+            } else {
+                Err(ArrayValidationReport {
+                    properties,
+                    ..ArrayValidationReport::default()
+                })
+            }
+        })
     }
 
     /// Visits an object property.
@@ -153,12 +428,18 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &T,
         object: &mut PropertyWithMetadataObject,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), ObjectValidationReport>> + Send
     where
         T: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
-        walk_object(self, schema, object, type_provider)
+        walk_object(self, schema, object, type_provider).map(|properties| {
+            if properties.is_empty() {
+                Ok(())
+            } else {
+                Err(ObjectValidationReport { properties })
+            }
+        })
     }
 
     /// Visits a property value using the [`PropertyValues`] from a one-of schema.
@@ -169,7 +450,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &[PropertyValues],
         property: &mut PropertyWithMetadataValue,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), OneOfPropertyValidationReports>> + Send
     where
         P: DataTypeLookup + Sync,
     {
@@ -184,7 +465,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &[PropertyValues],
         array: &mut PropertyWithMetadataArray,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), OneOfArrayValidationReports>> + Send
     where
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
@@ -199,7 +480,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &[PropertyValues],
         object: &mut PropertyWithMetadataObject,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), OneOfObjectValidationReports>> + Send
     where
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
@@ -265,36 +546,25 @@ pub async fn walk_property<V, P>(
     schema: &PropertyType,
     property: &mut PropertyWithMetadata,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> Result<(), PropertyValidationReport>
 where
     V: EntityVisitor,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut status = ReportSink::new();
     match property {
-        PropertyWithMetadata::Value(value) => status.attempt(
-            visitor
-                .visit_one_of_property(&schema.one_of, value, type_provider)
-                .await
-                .change_context_lazy(|| TraversalError::PropertyTypeUnfulfilled),
-        ),
-        PropertyWithMetadata::Array(array) => status.attempt(
-            visitor
-                .visit_one_of_array(&schema.one_of, array, type_provider)
-                .await
-                .change_context_lazy(|| TraversalError::PropertyTypeUnfulfilled),
-        ),
-        PropertyWithMetadata::Object(object) => status.attempt(
-            visitor
-                .visit_one_of_object(&schema.one_of, object, type_provider)
-                .await
-                .change_context_lazy(|| TraversalError::PropertyTypeUnfulfilled),
-        ),
-    };
-    status
-        .finish()
-        .attach_lazy(|| Expected::PropertyType(schema.clone()))
-        .attach_lazy(|| Actual::Property(property.clone()))
+        PropertyWithMetadata::Value(value) => visitor
+            .visit_one_of_property(&schema.one_of, value, type_provider)
+            .await
+            .map_err(PropertyValidationReport::Value),
+        PropertyWithMetadata::Array(array) => visitor
+            .visit_one_of_array(&schema.one_of, array, type_provider)
+            .await
+            .map_err(PropertyValidationReport::Array),
+        PropertyWithMetadata::Object(object) => visitor
+            .visit_one_of_object(&schema.one_of, object, type_provider)
+            .await
+            .map_err(PropertyValidationReport::Object),
+    }
 }
 
 /// Walks through an array property using the provided schema.
@@ -302,52 +572,51 @@ where
 /// Depending on the property, [`EntityVisitor::visit_one_of_property`],
 /// [`EntityVisitor::visit_one_of_array`], or [`EntityVisitor::visit_one_of_object`] is called.
 ///
-/// # Errors
-///
-/// Any error that can be returned by the visitor methods.
+/// Returns a detailed report about the validation failures for each property in the array.
 pub async fn walk_array<V, S, P>(
     visitor: &mut V,
     schema: &PropertyValueArray<S>,
     array: &mut PropertyWithMetadataArray,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> HashMap<usize, PropertyValidationReport>
 where
     V: EntityVisitor,
     S: PropertyValueSchema + Sync,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut status = ReportSink::new();
+    let mut properties = HashMap::new();
+    let schema_possibilities = schema.items.possibilities();
 
-    for property in &mut array.value {
+    for (index, property) in array.value.iter_mut().enumerate() {
         match property {
             PropertyWithMetadata::Value(value) => {
-                if let Err(error) = visitor
-                    .visit_one_of_property(schema.items.possibilities(), value, type_provider)
+                let _: Result<(), ()> = visitor
+                    .visit_one_of_property(schema_possibilities, value, type_provider)
                     .await
-                {
-                    status.append(error);
-                }
+                    .map_err(|report| {
+                        properties.insert(index, PropertyValidationReport::Value(report));
+                    });
             }
             PropertyWithMetadata::Array(array) => {
-                if let Err(error) = visitor
-                    .visit_one_of_array(schema.items.possibilities(), array, type_provider)
+                let _: Result<(), ()> = visitor
+                    .visit_one_of_array(schema_possibilities, array, type_provider)
                     .await
-                {
-                    status.append(error);
-                }
+                    .map_err(|report| {
+                        properties.insert(index, PropertyValidationReport::Array(report));
+                    });
             }
             PropertyWithMetadata::Object(object) => {
-                if let Err(error) = visitor
-                    .visit_one_of_object(schema.items.possibilities(), object, type_provider)
+                let _: Result<(), ()> = visitor
+                    .visit_one_of_object(schema_possibilities, object, type_provider)
                     .await
-                {
-                    status.append(error);
-                }
+                    .map_err(|report| {
+                        properties.insert(index, PropertyValidationReport::Object(report));
+                    });
             }
         }
     }
 
-    status.finish()
+    properties
 }
 
 /// Walks through a property object using the provided schema.
@@ -359,65 +628,84 @@ where
 /// Depending on the property, [`EntityVisitor::visit_property`] or [`EntityVisitor::visit_array`]
 /// is called.
 ///
-/// # Errors
-///
-/// - [`UnexpectedProperty`] if a property is specified that is not in the schema.
-/// - [`PropertyTypeRetrieval`] if a property type could not be retrieved from the `type_provider`.
-/// - [`InvalidType`] if the schema expects an array, but a value or object is provided.
-/// - Any error that can be returned by the visitor methods.
-///
-/// [`UnexpectedProperty`]: TraversalError::UnexpectedProperty
-/// [`PropertyTypeRetrieval`]: TraversalError::PropertyTypeRetrieval
-/// [`InvalidType`]: TraversalError::InvalidType
+/// Returns a detailed report about the validation failures for each property in the object.
 pub async fn walk_object<V, S, P>(
     visitor: &mut V,
     schema: &S,
     object: &mut PropertyWithMetadataObject,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> HashMap<BaseUrl, ObjectPropertyValidationReport>
 where
     V: EntityVisitor,
     S: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut status = ReportSink::new();
+    let mut validation_map = HashMap::new();
 
     for (base_url, property) in &mut object.value {
         let Some(property_type_reference) = schema.properties().get(base_url) else {
-            status.capture(TraversalError::UnexpectedProperty {
-                key: base_url.clone(),
-            });
-
+            validation_map.insert(
+                base_url.clone(),
+                ObjectPropertyValidationReport::Unexpected {},
+            );
             continue;
         };
 
         match property_type_reference {
             ValueOrArray::Value(property_type_reference) => {
-                let property_type = <P as OntologyTypeProvider<PropertyType>>::provide_type(
+                let Some(property_type) = <P as OntologyTypeProvider<PropertyType>>::provide_type(
                     type_provider,
                     &property_type_reference.url,
                 )
                 .await
-                .change_context_lazy(|| TraversalError::PropertyTypeRetrieval {
-                    id: property_type_reference.clone(),
-                })?;
-                visitor
+                .map_err(|report| {
+                    validation_map.insert(
+                        base_url.clone(),
+                        ObjectPropertyValidationReport::Retrieval {
+                            error: report.change_context(PropertyTypeRetrieval {
+                                property_type_reference: property_type_reference.clone(),
+                            }),
+                        },
+                    );
+                })
+                .ok() else {
+                    continue;
+                };
+
+                let _: Result<(), ()> = visitor
                     .visit_property(property_type.borrow(), property, type_provider)
-                    .await?;
+                    .await
+                    .map_err(|property_validation| {
+                        validation_map.insert(
+                            base_url.clone(),
+                            ObjectPropertyValidationReport::from(property_validation),
+                        );
+                    });
             }
             ValueOrArray::Array(array_schema) => match property {
                 PropertyWithMetadata::Array(array) => {
-                    let property_type = <P as OntologyTypeProvider<PropertyType>>::provide_type(
-                        type_provider,
-                        &array_schema.items.url,
-                    )
-                    .await
-                    .change_context_lazy(|| {
-                        TraversalError::PropertyTypeRetrieval {
-                            id: array_schema.items.clone(),
-                        }
-                    })?;
-                    let result = visitor
+                    let Some(property_type) =
+                        <P as OntologyTypeProvider<PropertyType>>::provide_type(
+                            type_provider,
+                            &array_schema.items.url,
+                        )
+                        .await
+                        .map_err(|report| {
+                            validation_map.insert(
+                                base_url.clone(),
+                                ObjectPropertyValidationReport::Retrieval {
+                                    error: report.change_context(PropertyTypeRetrieval {
+                                        property_type_reference: array_schema.items.clone(),
+                                    }),
+                                },
+                            );
+                        })
+                        .ok()
+                    else {
+                        continue;
+                    };
+
+                    let _: Result<(), ()> = visitor
                         .visit_array(
                             &PropertyValueArray {
                                 items: property_type.borrow(),
@@ -427,22 +715,30 @@ where
                             array,
                             type_provider,
                         )
-                        .await;
-                    if let Err(error) = result {
-                        status.append(error);
-                    }
+                        .await
+                        .map_err(|array_validation| {
+                            validation_map.insert(
+                                base_url.clone(),
+                                ObjectPropertyValidationReport::PropertyArray(array_validation),
+                            );
+                        });
                 }
-                PropertyWithMetadata::Object { .. } | PropertyWithMetadata::Value(_) => {
-                    bail![TraversalError::InvalidType {
-                        actual: property.json_type(),
-                        expected: JsonSchemaValueType::Array,
-                    },]
+                PropertyWithMetadata::Value(_) | PropertyWithMetadata::Object { .. } => {
+                    validation_map.insert(
+                        base_url.clone(),
+                        ObjectPropertyValidationReport::WrongType {
+                            data: PropertyValueTypeMismatch {
+                                actual: property.property_value_type(),
+                                expected: PropertyValueType::Array,
+                            },
+                        },
+                    );
                 }
             },
         };
     }
 
-    status.finish()
+    validation_map
 }
 
 /// Walks through a property value using the provided schema list.
@@ -462,23 +758,31 @@ pub async fn walk_one_of_property_value<V, P>(
     schema: &[PropertyValues],
     property: &mut PropertyWithMetadataValue,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> Result<(), OneOfPropertyValidationReports>
 where
     V: EntityVisitor,
     P: DataTypeLookup + Sync,
 {
-    let mut status = ReportSink::new();
-    let mut passed: usize = 0;
+    let mut property_validations = Vec::with_capacity(schema.len());
+    let mut num_passed: usize = 0;
 
     for schema in schema {
         match schema {
             PropertyValues::DataTypeReference(data_type_ref) => {
-                let data_type = type_provider
-                    .lookup_data_type_by_ref(data_type_ref)
-                    .await
-                    .change_context_lazy(|| TraversalError::DataTypeRetrieval {
-                        id: data_type_ref.clone(),
-                    })?;
+                let data_type = match type_provider.lookup_data_type_by_ref(data_type_ref).await {
+                    Ok(data_type) => data_type,
+                    Err(error) => {
+                        property_validations.push(OneOfValueValidationStatus::Failure(
+                            PropertyValueValidationReport::Retrieval {
+                                error: error.change_context(DataTypeRetrieval {
+                                    data_type_reference: data_type_ref.clone(),
+                                }),
+                            },
+                        ));
+                        continue;
+                    }
+                };
+
                 if let Err(error) = visitor
                     .visit_value(
                         data_type.borrow(),
@@ -487,41 +791,35 @@ where
                         type_provider,
                     )
                     .await
-                    .attach_lazy(|| Expected::DataType(data_type.borrow().schema.clone()))
-                    .attach_lazy(|| Actual::Json(property.value.clone()))
-                    .change_context(TraversalError::DataTypeUnfulfilled)
                 {
-                    status.append(error);
+                    property_validations.push(OneOfValueValidationStatus::Failure(
+                        PropertyValueValidationReport::ValueValidation { error },
+                    ));
                 } else {
-                    passed += 1;
+                    num_passed += 1;
+                    property_validations.push(OneOfValueValidationStatus::Success);
                 }
             }
-            PropertyValues::ArrayOfPropertyValues(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Array,
-                });
-            }
-            PropertyValues::PropertyTypeObject(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Object,
-                });
+            PropertyValues::ArrayOfPropertyValues(_) | PropertyValues::PropertyTypeObject(_) => {
+                property_validations.push(OneOfValueValidationStatus::Failure(
+                    PropertyValueValidationReport::WrongType {
+                        data: PropertyValueTypeMismatch {
+                            actual: schema.property_value_type(),
+                            expected: PropertyValueType::Value,
+                        },
+                    },
+                ));
             }
         }
     }
 
-    match passed {
-        0 => status.finish(),
-        1 => {
-            // We ignore potential errors here, as we have exactly one successful result.
-            let _: Result<(), _> = status.finish();
-            Ok(())
-        }
-        _ => {
-            status.capture(TraversalError::AmbiguousProperty {
-                actual: PropertyWithMetadata::Value(property.clone()),
-            });
-            status.finish()
-        }
+    if num_passed == 1 {
+        Ok(())
+    } else {
+        Err(OneOfPropertyValidationReports {
+            validations: Some(property_validations),
+            ..OneOfPropertyValidationReports::default()
+        })
     }
 }
 
@@ -540,52 +838,45 @@ pub async fn walk_one_of_array<V, P>(
     schema: &[PropertyValues],
     array: &mut PropertyWithMetadataArray,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> Result<(), OneOfArrayValidationReports>
 where
     V: EntityVisitor,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut status = ReportSink::new();
-    let mut passed: usize = 0;
+    let mut array_validations = Vec::with_capacity(schema.len());
+    let mut num_passed: usize = 0;
 
     for schema in schema {
         match schema {
-            PropertyValues::DataTypeReference(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Array,
-                });
-            }
             PropertyValues::ArrayOfPropertyValues(array_schema) => {
-                if let Err(error) =
+                if let Err(report) =
                     Box::pin(visitor.visit_array(array_schema, array, type_provider)).await
                 {
-                    status.append(error);
+                    array_validations.push(OneOfArrayValidationStatus::Failure(
+                        PropertyArrayValidationReport::ArrayValidation(report),
+                    ));
                 } else {
-                    passed += 1;
+                    num_passed += 1;
+                    array_validations.push(OneOfArrayValidationStatus::Success);
                 }
             }
-            PropertyValues::PropertyTypeObject(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Object,
-                });
+            PropertyValues::DataTypeReference(_) | PropertyValues::PropertyTypeObject(_) => {
+                array_validations.push(OneOfArrayValidationStatus::Failure(
+                    PropertyArrayValidationReport::WrongType(PropertyValueTypeMismatch {
+                        actual: schema.property_value_type(),
+                        expected: PropertyValueType::Array,
+                    }),
+                ));
             }
         }
     }
 
-    match passed {
-        0 => status.finish(),
-        1 => {
-            // We ignore potential errors here, as we have exactly one successful result.
-            let _: Result<(), _> = status.finish();
-            Ok(())
-        }
-        _ => {
-            status.capture(TraversalError::AmbiguousProperty {
-                actual: PropertyWithMetadata::Array(array.clone()),
-            });
-
-            status.finish()
-        }
+    if num_passed == 1 {
+        Ok(())
+    } else {
+        Err(OneOfArrayValidationReports {
+            validations: Some(array_validations),
+        })
     }
 }
 
@@ -604,51 +895,46 @@ pub async fn walk_one_of_object<V, P>(
     schema: &[PropertyValues],
     object: &mut PropertyWithMetadataObject,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> Result<(), OneOfObjectValidationReports>
 where
     V: EntityVisitor,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut status = ReportSink::new();
-    let mut passed: usize = 0;
+    let mut object_validations = Vec::with_capacity(schema.len());
+    let mut num_passed: usize = 0;
 
     for schema in schema {
         match schema {
-            PropertyValues::DataTypeReference(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Array,
-                });
-            }
-            PropertyValues::ArrayOfPropertyValues(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Object,
-                });
-            }
             PropertyValues::PropertyTypeObject(object_schema) => {
-                if let Err(error) =
+                if let Err(report) =
                     Box::pin(visitor.visit_object(object_schema, object, type_provider)).await
                 {
-                    status.append(error);
+                    object_validations.push(OneOfObjectValidationStatus::Failure(
+                        PropertyObjectValidationReport::ObjectValidation(report),
+                    ));
                 } else {
-                    passed += 1;
+                    num_passed += 1;
+                    object_validations.push(OneOfObjectValidationStatus::Success);
                 }
+            }
+            PropertyValues::DataTypeReference(_) | PropertyValues::ArrayOfPropertyValues(_) => {
+                object_validations.push(OneOfObjectValidationStatus::Failure(
+                    PropertyObjectValidationReport::WrongType {
+                        data: PropertyValueTypeMismatch {
+                            actual: schema.property_value_type(),
+                            expected: PropertyValueType::Object,
+                        },
+                    },
+                ));
             }
         }
     }
 
-    match passed {
-        0 => status.finish(),
-        1 => {
-            // We ignore potential errors here, as we have exactly one successful result.
-            let _: Result<(), _> = status.finish();
-            Ok(())
-        }
-        _ => {
-            status.capture(TraversalError::AmbiguousProperty {
-                actual: PropertyWithMetadata::Object(object.clone()),
-            });
-
-            status.finish()
-        }
+    if num_passed == 1 {
+        Ok(())
+    } else {
+        Err(OneOfObjectValidationReports {
+            validations: Some(object_validations),
+        })
     }
 }

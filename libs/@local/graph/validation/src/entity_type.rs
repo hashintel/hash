@@ -18,8 +18,12 @@ use hash_graph_types::{
             PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
             PropertyWithMetadataValue, ValueMetadata,
             visitor::{
-                EntityVisitor, TraversalError, walk_array, walk_object, walk_one_of_property_value,
-                walk_value,
+                ArrayItemNumberMismatch, ArrayValidationReport, ConversionRetrieval,
+                DataTypeCanonicalCalculation, DataTypeConversionError, DataTypeInferenceError,
+                DataTypeRetrieval, EntityVisitor, InvalidCanonicalValue,
+                JsonSchemaValueTypeMismatch, ObjectPropertyValidationReport,
+                ObjectValidationReport, OneOfPropertyValidationReports, TraversalError, walk_array,
+                walk_object, walk_one_of_property_value, walk_value,
             },
         },
     },
@@ -389,36 +393,42 @@ impl EntityVisitor for EntityPreprocessor {
         schema: &[PropertyValues],
         property: &mut PropertyWithMetadataValue,
         type_provider: &P,
-    ) -> Result<(), Report<[TraversalError]>>
+    ) -> Result<(), OneOfPropertyValidationReports>
     where
         P: DataTypeLookup + Sync,
     {
-        let mut status = ReportSink::new();
+        let mut property_validation = OneOfPropertyValidationReports::default();
 
         // We try to infer the data type ID
         // TODO: Remove when the data type ID is forced to be passed
         //   see https://linear.app/hash/issue/H-2800/validate-that-a-data-type-id-is-always-specified
         if property.metadata.data_type_id.is_none() {
-            let mut infer_status = ReportSink::new();
             let mut possible_data_types = HashSet::new();
 
             for values in schema {
                 if let PropertyValues::DataTypeReference(data_type_ref) = values {
-                    let Some(data_type) = infer_status.attempt(
-                        type_provider
-                            .lookup_data_type_by_ref(data_type_ref)
-                            .await
-                            .change_context_lazy(|| TraversalError::DataTypeRetrieval {
-                                id: data_type_ref.clone(),
-                            }),
-                    ) else {
+                    let Ok(data_type) = type_provider
+                        .lookup_data_type_by_ref(data_type_ref)
+                        .await
+                        .map_err(|error| {
+                            property_validation.data_type_inference.push(
+                                DataTypeInferenceError::Retrieval {
+                                    error: error.change_context(DataTypeRetrieval {
+                                        data_type_reference: data_type_ref.clone(),
+                                    }),
+                                },
+                            );
+                        })
+                    else {
                         continue;
                     };
 
                     if data_type.borrow().schema.r#abstract {
-                        infer_status.capture(TraversalError::AbstractDataType {
-                            id: data_type_ref.url.clone(),
-                        });
+                        property_validation.data_type_inference.push(
+                            DataTypeInferenceError::Abstract {
+                                data: data_type_ref.url.clone(),
+                            },
+                        );
                         continue;
                     }
 
@@ -426,21 +436,17 @@ impl EntityVisitor for EntityPreprocessor {
                 }
             }
 
-            let inferred_successfully = status
-                .attempt(
-                    infer_status
-                        .finish()
-                        .change_context(TraversalError::DataTypeUnspecified),
-                )
-                .is_some();
-
             // Only if there is really a single valid data type ID, we set it. Note, that this is
             // done before the actual validation step.
-            if inferred_successfully {
+            if property_validation.data_type_inference.is_empty() {
                 if possible_data_types.len() == 1 {
                     property.metadata.data_type_id = possible_data_types.into_iter().next();
                 } else {
-                    status.capture(TraversalError::AmbiguousDataType);
+                    property_validation.data_type_inference.push(
+                        DataTypeInferenceError::Ambiguous {
+                            data: possible_data_types,
+                        },
+                    );
                 }
             }
         }
@@ -459,24 +465,35 @@ impl EntityVisitor for EntityPreprocessor {
             let target_data_type_ref: &DataTypeReference = target_data_type_id.into();
 
             if source_data_type_ref != target_data_type_ref {
-                let conversions = type_provider
+                match type_provider
                     .find_conversion(source_data_type_ref, target_data_type_ref)
                     .await
-                    .change_context_lazy(|| TraversalError::ConversionRetrieval {
-                        current: source_data_type_ref.clone(),
-                        target: target_data_type_ref.clone(),
-                    })?;
-
-                if let Some(mut value) = property.value.as_f64() {
-                    for conversion in conversions.borrow() {
-                        value = conversion.evaluate(value);
+                {
+                    Err(error) => {
+                        property_validation.value_conversion =
+                            Some(DataTypeConversionError::Retrieval {
+                                error: error.change_context(ConversionRetrieval {
+                                    current: source_data_type_ref.clone(),
+                                    target: target_data_type_ref.clone(),
+                                }),
+                            });
                     }
-                    property.value = JsonValue::from(value);
-                } else {
-                    status.capture(TraversalError::InvalidType {
-                        actual: JsonSchemaValueType::from(&property.value),
-                        expected: JsonSchemaValueType::Number,
-                    });
+                    Ok(conversions) => {
+                        if let Some(mut value) = property.value.as_f64() {
+                            for conversion in conversions.borrow() {
+                                value = conversion.evaluate(value);
+                            }
+                            property.value = JsonValue::from(value);
+                        } else {
+                            property_validation.value_conversion =
+                                Some(DataTypeConversionError::WrongType {
+                                    data: JsonSchemaValueTypeMismatch {
+                                        actual: JsonSchemaValueType::from(&property.value),
+                                        expected: JsonSchemaValueType::Number,
+                                    },
+                                });
+                        }
+                    }
                 }
             }
         }
@@ -487,16 +504,21 @@ impl EntityVisitor for EntityPreprocessor {
                 .canonical
                 .insert(data_type_id.base_url.clone(), property.value.clone());
 
-            let data_type_result = type_provider
+            match type_provider
                 .lookup_data_type_by_ref(<&DataTypeReference>::from(data_type_id))
                 .await
-                .change_context_lazy(|| TraversalError::DataTypeRetrieval {
-                    id: DataTypeReference {
-                        url: data_type_id.clone(),
-                    },
-                });
-
-            match data_type_result {
+            {
+                Err(error) => {
+                    property_validation.canonical_value.push(
+                        DataTypeCanonicalCalculation::Retrieval {
+                            error: error.change_context(DataTypeRetrieval {
+                                data_type_reference: DataTypeReference {
+                                    url: data_type_id.clone(),
+                                },
+                            }),
+                        },
+                    );
+                }
                 Ok(data_type) => {
                     if !data_type.borrow().metadata.conversions.is_empty() {
                         // We only support conversion of numbers for now
@@ -513,26 +535,26 @@ impl EntityVisitor for EntityPreprocessor {
                                             if f64::abs(current_value - converted_value)
                                                 > f64::EPSILON
                                             {
-                                                status.capture(
-                                                    TraversalError::InvalidCanonicalValue {
-                                                        key: target.clone(),
-                                                        actual: current_value,
-                                                        expected: converted_value,
+                                                property_validation.canonical_value.push(
+                                                    DataTypeCanonicalCalculation::InvalidValue {
+                                                        data: InvalidCanonicalValue {
+                                                            key: target.clone(),
+                                                            actual: current_value,
+                                                            expected: converted_value,
+                                                        },
                                                     },
                                                 );
                                             }
                                         } else {
-                                            status.append(
-                                                Report::new(TraversalError::InvalidType {
-                                                    actual: JsonSchemaValueType::from(
-                                                        &property.value,
-                                                    ),
-                                                    expected: JsonSchemaValueType::Number,
-                                                })
-                                                .attach_printable(
-                                                    "Values other than numbers are not yet \
-                                                     supported for conversions",
-                                                ),
+                                            property_validation.canonical_value.push(
+                                                DataTypeCanonicalCalculation::WrongType {
+                                                    data: JsonSchemaValueTypeMismatch {
+                                                        actual: JsonSchemaValueType::from(
+                                                            &property.value,
+                                                        ),
+                                                        expected: JsonSchemaValueType::Number,
+                                                    },
+                                                },
                                             );
                                         }
                                     }
@@ -545,31 +567,34 @@ impl EntityVisitor for EntityPreprocessor {
                                 }
                             }
                         } else {
-                            status.append(
-                                Report::new(TraversalError::InvalidType {
-                                    actual: JsonSchemaValueType::from(&property.value),
-                                    expected: JsonSchemaValueType::Number,
-                                })
-                                .attach_printable(
-                                    "Values other than numbers are not yet supported for \
-                                     conversions",
-                                ),
+                            property_validation.canonical_value.push(
+                                DataTypeCanonicalCalculation::WrongType {
+                                    data: JsonSchemaValueTypeMismatch {
+                                        actual: JsonSchemaValueType::from(&property.value),
+                                        expected: JsonSchemaValueType::Number,
+                                    },
+                                },
                             );
                         }
                     }
-                }
-                Err(error) => {
-                    status.append(error);
                 }
             }
         }
 
         if let Err(error) = walk_one_of_property_value(self, schema, property, type_provider).await
         {
-            status.append(error);
-        }
+            property_validation.validations = error.validations;
+        };
 
-        status.finish()
+        if property_validation.validations.is_some()
+            || property_validation.value_conversion.is_some()
+            || !property_validation.data_type_inference.is_empty()
+            || !property_validation.canonical_value.is_empty()
+        {
+            Err(property_validation)
+        } else {
+            Ok(())
+        }
     }
 
     async fn visit_array<T, P>(
@@ -577,20 +602,20 @@ impl EntityVisitor for EntityPreprocessor {
         schema: &PropertyValueArray<T>,
         array: &mut PropertyWithMetadataArray,
         type_provider: &P,
-    ) -> Result<(), Report<[TraversalError]>>
+    ) -> Result<(), ArrayValidationReport>
     where
         T: PropertyValueSchema + Sync,
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
-        let mut status = ReportSink::new();
-        if let Err(error) = walk_array(self, schema, array, type_provider).await {
-            status.append(error);
-        }
+        let mut array_validation = ArrayValidationReport {
+            properties: walk_array(self, schema, array, type_provider).await,
+            ..ArrayValidationReport::default()
+        };
 
         if self.components.num_items {
             if let Some(min) = schema.min_items {
                 if array.value.len() < min {
-                    status.capture(TraversalError::TooFewItems {
+                    array_validation.num_items = Some(ArrayItemNumberMismatch::TooFew {
                         actual: array.value.len(),
                         min,
                     });
@@ -599,7 +624,7 @@ impl EntityVisitor for EntityPreprocessor {
 
             if let Some(max) = schema.max_items {
                 if array.value.len() > max {
-                    status.capture(TraversalError::TooManyItems {
+                    array_validation.num_items = Some(ArrayItemNumberMismatch::TooMany {
                         actual: array.value.len(),
                         max,
                     });
@@ -607,7 +632,11 @@ impl EntityVisitor for EntityPreprocessor {
             }
         }
 
-        status.finish()
+        if array_validation.is_valid() {
+            Ok(())
+        } else {
+            Err(array_validation)
+        }
     }
 
     async fn visit_object<T, P>(
@@ -615,27 +644,29 @@ impl EntityVisitor for EntityPreprocessor {
         schema: &T,
         object: &mut PropertyWithMetadataObject,
         type_provider: &P,
-    ) -> Result<(), Report<[TraversalError]>>
+    ) -> Result<(), ObjectValidationReport>
     where
         T: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
-        let mut status = ReportSink::new();
-        if let Err(error) = walk_object(self, schema, object, type_provider).await {
-            status.append(error);
-        }
+        let mut properties = walk_object(self, schema, object, type_provider).await;
 
         if self.components.required_properties {
             for required_property in schema.required() {
                 if !object.value.contains_key(required_property) {
-                    status.capture(TraversalError::MissingRequiredProperty {
-                        key: required_property.clone(),
-                    });
+                    properties.insert(
+                        required_property.clone(),
+                        ObjectPropertyValidationReport::Missing,
+                    );
                 }
             }
         }
 
-        status.finish()
+        if properties.is_empty() {
+            Ok(())
+        } else {
+            Err(ObjectValidationReport { properties })
+        }
     }
 }
 
