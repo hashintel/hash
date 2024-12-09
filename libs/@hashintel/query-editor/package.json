@@ -31,7 +31,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@mui/material": "5.16.9",
     "@mui/system": "5.16.8",
-    "eslint": "8.57.0",
+    "eslint": "9.16.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-hook-form": "7.53.2",
