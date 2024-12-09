@@ -1,5 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
 import getGitignorePatterns from "eslint-config-flat-gitignore";
 import { ignores } from "eslint-config-sheriff";
 // @ts-expect-error - react-hooks does not expose types
@@ -16,10 +17,10 @@ import js from "@eslint/js";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const filename = fileURLToPath(import.meta.url);
+const dirname = path.dirname(filename);
 const compat = new FlatCompat({
-  baseDirectory: __dirname,
+  baseDirectory: dirname,
   recommendedConfig: js.configs.recommended,
   allConfig: js.configs.all,
 });
@@ -30,6 +31,7 @@ export const create = () => [
     plugins: {
       "@typescript-eslint": typescriptEslint,
       canonical,
+      /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
       "react-hooks": fixupPluginRules(reactHooks),
       "simple-import-sort": simpleImportSort,
       unicorn,
@@ -195,6 +197,7 @@ export const create = () => [
               name: "@mui/material",
               importNames: ["Link"],
               message:
+                /* eslint-disable-next-line sonarjs/no-duplicate-string */
                 "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility.",
             },
             {
@@ -446,6 +449,7 @@ export const create = () => [
         {
           args: "all",
           argsIgnorePattern: "^_+",
+          /* eslint-disable-next-line unicorn/prevent-abbreviations */
           varsIgnorePattern: "^_+",
         },
       ],

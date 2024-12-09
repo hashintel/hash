@@ -2,15 +2,16 @@ import { Array as ReadonlyArray, Option, pipe, Predicate } from "effect";
 import type { PartialDeep } from "type-fest";
 
 import type { NoRestrictedImportsRule } from "./types.js";
-import { defineConfig, ESConfig } from "./utils.js";
+import { defineConfig, type ESConfig } from "./utils.js";
+
 import type { Options } from "./index.js";
 
 const mergeRestrictedImports = (
   current: NoRestrictedImportsRule,
   override: NoRestrictedImportsRule,
 ): NoRestrictedImportsRule => ({
-  paths: [...(current.paths ?? []), ...(override.paths ?? [])],
-  patterns: [...(current.patterns ?? []), ...(override.patterns ?? [])],
+  paths: [...current.paths, ...override.paths],
+  patterns: [...current.patterns, ...override.patterns],
 });
 
 const noRestrictedImports = (

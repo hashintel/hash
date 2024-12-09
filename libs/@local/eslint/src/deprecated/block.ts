@@ -11,6 +11,7 @@ export const create = () => [
   {
     plugins: {
       "@typescript-eslint": typescriptEslint,
+      /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
       "react-hooks": fixupPluginRules(reactHooks),
       react,
       unicorn,

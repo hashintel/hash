@@ -29,6 +29,8 @@ export const importPlugin = (
         "import/no-amd": "error",
         // We want to avoid circular dependencies
         "import/no-cycle": "error",
+        // We have custom import/order rules that clash with `simple-import-sort`
+        "simple-import-sort/imports": "off",
       },
     },
   ]);

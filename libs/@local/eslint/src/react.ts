@@ -1,6 +1,7 @@
 import type { PartialDeep } from "type-fest";
 
 import { defineConfig, type ESConfig } from "./utils.js";
+
 import type { Options } from "./index.js";
 
 export const react =
