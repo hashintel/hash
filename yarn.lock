@@ -720,7 +720,7 @@ __metadata:
     "@babel/preset-typescript": "npm:7.26.0"
     "@hashintel/block-design-system": "npm:0.0.2"
     "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@storybook/addon-essentials": "npm:7.6.20"
     "@storybook/addon-interactions": "npm:7.6.20"
