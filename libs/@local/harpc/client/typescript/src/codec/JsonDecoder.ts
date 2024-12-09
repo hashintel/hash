@@ -1,3 +1,5 @@
+import { TextDecoder } from "node:util";
+
 import { Data, Effect, Layer, Option, pipe, Schema, Stream } from "effect";
 
 import { InvalidUtf8Error } from "../ClientError.js";
