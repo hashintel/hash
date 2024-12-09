@@ -17,7 +17,7 @@ import {
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
-import { useDraftEntities } from "../../draft-entities-context";
+import { useDraftEntitiesCount } from "../../draft-entities-count-context";
 import { ArrowRightToLineIcon } from "../../icons";
 import { BoltLightIcon } from "../../icons/bolt-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
@@ -74,7 +74,7 @@ export const PageSidebar: FunctionComponent = () => {
 
   const { numberOfUnreadNotifications } = useNotificationCount();
 
-  const { draftEntities } = useDraftEntities();
+  const { count: draftEntitiesCount } = useDraftEntitiesCount();
 
   const workersSection = useMemo<NavLinkDefinition[]>(
     () =>
@@ -129,7 +129,7 @@ export const PageSidebar: FunctionComponent = () => {
       });
     }
 
-    const numberOfPendingActions = draftEntities?.length ?? 0;
+    const numberOfPendingActions = draftEntitiesCount ?? 0;
 
     return [
       {
@@ -171,7 +171,7 @@ export const PageSidebar: FunctionComponent = () => {
         : []),
     ];
   }, [
-    draftEntities,
+    draftEntitiesCount,
     numberOfUnreadNotifications,
     enabledFeatureFlags,
     preferences,

@@ -35,7 +35,7 @@ import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
 import type { MinimalUser } from "../lib/user-and-org";
 import { constructMinimalUser } from "../lib/user-and-org";
-import { DraftEntitiesContextProvider } from "../shared/draft-entities-context";
+import { DraftEntitiesCountContextProvider } from "../shared/draft-entities-count-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
@@ -109,7 +109,7 @@ const App: FunctionComponent<AppProps> = ({
               <KeyboardShortcutsContextProvider>
                 <SnackbarProvider maxSnack={3}>
                   <NotificationCountContextProvider>
-                    <DraftEntitiesContextProvider>
+                    <DraftEntitiesCountContextProvider>
                       <EntityTypesContextProvider>
                         <PropertyTypesContextProvider includeArchived>
                           <DataTypesContextProvider>
@@ -132,7 +132,7 @@ const App: FunctionComponent<AppProps> = ({
                           </DataTypesContextProvider>
                         </PropertyTypesContextProvider>
                       </EntityTypesContextProvider>
-                    </DraftEntitiesContextProvider>
+                    </DraftEntitiesCountContextProvider>
                   </NotificationCountContextProvider>
                 </SnackbarProvider>
               </KeyboardShortcutsContextProvider>

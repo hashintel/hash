@@ -237,6 +237,8 @@ export const getEntitySubgraphResponse: ImpureGraphFunction<
       }
     }
 
+    console.log({ rest, params });
+
     return {
       closedMultiEntityTypes,
       definitions: definitions

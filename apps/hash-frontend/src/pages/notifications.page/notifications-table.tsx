@@ -35,8 +35,8 @@ import type {
   GraphChangeNotification,
   Notification,
   PageRelatedNotification,
-} from "../shared/notifications-with-links-context";
-import { useNotificationsWithLinks } from "../shared/notifications-with-links-context";
+} from "./notifications-with-links-context";
+import { useNotificationsWithLinks } from "./notifications-with-links-context";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",
@@ -166,12 +166,14 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
   notification,
 }) => {
   const { markNotificationAsRead } = useNotificationCount();
+  const { refetch } = useNotificationsWithLinks();
 
   const handleNotificationClick = useCallback(async () => {
     await markNotificationAsRead({
       notificationEntityId: notification.entity.entityId,
     });
-  }, [markNotificationAsRead, notification]);
+    refetch();
+  }, [markNotificationAsRead, notification, refetch]);
 
   const ownedById = useMemo(
     () =>

@@ -48,7 +48,7 @@ import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.q
 import type { MinimalUser } from "../../lib/user-and-org";
 import { constructMinimalUser } from "../../lib/user-and-org";
 import { pollInterval } from "../../shared/poll-interval";
-import { useAuthInfo } from "./auth-info-context";
+import { useAuthInfo } from "../shared/auth-info-context";
 
 export type PageMentionNotification = {
   kind: "page-mention";
@@ -97,6 +97,7 @@ export type Notification = PageRelatedNotification | GraphChangeNotification;
 
 type NotificationsWithLinksContextValue = {
   notifications?: Notification[];
+  refetch: () => void;
 };
 
 export const NotificationsWithLinksContext =
@@ -124,7 +125,7 @@ export const useNotificationsWithLinksContextValue =
   (): NotificationsWithLinksContextValue => {
     const { authenticatedUser } = useAuthInfo();
 
-    const { data: notificationsWithOutgoingLinksData } = useQuery<
+    const { data: notificationsWithOutgoingLinksData, refetch } = useQuery<
       GetEntitySubgraphQuery,
       GetEntitySubgraphQueryVariables
     >(getEntitySubgraphQuery, {
@@ -498,9 +499,13 @@ export const useNotificationsWithLinksContextValue =
       return derivedNotifications;
     }, [notificationsSubgraph]);
 
-    return { notifications };
+    return { notifications, refetch };
   };
 
+/**
+ * Context to provide full information on notifications, for use on the notifications page.
+ * A separate app-wide context provides only a count of notifications.
+ */
 export const NotificationsWithLinksContextProvider: FunctionComponent<
   PropsWithChildren
 > = ({ children }) => {
