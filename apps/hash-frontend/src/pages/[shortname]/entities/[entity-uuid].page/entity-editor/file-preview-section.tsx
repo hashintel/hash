@@ -12,7 +12,6 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   Box,
   CircularProgress,
@@ -62,11 +61,9 @@ const ReplaceFile = ({
   isImage: boolean;
   close: () => void;
 }) => {
-  const { entitySubgraph, onEntityUpdated } = useEntityEditor();
+  const { entity, onEntityUpdated } = useEntityEditor();
   const { refetch: refetchUser } = useAuthInfo();
   const [fileBeingUploaded, setFileBeingUploaded] = useState<File | null>(null);
-
-  const entity = getRoots(entitySubgraph)[0]!;
 
   const { uploadFile, uploads } = useFileUploads();
   const uploadsProgress = useFileUploadsProgress();
@@ -170,9 +167,8 @@ export const FilePreviewSection = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(true);
 
-  const { isDirty, readonly, entitySubgraph } = useEntityEditor();
-
-  const entity = getRoots(entitySubgraph)[0]!;
+  const { isDirty, readonly, closedMultiEntityType, entity } =
+    useEntityEditor();
 
   const { isImage, fileUrl } = getFileProperties(entity.properties);
 
@@ -184,7 +180,8 @@ export const FilePreviewSection = () => {
     entity.properties as FileProperties,
   );
 
-  const title = displayName ?? generateEntityLabel(entitySubgraph, entity);
+  const title =
+    displayName ?? generateEntityLabel(closedMultiEntityType, entity);
 
   const alt = description ?? title;
 

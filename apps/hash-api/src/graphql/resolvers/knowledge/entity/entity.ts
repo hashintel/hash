@@ -5,7 +5,7 @@ import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -63,6 +63,7 @@ import type {
   QueryGetEntitySubgraphArgs,
   QueryIsEntityPublicArgs,
   QueryResolvers,
+  QueryValidateEntityArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import {
@@ -399,6 +400,21 @@ export const updateEntitiesResolver: ResolverFn<
   );
 
   return updatedEntities;
+};
+
+export const validateEntityResolver: ResolverFn<
+  Promise<boolean>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  QueryValidateEntityArgs
+> = async (_, params, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  return (
+    (await Entity.validate(context.graphApi, authentication, params)) ===
+    undefined
+  );
 };
 
 export const archiveEntityResolver: ResolverFn<

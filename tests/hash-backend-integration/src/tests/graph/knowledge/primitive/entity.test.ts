@@ -330,7 +330,7 @@ describe("Entity CRU", () => {
           entityTypeIds: entity.metadata.entityTypeIds,
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: false,
-          includeResolved: true,
+          includeResolved: "resolved",
         },
       );
 

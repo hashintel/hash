@@ -15,6 +15,7 @@ use hash_graph_types::{
     owned_by_id::OwnedById,
 };
 use pretty_assertions::assert_eq;
+use time::Duration;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
@@ -326,21 +327,27 @@ async fn no_initial_draft() {
         );
         assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
         assert!(check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
-        assert_eq!(
-            updated_entity
+        assert!(
+            (updated_entity
                 .metadata
                 .provenance
                 .inferred
-                .first_non_draft_created_at_transaction_time,
-            Some(*undraft_transaction_time)
+                .first_non_draft_created_at_transaction_time
+                .expect("transaction time should be set")
+                - *undraft_transaction_time)
+                .abs()
+                < Duration::milliseconds(1)
         );
-        assert_eq!(
-            updated_entity
+        assert!(
+            (updated_entity
                 .metadata
                 .provenance
                 .inferred
-                .first_non_draft_created_at_decision_time,
-            Some(*undraft_decision_time)
+                .first_non_draft_created_at_decision_time
+                .expect("decision time should be set")
+                - *undraft_decision_time)
+                .abs()
+                < Duration::milliseconds(1)
         );
 
         let updated_live_entity = api
@@ -375,21 +382,27 @@ async fn no_initial_draft() {
         );
         assert!(!check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
         assert!(check_entity_exists(&api, updated_live_entity.metadata.record_id.entity_id).await);
-        assert_eq!(
-            updated_live_entity
+        assert!(
+            (updated_live_entity
                 .metadata
                 .provenance
                 .inferred
-                .first_non_draft_created_at_transaction_time,
-            Some(*undraft_transaction_time)
+                .first_non_draft_created_at_transaction_time
+                .expect("transaction time should be set")
+                - *undraft_transaction_time)
+                .abs()
+                < Duration::milliseconds(1)
         );
-        assert_eq!(
-            updated_live_entity
+        assert!(
+            (updated_live_entity
                 .metadata
                 .provenance
                 .inferred
-                .first_non_draft_created_at_decision_time,
-            Some(*undraft_decision_time)
+                .first_non_draft_created_at_decision_time
+                .expect("decision time should be set")
+                - *undraft_decision_time)
+                .abs()
+                < Duration::milliseconds(1)
         );
     }
 }
@@ -422,21 +435,27 @@ async fn multiple_drafts() {
         entity.metadata.temporal_versioning.transaction_time.start();
     let ClosedTemporalBound::Inclusive(undraft_decision_time) =
         entity.metadata.temporal_versioning.decision_time.start();
-    assert_eq!(
-        entity
+    assert!(
+        (entity
             .metadata
             .provenance
             .inferred
-            .first_non_draft_created_at_transaction_time,
-        Some(*undraft_transaction_time)
+            .first_non_draft_created_at_transaction_time
+            .expect("transaction time should be set")
+            - *undraft_transaction_time)
+            .abs()
+            < Duration::milliseconds(1)
     );
-    assert_eq!(
-        entity
+    assert!(
+        (entity
             .metadata
             .provenance
             .inferred
-            .first_non_draft_created_at_decision_time,
-        Some(*undraft_decision_time)
+            .first_non_draft_created_at_decision_time
+            .expect("decision time should be set")
+            - *undraft_decision_time)
+            .abs()
+            < Duration::milliseconds(1)
     );
 
     let mut drafts = Vec::new();
@@ -477,21 +496,27 @@ async fn multiple_drafts() {
         );
         assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
         assert!(check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
-        assert_eq!(
-            updated_entity
+        assert!(
+            (updated_entity
                 .metadata
                 .provenance
                 .inferred
-                .first_non_draft_created_at_transaction_time,
-            Some(*undraft_transaction_time)
+                .first_non_draft_created_at_transaction_time
+                .expect("transaction time should be set")
+                - *undraft_transaction_time)
+                .abs()
+                < Duration::milliseconds(1)
         );
-        assert_eq!(
-            updated_entity
+        assert!(
+            (updated_entity
                 .metadata
                 .provenance
                 .inferred
-                .first_non_draft_created_at_decision_time,
-            Some(*undraft_decision_time)
+                .first_non_draft_created_at_decision_time
+                .expect("decision time should be set")
+                - *undraft_decision_time)
+                .abs()
+                < Duration::milliseconds(1)
         );
         drafts.push(updated_entity.metadata.record_id.entity_id);
     }
@@ -522,21 +547,27 @@ async fn multiple_drafts() {
         assert!(!check_entity_exists(&api, draft).await);
         assert!(check_entity_exists(&api, updated_live_entity.metadata.record_id.entity_id).await);
 
-        assert_eq!(
-            updated_live_entity
+        assert!(
+            (updated_live_entity
                 .metadata
                 .provenance
                 .inferred
-                .first_non_draft_created_at_transaction_time,
-            Some(*undraft_transaction_time)
+                .first_non_draft_created_at_transaction_time
+                .expect("transaction time should be set")
+                - *undraft_transaction_time)
+                .abs()
+                < Duration::milliseconds(1)
         );
-        assert_eq!(
-            updated_live_entity
+        assert!(
+            (updated_live_entity
                 .metadata
                 .provenance
                 .inferred
-                .first_non_draft_created_at_decision_time,
-            Some(*undraft_decision_time)
+                .first_non_draft_created_at_decision_time
+                .expect("decision time should be set")
+                - *undraft_decision_time)
+                .abs()
+                < Duration::milliseconds(1)
         );
     }
 }

@@ -38,9 +38,9 @@
     "uint8arraylist": "2.4.8"
   },
   "devDependencies": {
-    "@effect/platform": "0.70.3",
-    "@effect/platform-node": "0.65.3",
-    "@effect/vitest": "0.14.2",
+    "@effect/platform": "0.70.4",
+    "@effect/platform-node": "0.65.4",
+    "@effect/vitest": "0.14.3",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@rust/harpc-wire-protocol": "0.0.0-private",

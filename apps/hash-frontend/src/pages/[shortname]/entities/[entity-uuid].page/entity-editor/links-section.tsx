@@ -4,7 +4,6 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import {
   getIncomingLinkAndSourceEntities,
   getOutgoingLinksForEntity,
-  getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { Stack } from "@mui/material";
 
@@ -13,9 +12,7 @@ import { IncomingLinksSection } from "./links-section/incoming-links-section";
 import { OutgoingLinksSection } from "./links-section/outgoing-links-section";
 
 export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
-  const { draftLinksToArchive, entitySubgraph } = useEntityEditor();
-
-  const entity = getRoots(entitySubgraph)[0]!;
+  const { draftLinksToArchive, entity, entitySubgraph } = useEntityEditor();
 
   const outgoingLinks = getOutgoingLinksForEntity(
     entitySubgraph,

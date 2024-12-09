@@ -1,0 +1,10 @@
+{
+  "title": "Report",
+  "type": "array",
+  "description": "An error-stack Report object which may contains exactly one error",
+  "items": {
+    "$ref": "./report_context_info.json"
+  },
+  "minItems": 1,
+  "maxItems": 1
+}

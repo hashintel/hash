@@ -1,6 +1,6 @@
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{fmt, marker::PhantomData, str::FromStr};
+use core::{fmt, marker::PhantomData, ops::Sub, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
@@ -90,6 +90,14 @@ impl<A> Timestamp<A> {
             axis: PhantomData,
             time: time.time,
         }
+    }
+}
+
+impl<T> Sub for Timestamp<T> {
+    type Output = time::Duration;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.time - rhs.time
     }
 }
 

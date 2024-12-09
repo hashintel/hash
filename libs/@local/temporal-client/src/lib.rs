@@ -6,7 +6,7 @@ mod ai;
 mod error;
 
 use error_stack::{Report, ResultExt as _};
-use temporal_io_client::{Client, ClientOptions, ClientOptionsBuilder, RetryClient};
+use temporal_client::{Client, ClientOptions, ClientOptionsBuilder, RetryClient};
 use url::Url;
 
 #[derive(Debug)]
@@ -28,7 +28,7 @@ impl IntoFuture for TemporalClientConfig {
             Ok(TemporalClient {
                 client: self
                     .options
-                    .connect("HASH", None, None)
+                    .connect("HASH", None)
                     .await
                     .change_context(ConnectionError)?,
             })

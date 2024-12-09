@@ -12,7 +12,7 @@ import {
   type EntityRootType,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib/subgraph/roots";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import { useMemo } from "react";
 
@@ -33,13 +33,11 @@ import {
 } from "./links-section/shared/table-styling";
 
 export const ClaimsSection = () => {
-  const { entitySubgraph, onEntityClick } = useEntityEditor();
+  const { entity, onEntityClick, isLocalDraftOnly } = useEntityEditor();
 
   const entityUuid = useMemo(() => {
-    return extractEntityUuidFromEntityId(
-      getRoots(entitySubgraph)[0]!.metadata.recordId.entityId,
-    );
-  }, [entitySubgraph]);
+    return extractEntityUuidFromEntityId(entity.metadata.recordId.entityId);
+  }, [entity]);
 
   const { data: claimsData } = useQuery<
     GetEntitySubgraphQuery,
@@ -75,7 +73,7 @@ export const ClaimsSection = () => {
         includeDrafts: true,
       },
     },
-    skip: !entityUuid,
+    skip: !entityUuid || isLocalDraftOnly,
     fetchPolicy: "cache-and-network",
   });
 
@@ -108,6 +106,10 @@ export const ClaimsSection = () => {
       /** scrollbar */
       16,
   );
+
+  if (isLocalDraftOnly) {
+    return null;
+  }
 
   return (
     <SectionWrapper
