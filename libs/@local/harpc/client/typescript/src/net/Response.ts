@@ -76,7 +76,7 @@ const flattenResponseStream = <E, R>(
       ResponseFlags.isEndOfResponse(response.header.flags),
     ),
     Stream.mapConcat((response) => {
-      const output = [] as ResponseSegment[];
+      const output: ResponseSegment[] = [];
 
       const begin = ResponseBody.getBegin(response.body);
       if (Option.isSome(begin)) {

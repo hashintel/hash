@@ -49,7 +49,7 @@ const resolvePeer = (transport: Transport, address: Address) =>
       catch: (cause) => new TransportError({ cause }),
     });
 
-    return Array.head(peers).pipe(Option.map((_) => _.id));
+    return Array.head(peers).pipe(Option.map((peer) => peer.id));
   });
 
 /** @internal */

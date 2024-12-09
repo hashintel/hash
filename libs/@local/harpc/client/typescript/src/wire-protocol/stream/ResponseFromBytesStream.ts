@@ -51,7 +51,7 @@ const tryDecodePacket = (scratch: MutableBytes.MutableBytes) =>
 const tryDecode = (scratch: MutableBytes.MutableBytes) =>
   Effect.gen(function* () {
     let shouldContinue = true;
-    const output = [] as Response.Response[];
+    const output: Response.Response[] = [];
 
     while (shouldContinue) {
       const result = yield* tryDecodePacket(scratch);

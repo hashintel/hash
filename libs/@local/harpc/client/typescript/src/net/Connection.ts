@@ -64,7 +64,23 @@ export interface ConnectionConfig {
    */
   responseBufferSize?: number;
 
+  /**
+   * If specified, and no handler has been registered with the registrar for the
+   * successfully negotiated protocol, use this as the max outbound stream limit
+   * for the protocol.
+   */
   maxOutboundStreams?: number;
+
+  /**
+   * Opt-in to running over a limited connection - one that has restrictions
+   * on the amount of data that may be transferred or how long it may be open for.
+   *
+   * These limits are typically enforced by a relay server, if the protocol
+   * will be transferring a lot of data or the stream will be open for a long time
+   * consider upgrading to a direct connection before opening the stream.
+   *
+   * @default false
+   */
   runOnLimitedConnection?: boolean;
 }
 
@@ -184,16 +200,11 @@ export const makeUnchecked = (
     const stream = yield* Effect.acquireRelease(
       Effect.tryPromise({
         try: (abort) => {
-          const options: NewStreamOptions = { signal: abort };
-
-          if (config.maxOutboundStreams) {
-            options.maxOutboundStreams = config.maxOutboundStreams;
-          }
-          if (config.runOnLimitedConnection) {
-            options.runOnLimitedConnection = config.runOnLimitedConnection;
-          }
-
-          return connection.newStream("/harpc/1.0.0", options);
+          return connection.newStream("/harpc/1.0.0", {
+            signal: abort,
+            maxOutboundStreams: config.maxOutboundStreams,
+            runOnLimitedConnection: config.runOnLimitedConnection,
+          });
         },
         catch: (cause) => new Transport.TransportError({ cause }),
       }),
