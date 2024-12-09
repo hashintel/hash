@@ -7,6 +7,8 @@ import unicorn from "eslint-plugin-unicorn";
 import { fixupPluginRules } from "@eslint/compat";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 
+import type { ESConfig } from "../utils.js";
+
 export const create = () =>
   [
     {

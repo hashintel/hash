@@ -2,6 +2,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import getGitignorePatterns from "eslint-config-flat-gitignore";
+// @ts-expect-error - eslint-plugin-import does not expose types
+import importPlugin from "eslint-plugin-import";
 import { ignores } from "eslint-config-sheriff";
 // @ts-expect-error - react-hooks does not expose types
 import canonical from "eslint-plugin-canonical";
@@ -16,6 +18,8 @@ import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
+import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
+import { Array, pipe, Record, Struct } from "effect";
 
 import type { ESConfig } from "../utils.js";
 
@@ -27,16 +31,33 @@ const compat = new FlatCompat({
   allConfig: js.configs.all,
 });
 
-export const create = () =>
+const removeImportPlugin = (
+  configs: readonly ESConfig[],
+): readonly ESConfig[] =>
+  pipe(
+    configs,
+    Array.map(
+      Struct.evolve({
+        plugins: (plugins) =>
+          plugins === undefined ? undefined : Record.remove(plugins, "import"),
+      }),
+    ),
+  );
+
+export const create = (projectDirectory: string) =>
   [
-    ...compat.extends("airbnb", "prettier"),
+    ...removeImportPlugin(compat.extends("airbnb", "prettier")),
     {
       languageOptions: {
         parserOptions: {
           projectService: true,
+          // eslint-disable-next-line unicorn/prevent-abbreviations
+          tsconfigRootDir: projectDirectory,
         },
       },
     },
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    importPlugin.flatConfigs.recommended,
     {
       plugins: {
         "@typescript-eslint": typescriptEslint,
@@ -61,11 +82,16 @@ export const create = () =>
         },
 
         parser: tsParser,
+
+        ecmaVersion: "latest",
+        sourceType: "module",
       },
 
       settings: {
         "import/resolver": {
-          node: {
+          typescript: {
+            alwaysTryTypes: true,
+            project: projectDirectory,
             extensions: [".js", ".jsx", ".ts", ".tsx"],
           },
         },
@@ -284,16 +310,9 @@ export const create = () =>
         "no-unused-expressions": "error",
         curly: ["error", "all"],
 
-        "import/extensions": [
-          "error",
-          "ignorePackages",
-          {
-            js: "never",
-            jsx: "never",
-            ts: "never",
-            tsx: "never",
-          },
-        ],
+        // needs to be disabled because it can't map `.js` -> `.ts` correctly
+        // see: https://github.com/import-js/eslint-plugin-import/issues/2776
+        "import/extensions": "off",
 
         "no-useless-constructor": "off",
         "@typescript-eslint/no-useless-constructor": ["error"],

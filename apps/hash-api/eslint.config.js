@@ -5,7 +5,7 @@ import {
 } from "@local/eslint/deprecated";
 
 export default defineConfig([
-  ...createBase(),
+  ...createBase(import.meta.dirname),
   {
     rules: {
       "@typescript-eslint/restrict-plus-operands": "off",

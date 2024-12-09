@@ -295,7 +295,7 @@ __metadata:
     "@google-cloud/storage": "npm:7.14.0"
     "@google-cloud/vertexai": "npm:1.9.0"
     "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/hash-graph-sdk": "npm:0.0.0-private"
@@ -332,7 +332,7 @@ __metadata:
     dedent: "npm:0.7.0"
     dotenv-flow: "npm:3.3.0"
     e2b: "npm:0.13.1"
-    eslint: "npm:8.57.0"
+    eslint: "npm:9.16.0"
     exponential-backoff: "npm:3.1.1"
     googleapis: "npm:133.0.0"
     is-docker: "npm:3.0.0"
@@ -8593,8 +8593,11 @@ __metadata:
     eslint: "npm:9.16.0"
     eslint-config-flat-gitignore: "npm:0.3.0"
     eslint-config-sheriff: "npm:25.3.0"
+    eslint-import-resolver-node: "npm:0.3.9"
+    eslint-import-resolver-typescript: "npm:3.7.0"
     eslint-plugin-airbnb: "npm:0.0.1-security"
     eslint-plugin-canonical: "npm:5.0.0"
+    eslint-plugin-import: "npm:2.31.0"
     eslint-plugin-react-hooks: "npm:5.1.0"
     eslint-plugin-storybook: "npm:0.11.1"
     eslint-unicorn: "npm:55.0.0"
@@ -26179,7 +26182,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-import-resolver-node@npm:^0.3.9":
+"eslint-import-resolver-node@npm:0.3.9, eslint-import-resolver-node@npm:^0.3.9":
   version: 0.3.9
   resolution: "eslint-import-resolver-node@npm:0.3.9"
   dependencies:
@@ -26190,7 +26193,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-import-resolver-typescript@npm:^3.6.1":
+"eslint-import-resolver-typescript@npm:3.7.0, eslint-import-resolver-typescript@npm:^3.6.1":
   version: 3.7.0
   resolution: "eslint-import-resolver-typescript@npm:3.7.0"
   dependencies:
@@ -26354,7 +26357,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-import@npm:^2.31.0":
+"eslint-plugin-import@npm:2.31.0, eslint-plugin-import@npm:^2.31.0":
   version: 2.31.0
   resolution: "eslint-plugin-import@npm:2.31.0"
   dependencies:

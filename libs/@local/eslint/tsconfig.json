@@ -3,7 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "allowJs": false,
-    "exactOptionalPropertyTypes": true,
+    "exactOptionalPropertyTypes": false,
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   },
