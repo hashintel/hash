@@ -1,4 +1,4 @@
-import { defineConfig, ESConfig } from "./utils.js";
+import { defineConfig, type ESConfig } from "./utils.js";
 
 export const importPlugin = (
   config: readonly ESConfig[],

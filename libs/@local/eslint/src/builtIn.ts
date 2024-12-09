@@ -1,10 +1,9 @@
-import { Option, pipe, Predicate, Array as ReadonlyArray } from "effect";
+import { Array as ReadonlyArray, Option, pipe, Predicate } from "effect";
 import type { PartialDeep } from "type-fest";
 
-import type { Options } from "./index.js";
 import type { NoRestrictedImportsRule } from "./types.js";
-
-import { ESConfig, defineConfig } from "./utils.js";
+import { defineConfig, ESConfig } from "./utils.js";
+import type { Options } from "./index.js";
 
 const mergeRestrictedImports = (
   current: NoRestrictedImportsRule,

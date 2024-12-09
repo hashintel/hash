@@ -1,5 +1,5 @@
 /* eslint-disable unicorn/prevent-abbreviations */
-import { defineConfig, ESConfig } from "./utils.js";
+import { defineConfig, type ESConfig } from "./utils.js";
 
 const preventAbbreviations = (): ESConfig => ({
   rules: {

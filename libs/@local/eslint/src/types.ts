@@ -1,6 +1,6 @@
 export interface NoRestrictedImportsRule {
-  paths: Array<string | ValidNoRestrictedImportPathOptions>;
-  patterns: Array<string | ValidNoRestrictedImportPatternOptions>;
+  paths: (string | ValidNoRestrictedImportPathOptions)[];
+  patterns: (string | ValidNoRestrictedImportPatternOptions)[];
 }
 
 export interface NoRestrictedImportPathCommonOptions {

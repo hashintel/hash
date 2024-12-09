@@ -1,5 +1,5 @@
 import { Array, pipe, Record } from "effect";
-import { ESConfig } from "../utils.js";
+import type { ESConfig } from "../utils.js";
 
 export const disableRules = (rules: readonly string[]): readonly ESConfig[] =>
   process.env.CHECK_TEMPORARILY_DISABLED_RULES === "true"

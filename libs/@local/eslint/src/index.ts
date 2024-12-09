@@ -1,17 +1,17 @@
 import { pipe } from "effect";
-import { sheriff, SheriffSettings } from "eslint-config-sheriff";
+import { sheriff, type SheriffSettings } from "eslint-config-sheriff";
 import type { PartialDeep } from "type-fest";
 
 import { builtIn } from "./builtIn.js";
 import { importPlugin } from "./import.js";
 import { react } from "./react.js";
 import { stylistic } from "./stylistic.js";
+import type { NoRestrictedImportsRule } from "./types.js";
 import { typescript } from "./typescript.js";
 import { unicorn } from "./unicorn.js";
-import { ESConfig } from "./utils.js";
-import { NoRestrictedImportsRule } from "./types.js";
+import type { ESConfig } from "./utils.js";
 
-export * from "./types.js";
+export type * from "./types.js";
 
 export interface Modules {
   frontend: "next" | "react" | false;
@@ -22,8 +22,8 @@ export interface Modules {
 
 export interface Options {
   enabled: Modules;
-  noRestrictedImports(): NoRestrictedImportsRule[];
-  mutableParametersRegex(): string[];
+  noRestrictedImports: () => NoRestrictedImportsRule[];
+  mutableParametersRegex: () => string[];
 }
 
 export const create = (options: PartialDeep<Options>): readonly ESConfig[] => {

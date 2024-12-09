@@ -1,11 +1,11 @@
 import getGitignorePatterns from "eslint-config-flat-gitignore";
-import typescriptEslint from "@typescript-eslint/eslint-plugin";
+import { ignores } from "eslint-config-sheriff";
+import react from "eslint-plugin-react";
 // @ts-expect-error - react-hooks does not expose types
 import reactHooks from "eslint-plugin-react-hooks";
-import react from "eslint-plugin-react";
 import unicorn from "eslint-plugin-unicorn";
 import { fixupPluginRules } from "@eslint/compat";
-import { ignores } from "eslint-config-sheriff";
+import typescriptEslint from "@typescript-eslint/eslint-plugin";
 
 export const create = () => [
   {

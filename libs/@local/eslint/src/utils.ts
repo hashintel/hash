@@ -1,5 +1,5 @@
-import { Linter } from "eslint";
-import { ESLintRules } from "eslint/rules";
+import type { Linter } from "eslint";
+import type { ESLintRules } from "eslint/rules";
 
 export type ESConfig = Linter.Config<ESLintRules>;
 

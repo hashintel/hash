@@ -1,20 +1,20 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import getGitignorePatterns from "eslint-config-flat-gitignore";
-import typescriptEslint from "@typescript-eslint/eslint-plugin";
+import { ignores } from "eslint-config-sheriff";
 // @ts-expect-error - react-hooks does not expose types
 import canonical from "eslint-plugin-canonical";
 // @ts-expect-error - react-hooks does not expose types
 import reactHooks from "eslint-plugin-react-hooks";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import unicorn from "eslint-plugin-unicorn";
-import { fixupPluginRules } from "@eslint/compat";
 import globals from "globals";
-import tsParser from "@typescript-eslint/parser";
 import babelParser from "@babel/eslint-parser";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import js from "@eslint/js";
+import { fixupPluginRules } from "@eslint/compat";
 import { FlatCompat } from "@eslint/eslintrc";
-import { ignores } from "eslint-config-sheriff";
+import js from "@eslint/js";
+import typescriptEslint from "@typescript-eslint/eslint-plugin";
+import tsParser from "@typescript-eslint/parser";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -2,7 +2,7 @@ import { Predicate } from "effect";
 import type { Linter } from "eslint";
 
 import { JS_EXTENSIONS, JSX_EXTENSIONS } from "./constants.js";
-import { defineConfig, ESConfig } from "./utils.js";
+import { defineConfig, type ESConfig } from "./utils.js";
 
 const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
   "error",
