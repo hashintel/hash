@@ -352,7 +352,9 @@ where
                 .await
             {
                 validation_reports.entry(index).or_default().properties =
-                    PropertyValidationReport { error: Some(error) };
+                    PropertyValidationReport {
+                        object_report: Some(error),
+                    };
             }
 
             let (properties, metadata) = property_with_metadata.into_parts();

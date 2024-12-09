@@ -330,9 +330,12 @@ mod tests {
         )
         .expect("failed to create property with metadata");
 
-        EntityPreprocessor { components }
+        let validation_report = EntityPreprocessor { components }
             .visit_object(&closed_multi_entity_type, &mut properties, &provider)
-            .await?;
+            .await;
+        if let Err(error) = validation_report {
+            panic!("Validation failed: {error:?}");
+        }
 
         Ok(properties)
     }
@@ -366,7 +369,8 @@ mod tests {
             .expect("failed to create property with metadata");
         EntityPreprocessor { components }
             .visit_property(&property_type, &mut property, &provider)
-            .await?;
+            .await
+            .unwrap();
         Ok(property)
     }
 

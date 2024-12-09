@@ -1,7 +1,9 @@
 use std::collections::HashSet;
 
 use error_stack::Report;
-use hash_graph_types::knowledge::{entity::EntityId, property::visitor::TraversalError};
+use hash_graph_types::knowledge::{
+    entity::EntityId, property::visitor::PropertyObjectValidationReport,
+};
 use type_system::{schema::ResolveClosedEntityTypeError, url::VersionedUrl};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -177,13 +179,13 @@ impl MetadataValidationReport {
 #[serde(rename_all = "camelCase")]
 #[must_use]
 pub struct PropertyValidationReport {
-    pub error: Option<Report<[TraversalError]>>,
+    pub object_report: Option<PropertyObjectValidationReport>,
 }
 
 impl PropertyValidationReport {
     #[must_use]
     pub const fn is_valid(&self) -> bool {
-        self.error.is_none()
+        self.object_report.is_none()
     }
 }
 
@@ -204,5 +206,131 @@ impl EntityValidationReport {
     #[must_use]
     pub const fn is_valid(&self) -> bool {
         self.link.is_valid() && self.metadata.is_valid()
+    }
+}
+
+pub struct PropertyValidationReport {}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Could not read the property type {}", property_type_reference.url)]
+#[must_use]
+pub struct PropertyTypeRetrieval {
+    pub property_type_reference: PropertyTypeReference,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct UnexpectedPropertyType {
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
+    pub actual: JsonSchemaValueType,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
+    pub expected: JsonSchemaValueType,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", content = "report", rename_all = "camelCase")]
+#[must_use]
+pub enum PropertyValidationError {
+    Value(PropertyValueValidationReport),
+    Array(PropertyArrayValidationReport),
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", rename_all = "camelCase")]
+#[must_use]
+pub enum ObjectPropertyError {
+    Unexpected,
+    Retrieval {
+        report: Report<PropertyTypeRetrieval>,
+    },
+    WrongType {
+        data: UnexpectedPropertyType,
+    },
+    Validation(PropertyValidationError),
+    Missing,
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+pub struct PropertyObjectValidationReport {
+    properties: HashMap<BaseUrl, ObjectPropertyError>,
+}
+
+impl PropertyObjectValidationReport {
+    pub fn is_valid(&self) -> bool {
+        self.properties.is_empty()
+    }
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+pub struct PropertyArrayValidationReport;
+
+#[derive(Debug, Default, serde::Serialize)]
+pub struct PropertyValueValidationReport;
+
+impl PropertyObjectValidationReport {
+    pub fn capture_missing_required_property(&mut self, key: BaseUrl) {
+        self.properties.insert(key, ObjectPropertyError::Missing);
+    }
+}
+
+impl ObjectVisitationReport for PropertyObjectValidationReport {
+    type ArrayVisitationReport = PropertyArrayValidationReport;
+    type PropertyVisitationReport = PropertyValueValidationReport;
+
+    fn capture_unexpected_property(&mut self, key: BaseUrl) {
+        self.properties.insert(key, ObjectPropertyError::Unexpected);
+    }
+
+    #[track_caller]
+    fn capture_property_type_retrieval_failed(
+        &mut self,
+        reference: PropertyTypeReference,
+        report: Report<impl Error + Send + Sync>,
+    ) {
+        self.properties.insert(
+            reference.url.base_url.clone(),
+            ObjectPropertyError::Retrieval {
+                report: report.change_context(PropertyTypeRetrieval {
+                    property_type_reference: reference,
+                }),
+            },
+        );
+    }
+
+    fn capture_unexpected_type(
+        &mut self,
+        key: BaseUrl,
+        actual: JsonSchemaValueType,
+        expected: JsonSchemaValueType,
+    ) {
+        self.properties.insert(key, ObjectPropertyError::WrongType {
+            data: UnexpectedPropertyType { actual, expected },
+        });
+    }
+
+    fn capture_property_validation_report(
+        &mut self,
+        key: BaseUrl,
+        report: Self::PropertyVisitationReport,
+    ) {
+        self.properties.insert(
+            key,
+            ObjectPropertyError::Validation(PropertyValidationError::Value(report)),
+        );
+    }
+
+    fn capture_array_validation_report(
+        &mut self,
+        key: BaseUrl,
+        report: Self::ArrayVisitationReport,
+    ) {
+        self.properties.insert(
+            key,
+            ObjectPropertyError::Validation(PropertyValidationError::Array(report)),
+        );
     }
 }

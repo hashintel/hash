@@ -806,7 +806,9 @@ where
                 .await
             {
                 validation_reports.entry(index).or_default().properties =
-                    PropertyValidationReport { error: Some(error) };
+                    PropertyValidationReport {
+                        object_report: Some(error),
+                    };
             }
 
             let (properties, property_metadata) = params.properties.into_parts();
@@ -1224,7 +1226,9 @@ where
                 .await
             {
                 validation_reports.entry(index).or_default().properties =
-                    PropertyValidationReport { error: Some(error) };
+                    PropertyValidationReport {
+                        object_report: Some(error),
+                    };
             }
 
             validation_report.link = params
@@ -1745,7 +1749,9 @@ where
                     .visit_object(&entity_type, &mut object, &validator_provider)
                     .await
                 {
-                    validation_report.properties = PropertyValidationReport { error: Some(error) };
+                    validation_report.properties = PropertyValidationReport {
+                        object_report: Some(error),
+                    };
                 }
 
                 let (properties, property_metadata) = object.into_parts();

@@ -1,6 +1,6 @@
-use core::{borrow::Borrow as _, future::Future};
+use core::{borrow::Borrow as _, error::Error, future::Future};
 
-use error_stack::{Report, ReportSink, ResultExt as _, bail};
+use error_stack::Report;
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::{
@@ -15,7 +15,6 @@ use crate::{
     knowledge::property::{
         PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
         PropertyWithMetadataValue, ValueMetadata,
-        error::{Actual, Expected},
     },
     ontology::{DataTypeLookup, DataTypeWithMetadata, OntologyTypeProvider},
 };
@@ -96,8 +95,132 @@ pub enum TraversalError {
     },
 }
 
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum OneOfError<R> {
+    UnexpectedType { expected: JsonSchemaValueType },
+    Validation(R),
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OneOfVisitationReport<R> {
+    report: Vec<OneOfError<R>>,
+    passed: usize,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum PropertyVisitationError<V, A, O> {
+    Value(OneOfVisitationReport<V>),
+    Array(OneOfVisitationReport<A>),
+    Object(OneOfVisitationReport<O>),
+}
+
+#[must_use]
+pub trait PropertyObjectVisitationReport: Default {
+    type PropertyValueVisitationReport;
+    type PropertyArrayVisitationReport;
+
+    fn capture_unexpected_property(&mut self, key: BaseUrl);
+    fn capture_property_type_retrieval_failed(
+        &mut self,
+        reference: PropertyTypeReference,
+        report: Report<impl Error + Send + Sync>,
+    );
+    fn capture_unexpected_type(
+        &mut self,
+        key: BaseUrl,
+        actual: JsonSchemaValueType,
+        expected: JsonSchemaValueType,
+    );
+
+    fn capture_property_validation_report(
+        &mut self,
+        key: BaseUrl,
+        report: PropertyVisitationError<
+            Self::PropertyValueVisitationReport,
+            Self::PropertyArrayVisitationReport,
+            Self,
+        >,
+    );
+    fn capture_array_validation_report(
+        &mut self,
+        key: BaseUrl,
+        report: Self::PropertyArrayVisitationReport,
+    );
+}
+
+#[must_use]
+pub trait PropertyValueVisitationReport: Default {
+    fn capture_data_type_retrieval_failed(
+        &mut self,
+        reference: DataTypeReference,
+        report: Report<impl Error + Send + Sync>,
+    );
+}
+
+#[must_use]
+pub trait PropertyArrayVisitationReport: Default {
+    type PropertyValueVisitationReport;
+    type PropertyObjectVisitationReport;
+
+    fn capture_value_validation_report(
+        &mut self,
+        index: usize,
+        report: OneOfVisitationReport<Self::PropertyValueVisitationReport>,
+    );
+
+    fn capture_array_validation_report(
+        &mut self,
+        index: usize,
+        report: OneOfVisitationReport<Self>,
+    );
+    fn capture_object_validation_report(
+        &mut self,
+        index: usize,
+        report: OneOfVisitationReport<Self::PropertyObjectVisitationReport>,
+    );
+}
+
+#[must_use]
+pub trait OneOfPropertyVisitationReport: Default {
+    type PropertyValueVisitationReport;
+
+    fn capture_data_type_retrieval_failed(
+        &mut self,
+        reference: DataTypeReference,
+        report: Report<impl Error + Send + Sync>,
+    );
+
+    fn capture_validation_report(&mut self, report: Self::PropertyValueVisitationReport);
+}
+
+fn result_as_mut_err<E: Default>(result: &mut Result<(), E>) -> &mut E {
+    match result {
+        Ok(()) => {
+            *result = Err(E::default());
+            result.as_mut().expect_err("error was just set")
+        }
+        Err(error) => error,
+    }
+}
+
 // TODO: Allow usage of other error types
 pub trait EntityVisitor: Sized + Send + Sync {
+    type ObjectVisitationReport: PropertyObjectVisitationReport<
+            PropertyValueVisitationReport = Self::PropertyVisitationReport,
+            PropertyArrayVisitationReport = Self::ArrayVisitationReport,
+        > + Send;
+    type PropertyVisitationReport: PropertyValueVisitationReport + Send;
+    type ArrayVisitationReport: PropertyArrayVisitationReport<
+            PropertyValueVisitationReport = Self::PropertyVisitationReport,
+            PropertyObjectVisitationReport = Self::ObjectVisitationReport,
+        > + Send;
+    type OneOfPropertyVisitationReport: OneOfPropertyVisitationReport<
+            PropertyValueVisitationReport = Self::PropertyVisitationReport,
+        > + Send;
+
     /// Visits a leaf value.
     ///
     /// By default, this does nothing.
@@ -107,12 +230,9 @@ pub trait EntityVisitor: Sized + Send + Sync {
         value: &mut JsonValue,
         metadata: &mut ValueMetadata,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), Self::PropertyVisitationReport>> + Send
     where
-        P: DataTypeLookup + Sync,
-    {
-        walk_value(self, data_type, value, metadata, type_provider)
-    }
+        P: DataTypeLookup + Sync;
 
     /// Visits a property.
     ///
@@ -122,7 +242,16 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &PropertyType,
         property: &mut PropertyWithMetadata,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<
+        Output = Result<
+            (),
+            PropertyVisitationError<
+                Self::PropertyVisitationReport,
+                Self::ArrayVisitationReport,
+                Self::ObjectVisitationReport,
+            >,
+        >,
+    > + Send
     where
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
@@ -137,7 +266,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &PropertyValueArray<T>,
         array: &mut PropertyWithMetadataArray,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), Self::ArrayVisitationReport>> + Send
     where
         T: PropertyValueSchema + Sync,
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
@@ -153,7 +282,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &T,
         object: &mut PropertyWithMetadataObject,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), Self::ObjectVisitationReport>> + Send
     where
         T: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
@@ -169,7 +298,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &[PropertyValues],
         property: &mut PropertyWithMetadataValue,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), OneOfVisitationReport<Self::PropertyVisitationReport>>> + Send
     where
         P: DataTypeLookup + Sync,
     {
@@ -184,7 +313,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &[PropertyValues],
         array: &mut PropertyWithMetadataArray,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), OneOfVisitationReport<Self::ArrayVisitationReport>>> + Send
     where
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
@@ -199,7 +328,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &[PropertyValues],
         object: &mut PropertyWithMetadataObject,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), OneOfVisitationReport<Self::ObjectVisitationReport>>> + Send
     where
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
@@ -207,50 +336,50 @@ pub trait EntityVisitor: Sized + Send + Sync {
     }
 }
 
-/// Walks through a JSON value using the provided schema.
-///
-/// For all referenced data types [`EntityVisitor::visit_value`] is called.
-///
-/// # Errors
-///
-/// Any error that can be returned by the visitor methods.
-pub async fn walk_value<V, P>(
-    visitor: &mut V,
-    data_type: &DataTypeWithMetadata,
-    value: &mut JsonValue,
-    metadata: &mut ValueMetadata,
-    type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
-where
-    V: EntityVisitor,
-    P: DataTypeLookup + Sync,
-{
-    let mut status = ReportSink::new();
+// /// Walks through a JSON value using the provided schema.
+// ///
+// /// For all referenced data types [`EntityVisitor::visit_value`] is called.
+// ///
+// /// # Errors
+// ///
+// /// Any error that can be returned by the visitor methods.
+// pub async fn walk_value<V, P>(
+//     visitor: &mut V,
+//     data_type: &DataTypeWithMetadata,
+//     value: &mut JsonValue,
+//     metadata: &mut ValueMetadata,
+//     type_provider: &P,
+// ) -> Result<(), Report<[TraversalError]>>
+// where
+//     V: EntityVisitor,
+//     P: DataTypeLookup + Sync,
+// {
+//     let mut status = ReportSink::new();
 
-    for parent in &data_type.schema.all_of {
-        match type_provider
-            .lookup_data_type_by_ref(parent)
-            .await
-            .change_context_lazy(|| TraversalError::DataTypeRetrieval { id: parent.clone() })
-        {
-            Ok(parent) => {
-                if let Err(error) = visitor
-                    .visit_value(parent.borrow(), value, metadata, type_provider)
-                    .await
-                {
-                    status.append(error);
-                }
-            }
-            Err(error) => {
-                status.append(error);
+//     for parent in &data_type.schema.all_of {
+//         match type_provider
+//             .lookup_data_type_by_ref(parent)
+//             .await
+//             .change_context_lazy(|| TraversalError::DataTypeRetrieval { id: parent.clone() })
+//         {
+//             Ok(parent) => {
+//                 if let Err(error) = visitor
+//                     .visit_value(parent.borrow(), value, metadata, type_provider)
+//                     .await
+//                 {
+//                     status.append(error);
+//                 }
+//             }
+//             Err(error) => {
+//                 status.append(error);
 
-                continue;
-            }
-        }
-    }
+//                 continue;
+//             }
+//         }
+//     }
 
-    status.finish()
-}
+//     status.finish()
+// }
 
 /// Walks through a property using the provided schema.
 ///
@@ -265,36 +394,32 @@ pub async fn walk_property<V, P>(
     schema: &PropertyType,
     property: &mut PropertyWithMetadata,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> Result<
+    (),
+    PropertyVisitationError<
+        V::PropertyVisitationReport,
+        V::ArrayVisitationReport,
+        V::ObjectVisitationReport,
+    >,
+>
 where
     V: EntityVisitor,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut status = ReportSink::new();
     match property {
-        PropertyWithMetadata::Value(value) => status.attempt(
-            visitor
-                .visit_one_of_property(&schema.one_of, value, type_provider)
-                .await
-                .change_context_lazy(|| TraversalError::PropertyTypeUnfulfilled),
-        ),
-        PropertyWithMetadata::Array(array) => status.attempt(
-            visitor
-                .visit_one_of_array(&schema.one_of, array, type_provider)
-                .await
-                .change_context_lazy(|| TraversalError::PropertyTypeUnfulfilled),
-        ),
-        PropertyWithMetadata::Object(object) => status.attempt(
-            visitor
-                .visit_one_of_object(&schema.one_of, object, type_provider)
-                .await
-                .change_context_lazy(|| TraversalError::PropertyTypeUnfulfilled),
-        ),
-    };
-    status
-        .finish()
-        .attach_lazy(|| Expected::PropertyType(schema.clone()))
-        .attach_lazy(|| Actual::Property(property.clone()))
+        PropertyWithMetadata::Value(value) => visitor
+            .visit_one_of_property(&schema.one_of, value, type_provider)
+            .await
+            .map_err(PropertyVisitationError::Value),
+        PropertyWithMetadata::Array(array) => visitor
+            .visit_one_of_array(&schema.one_of, array, type_provider)
+            .await
+            .map_err(PropertyVisitationError::Array),
+        PropertyWithMetadata::Object(object) => visitor
+            .visit_one_of_object(&schema.one_of, object, type_provider)
+            .await
+            .map_err(PropertyVisitationError::Object),
+    }
 }
 
 /// Walks through an array property using the provided schema.
@@ -310,44 +435,41 @@ pub async fn walk_array<V, S, P>(
     schema: &PropertyValueArray<S>,
     array: &mut PropertyWithMetadataArray,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> Result<(), V::ArrayVisitationReport>
 where
     V: EntityVisitor,
     S: PropertyValueSchema + Sync,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut status = ReportSink::new();
+    let mut validation_report = Ok::<_, V::ArrayVisitationReport>(());
 
-    for property in &mut array.value {
-        match property {
-            PropertyWithMetadata::Value(value) => {
-                if let Err(error) = visitor
-                    .visit_one_of_property(schema.items.possibilities(), value, type_provider)
-                    .await
-                {
-                    status.append(error);
-                }
-            }
-            PropertyWithMetadata::Array(array) => {
-                if let Err(error) = visitor
-                    .visit_one_of_array(schema.items.possibilities(), array, type_provider)
-                    .await
-                {
-                    status.append(error);
-                }
-            }
-            PropertyWithMetadata::Object(object) => {
-                if let Err(error) = visitor
-                    .visit_one_of_object(schema.items.possibilities(), object, type_provider)
-                    .await
-                {
-                    status.append(error);
-                }
-            }
-        }
+    for (index, property) in array.value.iter_mut().enumerate() {
+        let _: Result<(), ()> = match property {
+            PropertyWithMetadata::Value(value) => visitor
+                .visit_one_of_property(schema.items.possibilities(), value, type_provider)
+                .await
+                .map_err(|report| {
+                    result_as_mut_err(&mut validation_report)
+                        .capture_value_validation_report(index, report);
+                }),
+            PropertyWithMetadata::Array(array) => visitor
+                .visit_one_of_array(schema.items.possibilities(), array, type_provider)
+                .await
+                .map_err(|report| {
+                    result_as_mut_err(&mut validation_report)
+                        .capture_array_validation_report(index, report);
+                }),
+            PropertyWithMetadata::Object(object) => visitor
+                .visit_one_of_object(schema.items.possibilities(), object, type_provider)
+                .await
+                .map_err(|report| {
+                    result_as_mut_err(&mut validation_report)
+                        .capture_object_validation_report(index, report);
+                }),
+        };
     }
 
-    status.finish()
+    validation_report
 }
 
 /// Walks through a property object using the provided schema.
@@ -374,50 +496,67 @@ pub async fn walk_object<V, S, P>(
     schema: &S,
     object: &mut PropertyWithMetadataObject,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> Result<(), V::ObjectVisitationReport>
 where
     V: EntityVisitor,
     S: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut status = ReportSink::new();
+    let mut validation_report = Ok::<_, V::ObjectVisitationReport>(());
 
     for (base_url, property) in &mut object.value {
         let Some(property_type_reference) = schema.properties().get(base_url) else {
-            status.capture(TraversalError::UnexpectedProperty {
-                key: base_url.clone(),
-            });
-
+            result_as_mut_err(&mut validation_report).capture_unexpected_property(base_url.clone());
             continue;
         };
 
         match property_type_reference {
             ValueOrArray::Value(property_type_reference) => {
-                let property_type = <P as OntologyTypeProvider<PropertyType>>::provide_type(
+                let Some(property_type) = <P as OntologyTypeProvider<PropertyType>>::provide_type(
                     type_provider,
                     &property_type_reference.url,
                 )
                 .await
-                .change_context_lazy(|| TraversalError::PropertyTypeRetrieval {
-                    id: property_type_reference.clone(),
-                })?;
-                visitor
+                .map_err(|report| {
+                    result_as_mut_err(&mut validation_report)
+                        .capture_property_type_retrieval_failed(
+                            property_type_reference.clone(),
+                            report,
+                        );
+                })
+                .ok() else {
+                    continue;
+                };
+
+                let _: Result<(), ()> = visitor
                     .visit_property(property_type.borrow(), property, type_provider)
-                    .await?;
+                    .await
+                    .map_err(|report| {
+                        result_as_mut_err(&mut validation_report)
+                            .capture_property_validation_report(base_url.clone(), report);
+                    });
             }
             ValueOrArray::Array(array_schema) => match property {
                 PropertyWithMetadata::Array(array) => {
-                    let property_type = <P as OntologyTypeProvider<PropertyType>>::provide_type(
-                        type_provider,
-                        &array_schema.items.url,
-                    )
-                    .await
-                    .change_context_lazy(|| {
-                        TraversalError::PropertyTypeRetrieval {
-                            id: array_schema.items.clone(),
-                        }
-                    })?;
-                    let result = visitor
+                    let Some(property_type) =
+                        <P as OntologyTypeProvider<PropertyType>>::provide_type(
+                            type_provider,
+                            &array_schema.items.url,
+                        )
+                        .await
+                        .map_err(|report| {
+                            result_as_mut_err(&mut validation_report)
+                                .capture_property_type_retrieval_failed(
+                                    array_schema.items.clone(),
+                                    report,
+                                );
+                        })
+                        .ok()
+                    else {
+                        continue;
+                    };
+
+                    let _: Result<(), ()> = visitor
                         .visit_array(
                             &PropertyValueArray {
                                 items: property_type.borrow(),
@@ -427,22 +566,24 @@ where
                             array,
                             type_provider,
                         )
-                        .await;
-                    if let Err(error) = result {
-                        status.append(error);
-                    }
+                        .await
+                        .map_err(|report| {
+                            result_as_mut_err(&mut validation_report)
+                                .capture_array_validation_report(base_url.clone(), report);
+                        });
                 }
                 PropertyWithMetadata::Object { .. } | PropertyWithMetadata::Value(_) => {
-                    bail![TraversalError::InvalidType {
-                        actual: property.json_type(),
-                        expected: JsonSchemaValueType::Array,
-                    },]
+                    result_as_mut_err(&mut validation_report).capture_unexpected_type(
+                        base_url.clone(),
+                        property.json_type(),
+                        JsonSchemaValueType::Array,
+                    );
                 }
             },
         };
     }
 
-    status.finish()
+    validation_report
 }
 
 /// Walks through a property value using the provided schema list.
@@ -462,24 +603,31 @@ pub async fn walk_one_of_property_value<V, P>(
     schema: &[PropertyValues],
     property: &mut PropertyWithMetadataValue,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> Result<(), OneOfVisitationReport<V::PropertyVisitationReport>>
 where
     V: EntityVisitor,
     P: DataTypeLookup + Sync,
 {
-    let mut status = ReportSink::new();
-    let mut passed: usize = 0;
+    let mut errors = Vec::new();
+    let mut passed = 0;
 
     for schema in schema {
         match schema {
             PropertyValues::DataTypeReference(data_type_ref) => {
-                let data_type = type_provider
+                let mut validation_report = Ok::<_, V::OneOfPropertyVisitationReport>(());
+                let Some(data_type) = type_provider
                     .lookup_data_type_by_ref(data_type_ref)
                     .await
-                    .change_context_lazy(|| TraversalError::DataTypeRetrieval {
-                        id: data_type_ref.clone(),
-                    })?;
-                if let Err(error) = visitor
+                    .map_err(|report| {
+                        result_as_mut_err(&mut validation_report)
+                            .capture_data_type_retrieval_failed(data_type_ref.clone(), report);
+                    })
+                    .ok()
+                else {
+                    continue;
+                };
+
+                if visitor
                     .visit_value(
                         data_type.borrow(),
                         &mut property.value,
@@ -487,41 +635,29 @@ where
                         type_provider,
                     )
                     .await
-                    .attach_lazy(|| Expected::DataType(data_type.borrow().schema.clone()))
-                    .attach_lazy(|| Actual::Json(property.value.clone()))
-                    .change_context(TraversalError::DataTypeUnfulfilled)
+                    .map_err(|report| {
+                        result_as_mut_err(&mut validation_report).capture_validation_report(report);
+                    })
+                    .is_ok()
                 {
-                    status.append(error);
-                } else {
                     passed += 1;
                 }
             }
-            PropertyValues::ArrayOfPropertyValues(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Array,
-                });
-            }
-            PropertyValues::PropertyTypeObject(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Object,
+            PropertyValues::ArrayOfPropertyValues(_) | PropertyValues::PropertyTypeObject(_) => {
+                errors.push(OneOfError::UnexpectedType {
+                    expected: JsonSchemaValueType::Object,
                 });
             }
         }
     }
 
-    match passed {
-        0 => status.finish(),
-        1 => {
-            // We ignore potential errors here, as we have exactly one successful result.
-            let _: Result<(), _> = status.finish();
-            Ok(())
-        }
-        _ => {
-            status.capture(TraversalError::AmbiguousProperty {
-                actual: PropertyWithMetadata::Value(property.clone()),
-            });
-            status.finish()
-        }
+    if passed == 1 {
+        Ok(())
+    } else {
+        Err(OneOfVisitationReport {
+            report: errors,
+            passed,
+        })
     }
 }
 
@@ -540,52 +676,40 @@ pub async fn walk_one_of_array<V, P>(
     schema: &[PropertyValues],
     array: &mut PropertyWithMetadataArray,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> Result<(), OneOfVisitationReport<V::ArrayVisitationReport>>
 where
     V: EntityVisitor,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut status = ReportSink::new();
-    let mut passed: usize = 0;
+    let mut errors = Vec::new();
+    let mut passed = 0;
 
     for schema in schema {
         match schema {
-            PropertyValues::DataTypeReference(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Array,
-                });
-            }
             PropertyValues::ArrayOfPropertyValues(array_schema) => {
-                if let Err(error) =
+                if let Err(report) =
                     Box::pin(visitor.visit_array(array_schema, array, type_provider)).await
                 {
-                    status.append(error);
+                    errors.push(OneOfError::Validation(report));
                 } else {
                     passed += 1;
                 }
             }
-            PropertyValues::PropertyTypeObject(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Object,
+            PropertyValues::DataTypeReference(_) | PropertyValues::PropertyTypeObject(_) => {
+                errors.push(OneOfError::UnexpectedType {
+                    expected: JsonSchemaValueType::Object,
                 });
             }
         }
     }
 
-    match passed {
-        0 => status.finish(),
-        1 => {
-            // We ignore potential errors here, as we have exactly one successful result.
-            let _: Result<(), _> = status.finish();
-            Ok(())
-        }
-        _ => {
-            status.capture(TraversalError::AmbiguousProperty {
-                actual: PropertyWithMetadata::Array(array.clone()),
-            });
-
-            status.finish()
-        }
+    if passed == 1 {
+        Ok(())
+    } else {
+        Err(OneOfVisitationReport {
+            report: errors,
+            passed,
+        })
     }
 }
 
@@ -604,51 +728,39 @@ pub async fn walk_one_of_object<V, P>(
     schema: &[PropertyValues],
     object: &mut PropertyWithMetadataObject,
     type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
+) -> Result<(), OneOfVisitationReport<V::ObjectVisitationReport>>
 where
     V: EntityVisitor,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut status = ReportSink::new();
-    let mut passed: usize = 0;
+    let mut errors = Vec::new();
+    let mut passed = 0;
 
     for schema in schema {
         match schema {
-            PropertyValues::DataTypeReference(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Array,
-                });
-            }
-            PropertyValues::ArrayOfPropertyValues(_) => {
-                status.capture(TraversalError::ExpectedValue {
-                    actual: JsonSchemaValueType::Object,
-                });
-            }
             PropertyValues::PropertyTypeObject(object_schema) => {
-                if let Err(error) =
+                if let Err(report) =
                     Box::pin(visitor.visit_object(object_schema, object, type_provider)).await
                 {
-                    status.append(error);
+                    errors.push(OneOfError::Validation(report));
                 } else {
                     passed += 1;
                 }
             }
+            PropertyValues::DataTypeReference(_) | PropertyValues::ArrayOfPropertyValues(_) => {
+                errors.push(OneOfError::UnexpectedType {
+                    expected: JsonSchemaValueType::Object,
+                });
+            }
         }
     }
 
-    match passed {
-        0 => status.finish(),
-        1 => {
-            // We ignore potential errors here, as we have exactly one successful result.
-            let _: Result<(), _> = status.finish();
-            Ok(())
-        }
-        _ => {
-            status.capture(TraversalError::AmbiguousProperty {
-                actual: PropertyWithMetadata::Object(object.clone()),
-            });
-
-            status.finish()
-        }
+    if passed == 1 {
+        Ok(())
+    } else {
+        Err(OneOfVisitationReport {
+            report: errors,
+            passed,
+        })
     }
 }

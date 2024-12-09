@@ -18,8 +18,9 @@ use hash_graph_types::{
             PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
             PropertyWithMetadataValue, ValueMetadata,
             visitor::{
-                EntityVisitor, TraversalError, walk_array, walk_object, walk_one_of_property_value,
-                walk_value,
+                EntityVisitor, PropertyArrayValidationReport, PropertyObjectValidationReport,
+                PropertyValidationReport, TraversalError, walk_array, walk_object,
+                walk_one_of_property_value,
             },
         },
     },
@@ -54,6 +55,16 @@ pub enum EntityValidationError {
     InvalidLinkTargetId { target_types: Vec<VersionedUrl> },
     #[error("The property path is invalid: `{path:?}`")]
     InvalidPropertyPath { path: PropertyPath<'static> },
+}
+
+fn result_as_mut_err<E: Default>(result: &mut Result<(), E>) -> &mut E {
+    match result {
+        Ok(()) => {
+            *result = Err(E::default());
+            result.as_mut().expect_err("error was just set")
+        }
+        Err(error) => error,
+    }
 }
 
 impl<P> Validate<ClosedMultiEntityType, P> for Option<&LinkData>
@@ -280,6 +291,10 @@ pub struct EntityPreprocessor {
 struct ValueValidator;
 
 impl EntityVisitor for ValueValidator {
+    type ArrayVisitationReport = PropertyArrayValidationReport;
+    type ObjectVisitationReport = PropertyObjectValidationReport;
+    type PropertyVisitationReport = PropertyValidationReport;
+
     async fn visit_value<P>(
         &mut self,
         data_type: &DataTypeWithMetadata,
@@ -313,6 +328,10 @@ impl EntityVisitor for ValueValidator {
 }
 
 impl EntityVisitor for EntityPreprocessor {
+    type ArrayVisitationReport = PropertyArrayValidationReport;
+    type ObjectVisitationReport = PropertyObjectValidationReport;
+    type PropertyVisitationReport = PropertyValidationReport;
+
     async fn visit_value<P>(
         &mut self,
         data_type: &DataTypeWithMetadata,
@@ -370,6 +389,34 @@ impl EntityVisitor for EntityPreprocessor {
         {
             status.append(error);
         }
+
+        let closed_data_type = type_provider
+            .lookup_closed_data_type_by_ref(data_type_ref)
+            .await
+            .change_context_lazy(|| TraversalError::DataTypeRetrieval {
+                id: DataTypeReference {
+                    url: data_type.schema.id.clone(),
+                },
+            })?;
+        let mut status = ReportSink::new();
+
+            status.attempt(
+                closed_data_type.borrow().
+                    .schema
+                    .constraints
+                    .validate_value(value)
+                    .change_context(TraversalError::ConstraintUnfulfilled),
+            );
+
+            if metadata.data_type_id.as_ref() == Some(&data_type.schema.id)
+                && data_type.schema.r#abstract
+            {
+                status.capture(TraversalError::AbstractDataType {
+                    id: data_type.schema.id.clone(),
+                });
+            }
+
+            status.finish();
 
         walk_value(
             &mut ValueValidator,
@@ -615,27 +662,23 @@ impl EntityVisitor for EntityPreprocessor {
         schema: &T,
         object: &mut PropertyWithMetadataObject,
         type_provider: &P,
-    ) -> Result<(), Report<[TraversalError]>>
+    ) -> Result<(), Self::ObjectVisitationReport>
     where
         T: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
-        let mut status = ReportSink::new();
-        if let Err(error) = walk_object(self, schema, object, type_provider).await {
-            status.append(error);
-        }
+        let mut report = walk_object(self, schema, object, type_provider).await;
 
         if self.components.required_properties {
             for required_property in schema.required() {
                 if !object.value.contains_key(required_property) {
-                    status.capture(TraversalError::MissingRequiredProperty {
-                        key: required_property.clone(),
-                    });
+                    result_as_mut_err(&mut report)
+                        .capture_missing_required_property(required_property.clone());
                 }
             }
         }
 
-        status.finish()
+        report
     }
 }
 

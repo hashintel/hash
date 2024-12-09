@@ -3107,6 +3107,7 @@ name = "hash-graph-types"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "derive_more 1.0.0",
  "error-stack",
  "futures",
  "hash-codec",
