@@ -215,7 +215,10 @@ export const getSlice = (
 
         yield* validateBounds(impl, index, length);
 
-        const value = new Uint8Array(impl.value.buffer, index, length);
+        // clone the buffer
+        const clone = new ArrayBuffer(length);
+        const value = new Uint8Array(clone);
+        value.set(new Uint8Array(impl.value.buffer, index, length));
 
         return [value, index + length] as const;
       }),

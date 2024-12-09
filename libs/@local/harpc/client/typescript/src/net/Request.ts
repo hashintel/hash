@@ -5,13 +5,11 @@ import type {
   SubsystemDescriptor,
 } from "../types/index.js";
 import { createProto } from "../utils.js";
-import { RequestIdProducer } from "../wire-protocol/index.js";
 import {
   Payload,
   Protocol,
   ProtocolVersion,
 } from "../wire-protocol/models/index.js";
-import type { PayloadTooLargeError } from "../wire-protocol/models/Payload.js";
 import type { RequestId } from "../wire-protocol/models/request/index.js";
 import {
   Request,
@@ -21,6 +19,7 @@ import {
   RequestFrame,
   RequestHeader,
 } from "../wire-protocol/models/request/index.js";
+import * as RequestIdProducer from "../wire-protocol/RequestIdProducer.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Request");
 export type TypeId = typeof TypeId;
@@ -161,7 +160,10 @@ export interface EncodeOptions {
   readonly noDelay?: boolean;
 }
 
-const encodeImpl = <E, R>(self: Request<E, R>, options?: EncodeOptions) =>
+const encodeImpl = <E, R>(
+  self: Request<E, R>,
+  options?: EncodeOptions,
+): Stream.Stream<Request.Request, E, R> =>
   Effect.gen(function* () {
     const requestId = self.id;
 
@@ -190,7 +192,7 @@ const encodeImpl = <E, R>(self: Request<E, R>, options?: EncodeOptions) =>
             flags,
           );
 
-          const payload = yield* Payload.make(new Uint8Array(buffer));
+          const payload = yield* Payload.makeAssert(new Uint8Array(buffer));
 
           const body = isFirst
             ? RequestBegin.make(self.subsystem, self.procedure, payload).pipe(
@@ -219,7 +221,7 @@ const encodeImpl = <E, R>(self: Request<E, R>, options?: EncodeOptions) =>
                       RequestBegin.make(
                         self.subsystem,
                         self.procedure,
-                        yield* Payload.make(new Uint8Array()),
+                        yield* Payload.makeAssert(new Uint8Array()),
                       ).pipe(RequestBody.makeBegin),
                     ),
                   ]
@@ -231,32 +233,20 @@ const encodeImpl = <E, R>(self: Request<E, R>, options?: EncodeOptions) =>
     );
   }).pipe(Stream.unwrap);
 
-const isStream = (
-  value: unknown,
-): value is Stream.Stream<unknown, unknown, unknown> =>
-  Predicate.hasProperty(value, Stream.StreamTypeId) || Effect.isEffect(value);
+export const isRequest = (value: unknown): value is Request<unknown, unknown> =>
+  Predicate.hasProperty(value, TypeId);
 
 export const encode: {
-  (
-    options?: EncodeOptions,
-  ): <E, R>(
-    self: Request<E, R>,
-  ) => Stream.Stream<
-    Request.Request,
-    E | PayloadTooLargeError,
-    R | RequestIdProducer.RequestIdProducer
-  >;
-
   <E, R>(
     self: Request<E, R>,
     options?: EncodeOptions,
-  ): Stream.Stream<
-    Request.Request,
-    E | PayloadTooLargeError,
-    R | RequestIdProducer.RequestIdProducer
-  >;
+  ): Stream.Stream<Request.Request, E, R>;
+
+  (
+    options?: EncodeOptions,
+  ): <E, R>(self: Request<E, R>) => Stream.Stream<Request.Request, E, R>;
 } = Function.dual(
-  // data-last if no options are provided, or if the first argument **is not** a stream.
-  (args) => args.length === 0 || !isStream(args[0]),
+  // function is `DataFirst` (will be executed immediately), if:
+  (args) => isRequest(args[0]),
   encodeImpl,
 );

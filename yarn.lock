@@ -383,6 +383,7 @@ __metadata:
     "@linear/sdk": "npm:6.0.0"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint-config": "npm:0.0.0-private"
+    "@local/harpc-client": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/hash-graph-sdk": "npm:0.0.0-private"
@@ -433,6 +434,7 @@ __metadata:
     cors: "npm:2.8.5"
     cross-env: "npm:7.0.3"
     dedent: "npm:0.7.0"
+    effect: "npm:3.11.3"
     eslint: "npm:8.57.0"
     exponential-backoff: "npm:3.1.1"
     express: "npm:4.21.2"
@@ -8440,7 +8442,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/harpc-client@workspace:libs/@local/harpc/client/typescript":
+"@local/harpc-client@npm:0.0.0-private, @local/harpc-client@workspace:libs/@local/harpc/client/typescript":
   version: 0.0.0-use.local
   resolution: "@local/harpc-client@workspace:libs/@local/harpc/client/typescript"
   dependencies:
@@ -8544,10 +8546,12 @@ __metadata:
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint-config": "npm:0.0.0-private"
+    "@local/harpc-client": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:2.1.8"
+    effect: "npm:3.11.3"
     eslint: "npm:8.57.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
