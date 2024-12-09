@@ -1,9 +1,15 @@
+use alloc::collections::BTreeSet;
 use core::borrow::Borrow as _;
 use std::collections::{HashSet, hash_map::RawEntryMut};
 
-use error_stack::{Report, ReportSink, ResultExt as _};
+use error_stack::{FutureExt as _, Report, ReportSink, ResultExt as _, TryReportStreamExt as _};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
-use hash_graph_store::entity::ValidateEntityComponents;
+use hash_graph_store::entity::{
+    EntityRetrieval, EntityTypeRetrieval, LinkDataStateError, LinkDataValidationReport, LinkError,
+    LinkTargetError, LinkValidationReport, LinkedEntityError, MissingLinkData,
+    PropertyMetadataValidationReport, UnexpectedEntityType, UnexpectedLinkData,
+    ValidateEntityComponents,
+};
 use hash_graph_types::{
     knowledge::{
         entity::{Entity, EntityId},
@@ -17,10 +23,7 @@ use hash_graph_types::{
             },
         },
     },
-    ontology::{
-        DataTypeLookup, DataTypeWithMetadata, EntityTypeProvider, OntologyTypeProvider,
-        PropertyTypeProvider,
-    },
+    ontology::{DataTypeLookup, DataTypeWithMetadata, OntologyTypeProvider},
 };
 use serde_json::Value as JsonValue;
 use thiserror::Error;
@@ -30,19 +33,15 @@ use type_system::{
         JsonSchemaValueType, PropertyObjectSchema, PropertyType, PropertyTypeReference,
         PropertyValueArray, PropertyValueSchema, PropertyValues, ValueOrArray,
     },
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    url::VersionedUrl,
 };
 
-use crate::{EntityProvider, Schema, Validate};
+use crate::{EntityProvider, Validate};
 
 #[derive(Debug, Error)]
 pub enum EntityValidationError {
     #[error("The properties of the entity do not match the schema")]
     InvalidProperties,
-    #[error("The entity is not a link but contains link data")]
-    UnexpectedLinkData,
-    #[error("The entity is a link but does not contain link data")]
-    MissingLinkData,
     #[error("Entities without a type are not allowed")]
     EmptyEntityTypes,
     #[error("the validator was unable to read the entity type `{ids:?}`")]
@@ -60,260 +59,217 @@ pub enum EntityValidationError {
 impl<P> Validate<ClosedMultiEntityType, P> for Option<&LinkData>
 where
     P: EntityProvider
-        + EntityTypeProvider
+        + OntologyTypeProvider<ClosedEntityType>
         + OntologyTypeProvider<PropertyType>
         + DataTypeLookup
         + Sync,
 {
-    type Error = EntityValidationError;
+    type Report = LinkValidationReport;
 
     async fn validate(
         &self,
         schema: &ClosedMultiEntityType,
         components: ValidateEntityComponents,
         context: &P,
-    ) -> Result<(), Report<[Self::Error]>> {
-        if !components.link_data {
-            return Ok(());
-        }
+    ) -> Self::Report {
+        let mut validation_report = LinkValidationReport::default();
 
-        let mut status = ReportSink::new();
-
-        // TODO: The link type should be a const but the type system crate does not allow
-        //       to make this a `const` variable.
-        //   see https://linear.app/hash/issue/BP-57
-        let link_type_id = VersionedUrl {
-            base_url: BaseUrl::new(
-                "https://blockprotocol.org/@blockprotocol/types/entity-type/link/".to_owned(),
-            )
-            .expect("Not a valid URL"),
-            version: OntologyTypeVersion::new(1),
-        };
-
-        let mut is_link = false;
-        for entity_type in &schema.all_of {
-            if context
-                .is_super_type_of(&link_type_id, &entity_type.id)
-                .await
-                .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                    ids: HashSet::from([entity_type.id.clone()]),
-                })?
-            {
-                is_link = true;
-                break;
-            }
-        }
-
+        let is_link = schema.is_link();
         if let Some(link_data) = self {
             if !is_link {
-                status.capture(EntityValidationError::UnexpectedLinkData);
+                validation_report.link_data = Some(LinkDataStateError::Unexpected(Report::new(
+                    UnexpectedLinkData,
+                )));
             }
 
-            if let Err(error) = schema.validate_value(*link_data, components, context).await {
-                status.append(error);
+            if components.link_validation {
+                validation_report.link_data_validation =
+                    link_data.validate(schema, components, context).await;
             }
         } else if is_link {
-            status.capture(EntityValidationError::MissingLinkData);
+            validation_report.link_data =
+                Some(LinkDataStateError::Missing(Report::new(MissingLinkData)));
         }
 
-        status.finish()
+        validation_report
+    }
+}
+
+#[derive(Debug)]
+#[must_use]
+pub struct PostInsertionEntityValidationReport {
+    pub link: LinkValidationReport,
+    pub property_metadata: PropertyMetadataValidationReport,
+}
+
+impl PostInsertionEntityValidationReport {
+    #[must_use]
+    pub const fn is_valid(&self) -> bool {
+        self.link.is_valid() && self.property_metadata.is_valid()
     }
 }
 
 impl<P> Validate<ClosedMultiEntityType, P> for Entity
 where
     P: EntityProvider
-        + EntityTypeProvider
+        + OntologyTypeProvider<ClosedEntityType>
         + OntologyTypeProvider<PropertyType>
         + DataTypeLookup
         + Sync,
 {
-    type Error = EntityValidationError;
+    type Report = PostInsertionEntityValidationReport;
 
     async fn validate(
         &self,
         schema: &ClosedMultiEntityType,
         components: ValidateEntityComponents,
         context: &P,
-    ) -> Result<(), Report<[Self::Error]>> {
-        let mut status = ReportSink::new();
-
-        if self.metadata.entity_type_ids.is_empty() {
-            status.capture(EntityValidationError::EmptyEntityTypes);
-        }
-
-        if components.link_validation {
-            if let Err(error) = self
+    ) -> Self::Report {
+        PostInsertionEntityValidationReport {
+            link: self
                 .link_data
                 .as_ref()
                 .validate(schema, components, context)
-                .await
-            {
-                status.append(error);
-            }
+                .await,
+            property_metadata: self
+                .metadata
+                .properties
+                .validate(&self.properties, components, context)
+                .await,
         }
-
-        if let Err(error) = self
-            .metadata
-            .properties
-            .validate(&self.properties, components, context)
-            .await
-        {
-            status.append(error);
-        }
-
-        status.finish()
     }
 }
 
-impl<P> Schema<LinkData, P> for ClosedMultiEntityType
+async fn read_entity_type<P>(
+    entity_id: EntityId,
+    provider: &P,
+) -> Result<ClosedMultiEntityType, LinkedEntityError>
 where
-    P: EntityProvider + EntityTypeProvider + Sync,
+    P: EntityProvider + OntologyTypeProvider<ClosedEntityType> + Sync,
 {
-    type Error = EntityValidationError;
+    let entity = provider
+        .provide_entity(entity_id)
+        .await
+        .change_context(EntityRetrieval { entity_id })
+        .map_err(LinkedEntityError::EntityRetrieval)?;
+
+    let entity_types = stream::iter(&entity.borrow().metadata.entity_type_ids)
+        .then(|entity_type_url| {
+            provider
+                .provide_type(entity_type_url)
+                .change_context_lazy(|| EntityTypeRetrieval {
+                    entity_type_url: entity_type_url.clone(),
+                })
+        })
+        .map_ok(|entity_type| entity_type.borrow().clone())
+        .try_collect_reports::<Vec<ClosedEntityType>>()
+        .await
+        .map_err(LinkedEntityError::EntityTypeRetrieval)?;
+
+    ClosedMultiEntityType::from_multi_type_closed_schema(entity_types)
+        .map_err(LinkedEntityError::ResolveClosedEntityType)
+}
+
+impl<P> Validate<ClosedMultiEntityType, P> for LinkData
+where
+    P: EntityProvider + OntologyTypeProvider<ClosedEntityType> + Sync,
+{
+    type Report = LinkDataValidationReport;
 
     // TODO: validate link data
     //   see https://linear.app/hash/issue/H-972
     // TODO: Optimize reading of left/right parent types and/or cache them
-    #[expect(clippy::too_many_lines)]
-    async fn validate_value<'a>(
-        &'a self,
-        value: &'a LinkData,
+    async fn validate(
+        &self,
+        schema: &ClosedMultiEntityType,
         _: ValidateEntityComponents,
-        provider: &'a P,
-    ) -> Result<(), Report<[EntityValidationError]>> {
-        let mut status = ReportSink::new();
+        context: &P,
+    ) -> Self::Report {
+        let mut validation_report = LinkDataValidationReport::default();
 
-        let left_entity = provider
-            .provide_entity(value.left_entity_id)
+        let left_entity_type = read_entity_type(self.left_entity_id, context)
             .await
-            .change_context_lazy(|| EntityValidationError::EntityRetrieval {
-                id: value.left_entity_id,
-            })?;
-
-        let left_entity_type = Self::from_multi_type_closed_schema(
-            stream::iter(&left_entity.borrow().metadata.entity_type_ids)
-                .then(|entity_type_url| async {
-                    provider
-                        .provide_type(entity_type_url)
-                        .await
-                        .map(|entity_type| entity_type.borrow().clone())
-                })
-                .try_collect::<Vec<ClosedEntityType>>()
-                .await
-                .change_context_lazy(|| EntityValidationError::EntityRetrieval {
-                    id: value.left_entity_id,
-                })?,
-        )
-        .change_context_lazy(|| EntityValidationError::EntityRetrieval {
-            id: value.left_entity_id,
-        })?;
-
-        let right_entity = provider
-            .provide_entity(value.right_entity_id)
+            .map_err(|link_data_error| {
+                validation_report.left_entity = Some(link_data_error);
+            })
+            .ok();
+        let right_entity_type = read_entity_type(self.right_entity_id, context)
             .await
-            .change_context_lazy(|| EntityValidationError::EntityRetrieval {
-                id: value.right_entity_id,
-            })?;
+            .map_err(|link_data_error| {
+                validation_report.right_entity = Some(link_data_error);
+            })
+            .ok();
 
-        let right_entity_type = Self::from_multi_type_closed_schema(
-            stream::iter(&right_entity.borrow().metadata.entity_type_ids)
-                .then(|entity_type_url| async {
-                    provider
-                        .provide_type(entity_type_url)
-                        .await
-                        .map(|entity_type| entity_type.borrow().clone())
-                })
-                .try_collect::<Vec<ClosedEntityType>>()
-                .await
-                .change_context_lazy(|| EntityValidationError::EntityRetrieval {
-                    id: value.right_entity_id,
-                })?,
-        )
-        .change_context_lazy(|| EntityValidationError::EntityRetrieval {
-            id: value.right_entity_id,
-        })?;
-
-        // We track that at least one link type was found to avoid reporting an error if no
-        // link type was found.
-        let mut found_link_target = false;
-        let entity_type_ids = self
+        // We cannot further validate the links if the left type is not known
+        let Some(left_entity_type) = left_entity_type else {
+            return validation_report;
+        };
+        let link_entity_ids = schema
             .all_of
             .iter()
-            .map(|entity_type| entity_type.id.clone())
-            .collect::<Vec<_>>();
-        let parent_entity_type_ids = provider
-            .find_parents(&entity_type_ids)
-            .await
-            .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                ids: entity_type_ids.iter().cloned().collect(),
-            })?;
-        for link_type_id in entity_type_ids.into_iter().chain(parent_entity_type_ids) {
-            let Some(maybe_allowed_targets) = left_entity_type.constraints.links.get(&link_type_id)
-            else {
-                continue;
-            };
+            .flat_map(|entity_type| &entity_type.all_of)
+            .map(|entity_type| (entity_type.depth, &entity_type.id))
+            .collect::<BTreeSet<_>>();
 
-            // At least one link type was found
-            found_link_target = true;
+        let Some(maybe_allowed_targets) = link_entity_ids
+            .iter()
+            .find_map(|(_, link_type_id)| left_entity_type.constraints.links.get(link_type_id))
+        else {
+            validation_report.link_type = Some(LinkError::UnexpectedEntityType {
+                data: UnexpectedEntityType {
+                    actual: schema
+                        .all_of
+                        .iter()
+                        .flat_map(|entity_type| &entity_type.all_of)
+                        .map(|entity_type| entity_type.id.clone())
+                        .collect(),
+                    expected: left_entity_type.constraints.links.keys().cloned().collect(),
+                },
+            });
+            return validation_report;
+        };
 
-            let Some(allowed_targets) = &maybe_allowed_targets.items else {
-                // For a given target there was an unconstrained link destination, so we can
-                // skip the rest of the checks
-                break;
-            };
+        let Some(allowed_targets) = &maybe_allowed_targets.items else {
+            // For a given target there was an unconstrained link destination, so we can
+            // skip the rest of the checks
+            return validation_report;
+        };
 
-            // Link destinations are constrained, search for the right entity's type
-            let mut found_match = false;
-            'targets: for allowed_target in &allowed_targets.possibilities {
-                if right_entity_type
-                    .all_of
-                    .iter()
-                    .any(|entity_type| entity_type.id.base_url == allowed_target.url.base_url)
-                {
-                    found_match = true;
-                    break;
-                }
-                for right_entity_type in &right_entity_type.all_of {
-                    if provider
-                        .is_super_type_of(&allowed_target.url, &right_entity_type.id)
-                        .await
-                        .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                            ids: HashSet::from([
-                                right_entity_type.id.clone(),
-                                allowed_target.url.clone(),
-                            ]),
-                        })?
-                    {
-                        found_match = true;
-                        break 'targets;
-                    }
-                }
-            }
+        let Some(right_entity_type) = &right_entity_type else {
+            // We cannot further validate the links if the right type is not known.
+            return validation_report;
+        };
 
-            if found_match {
-                break;
-            }
-            status.capture(EntityValidationError::InvalidLinkTargetId {
-                target_types: right_entity_type
-                    .all_of
-                    .iter()
-                    .map(|entity_type| entity_type.id.clone())
-                    .collect(),
+        // Link destinations are constrained, search for the right entity's type
+        let found_match = allowed_targets.possibilities.iter().any(|allowed_target| {
+            right_entity_type.all_of.iter().any(|entity_type| {
+                // We check that the base URL matches for the exact type or the versioned URL
+                // for the parent types
+                entity_type.id.base_url == allowed_target.url.base_url
+                    || entity_type
+                        .all_of
+                        .iter()
+                        .any(|entity_type| entity_type.id == allowed_target.url)
+            })
+        });
+
+        if !found_match {
+            validation_report.target_type = Some(LinkTargetError::UnexpectedEntityType {
+                data: UnexpectedEntityType {
+                    actual: link_entity_ids
+                        .into_iter()
+                        .map(|(_, entity_type_id)| entity_type_id.clone())
+                        .collect(),
+                    expected: allowed_targets
+                        .possibilities
+                        .iter()
+                        .map(|entity_type| entity_type.url.clone())
+                        .collect(),
+                },
             });
         }
 
-        if !found_link_target {
-            status.capture(EntityValidationError::InvalidLinkTypeId {
-                link_types: self
-                    .all_of
-                    .iter()
-                    .map(|entity_type| entity_type.id.clone())
-                    .collect(),
-            });
-        }
-
-        status.finish()
+        validation_report
     }
 }
 
@@ -624,7 +580,7 @@ impl EntityVisitor for EntityPreprocessor {
     ) -> Result<(), Report<[TraversalError]>>
     where
         T: PropertyValueSchema + Sync,
-        P: DataTypeLookup + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
         let mut status = ReportSink::new();
         if let Err(error) = walk_array(self, schema, array, type_provider).await {
@@ -662,7 +618,7 @@ impl EntityVisitor for EntityPreprocessor {
     ) -> Result<(), Report<[TraversalError]>>
     where
         T: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
-        P: DataTypeLookup + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
         let mut status = ReportSink::new();
         if let Err(error) = walk_object(self, schema, object, type_provider).await {

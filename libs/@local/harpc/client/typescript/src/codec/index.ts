@@ -1,5 +1,3 @@
-/* eslint-disable canonical/filename-no-index */
-
 export * as Decoder from "./Decoder.js";
 export * as Encoder from "./Encoder.js";
 export * as JsonDecoder from "./JsonDecoder.js";

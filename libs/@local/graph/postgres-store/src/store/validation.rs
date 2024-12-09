@@ -22,8 +22,8 @@ use hash_graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
     ontology::{
-        DataTypeLookup, DataTypeWithMetadata, EntityTypeProvider, EntityTypeWithMetadata,
-        OntologyTypeProvider, PropertyTypeProvider, PropertyTypeWithMetadata,
+        DataTypeLookup, DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeProvider,
+        PropertyTypeWithMetadata,
     },
 };
 use hash_graph_validation::EntityProvider;
@@ -407,13 +407,6 @@ where
     }
 }
 
-impl<C, A> PropertyTypeProvider for StoreProvider<'_, PostgresStore<C, A>>
-where
-    C: AsClient,
-    A: AuthorizationApi,
-{
-}
-
 impl<C, A> StoreProvider<'_, PostgresStore<C, A>>
 where
     C: AsClient,
@@ -515,71 +508,6 @@ where
 
         let schema = self.cache.entity_types.grant(entity_type_id, schema).await;
         Ok(schema)
-    }
-}
-
-impl<C, A> EntityTypeProvider for StoreProvider<'_, PostgresStore<C, A>>
-where
-    C: AsClient,
-    A: AuthorizationApi,
-{
-    #[expect(refining_impl_trait)]
-    async fn is_super_type_of(
-        &self,
-        parent: &VersionedUrl,
-        child: &VersionedUrl,
-    ) -> Result<bool, Report<QueryError>> {
-        let client = self.store.as_client().client();
-        let child_id = EntityTypeUuid::from_url(child);
-        let parent_id = EntityTypeUuid::from_url(parent);
-
-        Ok(client
-            .query_one(
-                "
-                    SELECT EXISTS (
-                        SELECT 1 FROM entity_type_inherits_from
-                        WHERE source_entity_type_ontology_id = $1
-                          AND target_entity_type_ontology_id = $2
-                    );
-                ",
-                &[&child_id, &parent_id],
-            )
-            .await
-            .change_context(QueryError)?
-            .get(0))
-    }
-
-    #[expect(refining_impl_trait)]
-    async fn find_parents(
-        &self,
-        entity_types: &[VersionedUrl],
-    ) -> Result<Vec<VersionedUrl>, Report<QueryError>> {
-        let entity_type_ids = entity_types
-            .iter()
-            .map(EntityTypeUuid::from_url)
-            .collect::<Vec<_>>();
-
-        Ok(self
-            .store
-            .as_client()
-            .query(
-                "
-                    SELECT base_url, version
-                    FROM entity_type_inherits_from
-                    JOIN ontology_ids ON target_entity_type_ontology_id = ontology_id
-                    WHERE source_entity_type_ontology_id = ANY($1)
-                    ORDER BY depth ASC;
-                ",
-                &[&entity_type_ids],
-            )
-            .await
-            .change_context(QueryError)?
-            .into_iter()
-            .map(|row| VersionedUrl {
-                base_url: row.get(0),
-                version: row.get(1),
-            })
-            .collect())
     }
 }
 

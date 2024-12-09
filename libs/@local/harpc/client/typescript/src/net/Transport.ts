@@ -1,8 +1,10 @@
-import type { PeerId } from "@libp2p/interface";
-import type { Multiaddr } from "@multiformats/multiaddr";
 import { Data } from "effect";
 
 import type { NoiseConfig, TCPConfig, YamuxConfig } from "./Config.js";
+import type * as internal from "./internal/transport.js";
+
+export { TransportError } from "./internal/transport.js";
+export { type Multiaddr, multiaddr } from "@multiformats/multiaddr";
 
 export class InitializationError extends Data.TaggedError(
   "InitializationError",
@@ -12,7 +14,7 @@ export class InitializationError extends Data.TaggedError(
   }
 }
 
-export type Address = PeerId | Multiaddr | Multiaddr[];
+export type Address = internal.Address;
 
 export interface TransportConfig {
   tcp?: TCPConfig;

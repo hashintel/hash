@@ -118,6 +118,34 @@ const PayloadProto: Omit<Payload, "buffer"> = {
 const makeUnchecked = (buffer: Uint8Array): Payload =>
   createProto(PayloadProto, { buffer });
 
+/**
+ * Creates a new Payload from a buffer, asserting that the buffer is within size limits.
+ *
+ * This function should be used when you are confident that the buffer size will be valid
+ * and want to enforce this assumption at runtime.
+ *
+ * # Panics
+ *
+ * Dies if the buffer exceeds MAX_SIZE (U16_MAX - 32 bytes).
+ */
+export const makeAssert = (buffer: Uint8Array) => {
+  if (buffer.length > MAX_SIZE) {
+    return Effect.die(new PayloadTooLargeError({ received: buffer.length }));
+  }
+
+  return Effect.succeed(makeUnchecked(buffer));
+};
+
+/**
+ * Creates a new Payload from a buffer, safely handling size validation.
+ *
+ * This function validates that the buffer size is within acceptable limits and returns
+ * an Effect that will fail if the validation does not pass.
+ *
+ * # Errors
+ *
+ * Returns a PayloadTooLargeError if the buffer exceeds MAX_SIZE (U16_MAX - 32 bytes).
+ */
 export const make = (
   buffer: Uint8Array,
 ): Effect.Effect<Payload, PayloadTooLargeError> => {

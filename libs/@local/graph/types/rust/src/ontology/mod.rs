@@ -10,10 +10,7 @@ use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
-    schema::{
-        ClosedEntityType, ConversionExpression, DataTypeReference, EntityTypeReference,
-        PropertyType, PropertyTypeReference,
-    },
+    schema::{DataTypeReference, EntityTypeReference, PropertyTypeReference},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
@@ -175,42 +172,8 @@ pub trait OntologyTypeProvider<O> {
     ) -> impl Future<Output = Result<Self::Value, Report<impl Error + Send + Sync + 'static>>> + Send;
 }
 
-pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
-    fn is_parent_of(
-        &self,
-        child: &VersionedUrl,
-        parent: &BaseUrl,
-    ) -> impl Future<Output = Result<bool, Report<impl Error + Send + Sync + 'static>>> + Send;
-
-    fn find_conversion(
-        &self,
-        source_data_type_id: &VersionedUrl,
-        target_data_type_id: &VersionedUrl,
-    ) -> impl Future<
-        Output = Result<
-            impl Borrow<Vec<ConversionExpression>>,
-            Report<impl Error + Send + Sync + 'static>,
-        >,
-    > + Send;
-}
-
-pub trait PropertyTypeProvider: OntologyTypeProvider<PropertyType> {}
-
 pub enum EntityTypeVariance {
     Covariant,
     Contravariant,
     Invariant,
-}
-
-pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
-    fn is_super_type_of(
-        &self,
-        parent: &VersionedUrl,
-        child: &VersionedUrl,
-    ) -> impl Future<Output = Result<bool, Report<impl Error + Send + Sync + 'static>>> + Send;
-
-    fn find_parents(
-        &self,
-        entity_types: &[VersionedUrl],
-    ) -> impl Future<Output = Result<Vec<VersionedUrl>, Report<impl Error + Send + Sync + 'static>>> + Send;
 }

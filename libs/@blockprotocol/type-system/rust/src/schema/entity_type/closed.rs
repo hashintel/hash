@@ -35,6 +35,16 @@ pub struct ClosedEntityTypeMetadata {
     pub inverse: InverseEntityTypeMetadata,
 }
 
+impl ClosedEntityTypeMetadata {
+    #[must_use]
+    pub fn is_link(&self) -> bool {
+        self.all_of.iter().any(|entity_type| {
+            entity_type.id.base_url.as_str()
+                == "https://blockprotocol.org/@blockprotocol/types/entity-type/link/"
+        })
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -158,6 +168,10 @@ impl ClosedMultiEntityType {
             }],
             constraints: closed_schemas.constraints,
         }
+    }
+
+    pub fn is_link(&self) -> bool {
+        self.all_of.iter().any(ClosedEntityTypeMetadata::is_link)
     }
 
     /// Creates a closed entity type from multiple closed entity types.

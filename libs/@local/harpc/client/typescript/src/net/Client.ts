@@ -1,4 +1,5 @@
-import { Effect, Function } from "effect";
+import { Effect, Function, Layer, type Scope } from "effect";
+import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
 import * as Connection from "./Connection.js";
@@ -19,12 +20,14 @@ export interface Client {
 
 interface ClientImpl extends Client {
   readonly client: internalTransport.Transport;
-  readonly config?: ClientConfig;
+  readonly config?: ClientConfig | undefined;
 }
 
 const ClientProto: Omit<ClientImpl, "client" | "config"> = {
   [TypeId]: TypeId,
 };
+
+export const Client = GenericTag<Client>(TypeId.description!);
 
 // TODO: add a metrics compatability layer
 //  see: https://linear.app/hash/issue/H-3712/libp2p-metrics-compatibility-layer
@@ -38,14 +41,50 @@ export const make = (config?: ClientConfig) =>
     }) satisfies ClientImpl as Client;
   });
 
+export const layer = (config?: ClientConfig) =>
+  Layer.scoped(Client, make(config));
+
 export const connect: {
   (
     address: Transport.Address,
-  ): (self: Client) => Effect.Effect<Connection.Connection>;
+  ): (
+    self: Client,
+  ) => Effect.Effect<
+    Connection.Connection,
+    Transport.TransportError,
+    Scope.Scope
+  >;
   (
     self: Client,
     address: Transport.Address,
-  ): Effect.Effect<Connection.Connection>;
-} = Function.dual(2, (self: ClientImpl, address: Transport.Address) =>
-  Connection.makeUnchecked(self.client, self.config?.connection ?? {}, address),
+  ): Effect.Effect<
+    Connection.Connection,
+    Transport.TransportError,
+    Scope.Scope
+  >;
+} = Function.dual(
+  2,
+  (
+    self: ClientImpl,
+    address: Transport.Address,
+  ): Effect.Effect<
+    Connection.Connection,
+    Transport.TransportError,
+    Scope.Scope
+  > =>
+    Connection.makeUnchecked(
+      self.client,
+      self.config?.connection ?? {},
+      address,
+    ),
 );
+
+export const connectLayer = (address: Transport.Address) =>
+  Layer.scoped(
+    Connection.Connection,
+    Effect.gen(function* () {
+      const client = yield* Client;
+
+      return yield* connect(client, address);
+    }),
+  );

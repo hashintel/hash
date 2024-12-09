@@ -5,7 +5,7 @@ import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -39,7 +39,6 @@ import {
   removeEntityAdministrator,
   removeEntityEditor,
   updateEntity,
-  validateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import {
   createLinkEntity,
@@ -404,7 +403,7 @@ export const updateEntitiesResolver: ResolverFn<
 };
 
 export const validateEntityResolver: ResolverFn<
-  Promise<true>,
+  Promise<boolean>,
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryValidateEntityArgs
@@ -412,9 +411,10 @@ export const validateEntityResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  await validateEntity(context, authentication, params);
-
-  return true;
+  return (
+    (await Entity.validate(context.graphApi, authentication, params)) ===
+    undefined
+  );
 };
 
 export const archiveEntityResolver: ResolverFn<
