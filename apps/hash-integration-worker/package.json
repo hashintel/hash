@@ -44,7 +44,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@sentry/cli": "^2.39.1",
     "@types/dotenv-flow": "3.3.3",
-    "eslint": "8.57.0",
+    "eslint": "8.57.1",
     "rimraf": "6.0.1",
     "typescript": "5.6.3",
     "wait-on": "8.0.1"
