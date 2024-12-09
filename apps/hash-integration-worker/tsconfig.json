@@ -1,6 +1,6 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["./src/", "./scripts/"],
+  "include": ["./src/", "./scripts/", "eslint.config.js"],
   "compilerOptions": {
     "outDir": "dist",
     "sourceMap": true,

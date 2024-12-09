@@ -10,8 +10,7 @@ Sentry.init({
 
 import * as http from "node:http";
 import { createRequire } from "node:module";
-import * as path from "node:path";
-import { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
@@ -27,7 +26,7 @@ import * as linearActivities from "./linear-activities";
 import * as workflows from "./workflows";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const require = createRequire(import.meta.url);
 
