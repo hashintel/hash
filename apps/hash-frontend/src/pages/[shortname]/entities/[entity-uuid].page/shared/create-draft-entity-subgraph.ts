@@ -44,11 +44,13 @@ export const createDraftEntitySubgraph = ({
     ),
   );
 
-  const newEntity = new Entity({
-    ...entity.toJSON(),
-    metadata,
-    properties: newProperties,
-  });
+  const newEntity = Object.freeze(
+    new Entity({
+      ...entity.toJSON(),
+      metadata,
+      properties: newProperties,
+    }),
+  );
 
   return {
     depths: {

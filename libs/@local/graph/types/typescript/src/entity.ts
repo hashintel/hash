@@ -78,6 +78,7 @@ export type EntityMetadata<
     entityTypeIds: EntityTypeIds;
     temporalVersioning: EntityTemporalVersioningMetadata;
     archived: boolean;
+    properties?: PropertyMetadataObject;
     provenance: EntityProvenance;
   }
 >;

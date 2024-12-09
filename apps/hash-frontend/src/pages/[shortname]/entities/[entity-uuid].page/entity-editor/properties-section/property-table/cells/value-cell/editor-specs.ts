@@ -2,10 +2,8 @@ import type { ClosedDataType } from "@blockprotocol/type-system";
 import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
   fa100,
-  faAsterisk,
   faAtRegular,
   faBracketsCurly,
-  faBracketsSquare,
   faCalendarClockRegular,
   faCalendarRegular,
   faClockRegular,
@@ -15,6 +13,7 @@ import {
   faSquareCheck,
   faText,
 } from "@hashintel/design-system";
+import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 
 import type { CustomIcon } from "../../../../../../../../../components/grid/utils/custom-grid-icons";
 import type { EditorType } from "./types";
@@ -49,25 +48,12 @@ const editorSpecs: Record<EditorType, EditorSpec> = {
     arrayEditException: "no-save-and-discard-buttons",
     shouldBeDrawnAsAChip: true,
   },
-  emptyList: {
-    icon: faBracketsSquare,
-    gridIcon: "bpBracketsSquare",
-    defaultValue: [],
-    arrayEditException: "no-edit-mode",
-    shouldBeDrawnAsAChip: true,
-  },
   null: {
     icon: faEmptySet,
     gridIcon: "bpEmptySet",
     defaultValue: null,
     arrayEditException: "no-edit-mode",
     shouldBeDrawnAsAChip: true,
-  },
-  unknown: {
-    icon: faAsterisk,
-    gridIcon: "bpAsterisk",
-    defaultValue: "",
-    arrayEditException: "no-edit-mode",
   },
 };
 
@@ -86,14 +72,14 @@ const measurementTypeTitles = [
 const identifierTypeTitles = ["URL", "URI"];
 
 export const getEditorSpecs = (
-  editorType: EditorType,
-  dataType?: ClosedDataType,
+  dataType: ClosedDataType,
+  schema: MergedDataTypeSingleSchema,
 ): EditorSpec => {
-  switch (editorType) {
+  switch (schema.type) {
     case "boolean":
       return editorSpecs.boolean;
     case "number":
-      if (dataType?.title && measurementTypeTitles.includes(dataType.title)) {
+      if (dataType.title && measurementTypeTitles.includes(dataType.title)) {
         return {
           ...editorSpecs.number,
           icon: faRulerRegular,
@@ -102,8 +88,8 @@ export const getEditorSpecs = (
       }
       return editorSpecs.number;
     case "string":
-      if (dataType && "format" in dataType) {
-        switch (dataType.format) {
+      if ("format" in schema) {
+        switch (schema.format) {
           case "uri":
             return {
               ...editorSpecs.string,
@@ -136,14 +122,14 @@ export const getEditorSpecs = (
             };
         }
       }
-      if (dataType?.title === "Email") {
+      if (dataType.title === "Email") {
         return {
           ...editorSpecs.string,
           icon: faAtRegular,
           gridIcon: "atRegular",
         };
       }
-      if (dataType?.title && identifierTypeTitles.includes(dataType.title)) {
+      if (dataType.title && identifierTypeTitles.includes(dataType.title)) {
         return {
           ...editorSpecs.string,
           icon: faInputPipeRegular,
@@ -153,13 +139,9 @@ export const getEditorSpecs = (
       return editorSpecs.string;
     case "object":
       return editorSpecs.object;
-    case "emptyList":
-      return editorSpecs.emptyList;
     case "null":
       return editorSpecs.null;
-    case "unknown":
-      return editorSpecs.unknown;
     default:
-      throw new Error(`Unknown editor type: ${editorType}`);
+      throw new Error(`Unhandled type: ${schema.type}`);
   }
 };

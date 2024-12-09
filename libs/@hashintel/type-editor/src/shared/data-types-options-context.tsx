@@ -16,7 +16,6 @@ import {
   fa100,
   faAtRegular,
   faBracketsCurly,
-  faBracketsSquare,
   faCalendarClockRegular,
   faCalendarRegular,
   faClockRegular,
@@ -97,10 +96,6 @@ const expectedValuesDisplayMap = {
   },
   object: {
     icon: faBracketsCurly,
-    colors: chipColors.blue,
-  },
-  emptyList: {
-    icon: faBracketsSquare,
     colors: chipColors.blue,
   },
   null: {
@@ -191,7 +186,7 @@ const getArrayDataTypeDisplay = (
 
   if (isTupleConstraints(dataType)) {
     if (!dataType.prefixItems) {
-      return expectedValuesDisplayMap.emptyList;
+      throw new Error("TupleConstraints must have prefixItems");
     }
 
     items = dataType.prefixItems;

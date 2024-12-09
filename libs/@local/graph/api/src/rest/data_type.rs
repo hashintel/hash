@@ -29,6 +29,7 @@ use hash_graph_store::{
         GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
+    entity_type::ClosedDataTypeDefinition,
     pool::StorePool,
     query::ConflictBehavior,
 };
@@ -98,6 +99,7 @@ use crate::rest::{
             GetDataTypeSubgraphResponse,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
+            ClosedDataTypeDefinition,
 
             ConversionDefinition,
             ConversionExpression,

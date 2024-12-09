@@ -7,8 +7,8 @@ use hash_graph_types::{
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use serde::Serialize;
-use temporal_io_client::{WorkflowClientTrait as _, WorkflowOptions};
-use temporal_io_sdk_core_protos::{
+use temporal_client::{WorkflowClientTrait as _, WorkflowOptions};
+use temporal_sdk_core_protos::{
     ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL, temporal::api::common::v1::Payload,
 };
 use uuid::Uuid;

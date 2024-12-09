@@ -16,26 +16,15 @@ use error_stack::Report;
 use hash_graph_store::entity::ValidateEntityComponents;
 use hash_graph_types::knowledge::entity::{Entity, EntityId};
 
-pub trait Schema<V: ?Sized, P: Sync> {
-    type Error: Error + Send + Sync + 'static;
-
-    fn validate_value<'a>(
-        &'a self,
-        value: &'a V,
-        components: ValidateEntityComponents,
-        provider: &'a P,
-    ) -> impl Future<Output = Result<(), Report<[Self::Error]>>> + Send + 'a;
-}
-
 pub trait Validate<S, C> {
-    type Error: Error + Send + Sync + 'static;
+    type Report: Send + Sync;
 
     fn validate(
         &self,
         schema: &S,
         components: ValidateEntityComponents,
         context: &C,
-    ) -> impl Future<Output = Result<(), Report<[Self::Error]>>> + Send;
+    ) -> impl Future<Output = Self::Report> + Send;
 }
 
 pub trait EntityProvider {
@@ -70,10 +59,9 @@ mod tests {
             visitor::{EntityVisitor as _, TraversalError},
         },
         ontology::{
-            DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, EntityTypeProvider,
-            OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-            OntologyTypeClassificationMetadata, OntologyTypeProvider, OntologyTypeRecordId,
-            PropertyTypeProvider, ProvidedOntologyEditionProvenance,
+            DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
+            OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+            OntologyTypeProvider, OntologyTypeRecordId, ProvidedOntologyEditionProvenance,
         },
         owned_by_id::OwnedById,
     };
@@ -191,27 +179,6 @@ mod tests {
         }
     }
 
-    impl EntityTypeProvider for Provider {
-        #[expect(refining_impl_trait)]
-        async fn is_super_type_of(
-            &self,
-            _: &VersionedUrl,
-            _: &VersionedUrl,
-        ) -> Result<bool, Report<InvalidEntityType>> {
-            // Not used in tests
-            Ok(false)
-        }
-
-        #[expect(refining_impl_trait)]
-        async fn find_parents(
-            &self,
-            _: &[VersionedUrl],
-        ) -> Result<Vec<VersionedUrl>, Report<InvalidEntityType>> {
-            // Not used in tests
-            Ok(Vec::new())
-        }
-    }
-
     impl OntologyTypeProvider<ClosedEntityType> for Provider {
         type Value = Arc<ClosedEntityType>;
 
@@ -249,8 +216,6 @@ mod tests {
                 })
         }
     }
-
-    impl PropertyTypeProvider for Provider {}
 
     impl DataTypeLookup for Provider {
         type ClosedDataType = Arc<ClosedDataType>;

@@ -1,20 +1,15 @@
-import type { ClosedDataType } from "@blockprotocol/type-system";
+import type { ClosedDataType, VersionedUrl } from "@blockprotocol/type-system";
 import { useState } from "react";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
-import { getEditorSpecs } from "../editor-specs";
 import { EditorTypePicker } from "../editor-type-picker";
-import type { EditorType } from "../types";
-import {
-  guessEditorTypeFromExpectedType,
-  isBlankStringOrNullish,
-} from "../utils";
+import { isBlankStringOrNullish } from "../utils";
 import { SortableRow } from "./sortable-row";
 
 interface DraftRowProps {
   expectedTypes: ClosedDataType[];
   existingItemCount: number;
-  onDraftSaved: (value: unknown) => void;
+  onDraftSaved: (value: unknown, dataTypeId: VersionedUrl) => void;
   onDraftDiscarded: () => void;
 }
 
@@ -24,7 +19,7 @@ export const DraftRow = ({
   onDraftSaved,
   onDraftDiscarded,
 }: DraftRowProps) => {
-  const [editorType, setEditorType] = useState<EditorType | null>(() => {
+  const [dataType, setDataType] = useState<ClosedDataType | null>(() => {
     if (expectedTypes.length > 1) {
       return null;
     }
@@ -33,21 +28,15 @@ export const DraftRow = ({
       throw new Error("there is no expectedType found on property type");
     }
 
-    return guessEditorTypeFromExpectedType(expectedTypes[0]);
+    return expectedTypes[0];
   });
 
-  if (!editorType) {
+  if (!dataType) {
     return (
       <EditorTypePicker
         expectedTypes={expectedTypes}
         onTypeChange={(type) => {
-          const editorSpec = getEditorSpecs(type);
-
-          if (editorSpec.arrayEditException === "no-edit-mode") {
-            onDraftSaved(editorSpec.defaultValue);
-          }
-
-          setEditorType(type);
+          setDataType(type);
         }}
       />
     );
@@ -57,17 +46,17 @@ export const DraftRow = ({
     <SortableRow
       editing
       item={{
+        dataType,
         id: DRAFT_ROW_KEY,
         index: existingItemCount,
         value: undefined,
-        overriddenEditorType: editorType,
       }}
       onSaveChanges={(_, value) => {
         if (isBlankStringOrNullish(value)) {
           return onDraftDiscarded();
         }
 
-        onDraftSaved(value);
+        onDraftSaved(value, dataType.$id);
       }}
       onDiscardChanges={onDraftDiscarded}
       expectedTypes={expectedTypes}
