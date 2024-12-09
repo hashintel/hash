@@ -1,8 +1,13 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
-use hash_graph_types::knowledge::{entity::EntityId, property::visitor::TraversalError};
-use type_system::{schema::ResolveClosedEntityTypeError, url::VersionedUrl};
+use hash_graph_types::knowledge::{
+    entity::EntityId, property::visitor::ObjectPropertyValidationReport,
+};
+use type_system::{
+    schema::ResolveClosedEntityTypeError,
+    url::{BaseUrl, VersionedUrl},
+};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("Could not read the entity")]
@@ -176,24 +181,9 @@ impl MetadataValidationReport {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 #[must_use]
-pub struct PropertyValidationReport {
-    pub error: Option<Report<[TraversalError]>>,
-}
-
-impl PropertyValidationReport {
-    #[must_use]
-    pub const fn is_valid(&self) -> bool {
-        self.error.is_none()
-    }
-}
-
-#[derive(Debug, Default, serde::Serialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
-#[must_use]
 pub struct EntityValidationReport {
-    #[serde(skip_serializing_if = "PropertyValidationReport::is_valid")]
-    pub properties: PropertyValidationReport,
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub properties: HashMap<BaseUrl, ObjectPropertyValidationReport>,
     #[serde(skip_serializing_if = "LinkValidationReport::is_valid")]
     pub link: LinkValidationReport,
     #[serde(skip_serializing_if = "MetadataValidationReport::is_valid")]
@@ -202,7 +192,7 @@ pub struct EntityValidationReport {
 
 impl EntityValidationReport {
     #[must_use]
-    pub const fn is_valid(&self) -> bool {
-        self.link.is_valid() && self.metadata.is_valid()
+    pub fn is_valid(&self) -> bool {
+        self.properties.is_empty() && self.link.is_valid() && self.metadata.is_valid()
     }
 }

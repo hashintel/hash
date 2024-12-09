@@ -332,7 +332,8 @@ mod tests {
 
         EntityPreprocessor { components }
             .visit_object(&closed_multi_entity_type, &mut properties, &provider)
-            .await?;
+            .await
+            .expect("properties should be valid");
 
         Ok(properties)
     }
@@ -366,7 +367,8 @@ mod tests {
             .expect("failed to create property with metadata");
         EntityPreprocessor { components }
             .visit_property(&property_type, &mut property, &provider)
-            .await?;
+            .await
+            .expect("Property should be valid");
         Ok(property)
     }
 

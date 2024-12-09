@@ -20,9 +20,8 @@ use hash_graph_store::{
         ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, EmptyEntityTypes,
         EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
         EntityValidationReport, EntityValidationType, GetEntitiesParams, GetEntitiesResponse,
-        GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
-        PropertyValidationReport, QueryConversion, UpdateEntityEmbeddingsParams,
-        ValidateEntityComponents, ValidateEntityParams,
+        GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
+        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::IncludeEntityTypeOption,
     error::{InsertionError, QueryError, UpdateError},
@@ -801,12 +800,11 @@ where
             };
             preprocessor.components.link_validation = self.settings.validate_links;
 
-            if let Err(error) = preprocessor
+            if let Err(property_validation) = preprocessor
                 .visit_object(&entity_type, &mut params.properties, &validator_provider)
                 .await
             {
-                validation_reports.entry(index).or_default().properties =
-                    PropertyValidationReport { error: Some(error) };
+                validation_reports.entry(index).or_default().properties = property_validation;
             }
 
             let (properties, property_metadata) = params.properties.into_parts();
@@ -1215,7 +1213,7 @@ where
                 components: params.components,
             };
 
-            if let Err(error) = preprocessor
+            if let Err(property_validation) = preprocessor
                 .visit_object(
                     schema.as_ref(),
                     params.properties.to_mut(),
@@ -1223,8 +1221,7 @@ where
                 )
                 .await
             {
-                validation_reports.entry(index).or_default().properties =
-                    PropertyValidationReport { error: Some(error) };
+                validation_reports.entry(index).or_default().properties = property_validation;
             }
 
             validation_report.link = params
@@ -1741,11 +1738,11 @@ where
                 let mut preprocessor = EntityPreprocessor {
                     components: validation_components,
                 };
-                if let Err(error) = preprocessor
+                if let Err(property_validation) = preprocessor
                     .visit_object(&entity_type, &mut object, &validator_provider)
                     .await
                 {
-                    validation_report.properties = PropertyValidationReport { error: Some(error) };
+                    validation_report.properties = property_validation;
                 }
 
                 let (properties, property_metadata) = object.into_parts();

@@ -3078,6 +3078,77 @@
         },
         "additionalProperties": false
       },
+      "ArrayItemNumberMismatch": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "actual",
+                  "min"
+                ],
+                "properties": {
+                  "actual": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "min": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tooFew"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "actual",
+                  "max"
+                ],
+                "properties": {
+                  "actual": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tooMany"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
       "ArrayMetadata": {
         "type": "object",
         "properties": {
@@ -3093,6 +3164,28 @@
           }
         },
         "additionalProperties": false
+      },
+      "ArrayValidationReport": {
+        "type": "object",
+        "required": [
+          "properties"
+        ],
+        "properties": {
+          "numItems": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArrayItemNumberMismatch"
+              }
+            ],
+            "nullable": true
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyValidationReport"
+            }
+          }
+        }
       },
       "BaseUrl": {
         "type": "string",
@@ -3452,6 +3545,175 @@
       },
       "DataType": {
         "$ref": "./models/data_type.json"
+      },
+      "DataTypeCanonicalCalculation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "error",
+              "type"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "retrieval"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/JsonSchemaValueTypeMismatch"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "wrongType"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/InvalidCanonicalValue"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "invalidValue"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "DataTypeConversionError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "error",
+              "type"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "retrieval"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/JsonSchemaValueTypeMismatch"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "wrongType"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "DataTypeInferenceError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "error",
+              "type"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "retrieval"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "abstract"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/VersionedUrl"
+                },
+                "uniqueItems": true
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "ambiguous"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
       },
       "DataTypeMetadata": {
         "oneOf": [
@@ -4857,7 +5119,10 @@
             "$ref": "#/components/schemas/MetadataValidationReport"
           },
           "properties": {
-            "$ref": "#/components/schemas/PropertyValidationReport"
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ObjectPropertyValidationReport"
+            }
           }
         }
       },
@@ -6120,6 +6385,48 @@
         },
         "additionalProperties": false
       },
+      "InvalidCanonicalValue": {
+        "type": "object",
+        "required": [
+          "key",
+          "expected",
+          "actual"
+        ],
+        "properties": {
+          "actual": {
+            "type": "number",
+            "format": "double"
+          },
+          "expected": {
+            "type": "number",
+            "format": "double"
+          },
+          "key": {
+            "$ref": "#/components/schemas/BaseUrl"
+          }
+        }
+      },
+      "JsonSchemaValueTypeMismatch": {
+        "type": "object",
+        "required": [
+          "actual",
+          "expected"
+        ],
+        "properties": {
+          "actual": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          },
+          "expected": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          }
+        }
+      },
       "KnowledgeGraphEdgeKind": {
         "type": "string",
         "enum": [
@@ -6838,6 +7145,163 @@
           }
         },
         "additionalProperties": false
+      },
+      "ObjectPropertyValidationReport": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "unexpected"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "error",
+              "type"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "retrieval"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/JsonSchemaValueTypeMismatch"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "wrongType"
+                ]
+              }
+            }
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyValidationReport"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "propertyValidation"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArrayValidationReport"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "arrayValidation"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "missing"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "OneOfPropertyValidationReports": {
+        "type": "object",
+        "required": [
+          "reports",
+          "passed",
+          "dataTypeInference",
+          "canonicalValue"
+        ],
+        "properties": {
+          "canonicalValue": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeCanonicalCalculation"
+            }
+          },
+          "dataTypeInference": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeInferenceError"
+            }
+          },
+          "passed": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "reports": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyValueValidationReport"
+            }
+          },
+          "valueConversion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataTypeConversionError"
+              }
+            ],
+            "nullable": true
+          }
+        }
       },
       "OntologyEdgeKind": {
         "type": "string",
@@ -8009,17 +8473,145 @@
           }
         }
       },
+      "PropertyValidationError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "report"
+            ],
+            "properties": {
+              "report": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "value"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "report"
+            ],
+            "properties": {
+              "report": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "array"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
       "PropertyValidationReport": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OneOfPropertyValidationReports"
+          },
+          {
+            "$ref": "#/components/schemas/Report"
+          },
+          {
+            "$ref": "#/components/schemas/Report"
+          }
+        ]
+      },
+      "PropertyValueTypeMismatch": {
         "type": "object",
+        "required": [
+          "actual",
+          "expected"
+        ],
         "properties": {
-          "error": {
+          "actual": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          },
+          "expected": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          }
+        }
+      },
+      "PropertyValueValidationReport": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "error",
+              "type"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "retrieval"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/PropertyValueTypeMismatch"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "wrongType"
+                ]
+              }
+            }
+          },
+          {
             "allOf": [
               {
                 "$ref": "#/components/schemas/Report"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "valueValidation"
+                    ]
+                  }
+                }
               }
-            ],
-            "nullable": true
+            ]
           }
+        ],
+        "discriminator": {
+          "propertyName": "type"
         }
       },
       "PropertyWithMetadata": {
