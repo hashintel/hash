@@ -80,7 +80,7 @@ export const connect = (transport: Transport, address: Address) =>
       }
     }
 
-    // we tried to reuse an existing connection but failed, so forcing is the only option, this is to prevent race conditions where two simultanous connections are opened to the same peer
+    // we tried to reuse an existing connection but failed, so forcing is the only option, this is to prevent race conditions where two simultaneous connections are opened to the same peer
     yield* Effect.logDebug("forcing a new connection to peer").pipe(
       Effect.annotateLogs({ peerId, address }),
     );
@@ -107,7 +107,7 @@ export const make = (config?: TransportConfig) =>
             identify: identify(),
             // The timeout is a bit deceptive here, we cannot set the timeout too low, as is the combination of:
             // ping interval + ping timeout. The ping interval is 15s and timeout is 20s on the server side,
-            // meaning that the total timeout waiting is 35s, any timeout lower than that will cause the ping to fail to fail occasionally.
+            // meaning that the total timeout waiting is 35s, any timeout lower than that will cause the ping to fail occasionally.
             // A timeout of 60s is very conservative and should be enough to cover the ping interval + timeout.
             // (This is due to the fact that the implementation of the ping service has a while true loop, that will keep receiving data, so the timeout is not really a timeout)
             // see: https://github.com/libp2p/js-libp2p/blob/96654117c449603aed5b3c6668da29bdab44cff9/packages/protocol-ping/src/ping.ts#L66
