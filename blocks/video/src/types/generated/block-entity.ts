@@ -4,9 +4,9 @@
 
 import { Entity, LinkData } from "@blockprotocol/graph";
 
-export type BlockEntity = ImageBlock;
+export type BlockEntity = VideoBlock;
 
-export type BlockEntityOutgoingLinkAndTarget = ImageBlockOutgoingLinkAndTarget;
+export type BlockEntityOutgoingLinkAndTarget = VideoBlockOutgoingLinkAndTarget;
 
 /**
  * A True or False value
@@ -125,29 +125,6 @@ export type FileURLPropertyValue = TextDataType;
 
 export type Image = Entity<ImageProperties>;
 
-export type ImageBlock = Entity<ImageBlockProperties>;
-
-export type ImageBlockDisplaysMediaFileLink = {
-  linkEntity: DisplaysMediaFile;
-  rightEntity: Image;
-};
-
-export type ImageBlockOutgoingLinkAndTarget = ImageBlockDisplaysMediaFileLink;
-
-export type ImageBlockOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@hash/types/entity-type/displays-media-file/v/1": ImageBlockDisplaysMediaFileLink;
-};
-
-/**
- * The block entity for the “Image” block.
- *
- * See: https://blockprotocol.org/@hash/blocks/image
- */
-export type ImageBlockProperties = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/caption/"?: CaptionPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/width-in-pixels/"?: WidthInPixelsPropertyValue;
-};
-
 export type ImageOutgoingLinkAndTarget = never;
 
 export type ImageOutgoingLinksByLinkEntityTypeId = {};
@@ -200,7 +177,24 @@ export type OriginalURLPropertyValue = TextDataType;
  */
 export type TextDataType = string;
 
+export type VideoBlock = Entity<VideoBlockProperties>;
+
+export type VideoBlockDisplaysMediaFileLink = {
+  linkEntity: DisplaysMediaFile;
+  rightEntity: Image;
+};
+
+export type VideoBlockOutgoingLinkAndTarget = VideoBlockDisplaysMediaFileLink;
+
+export type VideoBlockOutgoingLinksByLinkEntityTypeId = {
+  "https://blockprotocol.org/@hash/types/entity-type/displays-media-file/v/1": VideoBlockDisplaysMediaFileLink;
+};
+
 /**
- * The width of a UI element in pixels.
+ * The block entity for the “Video” block.
+ *
+ * See: https://blockprotocol.org/@hash/blocks/video
  */
-export type WidthInPixelsPropertyValue = NumberDataType;
+export type VideoBlockProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/caption/"?: CaptionPropertyValue;
+};

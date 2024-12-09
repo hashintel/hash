@@ -1,26 +1,18 @@
 import { useMutation, useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   pageOrNotificationNotArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   ArchivedPropertyValueWithMetadata,
-  CommentNotification,
   Notification,
   ReadAtPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-import type { GraphChangeNotification } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
-import type { MentionNotification } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
@@ -274,7 +266,8 @@ export const NotificationCountContextProvider: FunctionComponent<
       loading: loadingNotificationCount,
       markNotificationAsRead,
       markNotificationsAsRead,
-      numberOfUnreadNotifications: notificationCountData?.getEntitySubgraph,
+      numberOfUnreadNotifications:
+        notificationCountData?.getEntitySubgraph?.count,
       refetch,
     }),
     [

@@ -17,7 +17,7 @@ import type {
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
-import { useNotificationCount } from "../../shared/notification-entities-context";
+import { useNotificationCount } from "../../shared/notification-count-context";
 import type { ButtonProps } from "../../shared/ui";
 import { Button } from "../../shared/ui";
 import { LinkLabelWithSourceAndDestination } from "./link-label-with-source-and-destination";

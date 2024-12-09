@@ -24,7 +24,7 @@ export const entityTypedef = gql`
   }
 
   type GetEntitySubgraphResponse {
-    count?: Int;
+    count?: Int
     closedMultiEntityTypes: ClosedMultiEntityTypesRootMap
     definitions: ClosedMultiEntityTypesDefinitions
     userPermissionsOnEntities: UserPermissionsOnEntities!

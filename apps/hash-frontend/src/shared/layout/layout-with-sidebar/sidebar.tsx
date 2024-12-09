@@ -22,7 +22,7 @@ import { ArrowRightToLineIcon } from "../../icons";
 import { BoltLightIcon } from "../../icons/bolt-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
-import { useNotificationCount } from "../../notification-entities-context";
+import { useNotificationCount } from "../../notification-count-context";
 import { useRoutePageInfo } from "../../routing";
 import { useUserPreferences } from "../../use-user-preferences";
 import { AccountEntitiesList } from "./sidebar/account-entities-list";

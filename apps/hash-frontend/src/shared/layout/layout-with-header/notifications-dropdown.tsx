@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Tooltip, useTheme } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-import { useNotificationCount } from "../../notification-entities-context";
+import { useNotificationCount } from "../../notification-count-context";
 import { Link } from "../../ui";
 import { HeaderIconButtonWithCount } from "./shared/header-icon-button-with-count";
 

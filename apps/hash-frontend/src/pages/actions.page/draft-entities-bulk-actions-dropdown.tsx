@@ -30,7 +30,7 @@ import {
 } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { LayerGroupLightIcon } from "../../shared/icons/layer-group-light-icon";
-import { useNotificationCount } from "../../shared/notification-entities-context";
+import { useNotificationCount } from "../../shared/notification-count-context";
 import { Button, MenuItem } from "../../shared/ui";
 import { useNotificationsWithLinks } from "../shared/notifications-with-links-context";
 
