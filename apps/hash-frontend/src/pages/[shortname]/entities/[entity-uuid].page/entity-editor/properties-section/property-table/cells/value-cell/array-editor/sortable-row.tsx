@@ -1,5 +1,4 @@
 import type { JsonValue } from "@blockprotocol/core";
-import type { ClosedDataType } from "@blockprotocol/type-system";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -8,6 +7,7 @@ import {
   faPencil,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 import {
   formatDataValue,
   getMergedDataTypeSchema,
@@ -31,7 +31,7 @@ interface SortableRowProps {
   onSelect?: (id: string) => void;
   onEditClicked?: (id: string) => void;
   editing: boolean;
-  expectedTypes: ClosedDataType[];
+  expectedTypes: ClosedDataTypeDefinition[];
   onSaveChanges: (index: number, value: unknown) => void;
   onDiscardChanges: () => void;
 }

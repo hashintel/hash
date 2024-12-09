@@ -35,7 +35,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   } | null>(() => {
     if (permittedDataTypes.length === 1) {
       const dataType = permittedDataTypes[0]!;
-      const schema = getMergedDataTypeSchema(dataType);
+      const schema = getMergedDataTypeSchema(dataType.schema);
 
       if ("anyOf" in schema) {
         throw new Error(
@@ -44,7 +44,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
       }
 
       return {
-        dataType,
+        dataType: dataType.schema,
         schema,
       };
     }
@@ -64,7 +64,9 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
     const dataTypeId = valueMetadata.metadata.dataTypeId;
 
-    const dataType = permittedDataTypes.find((type) => type.$id === dataTypeId);
+    const dataType = permittedDataTypes.find(
+      (type) => type.schema.$id === dataTypeId,
+    );
 
     if (!dataType) {
       throw new Error(
@@ -72,7 +74,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
       );
     }
 
-    const schema = getMergedDataTypeSchema(dataType);
+    const schema = getMergedDataTypeSchema(dataType.schema);
 
     if ("anyOf" in schema) {
       throw new Error(

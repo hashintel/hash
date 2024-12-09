@@ -95,8 +95,8 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       const dataTypeId = arrayItemMetadata.metadata.dataTypeId;
 
       const dataType = permittedDataTypes.find(
-        (type) => type.$id === dataTypeId,
-      );
+        (type) => type.schema.$id === dataTypeId,
+      )?.schema;
 
       if (!dataType) {
         throw new Error(
@@ -125,7 +125,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     if (permittedDataTypes.length === 1) {
       const expectedType = permittedDataTypes[0]!;
 
-      const schema = getMergedDataTypeSchema(expectedType);
+      const schema = getMergedDataTypeSchema(expectedType.schema);
 
       if ("anyOf" in schema) {
         throw new Error(
@@ -134,7 +134,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       }
 
       if (
-        getEditorSpecs(expectedType, schema).arrayEditException ===
+        getEditorSpecs(expectedType.schema, schema).arrayEditException ===
         "no-edit-mode"
       ) {
         return "";
@@ -257,7 +257,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     const onlyOneExpectedType = permittedDataTypes.length === 1;
     const expectedType = permittedDataTypes[0]!;
 
-    const schema = getMergedDataTypeSchema(expectedType);
+    const schema = getMergedDataTypeSchema(expectedType.schema);
 
     if ("anyOf" in schema) {
       throw new Error(
@@ -265,13 +265,13 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       );
     }
 
-    const editorSpec = getEditorSpecs(expectedType, schema);
+    const editorSpec = getEditorSpecs(expectedType.schema, schema);
 
     const noEditMode = editorSpec.arrayEditException === "no-edit-mode";
 
     // add the value on click instead of showing draftRow
     if (onlyOneExpectedType && noEditMode) {
-      return addItem(editorSpec.defaultValue, expectedType.$id);
+      return addItem(editorSpec.defaultValue, expectedType.schema.$id);
     }
 
     setEditingRow(DRAFT_ROW_KEY);

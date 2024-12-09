@@ -103,7 +103,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
           const dataTypeId = arrayItemMetadata.metadata.dataTypeId;
 
           const dataType = permittedDataTypes.find(
-            (type) => type.$id === dataTypeId,
+            (type) => type.schema.$id === dataTypeId,
           );
 
           if (!dataType) {
@@ -112,7 +112,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
             );
           }
 
-          const schema = getMergedDataTypeSchema(dataType);
+          const schema = getMergedDataTypeSchema(dataType.schema);
 
           if ("anyOf" in schema) {
             throw new Error(
@@ -139,7 +139,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
         const dataTypeId = valueMetadata.metadata.dataTypeId;
 
         const dataType = permittedDataTypes.find(
-          (type) => type.$id === dataTypeId,
+          (type) => type.schema.$id === dataTypeId,
         );
 
         if (!dataType) {
@@ -148,7 +148,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
           );
         }
 
-        const schema = getMergedDataTypeSchema(dataType);
+        const schema = getMergedDataTypeSchema(dataType.schema);
 
         if ("anyOf" in schema) {
           throw new Error(

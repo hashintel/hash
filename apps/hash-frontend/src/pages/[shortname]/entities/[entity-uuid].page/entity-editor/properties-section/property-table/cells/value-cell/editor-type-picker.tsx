@@ -1,8 +1,18 @@
-import type { ClosedDataType } from "@blockprotocol/type-system/slim";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import type {
+  ClosedDataType,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
+import {
+  buildDataTypeTreesForSelector,
+  DataTypeSelector,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
+import { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { Box, ButtonBase, Typography } from "@mui/material";
+import { useMemo } from "react";
 
+import { useEntityEditor } from "../../../../entity-editor-context";
 import { getEditorSpecs } from "./editor-specs";
 import type { OnTypeChange } from "./types";
 
@@ -56,7 +66,7 @@ const ExpectedTypeButton = ({
 };
 
 interface EditorTypePickerProps {
-  expectedTypes: ClosedDataType[];
+  expectedTypes: ClosedDataTypeDefinition[];
   onTypeChange: OnTypeChange;
 }
 
@@ -64,6 +74,26 @@ export const EditorTypePicker = ({
   expectedTypes,
   onTypeChange,
 }: EditorTypePickerProps) => {
+  const { closedMultiEntityTypesDefinitions } = useEntityEditor();
+
+  const dataTypeTrees = useMemo(() => {
+    return buildDataTypeTreesForSelector({
+      targetDataTypes: expectedTypes,
+      dataTypePool: Object.values(closedMultiEntityTypesDefinitions.dataTypes),
+    });
+  }, [expectedTypes, closedMultiEntityTypesDefinitions]);
+
+  const onSelect = (dataTypeId: VersionedUrl) => {
+    const selectedType =
+      closedMultiEntityTypesDefinitions.dataTypes[dataTypeId];
+
+    if (!selectedType) {
+      throw new Error(`Could not find data type with id ${dataTypeId}`);
+    }
+
+    onTypeChange(selectedType.schema);
+  };
+
   return (
     <Box sx={{ px: 2, py: 1.5 }}>
       <Typography variant="smallCaps" mr={1}>
@@ -73,17 +103,7 @@ export const EditorTypePicker = ({
         How are you representing this value?
       </Typography>
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
-        {expectedTypes.map((expectedType) => {
-          return (
-            <ExpectedTypeButton
-              expectedType={expectedType}
-              key={expectedType.$id}
-              onClick={() => onTypeChange(expectedType)}
-            />
-          );
-        })}
-      </Box>
+      <DataTypeSelector dataTypes={dataTypeTrees} onSelect={onSelect} />
     </Box>
   );
 };
