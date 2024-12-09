@@ -18,10 +18,9 @@ import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
-import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
 import { Array, pipe, Record, Struct } from "effect";
 
-import type { ESConfig } from "../utils.js";
+import { projectIgnoreFiles, type ESConfig } from "../utils.js";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -491,7 +490,10 @@ export const create = (projectDirectory: string) =>
         "no-console": "off",
       },
     },
-    getGitignorePatterns({ strict: false }),
+    getGitignorePatterns({
+      strict: false,
+      files: projectIgnoreFiles(projectDirectory),
+    }),
     {
       ignores,
     },
