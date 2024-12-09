@@ -316,7 +316,11 @@ const callModel = async (
             : dedent(`
         The Python code ran successfully.
         The stdout from your code was: ${stdout}
-        The following artifacts were generated:\n${artifacts.join("\n")}
+        The following artifacts were generated:\n${
+          // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          artifacts.join("\n")
+        }
 
         Please now review the code used and whether it correctly operates on the context data.
         If you spot errors in how the code attempts to access the code data, submit another code file with the corrections.

@@ -1,5 +1,5 @@
 import { access, mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { Subtype } from "@local/advanced-types/subtype";
@@ -20,9 +20,9 @@ export type SimpleStorageContext = Subtype<
 >;
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-const baseFilePath = join(__dirname, "/var/tmp_files");
+const baseFilePath = path.join(__dirname, "/var/tmp_files");
 
 export const generateSimpleStorageContextFilePaths = (params: {
   hash: string;

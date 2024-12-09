@@ -56,6 +56,8 @@ export const subCoordinatorOmittedCoordinatorToolNames = [
 type SubCoordinatorOmittedCoordinatorToolName =
   (typeof subCoordinatorOmittedCoordinatorToolNames)[number];
 
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const subCoordinatingAgentCustomToolNames = ["complete"] as const;
 
 export type SubCoordinatingAgentCustomToolName =
@@ -179,12 +181,12 @@ export const generateToolDefinitions = <
       description: dedent(`
       Instruct a colleague to help you with a specific part of the research task.
       This is useful when the research task is complex and requires multiple people to work on different parts of it.
-      
+
       Make sure that you take account of any information the user has provided you when instructing your colleague,
       including the original research brief and any subsequent clarifications. Pass this information on to your colleague
       as part of the instructions where it would be helpful.
-      
-      Where you are seeking additional information on specific entities, make sure to include their ids as relevantEntityIds     
+
+      Where you are seeking additional information on specific entities, make sure to include their ids as relevantEntityIds
     `),
       inputSchema: {
         type: "object",
@@ -198,7 +200,7 @@ export const generateToolDefinitions = <
             description: dedent(`
                   The entityId of the proposed entities which the task is relevant to.
                   If none, pass an empty array.
-                  
+
                   ${
                     params.state.entitySummaries.length
                       ? `The possible values are: ${params.state.entitySummaries
@@ -217,8 +219,8 @@ export const generateToolDefinitions = <
                   2. If you are seeking more information on specific entities:
                     a. the names of the entities (their ids should be provided under relevantEntityIds)
                     b. what specific information you are seeking about them
-                  
-                  For example 
+
+                  For example
                   "Find the technical specifications of product X".
                   "Find the LinkedIn URL for person X"
                   "Find the release date, director and box office takings for movie X"
@@ -239,9 +241,9 @@ export const generateToolDefinitions = <
     webSearch: {
       name: "webSearch",
       description:
-        dedent(`Perform a web search via a web search engine, returning a list of URLs. 
+        dedent(`Perform a web search via a web search engine, returning a list of URLs.
         For best results, the query should be specific and concise.
-        Bear in mind that all the information you require may not be available via a single web search 
+        Bear in mind that all the information you require may not be available via a single web search
         – if you have various attributes to gather about specific entities, it may be worth performing multiple searches
         for each entity, or for each entity's attribute, until you find suitable results.
         `),
@@ -266,13 +268,13 @@ export const generateToolDefinitions = <
       name: "inferClaimsFromResource",
       description: dedent(`
       Explore a resource in order to discover entities and 'claims' (possible facts) it contains, as well resources linked from it.
-      
+
       The URLs for the resource must have been provided in messages to you,
       or as the result of a previous action (e.g. a web search, or in suggestions for next steps). Don't guess URLs!
-      
+
       If you want additional information about entities you already know about, or to find new entities to link to existing entities,
       be sure to specify the existing entities under 'relevantEntityIds'.
-      
+
       You can explore multiple resources at once by making multiple calls, but don't start multiple redundant explorations for the same information.
       You can always explore another URL if one doesn't return the information you require.
     `),
@@ -288,7 +290,7 @@ export const generateToolDefinitions = <
             type: "string",
             description: dedent(`
               The goal of exploring this specific resource. This will be used to guide what specific entities and claims are discovered.
-              
+
               DO include:
               1. What specifies entities or types of entities you are seeking information on
               2. Any guidance from the user, whether in the original instructions or subsequent questions and answers, which is relevant to the task
@@ -320,7 +322,7 @@ export const generateToolDefinitions = <
                   The entityIds of already proposed entities which you are seeking further detail on, if any.
                   If you expect new entities you are seeking to be linked to already-discovered entities, specify the already-discovered entities here.
                   If you are unsure if an entity is relevant, just include it – it's better to include too many than too few.
-                  
+
                   If there are absolutely no entities relevant, pass an empty array.
                 `),
           },
@@ -357,7 +359,7 @@ export const generateToolDefinitions = <
               type: "string",
             },
             description: dedent(`
-            An array of entityIds to highlight. 
+            An array of entityIds to highlight.
             The user will receive all entities discovered, with the highlighted entityIds identified for special attention.
             You must have made an effort to find as many properties and outgoing links for each entity as possible,
             as long as they relate to the research task in question.
@@ -385,12 +387,12 @@ export const generateToolDefinitions = <
       description: dedent(`
       Update the plan for the research task.
       You can call this alongside other tool calls to progress towards completing the task.
-      
+
       IMPORTANT: the plan should take account of:
       1. The research goal
       2. The information gathered so far.
-      
-      Don't be afraid to deviate from an earlier plan if you've gathered sufficient information to 
+
+      Don't be afraid to deviate from an earlier plan if you've gathered sufficient information to
       meet the research goal, and return the information discovered.
     `),
       inputSchema: {
@@ -807,10 +809,10 @@ export const generateOutstandingTasksDescription = (
     The following tasks are still outstanding. You may decide to do one of the following:
     1. Call 'waitForOutstandingTasks' to wait for outstanding tasks, OR
     2. Start new tasks.
-    
+
     You may optionally also call 'stopTasks' to stop specific tasks you think are no longer relevant,
     whether or not you're creating new tasks or waiting for outstanding tasks, using their 'toolCallId'.
-    
+
     The outstanding tasks are:
     ${state.outstandingTasks
       .map((task) =>
@@ -822,7 +824,7 @@ export const generateOutstandingTasksDescription = (
     `),
       )
       .join("\n")}
-      
+
     The results of each will be available in due course – but you can stop any now if you think they are no longer relevant.
   `);
 };

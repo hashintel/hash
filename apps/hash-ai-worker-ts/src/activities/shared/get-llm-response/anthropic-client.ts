@@ -91,6 +91,8 @@ const anthropicBedrockClient: AnthropicBedrock = new AnthropicBedrock({
   awsRegion,
 });
 
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const anthropicBedrockModels = [
   "anthropic.claude-3-haiku-20240307-v1:0",
   "anthropic.claude-3-opus-20240229-v1:0",
@@ -109,6 +111,8 @@ export const anthropicModelToBedrockModel: Record<
   "claude-3-5-sonnet-20240620": "anthropic.claude-3-5-sonnet-20240620-v1:0",
 };
 
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const anthropicApiProviders = ["anthropic", "amazon-bedrock"] as const;
 
 export type AnthropicApiProvider = (typeof anthropicApiProviders)[number];

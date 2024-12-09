@@ -130,6 +130,8 @@ export const mapAnthropicMessageToLlmMessage = (params: {
               return {
                 type: "tool_result" as const,
                 tool_use_id: block.tool_use_id,
+                // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+                // eslint-disable-next-line @typescript-eslint/no-base-to-string
                 content: textBlocks?.join("\n") ?? "",
               } satisfies LlmMessageToolResultContent;
             }
