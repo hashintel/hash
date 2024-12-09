@@ -1,4 +1,4 @@
-/// <reference types="vitest" />
+// eslint-disable-next-line import/no-unresolved -- false positive
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({

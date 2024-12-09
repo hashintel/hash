@@ -1,19 +1,19 @@
 import { writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import * as generator from "ts-json-schema-generator";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const config = {
   diagnostics: false,
   noTopRef: true,
-  path: resolve(__dirname, "gpt-query-entities.ts"),
+  path: path.resolve(__dirname, "gpt-query-entities.ts"),
   skipTypeCheck: true,
-  tsconfig: resolve(__dirname, "../../../tsconfig.json"),
+  tsconfig: path.resolve(__dirname, "../../../tsconfig.json"),
 };
 
 const { $ref: queryEntitiesRequestRef, definitions: queryEntitiesRequestDefs } =
@@ -30,7 +30,7 @@ const { $ref: queryTypesRequestRef, definitions: queryTypesRequestDefs } =
   generator
     .createGenerator({
       ...config,
-      path: resolve(__dirname, "gpt-query-types.ts"),
+      path: path.resolve(__dirname, "gpt-query-types.ts"),
     })
     .createSchema("GptQueryTypesRequestBody");
 
@@ -38,7 +38,7 @@ const { $ref: queryTypesResponseRef, definitions: queryTypesResponseDefs } =
   generator
     .createGenerator({
       ...config,
-      path: resolve(__dirname, "gpt-query-types.ts"),
+      path: path.resolve(__dirname, "gpt-query-types.ts"),
     })
     .createSchema("GptQueryTypesResponseBody");
 
@@ -46,7 +46,7 @@ const { $ref: getUserWebsResponseRef, definitions: getUserWebsResponseDefs } =
   generator
     .createGenerator({
       ...config,
-      path: resolve(__dirname, "gpt-get-user-webs.ts"),
+      path: path.resolve(__dirname, "gpt-get-user-webs.ts"),
     })
     .createSchema("GptGetUserWebsResponseBody");
 
@@ -153,4 +153,7 @@ const rewrittenSchema = JSON.stringify(openApiSchema, null, 2).replaceAll(
   "#/components/schemas/",
 );
 
-writeFileSync(resolve(__dirname, "openapi-schema.gen.json"), rewrittenSchema);
+writeFileSync(
+  path.resolve(__dirname, "openapi-schema.gen.json"),
+  rewrittenSchema,
+);
