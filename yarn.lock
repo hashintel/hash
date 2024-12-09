@@ -4660,7 +4660,7 @@ __metadata:
     "@types/dompurify": "npm:2.4.0"
     "@types/react-dom": "npm:18.0.9"
     block-scripts: "npm:0.0.14"
-    dompurify: "npm:2.5.7"
+    dompurify: "npm:2.5.8"
     eslint: "npm:8.57.0"
     mock-block-dock: "npm:0.0.38"
     react: "npm:18.2.0"
@@ -24171,10 +24171,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dompurify@npm:2.5.7":
-  version: 2.5.7
-  resolution: "dompurify@npm:2.5.7"
-  checksum: 10c0/23c4f737182fcf3e731e458c3930ef4d2916191e4180e1e345f153124dfa7ec117d2810af1754e8854c581131fc75dac914a8391183d1511852ef32b4055f711
+"dompurify@npm:2.5.8":
+  version: 2.5.8
+  resolution: "dompurify@npm:2.5.8"
+  checksum: 10c0/4101708d190b67be00350369d72619266a2e0ebb7dcab12628cf07711329b1df12239baea613df41b65cba571128e8ea4c29c442f4e2c98670a9bb5563521f03
   languageName: node
   linkType: hard
 
