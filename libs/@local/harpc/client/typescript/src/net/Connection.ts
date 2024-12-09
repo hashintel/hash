@@ -1,4 +1,3 @@
-import type { NewStreamOptions } from "@libp2p/interface";
 import type { Chunk, Scope } from "effect";
 import {
   Deferred,
