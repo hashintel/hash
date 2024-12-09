@@ -5,7 +5,9 @@ import LinkIcon from "@mui/icons-material/Link";
 import type { SxProps } from "@mui/material";
 import { Tooltip } from "@mui/material";
 import type { CSSProperties, RefObject } from "react";
-import React, { forwardRef, useState } from "react";
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// removed React import
+import { forwardRef, useState } from "react";
 
 import {
   SButtonsWrapper,
@@ -25,7 +27,7 @@ export type ItemProps = {
   onDelete?: () => void;
   paperStyle?: SxProps;
   attributes?: DraggableAttributes;
-  // eslint-disable-next-line @typescript-eslint/ban-types -- this matches the library type we get listeners from
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type -- this matches the library type we get listeners from
   listeners?: Record<string, Function>;
   style?: CSSProperties;
   dragOverlay?: RefObject<HTMLDivElement>;

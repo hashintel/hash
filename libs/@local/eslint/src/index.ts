@@ -27,7 +27,10 @@ export interface Options {
   mutableParametersRegex: () => string[];
 }
 
-export const create = (projectDirectory: string, options?: PartialDeep<Options>): readonly ESConfig[] => {
+export const create = (
+  projectDirectory: string,
+  options?: PartialDeep<Options>,
+): readonly ESConfig[] => {
   const sheriffOptions: SheriffSettings = {
     react: options?.enabled?.frontend === "react",
     next: options?.enabled?.frontend === "next",
@@ -44,11 +47,16 @@ export const create = (projectDirectory: string, options?: PartialDeep<Options>)
 
   return pipe(
     sheriff(sheriffOptions) as readonly ESConfig[],
-    Array.append(getGitignorePatterns({ strict: false , files: projectIgnoreFiles(projectDirectory)})),
+    Array.append(
+      getGitignorePatterns({
+        strict: false,
+        files: projectIgnoreFiles(projectDirectory),
+      }),
+    ),
     builtIn(options ?? {}),
     importPlugin,
     unicorn,
-    react(options? {}),
+    react(options ?? {}),
     typescript,
     stylistic,
   );

@@ -1,5 +1,3 @@
-import getGitignorePatterns from "eslint-config-flat-gitignore";
-import { ignores } from "eslint-config-sheriff";
 import react from "eslint-plugin-react";
 // @ts-expect-error - react-hooks does not expose types
 import reactHooks from "eslint-plugin-react-hooks";
@@ -7,10 +5,12 @@ import unicorn from "eslint-plugin-unicorn";
 import { fixupPluginRules } from "@eslint/compat";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 
-import type { ESConfig } from "../utils.js";
+import { type ESConfig } from "../utils.js";
+import { create as createBase } from "./base.js";
 
-export const create = () =>
+export const create = (projectDirectory: string) =>
   [
+    ...createBase(projectDirectory),
     {
       plugins: {
         "@typescript-eslint": typescriptEslint,
@@ -39,8 +39,7 @@ export const create = () =>
         "react/self-closing-comp": "error",
       },
     },
-    getGitignorePatterns({ strict: false }),
     {
-      ignores,
+      ignores: ["**/types/generated/*.ts"],
     },
   ] as readonly ESConfig[];
