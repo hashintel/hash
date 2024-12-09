@@ -680,13 +680,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@apps/hash-realtime@workspace:apps/hash-realtime"
   dependencies:
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/node": "npm:22.10.0"
     "@types/set-interval-async": "npm:1.0.3"
     cross-env: "npm:7.0.3"
-    eslint: "npm:8.57.0"
+    eslint: "npm:9.16.0"
     set-interval-async: "npm:2.0.3"
     slonik: "npm:24.2.0"
     tsx: "npm:4.19.2"
