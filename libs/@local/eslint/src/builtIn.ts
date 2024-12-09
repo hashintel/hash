@@ -1,9 +1,8 @@
 import { Option, pipe, Predicate, Array as ReadonlyArray } from "effect";
-import { defineFlatConfig } from "eslint-define-config";
 import type { PartialDeep } from "type-fest";
 
-import type { NoRestrictedImportsRule, Options } from "./index.js";
-import { Linter } from "eslint";
+import type { Options } from "./index.js";
+import type { NoRestrictedImportsRule } from "./types.js";
 
 import { ESConfig, defineConfig } from "./utils.js";
 

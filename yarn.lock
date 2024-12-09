@@ -8438,6 +8438,7 @@ __metadata:
     eslint-plugin-storybook: "npm:0.11.1"
     eslint-unicorn: "npm:55.0.0"
     globals: "npm:15.13.0"
+    jiti: "npm:2.4.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.2"
   languageName: unknown
@@ -31764,6 +31765,15 @@ __metadata:
     merge-stream: "npm:^2.0.0"
     supports-color: "npm:^8.0.0"
   checksum: 10c0/5570a3a005b16f46c131968b8a5b56d291f9bbb85ff4217e31c80bd8a02e7de799e59a54b95ca28d5c302f248b54cbffde2d177c2f0f52ffcee7504c6eabf660
+  languageName: node
+  linkType: hard
+
+"jiti@npm:2.4.1":
+  version: 2.4.1
+  resolution: "jiti@npm:2.4.1"
+  bin:
+    jiti: lib/jiti-cli.mjs
+  checksum: 10c0/3cf67d1b952a9e8cffbb4f96527880da6cdb58a1eae2a6d2deb4645621dfc8b766d21549f71c6153a2094a40bb635ffafed4cd0dd42f3b3263b187d1ee846225
   languageName: node
   linkType: hard
 

@@ -15,7 +15,9 @@
     }
   },
   "scripts": {
-    "build": "rimraf dist && tsc --build tsconfig.build.json"
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
+    "fix:eslint": "eslint --report-unused-disable-directives --flag unstable_ts_config --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives --flag unstable_ts_config ."
   },
   "dependencies": {
     "@eslint/compat": "1.2.4",
@@ -33,6 +35,7 @@
   },
   "devDependencies": {
     "@types/eslint__eslintrc": "2.1.2",
+    "jiti": "2.4.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.2"
   }

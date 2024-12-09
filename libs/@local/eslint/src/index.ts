@@ -8,29 +8,12 @@ import { react } from "./react.js";
 import { stylistic } from "./stylistic.js";
 import { typescript } from "./typescript.js";
 import { unicorn } from "./unicorn.js";
-import { defineConfig, ESConfig } from "./utils.js";
+import { ESConfig } from "./utils.js";
+import { NoRestrictedImportsRule } from "./types.js";
 
-// A subset of the allowed rule config, because we're sane
-export interface NoRestrictedImportsPath {
-  name: string;
-  message?: string;
-  importNames?: string[];
-}
+export * from "./types.js";
 
-export interface NoRestrictedImportsPattern {
-  importNames?: [string, ...string[]];
-  group: [string, ...string[]];
-  importNamePattern?: string;
-  message?: string;
-  caseSensitive?: boolean;
-}
-
-export interface NoRestrictedImportsRule {
-  paths?: (NoRestrictedImportsPath | string)[];
-  patterns?: NoRestrictedImportsPattern[];
-}
-
-interface Modules {
+export interface Modules {
   frontend: "next" | "react" | false;
   playwright: boolean;
   tests: boolean;
