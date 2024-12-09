@@ -8,7 +8,6 @@ import { react } from "./react.js";
 import { stylistic } from "./stylistic.js";
 import { typescript } from "./typescript.js";
 import { unicorn } from "./unicorn.js";
-import { storybook } from "./storybook.js";
 import { defineConfig, ESConfig } from "./utils.js";
 
 // A subset of the allowed rule config, because we're sane
@@ -61,13 +60,11 @@ export const create = (options: PartialDeep<Options>): readonly ESConfig[] => {
 
   return pipe(
     sheriff(sheriffOptions) as readonly ESConfig[],
-    defineConfig,
     builtIn(options),
     importPlugin,
     unicorn,
     react(options),
     typescript,
     stylistic,
-    storybook(options),
   );
 };
