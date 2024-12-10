@@ -1,3 +1,3 @@
 import { create } from "@local/eslint";
 
-export default create({});
+export default create(import.meta.dirname);

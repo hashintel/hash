@@ -1,5 +1,5 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["scripts", "eslint.config.js"],
+  "include": ["scripts"],
   "exclude": ["scripts/create-block/**/*.d.ts"]
 }

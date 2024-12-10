@@ -5,10 +5,5 @@
     "lib": ["dom", "dom.iterable", "ESNext"],
     "noEmit": true
   },
-  "include": [
-    "assets.d.ts",
-    "theme-override.d.ts",
-    "./src/",
-    "eslint.config.js"
-  ]
+  "include": ["assets.d.ts", "theme-override.d.ts", "./src/"]
 }

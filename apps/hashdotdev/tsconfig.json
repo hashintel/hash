@@ -16,8 +16,7 @@
     "next-env.d.ts",
     "theme-override.d.ts",
     "**/*.ts",
-    "**/*.tsx",
-    "eslint.config.js"
+    "**/*.tsx"
   ],
   "exclude": ["node_modules"]
 }
