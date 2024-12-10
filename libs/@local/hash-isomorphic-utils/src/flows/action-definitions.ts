@@ -6,6 +6,8 @@ import type {
   StepInput,
 } from "./types.js";
 
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const actionDefinitionIds = [
   "answerQuestion",
   "generateWebQueries",
