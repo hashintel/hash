@@ -217,12 +217,14 @@ where
 
         let query = if include_data_type_children {
             "
-                SELECT DISTINCT ON (ontology_id) schema, closed_schema
-                FROM data_type_inherits_from
-                JOIN data_types
-                  ON ontology_id = source_data_type_ontology_id
-                  OR ontology_id = target_data_type_ontology_id
-                WHERE target_data_type_ontology_id = ANY($1);
+                SELECT schema, closed_schema
+                FROM data_types
+                WHERE ontology_id = ANY($1)
+                    OR ontology_id IN (
+                        SELECT source_data_type_ontology_id
+                        FROM data_type_inherits_from
+                        WHERE target_data_type_ontology_id = ANY($1)
+                    );
             "
         } else {
             "
