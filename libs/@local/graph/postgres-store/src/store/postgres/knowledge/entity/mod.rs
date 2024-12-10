@@ -1337,7 +1337,7 @@ where
                     sorting: params.sorting,
                     limit: params.limit,
                     include_drafts: params.include_drafts,
-                    include_count: false,
+                    include_count: params.include_count,
                     include_entity_types: None,
                     include_web_ids: params.include_web_ids,
                     include_created_by_ids: params.include_created_by_ids,

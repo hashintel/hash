@@ -5,12 +5,17 @@ use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
-        EntityStore as _, GetEntitiesParams, GetEntitiesResponse,
+        EntityStore as _, GetEntitySubgraphParams, GetEntitySubgraphResponse,
     },
     filter::{Filter, JsonPath, PathToken},
     query::{NullOrdering, Ordering},
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    subgraph::{
+        edges::GraphResolveDepths,
+        identifier::GraphElementVertexId,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
     },
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
@@ -58,8 +63,8 @@ async fn test_root_sorting<A: AuthorizationApi>(
     let mut entities = Vec::new();
 
     loop {
-        let GetEntitiesResponse {
-            entities: new_entities,
+        let GetEntitySubgraphResponse {
+            mut subgraph,
             count,
             cursor: new_cursor,
             closed_multi_entity_types: _,
@@ -69,7 +74,7 @@ async fn test_root_sorting<A: AuthorizationApi>(
             edition_created_by_ids: _,
             type_ids: _,
         } = api
-            .get_entities(api.account_id, GetEntitiesParams {
+            .get_entity_subgraph(api.account_id, GetEntitySubgraphParams {
                 filter: Filter::All(Vec::new()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -81,6 +86,7 @@ async fn test_root_sorting<A: AuthorizationApi>(
                 },
                 limit: Some(chunk_size),
                 conversions: Vec::new(),
+                graph_resolve_depths: GraphResolveDepths::default(),
                 include_count: true,
                 include_entity_types: None,
                 include_drafts: false,
@@ -91,6 +97,16 @@ async fn test_root_sorting<A: AuthorizationApi>(
             })
             .await
             .expect("could not get entity");
+        let new_entities = subgraph
+            .roots
+            .into_iter()
+            .filter_map(|root| match root {
+                GraphElementVertexId::KnowledgeGraph(entity_vertex_id) => {
+                    subgraph.vertices.entities.remove(&entity_vertex_id)
+                }
+                _ => unreachable!(),
+            })
+            .collect::<Vec<_>>();
         assert_eq!(count, Some(expected_order.len()));
         let num_entities = new_entities.len();
 
