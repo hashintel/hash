@@ -56,7 +56,10 @@ mod tests {
             Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
             PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
             error::install_error_stack_hooks,
-            visitor::{EntityVisitor as _, TraversalError},
+            visitor::{
+                EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
+                TraversalError,
+            },
         },
         ontology::{
             DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
@@ -271,7 +274,7 @@ mod tests {
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadataObject, Report<[TraversalError]>> {
+    ) -> Result<PropertyWithMetadataObject, ObjectValidationReport> {
         install_error_stack_hooks();
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
@@ -332,8 +335,7 @@ mod tests {
 
         EntityPreprocessor { components }
             .visit_object(&closed_multi_entity_type, &mut properties, &provider)
-            .await
-            .expect("properties should be valid");
+            .await?;
 
         Ok(properties)
     }
@@ -345,7 +347,7 @@ mod tests {
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadata, Report<[TraversalError]>> {
+    ) -> Result<PropertyWithMetadata, PropertyValidationReport> {
         install_error_stack_hooks();
         let property = Property::deserialize(property).expect("failed to deserialize property");
 
@@ -367,8 +369,8 @@ mod tests {
             .expect("failed to create property with metadata");
         EntityPreprocessor { components }
             .visit_property(&property_type, &mut property, &provider)
-            .await
-            .expect("Property should be valid");
+            .await?;
+
         Ok(property)
     }
 

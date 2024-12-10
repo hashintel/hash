@@ -25,35 +25,8 @@ use crate::{
 pub enum TraversalError {
     #[error("the validator was unable to read the data type `{}`", id.url)]
     DataTypeRetrieval { id: DataTypeReference },
-    #[error(
-        "the validator was unable to read the data type conversion from `{}` to `{}`", current.url, target.url
-    )]
-    ConversionRetrieval {
-        current: DataTypeReference,
-        target: DataTypeReference,
-    },
-    #[error("the validator was unable to read the property type `{}`", id.url)]
-    PropertyTypeRetrieval { id: PropertyTypeReference },
-
-    #[error("the property `{key}` was specified, but not in the schema")]
-    UnexpectedProperty { key: BaseUrl },
-    #[error(
-        "the value provided does not match the property type schema, expected `{expected}`, got \
-         `{actual}`"
-    )]
-    InvalidType {
-        actual: JsonSchemaValueType,
-        expected: JsonSchemaValueType,
-    },
-    #[error("a value was expected, but the property provided was of type `{actual}`")]
-    ExpectedValue { actual: JsonSchemaValueType },
-    #[error("The property provided is ambiguous, more than one schema passed the validation.")]
-    AmbiguousProperty { actual: PropertyWithMetadata },
     #[error("The data type ID was not specified and is ambiguous.")]
     AmbiguousDataType,
-    #[error("Could not find a suitable data type for the property")]
-    DataTypeUnspecified,
-
     #[error(
         "the value provided does not match the data type in the metadata, expected `{expected}` \
          or a child of it, got `{actual}`"
@@ -66,35 +39,6 @@ pub enum TraversalError {
     AbstractDataType { id: VersionedUrl },
     #[error("the value provided does not match the constraints of the data type")]
     ConstraintUnfulfilled,
-    #[error("the value provided does not match the data type")]
-    DataTypeUnfulfilled,
-    #[error(
-        "the value provided does not match the property type. Exactly one constraint has to be \
-         fulfilled."
-    )]
-    PropertyTypeUnfulfilled,
-    #[error("the entity provided does not match the entity type")]
-    EntityTypeUnfulfilled,
-    #[error("the property `{key}` was required, but not specified")]
-    MissingRequiredProperty { key: BaseUrl },
-    #[error(
-        "the number of items in the array is too small, expected at least {min}, but found \
-         {actual}"
-    )]
-    TooFewItems { actual: usize, min: usize },
-    #[error(
-        "the number of items in the array is too large, expected at most {max}, but found {actual}"
-    )]
-    TooManyItems { actual: usize, max: usize },
-    #[error(
-        "The provided canonical value `{actual}` for `{key}` is different than the calculated \
-         value `{expected}`"
-    )]
-    InvalidCanonicalValue {
-        key: BaseUrl,
-        expected: f64,
-        actual: f64,
-    },
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
