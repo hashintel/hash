@@ -5,5 +5,5 @@
     "lib": ["dom", "dom.iterable", "ESNext"],
     "noEmit": true
   },
-  "include": ["theme-override.d.ts", "./src/"]
+  "include": ["theme-override.d.ts", "./src/", "eslint.config.js"]
 }

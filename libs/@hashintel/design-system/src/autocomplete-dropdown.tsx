@@ -25,16 +25,16 @@ export const AutocompleteDropdown = ({
           pointerEvents: "none",
           borderRadius: `${textFieldBorderRadius}px`,
           [`${popperPlacementSelectors.top} &`]: {
-            bottom: -inputHeight,
+            bottom: -Number(inputHeight),
           },
           [`${popperPlacementSelectors.topStart} &`]: {
-            bottom: -inputHeight,
+            bottom: -Number(inputHeight),
           },
           [`${popperPlacementSelectors.bottom} &`]: {
-            top: -inputHeight,
+            top: -Number(inputHeight),
           },
           [`${popperPlacementSelectors.bottomStart} &`]: {
-            top: -inputHeight,
+            top: -Number(inputHeight),
           },
         })}
         aria-hidden

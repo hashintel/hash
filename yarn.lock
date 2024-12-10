@@ -7583,7 +7583,7 @@ __metadata:
     "@emotion/react": "npm:11.13.5"
     "@emotion/styled": "npm:11.13.5"
     "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@local/eslint": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/hash-subgraph": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
@@ -7592,8 +7592,8 @@ __metadata:
     "@types/react": "npm:18.2.68"
     "@types/react-dom": "npm:18.2.25"
     "@types/react-syntax-highlighter": "npm:15.5.13"
-    eslint: "npm:8.57.0"
-    eslint-plugin-storybook: "npm:0.8.0"
+    eslint: "npm:9.16.0"
+    eslint-plugin-storybook: "npm:0.11.1"
     lowlight: "npm:2.9.0"
     react: "npm:18.2.0"
     react-dom: "npm:18.2.0"
@@ -7621,7 +7621,7 @@ __metadata:
     "@emotion/styled": "npm:11.13.5"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@local/eslint": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.7"
@@ -7631,8 +7631,8 @@ __metadata:
     "@types/react-dom": "npm:18.2.25"
     clsx: "npm:1.2.1"
     echarts: "npm:5.5.1"
-    eslint: "npm:8.57.0"
-    eslint-plugin-storybook: "npm:0.8.0"
+    eslint: "npm:9.16.0"
+    eslint-plugin-storybook: "npm:0.11.1"
     react: "npm:18.2.0"
     react-dom: "npm:18.2.0"
     react-loading-skeleton: "npm:3.5.0"
@@ -7657,11 +7657,12 @@ __metadata:
     "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
     "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@local/eslint": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.7"
     "@mui/system": "npm:5.16.7"
     clsx: "npm:1.2.1"
-    eslint: "npm:8.57.0"
+    eslint: "npm:9.16.0"
+    eslint-plugin-storybook: "npm:0.11.1"
     react: "npm:18.2.0"
     react-dom: "npm:18.2.0"
     react-hook-form: "npm:7.53.2"
@@ -7684,14 +7685,15 @@ __metadata:
     "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
     "@hashintel/design-system": "npm:0.0.8"
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@local/eslint": "npm:0.0.0-private"
     "@local/hash-subgraph": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.7"
     "@mui/system": "npm:5.16.7"
     "@types/lodash.memoize": "npm:4.1.9"
     "@types/lodash.uniqueid": "npm:4.0.9"
     clsx: "npm:1.2.1"
-    eslint: "npm:8.57.0"
+    eslint: "npm:9.16.0"
+    eslint-plugin-storybook: "npm:0.11.1"
     lodash.memoize: "npm:4.1.2"
     lodash.uniqueid: "npm:4.0.1"
     material-ui-popup-state: "npm:4.1.0"
@@ -15002,15 +15004,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/csf@npm:^0.0.1":
-  version: 0.0.1
-  resolution: "@storybook/csf@npm:0.0.1"
-  dependencies:
-    lodash: "npm:^4.17.15"
-  checksum: 10c0/7b0f75763415f9147692a460b44417ee56ea9639433716a1fd4d1df4c8b0221cbc71b8da0fbed4dcecb3ccd6c7ed64be39f5c255c713539a6088a1d6488aaa24
-  languageName: node
-  linkType: hard
-
 "@storybook/csf@npm:^0.1.11":
   version: 0.1.12
   resolution: "@storybook/csf@npm:0.1.12"
@@ -18505,7 +18498,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/utils@npm:5.62.0, @typescript-eslint/utils@npm:^5.62.0":
+"@typescript-eslint/utils@npm:5.62.0":
   version: 5.62.0
   resolution: "@typescript-eslint/utils@npm:5.62.0"
   dependencies:
@@ -26838,20 +26831,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-storybook@npm:0.8.0":
-  version: 0.8.0
-  resolution: "eslint-plugin-storybook@npm:0.8.0"
-  dependencies:
-    "@storybook/csf": "npm:^0.0.1"
-    "@typescript-eslint/utils": "npm:^5.62.0"
-    requireindex: "npm:^1.2.0"
-    ts-dedent: "npm:^2.2.0"
-  peerDependencies:
-    eslint: ">=6"
-  checksum: 10c0/c76f6decdd4c826cd6a8bb613085e0cde804f4648093a0464a39867cc0ba4e1d34be15ff91eed827730da5efbbf55ae5e71af648bb0b461946d5e41384669ab8
-  languageName: node
-  linkType: hard
-
 "eslint-plugin-storybook@npm:^0.10.2":
   version: 0.10.2
   resolution: "eslint-plugin-storybook@npm:0.10.2"
@@ -33582,7 +33561,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash@npm:4.17.21, lodash@npm:^4, lodash@npm:^4.17.14, lodash@npm:^4.17.15, lodash@npm:^4.17.19, lodash@npm:^4.17.20, lodash@npm:^4.17.21, lodash@npm:^4.17.4, lodash@npm:~4.17.0":
+"lodash@npm:4.17.21, lodash@npm:^4, lodash@npm:^4.17.14, lodash@npm:^4.17.19, lodash@npm:^4.17.20, lodash@npm:^4.17.21, lodash@npm:^4.17.4, lodash@npm:~4.17.0":
   version: 4.17.21
   resolution: "lodash@npm:4.17.21"
   checksum: 10c0/d8cbea072bb08655bb4c989da418994b073a608dffa608b09ac04b43a791b12aeae7cd7ad919aa4c925f33b48490b5cfe6c1f71d827956071dae2e7bb3a6b74c
@@ -41591,13 +41570,6 @@ __metadata:
   version: 2.0.0
   resolution: "require-main-filename@npm:2.0.0"
   checksum: 10c0/db91467d9ead311b4111cbd73a4e67fa7820daed2989a32f7023785a2659008c6d119752d9c4ac011ae07e537eb86523adff99804c5fdb39cd3a017f9b401bb6
-  languageName: node
-  linkType: hard
-
-"requireindex@npm:^1.2.0":
-  version: 1.2.0
-  resolution: "requireindex@npm:1.2.0"
-  checksum: 10c0/7fb42aed73bf8de9acc4d6716cf07acc7fbe180e58729433bafcf702e76e7bb10e54f8266c06bfec62d752e0ac14d50e8758833de539e6f4e2cd642077866153
   languageName: node
   linkType: hard
 
