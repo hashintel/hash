@@ -30,8 +30,8 @@ use hash_graph_store::{
         ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeQueryToken,
         EntityTypeResolveDefinitions, EntityTypeStore as _, GetClosedMultiEntityTypeParams,
         GetClosedMultiEntityTypeResponse, GetEntityTypeSubgraphParams, GetEntityTypesParams,
-        GetEntityTypesResponse, IncludeEntityTypeOption, UnarchiveEntityTypeParams,
-        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        GetEntityTypesResponse, IncludeEntityTypeOption, IncludeResolvedEntityTypeOption,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     pool::StorePool,
     query::ConflictBehavior,
@@ -111,6 +111,7 @@ use crate::rest::{
             GetEntityTypeSubgraphResponse,
             ArchiveEntityTypeParams,
             UnarchiveEntityTypeParams,
+            IncludeResolvedEntityTypeOption,
         )
     ),
     tags(

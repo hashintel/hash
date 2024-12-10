@@ -32,11 +32,11 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.3.4",
-    "@dnd-kit/core": "6.2.0",
+    "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.2",
     "@hashintel/block-design-system": "0.0.2",
-    "@mui/material": "5.16.7",
+    "@mui/material": "5.16.9",
     "clsx": "1.2.1",
     "lodash.clonedeep": "4.5.0",
     "lodash.debounce": "4.0.8",
@@ -53,7 +53,7 @@
     "block-scripts": "0.3.4",
     "eslint": "8.57.0",
     "mock-block-dock": "0.1.9",
-    "prettier": "3.4.1",
+    "prettier": "3.4.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "5.6.3"

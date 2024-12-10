@@ -17,7 +17,7 @@ use crate::{
         PropertyWithMetadataValue, ValueMetadata,
         error::{Actual, Expected},
     },
-    ontology::{DataTypeLookup, DataTypeWithMetadata, OntologyTypeProvider, PropertyTypeProvider},
+    ontology::{DataTypeLookup, DataTypeWithMetadata, OntologyTypeProvider},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -124,7 +124,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         type_provider: &P,
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
-        P: DataTypeLookup + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
         walk_property(self, schema, property, type_provider)
     }
@@ -140,7 +140,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
         T: PropertyValueSchema + Sync,
-        P: DataTypeLookup + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
         walk_array(self, schema, array, type_provider)
     }
@@ -156,7 +156,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
         T: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
-        P: DataTypeLookup + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
         walk_object(self, schema, object, type_provider)
     }
@@ -186,7 +186,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         type_provider: &P,
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
-        P: DataTypeLookup + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
         walk_one_of_array(self, schema, array, type_provider)
     }
@@ -201,7 +201,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         type_provider: &P,
     ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
-        P: DataTypeLookup + PropertyTypeProvider + Sync,
+        P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
         walk_one_of_object(self, schema, object, type_provider)
     }
@@ -268,7 +268,7 @@ pub async fn walk_property<V, P>(
 ) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
-    P: DataTypeLookup + PropertyTypeProvider + Sync,
+    P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
     let mut status = ReportSink::new();
     match property {
@@ -314,7 +314,7 @@ pub async fn walk_array<V, S, P>(
 where
     V: EntityVisitor,
     S: PropertyValueSchema + Sync,
-    P: DataTypeLookup + PropertyTypeProvider + Sync,
+    P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
     let mut status = ReportSink::new();
 
@@ -378,7 +378,7 @@ pub async fn walk_object<V, S, P>(
 where
     V: EntityVisitor,
     S: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
-    P: DataTypeLookup + PropertyTypeProvider + Sync,
+    P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
     let mut status = ReportSink::new();
 
@@ -543,7 +543,7 @@ pub async fn walk_one_of_array<V, P>(
 ) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
-    P: DataTypeLookup + PropertyTypeProvider + Sync,
+    P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
     let mut status = ReportSink::new();
     let mut passed: usize = 0;
@@ -607,7 +607,7 @@ pub async fn walk_one_of_object<V, P>(
 ) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
-    P: DataTypeLookup + PropertyTypeProvider + Sync,
+    P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
     let mut status = ReportSink::new();
     let mut passed: usize = 0;

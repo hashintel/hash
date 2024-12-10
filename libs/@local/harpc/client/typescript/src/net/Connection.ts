@@ -1,8 +1,5 @@
-import type { PeerId } from "@libp2p/interface";
-import type { Multiaddr } from "@multiformats/multiaddr";
-import type { Chunk } from "effect";
+import type { Chunk, Scope } from "effect";
 import {
-  Data,
   Deferred,
   Duration,
   Effect,
@@ -14,6 +11,7 @@ import {
   Sink,
   Stream,
 } from "effect";
+import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
 import { Buffer } from "../wire-protocol/index.js";
@@ -23,32 +21,27 @@ import type { Response as WireResponse } from "../wire-protocol/models/response/
 import { ResponseFlags } from "../wire-protocol/models/response/index.js";
 import { ResponseFromBytesStream } from "../wire-protocol/stream/index.js";
 import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
-import type * as internalTransport from "./internal/transport.js";
-import type * as Request from "./Request.js";
+import * as internalTransport from "./internal/transport.js";
+import * as Request from "./Request.js";
 import * as Transaction from "./Transaction.js";
+import * as Transport from "./Transport.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Connection");
 export type TypeId = typeof TypeId;
 
-export class TransportError extends Data.TaggedError("TransportError")<{
-  cause: unknown;
-}> {
-  get message() {
-    return "Underlying transport stream experienced an error";
-  }
-}
-
 interface ConnectionDuplex {
   readonly read: Stream.Stream<
     WireResponse.Response,
-    TransportError | WireResponse.DecodeError | IncompleteResponseError
+    | Transport.TransportError
+    | WireResponse.DecodeError
+    | IncompleteResponseError
   >;
 
   readonly write: Sink.Sink<
     void,
     WireRequest.Request,
     never,
-    TransportError | WireRequest.EncodeError
+    Transport.TransportError | WireRequest.EncodeError
   >;
 }
 
@@ -70,7 +63,23 @@ export interface ConnectionConfig {
    */
   responseBufferSize?: number;
 
+  /**
+   * If specified, and no handler has been registered with the registrar for the
+   * successfully negotiated protocol, use this as the max outbound stream limit
+   * for the protocol.
+   */
   maxOutboundStreams?: number;
+
+  /**
+   * Opt-in to running over a limited connection - one that has restrictions
+   * on the amount of data that may be transferred or how long it may be open for.
+   *
+   * These limits are typically enforced by a relay server, if the protocol
+   * will be transferring a lot of data or the stream will be open for a long time
+   * consider upgrading to a direct connection before opening the stream.
+   *
+   * @default false
+   */
   runOnLimitedConnection?: boolean;
 }
 
@@ -100,6 +109,8 @@ const ConnectionProto: Omit<
 > = {
   [TypeId]: TypeId,
 };
+
+export const Connection = GenericTag<Connection>(TypeId.description!);
 
 const makeSink = (connection: ConnectionImpl) =>
   // eslint-disable-next-line unicorn/no-array-for-each
@@ -138,7 +149,7 @@ const makeSink = (connection: ConnectionImpl) =>
       }
 
       if (ResponseFlags.isEndOfResponse(response.header.flags)) {
-        yield* Effect.logDebug("end of response");
+        yield* Effect.logTrace("end of response, running drop");
 
         yield* transaction.value.drop;
       }
@@ -180,28 +191,29 @@ const task = (connection: ConnectionImpl) =>
 export const makeUnchecked = (
   transport: internalTransport.Transport,
   config: ConnectionConfig,
-  peer: PeerId | Multiaddr | Multiaddr[],
+  peer: Transport.Address,
 ) =>
   Effect.gen(function* () {
-    const connection = yield* Effect.tryPromise((abort) =>
-      transport.dial(peer, { signal: abort }),
-    );
+    const connection = yield* internalTransport.connect(transport, peer);
 
     const stream = yield* Effect.acquireRelease(
-      Effect.tryPromise((abort) =>
-        connection.newStream("/harpc/1.0.0", {
-          signal: abort,
-          maxOutboundStreams: config.maxOutboundStreams,
-          runOnLimitedConnection: config.runOnLimitedConnection,
-        }),
-      ),
-      (_) => Effect.promise(() => _.close()),
+      Effect.tryPromise({
+        try: (abort) => {
+          return connection.newStream("/harpc/1.0.0", {
+            signal: abort,
+            maxOutboundStreams: config.maxOutboundStreams,
+            runOnLimitedConnection: config.runOnLimitedConnection,
+          });
+        },
+        catch: (cause) => new Transport.TransportError({ cause }),
+      }),
+      (_) => Effect.promise((abort) => _.close({ signal: abort })),
     );
 
     const readStream = pipe(
       Stream.fromAsyncIterable(
         stream.source,
-        (cause) => new TransportError({ cause }),
+        (cause) => new Transport.TransportError({ cause }),
       ),
       Stream.mapConcat((list) => list),
       ResponseFromBytesStream.make,
@@ -211,7 +223,7 @@ export const makeUnchecked = (
       Sink.forEachChunk((chunk: Chunk.Chunk<Uint8Array>) =>
         Effect.try({
           try: () => stream.sink(chunk),
-          catch: (cause) => new TransportError({ cause }),
+          catch: (cause) => new Transport.TransportError({ cause }),
         }),
       ),
       Sink.mapInputEffect((request: WireRequest.Request) =>
@@ -243,17 +255,24 @@ export const makeUnchecked = (
     return self as Connection;
   });
 
+// these bounds are stricter than required, as we have no way to inform the remote about a failure in the underlying stream,
+// see: https://linear.app/hash/issue/H-3748/request-interruption
 export const send: {
-  <E, R>(
-    request: Request.Request<E, R>,
-  ): (self: Connection) => Effect.Effect<Transaction.Transaction>;
-  <E, R>(
+  <R>(
+    request: Request.Request<never, R>,
+  ): (
     self: Connection,
-    request: Request.Request<E, R>,
-  ): Effect.Effect<Transaction.Transaction>;
+  ) => Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>>;
+  <R>(
+    self: Connection,
+    request: Request.Request<never, R>,
+  ): Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>>;
 } = Function.dual(
   2,
-  <E, R>(self: ConnectionImpl, request: Request.Request<E, R>) =>
+  <R>(
+    self: ConnectionImpl,
+    request: Request.Request<never, R>,
+  ): Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>> =>
     Effect.gen(function* () {
       const deferredDrop = yield* Deferred.make<void>();
       const drop = wrapDrop(self, request.id, deferredDrop);
@@ -268,6 +287,14 @@ export const send: {
       };
 
       MutableHashMap.set(self.transactions, request.id, transactionContext);
+
+      yield* Effect.fork(
+        pipe(
+          request, //
+          Request.encode(),
+          Stream.run(self.duplex.write),
+        ),
+      );
 
       return Transaction.makeUnchecked(request.id, queue, deferredDrop);
     }),

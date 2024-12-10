@@ -5,7 +5,6 @@ import type { PartialEntityType } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   getOutgoingLinkAndTargetEntities,
-  getRoots,
   intervalCompareWithInterval,
 } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -21,6 +20,7 @@ export const useRows = () => {
     closedMultiEntityType,
     closedMultiEntityTypesDefinitions,
     closedMultiEntityTypesMap,
+    entity,
     entitySubgraph,
     draftLinksToArchive,
     draftLinksToCreate,
@@ -34,8 +34,6 @@ export const useRows = () => {
   const { uploads, uploadFile } = useFileUploads();
 
   const rows = useMemo<LinkRow[]>(() => {
-    const entity = getRoots(entitySubgraph)[0]!;
-
     const variableAxis = entitySubgraph.temporalAxes.resolved.variable.axis;
     const entityInterval = entity.metadata.temporalVersioning[variableAxis];
 
@@ -213,6 +211,7 @@ export const useRows = () => {
     closedMultiEntityTypesMap,
     closedMultiEntityTypesDefinitions,
     entitySubgraph,
+    entity,
     draftLinksToArchive,
     draftLinksToCreate,
     isSpecialEntityTypeLookup,

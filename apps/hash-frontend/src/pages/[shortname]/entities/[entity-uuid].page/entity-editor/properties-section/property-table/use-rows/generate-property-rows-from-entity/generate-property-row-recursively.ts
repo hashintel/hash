@@ -53,6 +53,7 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
 export const generatePropertyRowRecursively = ({
   closedMultiEntityType,
   closedMultiEntityTypesDefinitions,
+  generateNewMetadataObject,
   propertyTypeBaseUrl,
   propertyKeyChain,
   entity,
@@ -62,6 +63,7 @@ export const generatePropertyRowRecursively = ({
 }: {
   closedMultiEntityType: ClosedMultiEntityType;
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
+  generateNewMetadataObject: PropertyRow["generateNewMetadataObject"];
   propertyTypeBaseUrl: BaseUrl;
   propertyKeyChain: BaseUrl[];
   entity: Entity;
@@ -81,12 +83,22 @@ export const generatePropertyRowRecursively = ({
     throw new Error(`Property type ${propertyTypeId} not found in definitions`);
   }
 
-  const { isArray: isPropertyTypeArray, expectedTypes } =
-    getExpectedTypesOfPropertyType(
-      propertyType,
-      closedMultiEntityTypesDefinitions,
-    );
+  const {
+    /**
+     * Whether the property type specifies that it expects an array of values.
+     */
+    isArray: isPropertyTypeArray,
+    expectedTypes,
+  } = getExpectedTypesOfPropertyType(
+    propertyType,
+    closedMultiEntityTypesDefinitions,
+  );
 
+  /**
+   * Whether the entity type has specified that it expects multiple instances of whatever value this property expects.
+   * Note that the editor currently only supports 1D arrays, and therefore does not support
+   * isPropertyTypeArray && isAllowMultiple, which would be a 2D array.
+   */
   const isAllowMultiple = "type" in propertyRefSchema;
 
   const isArray = isPropertyTypeArray || isAllowMultiple;
@@ -95,6 +107,10 @@ export const generatePropertyRowRecursively = ({
 
   const value = get(entity.properties, propertyKeyChain);
   const valueMetadata = entity.propertyMetadata(propertyKeyChain);
+
+  if (value !== undefined && !valueMetadata) {
+    throw new Error(`Property metadata not found for path ${propertyKeyChain}`);
+  }
 
   const children: PropertyRow[] = [];
 
@@ -111,6 +127,7 @@ export const generatePropertyRowRecursively = ({
         generatePropertyRowRecursively({
           closedMultiEntityType,
           closedMultiEntityTypesDefinitions,
+          generateNewMetadataObject,
           propertyTypeBaseUrl: subPropertyTypeBaseUrl as BaseUrl,
           propertyKeyChain: [
             ...propertyKeyChain,
@@ -164,6 +181,7 @@ export const generatePropertyRowRecursively = ({
     ...minMaxConfig,
     children,
     depth,
+    generateNewMetadataObject,
     indent,
     isArray,
     isSingleUrl,

@@ -1,2 +1,2 @@
 CREATE EXTENSION
-  citus;
+citus;

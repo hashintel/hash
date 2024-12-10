@@ -337,7 +337,7 @@ const Page: NextPageWithLayout = () => {
               oldProperties: entityFromDb?.properties ?? {},
               newProperties: mergePropertyObjectAndMetadata(
                 overrideProperties ?? draftEntity.properties,
-                undefined,
+                draftEntity.metadata.properties,
               ),
             }),
           },
@@ -457,6 +457,7 @@ const Page: NextPageWithLayout = () => {
             omitProperties: [],
           }),
         );
+        setIsDirty(true);
       }}
     />
   );

@@ -53,6 +53,7 @@ import {
   removeEntityViewerResolver,
   updateEntitiesResolver,
   updateEntityResolver,
+  validateEntityResolver,
 } from "./knowledge/entity/entity";
 import { getEntityDiffsResolver } from "./knowledge/entity/get-entity-diffs";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
@@ -147,6 +148,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     generateInverse: loggedInMiddleware(generateInverseResolver),
     generatePlural: loggedInMiddleware(generatePluralResolver),
     isGenerationAvailable: isGenerationAvailableResolver,
+    validateEntity: validateEntityResolver,
   },
 
   Mutation: {

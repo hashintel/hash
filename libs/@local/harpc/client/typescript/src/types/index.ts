@@ -1,5 +1,3 @@
-/* eslint-disable canonical/filename-no-index */
-
 export * as ErrorCode from "./ErrorCode.js";
 export * as ProcedureDescriptor from "./ProcedureDescriptor.js";
 export * as ProcedureId from "./ProcedureId.js";

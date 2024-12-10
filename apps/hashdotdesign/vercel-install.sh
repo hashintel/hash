@@ -19,4 +19,4 @@ source "$HOME/.cargo/env"
 for _ in {1..5}; do rustup show && break || sleep 5; done
 
 echo "Installing yarn dependencies"
-HUSKY=0 yarn install --immutable
+LEFTHOOK=0 yarn install --immutable

@@ -114,6 +114,26 @@ pub struct GetEntityTypesParams<'p> {
 pub enum IncludeEntityTypeOption {
     Closed,
     Resolved,
+    ResolvedWithDataTypeChildren,
+}
+
+impl From<IncludeResolvedEntityTypeOption> for IncludeEntityTypeOption {
+    fn from(value: IncludeResolvedEntityTypeOption) -> Self {
+        match value {
+            IncludeResolvedEntityTypeOption::Resolved => Self::Resolved,
+            IncludeResolvedEntityTypeOption::ResolvedWithDataTypeChildren => {
+                Self::ResolvedWithDataTypeChildren
+            }
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct ClosedDataTypeDefinition {
+    pub schema: ClosedDataType,
+    pub parents: Vec<VersionedUrl>,
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -121,7 +141,7 @@ pub enum IncludeEntityTypeOption {
 #[serde(rename_all = "camelCase")]
 #[expect(clippy::struct_field_names)]
 pub struct EntityTypeResolveDefinitions {
-    pub data_types: HashMap<VersionedUrl, ClosedDataType>,
+    pub data_types: HashMap<VersionedUrl, ClosedDataTypeDefinition>,
     pub property_types: HashMap<VersionedUrl, PropertyType>,
     pub entity_types: HashMap<VersionedUrl, PartialEntityType>,
 }
@@ -154,6 +174,14 @@ pub struct GetEntityTypesResponse {
     pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum IncludeResolvedEntityTypeOption {
+    Resolved,
+    ResolvedWithDataTypeChildren,
+}
+
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -162,7 +190,7 @@ pub struct GetClosedMultiEntityTypeParams {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
-    pub include_resolved: bool,
+    pub include_resolved: Option<IncludeResolvedEntityTypeOption>,
 }
 
 #[derive(Debug, Serialize)]

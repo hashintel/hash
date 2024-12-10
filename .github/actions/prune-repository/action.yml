@@ -41,7 +41,6 @@ runs:
           if [[ ! -f "out/$DIRECTORY/Cargo.toml" ]]; then
             mkdir -p "out/$DIRECTORY/src"
             echo > "out/$DIRECTORY/src/lib.rs"
-            echo "cargo-features = [\"edition2024\"]" > "out/$DIRECTORY/Cargo.toml"
             echo "[package]" >> "out/$DIRECTORY/Cargo.toml"
             echo "name = \"$(yq '.package.name' -p toml -oy $line)\"" >> "out/$DIRECTORY/Cargo.toml"
             echo "edition.workspace = true" >> "out/$DIRECTORY/Cargo.toml"

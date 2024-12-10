@@ -601,6 +601,7 @@ const EditEntitySlideOver = memo(
                       omitProperties: [],
                     }),
                   );
+                  setIsDirty(true);
                 }}
                 isDirty={isDirty}
                 onEntityClick={onEntityClick}

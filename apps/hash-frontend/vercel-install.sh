@@ -53,4 +53,4 @@ for _ in {1..5}; do rustup show && break || sleep 5; done
 # Install the pruned dependencies
 
 echo "Installing yarn dependencies"
-HUSKY=0 yarn install --immutable
+LEFTHOOK=0 yarn install --immutable

@@ -17,14 +17,14 @@ runs:
         # cache: yarn ## Currently disabled because of frequent timeouts
 
     - name: Install WASM tools
-      uses: taiki-e/install-action@ddaadeb8971af08eaa9bdad7ba96eb721ed2aafd # v2.45.8
+      uses: taiki-e/install-action@acf70b3a1ed953bccebc8c5d80cfdb16ec8ccc36 # v2.46.4
       with:
         tool: wasm-pack@0.12.1
 
     - name: Install yarn dependencies
       uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
       env:
-        HUSKY: 0
+        LEFTHOOK: 0
       with:
         max_attempts: 3
         timeout_minutes: 10

@@ -18,7 +18,10 @@ mod one_of;
 mod identifier;
 
 pub use self::{
-    array::{PropertyArraySchema, PropertyValueArray, ValueOrArray},
+    array::{
+        ArraySchemaValidationError, ArraySchemaValidator, PropertyArraySchema, PropertyValueArray,
+        ValueOrArray,
+    },
     closed_resolver::{InheritanceDepth, OntologyTypeResolver},
     data_type::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
@@ -27,9 +30,9 @@ pub use self::{
         DataTypeEdge, DataTypeReference, DataTypeResolveData, DataTypeValidator,
         JsonSchemaValueType, NullSchema, NullTypeTag, NumberConstraints, NumberSchema,
         NumberTypeTag, NumberValidationError, ObjectConstraints, ObjectSchema, ObjectTypeTag,
-        ObjectValidationError, Operator, ResolvedDataType, SingleValueConstraints,
-        SingleValueSchema, StringConstraints, StringFormat, StringFormatError, StringSchema,
-        StringTypeTag, StringValidationError, TupleConstraints, ValidateDataTypeError, ValueLabel,
+        ObjectValidationError, Operator, SingleValueConstraints, SingleValueSchema,
+        StringConstraints, StringFormat, StringFormatError, StringSchema, StringTypeTag,
+        StringValidationError, TupleConstraints, ValidateDataTypeError, ValueLabel,
         ValueSchemaMetadata, Variable,
     },
     domain_validator::{DomainValidationError, DomainValidator, ValidateOntologyType},
@@ -38,6 +41,7 @@ pub use self::{
         EntityType, EntityTypeReference, EntityTypeResolveData, EntityTypeSchemaMetadata,
         EntityTypeToEntityTypeEdge, EntityTypeToPropertyTypeEdge, EntityTypeValidationError,
         EntityTypeValidator, InverseEntityTypeMetadata, PartialEntityType,
+        ResolveClosedEntityTypeError,
     },
     identifier::{DataTypeUuid, EntityTypeUuid, OntologyTypeUuid, PropertyTypeUuid},
     object::{

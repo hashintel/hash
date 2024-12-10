@@ -30,7 +30,7 @@ const getReferencedDataTypes = (
 
   for (const value of propertyValues) {
     if ("$ref" in value) {
-      types.push(getDataType(value, definitions));
+      types.push(getDataType(value, definitions).schema);
     }
   }
 
