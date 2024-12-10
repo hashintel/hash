@@ -1,9 +1,6 @@
 {
-  // TODO: hook this into the global TS config
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
-    "strict": true,
-    "allowJs": false,
-    "exactOptionalPropertyTypes": false,
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   },
