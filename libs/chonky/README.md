@@ -81,6 +81,23 @@ cargo nextest run --package chonky
 cargo test --package chonky --doc
 ```
 
+### Temporal worker
+
+A Temporal worker is available with this crate. Please see the [Temporal.io](https://temporal.io) website for more information on how to set up Temporal.
+To run the worker you can use the following command:
+
+```bash
+cargo run --bin temporal-worker --features temporal
+```
+
+Currently, only an example workflow and activity is available. The workflow will only execute the activity and return the result.
+
+```bash
+temporal workflow execute --namespace HASH --task-queue chonky --type test-workflow --input '{ "lhs": 10, "rhs": 20, "operator": "mul" }'
+```
+
+which will return the result of `10 * 20`.
+
 ### Documentation
 
 The documentation can be generated via

@@ -9,17 +9,16 @@ use std::{env, path::Path};
 
 use error_stack::{Report, ResultExt as _};
 use pdfium_render::prelude::Pdfium;
-use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum ChonkyError {
-    #[error("parsing error in pdf")]
+    #[display("parsing error in pdf")]
     ReadPdf,
-    #[error("pdfium error")]
+    #[display("pdfium error")]
     Pdfium,
-    #[error("write error to system")]
+    #[display("write error to system")]
     Write,
-    #[error("Issues with CLI input")]
+    #[display("Issues with CLI input")]
     Arguments,
 }
 

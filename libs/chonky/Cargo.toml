@@ -10,6 +10,10 @@ exclude           = ["package.json"]
 license-file      = "LICENSE.md"
 edition.workspace = true
 
+[[bin]]
+name              = "temporal-worker"
+required-features = ["temporal"]
+
 [dependencies]
 # Public workspace dependencies
 error-stack = { workspace = true, public = true }
@@ -20,14 +24,25 @@ pdfium-render = { workspace = true, public = true }
 
 # Private workspace dependencies
 
-# Private third-party dependencies
-thiserror = { workspace = true }
+anyhow                   = "*"
+derive_more              = { workspace = true, features = ["display", "error"] }          # Private third-party dependencies
+futures                  = { workspace = true }
+serde                    = { workspace = true, features = ["derive"] }
+serde_json               = { workspace = true }
+temporal-client          = { workspace = true, optional = true }
+temporal-sdk             = { workspace = true, optional = true }
+temporal-sdk-core        = { workspace = true, optional = true }
+temporal-sdk-core-api    = { workspace = true, optional = true }
+temporal-sdk-core-protos = { workspace = true, optional = true }
+tokio                    = { workspace = true, features = ["rt-multi-thread", "macros"] }
+url                      = { workspace = true, optional = true }
 
 [dev-dependencies]
 insta = { workspace = true }
 
 [features]
-static = ["pdfium-render/static"]
+static   = ["pdfium-render/static"]
+temporal = ["dep:temporal-client", "dep:temporal-sdk-core-protos", "dep:temporal-sdk-core", "dep:temporal-sdk-core-api", "dep:temporal-sdk", "dep:url", "tokio/signal"]
 
 [lints]
 workspace = true
