@@ -8677,7 +8677,6 @@ __metadata:
     eslint-config-sheriff: "npm:25.3.0"
     eslint-import-resolver-node: "npm:0.3.9"
     eslint-import-resolver-typescript: "npm:3.7.0"
-    eslint-plugin-airbnb: "npm:0.0.1-security"
     eslint-plugin-canonical: "npm:5.0.0"
     eslint-plugin-import: "npm:2.31.0"
     eslint-plugin-react-hooks: "npm:5.1.0"
@@ -25887,13 +25886,6 @@ __metadata:
     eslint:
       optional: true
   checksum: 10c0/4d8b46dcd525d71276f9be9ffac1d2be61c9d54cc53c992e6333cf957840dee09381842b1acbbb15fc6b255ebab99cd481c5007ab438e5455a14abe1a0468558
-  languageName: node
-  linkType: hard
-
-"eslint-plugin-airbnb@npm:0.0.1-security":
-  version: 0.0.1-security
-  resolution: "eslint-plugin-airbnb@npm:0.0.1-security"
-  checksum: 10c0/d7fc1c39a3da4e728521f0559b8d40b2eb7a393188bf0cfcdbd349b2558a8ae092e0606a1a75045950f7ea55dd37c638da39fd3f3429ab64ec49062320137a43
   languageName: node
   linkType: hard
 
