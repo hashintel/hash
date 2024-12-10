@@ -28,11 +28,10 @@ import {
   archiveEntitiesMutation,
   updateEntitiesMutation,
 } from "../../graphql/queries/knowledge/entity.queries";
-import { useDraftEntities } from "../../shared/draft-entities-context";
 import { LayerGroupLightIcon } from "../../shared/icons/layer-group-light-icon";
-import { useNotificationEntities } from "../../shared/notification-entities-context";
+import { useNotificationCount } from "../../shared/notification-count-context";
 import { Button, MenuItem } from "../../shared/ui";
-import { useNotificationsWithLinks } from "../shared/notifications-with-links-context";
+import { useDraftEntities } from "./draft-entities-context";
 
 export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
   selectedDraftEntityIds: EntityId[];
@@ -44,9 +43,8 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
   deselectAllDraftEntities,
 }) => {
   const { draftEntities, refetch: refetchDraftEntities } = useDraftEntities();
-  const { notifications } = useNotificationsWithLinks();
-  const { archiveNotifications, markNotificationsAsRead } =
-    useNotificationEntities();
+  const { archiveNotificationsForEntity, markNotificationsAsReadForEntity } =
+    useNotificationCount();
 
   const popupState = usePopupState({
     variant: "popover",
@@ -108,41 +106,37 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
   >(archiveEntitiesMutation);
 
   const ignoreAllSelectedDraftEntities = useCallback(async () => {
-    if (!notifications) {
+    if (!selectedDraftEntities.length) {
       return;
     }
-
-    const relatedNotifications = notifications.filter((notification) =>
-      selectedDraftEntityIds.includes(
-        notification.occurredInEntity.metadata.recordId.entityId,
-      ),
-    );
 
     await archiveEntities({
       variables: {
         entityIds: [
-          ...selectedDraftEntities,
-          ...(incomingOrOutgoingDraftLinksToIgnore ?? []),
-        ].map(({ metadata }) => metadata.recordId.entityId),
+          ...selectedDraftEntityIds,
+          ...(incomingOrOutgoingDraftLinksToIgnore ?? []).map(
+            ({ metadata }) => metadata.recordId.entityId,
+          ),
+        ],
       },
     });
 
-    await archiveNotifications({
-      notificationEntities: relatedNotifications.map(({ entity }) => entity),
-    });
-
+    await Promise.all(
+      selectedDraftEntityIds.map((entityId) =>
+        archiveNotificationsForEntity({ targetEntityId: entityId }),
+      ),
+    );
     await refetchDraftEntities();
 
     deselectAllDraftEntities();
   }, [
-    notifications,
-    archiveNotifications,
     archiveEntities,
-    selectedDraftEntityIds,
-    selectedDraftEntities,
-    refetchDraftEntities,
-    incomingOrOutgoingDraftLinksToIgnore,
+    archiveNotificationsForEntity,
     deselectAllDraftEntities,
+    incomingOrOutgoingDraftLinksToIgnore,
+    refetchDraftEntities,
+    selectedDraftEntities,
+    selectedDraftEntityIds,
   ]);
 
   const [
@@ -222,15 +216,6 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
   >(updateEntitiesMutation);
 
   const acceptAllSelectedDraftEntities = useCallback(async () => {
-    const relatedGraphChangeNotifications =
-      notifications?.filter(
-        ({ kind, occurredInEntity }) =>
-          kind === "graph-change" &&
-          selectedDraftEntityIds.includes(
-            occurredInEntity.metadata.recordId.entityId,
-          ),
-      ) ?? [];
-
     await updateEntities({
       variables: {
         entityUpdates: [
@@ -244,24 +229,24 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       },
     });
 
-    await markNotificationsAsRead({
-      notificationEntities: relatedGraphChangeNotifications.map(
-        ({ entity }) => entity,
+    await Promise.all(
+      selectedDraftEntities.map((entity) =>
+        markNotificationsAsReadForEntity({
+          targetEntityId: entity.entityId,
+        }),
       ),
-    });
+    );
 
     await refetchDraftEntities();
 
     deselectAllDraftEntities();
   }, [
-    notifications,
-    markNotificationsAsRead,
-    selectedDraftEntityIds,
-    selectedDraftEntities,
-    leftOrRightDraftEntitiesToAccept,
-    updateEntities,
-    refetchDraftEntities,
     deselectAllDraftEntities,
+    leftOrRightDraftEntitiesToAccept,
+    markNotificationsAsReadForEntity,
+    refetchDraftEntities,
+    selectedDraftEntities,
+    updateEntities,
   ]);
 
   const [

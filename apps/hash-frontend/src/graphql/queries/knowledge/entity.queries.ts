@@ -62,6 +62,7 @@ export const getEntitySubgraphQuery = gql`
   ) {
     getEntitySubgraph(request: $request) {
       closedMultiEntityTypes
+      count
       definitions
       userPermissionsOnEntities @include(if: $includePermissions)
       subgraph {

@@ -10,7 +10,6 @@ import { useRouter } from "next/router";
 import type { ReactNode } from "react";
 import { useContext } from "react";
 
-import { NotificationsWithLinksContextProvider } from "../../../../shared/notifications-with-links-context";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 import { EntityEditorTabs } from "../shared/entity-editor-tabs";
@@ -84,19 +83,17 @@ export const EntityPageHeader = ({
       />
 
       {entity && entitySubgraph ? (
-        <NotificationsWithLinksContextProvider>
-          <Collapse
-            in={!!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)}
-          >
-            <DraftEntityBanner
-              draftEntity={entity}
-              draftEntitySubgraph={entitySubgraph}
-              isModifyingEntity={isModifyingEntity}
-              onAcceptedEntity={onEntityUpdated}
-              owningShortname={shortname}
-            />
-          </Collapse>
-        </NotificationsWithLinksContextProvider>
+        <Collapse
+          in={!!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)}
+        >
+          <DraftEntityBanner
+            draftEntity={entity}
+            draftEntitySubgraph={entitySubgraph}
+            isModifyingEntity={isModifyingEntity}
+            onAcceptedEntity={onEntityUpdated}
+            owningShortname={shortname}
+          />
+        </Collapse>
       ) : null}
 
       {editBar}

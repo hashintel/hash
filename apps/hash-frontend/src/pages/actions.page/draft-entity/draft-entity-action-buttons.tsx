@@ -7,16 +7,20 @@ import type { FunctionComponent } from "react";
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { AcceptDraftEntityButton } from "../../shared/accept-draft-entity-button";
 import { DiscardDraftEntityButton } from "../../shared/discard-draft-entity-button";
+import { useDraftEntities } from "../draft-entities-context";
 
 export const DraftEntityActionButtons: FunctionComponent<{
   entity: Entity;
   subgraph: Subgraph<EntityRootType>;
 }> = ({ entity, subgraph }) => {
+  const { refetch } = useDraftEntities();
+
   return (
     <Box marginLeft={1} display="flex" columnGap={1}>
       <DiscardDraftEntityButton
         draftEntity={entity}
         draftEntitySubgraph={subgraph}
+        onDiscardedEntity={refetch}
         size="xs"
         variant="tertiary"
         startIcon={<CloseIcon />}
@@ -40,7 +44,7 @@ export const DraftEntityActionButtons: FunctionComponent<{
         size="xs"
         variant="primary"
         startIcon={<CheckRegularIcon />}
-        onAcceptedEntity={null}
+        onAcceptedEntity={refetch}
       >
         Accept
       </AcceptDraftEntityButton>

@@ -4,7 +4,7 @@ import type { FunctionComponent, ReactNode } from "react";
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { useAuthInfo } from "../../../pages/shared/auth-info-context";
-import { useDraftEntities } from "../../draft-entities-context";
+import { useDraftEntitiesCount } from "../../draft-entities-count-context";
 import { CheckRegularIcon } from "../../icons/check-regular-icon";
 import { HashLockup } from "../../icons/hash-lockup";
 import { Button, Link } from "../../ui";
@@ -37,7 +37,7 @@ export const PageHeader: FunctionComponent = () => {
   const { authenticatedUser } = useAuthInfo();
   const { hashInstance } = useHashInstance();
   const { logout } = useLogoutFlow();
-  const { draftEntities } = useDraftEntities();
+  const { count: draftEntitiesCount } = useDraftEntitiesCount();
 
   return (
     <Box
@@ -104,7 +104,7 @@ export const PageHeader: FunctionComponent = () => {
                           sx={{ color: theme.palette.blue[70] }}
                         />
                       }
-                      count={draftEntities?.length}
+                      count={draftEntitiesCount}
                     />
                   </Link>
                 </Tooltip>
