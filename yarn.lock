@@ -8665,6 +8665,7 @@ __metadata:
     "@eslint/compat": "npm:1.2.4"
     "@eslint/eslintrc": "npm:3.2.0"
     "@types/eslint__eslintrc": "npm:2.1.2"
+    "@types/node": "npm:22.10.1"
     effect: "npm:3.11.3"
     eslint: "npm:9.16.0"
     eslint-config-airbnb: "npm:19.0.4"
@@ -8680,7 +8681,6 @@ __metadata:
     eslint-plugin-storybook: "npm:0.11.1"
     eslint-unicorn: "npm:55.0.0"
     globals: "npm:15.13.0"
-    jiti: "npm:2.4.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
   languageName: unknown
@@ -31821,21 +31821,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jiti@npm:2.4.1, jiti@npm:^2.0.0":
-  version: 2.4.1
-  resolution: "jiti@npm:2.4.1"
-  bin:
-    jiti: lib/jiti-cli.mjs
-  checksum: 10c0/3cf67d1b952a9e8cffbb4f96527880da6cdb58a1eae2a6d2deb4645621dfc8b766d21549f71c6153a2094a40bb635ffafed4cd0dd42f3b3263b187d1ee846225
-  languageName: node
-  linkType: hard
-
 "jiti@npm:^1.17.1":
   version: 1.21.6
   resolution: "jiti@npm:1.21.6"
   bin:
     jiti: bin/jiti.js
   checksum: 10c0/05b9ed58cd30d0c3ccd3c98209339e74f50abd9a17e716f65db46b6a35812103f6bde6e134be7124d01745586bca8cc5dae1d0d952267c3ebe55171949c32e56
+  languageName: node
+  linkType: hard
+
+"jiti@npm:^2.0.0":
+  version: 2.4.1
+  resolution: "jiti@npm:2.4.1"
+  bin:
+    jiti: lib/jiti-cli.mjs
+  checksum: 10c0/3cf67d1b952a9e8cffbb4f96527880da6cdb58a1eae2a6d2deb4645621dfc8b766d21549f71c6153a2094a40bb635ffafed4cd0dd42f3b3263b187d1ee846225
   languageName: node
   linkType: hard
 
