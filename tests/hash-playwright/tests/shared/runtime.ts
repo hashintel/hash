@@ -21,13 +21,23 @@ export * from "@playwright/test";
 export const test = base.extend({
   page: async ({ page }, use) => {
     const messages: string[] = [];
+    // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     page.on("console", (msg) => {
+      // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const text = msg.text();
+      // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       if (tolerableConsoleMessageMatches.some((match) => match.test(text))) {
         return;
       }
+      // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       messages.push(`[${msg.type()}] ${msg.text()}`);
     });
+    // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+    // eslint-disable-next-line react-hooks/rules-of-hooks, @typescript-eslint/no-unsafe-call
     await use(page);
     expect(
       messages,

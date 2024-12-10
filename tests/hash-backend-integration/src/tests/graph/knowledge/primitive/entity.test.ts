@@ -395,6 +395,7 @@ describe("Entity CRU", () => {
           },
         ],
       },
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     ).catch((err) => Promise.reject(err));
 
     expect(updatedEntity.metadata.provenance.edition.createdById).toBe(

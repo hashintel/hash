@@ -1,5 +1,11 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "include": [
+    "tests",
+    "eslint.config.js",
+    "codegen.config.ts",
+    "playwright.config.ts"
+  ],
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "ESNext"]
   }
