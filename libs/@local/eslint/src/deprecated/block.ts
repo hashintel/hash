@@ -5,7 +5,8 @@ import unicorn from "eslint-plugin-unicorn";
 import { fixupPluginRules } from "@eslint/compat";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 
-import { type ESConfig } from "../utils.js";
+import type { ESConfig } from "../utils.js";
+
 import { create as createBase } from "./base.js";
 
 export const create = (projectDirectory: string) =>
