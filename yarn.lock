@@ -8552,9 +8552,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/advanced-types@workspace:libs/@local/advanced-types"
   dependencies:
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    eslint: "npm:8.57.0"
+    eslint: "npm:9.16.0"
     react: "npm:18.2.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
@@ -8688,14 +8688,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/hash-graph-client@workspace:libs/@local/graph/client/typescript"
   dependencies:
-    "@local/eslint-config": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@openapitools/openapi-generator-cli": "npm:2.15.3"
     "@redocly/cli": "npm:1.25.14"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.10.0"
     axios: "npm:1.7.8"
-    eslint: "npm:8.57.0"
     fix-esm-import-path: "npm:1.10.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
@@ -8708,12 +8706,12 @@ __metadata:
   dependencies:
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint-config": "npm:0.0.0-private"
+    "@local/eslint": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:2.1.6"
-    eslint: "npm:8.57.0"
+    eslint: "npm:9.16.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
     vitest: "npm:2.1.6"
