@@ -42,6 +42,7 @@ export interface Encoder<E = EncodingError, R = never>
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface EncoderImpl<E = EncodingError, R = never> extends Encoder<E, R> {}
 
 const EncoderProto: Omit<EncoderImpl, "encode"> = {

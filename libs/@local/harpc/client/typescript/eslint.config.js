@@ -7,6 +7,7 @@ export default [
       "@typescript-eslint/no-redeclare": "off",
       "unicorn/filename-case": "off",
       "func-names": "off",
+      "canonical/filename-no-index": "off",
     },
   },
 ];

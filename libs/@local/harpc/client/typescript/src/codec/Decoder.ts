@@ -42,6 +42,7 @@ export interface Decoder<E = DecodingError, R = never>
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface DecoderImpl<E = DecodingError, R = never> extends Decoder<E, R> {}
 
 const DecoderProto: Omit<DecoderImpl, "decode"> = {
@@ -57,7 +58,7 @@ const DecoderProto: Omit<DecoderImpl, "decode"> = {
     };
   },
 
-  [Inspectable.NodeInspectSymbol]() {
+  [Inspectable.NodeInspectSymbol](this: DecoderImpl) {
     return this.toJSON();
   },
 
