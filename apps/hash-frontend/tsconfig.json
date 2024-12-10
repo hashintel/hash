@@ -19,8 +19,7 @@
     "theme-override.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "codegen.config.ts",
-    "eslint.config.js"
+    "codegen.config.ts"
   ],
   "exclude": ["node_modules", ".next"]
 }
