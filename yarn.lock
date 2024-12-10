@@ -11987,7 +11987,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redocly/openapi-core@npm:1.26.0":
+"@redocly/openapi-core@npm:1.26.0, @redocly/openapi-core@npm:^1.4.0":
   version: 1.26.0
   resolution: "@redocly/openapi-core@npm:1.26.0"
   dependencies:
@@ -12003,25 +12003,6 @@ __metadata:
     pluralize: "npm:^8.0.0"
     yaml-ast-parser: "npm:0.0.43"
   checksum: 10c0/d55989a3d2b343c5f5792c704f0e7b2030d739be65f80fb7ff4625f6cb189bb646003180ea605940014c5c77f9954c21cc36d371fa510775c25fbd5534311b0e
-  languageName: node
-  linkType: hard
-
-"@redocly/openapi-core@npm:^1.4.0":
-  version: 1.25.15
-  resolution: "@redocly/openapi-core@npm:1.25.15"
-  dependencies:
-    "@redocly/ajv": "npm:^8.11.2"
-    "@redocly/config": "npm:^0.17.0"
-    colorette: "npm:^1.2.0"
-    https-proxy-agent: "npm:^7.0.4"
-    js-levenshtein: "npm:^1.1.6"
-    js-yaml: "npm:^4.1.0"
-    lodash.isequal: "npm:^4.5.0"
-    minimatch: "npm:^5.0.1"
-    node-fetch: "npm:^2.6.1"
-    pluralize: "npm:^8.0.0"
-    yaml-ast-parser: "npm:0.0.43"
-  checksum: 10c0/e7ae4b7b8d0fd84bda1c69e528f5c565d2651543c497aee850b889f7684a859376c98fe98cf78e6b1de9b077fd3407cd7bb1cca5a83d407cad27ad94472d0d04
   languageName: node
   linkType: hard
 
