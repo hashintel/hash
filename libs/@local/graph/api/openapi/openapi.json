@@ -8745,49 +8745,6 @@
           }
         }
       },
-      "PropertyValidationError": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "type",
-              "report"
-            ],
-            "properties": {
-              "report": {
-                "$ref": "#/components/schemas/Report"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "value"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "type",
-              "report"
-            ],
-            "properties": {
-              "report": {
-                "$ref": "#/components/schemas/Report"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "array"
-                ]
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "type"
-        }
-      },
       "PropertyValidationReport": {
         "oneOf": [
           {
@@ -8886,24 +8843,6 @@
           {
             "type": "object",
             "required": [
-              "error",
-              "type"
-            ],
-            "properties": {
-              "error": {
-                "$ref": "#/components/schemas/Report"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "retrieval"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
               "data",
               "type"
             ],
@@ -8922,12 +8861,12 @@
           {
             "type": "object",
             "required": [
-              "error",
+              "data",
               "type"
             ],
             "properties": {
-              "error": {
-                "$ref": "#/components/schemas/Report"
+              "data": {
+                "$ref": "#/components/schemas/ValueValidationReport"
               },
               "type": {
                 "type": "string",
@@ -9832,6 +9771,86 @@
           }
         },
         "additionalProperties": false
+      },
+      "ValueValidationError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "error",
+              "type"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "retrieval"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "error",
+              "type"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "constraints"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "ValueValidationReport": {
+        "type": "object",
+        "properties": {
+          "abstract": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ],
+            "nullable": true
+          },
+          "actual": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ValueValidationError"
+              }
+            ],
+            "nullable": true
+          },
+          "desired": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ValueValidationError"
+              }
+            ],
+            "nullable": true
+          },
+          "incompatible": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ],
+            "nullable": true
+          }
+        }
       },
       "Variable": {
         "type": "string",

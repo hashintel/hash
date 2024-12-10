@@ -2,7 +2,9 @@ use alloc::collections::BTreeSet;
 use core::borrow::Borrow as _;
 use std::collections::{HashSet, hash_map::RawEntryMut};
 
-use error_stack::{FutureExt as _, Report, ReportSink, ResultExt as _, TryReportStreamExt as _};
+use error_stack::{
+    FutureExt as _, Report, ResultExt as _, TryReportIteratorExt as _, TryReportStreamExt as _,
+};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_store::entity::{
     EntityRetrieval, EntityTypeRetrieval, LinkDataStateError, LinkDataValidationReport, LinkError,
@@ -22,20 +24,21 @@ use hash_graph_types::{
                 DataTypeCanonicalCalculation, DataTypeConversionError, DataTypeInferenceError,
                 DataTypeRetrieval, EntityVisitor, InvalidCanonicalValue,
                 JsonSchemaValueTypeMismatch, ObjectPropertyValidationReport,
-                ObjectValidationReport, OneOfPropertyValidationReports, TraversalError, walk_array,
-                walk_object, walk_one_of_property_value, walk_value,
+                ObjectValidationReport, OneOfPropertyValidationReports, ValueValidationError,
+                ValueValidationReport, walk_array, walk_object, walk_one_of_property_value,
             },
         },
     },
-    ontology::{DataTypeLookup, DataTypeWithMetadata, OntologyTypeProvider},
+    ontology::{DataTypeLookup, OntologyTypeProvider},
 };
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
     schema::{
-        ClosedEntityType, ClosedMultiEntityType, ConstraintValidator as _, DataTypeReference,
-        JsonSchemaValueType, PropertyObjectSchema, PropertyType, PropertyTypeReference,
-        PropertyValueArray, PropertyValueSchema, PropertyValues, ValueOrArray,
+        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConstraintValidator as _,
+        DataTypeReference, JsonSchemaValueType, PropertyObjectSchema, PropertyType,
+        PropertyTypeReference, PropertyValueArray, PropertyValueSchema, PropertyValues,
+        ValueOrArray,
     },
     url::VersionedUrl,
 };
@@ -281,110 +284,110 @@ pub struct EntityPreprocessor {
     pub components: ValidateEntityComponents,
 }
 
-struct ValueValidator;
-
-impl EntityVisitor for ValueValidator {
-    async fn visit_value<P>(
-        &mut self,
-        data_type: &DataTypeWithMetadata,
-        value: &mut JsonValue,
-        metadata: &mut ValueMetadata,
-        _: &P,
-    ) -> Result<(), Report<[TraversalError]>>
-    where
-        P: DataTypeLookup + Sync,
-    {
-        let mut status = ReportSink::new();
-
-        status.attempt(
-            data_type
-                .schema
-                .constraints
-                .validate_value(value)
-                .change_context(TraversalError::ConstraintUnfulfilled),
-        );
-
-        if metadata.data_type_id.as_ref() == Some(&data_type.schema.id)
-            && data_type.schema.r#abstract
-        {
-            status.capture(TraversalError::AbstractDataType {
-                id: data_type.schema.id.clone(),
-            });
-        }
-
-        status.finish()
-    }
-}
-
 impl EntityVisitor for EntityPreprocessor {
     async fn visit_value<P>(
         &mut self,
-        data_type: &DataTypeWithMetadata,
+        desired_data_type_reference: &DataTypeReference,
         value: &mut JsonValue,
         metadata: &mut ValueMetadata,
         type_provider: &P,
-    ) -> Result<(), Report<[TraversalError]>>
+    ) -> Result<(), ValueValidationReport>
     where
         P: DataTypeLookup + Sync,
     {
-        let mut status = ReportSink::new();
+        let mut validation_report = ValueValidationReport::default();
 
-        if let Some(data_type_url) = &metadata.data_type_id {
-            let data_type_ref: &DataTypeReference = data_type_url.into();
-            if data_type.schema.id != *data_type_url {
-                let is_compatible = type_provider
-                    .is_parent_of(data_type_ref, &data_type.schema.id.base_url)
-                    .await
-                    .change_context_lazy(|| TraversalError::DataTypeRetrieval {
-                        id: DataTypeReference {
-                            url: data_type.schema.id.clone(),
-                        },
-                    })?;
+        let actual_data_type_reference = metadata
+            .data_type_id
+            .as_ref()
+            .map_or(desired_data_type_reference, <&DataTypeReference>::from);
 
-                if !is_compatible {
-                    status.capture(TraversalError::InvalidDataType {
-                        actual: data_type_url.clone(),
-                        expected: data_type.schema.id.clone(),
-                    });
-                }
-
-                let desired_data_type = type_provider
-                    .lookup_data_type_by_ref(data_type_ref)
-                    .await
-                    .change_context_lazy(|| TraversalError::DataTypeRetrieval {
-                        id: DataTypeReference {
-                            url: data_type.schema.id.clone(),
-                        },
-                    })?;
-
-                if let Err(error) = ValueValidator
-                    .visit_value(desired_data_type.borrow(), value, metadata, type_provider)
-                    .await
-                {
-                    status.append(error);
-                }
-            }
-        } else {
-            status.capture(TraversalError::AmbiguousDataType);
-        }
-
-        if let Err(error) = ValueValidator
-            .visit_value(data_type, value, metadata, type_provider)
+        match type_provider
+            .lookup_closed_data_type_by_ref(actual_data_type_reference)
             .await
         {
-            status.append(error);
+            Ok(actual_data_type) => {
+                let actual_data_type: &ClosedDataType = actual_data_type.borrow();
+
+                if let Err(error) = actual_data_type
+                    .borrow()
+                    .all_of
+                    .iter()
+                    .map(|constraints| constraints.validate_value(value))
+                    .try_collect_reports::<()>()
+                {
+                    validation_report.actual = Some(ValueValidationError::Constraints { error });
+                };
+
+                if actual_data_type.r#abstract {
+                    validation_report.r#abstract = Some(actual_data_type.id.clone());
+                }
+            }
+            Err(report) => {
+                validation_report.actual = Some(ValueValidationError::Retrieval {
+                    error: report.change_context(DataTypeRetrieval {
+                        data_type_reference: actual_data_type_reference.clone(),
+                    }),
+                });
+            }
         }
 
-        walk_value(
-            &mut ValueValidator,
-            data_type,
-            value,
-            metadata,
-            type_provider,
-        )
-        .await?;
+        if actual_data_type_reference != desired_data_type_reference {
+            match type_provider
+                .lookup_closed_data_type_by_ref(desired_data_type_reference)
+                .await
+            {
+                Ok(desired_data_type) => {
+                    let desired_data_type: &ClosedDataType = desired_data_type.borrow();
 
-        status.finish()
+                    if let Err(error) = desired_data_type
+                        .borrow()
+                        .all_of
+                        .iter()
+                        .map(|constraints| constraints.validate_value(value))
+                        .try_collect_reports::<()>()
+                    {
+                        validation_report.desired =
+                            Some(ValueValidationError::Constraints { error });
+                    };
+                }
+                Err(report) => {
+                    validation_report.desired = Some(ValueValidationError::Retrieval {
+                        error: report.change_context(DataTypeRetrieval {
+                            data_type_reference: desired_data_type_reference.clone(),
+                        }),
+                    });
+                }
+            }
+
+            match type_provider
+                .is_parent_of(
+                    actual_data_type_reference,
+                    &desired_data_type_reference.url.base_url,
+                )
+                .await
+            {
+                Ok(is_compatible) => {
+                    if !is_compatible {
+                        validation_report.incompatible =
+                            Some(actual_data_type_reference.url.clone());
+                    }
+                }
+                Err(report) => {
+                    validation_report.desired = Some(ValueValidationError::Retrieval {
+                        error: report.change_context(DataTypeRetrieval {
+                            data_type_reference: desired_data_type_reference.clone(),
+                        }),
+                    });
+                }
+            }
+        }
+
+        if validation_report.is_valid() {
+            Ok(())
+        } else {
+            Err(validation_report)
+        }
     }
 
     #[expect(clippy::too_many_lines, reason = "Need to refactor this function")]

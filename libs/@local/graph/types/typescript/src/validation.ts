@@ -24,6 +24,8 @@ import type {
   PropertyValueValidationReport as PropertyValueValidationReportGraphApi,
   Report,
   UnexpectedEntityType as UnexpectedEntityTypeGraphApi,
+  ValueValidationError as ValueValidationErrorGraphApi,
+  ValueValidationReport as ValueValidationReportGraphApi,
 } from "@local/hash-graph-client";
 
 export type EntityValidationReport = Omit<
@@ -81,7 +83,7 @@ export type PropertyValidationReport = Subtype<
        */
       validations?: (
         | { status: "success" }
-        | { status: "failure"; data: PropertyValueValidationReportGraphApi }
+        | { status: "failure"; data: PropertyValueValidationReport }
       )[];
       // It was not possible to infer the correct data type ID for the property.
       dataTypeInference?: DataTypeInferenceError[];
@@ -116,6 +118,37 @@ export type PropertyValidationReport = Subtype<
         | { status: "failure"; data: PropertyObjectValidationReport }
       )[];
     }
+>;
+
+export type PropertyValueValidationReport = Subtype<
+  PropertyValueValidationReportGraphApi,
+  | {
+      type: "wrongType";
+      data: PropertyValueTypeMismatchGraphApi;
+    }
+  | {
+      type: "valueValidation";
+      data: ValueValidationReport;
+    }
+>;
+
+export type ValueValidationReport = Omit<
+  ValueValidationReportGraphApi,
+  "actual" | "desired" | "abstract" | "incompatible"
+> & {
+  // The actual value has a validation error
+  actual?: ValueValidationError;
+  // The value could not be validated against the data type specified in the schema
+  desired?: ValueValidationError;
+  // The actual schema is abstract
+  abstract?: VersionedUrl;
+  // The actual schema is incompatible with the desired schema, i.e. the actual schema is not a subtype of the desired schema
+  incompatible?: VersionedUrl;
+};
+
+export type ValueValidationError = Subtype<
+  ValueValidationErrorGraphApi,
+  { type: "retrieval"; error: Report } | { type: "constraints"; error: Report }
 >;
 
 export type PropertyArrayValidationReport = Subtype<

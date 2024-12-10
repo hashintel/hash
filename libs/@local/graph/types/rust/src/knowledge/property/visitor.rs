@@ -1,14 +1,14 @@
 use core::{borrow::Borrow as _, future::Future};
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{Report, ReportSink, ResultExt as _};
+use error_stack::Report;
 use futures::FutureExt as _;
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::{
-        DataTypeReference, JsonSchemaValueType, PropertyObjectSchema, PropertyType,
-        PropertyTypeReference, PropertyValueArray, PropertyValueSchema, PropertyValueType,
-        PropertyValues, ValueOrArray,
+        ConstraintError, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema,
+        PropertyType, PropertyTypeReference, PropertyValueArray, PropertyValueSchema,
+        PropertyValueType, PropertyValues, ValueOrArray,
     },
     url::{BaseUrl, VersionedUrl},
 };
@@ -18,28 +18,8 @@ use crate::{
         PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
         PropertyWithMetadataValue, ValueMetadata,
     },
-    ontology::{DataTypeLookup, DataTypeWithMetadata, OntologyTypeProvider},
+    ontology::{DataTypeLookup, OntologyTypeProvider},
 };
-
-#[derive(Debug, thiserror::Error)]
-pub enum TraversalError {
-    #[error("the validator was unable to read the data type `{}`", id.url)]
-    DataTypeRetrieval { id: DataTypeReference },
-    #[error("The data type ID was not specified and is ambiguous.")]
-    AmbiguousDataType,
-    #[error(
-        "the value provided does not match the data type in the metadata, expected `{expected}` \
-         or a child of it, got `{actual}`"
-    )]
-    InvalidDataType {
-        actual: VersionedUrl,
-        expected: VersionedUrl,
-    },
-    #[error("Values cannot be assigned to an abstract data type. `{id}` is abstract.")]
-    AbstractDataType { id: VersionedUrl },
-    #[error("the value provided does not match the constraints of the data type")]
-    ConstraintUnfulfilled,
-}
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("Could not read the data type {}", data_type_reference.url)]
@@ -90,15 +70,6 @@ pub struct InvalidCanonicalValue {
 
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(tag = "type", content = "report", rename_all = "camelCase")]
-#[must_use]
-pub enum PropertyValidationError {
-    Value(Report<[TraversalError]>),
-    Array(Report<[TraversalError]>),
-}
-
-#[derive(Debug, serde::Serialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "type", rename_all = "camelCase")]
 #[must_use]
 pub enum DataTypeInferenceError {
@@ -137,10 +108,43 @@ pub enum DataTypeCanonicalCalculation {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "type", rename_all = "camelCase")]
 #[must_use]
-pub enum PropertyValueValidationReport {
+pub enum ValueValidationError {
     Retrieval { error: Report<DataTypeRetrieval> },
+    Constraints { error: Report<[ConstraintError]> },
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+#[must_use]
+pub struct ValueValidationReport {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub desired: Option<ValueValidationError>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub actual: Option<ValueValidationError>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#abstract: Option<VersionedUrl>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub incompatible: Option<VersionedUrl>,
+}
+
+impl ValueValidationReport {
+    #[must_use]
+    pub const fn is_valid(&self) -> bool {
+        self.desired.is_none()
+            && self.actual.is_none()
+            && self.r#abstract.is_none()
+            && self.incompatible.is_none()
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "type", rename_all = "camelCase")]
+#[must_use]
+pub enum PropertyValueValidationReport {
     WrongType { data: PropertyValueTypeMismatch },
-    ValueValidation { error: Report<[TraversalError]> },
+    ValueValidation { data: ValueValidationReport },
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -313,16 +317,13 @@ pub trait EntityVisitor: Sized + Send + Sync {
     /// By default, this does nothing.
     fn visit_value<P>(
         &mut self,
-        data_type: &DataTypeWithMetadata,
+        desired_data_type_reference: &DataTypeReference,
         value: &mut JsonValue,
         metadata: &mut ValueMetadata,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
+    ) -> impl Future<Output = Result<(), ValueValidationReport>> + Send
     where
-        P: DataTypeLookup + Sync,
-    {
-        walk_value(self, data_type, value, metadata, type_provider)
-    }
+        P: DataTypeLookup + Sync;
 
     /// Visits a property.
     ///
@@ -430,51 +431,6 @@ pub trait EntityVisitor: Sized + Send + Sync {
     {
         walk_one_of_object(self, schema, object, type_provider)
     }
-}
-
-/// Walks through a JSON value using the provided schema.
-///
-/// For all referenced data types [`EntityVisitor::visit_value`] is called.
-///
-/// # Errors
-///
-/// Any error that can be returned by the visitor methods.
-pub async fn walk_value<V, P>(
-    visitor: &mut V,
-    data_type: &DataTypeWithMetadata,
-    value: &mut JsonValue,
-    metadata: &mut ValueMetadata,
-    type_provider: &P,
-) -> Result<(), Report<[TraversalError]>>
-where
-    V: EntityVisitor,
-    P: DataTypeLookup + Sync,
-{
-    let mut status = ReportSink::new();
-
-    for parent in &data_type.schema.all_of {
-        match type_provider
-            .lookup_data_type_by_ref(parent)
-            .await
-            .change_context_lazy(|| TraversalError::DataTypeRetrieval { id: parent.clone() })
-        {
-            Ok(parent) => {
-                if let Err(error) = visitor
-                    .visit_value(parent.borrow(), value, metadata, type_provider)
-                    .await
-                {
-                    status.append(error);
-                }
-            }
-            Err(error) => {
-                status.append(error);
-
-                continue;
-            }
-        }
-    }
-
-    status.finish()
 }
 
 /// Walks through a property using the provided schema.
@@ -706,23 +662,9 @@ where
     for schema in schema {
         match schema {
             PropertyValues::DataTypeReference(data_type_ref) => {
-                let data_type = match type_provider.lookup_data_type_by_ref(data_type_ref).await {
-                    Ok(data_type) => data_type,
-                    Err(error) => {
-                        property_validations.push(OneOfValueValidationStatus::Failure(
-                            PropertyValueValidationReport::Retrieval {
-                                error: error.change_context(DataTypeRetrieval {
-                                    data_type_reference: data_type_ref.clone(),
-                                }),
-                            },
-                        ));
-                        continue;
-                    }
-                };
-
-                if let Err(error) = visitor
+                if let Err(report) = visitor
                     .visit_value(
-                        data_type.borrow(),
+                        data_type_ref,
                         &mut property.value,
                         &mut property.metadata,
                         type_provider,
@@ -730,7 +672,7 @@ where
                     .await
                 {
                     property_validations.push(OneOfValueValidationStatus::Failure(
-                        PropertyValueValidationReport::ValueValidation { error },
+                        PropertyValueValidationReport::ValueValidation { data: report },
                     ));
                 } else {
                     num_passed += 1;
