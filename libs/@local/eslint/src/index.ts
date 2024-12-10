@@ -29,6 +29,7 @@ export interface Options {
 
 export const create = (
   projectDirectory: string,
+  // eslint-disable-next-line fsecond/prefer-destructured-optionals
   options?: PartialDeep<Options>,
 ): readonly ESConfig[] => {
   const sheriffOptions: SheriffSettings = {
