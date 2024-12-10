@@ -689,14 +689,7 @@ where
 ///
 /// # Errors
 ///
-/// - [`ExpectedValue`] if an array or object is provided.
-/// - [`DataTypeRetrieval`] if a data type could not be retrieved from the `type_provider`.
-/// - [`AmbiguousProperty`] if more than one schema is passed.
-/// - Any error that can be returned by the visitor methods.
-///
-/// [`ExpectedValue`]: TraversalError::ExpectedValue
-/// [`DataTypeRetrieval`]: TraversalError::DataTypeRetrieval
-/// [`AmbiguousProperty`]: TraversalError::AmbiguousProperty
+/// Returns a detailed report about the validation failures for each property value.
 pub async fn walk_one_of_property_value<V, P>(
     visitor: &mut V,
     schema: &[PropertyValues],
@@ -771,12 +764,7 @@ where
 ///
 /// # Errors
 ///
-/// - [`ExpectedValue`] if a value or object is provided.
-/// - [`AmbiguousProperty`] if more than one schema is passed.
-/// - Any error that can be returned by the visitor methods.
-///
-/// [`ExpectedValue`]: TraversalError::ExpectedValue
-/// [`AmbiguousProperty`]: TraversalError::AmbiguousProperty
+/// Returns a detailed report about the validation failures for each property value.
 pub async fn walk_one_of_array<V, P>(
     visitor: &mut V,
     schema: &[PropertyValues],
@@ -828,12 +816,7 @@ where
 ///
 /// # Errors
 ///
-/// - [`ExpectedValue`] if a value or array is provided.
-/// - [`AmbiguousProperty`] if more than one schema is passed.
-/// - Any error that can be returned by the visitor methods.
-///
-/// [`ExpectedValue`]: TraversalError::ExpectedValue
-/// [`AmbiguousProperty`]: TraversalError::AmbiguousProperty
+/// Returns a detailed report about the validation failures for each property value.
 pub async fn walk_one_of_object<V, P>(
     visitor: &mut V,
     schema: &[PropertyValues],
