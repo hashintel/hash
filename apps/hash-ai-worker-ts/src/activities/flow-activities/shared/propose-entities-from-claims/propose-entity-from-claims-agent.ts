@@ -164,11 +164,7 @@ const generatePropertyMetadata = (params: {
   };
 };
 
-// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const toolNames = ["proposeEntity", "abandonEntity"] as const;
-
-type ToolName = (typeof toolNames)[number];
+type ToolName = "proposeEntity" | "abandonEntity";
 
 const generateToolDefinitions = (params: {
   dereferencedEntityTypes: DereferencedEntityType[];

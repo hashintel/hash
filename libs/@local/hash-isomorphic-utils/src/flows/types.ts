@@ -594,17 +594,12 @@ export type StepProgressLog =
   | ViewedFile
   | VisitedWebPageLog;
 
-// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const flowSignalTypes = [
-  "externalInputRequest",
-  "externalInputResponse",
-  "logProgress",
-  "researchActionCheckpoint",
-  "stopWorker",
-] as const;
-
-export type FlowSignalType = (typeof flowSignalTypes)[number];
+export type FlowSignalType =
+  | "externalInputRequest"
+  | "externalInputResponse"
+  | "logProgress"
+  | "researchActionCheckpoint"
+  | "stopWorker";
 
 export type ProgressLogSignal = {
   attempt: number;

@@ -1,15 +1,10 @@
 import type { DeepReadOnly, TriggerDefinition } from "./types.js";
 
-// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const triggerIds = [
-  "onFileUpload",
-  "userTrigger",
-  "userVisitedWebPageTrigger",
-  "scheduledTrigger",
-] as const;
-
-export type TriggerDefinitionId = (typeof triggerIds)[number];
+export type TriggerDefinitionId =
+  | "onFileUpload"
+  | "userTrigger"
+  | "userVisitedWebPageTrigger"
+  | "scheduledTrigger";
 
 const triggerDefinitionsAsConst = {
   onFileUpload: {

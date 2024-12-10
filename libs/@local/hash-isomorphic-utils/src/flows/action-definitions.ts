@@ -6,25 +6,20 @@ import type {
   StepInput,
 } from "./types.js";
 
-// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const actionDefinitionIds = [
-  "answerQuestion",
-  "generateWebQueries",
-  "getFileFromUrl",
-  "getWebPageByUrl",
-  "getWebPageSummary",
-  "inferMetadataFromDocument",
-  "inferEntitiesFromContent",
-  "processAutomaticBrowsingSettings",
-  "persistEntities",
-  "persistEntity",
-  "researchEntities",
-  "webSearch",
-  "writeGoogleSheet",
-] as const;
-
-export type ActionDefinitionId = (typeof actionDefinitionIds)[number];
+export type ActionDefinitionId =
+  | "answerQuestion"
+  | "generateWebQueries"
+  | "getFileFromUrl"
+  | "getWebPageByUrl"
+  | "getWebPageSummary"
+  | "inferMetadataFromDocument"
+  | "inferEntitiesFromContent"
+  | "processAutomaticBrowsingSettings"
+  | "persistEntities"
+  | "persistEntity"
+  | "researchEntities"
+  | "webSearch"
+  | "writeGoogleSheet";
 
 const actionDefinitionsAsConst = {
   generateWebQueries: {

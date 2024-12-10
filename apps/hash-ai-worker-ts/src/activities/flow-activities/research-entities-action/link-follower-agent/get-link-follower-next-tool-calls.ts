@@ -116,11 +116,7 @@ Now decide what to do next. If you have gathered enough information about entiti
   };
 };
 
-// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const toolNames = ["exploreLinks", "complete", "terminate"] as const;
-
-type ToolName = (typeof toolNames)[number];
+type ToolName = "exploreLinks" | "complete" | "terminate";
 
 const suggestionForNextStepsDefinition = {
   type: "string",

@@ -56,12 +56,7 @@ export const subCoordinatorOmittedCoordinatorToolNames = [
 type SubCoordinatorOmittedCoordinatorToolName =
   (typeof subCoordinatorOmittedCoordinatorToolNames)[number];
 
-// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const subCoordinatingAgentCustomToolNames = ["complete"] as const;
-
-export type SubCoordinatingAgentCustomToolName =
-  (typeof subCoordinatingAgentCustomToolNames)[number];
+export type SubCoordinatingAgentCustomToolName = "complete";
 
 export type SubCoordinatingAgentToolName =
   | Exclude<CoordinatorToolName, SubCoordinatorOmittedCoordinatorToolName>

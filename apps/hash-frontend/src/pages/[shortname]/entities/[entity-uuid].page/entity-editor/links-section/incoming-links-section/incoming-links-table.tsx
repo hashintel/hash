@@ -52,16 +52,7 @@ import {
   maxLinksTableHeight,
 } from "../shared/table-styling";
 
-// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const fieldIds = [
-  "linkedFrom",
-  "linkTypes",
-  "linkedFromTypes",
-  "link",
-] as const;
-
-type FieldId = (typeof fieldIds)[number];
+type FieldId = "linkedFrom" | "linkTypes" | "linkedFromTypes" | "link";
 
 const staticColumns: VirtualizedTableColumn<FieldId>[] = [
   {
