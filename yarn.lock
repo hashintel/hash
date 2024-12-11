@@ -597,7 +597,7 @@ __metadata:
     react-dom: "npm:18.2.0"
     react-dropzone: "npm:14.3.5"
     react-full-screen: "npm:1.1.1"
-    react-hook-form: "npm:7.53.2"
+    react-hook-form: "npm:7.54.0"
     react-markdown: "npm:9.0.1"
     react-pdf: "npm:9.1.1"
     react-responsive-carousel: "npm:3.2.23"
@@ -4384,7 +4384,7 @@ __metadata:
     prettier: "npm:3.4.2"
     react: "npm:18.2.0"
     react-dom: "npm:18.2.0"
-    react-hook-form: "npm:7.53.2"
+    react-hook-form: "npm:7.54.0"
     typescript: "npm:5.6.3"
   peerDependencies:
     react: ^18.2.0
@@ -4608,7 +4608,7 @@ __metadata:
     prettier: "npm:3.4.2"
     react: "npm:18.2.0"
     react-dom: "npm:18.2.0"
-    react-textarea-autosize: "npm:8.5.5"
+    react-textarea-autosize: "npm:8.5.6"
     typescript: "npm:5.6.3"
   peerDependencies:
     react: ^18.0.0
@@ -7528,14 +7528,14 @@ __metadata:
     eslint-plugin-storybook: "npm:0.11.1"
     react: "npm:18.2.0"
     react-dom: "npm:18.2.0"
-    react-hook-form: "npm:7.53.2"
+    react-hook-form: "npm:7.54.0"
     typescript: "npm:5.6.3"
   peerDependencies:
     "@mui/material": ^5.14.0
     "@mui/system": ^5.14.0
     react: ^18.0.0
     react-dom: ^18.0.0
-    react-hook-form: 7.53.2
+    react-hook-form: 7.54.0
   languageName: unknown
   linkType: soft
 
@@ -7562,7 +7562,7 @@ __metadata:
     material-ui-popup-state: "npm:4.1.0"
     react: "npm:18.2.0"
     react-dom: "npm:18.2.0"
-    react-hook-form: "npm:7.53.2"
+    react-hook-form: "npm:7.54.0"
     rooks: "npm:7.14.1"
     setimmediate: "npm:1.0.5"
     typescript: "npm:5.6.3"
@@ -7571,7 +7571,7 @@ __metadata:
     "@mui/system": ^5.14.0
     react: ^18.0.0
     react-dom: ^18.0.0
-    react-hook-form: 7.53.2
+    react-hook-form: 7.54.0
   languageName: unknown
   linkType: soft
 
@@ -8774,7 +8774,7 @@ __metadata:
   dependencies:
     "@local/tsconfig": "npm:0.0.0-private"
     "@openapitools/openapi-generator-cli": "npm:2.15.3"
-    "@redocly/cli": "npm:1.25.15"
+    "@redocly/cli": "npm:1.26.0"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.10.1"
     axios: "npm:1.7.9"
@@ -8917,7 +8917,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/fs-extra": "npm:9.0.13"
-    "@types/prettier": "npm:2.7.3"
+    "@types/prettier": "npm:3.0.0"
     chalk: "npm:4.1.2"
     envalid: "npm:7.3.1"
     eslint: "npm:9.16.0"
@@ -12222,11 +12222,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redocly/cli@npm:1.25.15":
-  version: 1.25.15
-  resolution: "@redocly/cli@npm:1.25.15"
+"@redocly/cli@npm:1.26.0":
+  version: 1.26.0
+  resolution: "@redocly/cli@npm:1.26.0"
   dependencies:
-    "@redocly/openapi-core": "npm:1.25.15"
+    "@redocly/openapi-core": "npm:1.26.0"
     abort-controller: "npm:^3.0.0"
     chokidar: "npm:^3.5.1"
     colorette: "npm:^1.2.0"
@@ -12248,7 +12248,7 @@ __metadata:
   bin:
     openapi: bin/cli.js
     redocly: bin/cli.js
-  checksum: 10c0/cc182693b9276b01e70140fa35da88671af271ad15776478245f4a1fc5850d82ae7646704df6ef02ee28927d552fd95ee3e5e73f9c4a3b8b516684bc502e88ee
+  checksum: 10c0/bb1d26459414a5166fec14c4788ff1074a01f604ed4f411baada362070bb8627004506c9864dc32b8ed35cba3bc68e7662ab4acd45a8e0aa70ca0318e0152587
   languageName: node
   linkType: hard
 
@@ -12259,7 +12259,26 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redocly/openapi-core@npm:1.25.15, @redocly/openapi-core@npm:^1.4.0":
+"@redocly/openapi-core@npm:1.26.0":
+  version: 1.26.0
+  resolution: "@redocly/openapi-core@npm:1.26.0"
+  dependencies:
+    "@redocly/ajv": "npm:^8.11.2"
+    "@redocly/config": "npm:^0.17.0"
+    colorette: "npm:^1.2.0"
+    https-proxy-agent: "npm:^7.0.4"
+    js-levenshtein: "npm:^1.1.6"
+    js-yaml: "npm:^4.1.0"
+    lodash.isequal: "npm:^4.5.0"
+    minimatch: "npm:^5.0.1"
+    node-fetch: "npm:^2.6.1"
+    pluralize: "npm:^8.0.0"
+    yaml-ast-parser: "npm:0.0.43"
+  checksum: 10c0/d55989a3d2b343c5f5792c704f0e7b2030d739be65f80fb7ff4625f6cb189bb646003180ea605940014c5c77f9954c21cc36d371fa510775c25fbd5534311b0e
+  languageName: node
+  linkType: hard
+
+"@redocly/openapi-core@npm:^1.4.0":
   version: 1.25.15
   resolution: "@redocly/openapi-core@npm:1.25.15"
   dependencies:
@@ -17732,7 +17751,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/prettier@npm:2.7.3, @types/prettier@npm:^2.6.1":
+"@types/prettier@npm:3.0.0":
+  version: 3.0.0
+  resolution: "@types/prettier@npm:3.0.0"
+  dependencies:
+    prettier: "npm:*"
+  checksum: 10c0/edab8c0c0e56936e89c919cac17e384a9f231ce12062fb3beeb45bc45e7dcc4035dd3d7df3333b0bdd39f3b4501f22267a9dba45e22b9728c139857142e90282
+  languageName: node
+  linkType: hard
+
+"@types/prettier@npm:^2.6.1":
   version: 2.7.3
   resolution: "@types/prettier@npm:2.7.3"
   checksum: 10c0/0960b5c1115bb25e979009d0b44c42cf3d792accf24085e4bfce15aef5794ea042e04e70c2139a2c3387f781f18c89b5706f000ddb089e9a4a2ccb7536a2c5f0
@@ -38867,7 +38895,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:3.4.2":
+"prettier@npm:*, prettier@npm:3.4.2":
   version: 3.4.2
   resolution: "prettier@npm:3.4.2"
   bin:
@@ -40076,12 +40104,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-hook-form@npm:7.53.2":
-  version: 7.53.2
-  resolution: "react-hook-form@npm:7.53.2"
+"react-hook-form@npm:7.54.0":
+  version: 7.54.0
+  resolution: "react-hook-form@npm:7.54.0"
   peerDependencies:
     react: ^16.8.0 || ^17 || ^18 || ^19
-  checksum: 10c0/18336d8e8798a70dcd0af703a0becca2d5dbf82a7b7a3ca334ae0e1f26410490bc3ef2ea51adcf790bb1e7006ed7a763fd00d664e398f71225b23529a7ccf0bf
+  checksum: 10c0/8dbc68e8b82aafda1271bbc291052b5efb091505865cd10e3d7dd618ca3870bd05596d7ba68f128427d47ff11e0d9f03089fd7afb88d2a8865ff81f21af417a0
   languageName: node
   linkType: hard
 
@@ -40471,7 +40499,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-textarea-autosize@npm:8.5.5, react-textarea-autosize@npm:^8.3.2":
+"react-textarea-autosize@npm:8.5.6":
+  version: 8.5.6
+  resolution: "react-textarea-autosize@npm:8.5.6"
+  dependencies:
+    "@babel/runtime": "npm:^7.20.13"
+    use-composed-ref: "npm:^1.3.0"
+    use-latest: "npm:^1.2.1"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/652d290d316c55a253507ecf65ca27f2162801dace10c715f2241203e81d82e9de6d282095b758b26c6bc9e1af9ca552cab5c3a361b230e5fcf25bec31e1bd25
+  languageName: node
+  linkType: hard
+
+"react-textarea-autosize@npm:^8.3.2":
   version: 8.5.5
   resolution: "react-textarea-autosize@npm:8.5.5"
   dependencies:
