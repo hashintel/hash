@@ -352,6 +352,9 @@ export const TypesTable: FunctionComponent<{
           throw new Error("column not found");
         }
 
+        const isClickable =
+          row.kind === "entity-type" || row.kind === "link-type";
+
         switch (column.id) {
           case "title": {
             return {
@@ -359,7 +362,7 @@ export const TypesTable: FunctionComponent<{
               readonly: true,
               allowOverlay: false,
               copyData: row.title,
-              cursor: "pointer",
+              cursor: isClickable ? "pointer" : "default",
               data: {
                 kind: "chip-cell",
                 chips: [
@@ -371,12 +374,11 @@ export const TypesTable: FunctionComponent<{
                             row.kind === "link-type" ? "bpLink" : "bpAsterisk",
                         },
                     text: row.title,
-                    onClick:
-                      row.kind === "entity-type" || row.kind === "link-type"
-                        ? () => {
-                            setSelectedEntityType({ entityTypeId: row.typeId });
-                          }
-                        : undefined,
+                    onClick: isClickable
+                      ? () => {
+                          setSelectedEntityType({ entityTypeId: row.typeId });
+                        }
+                      : undefined,
                     iconFill: theme.palette.blue[70],
                   },
                 ],
@@ -398,19 +400,23 @@ export const TypesTable: FunctionComponent<{
               ? `@${row.webShortname}`
               : typeNamespaceFromTypeId(row.typeId);
 
+            const isClickable = row.webShortname !== undefined;
+
             return {
               kind: GridCellKind.Custom,
               allowOverlay: false,
               readonly: true,
-              cursor: "pointer",
+              cursor: isClickable ? "pointer" : "default",
               copyData: value,
               data: {
                 kind: "text-icon-cell",
                 icon: null,
                 value,
-                onClick: () => {
-                  void router.push(`/${value}`);
-                },
+                onClick: isClickable
+                  ? () => {
+                      void router.push(`/${value}`);
+                    }
+                  : undefined,
               },
             };
           }

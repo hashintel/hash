@@ -79,7 +79,7 @@ export const EditorTypePicker = ({
   const dataTypeTrees = useMemo(() => {
     return buildDataTypeTreesForSelector({
       targetDataTypes: expectedTypes,
-      dataTypePool: Object.values(closedMultiEntityTypesDefinitions.dataTypes),
+      dataTypePoolById: closedMultiEntityTypesDefinitions.dataTypes,
     });
   }, [expectedTypes, closedMultiEntityTypesDefinitions]);
 
@@ -94,16 +94,5 @@ export const EditorTypePicker = ({
     onTypeChange(selectedType.schema);
   };
 
-  return (
-    <Box sx={{ px: 2, py: 1.5 }}>
-      <Typography variant="smallCaps" mr={1}>
-        Choose data type
-      </Typography>
-      <Typography variant="smallTextLabels">
-        How are you representing this value?
-      </Typography>
-
-      <DataTypeSelector dataTypes={dataTypeTrees} onSelect={onSelect} />
-    </Box>
-  );
+  return <DataTypeSelector dataTypes={dataTypeTrees} onSelect={onSelect} />;
 };

@@ -83,7 +83,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     }
 
     return {
-      dataType,
+      dataType: dataType.schema,
       schema,
     };
   });

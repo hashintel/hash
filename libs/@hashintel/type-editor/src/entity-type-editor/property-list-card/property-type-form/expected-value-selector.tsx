@@ -281,6 +281,7 @@ export const ExpectedValueSelector = ({
           onChange={(_evt, data, reason) => {
             if (reason !== "createOption") {
               expectedValuesField.onChange(data);
+              setInputValue("");
             }
             return false;
           }}

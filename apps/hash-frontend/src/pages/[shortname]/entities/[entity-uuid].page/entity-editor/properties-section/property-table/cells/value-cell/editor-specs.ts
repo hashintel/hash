@@ -58,6 +58,10 @@ const editorSpecs: Record<EditorType, EditorSpec> = {
 };
 
 const measurementTypeTitles = [
+  "Length",
+  "Imperial Length (UK)",
+  "Imperial Length (US)",
+  "Metric Length (SI)",
   "Inches",
   "Feet",
   "Yards",

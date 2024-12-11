@@ -1,4 +1,5 @@
 import type { ClosedDataType, VersionedUrl } from "@blockprotocol/type-system";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 import { useState } from "react";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
@@ -7,7 +8,7 @@ import { isBlankStringOrNullish } from "../utils";
 import { SortableRow } from "./sortable-row";
 
 interface DraftRowProps {
-  expectedTypes: ClosedDataType[];
+  expectedTypes: ClosedDataTypeDefinition[];
   existingItemCount: number;
   onDraftSaved: (value: unknown, dataTypeId: VersionedUrl) => void;
   onDraftDiscarded: () => void;
@@ -28,7 +29,7 @@ export const DraftRow = ({
       throw new Error("there is no expectedType found on property type");
     }
 
-    return expectedTypes[0];
+    return expectedTypes[0].schema;
   });
 
   if (!dataType) {
