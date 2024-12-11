@@ -15,6 +15,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import type { MouseEventHandler } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getIconForDataType } from "./data-type-selector/icons";
@@ -47,7 +48,7 @@ const isDataType = (
   return "$id" in dataType;
 };
 
-const maxHeight = 500;
+const defaultMaxHeight = 500;
 const inputHeight = 48;
 const hintHeight = 36;
 
@@ -362,9 +363,15 @@ const DataTypeTreeView = (props: {
     }
   });
 
-  const defaultAction = abstract
-    ? () => setExpanded(!expanded)
-    : () => onSelect($id);
+  const defaultAction: MouseEventHandler<HTMLDivElement> = abstract
+    ? (event) => {
+        event.stopPropagation();
+        setExpanded(!expanded);
+      }
+    : (event) => {
+        event.stopPropagation();
+        onSelect($id);
+      };
 
   return (
     <>
@@ -459,14 +466,28 @@ const DataTypeTreeView = (props: {
 
 export type DataTypeSelectorProps = {
   dataTypes: DataTypeForSelector[];
+  hideHint?: boolean;
+  maxHeight?: number;
   onSelect: (dataTypeId: VersionedUrl) => void;
+  searchText?: string;
   selectedDataTypeId?: VersionedUrl;
 };
 
 export const DataTypeSelector = (props: DataTypeSelectorProps) => {
-  const { dataTypes, onSelect, selectedDataTypeId } = props;
+  const {
+    dataTypes,
+    hideHint,
+    maxHeight: maxHeightFromProps,
+    onSelect,
+    searchText: externallyControlledSearchText,
+    selectedDataTypeId,
+  } = props;
 
-  const [searchText, setSearchText] = useState("");
+  const maxHeight = maxHeightFromProps ?? defaultMaxHeight;
+
+  const [localSearchText, setLocalSearchText] = useState("");
+
+  const searchText = externallyControlledSearchText ?? localSearchText;
 
   const flattenedDataTypes = useMemo(() => {
     const flattened: DataTypeForSelector[] = [];
@@ -521,25 +542,27 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
 
   return (
     <Stack sx={{ maxHeight }}>
-      <TextField
-        autoFocus
-        value={searchText}
-        onChange={(event) => setSearchText(event.target.value)}
-        placeholder="Start typing to filter options..."
-        sx={{
-          borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
-          height: inputHeight,
-          "*": {
-            border: "none",
-            boxShadow: "none",
-            borderRadius: 0,
-          },
-          [`.${outlinedInputClasses.root} input`]: {
-            fontSize: 14,
-          },
-        }}
-      />
-      <Box>
+      {externallyControlledSearchText === undefined && (
+        <TextField
+          autoFocus
+          value={localSearchText}
+          onChange={(event) => setLocalSearchText(event.target.value)}
+          placeholder="Start typing to filter options..."
+          sx={{
+            borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
+            height: inputHeight,
+            "*": {
+              border: "none",
+              boxShadow: "none",
+              borderRadius: 0,
+            },
+            [`.${outlinedInputClasses.root} input`]: {
+              fontSize: 14,
+            },
+          }}
+        />
+      )}
+      {!hideHint && (
         <Stack direction="row" sx={{ height: hintHeight, px: 2, pt: 1.5 }}>
           <Typography
             sx={{
@@ -562,42 +585,53 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
             How are you representing this value?
           </Typography>
         </Stack>
+      )}
 
-        <Stack
-          gap={1}
-          sx={{
-            maxHeight: maxHeight - inputHeight - hintHeight,
-            overflowY: "scroll",
-            px: 2,
-            pb: 1.5,
-          }}
-        >
-          {sortedDataTypes.map((dataType) => {
-            const selected = dataType.$id === selectedDataTypeId;
+      <Stack
+        gap={1}
+        sx={{
+          maxHeight:
+            maxHeight -
+            (hideHint ? 0 : hintHeight) -
+            (externallyControlledSearchText !== undefined ? 0 : inputHeight),
+          overflowY: sortedDataTypes.length ? "scroll" : undefined,
+          px: 2,
+          pb: 1.5,
+          pt: hideHint ? 1.5 : 0,
+        }}
+      >
+        {!sortedDataTypes.length && (
+          <Typography
+            sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }}
+          >
+            No options found...
+          </Typography>
+        )}
+        {sortedDataTypes.map((dataType) => {
+          const selected = dataType.$id === selectedDataTypeId;
 
-            if (searchText) {
-              return (
-                <DataTypeFlatView
-                  key={dataType.$id}
-                  dataType={dataType}
-                  onSelect={onSelect}
-                  selected={selected}
-                />
-              );
-            }
-
+          if (searchText) {
             return (
-              <DataTypeTreeView
+              <DataTypeFlatView
                 key={dataType.$id}
                 dataType={dataType}
-                isOnlyRoot={dataTypes.length === 1}
                 onSelect={onSelect}
-                selectedDataTypeId={selectedDataTypeId}
+                selected={selected}
               />
             );
-          })}
-        </Stack>
-      </Box>
+          }
+
+          return (
+            <DataTypeTreeView
+              key={dataType.$id}
+              dataType={dataType}
+              isOnlyRoot={dataTypes.length === 1}
+              onSelect={onSelect}
+              selectedDataTypeId={selectedDataTypeId}
+            />
+          );
+        })}
+      </Stack>
     </Stack>
   );
 };

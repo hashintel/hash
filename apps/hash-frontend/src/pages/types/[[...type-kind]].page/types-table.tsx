@@ -352,11 +352,11 @@ export const TypesTable: FunctionComponent<{
           throw new Error("column not found");
         }
 
-        const isClickable =
-          row.kind === "entity-type" || row.kind === "link-type";
-
         switch (column.id) {
           case "title": {
+            const isClickable =
+              row.kind === "entity-type" || row.kind === "link-type";
+
             return {
               kind: GridCellKind.Custom,
               readonly: true,

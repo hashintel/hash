@@ -120,12 +120,6 @@ export const useCreateGetCellContent = (
             }
 
             if (shouldShowChangeTypeCell) {
-              if (!valueMetadata) {
-                throw new Error(
-                  `Expected value metadata to be set when showing change type cell`,
-                );
-              }
-
               if (!isValueMetadata(valueMetadata)) {
                 throw new Error(
                   `Expected single value when showing change type cell`,
