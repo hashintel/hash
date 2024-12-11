@@ -133,13 +133,15 @@ export const buildSubgraph = (
     try {
       const vertexId = getVertexIdForRecordId(subgraph, rootRecordId);
       subgraph.roots.push(vertexId);
-    } catch (error) {
+    } catch {
       missingRootVertexIds.push(rootRecordId);
     }
   }
 
   if (missingRootVertexIds.length > 0) {
     throw new Error(
+      // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       `Internal implementation error, could not find VertexId for root RecordId(s): ${missingRootVertexIds.join(
         ", ",
       )}`,

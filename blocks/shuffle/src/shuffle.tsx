@@ -14,7 +14,9 @@ import ShuffleIcon from "@mui/icons-material/Shuffle";
 import Box from "@mui/material/Box";
 import produce from "immer";
 import isEqual from "lodash.isequal";
-import React, { useMemo, useRef, useState } from "react";
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// removed React import
+import { useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import { ItemList } from "./components/item-list";

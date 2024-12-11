@@ -156,6 +156,8 @@ const getFullText = (node: Node): string =>
 
 // Recursively construct the text from leaf text nodes in an MDX AST
 const getVisibleText = (node: Node): string =>
+  // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   [
     isTextNode(node)
       ? isTextNode(node.value)

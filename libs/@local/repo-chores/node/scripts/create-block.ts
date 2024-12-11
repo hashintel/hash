@@ -1,4 +1,4 @@
-import path, { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { JsonObject } from "@blockprotocol/core";
@@ -8,7 +8,7 @@ import fs from "fs-extra";
 import { monorepoRootDirPath } from "./shared/monorepo";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const script = async () => {
   const args = process.argv.slice(2);
@@ -59,7 +59,7 @@ const script = async () => {
   (packageJson.scripts as JsonObject).format =
     "prettier --write --ignore-unknown src/types/generated/*.ts";
 
-  (packageJson.devDependencies as JsonObject)["@local/eslint-config"] =
+  (packageJson.devDependencies as JsonObject)["@local/eslint"] =
     "0.0.0-private";
 
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));

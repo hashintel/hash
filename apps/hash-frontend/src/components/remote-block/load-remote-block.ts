@@ -11,7 +11,7 @@ export type UnknownBlock =
 
 export type FetchSourceFn = (
   url: string,
-  signal?: AbortSignal | undefined,
+  signal?: AbortSignal,
 ) => Promise<string>;
 
 /**
@@ -53,6 +53,8 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
     const module = { exports };
     // eslint-disable-next-line no-new-func,@typescript-eslint/no-implied-eval
     const func = new Function("require", "module", "exports", source);
+    // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     func(requires, module, exports);
 
     /**

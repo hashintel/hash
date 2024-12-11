@@ -302,6 +302,8 @@ export const inferEntitySummaries = async (params: {
        */
       if (typesWithNoSuggestionsToRerequest.length > 0) {
         logger.info(
+          // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           `No suggestions for entity types: ${typesWithNoSuggestionsToRerequest.join(
             ", ",
           )}`,

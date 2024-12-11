@@ -1,5 +1,6 @@
 {
   "extends": "./tsconfig.json",
+  "exclude": ["eslint.config.js", "vitest.config.ts"],
   "compilerOptions": {
     "declaration": true,
     "outDir": "dist",

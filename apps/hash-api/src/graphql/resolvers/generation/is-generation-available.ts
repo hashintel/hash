@@ -36,7 +36,7 @@ export const isGenerationAvailableResolver: ResolverFn<
     return {
       available: true,
     };
-  } catch (err) {
+  } catch {
     return {
       available: false,
       reason: "Invalid OpenAI API key or API error",

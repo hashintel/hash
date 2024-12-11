@@ -53,9 +53,7 @@ import {
   maxLinksTableHeight,
 } from "../shared/table-styling";
 
-const fieldIds = ["linkTypes", "linkedTo", "linkedToTypes", "link"] as const;
-
-type OutgoingLinksFieldId = (typeof fieldIds)[number];
+type OutgoingLinksFieldId = "linkTypes" | "linkedTo" | "linkedToTypes" | "link";
 
 export type OutgoingLinksFilterValues =
   VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;

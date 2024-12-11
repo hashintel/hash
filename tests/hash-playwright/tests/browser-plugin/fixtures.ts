@@ -1,10 +1,10 @@
-import path, { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { type BrowserContext, chromium, test as base } from "@playwright/test";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const monorepoRootDir = path.resolve(__dirname, "../../../../");
 
@@ -27,6 +27,7 @@ export const test = base.extend<{
       ],
       serviceWorkers: "allow",
     });
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(context);
     await context.close();
   },
@@ -40,6 +41,7 @@ export const test = base.extend<{
     if (!extensionId) {
       throw new Error("Could not find extension ID");
     }
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(extensionId);
   },
 });

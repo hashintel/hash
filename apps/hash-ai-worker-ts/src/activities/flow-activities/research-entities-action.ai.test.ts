@@ -7,7 +7,7 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { expect, test } from "vitest";
@@ -16,9 +16,9 @@ import { researchEntitiesAction } from "./research-entities-action.js";
 import type { CoordinatingAgentState } from "./research-entities-action/shared/coordinators.js";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-const baseDirectoryPath = join(__dirname, "/var/persisted-state");
+const baseDirectoryPath = path.join(__dirname, "/var/persisted-state");
 
 export const retrievePreviousState = (params: {
   testName: string;

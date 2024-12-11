@@ -136,7 +136,7 @@ export const getTokensForGoogleAccount = async ({
       userAccountId,
     });
     return vaultResponse.data;
-  } catch (err) {
+  } catch {
     return null;
   }
 };

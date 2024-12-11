@@ -57,6 +57,7 @@ const CopyableMonospace = ({ text }: { text: string }) => {
 export const ErrorFallback: FallbackRender = ({
   error,
   eventId,
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- sentry issue
   resetError,
 }) => {
   const [showMessage, setShowMessage] = useState(false);

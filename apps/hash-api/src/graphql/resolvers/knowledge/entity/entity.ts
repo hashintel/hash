@@ -462,7 +462,7 @@ export const archiveEntitiesResolver: ResolverFn<
         );
 
         archivedEntities.push(entity);
-      } catch (error) {
+      } catch {
         entitiesThatCouldNotBeArchived.push(entityId);
       }
     }),

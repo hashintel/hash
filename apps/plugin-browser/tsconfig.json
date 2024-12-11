@@ -13,7 +13,8 @@
     "src",
     "theme-override.d.ts",
     "webpack-injected-env.d.ts",
-    "codegen.config.ts"
+    "codegen.config.ts",
+    "eslint.config.js"
   ],
   "exclude": ["build", "node_modules"]
 }

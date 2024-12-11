@@ -14,7 +14,7 @@ const isJsonObjectString = (str?: string) => {
 
   try {
     JSON.parse(str);
-  } catch (err) {
+  } catch {
     return false;
   }
   return true;

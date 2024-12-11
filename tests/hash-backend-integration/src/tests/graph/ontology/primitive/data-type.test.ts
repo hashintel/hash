@@ -138,6 +138,7 @@ describe("Data type CRU", () => {
       schema: { ...dataTypeSchema, title: updatedTitle },
       relationships: [{ relation: "viewer", subject: { kind: "public" } }],
       conversions: {},
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     }).catch((err) => Promise.reject(err.data));
 
     expect(

@@ -7,7 +7,7 @@ import {
 import { unlink } from "node:fs/promises";
 import * as http from "node:http";
 import * as https from "node:https";
-import { dirname, join } from "node:path";
+import path from "node:path";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
@@ -47,15 +47,15 @@ import { getFlowContext } from "../../shared/get-flow-context.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-const baseFilePath = join(__dirname, "/var/tmp_files");
+const baseFilePath = path.join(__dirname, "/var/tmp_files");
 
 const downloadFileToFileSystem = async (fileUrl: string) => {
   mkdirSync(baseFilePath, { recursive: true });
 
   const tempFileName = generateUuid();
-  const filePath = join(baseFilePath, tempFileName);
+  const filePath = path.join(baseFilePath, tempFileName);
 
   const response = await fetch(fileUrl);
   if (!response.ok || !response.body) {

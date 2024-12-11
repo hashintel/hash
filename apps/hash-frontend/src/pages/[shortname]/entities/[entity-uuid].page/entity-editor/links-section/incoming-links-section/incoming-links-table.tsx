@@ -52,14 +52,7 @@ import {
   maxLinksTableHeight,
 } from "../shared/table-styling";
 
-const fieldIds = [
-  "linkedFrom",
-  "linkTypes",
-  "linkedFromTypes",
-  "link",
-] as const;
-
-type FieldId = (typeof fieldIds)[number];
+type FieldId = "linkedFrom" | "linkTypes" | "linkedFromTypes" | "link";
 
 const staticColumns: VirtualizedTableColumn<FieldId>[] = [
   {

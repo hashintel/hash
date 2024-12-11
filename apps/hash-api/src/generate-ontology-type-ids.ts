@@ -1,6 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import * as path from "node:path";
-import { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
@@ -34,7 +33,7 @@ import {
 import { getPropertyTypes } from "./graph/ontology/primitive/property-type";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const outputFileName = "ontology-type-ids.ts";
 
