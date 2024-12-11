@@ -222,7 +222,7 @@ test-strategy            = { version = "=0.4.0", default-features = false }
 thiserror                = { version = "=2.0.6", default-features = false }
 tokio-stream             = { version = "=0.1.17", default-features = false }
 tokio-test               = { version = "=0.4.4", default-features = false }
-tower                    = { version = "=0.5.1", default-features = false }
+tower                    = { version = "=0.5.2", default-features = false }
 tower-test               = { version = "=0.4.0", default-features = false }
 tracing                  = { version = "=0.1.41", default-features = false }
 tracing-error            = { version = "=0.2.1", default-features = false }
