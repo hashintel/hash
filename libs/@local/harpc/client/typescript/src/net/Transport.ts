@@ -39,7 +39,7 @@ export interface DNSConfig {
   cacheCapacity?: number;
 
   /**
-   * Time until a cached resolved multiaddr is considered stale.
+   * Time in milliseconds until a cached resolved multiaddr is considered stale.
    *
    * @default 5 minutes
    */
