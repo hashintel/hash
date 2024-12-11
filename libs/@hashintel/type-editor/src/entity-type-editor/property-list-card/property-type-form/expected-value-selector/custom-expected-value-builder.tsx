@@ -71,7 +71,7 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
       );
     default:
       return null;
-  }
+  }.
 };
 
 export const CustomExpectedValueBuilder: FunctionComponent = () => {

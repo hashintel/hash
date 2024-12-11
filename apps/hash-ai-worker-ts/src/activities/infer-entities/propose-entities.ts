@@ -371,7 +371,7 @@ export const proposeEntities = async (params: {
 
           try {
             validateProposedEntitiesByType(proposedEntitiesByType, false);
-          } catch (err) {
+          } catch {
             logger.error(
               `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
                 toolCall.input,

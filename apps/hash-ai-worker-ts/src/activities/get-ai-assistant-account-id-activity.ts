@@ -22,7 +22,7 @@ export const getAiAssistantAccountIdActivity = async (params: {
       authentication,
       { identifier: "hash-ai" },
     );
-  } catch (error) {
+  } catch {
     return null;
   }
 

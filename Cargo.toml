@@ -130,7 +130,7 @@ regex              = { version = "=1.11.1", default-features = false, features =
 reqwest            = { version = "=0.12.9", default-features = false, features = ["rustls-tls"] }
 semver             = { version = "=1.0.23", default-features = false }
 sentry-types       = { version = "=0.35.0", default-features = false }
-serde              = { version = "=1.0.215", default-features = false }
+serde              = { version = "=1.0.216", default-features = false }
 serde_json         = { version = "=1.0.133" }
 text-size          = { version = "=1.1.1", default-features = false }
 time               = { version = "=0.3.37", default-features = false }
@@ -219,10 +219,10 @@ temporal-sdk-core-protos = { git = "https://github.com/temporalio/sdk-core", rev
 test-fuzz                = { version = "=7.0.1", default-features = false }
 test-log                 = { version = "=0.2.16", default-features = false }
 test-strategy            = { version = "=0.4.0", default-features = false }
-thiserror                = { version = "=2.0.4", default-features = false }
+thiserror                = { version = "=2.0.6", default-features = false }
 tokio-stream             = { version = "=0.1.17", default-features = false }
 tokio-test               = { version = "=0.4.4", default-features = false }
-tower                    = { version = "=0.5.1", default-features = false }
+tower                    = { version = "=0.5.2", default-features = false }
 tower-test               = { version = "=0.4.0", default-features = false }
 tracing                  = { version = "=0.1.41", default-features = false }
 tracing-error            = { version = "=0.2.1", default-features = false }

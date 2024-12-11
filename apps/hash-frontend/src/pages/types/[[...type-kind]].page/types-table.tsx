@@ -51,16 +51,13 @@ import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
 import type { VisualizerView } from "../../shared/visualizer-views";
 import { visualizerViewIcons } from "../../shared/visualizer-views";
 
-const typesTableColumnIds = [
-  "title",
-  "kind",
-  "webShortname",
-  "archived",
-  "lastEdited",
-  "lastEditedBy",
-] as const;
-
-type LinkColumnId = (typeof typesTableColumnIds)[number];
+type LinkColumnId =
+  | "title"
+  | "kind"
+  | "webShortname"
+  | "archived"
+  | "lastEdited"
+  | "lastEditedBy";
 
 type TypesTableColumn = {
   id: LinkColumnId;
@@ -86,15 +83,12 @@ const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
   return `${domain}/${firstPathSegment}`;
 };
 
-const typeTableKinds = [
-  "all",
-  "entity-type",
-  "link-type",
-  "property-type",
-  "data-type",
-] as const;
-
-type TypeTableKind = (typeof typeTableKinds)[number];
+type TypeTableKind =
+  | "all"
+  | "entity-type"
+  | "link-type"
+  | "property-type"
+  | "data-type";
 
 const typesTablesToTitle: Record<TypeTableKind, string> = {
   all: "Types",

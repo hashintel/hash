@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import path, { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { getWebPageActivity } from "../src/activities/get-web-page-activity.js";
@@ -12,7 +12,7 @@ import { getWebPageActivity } from "../src/activities/get-web-page-activity.js";
  */
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const url = process.argv[2];
 

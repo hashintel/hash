@@ -194,7 +194,7 @@ export const Subscribe: FunctionComponent<
                       setError("Something went wrong.️ Please try again later");
                     }
                   });
-                } catch (err) {
+                } catch {
                   // eslint-disable-next-line no-console
                   console.log(error);
                   unstable_batchedUpdates(() => {

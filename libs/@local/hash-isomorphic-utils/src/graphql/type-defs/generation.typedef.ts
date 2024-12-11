@@ -9,8 +9,6 @@ export const generationTypedef = gql`
   extend type Query {
     """
     Generates the plural form of a word or phrase (e.g. Company -> Companies)
-
-    TODO handle missing API keys gracefully for self-hosted instances
     """
     generatePlural(singular: String!): String!
 

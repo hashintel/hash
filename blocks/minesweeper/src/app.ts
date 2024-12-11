@@ -1,7 +1,6 @@
 import { BlockElementBase } from "@blockprotocol/graph/custom-element";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { PropertyValues } from "lit";
-// eslint-disable-next-line import/extensions
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { mine_sweeper } from "mine-sweeper-tag";
 

@@ -1,7 +1,7 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { EntityUuid } from "@local/hash-graph-types/entity";
@@ -322,7 +322,7 @@ const statyaNadellaLinkedInEntitySummaries: LocalEntitySummary[] = [
 ];
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 /**
  * This test requires a local HTML file to be present at the path specified below,
@@ -332,7 +332,7 @@ const __dirname = dirname(__filename);
 test.skip(
   "Test inferSummariesThenClaimsFromText with Linked In web page",
   async () => {
-    const linkedInInnerHtmlPath = join(__dirname, "/var/linkedin.html");
+    const linkedInInnerHtmlPath = path.join(__dirname, "/var/linkedin.html");
 
     const innerHtml = readFileSync(linkedInInnerHtmlPath, "utf8");
 

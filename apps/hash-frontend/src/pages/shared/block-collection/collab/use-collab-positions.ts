@@ -78,7 +78,7 @@ export const useCollabPositions = (
             setPositionInfo({ accountId, pageEntityId, positions });
           }
           poll = true;
-        } catch (error) {
+        } catch {
           await sleep(requestRetryInterval);
         }
       }

@@ -116,7 +116,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
             maximumAttempts: 1,
           },
         });
-      } catch (error) {
+      } catch {
         /** @todo: figure out whether this should be logged */
         return undefined;
       }

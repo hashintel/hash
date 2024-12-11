@@ -101,6 +101,8 @@ export const BarChart: FunctionComponent<{
           );
 
           const label = String(
+            // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
             entity.properties[extractBaseUrl(labelPropertyTypeId)] ?? "Unknown",
           );
 
