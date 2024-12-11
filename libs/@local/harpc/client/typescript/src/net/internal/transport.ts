@@ -386,7 +386,7 @@ export const make = (config?: TransportConfig) =>
       capacity: config?.dns?.cacheCapacity ?? 32,
       timeToLive: config?.dns?.cacheTimeToLive ?? 5 * 60 * 1000,
       // eslint-disable-next-line @typescript-eslint/no-use-before-define -- this is fine, because we're using it only after it's defined, as the cache accesses the transport
-      lookup: (address) => lookupPeer(transport, makeMultiaddr(address)),
+      lookup: (address) => lookupPeer(transport, address),
     });
 
     const acquire = Effect.tryPromise({

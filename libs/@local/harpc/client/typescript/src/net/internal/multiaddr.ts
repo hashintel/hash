@@ -4,20 +4,27 @@ import {
   type MultiaddrInput,
   type ResolveOptions,
 } from "@multiformats/multiaddr";
-import { Equal, Hash, pipe } from "effect";
+import { Equal, Hash, pipe, Predicate } from "effect";
 
 import { createProto, hashUint8Array } from "../../utils.js";
 
 const MultiaddrSymbol = Symbol.for("@multiformats/js-multiaddr/multiaddr");
 type MultiaddrSymbol = typeof MultiaddrSymbol;
 
+const TypeId: unique symbol = Symbol(
+  "@local/harpc-client/net/internal/HashableMultiaddr",
+);
+type TypeId = typeof TypeId;
+
 /** @internal */
 export interface HashableMultiaddr extends Multiaddr, Equal.Equal {
+  readonly [TypeId]: TypeId;
   readonly [MultiaddrSymbol]: true;
   readonly inner: Multiaddr;
 }
 
 const HashableMultiaddrProto: Omit<HashableMultiaddr, "inner"> = {
+  [TypeId]: TypeId,
   [MultiaddrSymbol]: true,
 
   get bytes() {
@@ -105,8 +112,13 @@ const HashableMultiaddrProto: Omit<HashableMultiaddr, "inner"> = {
   },
 };
 
+const isHashableMultiaddr = (value: unknown): value is HashableMultiaddr =>
+  Predicate.hasProperty(value, TypeId);
+
 /** @internal */
 export const make = (inner: Multiaddr): HashableMultiaddr =>
-  createProto(HashableMultiaddrProto, {
-    inner,
-  }) satisfies HashableMultiaddr;
+  isHashableMultiaddr(inner)
+    ? inner
+    : (createProto(HashableMultiaddrProto, {
+        inner,
+      }) satisfies HashableMultiaddr);
