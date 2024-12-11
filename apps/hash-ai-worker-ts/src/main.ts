@@ -100,8 +100,8 @@ async function run() {
   logger.info("Starting AI worker...");
 
   const graphApiClient = createGraphClient(logger, {
-    host: getRequiredEnv("HASH_GRAPH_API_HOST"),
-    port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
+    host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
+    port: parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
   });
 
   logger.info("Created Graph client");

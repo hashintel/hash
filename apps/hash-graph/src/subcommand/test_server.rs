@@ -17,7 +17,7 @@ use tokio_postgres::NoTls;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::{server::ApiAddress, wait_healthcheck},
+    subcommand::{server::HttpAddress, wait_healthcheck},
 };
 
 #[derive(Debug, Parser)]
@@ -31,7 +31,7 @@ pub struct TestServerArgs {
 
     /// The address the REST server is listening at.
     #[clap(flatten)]
-    pub api_address: ApiAddress,
+    pub http_address: HttpAddress,
 
     /// Runs the healthcheck for the test server.
     #[clap(long, default_value_t = false)]
@@ -63,7 +63,7 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), Report<GraphError>>
 
     if args.healthcheck {
         return wait_healthcheck(
-            || healthcheck(args.api_address.clone()),
+            || healthcheck(args.http_address.clone()),
             args.wait,
             args.timeout.map(Duration::from_secs),
         )
@@ -101,9 +101,9 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), Report<GraphError>>
 
     let router = hash_graph_test_server::routes(pool, zanzibar_client);
 
-    tracing::info!("Listening on {}", args.api_address);
+    tracing::info!("Listening on {}", args.http_address);
     axum::serve(
-        TcpListener::bind((args.api_address.api_host, args.api_address.api_port))
+        TcpListener::bind((args.http_address.api_host, args.http_address.api_port))
             .await
             .change_context(GraphError)?,
         router.into_make_service_with_connect_info::<SocketAddr>(),
@@ -114,7 +114,7 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), Report<GraphError>>
     Ok(())
 }
 
-pub async fn healthcheck(address: ApiAddress) -> Result<(), Report<HealthcheckError>> {
+pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckError>> {
     let request_url = format!("http://{address}/snapshot");
 
     timeout(

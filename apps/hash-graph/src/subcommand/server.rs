@@ -38,30 +38,19 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Parser)]
-pub struct ApiAddress {
+pub struct HttpAddress {
     /// The host the REST client is listening at.
-    #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_API_HOST")]
+    #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_HTTP_HOST")]
     pub api_host: String,
 
     /// The port the REST client is listening at.
-    #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
+    #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_HTTP_PORT")]
     pub api_port: u16,
 }
 
-impl fmt::Display for ApiAddress {
+impl fmt::Display for HttpAddress {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "{}:{}", self.api_host, self.api_port)
-    }
-}
-
-impl TryFrom<ApiAddress> for SocketAddr {
-    type Error = Report<AddrParseError>;
-
-    fn try_from(address: ApiAddress) -> Result<Self, Report<AddrParseError>> {
-        address
-            .to_string()
-            .parse::<Self>()
-            .attach_printable(address)
     }
 }
 
@@ -107,7 +96,7 @@ pub struct ServerArgs {
 
     /// The address the REST server is listening at.
     #[clap(flatten)]
-    pub api_address: ApiAddress,
+    pub http_address: HttpAddress,
 
     /// Enable the experimental RPC server.
     #[clap(long, default_value_t = false, env = "HASH_GRAPH_RPC_ENABLED")]
@@ -237,7 +226,7 @@ where
 pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
     if args.healthcheck {
         return wait_healthcheck(
-            || healthcheck(args.api_address.clone()),
+            || healthcheck(args.http_address.clone()),
             args.wait,
             args.timeout.map(Duration::from_secs),
         )
@@ -330,9 +319,9 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         rest_api_router(dependencies)
     };
 
-    tracing::info!("Listening on {}", args.api_address);
+    tracing::info!("Listening on {}", args.http_address);
     axum::serve(
-        TcpListener::bind((args.api_address.api_host, args.api_address.api_port))
+        TcpListener::bind((args.http_address.api_host, args.http_address.api_port))
             .await
             .change_context(GraphError)?,
         router.into_make_service_with_connect_info::<SocketAddr>(),
@@ -343,7 +332,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
     Ok(())
 }
 
-pub async fn healthcheck(address: ApiAddress) -> Result<(), Report<HealthcheckError>> {
+pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckError>> {
     let request_url = format!("http://{address}/api-doc/openapi.json");
 
     timeout(

@@ -10,8 +10,10 @@ The service uses the following environment variables:
 - `HASH_TEMPORAL_SERVER_PORT`: The port that the Temporal server is running on (defaults to `7233`).
 - `OPENAI_API_KEY`: The OpenAI API key that is made available to workflows and activities.
 - `ANTHROPIC_API_KEY`: The Anthropic API key that is made available to workflows and activities.
-- `HASH_GRAPH_API_HOST`: The host address that the HASH Graph API is running on, e.g. `graph`, `127.0.0.1`
-- `HASH_GRAPH_API_PORT`: The port that the HASH Graph API is running on, e.g. `4000`
+- `HASH_GRAPH_HTTP_HOST`: The host address that the HASH Graph service is running on, e.g. `graph`, `127.0.0.1`
+- `HASH_GRAPH_HTTP_PORT`: The port that the HASH Graph HTTP service is running on, e.g. `4000`
+- `HASH_GRAPH_RPC_HOST`: The host address that the HASH Graph RPC service is running on, e.g. `graph`, `127.0.0.1`
+- `HASH_GRAPH_RPC_PORT`: The port that the HASH Graph RPC service is running on, e.g. `4002`
 - `INTERNAL_API_HOST`: The host for the internal API, required if the internal API is not running locally for workflows making use of the `getWebSearchResultsActivity` activity
 - `INTERNAL_API_KEY`: The API key used to authenticate with the internal API, required for workflows making use of the `getWebSearchResultsActivity` activity
 - `HASH_VAULT_HOST`: The host address (including protocol) that the Vault server is running on, e.g. `http://127.0.0.1`
