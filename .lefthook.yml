@@ -9,7 +9,7 @@ pre-commit:
     markdownlint:
       tags: frontend style
       glob: "*.md"
-      run: yarn run markdownlint --fix {staged_files} || true
+      run: yarn run markdownlint --fix --no-globs {staged_files} || true
       stage_fixed: true
     prettier:
       tags: frontend style

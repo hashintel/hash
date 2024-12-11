@@ -106,7 +106,7 @@
     "@taplo/cli": "0.7.0",
     "@yarnpkg/types": "^4.0.0",
     "lefthook": "1.9.3",
-    "markdownlint-cli": "0.43.0",
+    "markdownlint-cli2": "0.16.0",
     "npm-run-all2": "7.0.2",
     "prettier": "3.4.2",
     "prettier-plugin-packagejson": "2.5.6",
