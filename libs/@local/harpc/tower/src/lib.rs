@@ -4,7 +4,7 @@
     type_changing_struct_update,
     error_generic_member_access
 )]
-#![cfg_attr(test, feature(noop_waker, assert_matches, macro_metavar_expr))]
+#![cfg_attr(test, feature(assert_matches, macro_metavar_expr))]
 
 extern crate alloc;
 
