@@ -77,7 +77,7 @@ export type PropertyValidationReport = Subtype<
       // The property value validation failed
       type: "value";
       /*
-       * Validation for each constraint in the `oneOf` field. The validation is assumed to pass if exactly one of the
+       * Validation for each constraint in the `oneOf` field. The validation is assumed to pass if at least one of the
        * constraints passes. In this case, this field will be omitted. Whenever this field is present it can be assumed
        * that the validation failed.
        */
@@ -93,7 +93,7 @@ export type PropertyValidationReport = Subtype<
       // The property array validation failed
       type: "array";
       /*
-       * Validation for each constraint in the `oneOf` field. The validation is assumed to pass if exactly one of the
+       * Validation for each constraint in the `oneOf` field. The validation is assumed to pass if at least one of the
        * constraints passes. In this case, this field will be omitted. Whenever this field is present it can be assumed
        * that the validation failed.
        */
