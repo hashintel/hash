@@ -545,7 +545,7 @@ const main = async () => {
     const rpcHost = getRequiredEnv("HASH_GRAPH_RPC_HOST");
     const rpcPort = parseInt(process.env.HASH_GRAPH_RPC_PORT ?? "4002", 10);
 
-    app.get("/rpc/echo", (req, res, next) => {
+    app.get("/rpc/echo", (req, res) => {
       // eslint-disable-next-line func-names
       const effect = Effect.gen(function* () {
         const textQueryParam = req.query.text;
