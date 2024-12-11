@@ -176,7 +176,7 @@ insta                    = { version = "=1.41.1", default-features = false }
 itertools                = { version = "0.13.0", default-features = false }
 jsonschema               = { version = "=0.26.1", default-features = false }
 justjson                 = { version = "=0.3.0", default-features = false }
-lexical                  = { version = "=7.0.3", default-features = false }
+lexical                  = { version = "=7.0.4", default-features = false }
 libp2p                   = { version = "=0.54.1", default-features = false }
 libp2p-stream            = { version = "=0.2.0-alpha", default-features = false }
 logos                    = { version = "=0.15.0", default-features = false }
