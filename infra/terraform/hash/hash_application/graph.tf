@@ -206,7 +206,6 @@ locals {
       },
       {
         name          = local.graph_rpc_container_port_name
-        appProtocol   = "http2"
         containerPort = local.graph_rpc_container_port
         protocol      = "tcp"
       }
