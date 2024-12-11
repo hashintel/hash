@@ -220,4 +220,4 @@ ActionsPageOuter.getLayout = (page) =>
     fullWidth: true,
   });
 
-export default ActionsPage;
+export default ActionsPageOuter;
