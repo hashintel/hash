@@ -16,11 +16,9 @@ import type {
   ArchiveEntityMutationVariables,
 } from "../../graphql/api-types.gen";
 import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { useDraftEntities } from "../../shared/draft-entities-context";
-import { useNotificationEntities } from "../../shared/notification-entities-context";
+import { useNotificationCount } from "../../shared/notification-count-context";
 import type { ButtonProps } from "../../shared/ui";
 import { Button } from "../../shared/ui";
-import { useNotificationsWithLinks } from "./notifications-with-links-context";
 
 export const DiscardDraftEntityButton: FunctionComponent<
   {
@@ -34,34 +32,7 @@ export const DiscardDraftEntityButton: FunctionComponent<
   onDiscardedEntity,
   ...buttonProps
 }) => {
-  const { refetch: refetchDraftEntities } = useDraftEntities();
-
-  const { archiveNotification } = useNotificationEntities();
-
-  const { notifications } = useNotificationsWithLinks();
-
-  const archiveRelatedNotifications = useCallback(
-    async (params: { draftEntity: Entity }) => {
-      const relatedNotifications = notifications?.filter(
-        (notification) =>
-          notification.occurredInEntity.metadata.recordId.entityId ===
-          params.draftEntity.metadata.recordId.entityId,
-      );
-
-      if (!relatedNotifications) {
-        return;
-      }
-
-      await Promise.all(
-        relatedNotifications.map((notification) => {
-          return archiveNotification({
-            notificationEntity: notification.entity,
-          });
-        }),
-      );
-    },
-    [notifications, archiveNotification],
-  );
+  const { archiveNotificationsForEntity } = useNotificationCount();
 
   const [archiveEntity] = useMutation<
     ArchiveEntityMutation,
@@ -70,15 +41,16 @@ export const DiscardDraftEntityButton: FunctionComponent<
 
   const discardDraftEntity = useCallback(
     async (params: { draftEntity: Entity }) => {
-      await archiveRelatedNotifications(params);
+      await archiveNotificationsForEntity({
+        targetEntityId: params.draftEntity.entityId,
+      });
       await archiveEntity({
         variables: {
           entityId: params.draftEntity.metadata.recordId.entityId,
         },
       });
-      await refetchDraftEntities();
     },
-    [archiveEntity, archiveRelatedNotifications, refetchDraftEntities],
+    [archiveEntity, archiveNotificationsForEntity],
   );
 
   const [

@@ -35,14 +35,14 @@ import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
 import type { MinimalUser } from "../lib/user-and-org";
 import { constructMinimalUser } from "../lib/user-and-org";
-import { DraftEntitiesContextProvider } from "../shared/draft-entities-context";
+import { DraftEntitiesCountContextProvider } from "../shared/draft-entities-count-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar, getPlainLayout } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
-import { NotificationEntitiesContextProvider } from "../shared/notification-entities-context";
+import { NotificationCountContextProvider } from "../shared/notification-count-context";
 import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
 import { ErrorFallback } from "./_app.page/error-fallback";
@@ -108,8 +108,8 @@ const App: FunctionComponent<AppProps> = ({
             <WorkspaceContextProvider>
               <KeyboardShortcutsContextProvider>
                 <SnackbarProvider maxSnack={3}>
-                  <NotificationEntitiesContextProvider>
-                    <DraftEntitiesContextProvider>
+                  <NotificationCountContextProvider>
+                    <DraftEntitiesCountContextProvider>
                       <EntityTypesContextProvider>
                         <PropertyTypesContextProvider includeArchived>
                           <DataTypesContextProvider>
@@ -132,8 +132,8 @@ const App: FunctionComponent<AppProps> = ({
                           </DataTypesContextProvider>
                         </PropertyTypesContextProvider>
                       </EntityTypesContextProvider>
-                    </DraftEntitiesContextProvider>
-                  </NotificationEntitiesContextProvider>
+                    </DraftEntitiesCountContextProvider>
+                  </NotificationCountContextProvider>
                 </SnackbarProvider>
               </KeyboardShortcutsContextProvider>
             </WorkspaceContextProvider>

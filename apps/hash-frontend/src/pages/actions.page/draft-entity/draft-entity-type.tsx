@@ -76,7 +76,14 @@ export const DraftEntityType: FunctionComponent<{
           alignItems: "center",
         }}
       >
-        <Typography sx={{ fontWeight: 500, fontSize: 12 }}>
+        <Typography
+          sx={{
+            fontWeight: 500,
+            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
           <EntityOrTypeIcon
             entity={null}
             fill={({ palette }) => palette.gray[50]}
@@ -90,6 +97,7 @@ export const DraftEntityType: FunctionComponent<{
                 (allOf) => allOf.$ref === linkEntityTypeUrl,
               )
             }
+            sx={{ mr: 0.5 }}
           />
           {entityType.schema.title}
         </Typography>
