@@ -15,7 +15,6 @@
     "axios": "1.7.9"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
     "@openapitools/openapi-generator-cli": "2.15.3",
     "@types/node": "22.10.1",
     "prettier": "3.4.2",

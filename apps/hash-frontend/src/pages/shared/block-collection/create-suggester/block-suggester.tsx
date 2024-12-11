@@ -12,7 +12,9 @@ import { Suggester } from "./suggester";
 
 export interface BlockSuggesterProps {
   search?: string;
-  onChange(variant: BlockVariant, blockMeta: HashBlockMeta): void;
+  // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+  // before this was: onChange(variant: BlockVariant, blockMeta: HashBlockMeta): void;
+  onChange: (variant: BlockVariant, blockMeta: HashBlockMeta) => void;
   sx?: SxProps<Theme>;
 }
 

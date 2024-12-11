@@ -985,6 +985,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       )
       .then(
         ({ data: entities }) =>
+          // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           entities.map((entity, index) => {
             return new Entity<T[typeof index]>(entity);
           }) as { [I in keyof T]: Entity<T[I]> },

@@ -57,7 +57,7 @@ const DecoderProto: Omit<DecoderImpl, "decode"> = {
     };
   },
 
-  [Inspectable.NodeInspectSymbol]() {
+  [Inspectable.NodeInspectSymbol](this: DecoderImpl) {
     return this.toJSON();
   },
 

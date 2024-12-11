@@ -6,7 +6,9 @@ import { Button } from "../../shared/ui";
 type FallbackRenderProps = Parameters<FallbackRender>[0];
 
 export interface ErrorBlockProps extends FallbackRenderProps {
-  onRetry(): void;
+  // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+  // before was: onRetry(): void;
+  onRetry: () => void;
 }
 
 export const ErrorBlock: FunctionComponent<ErrorBlockProps> = ({

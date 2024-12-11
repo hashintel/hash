@@ -1,8 +1,9 @@
 import type { AnimateLayoutChanges } from "@dnd-kit/sortable";
 import { defaultAnimateLayoutChanges, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// removed React import
 import type { FunctionComponent } from "react";
-import React from "react";
 
 import type { ItemProps } from "./item";
 import { Item } from "./item";

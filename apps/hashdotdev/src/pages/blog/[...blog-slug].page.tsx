@@ -121,7 +121,7 @@ export const getStaticProps: GetStaticProps<
         },
       },
     };
-  } catch (err) {
+  } catch {
     // @todo better error when MDX content is broken
     return {
       notFound: true,

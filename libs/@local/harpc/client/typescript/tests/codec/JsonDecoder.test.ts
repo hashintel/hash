@@ -2,7 +2,10 @@
 
 import { describe, it } from "@effect/vitest";
 import { Chunk, Effect, pipe, Schema, Stream } from "effect";
+import type { ParseError } from "effect/ParseResult";
+import type { ReadonlyRecord } from "effect/Record";
 
+import type { DecodingError } from "../../src/codec/Decoder.js";
 import { Decoder, JsonDecoder } from "../../src/codec/index.js";
 
 const decode = (text: readonly string[]) =>
@@ -12,13 +15,15 @@ const decode = (text: readonly string[]) =>
 
     const schema = Schema.Record({ key: Schema.String, value: Schema.String });
 
-    return yield* pipe(
-      Stream.fromIterable(text),
+    const effect = Stream.fromChunk(Chunk.fromIterable(text)).pipe(
       Stream.map((input) => textEncoder.encode(input).buffer),
       decoder.decode(schema),
       Stream.runCollect,
       Effect.map(Chunk.toReadonlyArray),
     );
+
+    // explicit type annotation needed for eslint
+    return (yield* effect) as readonly ReadonlyRecord<string, string>[];
   });
 
 describe.concurrent("JsonDecoder", () => {
@@ -73,7 +78,12 @@ describe.concurrent("JsonDecoder", () => {
     Effect.gen(function* () {
       const textPayload = '{"key": "valu\x1E';
 
-      const error = yield* pipe(decode([textPayload]), Effect.flip);
+      // explicit type annotation needed for eslint
+      const error: DecodingError | ParseError = yield* pipe(
+        decode([textPayload]),
+        Effect.flip,
+      );
+
       cx.expect(error.toString()).toMatch(
         /Unterminated string in JSON at position 13/,
       );

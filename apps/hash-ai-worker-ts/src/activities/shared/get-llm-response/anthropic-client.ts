@@ -91,13 +91,10 @@ const anthropicBedrockClient: AnthropicBedrock = new AnthropicBedrock({
   awsRegion,
 });
 
-const anthropicBedrockModels = [
-  "anthropic.claude-3-haiku-20240307-v1:0",
-  "anthropic.claude-3-opus-20240229-v1:0",
-  "anthropic.claude-3-5-sonnet-20240620-v1:0",
-] as const;
-
-type AnthropicBedrockModel = (typeof anthropicBedrockModels)[number];
+type AnthropicBedrockModel =
+  | "anthropic.claude-3-haiku-20240307-v1:0"
+  | "anthropic.claude-3-opus-20240229-v1:0"
+  | "anthropic.claude-3-5-sonnet-20240620-v1:0";
 
 /** @see https://docs.anthropic.com/en/api/claude-on-amazon-bedrock#api-model-names */
 export const anthropicModelToBedrockModel: Record<
@@ -109,9 +106,7 @@ export const anthropicModelToBedrockModel: Record<
   "claude-3-5-sonnet-20240620": "anthropic.claude-3-5-sonnet-20240620-v1:0",
 };
 
-const anthropicApiProviders = ["anthropic", "amazon-bedrock"] as const;
-
-export type AnthropicApiProvider = (typeof anthropicApiProviders)[number];
+export type AnthropicApiProvider = "anthropic" | "amazon-bedrock";
 
 type AnthropicBedrockMessagesCreateParams = Parameters<
   typeof anthropicBedrockClient.messages.create

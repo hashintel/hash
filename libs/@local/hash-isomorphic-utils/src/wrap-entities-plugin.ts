@@ -257,6 +257,7 @@ export const wrapEntitiesPlugin = (baseKeymap: Record<string, Command>) => {
    * This plugin ensures at the end of every transaction all necessary nodes
    * are wrapped with block nodeviews
    */
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
   const ensureWrappedPlugin = new Plugin<unknown>({
     appendTransaction: (_, __, newState) => ensureEntitiesAreWrapped(newState),
   });

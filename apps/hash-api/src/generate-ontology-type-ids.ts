@@ -1,6 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import * as path from "node:path";
-import { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
@@ -34,7 +33,7 @@ import {
 import { getPropertyTypes } from "./graph/ontology/primitive/property-type";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const outputFileName = "ontology-type-ids.ts";
 
@@ -184,8 +183,8 @@ const generateOntologyIds = async () => {
     serviceName: "generate-ontology-ids",
   });
 
-  const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
-  const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
+  const graphApiHost = getRequiredEnv("HASH_GRAPH_HTTP_HOST");
+  const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10);
 
   const graphApi = createGraphClient(logger, {
     host: graphApiHost,

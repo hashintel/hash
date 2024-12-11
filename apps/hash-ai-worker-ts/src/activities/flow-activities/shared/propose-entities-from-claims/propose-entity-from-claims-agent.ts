@@ -164,9 +164,7 @@ const generatePropertyMetadata = (params: {
   };
 };
 
-const toolNames = ["proposeEntity", "abandonEntity"] as const;
-
-type ToolName = (typeof toolNames)[number];
+type ToolName = "proposeEntity" | "abandonEntity";
 
 const generateToolDefinitions = (params: {
   dereferencedEntityTypes: DereferencedEntityType[];

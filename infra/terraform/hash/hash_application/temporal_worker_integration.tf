@@ -47,8 +47,10 @@ locals {
       [
         { name = "HASH_TEMPORAL_SERVER_HOST", value = var.temporal_host },
         { name = "HASH_TEMPORAL_SERVER_PORT", value = var.temporal_port },
-        { name = "HASH_GRAPH_API_HOST", value = local.graph_container_port_dns },
-        { name = "HASH_GRAPH_API_PORT", value = tostring(local.graph_container_port) },
+        { name = "HASH_GRAPH_HTTP_HOST", value = local.graph_http_container_port_dns },
+        { name = "HASH_GRAPH_HTTP_PORT", value = tostring(local.graph_http_container_port) },
+        { name = "HASH_GRAPH_RPC_HOST", value = local.graph_rpc_container_port_dns },
+        { name = "HASH_GRAPH_RPC_PORT", value = tostring(local.graph_rpc_container_port) },
       ],
     )
 

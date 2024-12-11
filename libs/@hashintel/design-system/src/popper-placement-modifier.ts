@@ -33,6 +33,7 @@ export const addPopperPositionClassPopperModifier: NonNullable<
     // This allows a consumer to be notified when the placement has changed
     const { update } = options as { update?: unknown };
     if (typeof update === "function") {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       update(state.placement);
     }
   },

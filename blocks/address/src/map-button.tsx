@@ -1,5 +1,7 @@
 import type { ButtonProps } from "@hashintel/design-system";
 import { Button } from "@hashintel/design-system";
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// eslint-disable-next-line no-restricted-imports
 import { Link } from "@mui/material";
 
 export const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {

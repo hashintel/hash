@@ -189,7 +189,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
             type: "property-update",
             diff: propertyDiff,
           });
-        } catch (err) {
+        } catch {
           throw new Error(
             `Could not find property type with baseUrl ${propertyBaseUrl} among entity types with ids ${firstEntityEdition.metadata.entityTypeIds.join(", ")} in subgraph`,
           );

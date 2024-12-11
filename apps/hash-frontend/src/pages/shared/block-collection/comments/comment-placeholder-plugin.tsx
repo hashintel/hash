@@ -14,10 +14,12 @@ interface CommentPlaceholderState {
 }
 
 export const commentPlaceholderPluginkey =
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
   new PluginKey<CommentPlaceholderState>("commentPlaceholder");
 
 // Simplified version of createPlaceholderPlugin to be used in Comments
 export const commentPlaceholderPlugin = (renderPortal: RenderPortal) =>
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
   new Plugin<CommentPlaceholderState>({
     key: commentPlaceholderPluginkey,
     state: {

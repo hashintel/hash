@@ -122,7 +122,7 @@ export const TypeMenuCell = ({
       event.preventDefault();
 
       setHasCopied(true);
-      return navigator.clipboard.writeText(typeId);
+      void navigator.clipboard.writeText(typeId);
     },
     [typeId, setHasCopied],
   );

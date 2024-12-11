@@ -1,7 +1,7 @@
 import { MockBlockDock } from "mock-block-dock";
 import type { FunctionComponent } from "react";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires -- TODO why was this declared like this
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- TODO why was this declared like this
 const CalcBlock = require("calculation-block").default;
 
 export const CalculationBlock: FunctionComponent = () => (
