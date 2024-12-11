@@ -28,7 +28,6 @@ import {
   Either,
   flow,
   Function,
-  Hash,
   Iterable,
   Match,
   Option,
