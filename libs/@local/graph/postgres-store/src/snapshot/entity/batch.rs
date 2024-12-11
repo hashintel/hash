@@ -6,10 +6,7 @@ use hash_graph_authorization::{
     AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject,
 };
 use hash_graph_store::{
-    entity::{
-        EntityStore as _, EntityValidationReport, PropertyValidationReport,
-        ValidateEntityComponents,
-    },
+    entity::{EntityStore as _, EntityValidationReport, ValidateEntityComponents},
     error::InsertionError,
     filter::Filter,
     query::Read,
@@ -343,7 +340,7 @@ where
                 components: validation_components,
             };
 
-            if let Err(error) = preprocessor
+            if let Err(property_validation) = preprocessor
                 .visit_object(
                     &entity_type,
                     &mut property_with_metadata,
@@ -352,7 +349,7 @@ where
                 .await
             {
                 validation_reports.entry(index).or_default().properties =
-                    PropertyValidationReport { error: Some(error) };
+                    property_validation.properties;
             }
 
             let (properties, metadata) = property_with_metadata.into_parts();

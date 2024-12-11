@@ -68,6 +68,15 @@ pub enum PropertyValues {
     ArrayOfPropertyValues(PropertyValueArray<OneOfSchema<PropertyValues>>),
 }
 
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "kebab-case")]
+pub enum PropertyValueType {
+    Value,
+    Array,
+    Object,
+}
+
 impl PropertyValues {
     #[must_use]
     fn data_type_references(&self) -> Vec<&DataTypeReference> {
@@ -101,6 +110,15 @@ impl PropertyValues {
                     ValueOrArray::Array(array) => &array.items,
                 })
                 .collect(),
+        }
+    }
+
+    #[must_use]
+    pub const fn property_value_type(&self) -> PropertyValueType {
+        match self {
+            Self::DataTypeReference(_) => PropertyValueType::Value,
+            Self::PropertyTypeObject(_) => PropertyValueType::Object,
+            Self::ArrayOfPropertyValues(_) => PropertyValueType::Array,
         }
     }
 }

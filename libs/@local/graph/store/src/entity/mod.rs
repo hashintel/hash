@@ -16,8 +16,8 @@ pub use self::{
         EmptyEntityTypes, EntityRetrieval, EntityTypeRetrieval, EntityTypesError,
         EntityValidationReport, LinkDataStateError, LinkDataValidationReport, LinkError,
         LinkTargetError, LinkValidationReport, LinkedEntityError, MetadataValidationReport,
-        MissingLinkData, PropertyMetadataValidationReport, PropertyValidationReport,
-        UnexpectedEntityType, UnexpectedLinkData,
+        MissingLinkData, PropertyMetadataValidationReport, UnexpectedEntityType,
+        UnexpectedLinkData,
     },
 };
 
