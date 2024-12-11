@@ -9826,26 +9826,26 @@
             ],
             "nullable": true
           },
-          "actual": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ValueValidationError"
-              }
-            ],
-            "nullable": true
-          },
-          "desired": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ValueValidationError"
-              }
-            ],
-            "nullable": true
-          },
           "incompatible": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ],
+            "nullable": true
+          },
+          "provided": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ValueValidationError"
+              }
+            ],
+            "nullable": true
+          },
+          "target": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ValueValidationError"
               }
             ],
             "nullable": true

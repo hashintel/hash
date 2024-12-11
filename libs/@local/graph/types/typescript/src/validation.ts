@@ -48,7 +48,7 @@ export type ObjectPropertyValidationReport = Subtype<
       error: Report;
     }
   | {
-      // The property was found at the entity but the type is not the expected type from Athe schema
+      // The property was found at the entity but the property type is not the expected type from the schema
       type: "wrongType";
       data: PropertyValueTypeMismatchGraphApi;
     }
@@ -136,13 +136,15 @@ export type ValueValidationReport = Omit<
   ValueValidationReportGraphApi,
   "actual" | "desired" | "abstract" | "incompatible"
 > & {
-  // The actual value has a validation error
-  actual?: ValueValidationError;
-  // The value could not be validated against the data type specified in the schema
-  desired?: ValueValidationError;
-  // The actual schema is abstract
+  // The value could not be validated against the provided data type.
+  provided?: ValueValidationError;
+  // The value could not be validated against the data type specified in the schema.
+  // This will only be reported if the provided data type differes from the target data type.
+  target?: ValueValidationError;
+  // The provided DataType is abstract
   abstract?: VersionedUrl;
-  // The actual schema is incompatible with the desired schema, i.e. the actual schema is not a subtype of the desired schema
+  // The provided DataType is incompatible with the desired DataType,
+  // i.e. the actual DataType is not a subtype of the target DataType
   incompatible?: VersionedUrl;
 };
 

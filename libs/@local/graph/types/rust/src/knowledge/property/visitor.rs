@@ -119,9 +119,9 @@ pub enum ValueValidationError {
 #[must_use]
 pub struct ValueValidationReport {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub desired: Option<ValueValidationError>,
+    pub provided: Option<ValueValidationError>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub actual: Option<ValueValidationError>,
+    pub target: Option<ValueValidationError>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#abstract: Option<VersionedUrl>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -131,8 +131,8 @@ pub struct ValueValidationReport {
 impl ValueValidationReport {
     #[must_use]
     pub const fn is_valid(&self) -> bool {
-        self.desired.is_none()
-            && self.actual.is_none()
+        self.provided.is_none()
+            && self.target.is_none()
             && self.r#abstract.is_none()
             && self.incompatible.is_none()
     }

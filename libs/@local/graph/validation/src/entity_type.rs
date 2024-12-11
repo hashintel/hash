@@ -316,7 +316,7 @@ impl EntityVisitor for EntityPreprocessor {
                     .map(|constraints| constraints.validate_value(value))
                     .try_collect_reports::<()>()
                 {
-                    validation_report.actual = Some(ValueValidationError::Constraints { error });
+                    validation_report.provided = Some(ValueValidationError::Constraints { error });
                 };
 
                 if actual_data_type.r#abstract {
@@ -324,7 +324,7 @@ impl EntityVisitor for EntityPreprocessor {
                 }
             }
             Err(report) => {
-                validation_report.actual = Some(ValueValidationError::Retrieval {
+                validation_report.provided = Some(ValueValidationError::Retrieval {
                     error: report.change_context(DataTypeRetrieval {
                         data_type_reference: actual_data_type_reference.clone(),
                     }),
@@ -347,12 +347,12 @@ impl EntityVisitor for EntityPreprocessor {
                         .map(|constraints| constraints.validate_value(value))
                         .try_collect_reports::<()>()
                     {
-                        validation_report.desired =
+                        validation_report.target =
                             Some(ValueValidationError::Constraints { error });
                     };
                 }
                 Err(report) => {
-                    validation_report.desired = Some(ValueValidationError::Retrieval {
+                    validation_report.target = Some(ValueValidationError::Retrieval {
                         error: report.change_context(DataTypeRetrieval {
                             data_type_reference: desired_data_type_reference.clone(),
                         }),
@@ -374,7 +374,7 @@ impl EntityVisitor for EntityPreprocessor {
                     }
                 }
                 Err(report) => {
-                    validation_report.desired = Some(ValueValidationError::Retrieval {
+                    validation_report.target = Some(ValueValidationError::Retrieval {
                         error: report.change_context(DataTypeRetrieval {
                             data_type_reference: desired_data_type_reference.clone(),
                         }),
