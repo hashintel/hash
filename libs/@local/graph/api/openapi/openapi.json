@@ -7319,49 +7319,10 @@
           "validations": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OneOfArrayValidationStatus"
+              "$ref": "#/components/schemas/PropertyArrayValidationReport"
             },
             "nullable": true
           }
-        }
-      },
-      "OneOfArrayValidationStatus": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "status"
-            ],
-            "properties": {
-              "status": {
-                "type": "string",
-                "enum": [
-                  "success"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "status",
-              "data"
-            ],
-            "properties": {
-              "data": {
-                "$ref": "#/components/schemas/PropertyArrayValidationReport"
-              },
-              "status": {
-                "type": "string",
-                "enum": [
-                  "failure"
-                ]
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "status"
         }
       },
       "OneOfObjectValidationReports": {
@@ -7370,49 +7331,10 @@
           "validations": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OneOfObjectValidationStatus"
+              "$ref": "#/components/schemas/PropertyObjectValidationReport"
             },
             "nullable": true
           }
-        }
-      },
-      "OneOfObjectValidationStatus": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "status"
-            ],
-            "properties": {
-              "status": {
-                "type": "string",
-                "enum": [
-                  "success"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "status",
-              "data"
-            ],
-            "properties": {
-              "data": {
-                "$ref": "#/components/schemas/PropertyObjectValidationReport"
-              },
-              "status": {
-                "type": "string",
-                "enum": [
-                  "failure"
-                ]
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "status"
         }
       },
       "OneOfPropertyValidationReports": {
@@ -7433,7 +7355,7 @@
           "validations": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OneOfValueValidationStatus"
+              "$ref": "#/components/schemas/PropertyValueValidationReport"
             },
             "nullable": true
           },
@@ -7445,45 +7367,6 @@
             ],
             "nullable": true
           }
-        }
-      },
-      "OneOfValueValidationStatus": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "status"
-            ],
-            "properties": {
-              "status": {
-                "type": "string",
-                "enum": [
-                  "success"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "status",
-              "data"
-            ],
-            "properties": {
-              "data": {
-                "$ref": "#/components/schemas/PropertyValueValidationReport"
-              },
-              "status": {
-                "type": "string",
-                "enum": [
-                  "failure"
-                ]
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "status"
         }
       },
       "OntologyEdgeKind": {

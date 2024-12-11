@@ -147,23 +147,12 @@ pub enum PropertyValueValidationReport {
     ValueValidation { data: ValueValidationReport },
 }
 
-#[derive(Debug, serde::Serialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(tag = "status", content = "data", rename_all = "camelCase")]
-#[must_use]
-// Should be an `Option` or a generic `OneOfValidationStatus<T>` but `utoipa` is not capable of
-// properly deal with that.
-pub enum OneOfValueValidationStatus {
-    Success,
-    Failure(PropertyValueValidationReport),
-}
-
 #[derive(Debug, Default, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct OneOfPropertyValidationReports {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub validations: Option<Vec<OneOfValueValidationStatus>>,
+    pub validations: Option<Vec<PropertyValueValidationReport>>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub data_type_inference: Vec<DataTypeInferenceError>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -181,23 +170,12 @@ pub enum PropertyArrayValidationReport {
     ArrayValidation(ArrayValidationReport),
 }
 
-#[derive(Debug, serde::Serialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(tag = "status", content = "data", rename_all = "camelCase")]
-#[must_use]
-// Should be an `Option` or a generic `OneOfValidationStatus<T>` but `utoipa` is not capable of
-// properly deal with that.
-pub enum OneOfArrayValidationStatus {
-    Success,
-    Failure(PropertyArrayValidationReport),
-}
-
 #[derive(Debug, Default, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct OneOfArrayValidationReports {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub validations: Option<Vec<OneOfArrayValidationStatus>>,
+    pub validations: Option<Vec<PropertyArrayValidationReport>>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -209,23 +187,12 @@ pub enum PropertyObjectValidationReport {
     ObjectValidation(ObjectValidationReport),
 }
 
-#[derive(Debug, serde::Serialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(tag = "status", content = "data", rename_all = "camelCase")]
-#[must_use]
-// Should be an `Option` or a generic `OneOfValidationStatus<T>` but `utoipa` is not capable of
-// properly deal with that.
-pub enum OneOfObjectValidationStatus {
-    Success,
-    Failure(PropertyObjectValidationReport),
-}
-
 #[derive(Debug, Default, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct OneOfObjectValidationReports {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub validations: Option<Vec<OneOfObjectValidationStatus>>,
+    pub validations: Option<Vec<PropertyObjectValidationReport>>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -656,8 +623,7 @@ where
     V: EntityVisitor,
     P: DataTypeLookup + Sync,
 {
-    let mut property_validations = Vec::with_capacity(schema.len());
-    let mut num_passed: usize = 0;
+    let mut property_validations = Vec::new();
 
     for schema in schema {
         match schema {
@@ -671,35 +637,27 @@ where
                     )
                     .await
                 {
-                    property_validations.push(OneOfValueValidationStatus::Failure(
-                        PropertyValueValidationReport::ValueValidation { data: report },
-                    ));
+                    property_validations
+                        .push(PropertyValueValidationReport::ValueValidation { data: report });
                 } else {
-                    num_passed += 1;
-                    property_validations.push(OneOfValueValidationStatus::Success);
+                    return Ok(());
                 }
             }
             PropertyValues::ArrayOfPropertyValues(_) | PropertyValues::PropertyTypeObject(_) => {
-                property_validations.push(OneOfValueValidationStatus::Failure(
-                    PropertyValueValidationReport::WrongType {
-                        data: PropertyValueTypeMismatch {
-                            actual: schema.property_value_type(),
-                            expected: PropertyValueType::Value,
-                        },
+                property_validations.push(PropertyValueValidationReport::WrongType {
+                    data: PropertyValueTypeMismatch {
+                        actual: schema.property_value_type(),
+                        expected: PropertyValueType::Value,
                     },
-                ));
+                });
             }
         }
     }
 
-    if num_passed == 1 {
-        Ok(())
-    } else {
-        Err(OneOfPropertyValidationReports {
-            validations: Some(property_validations),
-            ..OneOfPropertyValidationReports::default()
-        })
-    }
+    Err(OneOfPropertyValidationReports {
+        validations: Some(property_validations),
+        ..OneOfPropertyValidationReports::default()
+    })
 }
 
 /// Walks through an array property using the provided schema list.
@@ -717,8 +675,7 @@ where
     V: EntityVisitor,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut array_validations = Vec::with_capacity(schema.len());
-    let mut num_passed: usize = 0;
+    let mut array_validations = Vec::new();
 
     for schema in schema {
         match schema {
@@ -726,32 +683,25 @@ where
                 if let Err(report) =
                     Box::pin(visitor.visit_array(array_schema, array, type_provider)).await
                 {
-                    array_validations.push(OneOfArrayValidationStatus::Failure(
-                        PropertyArrayValidationReport::ArrayValidation(report),
-                    ));
+                    array_validations.push(PropertyArrayValidationReport::ArrayValidation(report));
                 } else {
-                    num_passed += 1;
-                    array_validations.push(OneOfArrayValidationStatus::Success);
+                    return Ok(());
                 }
             }
             PropertyValues::DataTypeReference(_) | PropertyValues::PropertyTypeObject(_) => {
-                array_validations.push(OneOfArrayValidationStatus::Failure(
-                    PropertyArrayValidationReport::WrongType(PropertyValueTypeMismatch {
+                array_validations.push(PropertyArrayValidationReport::WrongType(
+                    PropertyValueTypeMismatch {
                         actual: schema.property_value_type(),
                         expected: PropertyValueType::Array,
-                    }),
+                    },
                 ));
             }
         }
     }
 
-    if num_passed == 1 {
-        Ok(())
-    } else {
-        Err(OneOfArrayValidationReports {
-            validations: Some(array_validations),
-        })
-    }
+    Err(OneOfArrayValidationReports {
+        validations: Some(array_validations),
+    })
 }
 
 /// Walks through an object property using the provided schema list.
@@ -769,8 +719,7 @@ where
     V: EntityVisitor,
     P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
 {
-    let mut object_validations = Vec::with_capacity(schema.len());
-    let mut num_passed: usize = 0;
+    let mut object_validations = Vec::new();
 
     for schema in schema {
         match schema {
@@ -778,32 +727,24 @@ where
                 if let Err(report) =
                     Box::pin(visitor.visit_object(object_schema, object, type_provider)).await
                 {
-                    object_validations.push(OneOfObjectValidationStatus::Failure(
-                        PropertyObjectValidationReport::ObjectValidation(report),
-                    ));
+                    object_validations
+                        .push(PropertyObjectValidationReport::ObjectValidation(report));
                 } else {
-                    num_passed += 1;
-                    object_validations.push(OneOfObjectValidationStatus::Success);
+                    return Ok(());
                 }
             }
             PropertyValues::DataTypeReference(_) | PropertyValues::ArrayOfPropertyValues(_) => {
-                object_validations.push(OneOfObjectValidationStatus::Failure(
-                    PropertyObjectValidationReport::WrongType {
-                        data: PropertyValueTypeMismatch {
-                            actual: schema.property_value_type(),
-                            expected: PropertyValueType::Object,
-                        },
+                object_validations.push(PropertyObjectValidationReport::WrongType {
+                    data: PropertyValueTypeMismatch {
+                        actual: schema.property_value_type(),
+                        expected: PropertyValueType::Object,
                     },
-                ));
+                });
             }
         }
     }
 
-    if num_passed == 1 {
-        Ok(())
-    } else {
-        Err(OneOfObjectValidationReports {
-            validations: Some(object_validations),
-        })
-    }
+    Err(OneOfObjectValidationReports {
+        validations: Some(object_validations),
+    })
 }

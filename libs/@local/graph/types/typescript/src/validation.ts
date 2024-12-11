@@ -81,10 +81,7 @@ export type PropertyValidationReport = Subtype<
        * constraints passes. In this case, this field will be omitted. Whenever this field is present it can be assumed
        * that the validation failed.
        */
-      validations?: (
-        | { status: "success" }
-        | { status: "failure"; data: PropertyValueValidationReport }
-      )[];
+      validations?: PropertyValueValidationReport[];
       // It was not possible to infer the correct data type ID for the property.
       dataTypeInference?: DataTypeInferenceError[];
       // Converting the data type from `originalDataTypeId` to `dataTypeId` failed
@@ -100,23 +97,17 @@ export type PropertyValidationReport = Subtype<
        * constraints passes. In this case, this field will be omitted. Whenever this field is present it can be assumed
        * that the validation failed.
        */
-      validations?: (
-        | { status: "success" }
-        | { status: "failure"; data: PropertyArrayValidationReport }
-      )[];
+      validations?: PropertyArrayValidationReport[];
     }
   | {
       // The property object validation failed
       type: "object";
       /*
-       * Validation for each constraint in the `oneOf` field. The validation is assumed to pass if exactly one of the
+       * Validation for each constraint in the `oneOf` field. The validation is assumed to pass if at least one of the
        * constraints passes. In this case, this field will be omitted. Whenever this field is present it can be assumed
        * that the validation failed.
        */
-      validations?: (
-        | { status: "success" }
-        | { status: "failure"; data: PropertyObjectValidationReport }
-      )[];
+      validations?: PropertyObjectValidationReport[];
     }
 >;
 
