@@ -87,6 +87,7 @@ const ExpectedValueSelectorDropdown = () => {
       ) : (
         <>
           <DataTypeSelector
+            allowSelectingAbstractTypes
             dataTypes={dataTypeOptions}
             hideHint
             maxHeight={300}

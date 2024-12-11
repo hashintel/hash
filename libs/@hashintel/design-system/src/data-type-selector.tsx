@@ -283,11 +283,12 @@ const DataTypeLabel = (props: {
 };
 
 const DataTypeFlatView = (props: {
+  allowSelectingAbstractTypes?: boolean;
   dataType: DataTypeForSelector;
   selected: boolean;
   onSelect: (dataTypeId: VersionedUrl) => void;
 }) => {
-  const { dataType, onSelect, selected } = props;
+  const { allowSelectingAbstractTypes, dataType, onSelect, selected } = props;
 
   const ref = useRef<HTMLDivElement>(null);
 
@@ -302,7 +303,11 @@ const DataTypeFlatView = (props: {
   return (
     <Box
       ref={ref}
-      onClick={dataType.abstract ? undefined : () => onSelect(dataType.$id)}
+      onClick={
+        dataType.abstract && !allowSelectingAbstractTypes
+          ? undefined
+          : () => onSelect(dataType.$id)
+      }
       sx={({ palette, transitions }) => ({
         cursor: "pointer",
         px: 2.5,
@@ -313,7 +318,7 @@ const DataTypeFlatView = (props: {
         "&:hover": {
           background: selected
             ? palette.blue[30]
-            : !dataType.abstract
+            : !!allowSelectingAbstractTypes || !dataType.abstract
               ? palette.gray[10]
               : undefined,
         },
@@ -328,13 +333,20 @@ const DataTypeFlatView = (props: {
 const defaultActionClassName = "data-type-selector-default-action-button";
 
 const DataTypeTreeView = (props: {
+  allowSelectingAbstractTypes?: boolean;
   dataType: DataTypeForSelector;
   depth?: number;
   isOnlyRoot?: boolean;
   selectedDataTypeId?: VersionedUrl;
   onSelect: (dataTypeId: VersionedUrl) => void;
 }) => {
-  const { dataType, depth = 0, onSelect, selectedDataTypeId } = props;
+  const {
+    allowSelectingAbstractTypes,
+    dataType,
+    depth = 0,
+    onSelect,
+    selectedDataTypeId,
+  } = props;
 
   const selected = dataType.$id === selectedDataTypeId;
 
@@ -363,15 +375,16 @@ const DataTypeTreeView = (props: {
     }
   });
 
-  const defaultAction: MouseEventHandler<HTMLDivElement> = abstract
-    ? (event) => {
-        event.stopPropagation();
-        setExpanded(!expanded);
-      }
-    : (event) => {
-        event.stopPropagation();
-        onSelect($id);
-      };
+  const defaultAction: MouseEventHandler<HTMLDivElement> =
+    abstract && !allowSelectingAbstractTypes
+      ? (event) => {
+          event.stopPropagation();
+          setExpanded(!expanded);
+        }
+      : (event) => {
+          event.stopPropagation();
+          onSelect($id);
+        };
 
   return (
     <>
@@ -398,7 +411,7 @@ const DataTypeTreeView = (props: {
           "&:hover": {
             background: selected
               ? palette.blue[30]
-              : !abstract
+              : !!allowSelectingAbstractTypes || !abstract
                 ? palette.gray[10]
                 : undefined,
           },
@@ -423,11 +436,15 @@ const DataTypeTreeView = (props: {
               })}
             >
               <CaretDownSolidIcon
-                className={abstract ? defaultActionClassName : undefined}
+                className={
+                  abstract && !allowSelectingAbstractTypes
+                    ? defaultActionClassName
+                    : undefined
+                }
               />
             </IconButton>
           )}
-          {!abstract && (
+          {(!abstract || allowSelectingAbstractTypes) && (
             <IconButton
               onClick={(event) => {
                 event.stopPropagation();
@@ -452,6 +469,7 @@ const DataTypeTreeView = (props: {
         children.map((child) => {
           return (
             <DataTypeTreeView
+              allowSelectingAbstractTypes={allowSelectingAbstractTypes}
               key={child.$id}
               dataType={child}
               depth={depth + 1}
@@ -465,6 +483,7 @@ const DataTypeTreeView = (props: {
 };
 
 export type DataTypeSelectorProps = {
+  allowSelectingAbstractTypes?: boolean;
   dataTypes: DataTypeForSelector[];
   hideHint?: boolean;
   maxHeight?: number;
@@ -475,6 +494,7 @@ export type DataTypeSelectorProps = {
 
 export const DataTypeSelector = (props: DataTypeSelectorProps) => {
   const {
+    allowSelectingAbstractTypes,
     dataTypes,
     hideHint,
     maxHeight: maxHeightFromProps,
@@ -520,10 +540,10 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
 
     return flattenedDataTypes.filter(
       (dataType) =>
-        !dataType.abstract &&
+        (allowSelectingAbstractTypes || !dataType.abstract) &&
         dataType.title.toLowerCase().includes(searchText.toLowerCase()),
     );
-  }, [dataTypes, flattenedDataTypes, searchText]);
+  }, [allowSelectingAbstractTypes, dataTypes, flattenedDataTypes, searchText]);
 
   const sortedDataTypes = useMemo(() => {
     return dataTypesToDisplay.sort((a, b) => {
@@ -613,6 +633,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
           if (searchText) {
             return (
               <DataTypeFlatView
+                allowSelectingAbstractTypes={allowSelectingAbstractTypes}
                 key={dataType.$id}
                 dataType={dataType}
                 onSelect={onSelect}
@@ -623,6 +644,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
 
           return (
             <DataTypeTreeView
+              allowSelectingAbstractTypes={allowSelectingAbstractTypes}
               key={dataType.$id}
               dataType={dataType}
               isOnlyRoot={dataTypes.length === 1}
