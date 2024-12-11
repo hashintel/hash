@@ -212,8 +212,8 @@ const main = async () => {
   const redisEncryptedTransit =
     process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true";
 
-  const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
-  const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
+  const graphApiHost = getRequiredEnv("HASH_GRAPH_HTTP_HOST");
+  const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10);
 
   await Promise.all([
     waitOnResource(`tcp:${redisHost}:${redisPort}`, logger),
@@ -542,8 +542,8 @@ const main = async () => {
 
     shutdown.addCleanup("ManagedRuntime", () => runtime.dispose());
 
-    const rpcHost = process.env.HASH_RPC_HOST ?? "127.0.0.1";
-    const rpcPort = parseInt(process.env.HASH_RPC_PORT ?? "4002", 10);
+    const rpcHost = getRequiredEnv("HASH_GRAPH_RPC_HOST");
+    const rpcPort = parseInt(process.env.HASH_GRAPH_RPC_PORT ?? "4002", 10);
 
     app.get("/rpc/echo", (req, res, next) => {
       // eslint-disable-next-line func-names
@@ -560,10 +560,10 @@ const main = async () => {
       }).pipe(
         Effect.provide(
           RpcClient.connectLayer(
-            Transport.multiaddr(`/ip4/${rpcHost}/tcp/${rpcPort}`),
+            Transport.multiaddr(`/dns/${rpcHost}/tcp/${rpcPort}`),
           ),
         ),
-        Logger.withMinimumLogLevel(LogLevel.Trace),
+        Logger.withMinimumLogLevel(LogLevel.Info),
       );
 
       runtime.runCallback(effect, {
