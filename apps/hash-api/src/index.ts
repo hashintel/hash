@@ -569,7 +569,7 @@ const main = async () => {
       runtime.runCallback(effect, {
         onExit: (exit) => {
           if (Exit.isFailure(exit)) {
-            next(exit.cause);
+            res.status(500).send(exit.cause.toString());
           }
         },
       });
