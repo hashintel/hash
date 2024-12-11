@@ -20,6 +20,6 @@
     "single-title": false,
   },
   "gitignore": true,
-  "globs": ["*.md", "**/*.md", "*.mdx", "**/*.mdx"],
+  "globs": ["*.md", "**/*.md"],
   "ignores": ["**/LICENSE*.md"],
 }
