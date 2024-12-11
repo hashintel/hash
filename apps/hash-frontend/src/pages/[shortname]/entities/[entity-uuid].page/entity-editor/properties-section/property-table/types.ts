@@ -36,6 +36,7 @@ export type PropertyRow = {
   maxItems?: number;
   minItems?: number;
   permittedDataTypes: ClosedDataTypeDefinition[];
+  permittedDataTypesIncludingChildren: ClosedDataTypeDefinition[];
   propertyKeyChain: PropertyPath;
   required: boolean;
   rowId: string;

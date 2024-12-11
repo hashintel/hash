@@ -11,6 +11,7 @@ export interface ValueCellProps extends TooltipCellProps {
   readonly kind: "value-cell";
   propertyRow: PropertyRow;
   readonly: boolean;
+  showTypePicker?: boolean;
 }
 
 export type ValueCell = CustomCell<ValueCellProps>;

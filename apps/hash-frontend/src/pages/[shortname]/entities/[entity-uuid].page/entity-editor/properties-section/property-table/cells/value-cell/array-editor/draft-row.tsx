@@ -1,8 +1,10 @@
 import type { ClosedDataType, VersionedUrl } from "@blockprotocol/type-system";
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { useState } from "react";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
+import { getEditorSpecs } from "../editor-specs";
 import { EditorTypePicker } from "../editor-type-picker";
 import { isBlankStringOrNullish } from "../utils";
 import { SortableRow } from "./sortable-row";
@@ -37,6 +39,18 @@ export const DraftRow = ({
       <EditorTypePicker
         expectedTypes={expectedTypes}
         onTypeChange={(type) => {
+          const schema = getMergedDataTypeSchema(type);
+
+          if ("anyOf" in schema) {
+            throw new Error("Expected a single data type, but got multiple");
+          }
+
+          const editorSpec = getEditorSpecs(type, schema);
+
+          if (editorSpec.arrayEditException === "no-edit-mode") {
+            onDraftSaved(editorSpec.defaultValue, type.$id);
+          }
+
           setDataType(type);
         }}
       />

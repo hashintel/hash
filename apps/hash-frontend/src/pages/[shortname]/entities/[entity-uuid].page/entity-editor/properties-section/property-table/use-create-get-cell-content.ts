@@ -64,12 +64,18 @@ export const useCreateGetCellContent = (
           },
         };
 
-        const { isArray, permittedDataTypes, value, valueMetadata } = row;
+        const {
+          isArray,
+          permittedDataTypes,
+          permittedDataTypesIncludingChildren,
+          valueMetadata,
+        } = row;
 
         const shouldShowChangeTypeCell =
-          permittedDataTypes.length > 1 &&
+          (permittedDataTypes.length > 1 ||
+            permittedDataTypes[0]?.schema.abstract) &&
           !isArray &&
-          typeof value !== "undefined" &&
+          valueMetadata &&
           !readonly;
 
         switch (columnKey) {
@@ -128,7 +134,7 @@ export const useCreateGetCellContent = (
 
               const dataTypeId = valueMetadata.metadata.dataTypeId;
 
-              const dataType = permittedDataTypes.find(
+              const dataType = permittedDataTypesIncludingChildren.find(
                 (type) => type.schema.$id === dataTypeId,
               );
 

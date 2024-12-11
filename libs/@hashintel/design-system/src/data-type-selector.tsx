@@ -1,8 +1,33 @@
-import type { DataType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  DataType,
+  StringConstraints,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 // eslint-disable-next-line no-restricted-imports -- TODO needs fixing if this package to be used from npm
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
-import { Box, Stack, TextField, Typography } from "@mui/material";
-import { useMemo, useState } from "react";
+// eslint-disable-next-line no-restricted-imports -- TODO needs fixing if this package to be used from npm
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
+import {
+  Box,
+  outlinedInputClasses,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { getIconForDataType } from "./data-type-selector/icons";
+import { FontAwesomeIcon } from "./fontawesome-icon";
+import { IconButton } from "./icon-button";
+import { CaretDownSolidIcon } from "./icon-caret-down-solid";
+import { CheckIcon } from "./icon-check";
+
+export {
+  getIconForDataType,
+  identifierTypeTitles,
+  measurementTypeTitles,
+} from "./data-type-selector/icons";
 
 export type DataTypeForSelector = {
   $id: VersionedUrl;
@@ -10,7 +35,9 @@ export type DataTypeForSelector = {
   children: DataTypeForSelector[];
   description: string;
   directParents: VersionedUrl[];
+  format?: StringConstraints["format"];
   label: DataType["label"];
+  type: string;
   title: string;
 };
 
@@ -19,6 +46,10 @@ const isDataType = (
 ): dataType is DataType => {
   return "$id" in dataType;
 };
+
+const maxHeight = 500;
+const inputHeight = 48;
+const hintHeight = 36;
 
 /**
  * Build a tree rooted at the provided data type, with each node containing the information needed for the selector.
@@ -64,16 +95,37 @@ const transformDataTypeForSelector = <
     transformedChildren.push(transformedDataType);
   }
 
+  let format;
+  let type;
+
+  if (isDataType(dataType)) {
+    const firstSchema = "anyOf" in dataType ? dataType.anyOf[0] : dataType;
+    type = firstSchema.type;
+    format = "format" in firstSchema ? firstSchema.format : undefined;
+  } else {
+    const mergedSchema = getMergedDataTypeSchema(dataType.schema);
+
+    const firstSchema =
+      "anyOf" in mergedSchema ? mergedSchema.anyOf[0]! : mergedSchema;
+
+    type = firstSchema.type;
+    format = "format" in firstSchema ? firstSchema.format : undefined;
+  }
+
   const transformedDataType = {
     $id,
     abstract: !!schema.abstract,
-    children: transformedChildren,
+    children: transformedChildren.sort((a, b) =>
+      a.title.localeCompare(b.title),
+    ),
     description: schema.description,
     directParents: isDataType(dataType)
       ? (dataType.allOf?.map(({ $ref }) => $ref) ?? [])
       : dataType.parents,
     label: schema.label,
     title: schema.title,
+    type,
+    format,
   };
 
   return {
@@ -118,8 +170,6 @@ export const buildDataTypeTreesForSelector = <
 }): DataTypeForSelector[] => {
   const directChildrenByDataTypeId: Record<VersionedUrl, T[]> = {};
 
-  const start = new Date();
-
   /**
    * First, we need to know the children of all data types. Data types store references to their parents, not children.
    * The selectable types are either targets or children of targets.
@@ -157,8 +207,17 @@ export const buildDataTypeTreesForSelector = <
       dataType,
       directChildrenByDataTypeId,
     );
-    rootsById[transformedDataType.$id] = transformedDataType;
-    dataTypesBelowRoots.push(...allChildren);
+
+    if (
+      /**
+       * There's no point adding abstract types with no children, because they cannot be selected.
+       */
+      !transformedDataType.abstract ||
+      transformedDataType.children.length > 0
+    ) {
+      rootsById[transformedDataType.$id] = transformedDataType;
+      dataTypesBelowRoots.push(...allChildren);
+    }
   }
 
   /**
@@ -168,10 +227,6 @@ export const buildDataTypeTreesForSelector = <
     delete rootsById[dataTypeId];
   }
 
-  console.log(
-    `Took ${new Date().getTime() - start.getTime()}ms to build data type trees`,
-  );
-
   return Object.values(rootsById);
 };
 
@@ -179,7 +234,7 @@ const DataTypeLabel = (props: {
   dataType: DataTypeForSelector;
   selected: boolean;
 }) => {
-  const { dataType } = props;
+  const { dataType, selected } = props;
 
   const labelParts: string[] = [];
   if (dataType.label?.left) {
@@ -191,45 +246,214 @@ const DataTypeLabel = (props: {
 
   const unitLabel = labelParts.length ? labelParts.join(" / ") : undefined;
 
+  const icon = getIconForDataType(dataType);
+
   return (
-    <Stack>
-      {/* @todo icon */}
-      <Typography
-        variant="smallTextParagraphs"
-        sx={({ palette }) => ({ color: palette.gray[90] })}
-      >
-        {dataType.title}
-      </Typography>
-      {unitLabel && (
+    <Tooltip title={dataType.description} placement="left">
+      <Stack direction="row" alignItems="center">
+        <FontAwesomeIcon
+          icon={{ icon }}
+          sx={{
+            fill: ({ palette }) =>
+              selected ? palette.blue[60] : palette.gray[90],
+            mr: 1,
+          }}
+        />
         <Typography
-          sx={({ palette }) => ({
-            fontSize: 12,
-            color: palette.gray[50],
-            ml: 1.5,
-          })}
+          variant="smallTextParagraphs"
+          sx={({ palette }) => ({ color: palette.gray[90], fontSize: 14 })}
         >
-          {unitLabel}
+          {dataType.title}
         </Typography>
-      )}
-    </Stack>
+        {unitLabel && (
+          <Typography
+            sx={({ palette }) => ({
+              fontSize: 12,
+              color: palette.gray[50],
+              ml: 1.5,
+            })}
+          >
+            {unitLabel}
+          </Typography>
+        )}
+      </Stack>
+    </Tooltip>
   );
 };
 
 const DataTypeFlatView = (props: {
   dataType: DataTypeForSelector;
   selected: boolean;
+  onSelect: (dataTypeId: VersionedUrl) => void;
 }) => {
+  const { dataType, onSelect, selected } = props;
+
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selected) {
+      setTimeout(() => {
+        ref.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }, [selected]);
+
   return (
     <Box
-      sx={{
+      ref={ref}
+      onClick={dataType.abstract ? undefined : () => onSelect(dataType.$id)}
+      sx={({ palette, transitions }) => ({
+        cursor: "pointer",
         px: 2.5,
         py: 1.5,
+        background: selected ? palette.blue[20] : undefined,
         borderRadius: 1,
-        border: ({ palette }) => `1px solid ${palette.gray[30]}`,
-      }}
+        border: `1px solid ${selected ? palette.blue[30] : palette.gray[30]}`,
+        "&:hover": {
+          background: selected
+            ? palette.blue[30]
+            : !dataType.abstract
+              ? palette.gray[10]
+              : undefined,
+        },
+        transition: transitions.create("background"),
+      })}
     >
       <DataTypeLabel {...props} />
     </Box>
+  );
+};
+
+const defaultActionClassName = "data-type-selector-default-action-button";
+
+const DataTypeTreeView = (props: {
+  dataType: DataTypeForSelector;
+  depth?: number;
+  isOnlyRoot?: boolean;
+  selectedDataTypeId?: VersionedUrl;
+  onSelect: (dataTypeId: VersionedUrl) => void;
+}) => {
+  const { dataType, depth = 0, onSelect, selectedDataTypeId } = props;
+
+  const selected = dataType.$id === selectedDataTypeId;
+
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selected) {
+      setTimeout(() => {
+        ref.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }, [selected]);
+
+  const { abstract, children, $id } = dataType;
+
+  const [expanded, setExpanded] = useState(() => {
+    const stack = [...children];
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+
+      if (current.$id === selectedDataTypeId) {
+        return true;
+      }
+
+      stack.push(...current.children);
+    }
+  });
+
+  const defaultAction = abstract
+    ? () => setExpanded(!expanded)
+    : () => onSelect($id);
+
+  return (
+    <>
+      <Stack
+        ref={ref}
+        direction="row"
+        justifyContent="space-between"
+        onClick={defaultAction}
+        sx={({ palette, transitions }) => ({
+          cursor: "pointer",
+          ml: depth * 3,
+          px: 2.5,
+          py: 1,
+          background: selected
+            ? palette.blue[20]
+            : dataType.abstract
+              ? palette.gray[20]
+              : undefined,
+          borderRadius: 1,
+          border: `1px solid ${selected ? palette.blue[30] : palette.gray[30]}`,
+          [`&:hover svg.${defaultActionClassName}`]: {
+            fill: palette.blue[50],
+          },
+          "&:hover": {
+            background: selected
+              ? palette.blue[30]
+              : !abstract
+                ? palette.gray[10]
+                : undefined,
+          },
+          transition: transitions.create("background"),
+        })}
+      >
+        <DataTypeLabel {...props} selected={selected} />
+        <Stack direction="row" gap={0}>
+          {children.length > 0 && (
+            <IconButton
+              onClick={(event) => {
+                event.stopPropagation();
+                setExpanded(!expanded);
+              }}
+              rounded
+              sx={({ palette, transitions }) => ({
+                fill: expanded ? palette.blue[70] : palette.gray[50],
+                transform: expanded ? "none" : "rotate(-90deg)",
+                transition: transitions.create(["transform", "fill"]),
+                p: 0.7,
+                "& svg": { fontSize: 12 },
+              })}
+            >
+              <CaretDownSolidIcon
+                className={abstract ? defaultActionClassName : undefined}
+              />
+            </IconButton>
+          )}
+          {!abstract && (
+            <IconButton
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelect($id);
+              }}
+              size="small"
+              rounded
+              sx={({ palette }) => ({
+                p: 0.7,
+                "& svg": {
+                  fontSize: 14,
+                  fill: selected ? palette.blue[60] : palette.gray[50],
+                },
+              })}
+            >
+              <CheckIcon className={defaultActionClassName} />
+            </IconButton>
+          )}
+        </Stack>
+      </Stack>
+      {expanded &&
+        children.map((child) => {
+          return (
+            <DataTypeTreeView
+              key={child.$id}
+              dataType={child}
+              depth={depth + 1}
+              onSelect={onSelect}
+              selectedDataTypeId={selectedDataTypeId}
+            />
+          );
+        })}
+    </>
   );
 };
 
@@ -268,18 +492,20 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
     return flattened;
   }, [dataTypes]);
 
-  const filteredDataTypes = useMemo(() => {
+  const dataTypesToDisplay = useMemo(() => {
     if (!searchText) {
-      return flattenedDataTypes;
+      return dataTypes;
     }
 
-    return flattenedDataTypes.filter((dataType) =>
-      dataType.title.toLowerCase().includes(searchText.toLowerCase()),
+    return flattenedDataTypes.filter(
+      (dataType) =>
+        !dataType.abstract &&
+        dataType.title.toLowerCase().includes(searchText.toLowerCase()),
     );
-  }, [flattenedDataTypes, searchText]);
+  }, [dataTypes, flattenedDataTypes, searchText]);
 
   const sortedDataTypes = useMemo(() => {
-    return filteredDataTypes.sort((a, b) => {
+    return dataTypesToDisplay.sort((a, b) => {
       if (searchText) {
         if (a.title.toLowerCase().startsWith(searchText.toLowerCase())) {
           return -1;
@@ -291,34 +517,87 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
 
       return a.title.localeCompare(b.title);
     });
-  }, [filteredDataTypes, searchText]);
+  }, [dataTypesToDisplay, searchText]);
 
   return (
-    <Stack sx={{ px: 2, py: 1.5 }}>
+    <Stack sx={{ maxHeight }}>
       <TextField
-        inputProps={{
-          disableInjectingGlobalStyles: true,
-        }}
+        autoFocus
         value={searchText}
         onChange={(event) => setSearchText(event.target.value)}
         placeholder="Start typing to filter options..."
+        sx={{
+          borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
+          height: inputHeight,
+          "*": {
+            border: "none",
+            boxShadow: "none",
+            borderRadius: 0,
+          },
+          [`.${outlinedInputClasses.root} input`]: {
+            fontSize: 14,
+          },
+        }}
       />
-      <Typography variant="smallCaps" mr={1}>
-        Choose data type
-      </Typography>
-      <Typography variant="smallTextLabels">
-        How are you representing this value?
-      </Typography>
+      <Box>
+        <Stack direction="row" sx={{ height: hintHeight, px: 2, pt: 1.5 }}>
+          <Typography
+            sx={{
+              fontSize: 11,
+              fontWeight: 500,
+              color: ({ palette }) => palette.gray[80],
+              mr: 1,
+              textTransform: "uppercase",
+            }}
+          >
+            Choose data type
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: 11,
+              fontWeight: 500,
+              color: ({ palette }) => palette.gray[50],
+            }}
+          >
+            How are you representing this value?
+          </Typography>
+        </Stack>
 
-      <Stack gap={1}>
-        {sortedDataTypes.map((dataType) => (
-          <DataTypeFlatView
-            key={dataType.$id}
-            dataType={dataType}
-            selected={false}
-          />
-        ))}
-      </Stack>
+        <Stack
+          gap={1}
+          sx={{
+            maxHeight: maxHeight - inputHeight - hintHeight,
+            overflowY: "scroll",
+            px: 2,
+            pb: 1.5,
+          }}
+        >
+          {sortedDataTypes.map((dataType) => {
+            const selected = dataType.$id === selectedDataTypeId;
+
+            if (searchText) {
+              return (
+                <DataTypeFlatView
+                  key={dataType.$id}
+                  dataType={dataType}
+                  onSelect={onSelect}
+                  selected={selected}
+                />
+              );
+            }
+
+            return (
+              <DataTypeTreeView
+                key={dataType.$id}
+                dataType={dataType}
+                isOnlyRoot={dataTypes.length === 1}
+                onSelect={onSelect}
+                selectedDataTypeId={selectedDataTypeId}
+              />
+            );
+          })}
+        </Stack>
+      </Box>
     </Stack>
   );
 };

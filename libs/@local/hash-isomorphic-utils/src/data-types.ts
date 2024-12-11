@@ -1,13 +1,16 @@
 import type { JsonValue } from "@blockprotocol/core";
 import type {
   ClosedDataType,
+  DataType,
   NumberConstraints,
   SingleValueConstraints,
   SingleValueSchema,
   StringConstraints,
   ValueLabel,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 
 type MergedNumberSchema = {
   type: "number";
@@ -276,4 +279,91 @@ export const getMergedDataTypeSchema = (
   }
 
   return mergedSchema;
+};
+
+const isDataType = (
+  dataType: DataType | ClosedDataTypeDefinition,
+): dataType is DataType => {
+  return "$id" in dataType;
+};
+
+/**
+ * Get all permitted data types for a value, which are the targetDataTypes or their descendants.
+ * Excludes `abstract` types.
+ *
+ * The data type pool must include all children of the targetDataTypes, which can be fetched from the API via one of:
+ * - fetching all data types:
+ *     e.g. in the context of the type editor, where all types are selectable)
+ * - making a query for an entityType with the 'resolvedWithDataTypeChildren' resolution method
+ *     e.g. when selecting a value valid for specific entity types, and having the API resolve the valid data types
+ */
+export const getPermittedDataTypes = <
+  T extends ClosedDataTypeDefinition | DataType,
+>({
+  targetDataTypes,
+  dataTypePoolById,
+}: {
+  /**
+   * The data types that the user is allowed to select
+   * – does not need to include children, but they should appear in the dataTypePool.
+   */
+  targetDataTypes: T[];
+  /**
+   * The pool to find the permitted data types for selection from.
+   * This MUST include targetDataTypes and any children of targetDataTypes
+   * It MAY include other data types which are not selectable (e.g. parents of targetDataTypes, or
+   * unrelated types). Unselectable types will not be included in the results
+   */
+  dataTypePoolById: Record<VersionedUrl, T>;
+}): T[] => {
+  const directChildrenByDataTypeId: Record<VersionedUrl, T[]> = {};
+
+  /**
+   * First, we need to know the children of all data types. Data types store references to their parents, not children.
+   * The selectable types are either targets or children of targets.
+   */
+  for (const dataType of Object.values(dataTypePoolById)) {
+    const directParents = isDataType(dataType)
+      ? (dataType.allOf?.map(({ $ref }) => $ref) ?? [])
+      : dataType.parents;
+
+    for (const parent of directParents) {
+      directChildrenByDataTypeId[parent] ??= [];
+
+      const parentDataType = dataTypePoolById[parent];
+
+      if (parentDataType) {
+        /**
+         * If the parentDataType is not in the pool, it is not a selectable parent.
+         * The caller is responsible for ensuring that the pool contains all selectable data types,
+         * via one of the methods described in the function's JSDoc.
+         */
+        directChildrenByDataTypeId[parent].push(dataType);
+      }
+    }
+  }
+
+  const permittedDataTypes: T[] = [];
+
+  const stack: T[] = [...targetDataTypes];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+
+    const abstract = isDataType(current)
+      ? current.abstract
+      : current.schema.abstract;
+
+    if (!abstract) {
+      permittedDataTypes.push(current);
+    }
+
+    const $id = isDataType(current) ? current.$id : current.schema.$id;
+
+    const children = directChildrenByDataTypeId[$id];
+    if (children) {
+      stack.push(...children);
+    }
+  }
+
+  return permittedDataTypes;
 };
