@@ -117,7 +117,7 @@
     "@taplo/cli": "0.7.0",
     "@yarnpkg/types": "^4.0.0",
     "concurrently": "7.6.0",
-    "lefthook": "1.9.1",
+    "lefthook": "1.9.2",
     "lockfile-lint": "4.14.0",
     "markdownlint-cli": "0.43.0",
     "npm-run-all2": "7.0.1",
