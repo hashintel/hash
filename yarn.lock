@@ -9659,14 +9659,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mui/core-downloads-tracker@npm:^5.11.8, @mui/core-downloads-tracker@npm:^5.16.9":
-  version: 5.16.9
-  resolution: "@mui/core-downloads-tracker@npm:5.16.9"
-  checksum: 10c0/73774e9dcf7c8549759ae5ebfe5d87761cecb8477f0624ac051e26f9cdb110167a39bd93ce119caf2620f5991af3cbf2865e0cb380d783c6ec109c4c3d563396
-  languageName: node
-  linkType: hard
-
-"@mui/core-downloads-tracker@npm:^5.16.11":
+"@mui/core-downloads-tracker@npm:^5.11.8, @mui/core-downloads-tracker@npm:^5.16.11":
   version: 5.16.11
   resolution: "@mui/core-downloads-tracker@npm:5.16.11"
   checksum: 10c0/a004e13b0ca1856322ca8045c6d88710123702b56c1b66cfb87835f3a729804e3e47b92fefdeadd7a70a0584411781ca987793ad33e36237b35d34b0d1cd38f4
@@ -9722,7 +9715,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mui/material@npm:5.16.11":
+"@mui/material@npm:5.16.11, @mui/material@npm:^5.0.0, @mui/material@npm:^5.10.4":
   version: 5.16.11
   resolution: "@mui/material@npm:5.16.11"
   dependencies:
@@ -9752,39 +9745,6 @@ __metadata:
     "@types/react":
       optional: true
   checksum: 10c0/ea83b160547136dd5e0f44556d1db29d35ddd4098e0966b7d713d7ae8211355873d2f07e2edd3d0089e24bbf9aac7eb50ff372077aa88b359f6e560c4601c483
-  languageName: node
-  linkType: hard
-
-"@mui/material@npm:^5.0.0, @mui/material@npm:^5.10.4":
-  version: 5.16.9
-  resolution: "@mui/material@npm:5.16.9"
-  dependencies:
-    "@babel/runtime": "npm:^7.23.9"
-    "@mui/core-downloads-tracker": "npm:^5.16.9"
-    "@mui/system": "npm:^5.16.8"
-    "@mui/types": "npm:^7.2.15"
-    "@mui/utils": "npm:^5.16.8"
-    "@popperjs/core": "npm:^2.11.8"
-    "@types/react-transition-group": "npm:^4.4.10"
-    clsx: "npm:^2.1.0"
-    csstype: "npm:^3.1.3"
-    prop-types: "npm:^15.8.1"
-    react-is: "npm:^18.3.1"
-    react-transition-group: "npm:^4.4.5"
-  peerDependencies:
-    "@emotion/react": ^11.5.0
-    "@emotion/styled": ^11.3.0
-    "@types/react": ^17.0.0 || ^18.0.0 || ^19.0.0
-    react: ^17.0.0 || ^18.0.0 || ^19.0.0
-    react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
-  peerDependenciesMeta:
-    "@emotion/react":
-      optional: true
-    "@emotion/styled":
-      optional: true
-    "@types/react":
-      optional: true
-  checksum: 10c0/b6d3d9c7449f2a496d0589ae7da1186328fa41d0bd57256ee90071bb9d650c5933041c07769cd13f756a9274cdd9e47c4ac4fa323a7652bb74f1c03ad2217670
   languageName: node
   linkType: hard
 
