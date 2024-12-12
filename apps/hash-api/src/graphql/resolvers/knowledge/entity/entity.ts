@@ -74,6 +74,7 @@ import {
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { getUserPermissionsOnSubgraph } from "../shared/get-user-permissions-on-subgraph";
+import { EntityValidationReport } from "@local/hash-graph-types/validation";
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,
@@ -403,7 +404,7 @@ export const updateEntitiesResolver: ResolverFn<
 };
 
 export const validateEntityResolver: ResolverFn<
-  Promise<boolean>,
+  Promise<EntityValidationReport | undefined>,
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryValidateEntityArgs
@@ -411,10 +412,13 @@ export const validateEntityResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  return (
-    (await Entity.validate(context.graphApi, authentication, params)) ===
-    undefined
+  const response = await Entity.validate(
+    context.graphApi,
+    authentication,
+    params,
   );
+
+  return response;
 };
 
 export const archiveEntityResolver: ResolverFn<

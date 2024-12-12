@@ -57,9 +57,40 @@ export const useCreateOnCellEdited = () => {
           newValueCell.data.propertyRow.value,
         );
 
+        const metadataKeyChain: (string | number)[] = [];
+        for (let i = 0; i < propertyKeyChain.length; i++) {
+          if (
+            typeof propertyKeyChain[i - 1] === "string" &&
+            typeof propertyKeyChain[i] === "string"
+          ) {
+            /**
+             * Property object metadata has metadata on its properties nested under a 'value' key,
+             * so we need to insert 'value' when both the previous and this key is a string,
+             * indicating a nested property.
+             *
+             * e.g. metadata for a property object might look like this
+             * {
+             *   https://example.com/property-types/address/: {
+             *     value: {
+             *       https://example.com/property-types/street/: {
+             *         metadata: {
+             *           dataTypeId: "https://example.com/data-types/text/v/1"
+             *         }
+             *       }
+             *     }
+             *   }
+             * }
+             */
+            metadataKeyChain.push("value");
+          }
+          metadataKeyChain.push(propertyKeyChain[i]!);
+        }
+
+        console.log({ metadataKeyChain });
+
         set(
           updatedMetadata,
-          ["properties", "value", ...propertyKeyChain],
+          ["properties", "value", ...metadataKeyChain],
           newValueCell.data.propertyRow.valueMetadata,
         );
 

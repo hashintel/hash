@@ -2,7 +2,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityProperties } from "@local/hash-graph-types/entity";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import type { PropsWithChildren } from "react";
+import { PropsWithChildren, useEffect } from "react";
 import {
   createContext,
   useCallback,
@@ -45,9 +45,30 @@ export const EntityEditorContextProvider = ({
   setEntity,
   handleTypesChange,
   slideContainerRef,
+  validationReport,
 }: PropsWithChildren<EntityEditorProps>) => {
   const [propertyExpandStatus, setPropertyExpandStatus] =
     useState<TableExpandStatus>({});
+
+  useEffect(() => {
+    const propertyObjectsWithErrorsInChildren = validationReport?.errors
+      .map(({ propertyPath, type }) =>
+        type === "child-has-errors" ? propertyPath : undefined,
+      )
+      .filter((path) => !!path);
+
+    if (propertyObjectsWithErrorsInChildren?.length) {
+      setPropertyExpandStatus((currentStatus) => {
+        return propertyObjectsWithErrorsInChildren.reduce(
+          (status, path) => {
+            const key = path.join(".");
+            return { ...status, [key]: true };
+          },
+          { ...currentStatus },
+        );
+      });
+    }
+  }, [validationReport]);
 
   const togglePropertyExpand = useCallback((id: string) => {
     setPropertyExpandStatus((status) => {
@@ -62,13 +83,14 @@ export const EntityEditorContextProvider = ({
 
     if (roots.length > 1) {
       /**
-       * This is an early warning system in case we accidentally start passing a subgraph with multiple roots to the entity editor.
-       * If we don't throw an error, an arbitrary version of the entity will be chosen for loading into the editor,
-       * which will be difficult to detect without an immediate crash.
+       * This is an early warning system in case we accidentally start passing a subgraph with multiple roots to the
+       * entity editor. If we don't throw an error, an arbitrary version of the entity will be chosen for loading into
+       * the editor, which will be difficult to detect without an immediate crash.
        *
        * If this is thrown then the entitySubgraph is probably the result of a query for an entityId without a draftId,
        * where there is a live entity and one or more draft updates in the database.
-       * Any query without an entityId should EXCLUDE entities with a draftId to ensure only the live version is returned.
+       * Any query without an entityId should EXCLUDE entities with a draftId to ensure only the live version is
+       * returned.
        */
       throw new Error(
         `More than one root entity passed to entity editor, with ids: ${roots
@@ -111,6 +133,7 @@ export const EntityEditorContextProvider = ({
       setEntity,
       slideContainerRef,
       togglePropertyExpand,
+      validationReport,
     }),
     [
       closedMultiEntityType,
@@ -135,6 +158,7 @@ export const EntityEditorContextProvider = ({
       setEntity,
       slideContainerRef,
       togglePropertyExpand,
+      validationReport,
     ],
   );
 

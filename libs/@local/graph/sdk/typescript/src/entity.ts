@@ -258,6 +258,8 @@ export const isValueRemovedByPatches = <Properties extends PropertyObject>({
 /**
  * @hidden
  * @deprecated - For migration purposes only.
+ *
+ * Callers should instead specify property updates by specifying its metadata directly.
  */
 export const mergePropertiesAndMetadata = (
   property: Property,
@@ -405,8 +407,8 @@ export const mergePropertiesAndMetadata = (
 };
 
 /**
- * @hidden
- * @deprecated - For migration purposes only.
+ * Merge a property object with property metadata
+ * – this creates the format the Graph API requires for create and validate calls.
  */
 export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
   property: T["properties"],
@@ -781,6 +783,9 @@ export const generateChangedPropertyMetadataObject = (
      * Set metadata for a new property object
      */
     if (typeof thirdKey !== "number") {
+      /**
+       * @todo H-3751 make this function recursive and handle nested property objects
+       */
       throw new Error("Nested property objects are not yet supported");
     }
 
@@ -863,6 +868,9 @@ export const generateChangedPropertyMetadataObject = (
 
   if (typeof thirdKey !== "undefined") {
     if (typeof thirdKey !== "number") {
+      /**
+       * @todo H-3751 make this function recursive and handle nested property objects
+       */
       throw new Error("Nested property objects are not yet supported");
     }
 
@@ -1094,8 +1102,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   }
 
   /**
-   * @hidden
-   * @deprecated - For migration purposes only.
+   * Get the merged object containing both property values and their metadata alongside them.
+   * For use when calling methods that require this format (create, validate)
    */
   public get propertiesWithMetadata(): PropertyMap["propertiesWithMetadata"] {
     return mergePropertyObjectAndMetadata<PropertyMap>(
