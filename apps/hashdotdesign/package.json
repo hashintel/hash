@@ -30,7 +30,7 @@
     "@emotion/cache": "11.14.0",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.0",
-    "@mui/material": "5.16.9",
+    "@mui/material": "5.16.11",
     "@mui/system": "5.16.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
