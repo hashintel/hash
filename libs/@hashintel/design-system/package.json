@@ -59,12 +59,12 @@
     "@mui/material": "5.16.9",
     "@mui/system": "5.16.8",
     "@storybook/react": "7.6.20",
-    "@types/react": "18.2.68",
-    "@types/react-dom": "18.2.25",
+    "@types/react": "18.3.14",
+    "@types/react-dom": "18.3.2",
     "eslint": "9.16.0",
     "eslint-plugin-storybook": "0.11.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "typescript": "5.6.3"
   },
   "peerDependencies": {
