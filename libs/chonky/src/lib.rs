@@ -2,7 +2,6 @@
 
 extern crate alloc;
 
-#[cfg(not(feature = "static"))]
 use alloc::borrow::Cow;
 use std::path::PathBuf;
 #[cfg(not(feature = "static"))]
@@ -32,7 +31,7 @@ pub enum ChonkyError {
     Embedding,
 }
 
-pub mod embedding;
+mod embedding;
 
 pub use embedding::{hugging_face_api, multi_modal_embedding};
 
@@ -81,7 +80,7 @@ pub struct DocumentEmbeddings {
 #[derive(Debug, Clone)]
 pub struct PageContentEmbedding {
     _image: PageImageObjectsEmbeddings,
-    _table: Vec<TableEmbedding>,
+    _table: PageTableObjectsEmbeddings,
     _text: TextEmbedding,
 }
 
@@ -93,7 +92,7 @@ pub struct ImageEmbedding {
 
 #[derive(Debug, Clone)]
 pub struct TableEmbedding {
-    _embedding: Embedding,
+    pub embedding: Embedding,
     _table: ExtractedTable,
 }
 #[derive(Debug, Clone)]
@@ -104,7 +103,7 @@ pub struct TextEmbedding {
 
 #[derive(Debug, Clone)]
 pub struct Embedding {
-    _model_used: String,            //model name reveals image or text embedding model
+    _model_used: Cow<'static, str>, //model name reveals image or text embedding model
     pub embedding_vector: Vec<f64>, //the actual embedding vector
 }
 
@@ -125,14 +124,25 @@ pub struct PageImageObjects {
     pub page_image_objects: Vec<DynamicImage>,
 }
 
+impl PageImageObjects {
+    pub fn iter(self) -> impl Iterator<Item = DynamicImage> + Send {
+        self.page_image_objects.into_iter()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PageImageObjectsEmbeddings {
-    _embeddings: Vec<ImageEmbedding>,
+    _embeddings: Box<[ImageEmbedding]>,
 }
 
 #[derive(Debug, Clone)]
 pub struct PageTableObjects {
-    _page_image_objects: Vec<DynamicImage>,
+    pub page_table_objects: Vec<ExtractedTable>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PageTableObjectsEmbeddings {
+    _embeddings: Vec<TableEmbedding>,
 }
 
 #[derive(Debug, Clone)]
@@ -161,8 +171,7 @@ pub mod pdf_segmentation {
     };
 
     use crate::{
-        ChonkyError, DocumentEmbeddings, Embedding, PageContentEmbedding, PageImageObjects,
-        TableEmbedding, TextEmbedding,
+        ChonkyError, DocumentEmbeddings, PageContentEmbedding, PageImageObjects, PageTableObjects,
         embedding::{
             hugging_face_api::make_table_recognition_request,
             multi_modal_embedding::{embed_pdf_object_images, embed_tables, embed_text},
@@ -198,7 +207,7 @@ pub mod pdf_segmentation {
         pdf: &PdfDocument<'_>,
         images: &[PathBuf],
         config: &PdfRenderConfig,
-    ) -> Result<Vec<Vec<ExtractedTable>>, Report<ChonkyError>> {
+    ) -> Result<Vec<PageTableObjects>, Report<ChonkyError>> {
         let table_predictions_list = try_join_all(
             images
                 .iter()
@@ -220,7 +229,8 @@ pub mod pdf_segmentation {
                 }
                 let bbox = &table.bounding_box;
 
-                // Convert to i32 safely
+                // Convert to i32 safely discarding decimals and rounding down
+                // normally bbox should already be an integer that needs to be casted
                 let xmin: i32 = num_traits::cast(bbox.xmin).ok_or(ChonkyError::Pdfium)?;
                 let ymin: i32 = num_traits::cast(bbox.ymin).ok_or(ChonkyError::Pdfium)?;
                 let xmax: i32 = num_traits::cast(bbox.xmax).ok_or(ChonkyError::Pdfium)?;
@@ -260,7 +270,9 @@ pub mod pdf_segmentation {
                 page_table_bounds.push(extracted_table);
                 //later step to extract table textual information
             }
-            pdf_table_bounds.push(page_table_bounds);
+            pdf_table_bounds.push(PageTableObjects {
+                page_table_objects: page_table_bounds,
+            });
         }
         Ok(pdf_table_bounds)
     }
@@ -279,7 +291,7 @@ pub mod pdf_segmentation {
     #[must_use]
     pub fn extract_text(
         pdf: &PdfDocument,
-        pdf_table_bounds: &[Vec<ExtractedTable>],
+        pdf_table_bounds: &[PageTableObjects],
     ) -> Vec<Vec<String>> {
         let mut pages_text_extract: Vec<Vec<String>> = Vec::new();
         //process page by page
@@ -287,7 +299,7 @@ pub mod pdf_segmentation {
             //we know index of images and pdf must be the same
 
             //check if text bounding boxes overlap with the pdf table bounds
-            let page_table_bounds = &pdf_table_bounds[index];
+            let page_table_bounds = &pdf_table_bounds[index].page_table_objects;
 
             let page_text: Vec<String> = page
                 .objects()
@@ -384,46 +396,39 @@ pub mod pdf_segmentation {
 
         let table_embeddings = embed_tables(pdf_table_bounds.clone(), &project_id).await?;
 
-        let pdf_text_embeddings = embed_text(pdf_text_extract.clone(), &project_id).await?;
+        let pdf_text_embeddings = embed_text(
+            &pdf_text_extract
+                .iter()
+                .map(|text| &**text)
+                .collect::<Vec<_>>(),
+            &project_id,
+        )
+        .await?;
 
         //TODO: implement in a way to prevent so much unnecessary cloning
 
         //turn image embedding vector into iterator
         let mut image_embeddings = image_embeddings.into_iter();
 
-        for index in 0..(pdf.pages().len() as usize) {
-            //same for table
-            let mut table_embedding_struct: Vec<TableEmbedding> = Vec::new();
-            for (i, table_embed) in table_embeddings[index].clone().into_iter().enumerate() {
-                let table_embedding = TableEmbedding {
-                    _embedding: Embedding {
-                        _model_used: "Google Multimodal Embeddings".to_owned(),
-                        embedding_vector: table_embed,
-                    },
-                    _table: pdf_table_bounds[index][i].clone(),
-                };
-                table_embedding_struct.push(table_embedding);
-            }
+        let mut table_embeddings = table_embeddings.into_iter();
 
-            // lastly perform on text
-            // Googles Text can only take 1024 characters, for now we only take the first 100 words
-            // but at this point in the future we will apply chunking next
-            let text_embedding = TextEmbedding {
-                _embedding: Embedding {
-                    _model_used: "Google Multimodal Embeddings".to_owned(),
-                    embedding_vector: pdf_text_embeddings[index].clone(),
-                },
-                _text: pdf_text_extract[index].clone().join(""),
-            };
+        let mut text_embeddings = pdf_text_embeddings.into_iter();
 
+        for _ in 0..pdf.pages().len() {
             //create Page content embedding now
             let page_content_embedding = PageContentEmbedding {
                 _image: image_embeddings
                     .next()
                     .ok_or(ChonkyError::VertexAPI)
                     .attach_printable("Missing Page Image Object Embeddings")?,
-                _table: table_embedding_struct,
-                _text: text_embedding,
+                _table: table_embeddings
+                    .next()
+                    .ok_or(ChonkyError::VertexAPI)
+                    .attach_printable("Missing Page Table Object Embeddings")?,
+                _text: text_embeddings
+                    .next()
+                    .ok_or(ChonkyError::VertexAPI)
+                    .attach_printable("Missing Text Embeddings")?,
             };
 
             document_embeddings
@@ -591,7 +596,7 @@ pub mod pdf_segmentation {
             let table_info = extract_tables(&pdf, &images, &create_config()).await?;
             //just take first vector
 
-            let table = table_info[0][0].clone();
+            let table = table_info[0].page_table_objects[0].clone();
 
             assert_snapshot!("extracted_table.txt", format!("{:#?}", table.bounding_box));
 

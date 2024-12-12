@@ -31,7 +31,7 @@ fn get_hugging_face_token() -> Result<String, Report<ChonkyError>> {
 }
 
 async fn get_binary_image_data(
-    image_path: impl AsRef<Path> + core::marker::Send + core::marker::Sync,
+    image_path: impl AsRef<Path> + Send + Sync,
 ) -> Result<Vec<u8>, Report<ChonkyError>> {
     fs::read(image_path)
         .await

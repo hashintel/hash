@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use base64::{Engine as _, engine::general_purpose};
 use error_stack::{Report, ResultExt as _};
+use image::DynamicImage;
 use reqwest::{
     Client,
     header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue},
@@ -10,8 +11,8 @@ use serde_json::{Value as JsonValue, json};
 
 use crate::{
     ChonkyError, DocumentEmbeddings, Embedding, ImageEmbedding, PageImageObjects,
-    PageImageObjectsEmbeddings, StructuralEmbedding, StructuralMetadata,
-    pdf_segmentation::ExtractedTable,
+    PageImageObjectsEmbeddings, PageTableObjects, PageTableObjectsEmbeddings, StructuralEmbedding,
+    StructuralMetadata, TableEmbedding, TextEmbedding,
 };
 
 fn get_vertex_access_token() -> Result<String, Report<ChonkyError>> {
@@ -28,7 +29,7 @@ fn get_vertex_access_token() -> Result<String, Report<ChonkyError>> {
     .to_owned())
 }
 
-fn base64_json(image_data: Vec<u8>) -> JsonValue {
+fn base64_json(image_data: impl AsRef<[u8]>) -> JsonValue {
     let base64_encoded_img = general_purpose::STANDARD.encode(image_data);
 
     json!({
@@ -42,6 +43,8 @@ fn base64_json(image_data: Vec<u8>) -> JsonValue {
     })
 }
 
+/// Googles Multimodal embedding text can only take 1024 characters so for now we will only truncate
+/// the first 1000 characters, this function would be responsible for chunking the text appropriatly
 fn text_json(text: &[String]) -> JsonValue {
     //merge all text into one without seperator for now
     let mut text = text.concat();
@@ -63,14 +66,14 @@ fn text_json(text: &[String]) -> JsonValue {
 pub async fn embed_pdf_object_images(
     pdf_image_extract: Vec<PageImageObjects>,
     project_id: &str,
-) -> Result<Vec<PageImageObjectsEmbeddings>, Report<ChonkyError>> {
+) -> Result<Box<[PageImageObjectsEmbeddings]>, Report<ChonkyError>> {
     let mut embeddings = Vec::new();
     for page_images in pdf_image_extract {
         embeddings.push(PageImageObjectsEmbeddings {
-            _embeddings: embed_screenshots(page_images, project_id).await?,
+            _embeddings: embed_screenshots(page_images.iter(), project_id).await?,
         });
     }
-    Ok(embeddings)
+    Ok(embeddings.into_boxed_slice())
 }
 
 /// Given the screenshot of each page in pdf return its embeddings
@@ -78,12 +81,16 @@ pub async fn embed_pdf_object_images(
 /// # Errors
 ///
 /// [`ChonkyError::VertexAPI`] when there are HTTP request errors
+#[expect(
+    clippy::future_not_send,
+    reason = "Send traits not being Applied to IntoIterator"
+)]
 pub async fn embed_screenshots(
-    pdf_image_extract: PageImageObjects,
+    pdf_image_extract: impl IntoIterator<Item = DynamicImage> + Send + 'static,
     project_id: &str,
-) -> Result<Vec<ImageEmbedding>, Report<ChonkyError>> {
+) -> Result<Box<[ImageEmbedding]>, Report<ChonkyError>> {
     let mut embeddings = Vec::new();
-    for image in pdf_image_extract.page_image_objects {
+    for image in pdf_image_extract {
         let mut buffer = Vec::new();
         let encoder = image::codecs::png::PngEncoder::new(&mut buffer);
 
@@ -95,7 +102,7 @@ pub async fn embed_screenshots(
         // cloning?
         embeddings.push(ImageEmbedding {
             embedding: Embedding {
-                _model_used: "Google Multimodal Embeddings".to_owned(),
+                _model_used: "Google Multimodal Embeddings".into(),
                 embedding_vector: make_multimodal_api_request(
                     project_id,
                     Some(image.clone().into_bytes()),
@@ -103,10 +110,10 @@ pub async fn embed_screenshots(
                 )
                 .await?,
             },
-            _image: image,
+            _image: image.clone(),
         });
     }
-    Ok(embeddings)
+    Ok(embeddings.into_boxed_slice())
 }
 
 /// Given the tables on each page of the pdf, embeds each pages tables seperately into a vector
@@ -116,13 +123,13 @@ pub async fn embed_screenshots(
 ///
 /// [`ChonkyError::VertexAPI`] when there are HTTP request errors
 pub async fn embed_tables(
-    pdf_table_bounds: Vec<Vec<ExtractedTable>>,
+    pdf_table_bounds: Vec<PageTableObjects>,
     project_id: &str,
-) -> Result<Vec<Vec<Vec<f64>>>, Report<ChonkyError>> {
+) -> Result<Box<[PageTableObjectsEmbeddings]>, Report<ChonkyError>> {
     let mut embeddings = Vec::new();
     for page_tables in pdf_table_bounds {
-        let mut page_embeddings: Vec<Vec<f64>> = Vec::new();
-        for table in page_tables {
+        let mut page_embeddings = Vec::new();
+        for table in page_tables.page_table_objects {
             let mut buffer = Vec::new();
             let encoder = image::codecs::png::PngEncoder::new(&mut buffer);
 
@@ -131,12 +138,23 @@ pub async fn embed_tables(
                 .write_with_encoder(encoder)
                 .change_context(ChonkyError::ImageError)?;
 
-            page_embeddings
-                .push(make_multimodal_api_request(project_id, Some(buffer), None).await?);
+            page_embeddings.push(TableEmbedding {
+                embedding: Embedding {
+                    _model_used: "Google Multimodal Embeddings".into(),
+                    embedding_vector: make_multimodal_api_request(project_id, Some(buffer), None)
+                        .await?,
+                },
+                _table: table,
+            });
+
+            // page_embeddings
+            //     .push(make_multimodal_api_request(project_id, Some(buffer), None).await?);
         }
-        embeddings.push(page_embeddings);
+        embeddings.push(PageTableObjectsEmbeddings {
+            _embeddings: page_embeddings,
+        });
     }
-    Ok(embeddings)
+    Ok(embeddings.into_boxed_slice())
 }
 
 /// Given the text on each page of the pdf, embeds each pages text seperately into a vector
@@ -145,18 +163,25 @@ pub async fn embed_tables(
 ///
 /// [`ChonkyError::VertexAPI`] when there are HTTP request errors
 pub async fn embed_text(
-    pdf_text_extract: Vec<Vec<String>>,
+    pdf_text_extract: &[&[String]],
     project_id: &str,
-) -> Result<Vec<Vec<f64>>, Report<ChonkyError>> {
+) -> Result<Vec<TextEmbedding>, Report<ChonkyError>> {
     let mut embeddings = Vec::new();
     for page_text in pdf_text_extract {
-        embeddings.push(make_multimodal_api_request(project_id, None, Some(page_text)).await?);
+        embeddings.push(TextEmbedding {
+            _embedding: Embedding {
+                _model_used: "Google Multimodal Embeddings".into(),
+                embedding_vector: make_multimodal_api_request(project_id, None, Some(page_text))
+                    .await?,
+            },
+            _text: page_text.concat(),
+        });
     }
     Ok(embeddings)
 }
 
 /// A function that performs authentication with Google Vertex API and performs
-/// a curl request to obtain multimodal embeddings given an image path
+/// a request to obtain multimodal embeddings given an image path
 ///
 /// # Errors
 ///
@@ -165,7 +190,7 @@ pub async fn embed_text(
 pub async fn make_multimodal_api_request(
     project_id: &str,
     image_data: Option<Vec<u8>>,
-    text_data: Option<Vec<String>>,
+    text_data: Option<&[String]>,
 ) -> Result<Vec<f64>, Report<ChonkyError>> {
     let url = format!(
         "https://us-central1-aiplatform.googleapis.com/v1/projects/{project_id}/locations/us-central1/publishers/google/models/multimodalembedding@001:predict"
@@ -191,9 +216,9 @@ pub async fn make_multimodal_api_request(
     // Prepare payload make sure its initialized
     let mut payload = json!(null);
     if let Some(image_payload) = image_data {
-        payload = base64_json(image_payload);
+        payload = base64_json(&image_payload);
     } else if let Some(text_payload) = text_data {
-        payload = text_json(&text_payload);
+        payload = text_json(text_payload);
     }
 
     // Make the POST request
@@ -272,7 +297,7 @@ pub fn add_structural_embedding(
     };
 
     let embedding = Embedding {
-        _model_used: "VertexAPIMultiModalEmbeddings".to_owned(),
+        _model_used: "VertexAPIMultiModalEmbeddings".into(),
         embedding_vector,
     };
 

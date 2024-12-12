@@ -50,7 +50,8 @@ async fn main() -> Result<(), Report<ChonkyError>> {
     let doc_screenshots = embed_screenshots(
         PageImageObjects {
             page_image_objects: preprocessed_pdf,
-        },
+        }
+        .iter(),
         &project_id,
     )
     .await?;
