@@ -16,7 +16,7 @@ mod property_type;
 mod web;
 use alloc::{borrow::Cow, sync::Arc};
 use core::str::FromStr as _;
-use std::{fs, io};
+use std::{fs, io, time::Instant};
 
 use async_trait::async_trait;
 use axum::{
@@ -27,12 +27,19 @@ use axum::{
     routing::get,
 };
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::AuthorizationApiPool;
+use futures::{SinkExt as _, channel::mpsc::Sender};
+use hash_graph_authorization::{
+    AuthorizationApiPool,
+    schema::{
+        AccountGroupPermission, DataTypePermission, EntityPermission, EntityTypePermission,
+        PropertyTypePermission,
+    },
+};
 use hash_graph_postgres_store::store::error::VersionedUrlAlreadyExists;
 use hash_graph_store::{
     account::AccountStore,
     data_type::DataTypeStore,
-    entity::EntityStore,
+    entity::{DiffEntityParams, EntityStore},
     entity_type::EntityTypeStore,
     filter::{ParameterConversion, Selector},
     pool::StorePool,
@@ -58,7 +65,8 @@ use hash_graph_temporal_versioning::{
 };
 use hash_graph_type_fetcher::TypeFetcher;
 use hash_graph_types::{
-    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
+    account::{AccountGroupId, AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
+    knowledge::entity::EntityId,
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
@@ -71,6 +79,7 @@ use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
+use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
     schema::DomainValidator,
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
@@ -207,6 +216,118 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
     ]
 }
 
+#[derive(Debug, Clone)]
+pub struct QueryLogger {
+    sender: Sender<JsonValue>,
+    value: Option<JsonValue>,
+    created_at: Instant,
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Could not send query to logger")]
+pub struct QueryLoggingError;
+
+impl QueryLogger {
+    #[must_use]
+    pub fn new(sender: Sender<JsonValue>) -> Self {
+        Self {
+            sender,
+            value: None,
+            created_at: Instant::now(),
+        }
+    }
+
+    #[expect(clippy::missing_panics_doc)]
+    pub fn capture(&mut self, query: OpenApiQuery<'_>) {
+        self.value = Some(
+            serde_json::to_value(query)
+                .change_context(QueryLoggingError)
+                .expect("query should be serializable"),
+        );
+    }
+
+    /// Sends a query to the query logger.
+    ///
+    /// If the sender is `None`, nothing happens.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the query could not be sent.
+    pub async fn send(&mut self) -> Result<(), Report<QueryLoggingError>> {
+        let mut query = self
+            .value
+            .take()
+            .ok_or(QueryLoggingError)
+            .attach_printable("no query was captured")?;
+        query
+            .as_object_mut()
+            .ok_or(QueryLoggingError)
+            .attach_printable("serialized value is not an object")?
+            .insert(
+                "elapsed".to_owned(),
+                JsonValue::Number(
+                    JsonNumber::from_u128(self.created_at.elapsed().as_millis())
+                        .ok_or(QueryLoggingError)
+                        .attach_printable("Could not convert milliseconds to JSON")?,
+                ),
+            );
+
+        self.sender
+            .send(query)
+            .await
+            .change_context(QueryLoggingError)
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(tag = "endpoint", content = "query", rename_all = "camelCase")]
+pub enum OpenApiQuery<'a> {
+    CheckAccountGroupPermission {
+        account_group_id: AccountGroupId,
+        permission: AccountGroupPermission,
+    },
+    GetDataTypes(&'a JsonValue),
+    GetDataTypeSubgraph(&'a JsonValue),
+    GetDataTypeAuthorizationRelationships {
+        data_type_id: &'a VersionedUrl,
+    },
+    CheckDataTypePermission {
+        data_type_id: &'a VersionedUrl,
+        permission: DataTypePermission,
+    },
+    GetPropertyTypes(&'a JsonValue),
+    GetPropertyTypeSubgraph(&'a JsonValue),
+    GetPropertyTypeAuthorizationRelationships {
+        property_type_id: &'a VersionedUrl,
+    },
+    CheckPropertyTypePermission {
+        property_type_id: &'a VersionedUrl,
+        permission: PropertyTypePermission,
+    },
+    GetEntityTypes(&'a JsonValue),
+    GetClosedMultiEntityTypes(&'a JsonValue),
+    GetEntityTypeSubgraph(&'a JsonValue),
+    GetEntityTypeAuthorizationRelationships {
+        entity_type_id: &'a VersionedUrl,
+    },
+    CheckEntityTypePermission {
+        entity_type_id: &'a VersionedUrl,
+        permission: EntityTypePermission,
+    },
+    GetEntities(&'a JsonValue),
+    CountEntities(&'a JsonValue),
+    GetEntitySubgraph(&'a JsonValue),
+    ValidateEntity(&'a JsonValue),
+    DiffEntity(&'a DiffEntityParams),
+    GetEntityAuthorizationRelationships {
+        entity_id: EntityId,
+    },
+    CheckEntityPermission {
+        entity_id: EntityId,
+        permission: EntityPermission,
+    },
+}
+
 pub struct RestRouterDependencies<S, A>
 where
     S: StorePool + Send + Sync + 'static,
@@ -216,6 +337,7 @@ where
     pub authorization_api: Arc<A>,
     pub temporal_client: Option<TemporalClient>,
     pub domain_regex: DomainValidator,
+    pub query_logger: Option<QueryLogger>,
 }
 
 /// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
@@ -250,15 +372,20 @@ where
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
     // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc
-    merged_routes
+    let mut router = merged_routes
         .layer(NewSentryLayer::new_from_top())
         .layer(SentryHttpLayer::with_transaction())
         .layer(Extension(dependencies.store))
         .layer(Extension(dependencies.authorization_api))
         .layer(Extension(dependencies.temporal_client.map(Arc::new)))
         .layer(Extension(dependencies.domain_regex))
-        .layer(span_trace_layer())
-        .merge(openapi_only_router())
+        .layer(span_trace_layer());
+
+    if let Some(query_logger) = dependencies.query_logger {
+        router = router.layer(Extension(query_logger));
+    }
+
+    router.merge(openapi_only_router())
 }
 
 async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {
