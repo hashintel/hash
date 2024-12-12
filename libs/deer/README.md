@@ -1,4 +1,6 @@
 [license]: https://github.com/hashintel/hash/blob/main/libs/deer/LICENSE.md
+[Apache License, Version 2.0]: https://github.com/hashintel/hash/blob/main/libs/deer/LICENSE-APACHE.md
+[MIT License]: https://github.com/hashintel/hash/blob/main/libs/deer/LICENSE-MIT.md
 
 # deer
 
@@ -112,4 +114,4 @@ Instead of strictly deserializing types, one might prefer to deserialize while c
 
 ## License
 
-`deer` is available under a number of different open-source licenses. Please see the [LICENSE] file to review your options.
+`deer` is available under either of the [Apache License, Version 2.0] or [MIT license] at your option. Please see the [LICENSE] file to review your options.

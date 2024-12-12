@@ -3,6 +3,8 @@
 [rust-version]: https://www.rust-lang.org
 [documentation]: https://docs.rs/sarif
 [license]: https://github.com/hashintel/hash/blob/main/libs/sarif/LICENSE.md
+[Apache License, Version 2.0]: https://github.com/hashintel/hash/blob/main/libs/sarif/LICENSE-APACHE.md
+[MIT license]: https://github.com/hashintel/hash/blob/main/libs/sarif/LICENSE-MIT.md
 [codecov]: https://app.codecov.io/gh/hashintel/hash/tree/main/libs/sarif/src
 
 [![crates.io](https://img.shields.io/crates/v/sarif)][crates.io]
@@ -24,4 +26,4 @@
 
 ## License
 
-`sarif` is available under a number of different open-source licenses. Please see the [LICENSE] file to review your options.
+`sarif` is available under either of the [Apache License, Version 2.0] or [MIT license] at your option. Please see the [LICENSE] file to review your options.

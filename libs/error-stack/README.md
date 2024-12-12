@@ -146,4 +146,4 @@ For more examples of `error-stack` in use, please check out the [examples](https
 
 ## License
 
-`error-stack` is available under a number of different open-source licenses. Please see the [LICENSE] file to review your options.
+`error-stack` is available under either of the [Apache License, Version 2.0] or [MIT license] at your option. Please see the [LICENSE] file for more information.

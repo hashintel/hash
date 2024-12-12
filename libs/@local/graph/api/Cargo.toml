@@ -22,11 +22,12 @@ hash-graph-types          = { workspace = true, public = true, features = ["utoi
 hash-temporal-client      = { workspace = true, public = true }
 
 # Public third-party dependencies
-axum       = { workspace = true, public = true }
-axum-core  = { workspace = true, public = true }
-http       = { workspace = true, public = true }
-tower-http = { workspace = true, public = true }
-tracing    = { workspace = true, public = true }
+axum            = { workspace = true, public = true }
+axum-core       = { workspace = true, public = true }
+futures-channel = { workspace = true, public = true }
+http            = { workspace = true, public = true }
+tower-http      = { workspace = true, public = true }
+tracing         = { workspace = true, public = true }
 
 # Private workspace dependencies
 harpc-codec                    = { workspace = true }
