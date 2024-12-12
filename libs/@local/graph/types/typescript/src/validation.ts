@@ -158,10 +158,10 @@ export type PropertyArrayValidationReport = Subtype<
 
 export type ArrayValidationReport = Omit<
   ArrayValidationReportGraphApi,
-  "numItems" | "properties"
+  "numItems" | "items"
 > & {
   numItems?: ArrayItemNumberMismatchGraphApi;
-  properties?: { [arrayIndex: string]: PropertyValidationReport };
+  items?: { [index: string]: PropertyValidationReport };
 };
 
 export type PropertyObjectValidationReport = Subtype<
