@@ -98,38 +98,34 @@ const resolveDnsMultiaddrSegment = (code: number, value?: string) =>
       return [[code, value] as const];
     }
 
-    let fqdn = value;
+    const hostname = value;
 
     let family: 0 | 4 | 6;
     if (code === DNS4_PROTOCOL.code) {
       family = 4;
 
-      if (isIPv4(fqdn)) {
-        return [[IPV4_PROTOCOL.code, fqdn] as const];
+      if (isIPv4(hostname)) {
+        return [[IPV4_PROTOCOL.code, hostname] as const];
       }
     } else if (code === DNS6_PROTOCOL.code) {
       family = 6;
 
-      if (isIPv6(fqdn)) {
-        return [[IPV6_PROTOCOL.code, fqdn] as const];
+      if (isIPv6(hostname)) {
+        return [[IPV6_PROTOCOL.code, hostname] as const];
       }
     } else {
       family = 0;
 
-      const fqdnFamily = isIP(fqdn);
-      if (fqdnFamily === 4) {
-        return [[IPV4_PROTOCOL.code, fqdn] as const];
-      } else if (fqdnFamily === 6) {
-        return [[IPV6_PROTOCOL.code, fqdn] as const];
+      const hostnameFamily = isIP(hostname);
+      if (hostnameFamily === 4) {
+        return [[IPV4_PROTOCOL.code, hostname] as const];
+      } else if (hostnameFamily === 6) {
+        return [[IPV6_PROTOCOL.code, hostname] as const];
       }
     }
 
-    if (!fqdn.endsWith(".")) {
-      fqdn += ".";
-    }
-
     const responses = yield* Effect.tryPromise({
-      try: () => dns.lookup(fqdn, { all: true, family }),
+      try: () => dns.lookup(hostname, { all: true, family }),
       catch: (cause) => new DnsError({ cause }),
     }).pipe(Effect.mapError((cause) => new TransportError({ cause })));
 
