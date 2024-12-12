@@ -239,6 +239,7 @@ impl QueryLogger {
 
     #[expect(clippy::missing_panics_doc)]
     pub fn capture(&mut self, query: OpenApiQuery<'_>) {
+        self.created_at = Instant::now();
         self.value = Some(
             serde_json::to_value(query)
                 .change_context(QueryLoggingError)
@@ -246,9 +247,7 @@ impl QueryLogger {
         );
     }
 
-    /// Sends a query to the query logger.
-    ///
-    /// If the sender is `None`, nothing happens.
+    /// Sends the captured query to the query logger.
     ///
     /// # Errors
     ///
