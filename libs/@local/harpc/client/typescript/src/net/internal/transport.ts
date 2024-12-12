@@ -197,24 +197,37 @@ const resolveDnsMultiaddr = (multiaddr: Multiaddr, dns: DNS) => {
     Stream.mapEffect(Function.tupled(resolveSegment), {
       concurrency: "unbounded",
     }),
-    Stream.flattenIterables,
-    Stream.runCollect,
+    Stream.runFold([] as (number | string | undefined)[][], (acc, segments) => {
+      // we basically have a fan out approach here, meaning that if our output is:
+      // ["ip4", "127.0.0.1"], [["ip4", "192.168.178.1"], ["ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"]] [["tcp", "4002"]]
+      // the result will be:
+      // ["ip4", "127.0.0.1", "ip4", "192.168.178.1", "tcp", "4002"]
+      // ["ip4", "127.0.0.1", "ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "tcp", "4002"]
+      // This is also known as a cartesian product
+      if (acc.length === 0) {
+        return Array.map(segments, (segment) => [...segment]);
+      }
+
+      return Array.cartesianWith(acc, segments, (a, b) => [...a, ...b]);
+    }),
     Effect.map(
-      flow(
-        Chunk.toReadonlyArray,
-        Array.map(([code, data]) => [getProtocol(code).name, data] as const),
-        Array.flatten,
-        Array.filter(Predicate.isNotUndefined),
-        Array.map((part) => `/${part}`),
-        Array.join(""),
-        makeMultiaddr,
+      Array.map(
+        flow(
+          Array.filter(Predicate.isNotUndefined),
+          Array.map((part) =>
+            Predicate.isNumber(part) ? getProtocol(part).name : part,
+          ),
+          Array.map((part) => `/${part}`),
+          Array.join(""),
+          makeMultiaddr,
+        ),
       ),
     ),
     Effect.tap((resolved) =>
       Effect.logDebug("resolved DNS multiaddr").pipe(
         Effect.annotateLogs({
           multiaddr: multiaddr.toString(),
-          resolved: resolved.toString(),
+          resolved: resolved.map((address) => address.toString()),
         }),
       ),
     ),
@@ -248,7 +261,7 @@ const resolveDnsaddrMultiaddr = (multiaddr: Multiaddr, options: DNSConfig) =>
       catch: (cause) => new TransportError({ cause }),
     });
 
-    yield* Effect.logDebug("resolved multiaddr").pipe(
+    yield* Effect.logDebug("resolved DNSADDR multiaddr").pipe(
       Effect.annotateLogs({
         multiaddr: multiaddr.toString(),
         resolved: resolved.map((address) => address.toString()),
@@ -274,6 +287,7 @@ const lookupPeer = (transport: Transport, address: Multiaddr) =>
       ),
       Stream.runCollect,
       Effect.map(Chunk.toReadonlyArray),
+      Effect.map(Array.flatten),
     );
 
     const peers = yield* Effect.tryPromise({
