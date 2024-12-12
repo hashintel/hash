@@ -1,4 +1,7 @@
-import { isIPv4, isIPv6 } from "@chainsafe/is-ip";
+import type { LookupAddress } from "node:dns";
+import dns from "node:dns/promises";
+import { isIP, isIPv4, isIPv6 } from "node:net";
+
 import { noise } from "@chainsafe/libp2p-noise";
 import { yamux } from "@chainsafe/libp2p-yamux";
 import type { Identify } from "@libp2p/identify";
@@ -7,12 +10,7 @@ import { isPeerId, type PeerId } from "@libp2p/interface";
 import type { PingService } from "@libp2p/ping";
 import { ping } from "@libp2p/ping";
 import { tcp } from "@libp2p/tcp";
-import {
-  type Answer,
-  type DNS,
-  dns as defaultDns,
-  RecordType,
-} from "@multiformats/dns";
+import { type DNS, dns as defaultDns } from "@multiformats/dns";
 import {
   multiaddr as makeMultiaddr,
   protocols as getProtocol,
@@ -21,7 +19,6 @@ import {
 import {
   Array,
   Cache,
-  Cause,
   Chunk,
   Data,
   Effect,
@@ -79,11 +76,6 @@ export class DnsError extends Data.TaggedError("DnsError")<{
   }
 }
 
-/** The package @multiaddr/dns typed their own API wrong, so we need to correct it */
-type AnswerExt = Omit<Answer, "type"> & {
-  type: RecordType | "A" | "AAAA";
-};
-
 const DNS_PROTOCOL = getProtocol("dns");
 const DNS4_PROTOCOL = getProtocol("dns4");
 const DNS6_PROTOCOL = getProtocol("dns6");
@@ -92,109 +84,82 @@ const DNS_CODES = [DNS_PROTOCOL.code, DNS4_PROTOCOL.code, DNS6_PROTOCOL.code];
 const IPV4_PROTOCOL = getProtocol("ip4");
 const IPV6_PROTOCOL = getProtocol("ip6");
 
-const resolveDnsMultiaddrSegment =
-  (dns: DNS) => (code: number, value?: string) =>
-    Effect.gen(function* () {
-      if (!DNS_CODES.includes(code)) {
-        return [[code, value] as const];
+const resolveDnsMultiaddrSegment = (code: number, value?: string) =>
+  Effect.gen(function* () {
+    if (!DNS_CODES.includes(code)) {
+      return [[code, value] as const];
+    }
+
+    if (value === undefined) {
+      yield* Effect.logWarning(
+        "domain of dns segment is undefined, skipping",
+      ).pipe(Effect.annotateLogs({ code, value }));
+
+      return [[code, value] as const];
+    }
+
+    let fqdn = value;
+
+    let family: 0 | 4 | 6;
+    if (code === DNS4_PROTOCOL.code) {
+      family = 4;
+
+      if (isIPv4(fqdn)) {
+        return [[IPV4_PROTOCOL.code, fqdn] as const];
       }
+    } else if (code === DNS6_PROTOCOL.code) {
+      family = 6;
 
-      if (value === undefined) {
-        yield* Effect.logWarning(
-          "domain of dns segment is undefined, skipping",
-        ).pipe(Effect.annotateLogs({ code, value }));
-
-        return [];
+      if (isIPv6(fqdn)) {
+        return [[IPV6_PROTOCOL.code, fqdn] as const];
       }
+    } else {
+      family = 0;
 
-      let fqdn = value;
-      const types: RecordType[] = [];
-
-      if (code === DNS_PROTOCOL.code || code === DNS4_PROTOCOL.code) {
-        types.push(RecordType.A);
-
-        if (isIPv4(fqdn)) {
-          return [[IPV4_PROTOCOL.code, fqdn] as const];
-        }
+      const fqdnFamily = isIP(fqdn);
+      if (fqdnFamily === 4) {
+        return [[IPV4_PROTOCOL.code, fqdn] as const];
+      } else if (fqdnFamily === 6) {
+        return [[IPV6_PROTOCOL.code, fqdn] as const];
       }
+    }
 
-      if (code === DNS_PROTOCOL.code || code === DNS6_PROTOCOL.code) {
-        types.push(RecordType.AAAA);
+    if (!fqdn.endsWith(".")) {
+      fqdn += ".";
+    }
 
-        if (isIPv6(fqdn)) {
-          return [[IPV6_PROTOCOL.code, fqdn] as const];
-        }
-      }
+    const responses = yield* Effect.tryPromise({
+      try: () => dns.lookup(fqdn, { all: true, family }),
+      catch: (cause) => new DnsError({ cause }),
+    }).pipe(Effect.mapError((cause) => new TransportError({ cause })));
 
-      if (!fqdn.endsWith(".")) {
-        fqdn += ".";
-      }
-
-      // because of a bad implementation of @multiformats/dns we need to dispatch a query for each type
-      const [errors, responses] = yield* Effect.partition(
-        types,
-        (type) =>
-          Effect.tryPromise({
-            try: (signal) => dns.query(fqdn, { types: type, signal }),
-            catch: (cause) => new DnsError({ cause }),
-          }).pipe(Effect.mapError((cause) => new TransportError({ cause }))),
-        {
-          concurrency: "unbounded",
-        },
-      );
-
-      // if we have been successful at least once we can return the resolved addresses, otherwise error out
-      if (responses.length === 0) {
-        if (errors.length === 0) {
-          return yield* Effect.die(
-            new Error(
-              "Expected either responses or errors as the types are always non-empty, received neither",
-            ),
-          );
-        }
-
-        const [head, ...tail] = errors;
-
-        return yield* pipe(
-          tail,
-          Array.map(Cause.fail),
-          Array.reduce(Cause.fail(head!), Cause.parallel),
-          Effect.failCause,
-        );
-      }
-
-      return pipe(
-        responses,
-        Array.flatMap((response) => response.Answer),
-        Array.filterMap(
-          Match.type<AnswerExt>().pipe(
-            Match.whenOr(
-              { type: RecordType.A },
-              { type: "A" } as const,
-              ({ data }) => [IPV4_PROTOCOL.code, data] as const,
-            ),
-            Match.whenOr(
-              { type: RecordType.AAAA },
-              { type: "AAAA" } as const,
-              ({ data }) => [IPV6_PROTOCOL.code, data] as const,
-            ),
-            Match.option,
+    return pipe(
+      responses,
+      Array.filterMap(
+        Match.type<LookupAddress>().pipe(
+          Match.when(
+            { family: 4 },
+            ({ address }) => [IPV4_PROTOCOL.code, address] as const,
           ),
+          Match.when(
+            { family: 6 },
+            ({ address }) => [IPV6_PROTOCOL.code, address] as const,
+          ),
+          Match.option,
         ),
-      );
-    });
+      ),
+    );
+  });
 
 /**
  * Resolve DNS addresses in a multiaddr (excluding DNSADDR)
  *
  * @internal
  */
-const resolveDnsMultiaddr = (multiaddr: Multiaddr, dns: DNS) => {
-  const resolveSegment = resolveDnsMultiaddrSegment(dns);
-
+const resolveDnsMultiaddr = (multiaddr: Multiaddr) => {
   return pipe(
     Stream.fromIterable(multiaddr.stringTuples()),
-    Stream.mapEffect(Function.tupled(resolveSegment), {
+    Stream.mapEffect(Function.tupled(resolveDnsMultiaddrSegment), {
       concurrency: "unbounded",
     }),
     Stream.runFold([] as (number | string | undefined)[][], (acc, segments) => {
@@ -280,11 +245,9 @@ const lookupPeer = (transport: Transport, address: Multiaddr) =>
           transport.services.state.config.dns?.maxRecursiveDepth,
       }),
       Stream.fromIterableEffect,
-      Stream.flatMap(
-        (multiaddr) =>
-          resolveDnsMultiaddr(multiaddr, transport.services.state.dns),
-        { concurrency: "unbounded" },
-      ),
+      Stream.flatMap((multiaddr) => resolveDnsMultiaddr(multiaddr), {
+        concurrency: "unbounded",
+      }),
       Stream.runCollect,
       Effect.map(Chunk.toReadonlyArray),
       Effect.map(Array.flatten),
