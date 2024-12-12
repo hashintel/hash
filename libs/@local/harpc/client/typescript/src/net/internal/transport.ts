@@ -31,6 +31,7 @@ import {
   pipe,
   Predicate,
   Stream,
+  Struct,
 } from "effect";
 import type { Libp2p } from "libp2p";
 import { createLibp2p } from "libp2p";
@@ -250,22 +251,42 @@ const lookupPeer = (transport: Transport, address: Multiaddr) =>
     );
 
     const peers = yield* Effect.tryPromise({
-      try: () =>
-        transport.peerStore.all({
-          filters: [
-            (peer) =>
-              peer.addresses.some((peerAddress) =>
-                resolved.some((resolvedAddress) =>
-                  resolvedAddress.equals(peerAddress.multiaddr),
-                ),
-              ),
-          ],
-          limit: 1,
-        }),
+      try: () => transport.peerStore.all(),
       catch: (cause) => new TransportError({ cause }),
     });
 
-    return Array.head(peers).pipe(Option.map((peer) => peer.id));
+    const addressesByPeer = pipe(
+      peers,
+      Array.map((peer) => ({
+        id: peer.id,
+        addresses: peer.addresses.map(Struct.get("multiaddr")),
+      })),
+    );
+
+    const matchingPeers = pipe(
+      addressesByPeer,
+      Array.filter(
+        flow(
+          Struct.get("addresses"),
+          Array.unionWith(resolved, (a, b) => a.equals(b)),
+          Array.isNonEmptyArray,
+        ),
+      ),
+    );
+
+    yield* Effect.logTrace("discovered peers").pipe(
+      Effect.annotateLogs({
+        known: addressesByPeer,
+        match: matchingPeers,
+        resolved: resolved.map((resolvedAddress) => resolvedAddress.toString()),
+      }),
+    );
+
+    return pipe(
+      matchingPeers, //
+      Array.map(Struct.get("id")),
+      Array.head,
+    );
   });
 
 const resolvePeer = (
@@ -284,16 +305,14 @@ const resolvePeer = (
     const key = HashableMultiaddr.make(address);
     const peerIdEither = yield* cache.getEither(key);
     if (Either.isLeft(peerIdEither)) {
-      yield* Effect.logTrace("resolved peerID from cache");
+      yield* Effect.logTrace("retrieved PeerID from cache");
     } else {
-      yield* Effect.logTrace("computed peerID");
+      yield* Effect.logTrace("resolved and matched multiaddr to PeerID");
     }
 
     const peerId = Either.merge(peerIdEither);
     if (Option.isNone(peerId)) {
-      yield* Effect.logDebug(
-        "unable to resolve peer to a known peer ID, invalidating cache to retry next time",
-      );
+      yield* Effect.logDebug("PeerID lookup failed, invalidating cache entry");
 
       yield* cache.invalidate(key);
     }
