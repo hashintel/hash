@@ -17,7 +17,6 @@ import {
   useState,
 } from "react";
 
-import { useDraftEntities } from "../../shared/draft-entities-context";
 import { Button } from "../../shared/ui";
 import type { MinimalActor } from "../../shared/use-actors";
 import { useActors } from "../../shared/use-actors";
@@ -30,6 +29,7 @@ import {
   getDraftEntityTypes,
   isFilerStateDefaultFilterState,
 } from "./draft-entities/draft-entities-filters";
+import { useDraftEntities } from "./draft-entities-context";
 import { DraftEntity } from "./draft-entity";
 
 const incrementNumberOfEntitiesToDisplay = 20;

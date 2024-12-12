@@ -64,12 +64,18 @@ export const useCreateGetCellContent = (
           },
         };
 
-        const { isArray, permittedDataTypes, value, valueMetadata } = row;
+        const {
+          isArray,
+          permittedDataTypes,
+          permittedDataTypesIncludingChildren,
+          valueMetadata,
+        } = row;
 
         const shouldShowChangeTypeCell =
-          permittedDataTypes.length > 1 &&
+          (permittedDataTypes.length > 1 ||
+            permittedDataTypes[0]?.schema.abstract) &&
           !isArray &&
-          typeof value !== "undefined" &&
+          valueMetadata &&
           !readonly;
 
         switch (columnKey) {
@@ -114,12 +120,6 @@ export const useCreateGetCellContent = (
             }
 
             if (shouldShowChangeTypeCell) {
-              if (!valueMetadata) {
-                throw new Error(
-                  `Expected value metadata to be set when showing change type cell`,
-                );
-              }
-
               if (!isValueMetadata(valueMetadata)) {
                 throw new Error(
                   `Expected single value when showing change type cell`,
@@ -128,8 +128,8 @@ export const useCreateGetCellContent = (
 
               const dataTypeId = valueMetadata.metadata.dataTypeId;
 
-              const dataType = permittedDataTypes.find(
-                (type) => type.$id === dataTypeId,
+              const dataType = permittedDataTypesIncludingChildren.find(
+                (type) => type.schema.$id === dataTypeId,
               );
 
               if (!dataType) {
@@ -142,11 +142,11 @@ export const useCreateGetCellContent = (
                 kind: GridCellKind.Custom,
                 allowOverlay: false,
                 readonly: true,
-                copyData: dataType.$id,
+                copyData: dataType.schema.$id,
                 cursor: "pointer",
                 data: {
                   kind: "change-type-cell",
-                  currentType: dataType,
+                  currentType: dataType.schema,
                   propertyRow: row,
                   valueCellOfThisRow: valueCell,
                 },
@@ -161,7 +161,7 @@ export const useCreateGetCellContent = (
               data: {
                 kind: "chip-cell",
                 chips: row.permittedDataTypes.map((type) => {
-                  const schema = getMergedDataTypeSchema(type);
+                  const schema = getMergedDataTypeSchema(type.schema);
 
                   if ("anyOf" in schema) {
                     throw new Error(
@@ -169,10 +169,10 @@ export const useCreateGetCellContent = (
                     );
                   }
 
-                  const editorSpec = getEditorSpecs(type, schema);
+                  const editorSpec = getEditorSpecs(type.schema, schema);
 
                   return {
-                    text: type.title,
+                    text: type.schema.title,
                     icon: { inbuiltIcon: editorSpec.gridIcon },
                     faIconDefinition: { icon: editorSpec.icon },
                   };

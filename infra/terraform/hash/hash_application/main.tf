@@ -136,10 +136,18 @@ resource "aws_security_group" "alb_sg" {
   }
 
   egress {
-    from_port   = local.graph_container_port
-    to_port     = local.graph_container_port
+    from_port   = local.graph_http_container_port
+    to_port     = local.graph_http_container_port
     protocol    = "tcp"
-    description = "Allow connections to the graph from the load balancer"
+    description = "Allow connections to the Graph HTTP endpoint from the load balancer"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  egress {
+    from_port   = local.graph_rpc_container_port
+    to_port     = local.graph_rpc_container_port
+    protocol    = "tcp"
+    description = "Allow connections to the Graph RPC endpoint from the load balancer"
     cidr_blocks = [var.vpc.cidr_block]
   }
 }
@@ -500,10 +508,17 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
-    from_port   = local.graph_container_port
-    to_port     = local.graph_container_port
+    from_port   = local.graph_http_container_port
+    to_port     = local.graph_http_container_port
     protocol    = "tcp"
-    description = "Allow connections to the graph"
+    description = "Allow connections to the Graph HTTP interface"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+  egress {
+    from_port   = local.graph_rpc_container_port
+    to_port     = local.graph_rpc_container_port
+    protocol    = "tcp"
+    description = "Allow connections to the Graph RPC interface"
     cidr_blocks = [var.vpc.cidr_block]
   }
 

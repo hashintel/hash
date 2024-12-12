@@ -146,6 +146,10 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
       for (const [key, { commands }] of Object.entries(
         enforcedDevDependencies,
       )) {
+        if (workspace.ident === "@local/eslint" && key === "eslint") {
+          continue;
+        }
+
         const scriptSplit = script.split(" ");
 
         if (commands.some((command) => scriptSplit.includes(command))) {

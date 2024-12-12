@@ -47,7 +47,10 @@ use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
-    schema::{DomainValidator, PropertyType, PropertyTypeUuid, ValidateOntologyType as _},
+    schema::{
+        DomainValidator, PropertyType, PropertyTypeUuid, PropertyValueType,
+        ValidateOntologyType as _,
+    },
     url::{OntologyTypeVersion, VersionedUrl},
 };
 use utoipa::{OpenApi, ToSchema};
@@ -89,6 +92,7 @@ use crate::rest::{
             PropertyTypeRelationAndSubject,
             ModifyPropertyTypeAuthorizationRelationship,
             PropertyTypeEmbedding,
+            PropertyValueType,
 
             CreatePropertyTypeRequest,
             LoadExternalPropertyTypeRequest,

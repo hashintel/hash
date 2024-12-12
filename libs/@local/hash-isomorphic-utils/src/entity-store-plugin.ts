@@ -94,10 +94,12 @@ export type EntityStorePluginAction = { received?: boolean } & (
 );
 
 const EntityStoreListeners = new WeakMap<
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
   Plugin<EntityStorePluginState>,
   Set<EntityStorePluginStateListener>
 >();
 
+// eslint-disable-next-line no-restricted-syntax -- prosemirror issue
 const entityStorePluginKey = new PluginKey<EntityStorePluginState>(
   "entityStore",
 );
@@ -757,6 +759,7 @@ const scheduleNotifyEntityStoreSubscribers = collect<
   [
     view: EditorView,
     prevState: EditorState,
+    // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
     entityStorePlugin: Plugin<EntityStorePluginState>,
   ]
 >((calls) => {
@@ -782,6 +785,7 @@ export const createEntityStorePlugin = ({
 }: {
   ownedById: OwnedById;
 }) => {
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
   const entityStorePlugin = new Plugin<EntityStorePluginState>({
     key: entityStorePluginKey,
     state: {

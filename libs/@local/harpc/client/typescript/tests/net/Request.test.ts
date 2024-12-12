@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest";
 import { Chunk, Effect, pipe, Predicate, Stream } from "effect";
-import type * as V from "vitest";
+import type * as vitest from "vitest";
 
 import { Request } from "../../src/net/index.js";
 import {
@@ -31,7 +31,7 @@ const makeRequest = <E, R>(stream: Stream.Stream<ArrayBuffer, E, R>) =>
   });
 
 const assertBody = (
-  cx: V.TaskContext<V.RunnerTestCase<object>> & V.TestContext,
+  cx: vitest.TaskContext<vitest.RunnerTestCase<object>> & vitest.TestContext,
   request: WireRequest.Request,
   bodyIs: (request: RequestBody.RequestBody) => boolean,
   body: string | number,

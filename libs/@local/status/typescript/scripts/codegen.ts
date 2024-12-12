@@ -2,7 +2,7 @@
 
 import { existsSync, lstatSync, rmSync } from "node:fs";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
-import * as path from "node:path";
+import path from "node:path";
 import { argv } from "node:process";
 
 import execa from "execa";

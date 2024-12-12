@@ -1,7 +1,7 @@
 import "../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import path from "node:path";
 
 import type { LlmParams } from "./get-llm-response/types.js";
 import { improveSystemPrompt } from "./optimize-system-prompt/improve-system-prompt.js";
@@ -60,7 +60,7 @@ const saveAllResultsToCSV = (params: {
 
   const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
 
-  const filePath = join(directoryPath, `${filePrefix}-metric-results.csv`);
+  const filePath = path.join(directoryPath, `${filePrefix}-metric-results.csv`);
 
   writeFileSync(filePath, csvContent, "utf8");
 };
@@ -141,7 +141,7 @@ const saveSummaryToCSV = (params: {
 
   const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
 
-  const filePath = join(directoryPath, `${filePrefix}-summary.csv`);
+  const filePath = path.join(directoryPath, `${filePrefix}-summary.csv`);
 
   writeFileSync(filePath, csvContent, "utf8");
 };

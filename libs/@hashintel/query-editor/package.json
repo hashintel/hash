@@ -28,10 +28,11 @@
     "clsx": "1.2.1"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
-    "@mui/material": "5.16.9",
+    "@local/eslint": "0.0.0-private",
+    "@mui/material": "5.16.11",
     "@mui/system": "5.16.8",
-    "eslint": "8.57.0",
+    "eslint": "9.16.0",
+    "eslint-plugin-storybook": "0.11.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-hook-form": "7.54.0",

@@ -16,11 +16,10 @@
     "axios": "1.7.9"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@redocly/cli": "1.25.15",
+    "@redocly/cli": "1.26.0",
     "@rust/hash-graph-api": "0.0.0-private",
-    "@types/node": "22.10.1",
+    "@types/node": "22.10.2",
     "fix-esm-import-path": "1.10.1",
     "rimraf": "6.0.1",
     "typescript": "5.6.3"

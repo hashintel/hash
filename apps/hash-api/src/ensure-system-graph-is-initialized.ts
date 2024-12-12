@@ -14,8 +14,8 @@ const context: ImpureGraphContext<false, true> = {
     },
   },
   graphApi: createGraphClient(logger, {
-    host: getRequiredEnv("HASH_GRAPH_API_HOST"),
-    port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
+    host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
+    port: parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
   }),
   temporalClient: await createTemporalClient(logger),
 };

@@ -1,5 +1,5 @@
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 import type { InitializeContext } from "../context/initialize.js";
 
@@ -14,7 +14,7 @@ export const ensureOutputDirExists = async (
     // Check the file exists
     await fs.stat(resolvedTargetDir);
     context.logTrace(`Target directory ${resolvedTargetDir} already existed`);
-  } catch (_) {
+  } catch {
     context.logTrace(
       `Target directory ${resolvedTargetDir} didn't exist, creating..`,
     );

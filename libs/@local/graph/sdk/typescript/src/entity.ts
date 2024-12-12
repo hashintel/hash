@@ -3,7 +3,6 @@ import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
-  EntityValidationReport,
   GraphApi,
   OriginProvenance,
   PatchEntityParams as GraphApiPatchEntityParams,
@@ -55,6 +54,7 @@ import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
+import type { EntityValidationReport } from "@local/hash-graph-types/validation";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { AuthenticationContext } from "./authentication-context.js";
@@ -985,6 +985,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       )
       .then(
         ({ data: entities }) =>
+          // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           entities.map((entity, index) => {
             return new Entity<T[typeof index]>(entity);
           }) as { [I in keyof T]: Entity<T[I]> },
@@ -1000,7 +1002,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   ): Promise<EntityValidationReport | undefined> {
     return await graphAPI
       .validateEntity(authentication.actorId, params)
-      .then(({ data }) => data["0"]);
+      .then(({ data }) => data["0"] as EntityValidationReport);
   }
 
   public async patch(

@@ -54,15 +54,15 @@
     "@blockprotocol/type-system-rs": "0.0.0-private"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@rollup/plugin-node-resolve": "15.3.0",
     "@rollup/plugin-typescript": "12.1.1",
     "@rollup/plugin-wasm": "6.2.2",
-    "@types/node": "22.10.1",
+    "@types/node": "22.10.2",
     "@types/react": "18.2.68",
     "@vitest/coverage-istanbul": "2.1.8",
-    "eslint": "8.57.0",
+    "eslint": "9.16.0",
     "react": "18.2.0",
     "rimraf": "6.0.1",
     "rollup": "4.28.1",

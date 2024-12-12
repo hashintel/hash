@@ -1,13 +1,12 @@
 import { writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import * as path from "node:path";
-import { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { bundleWorkflowCode } from "@temporalio/worker";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const require = createRequire(import.meta.url);
 

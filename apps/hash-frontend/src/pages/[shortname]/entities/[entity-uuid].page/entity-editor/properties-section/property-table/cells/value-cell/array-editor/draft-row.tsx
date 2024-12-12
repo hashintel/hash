@@ -1,13 +1,16 @@
 import type { ClosedDataType, VersionedUrl } from "@blockprotocol/type-system";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { useState } from "react";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
+import { getEditorSpecs } from "../editor-specs";
 import { EditorTypePicker } from "../editor-type-picker";
 import { isBlankStringOrNullish } from "../utils";
 import { SortableRow } from "./sortable-row";
 
 interface DraftRowProps {
-  expectedTypes: ClosedDataType[];
+  expectedTypes: ClosedDataTypeDefinition[];
   existingItemCount: number;
   onDraftSaved: (value: unknown, dataTypeId: VersionedUrl) => void;
   onDraftDiscarded: () => void;
@@ -28,7 +31,7 @@ export const DraftRow = ({
       throw new Error("there is no expectedType found on property type");
     }
 
-    return expectedTypes[0];
+    return expectedTypes[0].schema;
   });
 
   if (!dataType) {
@@ -36,6 +39,18 @@ export const DraftRow = ({
       <EditorTypePicker
         expectedTypes={expectedTypes}
         onTypeChange={(type) => {
+          const schema = getMergedDataTypeSchema(type);
+
+          if ("anyOf" in schema) {
+            throw new Error("Expected a single data type, but got multiple");
+          }
+
+          const editorSpec = getEditorSpecs(type, schema);
+
+          if (editorSpec.arrayEditException === "no-edit-mode") {
+            onDraftSaved(editorSpec.defaultValue, type.$id);
+          }
+
           setDataType(type);
         }}
       />

@@ -22,12 +22,12 @@
     "yargs": "17.7.2"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash-es": "4.17.12",
-    "@types/node": "22.10.1",
+    "@types/node": "22.10.2",
     "@types/yargs": "17.0.33",
-    "eslint": "8.57.0",
+    "eslint": "9.16.0",
     "quicktype": "16.0.43",
     "rimraf": "6.0.1",
     "typescript": "5.6.3"

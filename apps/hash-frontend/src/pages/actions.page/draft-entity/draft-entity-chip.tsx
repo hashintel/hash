@@ -6,7 +6,6 @@ export const DraftEntityChip = styled(Chip)(({ theme, clickable }) => ({
   background: theme.palette.common.white,
   borderColor: theme.palette.gray[30],
   fontWeight: 500,
-  fontSize: 12,
   textTransform: "none",
   ...(clickable
     ? {
@@ -20,6 +19,7 @@ export const DraftEntityChip = styled(Chip)(({ theme, clickable }) => ({
     color: theme.palette.gray[50],
   },
   [`& .${chipClasses.label}`]: {
-    padding: theme.spacing(0.5, 1.25),
+    padding: theme.spacing(0.3, 1.25),
+    fontSize: 12,
   },
 }));

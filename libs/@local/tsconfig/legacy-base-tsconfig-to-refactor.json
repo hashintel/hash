@@ -34,7 +34,9 @@
       "@local/hash-subgraph": ["../hash-subgraph/src/main.ts"],
       "@local/hash-subgraph/*": ["../hash-subgraph/src/*.ts"],
       "@local/harpc-client": ["../harpc/client/typescript/src/index.ts"],
-      "@local/harpc-client/*": ["../harpc/client/typescript/src/*/index.ts"]
+      "@local/harpc-client/*": ["../harpc/client/typescript/src/*/index.ts"],
+      "@local/eslint": ["../eslint/src/index.ts"],
+      "@local/eslint/*": ["../eslint/src/*/index.ts"]
     },
     "outDir": "./dist"
   },

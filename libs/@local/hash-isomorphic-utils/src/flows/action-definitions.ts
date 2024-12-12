@@ -6,23 +6,20 @@ import type {
   StepInput,
 } from "./types.js";
 
-const actionDefinitionIds = [
-  "answerQuestion",
-  "generateWebQueries",
-  "getFileFromUrl",
-  "getWebPageByUrl",
-  "getWebPageSummary",
-  "inferMetadataFromDocument",
-  "inferEntitiesFromContent",
-  "processAutomaticBrowsingSettings",
-  "persistEntities",
-  "persistEntity",
-  "researchEntities",
-  "webSearch",
-  "writeGoogleSheet",
-] as const;
-
-export type ActionDefinitionId = (typeof actionDefinitionIds)[number];
+export type ActionDefinitionId =
+  | "answerQuestion"
+  | "generateWebQueries"
+  | "getFileFromUrl"
+  | "getWebPageByUrl"
+  | "getWebPageSummary"
+  | "inferMetadataFromDocument"
+  | "inferEntitiesFromContent"
+  | "processAutomaticBrowsingSettings"
+  | "persistEntities"
+  | "persistEntity"
+  | "researchEntities"
+  | "webSearch"
+  | "writeGoogleSheet";
 
 const actionDefinitionsAsConst = {
   generateWebQueries: {
