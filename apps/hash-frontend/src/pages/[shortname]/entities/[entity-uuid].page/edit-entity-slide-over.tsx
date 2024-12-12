@@ -329,7 +329,7 @@ const EditEntitySlideOver = memo(
             hasRightEntity: { incoming: 1, outgoing: 1 },
           },
           includeDrafts: !!draftId,
-          includeEntityTypes: "resolved",
+          includeEntityTypes: "resolvedWithDataTypeChildren",
         },
         includePermissions: false,
       },

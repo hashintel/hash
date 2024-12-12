@@ -22,10 +22,13 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   const {
     generateNewMetadataObject,
     permittedDataTypes,
+    permittedDataTypesIncludingChildren,
     propertyKeyChain,
     value,
     valueMetadata,
   } = cell.data.propertyRow;
+
+  const { showTypePicker } = cell.data;
 
   const textInputFormRef = useRef<HTMLFormElement>(null);
 
@@ -33,9 +36,12 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     dataType: ClosedDataType;
     schema: MergedDataTypeSingleSchema;
   } | null>(() => {
-    if (permittedDataTypes.length === 1) {
+    if (
+      permittedDataTypes.length === 1 &&
+      !permittedDataTypes[0]!.schema.abstract
+    ) {
       const dataType = permittedDataTypes[0]!;
-      const schema = getMergedDataTypeSchema(dataType);
+      const schema = getMergedDataTypeSchema(dataType.schema);
 
       if ("anyOf" in schema) {
         throw new Error(
@@ -44,7 +50,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
       }
 
       return {
-        dataType,
+        dataType: dataType.schema,
         schema,
       };
     }
@@ -64,7 +70,9 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
     const dataTypeId = valueMetadata.metadata.dataTypeId;
 
-    const dataType = permittedDataTypes.find((type) => type.$id === dataTypeId);
+    const dataType = permittedDataTypesIncludingChildren.find(
+      (type) => type.schema.$id === dataTypeId,
+    );
 
     if (!dataType) {
       throw new Error(
@@ -72,7 +80,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
       );
     }
 
-    const schema = getMergedDataTypeSchema(dataType);
+    const schema = getMergedDataTypeSchema(dataType.schema);
 
     if ("anyOf" in schema) {
       throw new Error(
@@ -81,7 +89,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     }
 
     return {
-      dataType,
+      dataType: dataType.schema,
       schema,
     };
   });
@@ -122,7 +130,11 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     latestValueCellRef.current = cell;
   });
 
-  if (!chosenDataType || !cell.data.propertyRow.valueMetadata) {
+  if (
+    !chosenDataType ||
+    !cell.data.propertyRow.valueMetadata ||
+    showTypePicker
+  ) {
     return (
       <GridEditorWrapper>
         <EditorTypePicker
@@ -150,11 +162,22 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
                 draftCell.data.propertyRow.valueMetadata = {
                   metadata: { dataTypeId: type.$id },
                 };
+                draftCell.data.showTypePicker = false;
               });
 
               return onFinishedEditing(newCell);
+            } else {
+              const newCell = produce(cell, (draftCell) => {
+                draftCell.data.propertyRow.valueMetadata = {
+                  metadata: { dataTypeId: type.$id },
+                };
+                draftCell.data.showTypePicker = false;
+              });
+
+              return onChange(newCell);
             }
           }}
+          selectedDataTypeId={chosenDataType?.dataType.$id}
         />
       </GridEditorWrapper>
     );

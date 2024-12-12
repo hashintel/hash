@@ -162,8 +162,9 @@ export const getClosedMultiEntityTypeResolver: ResolverFn<
     graphQLContext.authentication,
     {
       entityTypeIds,
-      // All references to other types are resolved, and those types provided under 'definitions' in the response
-      includeResolved: "resolved",
+      // All references to other types are resolved, and those types provided under 'definitions' in the response,
+      // including the children of any data types which are resolved (to allow picking more specific types)
+      includeResolved: "resolvedWithDataTypeChildren",
       includeDrafts: includeDrafts ?? false,
       temporalAxes: includeArchived
         ? fullTransactionTimeAxis

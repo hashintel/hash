@@ -27,6 +27,8 @@ import {
   faRulerRegular,
   faSquareCheck,
   faText,
+  identifierTypeTitles,
+  measurementTypeTitles,
 } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
 import type { PropsWithChildren } from "react";
@@ -143,20 +145,6 @@ const expectedValuesDisplayMap = {
     colors: chipColors.aqua,
   },
 } as const satisfies Record<string, Omit<ExpectedValueDisplay, "title">>;
-
-const measurementTypeTitles = [
-  "Inches",
-  "Feet",
-  "Yards",
-  "Miles",
-  "Nanometers",
-  "Millimeters",
-  "Centimeters",
-  "Meters",
-  "Kilometers",
-];
-
-const identifierTypeTitles = ["URL", "URI"];
 
 export type CustomExpectedValueTypeId = VersionedUrl | "array" | "object";
 

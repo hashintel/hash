@@ -8,6 +8,7 @@ import type {
   ClosedMultiEntityType,
   ClosedMultiEntityTypesDefinitions,
 } from "@local/hash-graph-types/ontology";
+import { getPermittedDataTypes } from "@local/hash-isomorphic-utils/data-types";
 import get from "lodash/get";
 
 import {
@@ -186,6 +187,10 @@ export const generatePropertyRowRecursively = ({
     isArray,
     isSingleUrl,
     permittedDataTypes: expectedTypes,
+    permittedDataTypesIncludingChildren: getPermittedDataTypes({
+      targetDataTypes: expectedTypes,
+      dataTypePoolById: closedMultiEntityTypesDefinitions.dataTypes,
+    }),
     propertyKeyChain,
     required,
     rowId,

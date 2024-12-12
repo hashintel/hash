@@ -8,12 +8,8 @@ import { InteractableManager } from "./interactable-manager";
 
 const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
   /**
-   * We're locking scroll on `main` element,
-   * because our table components are rendered inside `LayoutWithSidebar`.
-   * Which has the overflow-y happening on `main` instead of `body` or `html`
-   * So we need to lock `main` elements scroll when grid editors are visible
-   * */
-
+   * The editBarContext provides the node that will have vertical scroll when the page is longer than the viewport
+   */
   const editBarContext = useEditBarContext();
 
   useScrollLock(true, editBarContext?.scrollingNode);
