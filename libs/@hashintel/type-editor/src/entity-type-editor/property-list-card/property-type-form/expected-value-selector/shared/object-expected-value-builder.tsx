@@ -110,21 +110,22 @@ const ObjectExpectedValueRow: FunctionComponent<
             size="xs"
           />
         </StyledTableBodyCell>
-        <StyledTableBodyCell
-          sx={{
-            width: allowArraysColumnWidth,
-          }}
-        >
-          <Checkbox
-            checked={allowArrays}
-            onChange={(evt) => {
-              setValue(
-                `flattenedCustomExpectedValueList.${objectId}.data.properties.${propertyIndex}.allowArrays`,
-                evt.target.checked,
-              );
-            }}
-          />
-        </StyledTableBodyCell>
+        {/* @todo H-3794: restore ability to create complex types, support them in entity editor */}
+        {/*<StyledTableBodyCell*/}
+        {/*  sx={{*/}
+        {/*    width: allowArraysColumnWidth,*/}
+        {/*  }}*/}
+        {/*>*/}
+        {/*  <Checkbox*/}
+        {/*    checked={allowArrays}*/}
+        {/*    onChange={(evt) => {*/}
+        {/*      setValue(*/}
+        {/*        `flattenedCustomExpectedValueList.${objectId}.data.properties.${propertyIndex}.allowArrays`,*/}
+        {/*        evt.target.checked,*/}
+        {/*      );*/}
+        {/*    }}*/}
+        {/*  />*/}
+        {/*</StyledTableBodyCell>*/}
         <StyledTableBodyCell
           sx={{
             width: requiredColumnWidth,
@@ -197,6 +198,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
   const options = useMemo(() => {
     const propertyTypeBaseUrl = getValues(`propertyTypeBaseUrl`);
     return Object.values(propertyTypes)
+      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
       .map(({ schema }) => schema.$id)
       .filter(
         (versionedUrl) => extractBaseUrl(versionedUrl) !== propertyTypeBaseUrl,
@@ -234,33 +236,34 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
           <Collapse in={show}>
             <StyledTableRow>
               <StyledTableHeadCell sx={{ flex: 1 }}>NAME</StyledTableHeadCell>
-              <StyledTableHeadCell
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                }}
-                ref={(ref: HTMLDivElement | null) => {
-                  if (ref) {
-                    setAllowArraysColumnWidth(ref.offsetWidth);
-                  }
-                }}
-              >
-                ALLOW MULTIPLE
-                <Tooltip
-                  title="Allow multiple values"
-                  placement="top"
-                  classes={{ popper: fluidFontClassName }}
-                >
-                  <FontAwesomeIcon
-                    icon={faCircleQuestion}
-                    sx={{
-                      fontSize: 12,
-                      color: ({ palette }) => palette.gray[40],
-                    }}
-                  />
-                </Tooltip>
-              </StyledTableHeadCell>
+              {/* @todo H-3794: restore ability to create complex types, support them in entity editor */}
+              {/*<StyledTableHeadCell*/}
+              {/*  sx={{*/}
+              {/*    display: "flex",*/}
+              {/*    alignItems: "center",*/}
+              {/*    gap: 0.5,*/}
+              {/*  }}*/}
+              {/*  ref={(ref: HTMLDivElement | null) => {*/}
+              {/*    if (ref) {*/}
+              {/*      setAllowArraysColumnWidth(ref.offsetWidth);*/}
+              {/*    }*/}
+              {/*  }}*/}
+              {/*>*/}
+              {/*  ALLOW MULTIPLE*/}
+              {/*  <Tooltip*/}
+              {/*    title="Allow multiple values"*/}
+              {/*    placement="top"*/}
+              {/*    classes={{ popper: fluidFontClassName }}*/}
+              {/*  >*/}
+              {/*    <FontAwesomeIcon*/}
+              {/*      icon={faCircleQuestion}*/}
+              {/*      sx={{*/}
+              {/*        fontSize: 12,*/}
+              {/*        color: ({ palette }) => palette.gray[40],*/}
+              {/*      }}*/}
+              {/*    />*/}
+              {/*  </Tooltip>*/}
+              {/*</StyledTableHeadCell>*/}
               <StyledTableHeadCell
                 ref={(ref: HTMLDivElement | null) => {
                   if (ref) {

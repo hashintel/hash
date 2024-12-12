@@ -485,6 +485,7 @@ const DataTypeTreeView = (props: {
 export type DataTypeSelectorProps = {
   allowSelectingAbstractTypes?: boolean;
   dataTypes: DataTypeForSelector[];
+  handleScroll?: boolean;
   hideHint?: boolean;
   maxHeight?: number;
   onSelect: (dataTypeId: VersionedUrl) => void;
@@ -496,6 +497,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
   const {
     allowSelectingAbstractTypes,
     dataTypes,
+    handleScroll = true,
     hideHint,
     maxHeight: maxHeightFromProps,
     onSelect,
@@ -503,7 +505,9 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
     selectedDataTypeId,
   } = props;
 
-  const maxHeight = maxHeightFromProps ?? defaultMaxHeight;
+  const maxHeight = !handleScroll
+    ? undefined
+    : (maxHeightFromProps ?? defaultMaxHeight);
 
   const [localSearchText, setLocalSearchText] = useState("");
 
@@ -610,11 +614,13 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
       <Stack
         gap={1}
         sx={{
-          maxHeight:
-            maxHeight -
-            (hideHint ? 0 : hintHeight) -
-            (externallyControlledSearchText !== undefined ? 0 : inputHeight),
-          overflowY: sortedDataTypes.length ? "scroll" : undefined,
+          maxHeight: maxHeight
+            ? maxHeight -
+              (hideHint ? 0 : hintHeight) -
+              (externallyControlledSearchText !== undefined ? 0 : inputHeight)
+            : undefined,
+          overflowY:
+            sortedDataTypes.length && handleScroll ? "scroll" : undefined,
           px: 2,
           pb: 1.5,
           pt: hideHint ? 1.5 : 0,
