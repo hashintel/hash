@@ -529,8 +529,8 @@ __metadata:
     "@sentry/react": "npm:7.120.1"
     "@sentry/webpack-plugin": "npm:1.21.0"
     "@sigma/edge-curve": "patch:@sigma/edge-curve@npm%3A3.0.0-beta.16#~/.yarn/patches/@sigma-edge-curve-npm-3.0.0-beta.16-3d8b985284.patch"
-    "@sigma/node-border": "npm:3.0.0-beta.7"
-    "@sigma/node-image": "npm:3.0.0-beta.16"
+    "@sigma/node-border": "npm:3.0.0"
+    "@sigma/node-image": "npm:3.0.0"
     "@svgr/webpack": "npm:8.1.0"
     "@tldraw/editor": "patch:@tldraw/editor@npm%3A2.0.0-alpha.12#~/.yarn/patches/@tldraw-editor-npm-2.0.0-alpha.12-ba59bf001c.patch"
     "@tldraw/primitives": "npm:2.0.0-alpha.12"
@@ -611,7 +611,7 @@ __metadata:
     safe-stable-stringify: "npm:2.5.0"
     sass: "npm:1.82.0"
     setimmediate: "npm:1.0.5"
-    sigma: "npm:3.0.0-beta.39"
+    sigma: "npm:3.0.0"
     signia: "npm:0.1.5"
     signia-react: "npm:0.1.5"
     typescript: "npm:5.6.3"
@@ -13763,21 +13763,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sigma/node-border@npm:3.0.0-beta.7":
-  version: 3.0.0-beta.7
-  resolution: "@sigma/node-border@npm:3.0.0-beta.7"
+"@sigma/node-border@npm:3.0.0":
+  version: 3.0.0
+  resolution: "@sigma/node-border@npm:3.0.0"
   peerDependencies:
     sigma: ">=3.0.0-beta.17"
-  checksum: 10c0/6f30e53cac6e5b81908a6d701c30adccce81a99ca8aa45758fa8fc922f7b7b1aa167b36a6430f351f7a7eada8a16bcf7b3722960408b9c31166d36c71427af89
+  checksum: 10c0/aa5ae48a30699ed8947c0ae85750a4a5be7f415849b08a2e664b04a0636f9ca9cbdbdc72f14a5438016e99a1a18599222b8501e7fd8db531fbd176c3167a454d
   languageName: node
   linkType: hard
 
-"@sigma/node-image@npm:3.0.0-beta.16":
-  version: 3.0.0-beta.16
-  resolution: "@sigma/node-image@npm:3.0.0-beta.16"
+"@sigma/node-image@npm:3.0.0":
+  version: 3.0.0
+  resolution: "@sigma/node-image@npm:3.0.0"
   peerDependencies:
     sigma: ">=3.0.0-beta.10"
-  checksum: 10c0/e595cbc0bbe19e13099abf9d991c62c871040a9fad43c81e90524caa674a0b9a5fbed6c0c30efc55e754e0727f0697f7da310d01751c6ea36257cd392c6ac921
+  checksum: 10c0/1af4bf4805011a4713db0eaa48424ef74afde837c819471f18b154e7bd64cd7ebecae49b9ba041ac6183c81d8f55b30107b0150a2a32a5da6524faf73ebe12b2
   languageName: node
   linkType: hard
 
@@ -42993,13 +42993,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sigma@npm:3.0.0-beta.39":
-  version: 3.0.0-beta.39
-  resolution: "sigma@npm:3.0.0-beta.39"
+"sigma@npm:3.0.0":
+  version: 3.0.0
+  resolution: "sigma@npm:3.0.0"
   dependencies:
     events: "npm:^3.3.0"
     graphology-utils: "npm:^2.5.2"
-  checksum: 10c0/42194a49990c929caa873f6026546351dbf079092e5feaca5b77150c415cfdb50b7a9ce61248b0087881ad267e896389d67227e79651cce842edb00f1a25fce5
+  checksum: 10c0/76c0dac7f800cf876f242cf9dcfadee624ce4a1210ae56cf17408384a6ab2eadbe840c57b23b03d7718d6159f3e727921cb4fa5a52ee54e73ae52151af294052
   languageName: node
   linkType: hard
 
