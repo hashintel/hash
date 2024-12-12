@@ -8679,13 +8679,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@libp2p/identify@npm:3.0.13":
-  version: 3.0.13
-  resolution: "@libp2p/identify@npm:3.0.13"
+"@libp2p/identify@npm:3.0.14":
+  version: 3.0.14
+  resolution: "@libp2p/identify@npm:3.0.14"
   dependencies:
     "@libp2p/crypto": "npm:^5.0.8"
     "@libp2p/interface": "npm:^2.3.0"
-    "@libp2p/interface-internal": "npm:^2.2.0"
+    "@libp2p/interface-internal": "npm:^2.2.1"
     "@libp2p/peer-id": "npm:^5.0.9"
     "@libp2p/peer-record": "npm:^8.0.13"
     "@libp2p/utils": "npm:^6.3.0"
@@ -8698,11 +8698,11 @@ __metadata:
     uint8arraylist: "npm:^2.4.8"
     uint8arrays: "npm:^5.1.0"
     wherearewe: "npm:^2.0.1"
-  checksum: 10c0/07600d09ea7ef8b8835998300a3f13819ed97619b816fc9a0225cd26fcdb644acf74b872379c33a733ac4b102b80d5238ad5cf7fe7f5940837fa4b59f61c7bef
+  checksum: 10c0/83f3dea9e68bc6b62cd1e574a03c2964b5c11f49d752f8c48568aa13986d0634fef21826c4a00a9a059eb11b4a139485edc59c93c22db1b2e77eba941461b622
   languageName: node
   linkType: hard
 
-"@libp2p/interface-internal@npm:^2.2.0":
+"@libp2p/interface-internal@npm:^2.2.1":
   version: 2.2.1
   resolution: "@libp2p/interface-internal@npm:2.2.1"
   dependencies:
@@ -8821,17 +8821,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@libp2p/ping@npm:2.0.13":
-  version: 2.0.13
-  resolution: "@libp2p/ping@npm:2.0.13"
+"@libp2p/ping@npm:2.0.14":
+  version: 2.0.14
+  resolution: "@libp2p/ping@npm:2.0.14"
   dependencies:
     "@libp2p/crypto": "npm:^5.0.8"
     "@libp2p/interface": "npm:^2.3.0"
-    "@libp2p/interface-internal": "npm:^2.2.0"
+    "@libp2p/interface-internal": "npm:^2.2.1"
     "@multiformats/multiaddr": "npm:^12.3.3"
     it-byte-stream: "npm:^1.1.0"
     uint8arrays: "npm:^5.1.0"
-  checksum: 10c0/ce264e5e3c55afb821b4aaafe37cd6b1044928fce923747ac2738e9bf33443cf51cc80b2e18a915bf5218224b114803f69eb7fe083aafabb478765d5afc0dced
+  checksum: 10c0/46f6205f743ebe6dfef309fb18cb9d3be55972da6db655f0bd4433e7fd1df1c5cb5e3094ab1f6d8a512b7aa385cdbb551adc992af9aaa2b8d8b9581061a95a5c
   languageName: node
   linkType: hard
 
@@ -9080,9 +9080,9 @@ __metadata:
     "@effect/platform-node": "npm:0.65.7"
     "@effect/vitest": "npm:0.14.4"
     "@libp2p/crypto": "npm:5.0.8"
-    "@libp2p/identify": "npm:3.0.13"
+    "@libp2p/identify": "npm:3.0.14"
     "@libp2p/interface": "npm:2.3.0"
-    "@libp2p/ping": "npm:2.0.13"
+    "@libp2p/ping": "npm:2.0.14"
     "@libp2p/tcp": "npm:10.0.14"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
@@ -9094,7 +9094,7 @@ __metadata:
     effect: "npm:3.11.5"
     eslint: "npm:9.16.0"
     it-stream-types: "npm:2.0.2"
-    libp2p: "npm:2.4.0"
+    libp2p: "npm:2.4.2"
     multiformats: "npm:13.3.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.6.3"
@@ -33104,15 +33104,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"libp2p@npm:2.4.0":
-  version: 2.4.0
-  resolution: "libp2p@npm:2.4.0"
+"libp2p@npm:2.4.2":
+  version: 2.4.2
+  resolution: "libp2p@npm:2.4.2"
   dependencies:
     "@chainsafe/is-ip": "npm:^2.0.2"
     "@chainsafe/netmask": "npm:^2.0.0"
     "@libp2p/crypto": "npm:^5.0.8"
     "@libp2p/interface": "npm:^2.3.0"
-    "@libp2p/interface-internal": "npm:^2.2.0"
+    "@libp2p/interface-internal": "npm:^2.2.1"
     "@libp2p/logger": "npm:^5.1.5"
     "@libp2p/multistream-select": "npm:^6.0.10"
     "@libp2p/peer-collections": "npm:^6.0.13"
@@ -33136,7 +33136,7 @@ __metadata:
     race-event: "npm:^1.3.0"
     race-signal: "npm:^1.1.0"
     uint8arrays: "npm:^5.1.0"
-  checksum: 10c0/a1e9185a1112e1b9aa1b340610adda4b6b396dec90ff6a315b760126e9659aeb4713ca578afd44936309eda63a66102fb58f41cf18d572a7029b1f0fd7a757c9
+  checksum: 10c0/5b48a8400a07875de72e4d75011199cc3e13dfc479dd7980f64bfe34a40b480a0f69f7e3aceb418f12ed16d1f248a245436334e3c8e7c1543d0f4d99a8cf317e
   languageName: node
   linkType: hard
 
