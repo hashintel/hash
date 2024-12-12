@@ -30,10 +30,8 @@ import {
   Option,
   pipe,
   Predicate,
-  Record,
   Stream,
   Struct,
-  Tuple,
 } from "effect";
 import type { Libp2p } from "libp2p";
 import { createLibp2p } from "libp2p";
