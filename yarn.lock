@@ -597,7 +597,7 @@ __metadata:
     react-dom: "npm:18.2.0"
     react-dropzone: "npm:14.3.5"
     react-full-screen: "npm:1.1.1"
-    react-hook-form: "npm:7.54.0"
+    react-hook-form: "npm:7.54.1"
     react-markdown: "npm:9.0.1"
     react-pdf: "npm:9.1.1"
     react-responsive-carousel: "npm:3.2.23"
@@ -4795,7 +4795,7 @@ __metadata:
     prettier: "npm:3.4.2"
     react: "npm:18.2.0"
     react-dom: "npm:18.2.0"
-    react-hook-form: "npm:7.54.0"
+    react-hook-form: "npm:7.54.1"
     typescript: "npm:5.6.3"
   peerDependencies:
     react: ^18.2.0
@@ -7939,14 +7939,14 @@ __metadata:
     eslint-plugin-storybook: "npm:0.11.1"
     react: "npm:18.2.0"
     react-dom: "npm:18.2.0"
-    react-hook-form: "npm:7.54.0"
+    react-hook-form: "npm:7.54.1"
     typescript: "npm:5.6.3"
   peerDependencies:
     "@mui/material": ^5.14.0
     "@mui/system": ^5.14.0
     react: ^18.0.0
     react-dom: ^18.0.0
-    react-hook-form: 7.54.0
+    react-hook-form: 7.54.1
   languageName: unknown
   linkType: soft
 
@@ -7974,7 +7974,7 @@ __metadata:
     material-ui-popup-state: "npm:4.1.0"
     react: "npm:18.2.0"
     react-dom: "npm:18.2.0"
-    react-hook-form: "npm:7.54.0"
+    react-hook-form: "npm:7.54.1"
     rooks: "npm:7.14.1"
     setimmediate: "npm:1.0.5"
     typescript: "npm:5.6.3"
@@ -7983,7 +7983,7 @@ __metadata:
     "@mui/system": ^5.14.0
     react: ^18.0.0
     react-dom: ^18.0.0
-    react-hook-form: 7.54.0
+    react-hook-form: 7.54.1
   languageName: unknown
   linkType: soft
 
@@ -40470,12 +40470,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-hook-form@npm:7.54.0":
-  version: 7.54.0
-  resolution: "react-hook-form@npm:7.54.0"
+"react-hook-form@npm:7.54.1":
+  version: 7.54.1
+  resolution: "react-hook-form@npm:7.54.1"
   peerDependencies:
     react: ^16.8.0 || ^17 || ^18 || ^19
-  checksum: 10c0/8dbc68e8b82aafda1271bbc291052b5efb091505865cd10e3d7dd618ca3870bd05596d7ba68f128427d47ff11e0d9f03089fd7afb88d2a8865ff81f21af417a0
+  checksum: 10c0/2d960ddf8aa654f34e36f5d995f0ec067a4c01340d650eca44f22aa4421e278dcc449c8522e66c5c66b1c61d62fbdf914b9e0a8de9deb4c6346cc3b37ef4eb82
   languageName: node
   linkType: hard
 

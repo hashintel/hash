@@ -35,7 +35,7 @@
     "eslint-plugin-storybook": "0.11.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-hook-form": "7.54.0",
+    "react-hook-form": "7.54.1",
     "typescript": "5.6.3"
   },
   "peerDependencies": {
@@ -43,6 +43,6 @@
     "@mui/system": "^5.14.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-hook-form": "7.54.0"
+    "react-hook-form": "7.54.1"
   }
 }
