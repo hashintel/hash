@@ -3,7 +3,6 @@ import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
-  EntityValidationReport,
   GraphApi,
   OriginProvenance,
   PatchEntityParams as GraphApiPatchEntityParams,
@@ -55,6 +54,7 @@ import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
+import type { EntityValidationReport } from "@local/hash-graph-types/validation";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { AuthenticationContext } from "./authentication-context.js";
@@ -1002,7 +1002,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   ): Promise<EntityValidationReport | undefined> {
     return await graphAPI
       .validateEntity(authentication.actorId, params)
-      .then(({ data }) => data["0"]);
+      .then(({ data }) => data["0"] as EntityValidationReport);
   }
 
   public async patch(

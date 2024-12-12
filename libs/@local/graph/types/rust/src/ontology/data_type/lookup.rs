@@ -27,6 +27,14 @@ pub trait DataTypeLookup {
         data_type_uuid: DataTypeUuid,
     ) -> Result<Self::DataTypeWithMetadata, Report<Self::Error>>;
 
+    async fn lookup_closed_data_type_by_ref(
+        &self,
+        data_type_ref: &DataTypeReference,
+    ) -> Result<Self::ClosedDataType, Report<Self::Error>> {
+        self.lookup_closed_data_type_by_uuid(DataTypeUuid::from_url(&data_type_ref.url))
+            .attach_printable_lazy(|| data_type_ref.url.clone())
+    }
+
     async fn lookup_closed_data_type_by_uuid(
         &self,
         data_type_uuid: DataTypeUuid,
