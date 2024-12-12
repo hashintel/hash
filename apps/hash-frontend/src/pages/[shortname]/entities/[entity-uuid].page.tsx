@@ -161,7 +161,7 @@ const Page: NextPageWithLayout = () => {
               hasLeftEntity: { outgoing: 1, incoming: 1 },
               hasRightEntity: { outgoing: 1, incoming: 1 },
             },
-            includeEntityTypes: "resolved",
+            includeEntityTypes: "resolvedWithDataTypeChildren",
             includeDrafts: !!draftId,
             temporalAxes: currentTimeInstantTemporalAxes,
           },

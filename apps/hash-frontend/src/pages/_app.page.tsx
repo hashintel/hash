@@ -142,19 +142,24 @@ const App: FunctionComponent<AppProps> = ({
           </RoutePageInfoProvider>
         </ThemeProvider>
       </CacheProvider>
-      {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
-      {/* @todo remove when inline styles are replaced with MUI styles */}
       <GlobalStyles
-        styles={`
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        };
-      `}
+        styles={{
+          /**
+           * @see https://mui.com/material-ui/react-text-field/#performance
+           */
+          "@keyframes mui-auto-fill": { from: { display: "block" } },
+          "@keyframes mui-auto-fill-cancel": { from: { display: "block" } },
+          /* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */
+          /* @todo remove when inline styles are replaced with MUI styles */
+          "@keyframes spin": {
+            from: {
+              transform: "rotate(0deg)",
+            },
+            to: {
+              transform: "rotate(360deg)",
+            },
+          },
+        }}
       />
     </Suspense>
   );
