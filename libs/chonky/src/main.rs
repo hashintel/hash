@@ -51,7 +51,7 @@ async fn main() -> Result<(), Report<ChonkyError>> {
         PageImageObjects {
             page_image_objects: preprocessed_pdf,
         }
-        .iter(),
+        .owned_iter(),
         &project_id,
     )
     .await?;
@@ -61,7 +61,7 @@ async fn main() -> Result<(), Report<ChonkyError>> {
             &mut document_embeddings,
             index + 1,
             PathBuf::from(format!("{}/page_{}.png", output_folder, index + 1)),
-            screenshot.embedding.embedding_vector,
+            screenshot.embedding_vector,
         );
     }
 

@@ -125,7 +125,11 @@ pub struct PageImageObjects {
 }
 
 impl PageImageObjects {
-    pub fn iter(self) -> impl Iterator<Item = DynamicImage> + Send {
+    pub fn iter(&self) -> impl Iterator<Item = &DynamicImage> + Send {
+        self.page_image_objects.iter()
+    }
+
+    pub fn owned_iter(self) -> impl Iterator<Item = DynamicImage> + Send {
         self.page_image_objects.into_iter()
     }
 }
@@ -391,10 +395,9 @@ pub mod pdf_segmentation {
 
         let pdf_image_extract = extract_images(pdf);
 
-        let image_embeddings =
-            embed_pdf_object_images(pdf_image_extract.clone(), &project_id).await?;
+        let image_embeddings = embed_pdf_object_images(pdf_image_extract, &project_id).await?;
 
-        let table_embeddings = embed_tables(pdf_table_bounds.clone(), &project_id).await?;
+        let table_embeddings = embed_tables(pdf_table_bounds, &project_id).await?;
 
         let pdf_text_embeddings = embed_text(
             &pdf_text_extract

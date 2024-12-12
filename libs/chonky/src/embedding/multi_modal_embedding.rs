@@ -69,9 +69,26 @@ pub async fn embed_pdf_object_images(
 ) -> Result<Box<[PageImageObjectsEmbeddings]>, Report<ChonkyError>> {
     let mut embeddings = Vec::new();
     for page_images in pdf_image_extract {
+        let page_image_iter = page_images.clone().owned_iter();
+        let image_embeddings = embed_screenshots(page_images.owned_iter(), project_id)
+            .await?
+            .into_iter();
+
         embeddings.push(PageImageObjectsEmbeddings {
-            _embeddings: embed_screenshots(page_images.iter(), project_id).await?,
+            _embeddings: image_embeddings
+                .zip(page_image_iter)
+                .map(|(embedding, image)| ImageEmbedding {
+                    embedding,
+                    _image: image,
+                })
+                .collect(),
         });
+        // embeddings.push(PageImageObjectsEmbeddings {
+        //     _embeddings: ImageEmbedding {
+        //         embedding: embed_screenshots(page_images.iter(), project_id).await?,
+        //         _image: page.next(),
+        //     },
+        // });
     }
     Ok(embeddings.into_boxed_slice())
 }
@@ -81,14 +98,10 @@ pub async fn embed_pdf_object_images(
 /// # Errors
 ///
 /// [`ChonkyError::VertexAPI`] when there are HTTP request errors
-#[expect(
-    clippy::future_not_send,
-    reason = "Send traits not being Applied to IntoIterator"
-)]
 pub async fn embed_screenshots(
-    pdf_image_extract: impl IntoIterator<Item = DynamicImage> + Send + 'static,
+    pdf_image_extract: impl IntoIterator<Item = DynamicImage> + Send,
     project_id: &str,
-) -> Result<Box<[ImageEmbedding]>, Report<ChonkyError>> {
+) -> Result<Box<[Embedding]>, Report<ChonkyError>> {
     let mut embeddings = Vec::new();
     for image in pdf_image_extract {
         let mut buffer = Vec::new();
@@ -100,17 +113,14 @@ pub async fn embed_screenshots(
 
         // at this point we are transfering ownership of images, cannot use reference without
         // cloning?
-        embeddings.push(ImageEmbedding {
-            embedding: Embedding {
-                _model_used: "Google Multimodal Embeddings".into(),
-                embedding_vector: make_multimodal_api_request(
-                    project_id,
-                    Some(image.clone().into_bytes()),
-                    None,
-                )
-                .await?,
-            },
-            _image: image.clone(),
+        embeddings.push(Embedding {
+            _model_used: "Google Multimodal Embeddings".into(),
+            embedding_vector: make_multimodal_api_request(
+                project_id,
+                Some(image.into_bytes()),
+                None,
+            )
+            .await?,
         });
     }
     Ok(embeddings.into_boxed_slice())
