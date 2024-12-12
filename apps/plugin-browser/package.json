@@ -82,7 +82,7 @@
     "react-refresh": "0.14.0",
     "react-refresh-typescript": "2.0.9",
     "rimraf": "6.0.1",
-    "sass": "1.82.0",
+    "sass": "1.83.0",
     "sass-loader": "13.3.3",
     "source-map-loader": "3.0.2",
     "style-loader": "3.3.4",
