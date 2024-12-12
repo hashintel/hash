@@ -3,7 +3,7 @@ import type { PopoverPosition } from "@mui/material";
 import { Popover, Typography } from "@mui/material";
 import { isEqual } from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
-import type { RefObject } from "react";
+import { RefObject, useEffect } from "react";
 import { useCallback, useState } from "react";
 import { useWindowEventListener } from "rooks";
 
@@ -24,10 +24,42 @@ export const useGridTooltip = (
   // prevent tooltip from staying at the same position when user scrolls vertically
   useWindowEventListener("scroll", () => {
     popupState.close();
+    setGridTooltip(null);
   });
 
   const [gridTooltip, setGridTooltip] = useState<GridTooltip | null>(null);
   const [tooltipPos, setTooltipPos] = useState<PopoverPosition>();
+
+  useEffect(() => {
+    const eventListener = (event: MouseEvent) => {
+      if (!gridTooltip) {
+        return;
+      }
+
+      // close the tooltip if we've moved outside of it
+      const bounds = gridRef.current?.getBounds(
+        gridTooltip.colIndex,
+        gridTooltip.rowIndex,
+      );
+
+      if (
+        !bounds ||
+        event.clientX < bounds.x ||
+        event.clientX > bounds.x + bounds.width ||
+        event.clientY < bounds.y ||
+        event.clientY > bounds.y + bounds.height
+      ) {
+        popupState.close();
+        setGridTooltip(null);
+      }
+    };
+
+    document.addEventListener("mousemove", eventListener);
+
+    return () => {
+      document.removeEventListener("mousemove", eventListener);
+    };
+  }, [gridTooltip, gridRef, popupState]);
 
   const showTooltip = useCallback<TooltipCellProps["showTooltip"]>(
     (newTooltip) => {
@@ -74,6 +106,7 @@ export const useGridTooltip = (
         gridTooltip.rowIndex === rowIndex
       ) {
         popupState.close();
+        setGridTooltip(null);
       }
     },
     [popupState, gridTooltip],
@@ -82,7 +115,7 @@ export const useGridTooltip = (
   return {
     showTooltip,
     hideTooltip,
-    tooltipElement: (
+    tooltipElement: !gridTooltip ? null : (
       <Popover
         {...bindPopover(popupState)}
         anchorReference="anchorPosition"
