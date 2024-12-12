@@ -98,7 +98,7 @@ const resolveDnsMultiaddrSegment = (code: number, value?: string) =>
       return [[code, value] as const];
     }
 
-    let hostname = value;
+    const hostname = value;
 
     let family: 0 | 4 | 6;
     if (code === DNS4_PROTOCOL.code) {
