@@ -1,6 +1,5 @@
 import type { Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 
@@ -66,7 +65,7 @@ export const useCreateGetCellContent = () => {
             };
           case "expectedEntityTypes": {
             const expectedEntityTypeTitles = row.expectedEntityTypes.map(
-              (type) => type.schema.title,
+              (type) => type.title,
             );
             return {
               kind: GridCellKind.Custom,
@@ -77,19 +76,12 @@ export const useCreateGetCellContent = () => {
                 kind: "chip-cell",
                 chips: expectsAnything
                   ? [{ text: "Anything" }]
-                  : row.expectedEntityTypes.map(({ schema }) => ({
-                      text: schema.title,
-                      icon: schema.icon
-                        ? { entityTypeIcon: schema.icon }
+                  : row.expectedEntityTypes.map(({ title, icon }) => ({
+                      text: title,
+                      icon: icon
+                        ? { entityTypeIcon: icon }
                         : {
-                            /**
-                             * @todo H-3363 use closed schema to take account of indirect inheritance links
-                             */
-                            inbuiltIcon: schema.allOf?.some(
-                              (allOf) => allOf.$ref === linkEntityTypeUrl,
-                            )
-                              ? "bpLink"
-                              : "bpAsterisk",
+                            inbuiltIcon: "bpAsterisk",
                           },
                       iconFill: theme.palette.blue[70],
                     })),

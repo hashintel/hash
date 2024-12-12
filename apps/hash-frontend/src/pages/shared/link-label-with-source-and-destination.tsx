@@ -1,12 +1,23 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
+import type { EntityType } from "@blockprotocol/type-system/slim";
+import { extractVersion } from "@blockprotocol/type-system/slim";
 import {
   EntityOrTypeIcon,
   EyeSlashRegularIcon,
 } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  getClosedMultiEntityTypeFromMap,
+  getDisplayFieldsForClosedEntityType,
+  getPropertyTypeForClosedMultiEntityType,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+  EntityTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
@@ -58,46 +69,70 @@ const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
 };
 
 const LeftOrRightEntity: FunctionComponent<{
-  entity?: Entity;
-  onEntityClick?: (entityId: EntityId) => void;
-  subgraph: Subgraph<EntityRootType>;
-  openInNew?: boolean;
+  closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
+  closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions | null;
   endAdornment?: ReactNode;
+  entity?: Entity;
   label?: ReactNode;
+  onEntityClick?: (entityId: EntityId) => void;
+  openInNew?: boolean;
+  subgraph: Subgraph<EntityRootType>;
   sx?: BoxProps["sx"];
 }> = ({
-  subgraph,
-  entity,
+  closedMultiEntityTypesMap,
+  closedMultiEntityTypesDefinitions,
   endAdornment,
-  onEntityClick,
-  sx,
+  entity,
   label,
+  onEntityClick,
   openInNew,
+  subgraph,
+  sx,
 }) => {
-  const entityLabel = useMemo(
-    () => (entity ? generateEntityLabel(subgraph, entity) : "Hidden entity"),
-    [subgraph, entity],
-  );
+  const entityLabel = useMemo(() => {
+    if (!entity) {
+      return "Hidden entity";
+    }
 
-  const entityTypes = useMemo(() => {
+    if (closedMultiEntityTypesMap) {
+      const closedEntityType = getClosedMultiEntityTypeFromMap(
+        closedMultiEntityTypesMap,
+        entity.metadata.entityTypeIds,
+      );
+
+      return generateEntityLabel(closedEntityType, entity);
+    }
+
+    return generateEntityLabel(subgraph, entity);
+  }, [closedMultiEntityTypesMap, subgraph, entity]);
+
+  const entityIcon = useMemo(() => {
     if (!entity) {
       return undefined;
     }
 
-    return entity.metadata.entityTypeIds.map((entityTypeId) => {
+    if (closedMultiEntityTypesMap) {
+      const closedEntityType = getClosedMultiEntityTypeFromMap(
+        closedMultiEntityTypesMap,
+        entity.metadata.entityTypeIds,
+      );
+
+      const { icon } = getDisplayFieldsForClosedEntityType(closedEntityType);
+      return icon;
+    }
+
+    for (const entityTypeId of entity.metadata.entityTypeIds) {
       const entityType = getEntityTypeById(subgraph, entityTypeId);
+
       if (!entityType) {
         throw new Error(`Entity type not found: ${entityTypeId}`);
       }
-      return entityType;
-    });
-  }, [entity, subgraph]);
 
-  /**
-   * @todo H-3363 account for multitype and inheritance here (use closed schema)
-   */
-  const firstTypeIcon = entityTypes?.find((type) => type.schema.icon)?.schema
-    .icon;
+      if (entityType.schema.icon) {
+        return entityType.schema.icon;
+      }
+    }
+  }, [closedMultiEntityTypesMap, entity, subgraph]);
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
@@ -145,7 +180,7 @@ const LeftOrRightEntity: FunctionComponent<{
           <EntityOrTypeIcon
             entity={entity}
             fontSize={12}
-            icon={firstTypeIcon}
+            icon={entityIcon}
             isLink={!!entity.linkData}
             fill={({ palette }) => palette.gray[50]}
           />
@@ -190,11 +225,25 @@ const LeftOrRightEntity: FunctionComponent<{
 
     return typedEntries(entity.properties)
       .map(([baseUrl, propertyValue]) => {
-        const propertyType = getPropertyTypeForEntity(
-          subgraph,
-          entity.metadata.entityTypeIds,
-          baseUrl,
-        ).propertyType;
+        const closedEntityType = closedMultiEntityTypesMap
+          ? getClosedMultiEntityTypeFromMap(
+              closedMultiEntityTypesMap,
+              entity.metadata.entityTypeIds,
+            )
+          : null;
+
+        const propertyType =
+          closedEntityType && closedMultiEntityTypesDefinitions
+            ? getPropertyTypeForClosedMultiEntityType(
+                closedEntityType,
+                baseUrl,
+                closedMultiEntityTypesDefinitions,
+              )
+            : getPropertyTypeForEntity(
+                subgraph,
+                entity.metadata.entityTypeIds,
+                baseUrl,
+              ).propertyType;
 
         const stringifiedPropertyValue =
           stringifyEntityPropertyValue(propertyValue);
@@ -205,7 +254,12 @@ const LeftOrRightEntity: FunctionComponent<{
         };
       })
       .flat();
-  }, [entity, subgraph]);
+  }, [
+    closedMultiEntityTypesMap,
+    closedMultiEntityTypesDefinitions,
+    entity,
+    subgraph,
+  ]);
 
   const outgoingLinkTypesAndTargetEntities = useMemo(() => {
     if (!entity) {
@@ -448,7 +502,7 @@ const LinkTypeInner = ({
   elementRef,
 }: {
   amongMultipleTypes: boolean;
-  linkEntityType: EntityTypeWithMetadata;
+  linkEntityType: Pick<EntityType, "$id" | "title" | "icon">;
   elementRef: HTMLDivElement;
   clickable: boolean;
 }) => (
@@ -486,11 +540,11 @@ const LinkTypeInner = ({
         fontSize={13}
         isLink
         fill={({ palette }) => palette.blue[70]}
-        icon={linkEntityType.schema.icon}
+        icon={linkEntityType.icon}
       />
     </Box>
     <ContentTypography>
-      {linkEntityType.schema.title}
+      {linkEntityType.title}
       <Box
         component="span"
         sx={{
@@ -500,53 +554,70 @@ const LinkTypeInner = ({
           ml: 0.5,
         }}
       >
-        v{linkEntityType.metadata.recordId.version}
+        v{extractVersion(linkEntityType.$id)}
       </Box>
     </ContentTypography>
   </Box>
 );
 
 export const LinkLabelWithSourceAndDestination: FunctionComponent<{
-  linkEntity: LinkEntity;
-  subgraph: Subgraph<EntityRootType>;
-  leftEntityEndAdornment?: ReactNode;
-  rightEntityEndAdornment?: ReactNode;
-  sx?: BoxProps["sx"];
-  leftEntitySx?: BoxProps["sx"];
-  rightEntitySx?: BoxProps["sx"];
+  closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
+  closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions | null;
   displayLabels?: boolean;
+  leftEntityEndAdornment?: ReactNode;
+  leftEntitySx?: BoxProps["sx"];
+  linkEntity: LinkEntity;
   onEntityClick?: (entityId: EntityId) => void;
   openInNew?: boolean;
+  rightEntityEndAdornment?: ReactNode;
+  rightEntitySx?: BoxProps["sx"];
+  subgraph: Subgraph<EntityRootType>;
+  sx?: BoxProps["sx"];
 }> = ({
-  linkEntity,
-  subgraph,
-  leftEntityEndAdornment,
-  rightEntityEndAdornment,
-  sx,
-  leftEntitySx,
-  rightEntitySx,
+  closedMultiEntityTypesMap,
+  closedMultiEntityTypesDefinitions,
   displayLabels = false,
+  leftEntityEndAdornment,
+  leftEntitySx,
+  linkEntity,
   onEntityClick,
   openInNew = false,
+  rightEntityEndAdornment,
+  rightEntitySx,
+  subgraph,
+  sx,
 }) => {
   const { disableTypeClick } = useEntityEditor();
 
   const { leftEntity, rightEntity, linkEntityTypes } = useMemo(() => {
     return {
-      linkEntityTypes: linkEntity.metadata.entityTypeIds.map((entityTypeId) => {
-        const entityType = getEntityTypeById(subgraph, entityTypeId);
-        if (!entityType) {
-          throw new Error(`Entity type not found: ${entityTypeId}`);
-        }
-        return entityType;
-      }),
+      linkEntityTypes: closedMultiEntityTypesMap
+        ? getClosedMultiEntityTypeFromMap(
+            closedMultiEntityTypesMap,
+            linkEntity.metadata.entityTypeIds,
+          ).allOf.map((entityType) => {
+            const { icon } = getDisplayFieldsForClosedEntityType(entityType);
+
+            return {
+              $id: entityType.$id,
+              title: entityType.title,
+              icon,
+            };
+          })
+        : linkEntity.metadata.entityTypeIds.map((entityTypeId) => {
+            const entityType = getEntityTypeById(subgraph, entityTypeId);
+            if (!entityType) {
+              throw new Error(`Entity type not found: ${entityTypeId}`);
+            }
+            return entityType.schema;
+          }),
       leftEntity: getEntityRevision(subgraph, linkEntity.linkData.leftEntityId),
       rightEntity: getEntityRevision(
         subgraph,
         linkEntity.linkData.rightEntityId,
       ),
     };
-  }, [linkEntity, subgraph]);
+  }, [closedMultiEntityTypesMap, linkEntity, subgraph]);
 
   /**
    * If there are multiple link entity types for this link entity,
@@ -590,6 +661,8 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
       ]}
     >
       <LeftOrRightEntity
+        closedMultiEntityTypesDefinitions={closedMultiEntityTypesDefinitions}
+        closedMultiEntityTypesMap={closedMultiEntityTypesMap}
         entity={leftEntity}
         subgraph={subgraph}
         endAdornment={leftEntityEndAdornment}
@@ -606,7 +679,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
         }}
       >
         {linkEntityTypes.map((linkEntityType, index) => (
-          <Fragment key={linkEntityType.schema.$id}>
+          <Fragment key={linkEntityType.$id}>
             {disableTypeClick ? (
               <Box>
                 <LinkTypeInner
@@ -619,7 +692,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
             ) : (
               <Link
                 openInNew={openInNew}
-                href={generateLinkParameters(linkEntityType.schema.$id).href}
+                href={generateLinkParameters(linkEntityType.$id).href}
                 noLinkStyle
               >
                 <LinkTypeInner
@@ -728,6 +801,8 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
         ))}
       </Stack>
       <LeftOrRightEntity
+        closedMultiEntityTypesDefinitions={closedMultiEntityTypesDefinitions}
+        closedMultiEntityTypesMap={closedMultiEntityTypesMap}
         entity={rightEntity}
         onEntityClick={onEntityClick}
         subgraph={subgraph}

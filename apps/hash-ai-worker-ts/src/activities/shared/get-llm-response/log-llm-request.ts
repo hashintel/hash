@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import path, { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { Context } from "@temporalio/activity";
@@ -8,7 +8,7 @@ import { logger } from "../activity-logger.js";
 import type { LlmLog, LlmServerErrorLog } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const writeLogToFile = (log: LlmLog | LlmServerErrorLog) => {
   const logFolderPath = path.join(__dirname, "logs");

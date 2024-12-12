@@ -109,9 +109,8 @@ const generateTableData = async (
     usedPropertyTypesByEntityTypeId,
     subgraph: serializedSubgraph,
     hideColumns,
-    hidePageArchivedColumn,
+    hideArchivedColumn,
     hidePropertiesColumns,
-    isViewingOnlyPages,
     webNameByOwnedById,
   } = params;
 
@@ -180,7 +179,7 @@ const generateTableData = async (
   ];
 
   const columnsToHide = hideColumns ?? [];
-  if (!isViewingOnlyPages || hidePageArchivedColumn) {
+  if (hideArchivedColumn) {
     columnsToHide.push("archived");
   }
 
@@ -267,7 +266,7 @@ const generateTableData = async (
       const sourceEntityLabel = !source
         ? entity.linkData.leftEntityId
         : source.linkData
-          ? generateLinkEntityLabel(subgraph, source)
+          ? generateLinkEntityLabel(subgraph, source, null, null)
           : generateEntityLabel(subgraph, source);
 
       /**
@@ -294,7 +293,7 @@ const generateTableData = async (
       const targetEntityLabel = !target
         ? entity.linkData.leftEntityId
         : target.linkData
-          ? generateLinkEntityLabel(subgraph, target)
+          ? generateLinkEntityLabel(subgraph, target, null, null)
           : generateEntityLabel(subgraph, target);
 
       /**
@@ -359,7 +358,7 @@ const generateTableData = async (
       web,
       archived: isPage
         ? simplifyProperties(entity.properties as PageProperties).archived
-        : undefined,
+        : entity.metadata.archived,
       lastEdited,
       lastEditedBy: lastEditedBy ?? "loading",
       created,
@@ -435,10 +434,7 @@ self.onmessage = async ({ data }) => {
         } satisfies GenerateEntitiesTableDataResultMessage);
       }
     } else {
-      // eslint-disable-next-line no-console
-      console.info(
-        `Table data generation request ${requestId} cancelled, superseded by a subsequent request`,
-      );
+      // Cancelled
     }
   }
 };

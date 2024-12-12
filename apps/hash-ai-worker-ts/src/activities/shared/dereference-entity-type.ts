@@ -209,6 +209,7 @@ const dereferencePropertyTypeValue = (params: {
     $id: _$id,
     $schema: _$schema,
     kind: _kind,
+    allOf: _allOf,
     ...minimalDataType
   } = dataType.schema;
 

@@ -11,10 +11,7 @@ import type {
   CreatedAtTransactionTime,
   Timestamp,
 } from "@local/hash-graph-types/temporal-versioning";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
@@ -84,7 +81,7 @@ export const createDraftLinkEntity = ({
 export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
-  const { entitySubgraph, setDraftLinksToCreate, readonly } = useEntityEditor();
+  const { entity, setDraftLinksToCreate, readonly } = useEntityEditor();
   const markLinkEntityToArchive = useMarkLinkEntityToArchive();
 
   const { value: cell, onFinishedEditing, onChange } = props;
@@ -92,17 +89,13 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     expectedEntityTypes,
     linkAndTargetEntities,
     linkEntityTypeId,
+    linkTitle,
     maxItems,
   } = cell.data.linkRow;
 
   const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
 
-  const entity = useMemo(() => getRoots(entitySubgraph)[0]!, [entitySubgraph]);
-
-  const onSelect = (
-    selectedEntity: Entity,
-    sourceSubgraph: Subgraph<EntityRootType> | null,
-  ) => {
+  const onSelect = (selectedEntity: Entity, entityLabel: string) => {
     const alreadyLinked = linkAndTargetEntities.find(
       ({ rightEntity }) =>
         rightEntity.metadata.recordId.entityId ===
@@ -126,7 +119,8 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     const newLinkAndTargetEntity = {
       linkEntity,
       rightEntity: selectedEntity,
-      sourceSubgraph,
+      rightEntityLabel: entityLabel,
+      linkEntityLabel: linkTitle,
     };
 
     setDraftLinksToCreate((prev) => [...prev, newLinkAndTargetEntity]);
@@ -163,16 +157,17 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     <GridEditorWrapper>
       <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
         {sortedLinkAndTargetEntities.map(
-          ({ rightEntity, linkEntity, sourceSubgraph }) => {
+          ({ rightEntity, linkEntity, rightEntityLabel }) => {
             const linkEntityId = linkEntity.metadata.recordId.entityId;
             return (
               <LinkedEntityListRow
                 key={linkEntityId}
+                closeEditor={onFinishedEditing}
                 entityId={rightEntity.entityId}
                 imageSrc={getImageUrlFromEntityProperties(
                   rightEntity.properties,
                 )}
-                title={generateEntityLabel(sourceSubgraph, rightEntity)}
+                title={rightEntityLabel}
                 onDelete={() => {
                   const newCell = produce(cell, (draftCell) => {
                     draftCell.data.linkRow.linkAndTargetEntities =

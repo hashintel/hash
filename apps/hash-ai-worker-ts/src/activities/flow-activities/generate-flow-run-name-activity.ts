@@ -30,11 +30,15 @@ const systemPrompt = `
 You are a workflow naming agent. A workflow is an automated process that produces a result of interest.
 Multiple workflows of the same kind are run with different inputs, and the user requires a unique name for each run, to distinguish it from other runs of the same kind.
 
-The user provides you with a description of the goal of the workflow, or a description of the template and a list of its inputs, and you generate a short name for the run. Provide only the name – don't include any other text.
+The user provides you with a description of the goal of the workflow, or a description of the template and a list of its inputs, and you generate a short name for the run. Provide only the name – don't include any other text. If there are no inputs provided, you can generate a name based on the template description alone.
 
 The name should be descriptive enough to distinguish it from other runs from the same template, and must always be a single human-readable sentence, with proper grammar and spacing between words.
+
+<Rules>
 Don't include any quotation marks or special characters around the name.
 Don't include the word 'workflow' in the name – the user already knows it's a workflow.
+Don't include UUIDs or other identifiers that aren't natural language words. Omit them, or use a generic human-readable replacement (e.g. 'entity').
+</Rules>
 `;
 
 const getModelSuggestedFlowRunName = async (
@@ -79,7 +83,11 @@ const getModelSuggestedFlowRunName = async (
   return text;
 };
 
-const outputKindsToIgnore: PayloadKind[] = ["GoogleSheet", "GoogleAccountId"];
+const outputKindsToIgnore: PayloadKind[] = [
+  "GoogleSheet",
+  "GoogleAccountId",
+  "EntityId",
+];
 
 export const generateFlowRunName = async (
   params: PersistFlowActivityParams,
@@ -144,13 +152,20 @@ export const generateFlowRunName = async (
       !outputKindsToIgnore.includes(output.payload.kind),
   );
 
+  let workflowDescriptionString = `The workflow template is named ${
+    flowDefinition.name
+  } with a description of ${flowDefinition.description}.`;
+
+  if (inputsOfInterest?.length) {
+    workflowDescriptionString += ` The inputs to the workflow run to be named: ${inputsOfInterest
+      .map((input) => JSON.stringify(input))
+      .join("\n")}.`;
+  } else {
+    workflowDescriptionString += ` The workflow run to be named has no inputs.`;
+  }
+
   return getModelSuggestedFlowRunName(
-    `The workflow template is named ${
-      flowDefinition.name
-    } with a description of ${flowDefinition.description}.
-    The inputs to the workflow run to be named: ${inputsOfInterest
-      ?.map((input) => JSON.stringify(input))
-      .join("\n")}`,
+    workflowDescriptionString,
     usageTrackingParams,
   );
 };

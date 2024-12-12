@@ -1,3 +1,4 @@
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
@@ -8,6 +9,7 @@ import type {
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
+import { triggerPdfAnalysisWorkflow } from "./shared";
 
 /**
  * We want to limit the size of files that can be uploaded to account
@@ -37,7 +39,7 @@ export const requestFileUpload: ResolverFn<
   },
   graphQLContext,
 ) => {
-  const { authentication } = graphQLContext;
+  const { authentication, temporal } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   if (size > maximumFileSizeInBytes) {
@@ -58,6 +60,13 @@ export const requestFileUpload: ResolverFn<
       size,
     },
   );
+
+  await triggerPdfAnalysisWorkflow({
+    entity,
+    temporalClient: temporal,
+    userAccountId: authentication.actorId,
+    webId: extractOwnedByIdFromEntityId(entity.entityId),
+  });
 
   return {
     presignedPut,

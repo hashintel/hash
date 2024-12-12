@@ -100,6 +100,15 @@ export const simplifyProposedEntityForLlmConsumption = (params: {
     properties: entityProperties,
   } = proposedEntity;
 
+  const missingProperties = entityTypes.flatMap(
+    ({ schema, simplifiedPropertyTypeMappings }) =>
+      Object.entries(schema.properties).filter(
+        ([simpleKey]) =>
+          entityProperties[simplifiedPropertyTypeMappings[simpleKey]!] ===
+          undefined,
+      ),
+  );
+
   return `
 <Entity>
 <EntityId>${localEntityId}</EntityId>
@@ -117,21 +126,16 @@ ${Object.entries(entityProperties)
         ? `\n<LinkData>SourceEntityId: ${getIdForLinkEndpoint(sourceEntityId)}\nTargetEntityId: ${getIdForLinkEndpoint(targetEntityId)}</LinkData>`
         : ""
     }
-<MissingProperties>${entityTypes
-    .flatMap(({ schema, simplifiedPropertyTypeMappings }) =>
-      Object.entries(schema.properties)
-        .filter(
-          ([simpleKey]) =>
-            entityProperties[simplifiedPropertyTypeMappings[simpleKey]!] ===
-            undefined,
-        )
-        .map(
-          ([_key, propertySchema]) =>
-            `${"items" in propertySchema ? propertySchema.items.title : propertySchema.title}`,
-        ),
-    )
-    .join(", ")}
-    </MissingProperties>
+    ${
+      missingProperties.length > 0
+        ? ` <MissingProperties>${missingProperties
+            .map(
+              ([_key, propertySchema]) =>
+                `${"items" in propertySchema ? propertySchema.items.title : propertySchema.title}`,
+            )
+            .join(", ")}</MissingProperties>`
+        : ""
+    }
 </Entity>
   `;
 };

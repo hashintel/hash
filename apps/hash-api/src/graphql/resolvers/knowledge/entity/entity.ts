@@ -5,7 +5,7 @@ import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -18,6 +18,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { splitEntityId } from "@local/hash-subgraph";
 import {
   ApolloError,
@@ -32,7 +33,7 @@ import {
   checkEntityPermission,
   createEntityWithLinks,
   getEntityAuthorizationRelationships,
-  getEntitySubgraph,
+  getEntitySubgraphResponse,
   getLatestEntityById,
   modifyEntityAuthorizationRelationships,
   removeEntityAdministrator,
@@ -62,6 +63,7 @@ import type {
   QueryGetEntitySubgraphArgs,
   QueryIsEntityPublicArgs,
   QueryResolvers,
+  QueryValidateEntityArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import {
@@ -71,7 +73,7 @@ import {
 } from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
+import { getUserPermissionsOnSubgraph } from "../shared/get-user-permissions-on-subgraph";
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,
@@ -181,28 +183,37 @@ export const queryEntitiesResolver: NonNullable<
     );
   }
 
-  const entitySubgraph = await getEntitySubgraph(context, authentication, {
-    filter,
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-      constrainsLinksOn,
-      constrainsLinkDestinationsOn,
-      inheritsFrom,
-      isOfType,
-      hasLeftEntity,
-      hasRightEntity,
+  const { subgraph: entitySubgraph } = await getEntitySubgraphResponse(
+    context,
+    authentication,
+    {
+      filter,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
+        isOfType,
+        hasLeftEntity,
+        hasRightEntity,
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: includeDrafts ?? false,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: includeDrafts ?? false,
-  });
+  );
 
-  return createSubgraphAndPermissionsReturn(
+  const userPermissionsOnEntities = await getUserPermissionsOnSubgraph(
     graphQLContext,
     info,
     entitySubgraph,
   );
+
+  return {
+    subgraph: serializeSubgraph(entitySubgraph),
+    userPermissionsOnEntities,
+  };
 };
 
 export const getEntitySubgraphResolver: ResolverFn<
@@ -211,18 +222,23 @@ export const getEntitySubgraphResolver: ResolverFn<
   GraphQLContext,
   QueryGetEntitySubgraphArgs
 > = async (_, { request }, graphQLContext, info) => {
-  const context = graphQLContextToImpureGraphContext(graphQLContext);
-
-  const subgraph = await getEntitySubgraph(
+  const { subgraph, ...rest } = await getEntitySubgraphResponse(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
-    {
-      temporalClient: context.temporalClient,
-      ...request,
-    },
+    request,
   );
 
-  return createSubgraphAndPermissionsReturn(graphQLContext, info, subgraph);
+  const userPermissionsOnEntities = await getUserPermissionsOnSubgraph(
+    graphQLContext,
+    info,
+    subgraph,
+  );
+
+  return {
+    subgraph: serializeSubgraph(subgraph),
+    userPermissionsOnEntities,
+    ...rest,
+  };
 };
 
 export const getEntityResolver: ResolverFn<
@@ -284,7 +300,7 @@ export const getEntityResolver: ResolverFn<
       }
     : currentTimeInstantTemporalAxes;
 
-  const entitySubgraph = await getEntitySubgraph(
+  const { subgraph: entitySubgraph } = await getEntitySubgraphResponse(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     {
@@ -305,11 +321,16 @@ export const getEntityResolver: ResolverFn<
     },
   );
 
-  return createSubgraphAndPermissionsReturn(
+  const userPermissionsOnEntities = await getUserPermissionsOnSubgraph(
     graphQLContext,
     info,
     entitySubgraph,
   );
+
+  return {
+    subgraph: serializeSubgraph(entitySubgraph),
+    userPermissionsOnEntities,
+  };
 };
 
 export const updateEntityResolver: ResolverFn<
@@ -381,6 +402,21 @@ export const updateEntitiesResolver: ResolverFn<
   return updatedEntities;
 };
 
+export const validateEntityResolver: ResolverFn<
+  Promise<boolean>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  QueryValidateEntityArgs
+> = async (_, params, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  return (
+    (await Entity.validate(context.graphApi, authentication, params)) ===
+    undefined
+  );
+};
+
 export const archiveEntityResolver: ResolverFn<
   Promise<boolean>,
   Record<string, never>,
@@ -426,7 +462,7 @@ export const archiveEntitiesResolver: ResolverFn<
         );
 
         archivedEntities.push(entity);
-      } catch (error) {
+      } catch {
         entitiesThatCouldNotBeArchived.push(entityId);
       }
     }),

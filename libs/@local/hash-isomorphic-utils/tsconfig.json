@@ -1,6 +1,12 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["src", "codegen.config.ts", "/**/*.gen.json"],
+  "include": [
+    "src",
+    "codegen.config.ts",
+    "/**/*.gen.json",
+    "eslint.config.js",
+    "vitest.config.ts"
+  ],
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",

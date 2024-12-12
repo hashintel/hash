@@ -2,6 +2,7 @@ import type { Components, Theme } from "@mui/material";
 
 export const MuiInputBaseThemeOptions: Components<Theme>["MuiInputBase"] = {
   defaultProps: {
+    disableInjectingGlobalStyles: true,
     inputProps: {
       "data-1p-ignore": true,
     },

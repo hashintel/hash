@@ -26,7 +26,7 @@ use utoipa::{
 };
 
 use crate::{
-    entity::{EntityQueryCursor, EntityQuerySorting},
+    entity::{EntityQueryCursor, EntityQuerySorting, EntityValidationReport},
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     error::{InsertionError, QueryError, UpdateError},
     filter::Filter,
@@ -65,6 +65,10 @@ const fn default_true() -> bool {
 #[derive(Debug, Copy, Clone, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "This is a configuration struct."
+)]
 pub struct ValidateEntityComponents {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default = "default_true")]
@@ -75,6 +79,9 @@ pub struct ValidateEntityComponents {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default = "default_true")]
     pub num_items: bool,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default = "default_true")]
+    pub link_validation: bool,
 }
 
 impl ValidateEntityComponents {
@@ -84,6 +91,7 @@ impl ValidateEntityComponents {
             link_data: true,
             required_properties: true,
             num_items: true,
+            link_validation: true,
         }
     }
 
@@ -375,7 +383,7 @@ pub trait EntityStore {
         actor_id: AccountId,
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
-    ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send {
+    ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send {
         self.validate_entities(actor_id, consistency, vec![params])
     }
 
@@ -389,7 +397,7 @@ pub trait EntityStore {
         actor_id: AccountId,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
-    ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send;
+    ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send;
 
     /// Get a list of entities specified by the [`GetEntitiesParams`].
     ///

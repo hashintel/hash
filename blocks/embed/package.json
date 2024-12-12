@@ -25,17 +25,17 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.12",
+    "blockprotocol": "patch:blockprotocol@npm%3A0.0.12#~/.yarn/patches/blockprotocol-npm-0.0.12-2558a31f0a.patch",
     "lodash": "4.17.21",
     "twind": "0.16.19"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash": "4.17.13",
     "@types/react-dom": "18.0.9",
     "block-scripts": "0.0.14",
-    "eslint": "8.57.0",
+    "eslint": "9.16.0",
     "mock-block-dock": "0.0.10",
     "react": "18.2.0",
     "react-dom": "18.2.0",

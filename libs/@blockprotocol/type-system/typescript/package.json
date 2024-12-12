@@ -54,20 +54,21 @@
     "@blockprotocol/type-system-rs": "0.0.0-private"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@rollup/plugin-node-resolve": "15.3.0",
     "@rollup/plugin-typescript": "12.1.1",
     "@rollup/plugin-wasm": "6.2.2",
-    "@types/node": "22.9.0",
+    "@types/node": "22.10.2",
     "@types/react": "18.2.68",
-    "@vitest/coverage-istanbul": "2.1.5",
-    "eslint": "8.57.0",
+    "@vitest/coverage-istanbul": "2.1.8",
+    "eslint": "9.16.0",
     "react": "18.2.0",
-    "rollup": "4.27.2",
+    "rimraf": "6.0.1",
+    "rollup": "4.28.1",
     "tslib": "2.8.1",
     "typescript": "5.6.3",
     "vite-plugin-wasm-pack": "0.1.12",
-    "vitest": "2.1.5"
+    "vitest": "2.1.8"
   }
 }

@@ -14,8 +14,8 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::{
     entity_type::{
-        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
-        EntityTypeQueryPath, EntityTypeResolveDefinitions, EntityTypeStore,
+        ArchiveEntityTypeParams, ClosedDataTypeDefinition, CountEntityTypesParams,
+        CreateEntityTypeParams, EntityTypeQueryPath, EntityTypeResolveDefinitions, EntityTypeStore,
         GetClosedMultiEntityTypeParams, GetClosedMultiEntityTypeResponse,
         GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
         GetEntityTypesResponse, IncludeEntityTypeOption, UnarchiveEntityTypeParams,
@@ -52,10 +52,10 @@ use tracing::{Instrument as _, instrument};
 use type_system::{
     Valid, Validator as _,
     schema::{
-        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, DataTypeUuid, EntityType,
-        EntityTypeResolveData, EntityTypeToPropertyTypeEdge, EntityTypeUuid, EntityTypeValidator,
-        InheritanceDepth, OntologyTypeResolver, OntologyTypeUuid, PartialEntityType,
-        PropertyTypeUuid,
+        ClosedDataType, ClosedEntityType, ClosedMultiEntityType, DataType, DataTypeUuid,
+        EntityType, EntityTypeResolveData, EntityTypeToPropertyTypeEdge, EntityTypeUuid,
+        EntityTypeValidator, InheritanceDepth, OntologyTypeResolver, OntologyTypeUuid,
+        PartialEntityType, PropertyTypeUuid,
     },
     url::{OntologyTypeVersion, VersionedUrl},
 };
@@ -121,6 +121,7 @@ where
         &self,
         actor_id: AccountId,
         entity_types: &[EntityTypeUuid],
+        include_data_type_children: bool,
     ) -> Result<EntityTypeResolveDefinitions, Report<QueryError>> {
         let mut definitions = EntityTypeResolveDefinitions::default();
         let rows = self
@@ -214,18 +215,44 @@ where
                 .insert(VersionedUrl::from(vertex_id), property_type.schema);
         }
 
+        let query = if include_data_type_children {
+            "
+                SELECT schema, closed_schema
+                FROM data_types
+                WHERE ontology_id = ANY($1)
+                    OR ontology_id IN (
+                        SELECT source_data_type_ontology_id
+                        FROM data_type_inherits_from
+                        WHERE target_data_type_ontology_id = ANY($1)
+                    );
+            "
+        } else {
+            "
+                SELECT schema, closed_schema
+                FROM data_types
+                WHERE ontology_id = ANY($1);
+            "
+        };
+
         definitions.data_types.extend(
             self.as_client()
-                .query(
-                    "SELECT closed_schema FROM data_types WHERE ontology_id = ANY($1);",
-                    &[&data_type_uuids],
-                )
+                .query(query, &[&data_type_uuids])
                 .await
                 .change_context(QueryError)?
                 .into_iter()
                 .map(|row| {
-                    let schema: Valid<ClosedDataType> = row.get(0);
-                    (schema.id.clone(), schema.into_inner())
+                    let parents = row
+                        .get::<_, Valid<DataType>>(0)
+                        .into_inner()
+                        .all_of
+                        .into_iter()
+                        .map(|reference| reference.url)
+                        .collect();
+                    let schema = row.get::<_, Valid<ClosedDataType>>(1).into_inner();
+                    (schema.id.clone(), ClosedDataTypeDefinition {
+                        schema,
+                        parents,
+                    })
                 }),
         );
 
@@ -995,11 +1022,20 @@ where
 
             response.closed_entity_types = Some(self.get_closed_entity_types(&ids).await?);
 
-            if include_entity_types == IncludeEntityTypeOption::Resolved {
-                response.definitions = Some(
-                    self.get_entity_type_resolve_definitions(actor_id, &ids)
-                        .await?,
-                );
+            match include_entity_types {
+                IncludeEntityTypeOption::Closed => {}
+                IncludeEntityTypeOption::Resolved => {
+                    response.definitions = Some(
+                        self.get_entity_type_resolve_definitions(actor_id, &ids, false)
+                            .await?,
+                    );
+                }
+                IncludeEntityTypeOption::ResolvedWithDataTypeChildren => {
+                    response.definitions = Some(
+                        self.get_entity_type_resolve_definitions(actor_id, &ids, true)
+                            .await?,
+                    );
+                }
             }
         }
 
@@ -1029,11 +1065,10 @@ where
                 after: None,
                 limit: None,
                 include_count: false,
-                include_entity_types: Some(if params.include_resolved {
-                    IncludeEntityTypeOption::Resolved
-                } else {
-                    IncludeEntityTypeOption::Closed
-                }),
+                include_entity_types: Some(params.include_resolved.map_or(
+                    IncludeEntityTypeOption::Closed,
+                    IncludeEntityTypeOption::from,
+                )),
                 include_web_ids: false,
                 include_edition_created_by_ids: false,
             })
@@ -1491,7 +1526,9 @@ where
         .collect::<Vec<_>>();
 
         let entity_type_validator = EntityTypeValidator;
-        for (entity_type_id, schema) in entity_types {
+        let num_entity_types = entity_types.len();
+        for (idx, (entity_type_id, schema)) in entity_types.into_iter().enumerate() {
+            tracing::debug!(entity_type_id=%schema.id, "Reindexing schema {}/{}", idx + 1, num_entity_types);
             let schema_metadata = ontology_type_resolver
                 .resolve_entity_type_metadata(entity_type_id)
                 .change_context(UpdateError)?;

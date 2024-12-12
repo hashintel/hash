@@ -9,7 +9,7 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
+import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
 import { backOff } from "exponential-backoff";
@@ -18,13 +18,7 @@ import { NotFoundError } from "./error.js";
 
 export type WebMachineActorIdentifier = `system-${OwnedById}`;
 
-const globalMachineActorIdentifiers = [
-  ...systemTypeWebShortnames,
-  "hash-ai",
-] as const;
-
-export type GlobalMachineActorIdentifier =
-  (typeof globalMachineActorIdentifiers)[number];
+export type GlobalMachineActorIdentifier = SystemTypeWebShortname | "hash-ai";
 
 export type MachineActorIdentifier =
   | GlobalMachineActorIdentifier

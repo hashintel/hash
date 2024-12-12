@@ -41,6 +41,7 @@ use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
         DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
+        PostgresStoreSettings,
     },
 };
 use hash_graph_store::{
@@ -52,9 +53,9 @@ use hash_graph_store::{
         UpdateDataTypesParams,
     },
     entity::{
-        CountEntitiesParams, CreateEntityParams, EntityStore, GetEntitiesParams,
-        GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
-        UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
+        CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
+        GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
+        PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
@@ -176,9 +177,14 @@ impl DatabaseTestWrapper<NoAuthorization> {
             database,
         );
 
-        let pool = PostgresStorePool::new(&connection_info, &DatabasePoolConfig::default(), NoTls)
-            .await
-            .expect("could not connect to database");
+        let pool = PostgresStorePool::new(
+            &connection_info,
+            &DatabasePoolConfig::default(),
+            NoTls,
+            PostgresStoreSettings::default(),
+        )
+        .await
+        .expect("could not connect to database");
 
         let connection = pool
             .acquire_owned(NoAuthorization, None)
@@ -702,7 +708,7 @@ where
         actor_id: AccountId,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
-    ) -> Result<(), Report<ValidateEntityError>> {
+    ) -> HashMap<usize, EntityValidationReport> {
         self.store
             .validate_entities(actor_id, consistency, params)
             .await

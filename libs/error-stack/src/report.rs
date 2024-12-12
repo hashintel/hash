@@ -192,18 +192,18 @@ use crate::{
 ///
 /// If the [`Display`] implementation of `Report` will be invoked, this will print something like:
 /// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_display__doc.snap"))]
+#[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_display__doc.snap")))]
 /// </pre>
 ///
 /// If the alternate [`Display`] implementation of `Report` is invoked (`{report:#}`), this will
 /// print something like:
 /// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_display_alt__doc.snap"))]
+#[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_display_alt__doc.snap")))]
 /// </pre>
 ///
 /// The [`Debug`] implementation of `Report` will print something like:
 /// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_debug__doc.snap"))]
+#[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_debug__doc.snap")))]
 /// </pre>
 ///
 ///

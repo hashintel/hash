@@ -2,6 +2,7 @@ import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Tooltip } from "@mui/material";
+import type { ReactNode } from "react";
 
 export const ValueChip = ({
   title,
@@ -10,7 +11,7 @@ export const ValueChip = ({
   selected,
   tooltip = "",
 }: {
-  title: string;
+  title: ReactNode;
   icon?: Pick<IconDefinition, "icon">;
   imageSrc?: string;
   selected: boolean;

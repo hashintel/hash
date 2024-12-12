@@ -20,7 +20,7 @@ use hash_graph_authorization::{
     zanzibar::ZanzibarClient,
 };
 use hash_graph_postgres_store::store::{
-    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool,
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
 use hash_graph_store::pool::StorePool;
 use hash_graph_type_fetcher::FetchingPool;
@@ -38,30 +38,19 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Parser)]
-pub struct ApiAddress {
+pub struct HttpAddress {
     /// The host the REST client is listening at.
-    #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_API_HOST")]
+    #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_HTTP_HOST")]
     pub api_host: String,
 
     /// The port the REST client is listening at.
-    #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
+    #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_HTTP_PORT")]
     pub api_port: u16,
 }
 
-impl fmt::Display for ApiAddress {
+impl fmt::Display for HttpAddress {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "{}:{}", self.api_host, self.api_port)
-    }
-}
-
-impl TryFrom<ApiAddress> for SocketAddr {
-    type Error = Report<AddrParseError>;
-
-    fn try_from(address: ApiAddress) -> Result<Self, Report<AddrParseError>> {
-        address
-            .to_string()
-            .parse::<Self>()
-            .attach_printable(address)
     }
 }
 
@@ -107,7 +96,7 @@ pub struct ServerArgs {
 
     /// The address the REST server is listening at.
     #[clap(flatten)]
-    pub api_address: ApiAddress,
+    pub http_address: HttpAddress,
 
     /// Enable the experimental RPC server.
     #[clap(long, default_value_t = false, env = "HASH_GRAPH_RPC_ENABLED")]
@@ -178,6 +167,12 @@ pub struct ServerArgs {
     /// The port of the Temporal server.
     #[clap(long, env = "HASH_TEMPORAL_SERVER_PORT", default_value_t = 7233)]
     pub temporal_port: u16,
+
+    /// Skips the validation of links when creating/updating entities.
+    ///
+    /// This should only be used in development environments.
+    #[clap(long)]
+    pub skip_link_validation: bool,
 }
 
 fn server_rpc<S, A>(
@@ -231,7 +226,7 @@ where
 pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
     if args.healthcheck {
         return wait_healthcheck(
-            || healthcheck(args.api_address.clone()),
+            || healthcheck(args.http_address.clone()),
             args.wait,
             args.timeout.map(Duration::from_secs),
         )
@@ -239,13 +234,20 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         .change_context(GraphError);
     }
 
-    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
-        .await
-        .change_context(GraphError)
-        .map_err(|report| {
-            tracing::error!(error = ?report, "Failed to connect to database");
-            report
-        })?;
+    let pool = PostgresStorePool::new(
+        &args.db_info,
+        &args.pool_config,
+        NoTls,
+        PostgresStoreSettings {
+            validate_links: !args.skip_link_validation,
+        },
+    )
+    .await
+    .change_context(GraphError)
+    .map_err(|report| {
+        tracing::error!(error = ?report, "Failed to connect to database");
+        report
+    })?;
     _ = pool
         .acquire(NoAuthorization, None)
         .await
@@ -317,9 +319,9 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         rest_api_router(dependencies)
     };
 
-    tracing::info!("Listening on {}", args.api_address);
+    tracing::info!("Listening on {}", args.http_address);
     axum::serve(
-        TcpListener::bind((args.api_address.api_host, args.api_address.api_port))
+        TcpListener::bind((args.http_address.api_host, args.http_address.api_port))
             .await
             .change_context(GraphError)?,
         router.into_make_service_with_connect_info::<SocketAddr>(),
@@ -330,7 +332,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
     Ok(())
 }
 
-pub async fn healthcheck(address: ApiAddress) -> Result<(), Report<HealthcheckError>> {
+pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckError>> {
     let request_url = format!("http://{address}/api-doc/openapi.json");
 
     timeout(

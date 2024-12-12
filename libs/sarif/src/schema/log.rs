@@ -216,10 +216,10 @@ impl<'s> Extend<Run<'s>> for SarifLog<'s> {
 }
 
 #[cfg(all(test, feature = "serde"))]
+#[coverage(off)]
 pub(crate) mod tests {
     use alloc::borrow::Cow;
 
-    use coverage_helper::test;
     use semver::Version;
     use serde::Deserialize as _;
     use serde_json::json;

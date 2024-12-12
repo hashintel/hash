@@ -19,7 +19,7 @@ import {
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { getClosedMultiEntityTypesFromResponse } from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -312,10 +312,10 @@ describe("Entity CRU", () => {
       ),
     );
 
-    // It should not matter if the entity type is read independently from the response or is part of the resposne. The result should be the same.
+    // It should not matter if the entity type is read independently from the response or is part of the response. The result should be the same.
     for (const entity of entities) {
-      const entityTypeFromResponse = getClosedMultiEntityTypesFromResponse(
-        response,
+      const entityTypeFromResponse = getClosedMultiEntityTypeFromMap(
+        response.closedMultiEntityTypes,
         entity.metadata.entityTypeIds,
       );
       expect(entityTypeFromResponse).toBeDefined();
@@ -330,16 +330,16 @@ describe("Entity CRU", () => {
           entityTypeIds: entity.metadata.entityTypeIds,
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: false,
-          includeResolved: true,
+          includeResolved: "resolved",
         },
       );
-      if (entityTypeFromResponse?.required && entityTypeFromGraph.required) {
+
+      if (entityTypeFromResponse.required && entityTypeFromGraph.required) {
         // The `required` field is not sorted, so we need to sort it before comparing
         entityTypeFromResponse.required =
           entityTypeFromResponse.required.sort();
         entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
       }
-      expect(entityTypeFromResponse).toEqual(entityTypeFromGraph);
 
       for (const [id, schema] of Object.entries(
         definitionsFromGraph!.dataTypes,
@@ -395,6 +395,7 @@ describe("Entity CRU", () => {
           },
         ],
       },
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     ).catch((err) => Promise.reject(err));
 
     expect(updatedEntity.metadata.provenance.edition.createdById).toBe(

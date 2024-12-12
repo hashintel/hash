@@ -21,7 +21,6 @@ pub enum ObjectTypeTag {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, rename_all = "camelCase", deny_unknown_fields)]
 pub enum ObjectSchema {
     Constrained(ObjectConstraints),
@@ -87,13 +86,8 @@ impl ConstraintValidator<JsonObject> for ObjectSchema {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(
-    clippy::empty_structs_with_brackets,
-    reason = "This struct is a placeholder for future functionality."
-)]
-pub struct ObjectConstraints {}
+pub struct ObjectConstraints;
 
 impl Constraint for ObjectConstraints {
     fn intersection(

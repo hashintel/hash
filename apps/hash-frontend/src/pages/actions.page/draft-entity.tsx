@@ -6,11 +6,11 @@ import { Box, Checkbox, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 
-import { useDraftEntities } from "../../shared/draft-entities-context";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { Link } from "../../shared/ui";
 import { EntityEditorSlideStack } from "../shared/entity-editor-slide-stack";
 import { useEntityHref } from "../shared/use-entity-href";
+import { useDraftEntities } from "./draft-entities-context";
 import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";

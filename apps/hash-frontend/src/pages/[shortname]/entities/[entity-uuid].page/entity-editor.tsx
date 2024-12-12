@@ -1,11 +1,19 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  BaseUrl,
+  ClosedMultiEntityType,
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import type { RefObject } from "react";
 import { useMemo } from "react";
 
+import { ClaimsSection } from "./entity-editor/claims-section";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { FilePreviewSection } from "./entity-editor/file-preview-section";
 import { HistorySection } from "./entity-editor/history-section";
@@ -21,12 +29,20 @@ import type { DraftLinkState } from "./shared/use-draft-link-state";
 export type { CustomColumn };
 
 export interface EntityEditorProps extends DraftLinkState {
+  closedMultiEntityType: ClosedMultiEntityType;
+  closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
+  closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
   customColumns?: CustomColumn[];
   defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
   disableTypeClick?: boolean;
   isDirty: boolean;
   entityLabel: string;
   entitySubgraph: Subgraph<EntityRootType>;
+  handleTypesChange: (args: {
+    entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
+    removedPropertiesBaseUrls: BaseUrl[];
+    removedLinkTypesBaseUrls: BaseUrl[];
+  }) => Promise<void>;
   onEntityClick: (entityId: EntityId) => void;
   setEntity: (entity: Entity) => void;
   readonly: boolean;
@@ -88,6 +104,8 @@ export const EntityEditor = (props: EntityEditorProps) => {
           <PropertiesSection />
 
           <LinksSection isLinkEntity={isLinkEntity} />
+
+          <ClaimsSection />
 
           {/* <PeersSection /> */}
         </Box>

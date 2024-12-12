@@ -126,13 +126,13 @@
 //! The output of `println!("{report:?}")`:
 //!
 //! <pre>
-#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap"))]
+#![cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap")))]
 //! </pre>
 //!
 //! The output of `println!("{report:#?}")`:
 //!
 //! <pre>
-#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap"))]
+#![cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap")))]
 //! </pre>
 //!
 //! ## Implementation Details

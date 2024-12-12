@@ -22,14 +22,11 @@ import {
 } from "./[[...type-kind]].page/types-page-tabs";
 import { TypesTable } from "./[[...type-kind]].page/types-table";
 
-const parsedQueryParams = [
-  "entity-type",
-  "link-type",
-  "property-type",
-  "data-type",
-] as const;
-
-type ParsedQueryKindParam = (typeof parsedQueryParams)[number];
+type ParsedQueryKindParam =
+  | "entity-type"
+  | "link-type"
+  | "property-type"
+  | "data-type";
 
 type ParsedQueryParams = {
   ["type-kind"]?: ParsedQueryKindParam[];

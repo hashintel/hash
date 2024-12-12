@@ -22,7 +22,11 @@ import { splitEntityId } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
-import { systemPropertyTypes } from "./ontology-type-ids.js";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "./ontology-type-ids.js";
 import { deserializeSubgraph } from "./subgraph-mapping.js";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
@@ -375,3 +379,39 @@ export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndS
       },
     },
   ];
+
+export const notificationTypesToIgnore = [
+  systemEntityTypes.notification.entityTypeId,
+  systemEntityTypes.graphChangeNotification.entityTypeId,
+];
+
+export const usageRecordTypesToIgnore = [
+  systemEntityTypes.usageRecord.entityTypeId,
+  systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+  systemLinkEntityTypes.created.linkEntityTypeId,
+  systemLinkEntityTypes.updated.linkEntityTypeId,
+  systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+];
+
+const pageNotificationTypesToIgnore = [
+  systemEntityTypes.mentionNotification.entityTypeId,
+  systemEntityTypes.commentNotification.entityTypeId,
+  systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+];
+
+export const noisySystemTypeIds = [
+  ...notificationTypesToIgnore,
+  ...usageRecordTypesToIgnore,
+  ...pageNotificationTypesToIgnore,
+] as const;
+
+export type NoisySystemTypeId = (typeof noisySystemTypeIds)[number];
+
+export const ignoreNoisySystemTypesFilter: Filter = {
+  all: noisySystemTypeIds.map((versionedUrl) => ({
+    notEqual: [
+      { path: ["type(inheritanceDepth = 0)", "versionedUrl"] },
+      { parameter: versionedUrl },
+    ],
+  })),
+};

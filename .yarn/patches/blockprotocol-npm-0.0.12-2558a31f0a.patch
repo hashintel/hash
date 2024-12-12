@@ -1,0 +1,192 @@
+diff --git a/core.d.ts b/core.d.ts
+index d3c39db829941fd8681fcbaecdc7c68f71438ecd..2711ff4097e7fc6dfbdf9bd16abd01d05e60d96d 100644
+--- a/core.d.ts
++++ b/core.d.ts
+@@ -1,3 +1,6 @@
++import { BlockProtocolStyling } from "./styling"
++export * from "./styling"
++
+ // ---------------------------- UTILITIES ----------------------------- //
+ 
+ type UnknownRecord = Record<string, unknown>;
+@@ -185,15 +188,18 @@ export type BlockProtocolFilterOperatorRequiringValue =
+ 
+ export type BlockProtocolMultiFilterOperatorType = "AND" | "OR";
+ 
++export type BlockProtocolFilterWithValue = {
++  field: string;
++  operator: BlockProtocolFilterOperatorRequiringValue;
++  value: string;
++};
++
++export type BlockProtocolFilterWithoutValue = { field: string; operator: BlockProtocolFilterOperatorWithoutValue }
++
++export type BlockProtocolFilter = BlockProtocolFilterWithValue | BlockProtocolFilterWithoutValue;
++
+ export type BlockProtocolMultiFilter = {
+-  filters: (
+-    | {
+-        field: string;
+-        operator: BlockProtocolFilterOperatorRequiringValue;
+-        value: string;
+-      }
+-    | { field: string; operator: BlockProtocolFilterOperatorWithoutValue }
+-  )[];
++  filters: BlockProtocolFilter[];
+   operator: BlockProtocolMultiFilterOperatorType;
+ };
+ 
+@@ -517,4 +523,4 @@ export type BlockProtocolProps = {
+   linkedAggregations?: BlockProtocolLinkedAggregation[];
+   linkedEntities?: BlockProtocolEntity[];
+   linkGroups?: BlockProtocolLinkGroup[];
+-} & BlockProtocolFunctions;
++} & BlockProtocolFunctions & BlockProtocolStyling;
+diff --git a/styling.d.ts b/styling.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..ab938158667c3658e80153a86e77ee0319c35e01
+--- /dev/null
++++ b/styling.d.ts
+@@ -0,0 +1,134 @@
++/**
++ * Block Protocol theme is inspired by MUI
++ * @see https://mui.com/customization/theming/
++ * @see https://github.com/mui/material-ui/blob/119c8815615ce463047deeb58406b6b5dedd2414/packages/mui-material/src/styles/createTheme.d.ts#L10-L19
++ */
++
++export interface Color {
++  50: string;
++  100: string;
++  200: string;
++  300: string;
++  400: string;
++  500: string;
++  600: string;
++  700: string;
++  800: string;
++  900: string;
++  A100: string;
++  A200: string;
++  A400: string;
++  A700: string;
++}
++
++export type ColorPartial = Partial<Color>;
++
++export interface SimplePaletteColorOptions {
++  light?: string;
++  main: string;
++  dark?: string;
++  contrastText?: string;
++}
++
++export type PaletteMode = 'light' | 'dark';
++
++export type PaletteTonalOffset = | number | {   light: number;   dark: number; };
++
++export type PaletteColorOptions = SimplePaletteColorOptions | ColorPartial;
++
++export interface CommonColors {
++  black: string;
++  white: string;
++}
++
++export interface TypeAction {
++  active: string;
++  hover: string;
++  hoverOpacity: number;
++  selected: string;
++  selectedOpacity: number;
++  disabled: string;
++  disabledOpacity: number;
++  disabledBackground: string;
++  focus: string;
++  focusOpacity: number;
++  activatedOpacity: number;
++}
++
++export interface TypeBackground {
++  default: string;
++  paper: string;
++}
++
++export interface TypeText {
++  primary: string;
++  secondary: string;
++  disabled: string;
++}
++
++export type PaletteOptions = {
++  primary?: PaletteColorOptions;
++  secondary?: PaletteColorOptions;
++  error?: PaletteColorOptions;
++  warning?: PaletteColorOptions;
++  info?: PaletteColorOptions;
++  success?: PaletteColorOptions;
++  mode?: PaletteMode;
++  tonalOffset?: PaletteTonalOffset;
++  contrastThreshold?: number;
++  common?: Partial<CommonColors>;
++  grey?: ColorPartial;
++  text?: Partial<TypeText>;
++  divider?: string;
++  action?: Partial<TypeAction>;
++  background?: Partial<TypeBackground>;
++}
++
++export type Shadows = ['none',
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++];
++
++export interface ZIndex {
++  mobileStepper: number;
++  speedDial: number;
++  appBar: number;
++  drawer: number;
++  modal: number;
++  snackbar: number;
++  tooltip: number;
++}
++
++export type ZIndexOptions = Partial<ZIndex>;
++
++export interface BlockProtocolThemeOptions {
++  palette?: PaletteOptions;
++  shadows?: Shadows;
++  zIndex?: ZIndexOptions;
++}
++
++export type BlockProtocolStyling = {
++  theme?: BlockProtocolThemeOptions | undefined
++}
+diff --git a/styling.js b/styling.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..f855b68488786bc7911ca8f5b28fce9f4402d77a
+--- /dev/null
++++ b/styling.js
+@@ -0,0 +1,2 @@
++// Current version of this package only provides TypeScript types.
++// Watch https://github.com/blockprotocol/blockprotocol for the updates!

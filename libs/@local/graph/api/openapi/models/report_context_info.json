@@ -1,0 +1,23 @@
+{
+  "title": "ReportContextInfo",
+  "type": "object",
+  "properties": {
+    "context": {
+      "type": "string",
+      "description": "The user-facing message of the status."
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "$ref": "./report_context_info.json"
+      }
+    }
+  },
+  "required": ["context", "attachments", "sources"]
+}

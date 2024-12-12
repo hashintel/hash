@@ -1,5 +1,7 @@
 import type { Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import { isValueMetadata } from "@local/hash-graph-types/entity";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { useCallback } from "react";
 
 import type { BlankCell } from "../../../../../../../components/grid/utils";
@@ -9,15 +11,10 @@ import type { ChipCell } from "../../../../../../shared/chip-cell";
 import { useEntityEditor } from "../../entity-editor-context";
 import type { SummaryChipCell } from "../../shared/summary-chip-cell";
 import { getPropertyCountSummary } from "../get-property-count-summary";
-import { isValueEmpty } from "../is-value-empty";
 import type { ChangeTypeCell } from "./cells/change-type-cell";
 import type { PropertyNameCell } from "./cells/property-name-cell";
 import { getEditorSpecs } from "./cells/value-cell/editor-specs";
 import type { ValueCell } from "./cells/value-cell/types";
-import {
-  guessEditorTypeFromExpectedType,
-  guessEditorTypeFromValue,
-} from "./cells/value-cell/utils";
 import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import type { PropertyRow } from "./types";
@@ -67,20 +64,18 @@ export const useCreateGetCellContent = (
           },
         };
 
-        const guessedType = guessEditorTypeFromValue(
-          row.value,
-          row.expectedTypes,
-        );
-
-        const isEmptyValue =
-          isValueEmpty(row.value) &&
-          guessedType !== "null" &&
-          guessedType !== "emptyList";
+        const {
+          isArray,
+          permittedDataTypes,
+          permittedDataTypesIncludingChildren,
+          valueMetadata,
+        } = row;
 
         const shouldShowChangeTypeCell =
-          row.expectedTypes.length > 1 &&
-          !row.isArray &&
-          !isEmptyValue &&
+          (permittedDataTypes.length > 1 ||
+            permittedDataTypes[0]?.schema.abstract) &&
+          !isArray &&
+          valueMetadata &&
           !readonly;
 
         switch (columnKey) {
@@ -119,23 +114,27 @@ export const useCreateGetCellContent = (
 
             return valueCell;
 
-          case "expectedTypes":
+          case "permittedDataTypes":
             if (hasChild) {
               return blankCell;
             }
 
             if (shouldShowChangeTypeCell) {
-              const currentType = row.expectedTypes.find((opt) =>
-                "type" in opt
-                  ? opt.type === guessedType
-                  : /**
-                     * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId from property metadata
-                     */
-                    opt.anyOf.some((subType) => subType.type === guessedType),
-              );
-              if (!currentType) {
+              if (!isValueMetadata(valueMetadata)) {
                 throw new Error(
-                  `dataType for guessed type ${guessedType} not found`,
+                  `Expected single value when showing change type cell`,
+                );
+              }
+
+              const dataTypeId = valueMetadata.metadata.dataTypeId;
+
+              const dataType = permittedDataTypesIncludingChildren.find(
+                (type) => type.schema.$id === dataTypeId,
+              );
+
+              if (!dataType) {
+                throw new Error(
+                  "Expected a data type to be set on the value or at least one permitted data type",
                 );
               }
 
@@ -143,11 +142,11 @@ export const useCreateGetCellContent = (
                 kind: GridCellKind.Custom,
                 allowOverlay: false,
                 readonly: true,
-                copyData: guessedType,
+                copyData: dataType.schema.$id,
                 cursor: "pointer",
                 data: {
                   kind: "change-type-cell",
-                  currentType,
+                  currentType: dataType.schema,
                   propertyRow: row,
                   valueCellOfThisRow: valueCell,
                 },
@@ -158,17 +157,22 @@ export const useCreateGetCellContent = (
               kind: GridCellKind.Custom,
               allowOverlay: true,
               readonly: true,
-              copyData: String(row.expectedTypes),
+              copyData: String(row.permittedDataTypes),
               data: {
                 kind: "chip-cell",
-                chips: row.expectedTypes.map((type) => {
-                  const editorSpec = getEditorSpecs(
-                    guessEditorTypeFromExpectedType(type),
-                    type,
-                  );
+                chips: row.permittedDataTypes.map((type) => {
+                  const schema = getMergedDataTypeSchema(type.schema);
+
+                  if ("anyOf" in schema) {
+                    throw new Error(
+                      "Data types with different expected sets of constraints (anyOf) are not yet supported",
+                    );
+                  }
+
+                  const editorSpec = getEditorSpecs(type.schema, schema);
 
                   return {
-                    text: type.title,
+                    text: type.schema.title,
                     icon: { inbuiltIcon: editorSpec.gridIcon },
                     faIconDefinition: { icon: editorSpec.icon },
                   };

@@ -2,10 +2,7 @@ import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityProperties } from "@local/hash-graph-types/entity";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 
@@ -33,7 +30,7 @@ export const OutgoingLinksSection = ({
 }: OutgoingLinksSectionPropsProps) => {
   const [showSearch, setShowSearch] = useState(false);
 
-  const { entitySubgraph, readonly } = useEntityEditor();
+  const { entitySubgraph, entity, readonly } = useEntityEditor();
 
   const rows = useRows();
   const createGetCellContent = useCreateGetCellContent();
@@ -47,8 +44,6 @@ export const OutgoingLinksSection = ({
     return null;
   }
 
-  const entity = getRoots(entitySubgraph)[0]!;
-
   const outgoingLinksAndTargets = readonly
     ? getOutgoingLinkAndTargetEntities(
         entitySubgraph,
@@ -58,13 +53,6 @@ export const OutgoingLinksSection = ({
         ],
       )
     : null;
-
-  if (
-    rows.length === 0 ||
-    (readonly && outgoingLinksAndTargets?.length === 0)
-  ) {
-    return <LinksSectionEmptyState direction="Outgoing" />;
-  }
 
   return (
     <SectionWrapper
@@ -76,23 +64,21 @@ export const OutgoingLinksSection = ({
             size="xs"
             label={`${outgoingLinks.length} ${outgoingLinks.length === 1 ? "link" : "links"}`}
           />
-          <Stack direction="row" spacing={0.5}>
-            <IconButton
-              rounded
-              onClick={() => setShowSearch(true)}
-              sx={{ color: ({ palette }) => palette.gray[60] }}
-            >
-              <FontAwesomeIcon icon={faMagnifyingGlass} />
-            </IconButton>
-          </Stack>
+          {!!rows.length && (
+            <Stack direction="row" spacing={0.5}>
+              <IconButton
+                rounded
+                onClick={() => setShowSearch(true)}
+                sx={{ color: ({ palette }) => palette.gray[60] }}
+              >
+                <FontAwesomeIcon icon={faMagnifyingGlass} />
+              </IconButton>
+            </Stack>
+          )}
         </Stack>
       }
     >
-      {readonly ? (
-        <OutgoingLinksTable
-          outgoingLinksAndTargets={outgoingLinksAndTargets!}
-        />
-      ) : (
+      {rows.length && !readonly ? (
         <Paper sx={{ overflow: "hidden" }}>
           <Grid
             columns={linkGridColumns}
@@ -111,6 +97,10 @@ export const OutgoingLinksSection = ({
             ]}
           />
         </Paper>
+      ) : outgoingLinksAndTargets?.length ? (
+        <OutgoingLinksTable outgoingLinksAndTargets={outgoingLinksAndTargets} />
+      ) : (
+        <LinksSectionEmptyState direction="Outgoing" />
       )}
     </SectionWrapper>
   );

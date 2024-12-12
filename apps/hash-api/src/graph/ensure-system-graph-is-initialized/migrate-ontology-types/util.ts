@@ -1,5 +1,5 @@
 /* eslint-disable no-param-reassign */
-import { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type {
@@ -90,7 +90,7 @@ import { upgradeWebEntities } from "./util/upgrade-entities";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const systemTypeDomain = "https://hash.ai";
 
@@ -411,6 +411,8 @@ export type EntityTypeDefinition = {
   allOf?: VersionedUrl[];
   entityTypeId: VersionedUrl;
   title: string;
+  titlePlural?: string;
+  inverse?: EntityType["inverse"];
   description: string;
   labelProperty?: BaseUrl;
   icon?: string;

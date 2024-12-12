@@ -339,6 +339,16 @@ describe("Entity type CRU", () => {
             ...(userType.schema.links ?? {}),
             ...(userType.schema.links ?? {}),
           },
+          allOf: [
+            {
+              depth: 0,
+              $id: systemEntityTypes.user.entityTypeId,
+            },
+            {
+              depth: 1,
+              $id: systemEntityTypes.actor.entityTypeId,
+            },
+          ],
         } satisfies ClosedEntityType,
       },
     ]);
@@ -379,7 +389,7 @@ describe("Entity type CRU", () => {
         ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
-        includeResolved: true,
+        includeResolved: "resolved",
       });
 
     // It's not specified how `required` is ordered, so we need to sort it before comparing
@@ -394,6 +404,7 @@ describe("Entity type CRU", () => {
             $id: closedEntityType.schema.$id,
             title: closedEntityType.schema.title,
             description: closedEntityType.schema.description,
+            allOf: closedEntityType.schema.allOf,
           }) as ClosedMultiEntityType["allOf"][0],
       ),
     );
@@ -486,6 +497,7 @@ describe("Entity type CRU", () => {
           { relation: "instantiator", subject: { kind: "public" } },
         ],
       },
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     ).catch((err) => Promise.reject(err.data));
 
     expect(

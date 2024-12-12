@@ -1,8 +1,10 @@
+import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import type { Query, QueryMeArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
+import { getUserPermissionsOnSubgraph } from "../shared/get-user-permissions-on-subgraph";
 
 export const meResolver: ResolverFn<
   Query["me"],
@@ -26,5 +28,14 @@ export const meResolver: ResolverFn<
     },
   );
 
-  return createSubgraphAndPermissionsReturn(graphQLContext, info, userSubgraph);
+  const userPermissionsOnEntities = await getUserPermissionsOnSubgraph(
+    graphQLContext,
+    info,
+    userSubgraph,
+  );
+
+  return {
+    subgraph: serializeSubgraph(userSubgraph),
+    userPermissionsOnEntities,
+  };
 };

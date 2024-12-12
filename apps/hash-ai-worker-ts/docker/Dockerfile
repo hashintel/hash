@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY package.json .
 RUN apk add --no-cache jq yq && \
-    yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+    npm install -g "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-ai-worker-ts' --docker && \
@@ -15,10 +15,6 @@ RUN turbo prune --scope='@apps/hash-ai-worker-ts' --docker && \
         echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
       )' _ {} \; && \
     cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
-
-# Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
-# Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
-COPY patches /app/out/full/patches
 
 
 FROM node:20.13-slim AS rust
@@ -44,10 +40,11 @@ WORKDIR /usr/local/src/
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
-COPY --from=base /app/out/full/patches patches
+COPY --from=base /app/out/full/.yarn .yarn
 COPY --from=base /app/out/full/turbo.json turbo.json
 
-RUN yarn install --frozen-lockfile --prefer-offline && \
+RUN corepack enable && \
+    yarn install --immutable && \
     yarn cache clean
 
 COPY --from=base /app/out/full/ .
@@ -62,6 +59,17 @@ WORKDIR /usr/local/src/apps/hash-ai-worker-ts
 
 ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
 CMD ["start"]
+
+ARG GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON
+ENV GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON}
+
+RUN if [ -n "$GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON" ]; then \
+    echo $GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON > /tmp/google_workload_identity_federation_config.json && \
+    export GOOGLE_APPLICATION_CREDENTIALS=/tmp/google_workload_identity_federation_config.json && \
+    echo "GOOGLE_APPLICATION_CREDENTIALS set from JSON"; \
+    else \
+    echo "GOOGLE_APPLICATION_CREDENTIALS not set, no GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON in environment"; \
+    fi
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \

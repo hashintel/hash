@@ -1,0 +1,27 @@
+[package]
+name              = "hash-graph-migrations-macros"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+# Workspace dependencies
+
+# Third-party dependencies
+convert_case      = { workspace = true }
+derive_more       = { workspace = true, features = ["display", "error", "from"] }
+proc-macro-error2 = { workspace = true }
+proc-macro2       = { workspace = true }
+quote             = { workspace = true }
+regex             = { workspace = true }
+sha2              = { workspace = true }
+syn               = { workspace = true }
+walkdir           = { workspace = true }
+
+[lints]
+workspace = true

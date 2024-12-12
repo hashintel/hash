@@ -1,3 +1,4 @@
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
   closestCenter,
@@ -13,6 +14,12 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import type { PropertyMetadataArray } from "@local/hash-graph-types/entity";
+import {
+  isArrayMetadata,
+  isValueMetadata,
+} from "@local/hash-graph-types/entity";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { Box, styled } from "@mui/material";
 import produce from "immer";
 import { isNumber } from "lodash";
@@ -26,10 +33,7 @@ import { SortableRow } from "./array-editor/sortable-row";
 import type { SortableItem } from "./array-editor/types";
 import { getEditorSpecs } from "./editor-specs";
 import type { ValueCellEditorComponent } from "./types";
-import {
-  guessEditorTypeFromExpectedType,
-  isBlankStringOrNullish,
-} from "./utils";
+import { isBlankStringOrNullish } from "./utils";
 
 export const DRAFT_ROW_KEY = "draft";
 
@@ -50,7 +54,11 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const listWrapperRef = useRef<HTMLDivElement>(null);
   const {
     value: propertyValue,
-    expectedTypes,
+    valueMetadata,
+    generateNewMetadataObject,
+    permittedDataTypes,
+    permittedDataTypesIncludingChildren,
+    propertyKeyChain,
     maxItems,
     minItems,
   } = cell.data.propertyRow;
@@ -58,14 +66,55 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const items = useMemo(() => {
     const values = Array.isArray(propertyValue) ? propertyValue : [];
 
-    const itemsArray: SortableItem[] = values.map((value, index) => ({
-      index,
-      id: `${index}_${String(value)}`,
-      value,
-    }));
+    if (values.length && !valueMetadata) {
+      throw new Error("Expected valueMetadata to be set when there are values");
+    }
+
+    if (valueMetadata && !isArrayMetadata(valueMetadata)) {
+      throw new Error(
+        `Expected array metadata for value '${JSON.stringify(values)}', got ${JSON.stringify(valueMetadata)}`,
+      );
+    }
+
+    const itemsArray: SortableItem[] = values.map((value, index) => {
+      const arrayItemMetadata = (valueMetadata as PropertyMetadataArray).value[
+        index
+      ];
+
+      if (!arrayItemMetadata) {
+        throw new Error(
+          `Expected metadata for array item at index ${index} in value '${JSON.stringify(value)}'`,
+        );
+      }
+
+      if (!isValueMetadata(arrayItemMetadata)) {
+        throw new Error(
+          `Expected single value metadata for array item at index ${index} in value '${JSON.stringify(value)}', got ${JSON.stringify(arrayItemMetadata)}`,
+        );
+      }
+
+      const dataTypeId = arrayItemMetadata.metadata.dataTypeId;
+
+      const dataType = permittedDataTypesIncludingChildren.find(
+        (type) => type.schema.$id === dataTypeId,
+      )?.schema;
+
+      if (!dataType) {
+        throw new Error(
+          "Expected a data type to be set on the value or at least one permitted data type",
+        );
+      }
+
+      return {
+        dataType,
+        index,
+        id: `${index}_${String(value)}`,
+        value,
+      };
+    });
 
     return itemsArray;
-  }, [propertyValue]);
+  }, [propertyValue, valueMetadata, permittedDataTypesIncludingChildren]);
 
   const [selectedRow, setSelectedRow] = useState("");
   const [editingRow, setEditingRow] = useState(() => {
@@ -74,10 +123,24 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       return "";
     }
 
-    if (expectedTypes.length === 1) {
-      const expectedType = guessEditorTypeFromExpectedType(expectedTypes[0]!);
+    if (
+      permittedDataTypes.length === 1 &&
+      !permittedDataTypes[0]!.schema.abstract
+    ) {
+      const expectedType = permittedDataTypes[0]!;
 
-      if (getEditorSpecs(expectedType).arrayEditException === "no-edit-mode") {
+      const schema = getMergedDataTypeSchema(expectedType.schema);
+
+      if ("anyOf" in schema) {
+        throw new Error(
+          "Data types with different expected sets of constraints (anyOf) are not yet supported",
+        );
+      }
+
+      if (
+        getEditorSpecs(expectedType.schema, schema).arrayEditException ===
+        "no-edit-mode"
+      ) {
         return "";
       }
     }
@@ -89,14 +152,22 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     setSelectedRow((prevId) => (id === prevId ? "" : id));
   };
 
-  const addItem = (value: unknown) => {
+  const addItem = (value: unknown, dataTypeId: VersionedUrl) => {
     setEditingRow("");
+
+    const { propertyMetadata } = generateNewMetadataObject({
+      propertyKeyChain,
+      valuePath: [...propertyKeyChain, items.length],
+      valueMetadata: { metadata: { dataTypeId } },
+    });
 
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.propertyRow.value = [
         ...items.map((item) => item.value),
         value,
       ];
+
+      draftCell.data.propertyRow.valueMetadata = propertyMetadata;
     });
     onChange(newCell);
 
@@ -109,11 +180,20 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   };
 
   const removeItem = (indexToRemove: number) => {
+    const { propertyMetadata } = generateNewMetadataObject({
+      propertyKeyChain,
+      valuePath: [...propertyKeyChain, indexToRemove],
+      valueMetadata: "delete",
+    });
+
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.propertyRow.value = items
         .filter((_, index) => indexToRemove !== index)
         .map(({ value }) => value);
+
+      draftCell.data.propertyRow.valueMetadata = propertyMetadata;
     });
+
     onChange(newCell);
   };
 
@@ -135,6 +215,25 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       const newItems = arrayMove(items, oldIndex, newIndex);
 
       draftCell.data.propertyRow.value = newItems.map(({ value }) => value);
+
+      if (!valueMetadata) {
+        throw new Error(
+          "Expected valueMetadata to be set when there are values",
+        );
+      }
+
+      if (!isArrayMetadata(valueMetadata)) {
+        throw new Error(
+          `Expected array metadata for value '${JSON.stringify(newItems)}', got ${JSON.stringify(valueMetadata)}`,
+        );
+      }
+
+      const newMetadata = arrayMove(valueMetadata.value, oldIndex, newIndex);
+
+      draftCell.data.propertyRow.valueMetadata = {
+        ...valueMetadata,
+        value: newMetadata,
+      };
     });
     onChange(newCell);
   };
@@ -159,15 +258,26 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const handleAddAnotherClick = () => {
     setSelectedRow("");
 
-    const onlyOneExpectedType = expectedTypes.length === 1;
-    const expectedType = expectedTypes[0]!;
-    const editorType = guessEditorTypeFromExpectedType(expectedType);
-    const editorSpec = getEditorSpecs(editorType, expectedType);
+    const onlyOneExpectedType =
+      permittedDataTypes.length === 1 &&
+      !permittedDataTypes[0]!.schema.abstract;
+    const expectedType = permittedDataTypes[0]!;
+
+    const schema = getMergedDataTypeSchema(expectedType.schema);
+
+    if ("anyOf" in schema) {
+      throw new Error(
+        "Data types with different expected sets of constraints (anyOf) are not yet supported",
+      );
+    }
+
+    const editorSpec = getEditorSpecs(expectedType.schema, schema);
+
     const noEditMode = editorSpec.arrayEditException === "no-edit-mode";
 
     // add the value on click instead of showing draftRow
     if (onlyOneExpectedType && noEditMode) {
-      return addItem(editorSpec.defaultValue);
+      return addItem(editorSpec.defaultValue, expectedType.schema.$id);
     }
 
     setEditingRow(DRAFT_ROW_KEY);
@@ -207,7 +317,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
                 editing={editingRow === item.id}
                 selected={selectedRow === item.id}
                 onSelect={toggleSelectedRow}
-                expectedTypes={expectedTypes}
+                expectedTypes={permittedDataTypes}
               />
             ))}
           </SortableContext>
@@ -224,7 +334,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       {isAddingDraft && (
         <DraftRow
           existingItemCount={items.length}
-          expectedTypes={expectedTypes}
+          expectedTypes={permittedDataTypes}
           onDraftSaved={addItem}
           onDraftDiscarded={() => setEditingRow("")}
         />

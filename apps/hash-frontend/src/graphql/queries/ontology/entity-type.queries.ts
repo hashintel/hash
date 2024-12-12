@@ -53,6 +53,23 @@ export const queryEntityTypesQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
+export const getClosedMultiEntityTypeQuery = gql`
+  query getClosedMultiEntityType(
+    $entityTypeIds: [VersionedUrl!]!
+    $includeArchived: Boolean = false
+    $includeDrafts: Boolean = false
+  ) {
+    getClosedMultiEntityType(
+      entityTypeIds: $entityTypeIds
+      includeArchived: $includeArchived
+      includeDrafts: $includeDrafts
+    ) {
+      closedMultiEntityType
+      definitions
+    }
+  }
+`;
+
 export const createEntityTypeMutation = gql`
   mutation createEntityType(
     $ownedById: OwnedById!

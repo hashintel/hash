@@ -23,10 +23,6 @@ use self::{session_id::SessionIdProducer, task::Task};
 use super::error::SessionError;
 use crate::transport::TransportLayer;
 
-// TODO: encoding and decoding layer(?)
-// TODO: timeout layer - needs encoding layer (for error handling), and IPC to cancel a specific
-// request in a session
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SessionEvent {
     SessionDropped { id: SessionId },

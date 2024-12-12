@@ -27,7 +27,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test:integration": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment functional; done"
+    "test:integration": "./scripts/test.sh"
   },
   "dependencies": {
     "@local/hash-backend-utils": "0.0.0-private",
@@ -37,11 +37,11 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@opentelemetry/api": "1.9.0",
-    "@opentelemetry/exporter-trace-otlp-grpc": "0.54.2",
-    "@opentelemetry/resources": "1.27.0",
-    "@opentelemetry/sdk-node": "0.54.2",
-    "@opentelemetry/sdk-trace-node": "1.27.0",
-    "@opentelemetry/semantic-conventions": "1.27.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "0.56.0",
+    "@opentelemetry/resources": "1.29.0",
+    "@opentelemetry/sdk-node": "0.56.0",
+    "@opentelemetry/sdk-trace-node": "1.29.0",
+    "@opentelemetry/semantic-conventions": "1.28.0",
     "@ory/client": "1.1.41",
     "artillery": "2.0.20",
     "dotenv-flow": "3.3.0",
@@ -49,16 +49,16 @@
   },
   "devDependencies": {
     "@apps/hash-api": "0.0.0-private",
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@rollup/plugin-commonjs": "28.0.1",
     "@rollup/plugin-node-resolve": "15.3.0",
     "@rollup/plugin-typescript": "12.1.1",
     "@types/dotenv-flow": "3.3.3",
     "@types/uuid": "10.0.0",
-    "eslint": "8.57.0",
+    "eslint": "9.16.0",
     "rimraf": "6.0.1",
-    "rollup": "4.27.2",
+    "rollup": "4.28.1",
     "typescript": "5.6.3"
   }
 }

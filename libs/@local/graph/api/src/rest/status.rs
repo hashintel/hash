@@ -1,4 +1,5 @@
-use core::{error::Error, fmt::Debug};
+use core::{error::Error, fmt::Debug, mem};
+use std::collections::HashMap;
 
 use axum::{
     Json,
@@ -7,6 +8,7 @@ use axum::{
 use error_stack::Report;
 use hash_graph_authorization::backend::PermissionAssertion;
 use hash_graph_postgres_store::store::error::BaseUrlAlreadyExists;
+use hash_graph_store::entity::EntityValidationReport;
 use hash_status::{Status, StatusCode};
 use serde::Serialize;
 
@@ -27,11 +29,18 @@ where
     response
 }
 
+#[derive(Debug, Serialize)]
+#[serde(bound = "C: Error + Send + Sync + 'static")]
+struct ValidationContent<C> {
+    validation: HashMap<usize, EntityValidationReport>,
+    report: Report<[C]>,
+}
+
 pub(crate) fn report_to_response<C>(report: impl Into<Report<[C]>>) -> Response
 where
     C: Error + Send + Sync + 'static,
 {
-    let report = report.into();
+    let mut report = report.into();
     let status_code = report
         .request_ref::<StatusCode>()
         .next()
@@ -50,9 +59,24 @@ where
     // TODO: Currently, this mostly duplicates the error printed below, when more information is
     //       added to the `Report` event consider commenting in this line again.
     // hash_tracing::sentry::capture_report(&report);
-    tracing::error!(error = ?report, tags.code = ?status_code.to_http_code());
 
-    status_to_response(Status::new(status_code, Some(report.to_string()), vec![
-        report,
-    ]))
+    let message = report.to_string();
+    if let Some(validation) = report
+        .downcast_mut::<HashMap<usize, EntityValidationReport>>()
+        .map(mem::take)
+    {
+        tracing::error!(error = ?report, ?validation, tags.code = ?status_code.to_http_code());
+        let status_code = if !validation.is_empty() && status_code == StatusCode::Unknown {
+            StatusCode::InvalidArgument
+        } else {
+            status_code
+        };
+
+        status_to_response(Status::new(status_code, Some(message), vec![
+            ValidationContent { validation, report },
+        ]))
+    } else {
+        tracing::error!(error = ?report, tags.code = ?status_code.to_http_code());
+        status_to_response(Status::new(status_code, Some(message), vec![report]))
+    }
 }

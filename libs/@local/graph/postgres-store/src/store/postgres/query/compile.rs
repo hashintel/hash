@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::iter::once;
+use core::{iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
 use hash_graph_store::{
@@ -1018,6 +1018,16 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         // column. We need to create a new join statement later on with a new,
                         // unique alias.
                         join_expression.table.alias.number += 1;
+                    } else if let (Table::Reference(lhs), Table::Reference(rhs)) =
+                        (&existing.table.table, &join_expression.table.table)
+                    {
+                        if mem::discriminant(lhs) == mem::discriminant(rhs)
+                            && existing.table.alias == join_expression.table.alias
+                        {
+                            // We have a join statement for the same table but with different
+                            // conditions.
+                            join_expression.table.alias.number += 1;
+                        }
                     }
                 }
 

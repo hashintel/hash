@@ -286,19 +286,13 @@ where
                 }
             }
 
-            for (edge_kind, table) in [
-                (
-                    OntologyEdgeKind::InheritsFrom,
-                    ReferenceTable::DataTypeInheritsFrom {
-                        // TODO: Use the resolve depths passed to the query
-                        inheritance_depth: Some(0),
-                    },
-                ),
-                (
-                    OntologyEdgeKind::ConstrainsValuesOn,
-                    ReferenceTable::DataTypeConstrainsValuesOn,
-                ),
-            ] {
+            for (edge_kind, table) in [(
+                OntologyEdgeKind::InheritsFrom,
+                ReferenceTable::DataTypeInheritsFrom {
+                    // TODO: Use the resolve depths passed to the query
+                    inheritance_depth: Some(0),
+                },
+            )] {
                 if let Some(traversal_data) = edges_to_traverse.get(&edge_kind) {
                     data_type_queue.extend(
                         Self::filter_data_types_by_permission(
@@ -344,7 +338,6 @@ where
                 "
                     DELETE FROM data_type_embeddings;
                     DELETE FROM data_type_inherits_from;
-                    DELETE FROM data_type_constrains_values_on;
                     DELETE FROM data_type_conversions;
                 ",
             )
@@ -1131,7 +1124,9 @@ where
         .collect::<Vec<_>>();
 
         let data_type_validator = DataTypeValidator;
-        for (data_type_id, schema) in data_types {
+        let num_data_types = data_types.len();
+        for (idx, (data_type_id, schema)) in data_types.into_iter().enumerate() {
+            tracing::debug!(data_type_id=%schema.id, "Reindexing schema {}/{}", idx + 1, num_data_types);
             let schema_metadata = ontology_type_resolver
                 .resolve_data_type_metadata(data_type_id)
                 .change_context(UpdateError)?;

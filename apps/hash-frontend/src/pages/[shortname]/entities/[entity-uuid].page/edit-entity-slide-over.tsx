@@ -5,27 +5,33 @@ import {
   Skeleton,
 } from "@hashintel/design-system";
 import {
+  getClosedMultiEntityTypeFromMap,
+  getDisplayFieldsForClosedEntityType,
+  isClosedMultiEntityTypeForEntityTypeIds,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
   mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   extractOwnedByIdFromEntityId,
-  linkEntityTypeUrl,
   splitEntityId,
 } from "@local/hash-subgraph";
-import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Drawer, Stack, Typography } from "@mui/material";
 import type { RefObject } from "react";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
@@ -42,11 +48,14 @@ import { Button, Link } from "../../../../shared/ui";
 import { SlideBackForwardCloseBar } from "../../../shared/shared/slide-back-forward-close-bar";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditor } from "./entity-editor";
-import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
+import { createDraftEntitySubgraph } from "./shared/create-draft-entity-subgraph";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
+import { useHandleTypeChanges } from "./shared/use-handle-type-changes";
 
 export interface EditEntitySlideOverProps {
+  closedMultiEntityTypesMap?: ClosedMultiEntityTypesRootMap;
+  closedMultiEntityTypesDefinitions?: ClosedMultiEntityTypesDefinitions;
   customColumns?: EntityEditorProps["customColumns"];
   defaultOutgoingLinkFilters?: EntityEditorProps["defaultOutgoingLinkFilters"];
   /**
@@ -98,6 +107,9 @@ export interface EditEntitySlideOverProps {
  */
 const EditEntitySlideOver = memo(
   ({
+    closedMultiEntityTypesMap: providedClosedMultiEntityTypesMap,
+    closedMultiEntityTypesDefinitions:
+      providedClosedMultiEntityTypesDefinitions,
     customColumns,
     defaultOutgoingLinkFilters,
     disableTypeClick,
@@ -120,11 +132,75 @@ const EditEntitySlideOver = memo(
       );
     }
 
-    const [localEntitySubgraph, setLocalEntitySubgraph] =
-      useState<Subgraph<EntityRootType> | null>(providedEntitySubgraph ?? null);
+    const [localEntitySubgraph, setLocalEntitySubgraph] = useState<
+      Subgraph<EntityRootType> | undefined
+    >(providedEntitySubgraph);
 
     const [ownedByIdFromProvidedEntityId, entityUuid, draftId] =
       providedEntityId ? splitEntityId(providedEntityId) : [];
+
+    const entity = localEntitySubgraph
+      ? getRoots(localEntitySubgraph)[0]
+      : null;
+
+    const providedTypeDetails = useMemo(() => {
+      if (
+        providedClosedMultiEntityTypesMap &&
+        providedClosedMultiEntityTypesDefinitions &&
+        entity?.metadata.entityTypeIds
+      ) {
+        const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
+          providedClosedMultiEntityTypesMap,
+          entity.metadata.entityTypeIds,
+        );
+
+        return {
+          closedMultiEntityType,
+          closedMultiEntityTypesDefinitions:
+            providedClosedMultiEntityTypesDefinitions,
+        };
+      }
+    }, [
+      providedClosedMultiEntityTypesMap,
+      providedClosedMultiEntityTypesDefinitions,
+      entity?.metadata.entityTypeIds,
+    ]);
+
+    const [draftEntityTypesDetails, setDraftEntityTypesDetails] = useState<
+      | Pick<
+          EntityEditorProps,
+          "closedMultiEntityType" | "closedMultiEntityTypesDefinitions"
+        >
+      | undefined
+    >(providedTypeDetails);
+
+    const [
+      draftLinksToCreate,
+      setDraftLinksToCreate,
+      draftLinksToArchive,
+      setDraftLinksToArchive,
+    ] = useDraftLinkState();
+    const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
+
+    const handleTypeChanges = useHandleTypeChanges({
+      entitySubgraph: localEntitySubgraph,
+      setDraftEntityTypesDetails,
+      setDraftEntitySubgraph: setLocalEntitySubgraph,
+      setDraftLinksToArchive,
+    });
+
+    useEffect(() => {
+      if (
+        entity?.metadata.entityTypeIds &&
+        providedTypeDetails &&
+        !isClosedMultiEntityTypeForEntityTypeIds(
+          providedTypeDetails.closedMultiEntityType,
+          entity.metadata.entityTypeIds,
+        )
+      ) {
+        setDraftEntityTypesDetails(providedTypeDetails);
+      }
+    }, [entity?.metadata.entityTypeIds, providedTypeDetails]);
 
     const [animateOut, setAnimateOut] = useState(false);
 
@@ -136,34 +212,56 @@ const EditEntitySlideOver = memo(
       }, 300);
     }, [setAnimateOut, onBack]);
 
-    const providedSubgraphAlreadyHasLinkedEntities = useMemo(() => {
-      if (!providedEntitySubgraph) {
+    const entityWithLinksAndTypesAvailableLocally = useMemo(() => {
+      if (!localEntitySubgraph || !draftEntityTypesDetails || !entity) {
         return false;
       }
 
       if (
-        providedEntitySubgraph.depths.hasLeftEntity.incoming === 0 ||
-        providedEntitySubgraph.depths.hasLeftEntity.outgoing === 0 ||
-        providedEntitySubgraph.depths.hasRightEntity.incoming === 0 ||
-        providedEntitySubgraph.depths.hasRightEntity.outgoing === 0
+        !isClosedMultiEntityTypeForEntityTypeIds(
+          draftEntityTypesDetails.closedMultiEntityType,
+          entity.metadata.entityTypeIds,
+        )
       ) {
         return false;
       }
 
-      const roots = getRoots(providedEntitySubgraph);
+      /**
+       * If the provided subgraph doesn't have a depth of 1 for these traversal options,
+       * it doesn't contain the incoming and outgoing links from the entity.
+       */
+      if (
+        localEntitySubgraph.depths.hasLeftEntity.incoming === 0 ||
+        localEntitySubgraph.depths.hasLeftEntity.outgoing === 0 ||
+        localEntitySubgraph.depths.hasRightEntity.incoming === 0 ||
+        localEntitySubgraph.depths.hasRightEntity.outgoing === 0
+      ) {
+        return false;
+      }
+
+      /**
+       * If the entity isn't in the subgraph roots, it may not have the links to/from it.
+       */
+      const roots = getRoots(localEntitySubgraph);
       const containsRequestedEntity = roots.some(
         (root) => root.entityId === providedEntityId,
       );
 
       return containsRequestedEntity;
-    }, [providedEntitySubgraph, providedEntityId]);
+    }, [
+      entity,
+      draftEntityTypesDetails,
+      localEntitySubgraph,
+      providedEntityId,
+    ]);
 
     /**
      * If the parent component didn't have the entitySubgraph already available,
      * or it doesn't contain links to/from the request entity,
-     * we need to fetch it and set it in the local state (from where it will be updated if the user uses the editor form).
+     * we need to fetch it and set it in the local state (from where it will be updated if the user uses the editor
+     * form).
      */
-    const { data: fetchedEntitySubgraph } = useQuery<
+    const { data: fetchedEntityData } = useQuery<
       GetEntitySubgraphQuery,
       GetEntitySubgraphQueryVariables
     >(getEntitySubgraphQuery, {
@@ -174,8 +272,34 @@ const EditEntitySlideOver = memo(
         );
 
         setLocalEntitySubgraph(subgraph);
+
+        const { definitions, closedMultiEntityTypes } = data.getEntitySubgraph;
+
+        if (!definitions || !closedMultiEntityTypes) {
+          throw new Error(
+            "definitions and closedMultiEntityTypes must be present in entitySubgraph",
+          );
+        }
+
+        const returnedEntity = getRoots(subgraph)[0];
+
+        if (!returnedEntity) {
+          throw new Error("No entity found in entitySubgraph");
+        }
+
+        const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
+          closedMultiEntityTypes,
+          returnedEntity.metadata.entityTypeIds,
+        );
+
+        setDraftEntityTypesDetails({
+          closedMultiEntityType,
+          closedMultiEntityTypesDefinitions: definitions,
+        });
       },
-      skip: providedSubgraphAlreadyHasLinkedEntities,
+      skip:
+        entityWithLinksAndTypesAvailableLocally &&
+        !!providedClosedMultiEntityTypesDefinitions,
       variables: {
         request: {
           filter: {
@@ -200,20 +324,21 @@ const EditEntitySlideOver = memo(
           },
           temporalAxes: currentTimeInstantTemporalAxes,
           graphResolveDepths: {
-            ...fullOntologyResolveDepths,
+            ...zeroedGraphResolveDepths,
             hasLeftEntity: { incoming: 1, outgoing: 1 },
             hasRightEntity: { incoming: 1, outgoing: 1 },
           },
           includeDrafts: !!draftId,
+          includeEntityTypes: "resolvedWithDataTypeChildren",
         },
         includePermissions: false,
       },
     });
 
     const originalEntitySubgraph = useMemo(() => {
-      if (!providedSubgraphAlreadyHasLinkedEntities && fetchedEntitySubgraph) {
+      if (fetchedEntityData) {
         return mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          fetchedEntitySubgraph.getEntitySubgraph.subgraph,
+          fetchedEntityData.getEntitySubgraph.subgraph,
         );
       }
 
@@ -222,11 +347,7 @@ const EditEntitySlideOver = memo(
       }
 
       return null;
-    }, [
-      providedSubgraphAlreadyHasLinkedEntities,
-      providedEntitySubgraph,
-      fetchedEntitySubgraph,
-    ]);
+    }, [providedEntitySubgraph, fetchedEntityData]);
 
     const [savingChanges, setSavingChanges] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
@@ -246,14 +367,6 @@ const EditEntitySlideOver = memo(
       }
     }
 
-    const [
-      draftLinksToCreate,
-      setDraftLinksToCreate,
-      draftLinksToArchive,
-      setDraftLinksToArchive,
-    ] = useDraftLinkState();
-    const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
-
     const [updateEntity] = useMutation<
       UpdateEntityMutation,
       UpdateEntityMutationVariables
@@ -261,8 +374,13 @@ const EditEntitySlideOver = memo(
 
     const entityLabel = useMemo(
       () =>
-        localEntitySubgraph ? generateEntityLabel(localEntitySubgraph) : "",
-      [localEntitySubgraph],
+        draftEntityTypesDetails?.closedMultiEntityType && entity
+          ? generateEntityLabel(
+              draftEntityTypesDetails.closedMultiEntityType,
+              entity,
+            )
+          : "",
+      [entity, draftEntityTypesDetails],
     );
 
     const resetEntityEditor = useCallback(() => {
@@ -275,10 +393,6 @@ const EditEntitySlideOver = memo(
       resetEntityEditor();
       onClose();
     }, [onClose, resetEntityEditor]);
-
-    const entity = localEntitySubgraph
-      ? getRoots(localEntitySubgraph)[0]
-      : null;
 
     const ownedById =
       ownedByIdFromProvidedEntityId ??
@@ -339,7 +453,7 @@ const EditEntitySlideOver = memo(
 
         resetEntityEditor();
         onSubmit();
-      } catch (err) {
+      } catch {
         setSavingChanges(false);
       }
     }, [
@@ -362,27 +476,11 @@ const EditEntitySlideOver = memo(
       [incompleteOnEntityClick, slideContainerRef],
     );
 
-    /**
-     * @todo H-3363 use the closed schema to get the first icon
-     */
-    const entityTypes = useMemo(
-      () =>
-        entity && localEntitySubgraph
-          ? entity.metadata.entityTypeIds.toSorted().map((entityTypeId) => {
-              const entityType = getEntityTypeById(
-                localEntitySubgraph,
-                entityTypeId,
-              );
-
-              if (!entityType) {
-                throw new Error(`Cannot find entity type ${entityTypeId}`);
-              }
-
-              return entityType;
-            })
-          : [],
-      [entity, localEntitySubgraph],
-    );
+    const { icon, isLink } = draftEntityTypesDetails
+      ? getDisplayFieldsForClosedEntityType(
+          draftEntityTypesDetails.closedMultiEntityType,
+        )
+      : { icon: null, isLink: false };
 
     return (
       <Drawer
@@ -412,6 +510,8 @@ const EditEntitySlideOver = memo(
       >
         {!entity ||
         !localEntitySubgraph ||
+        !entityWithLinksAndTypesAvailableLocally ||
+        !draftEntityTypesDetails ||
         entity.entityId !== providedEntityId ? (
           <Stack gap={3} p={5}>
             <Skeleton height={60} />
@@ -430,13 +530,8 @@ const EditEntitySlideOver = memo(
                 <Box sx={{ minWidth: 40 }}>
                   <EntityOrTypeIcon
                     entity={entity}
-                    icon={entityTypes[0]?.schema.icon}
-                    // @todo H-3363 use closed schema to take account of indirectly inherited link status
-                    isLink={
-                      !!entityTypes[0]?.schema.allOf?.some(
-                        (allOf) => allOf.$ref === linkEntityTypeUrl,
-                      )
-                    }
+                    icon={icon}
+                    isLink={isLink}
                     fill={({ palette }) => palette.gray[50]}
                     fontSize={40}
                   />
@@ -470,32 +565,43 @@ const EditEntitySlideOver = memo(
               </Stack>
 
               <EntityEditor
+                closedMultiEntityTypesMap={
+                  fetchedEntityData?.getEntitySubgraph.closedMultiEntityTypes ??
+                  providedClosedMultiEntityTypesMap ??
+                  null
+                }
                 customColumns={customColumns}
+                {...draftEntityTypesDetails}
                 defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
                 disableTypeClick={disableTypeClick}
                 readonly={readonly}
                 onEntityUpdated={null}
                 entityLabel={entityLabel}
                 entitySubgraph={localEntitySubgraph}
-                setEntity={(newEntity) => {
-                  setIsDirty(true);
-                  updateEntitySubgraphStateByEntity(
-                    newEntity,
-                    (updatedEntitySubgraphOrFunction) => {
-                      setLocalEntitySubgraph((prev) => {
-                        if (!prev) {
-                          throw new Error(`No previous subgraph to update`);
-                        }
+                handleTypesChange={async (change) => {
+                  await handleTypeChanges(change);
 
-                        const updatedEntitySubgraph =
-                          typeof updatedEntitySubgraphOrFunction === "function"
-                            ? updatedEntitySubgraphOrFunction(prev)
-                            : updatedEntitySubgraphOrFunction;
+                  const originalEntity = originalEntitySubgraph
+                    ? getRoots(originalEntitySubgraph)[0]
+                    : undefined;
 
-                        return updatedEntitySubgraph ?? prev;
-                      });
-                    },
+                  setIsDirty(
+                    JSON.stringify(change.entityTypeIds.toSorted()) !==
+                      JSON.stringify(
+                        originalEntity?.metadata.entityTypeIds.toSorted(),
+                      ),
                   );
+                }}
+                setEntity={(changedEntity) => {
+                  setLocalEntitySubgraph((prev) =>
+                    createDraftEntitySubgraph({
+                      entity: changedEntity,
+                      entityTypeIds: changedEntity.metadata.entityTypeIds,
+                      currentSubgraph: prev,
+                      omitProperties: [],
+                    }),
+                  );
+                  setIsDirty(true);
                 }}
                 isDirty={isDirty}
                 onEntityClick={onEntityClick}

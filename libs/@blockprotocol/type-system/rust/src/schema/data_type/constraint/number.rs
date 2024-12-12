@@ -255,9 +255,7 @@ impl ConstraintValidator<JsonNumber> for NumberSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonNumber) -> bool {
-        value
-            .as_f64()
-            .map_or(false, |number| self.is_valid(&number))
+        value.as_f64().is_some_and(|number| self.is_valid(&number))
     }
 
     fn validate_value(&self, value: &JsonNumber) -> Result<(), Report<ConstraintError>> {

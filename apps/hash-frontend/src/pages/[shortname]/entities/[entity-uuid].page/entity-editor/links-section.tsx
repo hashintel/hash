@@ -1,7 +1,9 @@
+import type { NoisySystemTypeId } from "@local/hash-isomorphic-utils/graph-queries";
+import { noisySystemTypeIds } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   getIncomingLinkAndSourceEntities,
   getOutgoingLinksForEntity,
-  getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { Stack } from "@mui/material";
 
@@ -10,9 +12,7 @@ import { IncomingLinksSection } from "./links-section/incoming-links-section";
 import { OutgoingLinksSection } from "./links-section/outgoing-links-section";
 
 export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
-  const { entitySubgraph } = useEntityEditor();
-
-  const entity = getRoots(entitySubgraph)[0]!;
+  const { draftLinksToArchive, entity, entitySubgraph } = useEntityEditor();
 
   const outgoingLinks = getOutgoingLinksForEntity(
     entitySubgraph,
@@ -20,6 +20,8 @@ export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
     entity.metadata.temporalVersioning[
       entitySubgraph.temporalAxes.resolved.variable.axis
     ],
+  ).filter(
+    (incomingLink) => !draftLinksToArchive.includes(incomingLink.entityId),
   );
 
   const incomingLinksAndSources = getIncomingLinkAndSourceEntities(
@@ -28,7 +30,21 @@ export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
     entity.metadata.temporalVersioning[
       entitySubgraph.temporalAxes.resolved.variable.axis
     ],
-  );
+  ).filter((incomingLinkAndSource) => {
+    return (
+      incomingLinkAndSource.linkEntity[0] &&
+      !draftLinksToArchive.includes(
+        incomingLinkAndSource.linkEntity[0].entityId,
+      ) &&
+      !incomingLinkAndSource.linkEntity[0].metadata.entityTypeIds.some(
+        (typeId) => noisySystemTypeIds.includes(typeId as NoisySystemTypeId),
+      ) &&
+      incomingLinkAndSource.leftEntity[0] &&
+      !incomingLinkAndSource.leftEntity[0].metadata.entityTypeIds.includes(
+        systemEntityTypes.claim.entityTypeId,
+      )
+    );
+  });
 
   return (
     <Stack gap={6}>

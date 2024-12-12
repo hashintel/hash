@@ -21,13 +21,17 @@ export * from "@playwright/test";
 export const test = base.extend({
   page: async ({ page }, use) => {
     const messages: string[] = [];
+
     page.on("console", (msg) => {
       const text = msg.text();
       if (tolerableConsoleMessageMatches.some((match) => match.test(text))) {
         return;
       }
+
       messages.push(`[${msg.type()}] ${msg.text()}`);
     });
+    // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(page);
     expect(
       messages,

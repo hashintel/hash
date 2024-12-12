@@ -1,6 +1,7 @@
 pub use self::{
     closed::{
         ClosedEntityType, ClosedEntityTypeMetadata, ClosedMultiEntityType, EntityTypeResolveData,
+        ResolveClosedEntityTypeError,
     },
     constraints::EntityConstraints,
     reference::EntityTypeReference,
@@ -74,16 +75,11 @@ pub struct EntityTypeSchemaMetadata {
 pub struct EntityTypeDisplayMetadata {
     #[serde(rename = "$id")]
     pub id: VersionedUrl,
+    pub depth: u16,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
-}
-
-impl EntityTypeDisplayMetadata {
-    pub const fn is_empty(&self) -> bool {
-        self.label_property.is_none() && self.icon.is_none()
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -12,13 +12,12 @@
     "validate": "openapi-generator-cli validate"
   },
   "dependencies": {
-    "axios": "1.7.7"
+    "axios": "1.7.9"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
     "@openapitools/openapi-generator-cli": "2.15.3",
-    "@types/node": "22.9.0",
-    "eslint": "8.57.0",
+    "@types/node": "22.10.2",
+    "prettier": "3.4.2",
     "rimraf": "6.0.1",
     "typescript": "5.6.3"
   }

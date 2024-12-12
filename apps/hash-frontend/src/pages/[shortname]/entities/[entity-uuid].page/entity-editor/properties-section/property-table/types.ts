@@ -1,28 +1,54 @@
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  PropertyMetadata,
+  PropertyMetadataObject,
+  PropertyMetadataValue,
+  PropertyPath,
+} from "@local/hash-graph-types/entity";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 
 import type { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 
 export type PropertyRow = {
-  title: string;
-  rowId: string;
-  value: unknown;
-  expectedTypes: DataTypeWithMetadata["schema"][];
-  isArray: boolean;
-  isSingleUrl: boolean;
-  required: boolean;
   children: PropertyRow[];
   depth: number;
+  generateNewMetadataObject: (args: {
+    /**
+     * The path to the property in the entity's properties (i.e. row.propertyKeyChain)
+     */
+    propertyKeyChain: PropertyPath;
+    /**
+     * The path to the leaf value in the entity's properties,
+     * which will start with propertyKeyChain, but may have additional array indices (depending on the property's structure)
+     */
+    valuePath: PropertyPath;
+    /**
+     * The metadata to set for the leaf value
+     */
+    valueMetadata: PropertyMetadataValue | "delete";
+  }) => {
+    entityPropertiesMetadata: PropertyMetadataObject;
+    propertyMetadata: PropertyMetadata | undefined;
+  };
   indent: number;
-  verticalLinesForEachIndent: VerticalIndentationLineDir[];
-  propertyKeyChain: string[];
+  isArray: boolean;
+  isSingleUrl: boolean;
   maxItems?: number;
   minItems?: number;
+  permittedDataTypes: ClosedDataTypeDefinition[];
+  permittedDataTypesIncludingChildren: ClosedDataTypeDefinition[];
+  propertyKeyChain: PropertyPath;
+  required: boolean;
+  rowId: string;
+  title: string;
+  value: unknown;
+  valueMetadata?: PropertyMetadata;
+  verticalLinesForEachIndent: VerticalIndentationLineDir[];
 };
 
 export type PropertyColumnKey = Extract<
   keyof PropertyRow,
-  "title" | "value" | "expectedTypes"
+  "title" | "value" | "permittedDataTypes"
 >;
 
 export interface PropertyColumn extends SizedGridColumn {

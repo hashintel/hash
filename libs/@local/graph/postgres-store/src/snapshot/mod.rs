@@ -244,7 +244,6 @@ trait WriteBatch<C, A> {
     ) -> impl Future<Output = Result<(), Report<InsertionError>>> + Send;
     fn commit(
         postgres_client: &mut PostgresStore<C, A>,
-        validation: bool,
     ) -> impl Future<Output = Result<(), Report<InsertionError>>> + Send;
 }
 
@@ -812,7 +811,6 @@ where
         + Send
         + 'static,
         chunk_size: usize,
-        validation: bool,
     ) -> Result<(), Report<SnapshotRestoreError>> {
         tracing::info!("snapshot restore started");
 
@@ -857,7 +855,7 @@ where
             .await
             .change_context(SnapshotRestoreError::Read)??;
 
-        SnapshotRecordBatch::commit(&mut client, validation)
+        SnapshotRecordBatch::commit(&mut client)
             .await
             .change_context(SnapshotRestoreError::Write)
             .map_err(|report| {

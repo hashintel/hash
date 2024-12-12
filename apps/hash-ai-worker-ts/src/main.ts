@@ -10,8 +10,7 @@ Sentry.init({
 
 import * as http from "node:http";
 import { createRequire } from "node:module";
-import * as path from "node:path";
-import { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
@@ -29,7 +28,7 @@ import { createFlowActivities } from "./activities/flow-activities.js";
 import { logger } from "./shared/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const require = createRequire(import.meta.url);
 
@@ -100,8 +99,8 @@ async function run() {
   logger.info("Starting AI worker...");
 
   const graphApiClient = createGraphClient(logger, {
-    host: getRequiredEnv("HASH_GRAPH_API_HOST"),
-    port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
+    host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
+    port: parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
   });
 
   logger.info("Created Graph client");

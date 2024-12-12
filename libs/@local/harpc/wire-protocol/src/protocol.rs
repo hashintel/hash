@@ -22,6 +22,7 @@ pub enum ProtocolVersionDecodeError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct ProtocolVersion(#[cfg_attr(test, strategy(1..=1_u8))] u8);
 
@@ -71,6 +72,21 @@ impl Decode for ProtocolVersion {
     }
 }
 
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for ProtocolVersion {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = u8::deserialize(deserializer)?;
+
+        match Self(value) {
+            Self::V1 => Ok(Self::V1),
+            _ => Err(serde::de::Error::custom("unsupported version")),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 pub enum ProtocolDecodeError {
     #[error("invalid packet identifier: expected {expected:?}, actual {actual:?}")]
@@ -85,6 +101,7 @@ pub enum ProtocolDecodeError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct Protocol {
     pub version: ProtocolVersion,

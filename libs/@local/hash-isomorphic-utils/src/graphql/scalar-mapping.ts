@@ -18,11 +18,16 @@ export const scalars = {
   ConstructDataTypeParams:
     "@local/hash-isomorphic-utils/data-types#ConstructDataTypeParams",
 
+  ClosedMultiEntityType:
+    "@local/hash-graph-types/ontology#ClosedMultiEntityType",
+  ClosedMultiEntityTypesRootMap:
+    "@local/hash-graph-types/ontology#ClosedMultiEntityTypesRootMap",
+  ClosedMultiEntityTypesDefinitions:
+    "@local/hash-graph-types/ontology#ClosedMultiEntityTypesDefinitions",
   EntityTypeWithMetadata:
     "@local/hash-graph-types/ontology#EntityTypeWithMetadata",
   ConstructEntityTypeParams:
     "@local/hash-isomorphic-utils/types#ConstructEntityTypeParams",
-
   PropertyTypeWithMetadata:
     "@local/hash-graph-types/ontology#PropertyTypeWithMetadata",
   ConstructPropertyTypeParams:
@@ -43,6 +48,8 @@ export const scalars = {
     "@local/hash-graph-types/entity#PropertyPatchOperation",
   DiffEntityInput: "@local/hash-subgraph#DiffEntityInput",
   DiffEntityResult: "@local/hash-graph-client#DiffEntityResult",
+  ValidateEntityParamsComponents:
+    "@local/hash-graph-client#ValidateEntityParamsComponents",
 
   Filter: "@local/hash-graph-client#Filter",
 

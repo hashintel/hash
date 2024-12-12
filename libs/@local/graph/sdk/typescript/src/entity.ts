@@ -1,14 +1,8 @@
-import type {
-  ClosedMultiEntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
-  ClosedMultiEntityType as GraphApiClosedMultiEntityType,
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
-  GetEntitiesResponse,
-  GetEntitySubgraphResponse,
   GraphApi,
   OriginProvenance,
   PatchEntityParams as GraphApiPatchEntityParams,
@@ -33,7 +27,9 @@ import type {
   Property,
   PropertyArrayWithMetadata,
   PropertyMetadata,
+  PropertyMetadataArray,
   PropertyMetadataObject,
+  PropertyMetadataValue,
   PropertyObject,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
@@ -46,12 +42,19 @@ import {
   isObjectMetadata,
   isValueMetadata,
 } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  ClosedEntityType,
+  ClosedMultiEntityType,
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
 import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
+import type { EntityValidationReport } from "@local/hash-graph-types/validation";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { AuthenticationContext } from "./authentication-context.js";
@@ -86,6 +89,7 @@ export type PatchEntityParameters = Omit<
   propertyPatches?: PropertyPatchOperation[];
   provenance: EnforcedEntityEditionProvenance;
 };
+
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
 );
@@ -470,20 +474,130 @@ export const flattenPropertyMetadata = (
   return flattened;
 };
 
+export const getDisplayFieldsForClosedEntityType = (
+  closedType:
+    | Pick<ClosedMultiEntityType, "allOf">
+    | Pick<ClosedEntityType, "allOf" | "$id">,
+) => {
+  let foundLabelProperty = undefined;
+  let foundIcon = undefined;
+  let isLink = false;
+
+  const breadthFirstArray =
+    "$id" in closedType
+      ? /**
+         * This is a closed, single entity type. Its inheritance chain, including itself, is breadth-first in 'allOf'.
+         */
+        (closedType.allOf ?? [])
+      : /**
+         * This is a multi-entity-type, where each item in the root 'allOf' is a closed type,
+         * each of which has its inheritance chain (including itself) in a breadth-first order in its own 'allOf'.
+         * We need to sort all this by depth rather than going through the root 'allOf' directly,
+         * which would process the entire inheritance chain of each type in the multi-type before moving to the next
+         * one.
+         */
+        closedType.allOf
+          .flatMap((type) => type.allOf ?? [])
+          .sort((a, b) => a.depth - b.depth);
+
+  for (const { icon, labelProperty, $id } of breadthFirstArray) {
+    if (!foundIcon && icon) {
+      foundIcon = icon;
+    }
+    if (!foundLabelProperty && labelProperty) {
+      foundLabelProperty = labelProperty;
+    }
+
+    if (!isLink) {
+      isLink =
+        $id ===
+        /**
+         * Ideally this wouldn't be hardcoded but the only places to import it from would create a circular dependency
+         * between packages
+         * @todo do something about this
+         */
+        "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
+    }
+
+    if (foundIcon && foundLabelProperty && isLink) {
+      break;
+    }
+  }
+
+  return {
+    icon: foundIcon,
+    isLink,
+    labelProperty: foundLabelProperty,
+  };
+};
+
+export const isClosedMultiEntityTypeForEntityTypeIds = (
+  closedMultiEntityType: ClosedMultiEntityType,
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
+) => {
+  const entityTypeIdsSet = new Set(
+    entityTypeIds.map((entityTypeId) => entityTypeId),
+  );
+  const closedMultiEntityTypeIdsSet = new Set(
+    closedMultiEntityType.allOf.map((entityType) => entityType.$id),
+  );
+
+  if (entityTypeIdsSet.size !== closedMultiEntityTypeIdsSet.size) {
+    return false;
+  }
+
+  for (const value of entityTypeIdsSet) {
+    /**
+     * We can't use Set.isSubsetOf/isSupersetOf until using Node 22+ everywhere that might use this
+     */
+    if (!closedMultiEntityTypeIdsSet.has(value)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+export const getPropertyTypeForClosedMultiEntityType = (
+  closedMultiEntityType: ClosedMultiEntityType,
+  propertyTypeBaseUrl: BaseUrl,
+  definitions: ClosedMultiEntityTypesDefinitions,
+): PropertyType => {
+  const schema = closedMultiEntityType.properties[propertyTypeBaseUrl];
+
+  if (!schema) {
+    throw new Error(
+      `Expected ${propertyTypeBaseUrl} to appear in closed entity type properties`,
+    );
+  }
+
+  const propertyTypeId = "items" in schema ? schema.items.$ref : schema.$ref;
+
+  const propertyType = definitions.propertyTypes[propertyTypeId];
+
+  if (!propertyType) {
+    throw new Error(
+      `Expected ${propertyTypeId} to appear in definitions.propertyTypes`,
+    );
+  }
+
+  return propertyType;
+};
+
 /**
  * Retrieves a `ClosedMultiEntityType` from a given response based on a list of entity type IDs.
  *
- * @param response - The response object returned from the Graph API which contains the closed multi-entity types.
+ * @param closedMultiEntityTypes - The object returned from the Graph API which contains the closed multi-entity types.
  * @param entityTypesIds - An array of entity type IDs.
- * @returns Returns a `ClosedMultiEntityType` if found, otherwise returns `undefined`.
+ * @throws Error If the closed entity type for the given entityTypeIds is not found in the map.
+ * @returns ClosedMultiEntityType
  */
-export const getClosedMultiEntityTypesFromResponse = (
-  response: GetEntitySubgraphResponse | GetEntitiesResponse,
+export const getClosedMultiEntityTypeFromMap = (
+  closedMultiEntityTypes: ClosedMultiEntityTypesRootMap | undefined,
   entityTypesIds: [VersionedUrl, ...VersionedUrl[]],
-): ClosedMultiEntityType | undefined => {
-  // A response does not necessarily include closed multi-entity types.
-  if (!response.closedMultiEntityTypes) {
-    return;
+): ClosedMultiEntityType => {
+  if (!closedMultiEntityTypes) {
+    throw new Error(`Expected closedMultiEntityTypes to be defined`);
   }
 
   // The `closedMultiEntityTypes` field contains a nested map of closed entity types.
@@ -509,13 +623,276 @@ export const getClosedMultiEntityTypesFromResponse = (
   // Thus, we sort the entity type IDs and traverse the nested map to find the closed multi-entity type.
   // The first entity type ID is used to get the first level of the nested map. The rest of the entity
   // type IDs are used to traverse the nested map.
-  const [firstEntityTypeId, ...restEntityTypesIds] = entityTypesIds.toSorted();
-  return restEntityTypesIds.reduce(
-    (map, entity_type_id) => map?.inner?.[entity_type_id],
-    response.closedMultiEntityTypes[firstEntityTypeId!],
-  )?.schema satisfies GraphApiClosedMultiEntityType | undefined as
-    | ClosedMultiEntityType
+  const [firstEntityTypeId, ...restEntityTypesIds] =
+    entityTypesIds.toSorted() as typeof entityTypesIds;
+
+  const unMappedFirstEntityType = closedMultiEntityTypes[firstEntityTypeId];
+
+  if (!unMappedFirstEntityType) {
+    throw new Error(
+      `Could not find closed entity type for id ${firstEntityTypeId} in map`,
+    );
+  }
+
+  const unmappedClosedEntityType = restEntityTypesIds.reduce(
+    (map, entityTypeId) => {
+      const nextEntityType = map.inner?.[entityTypeId];
+      if (!nextEntityType) {
+        throw new Error(
+          `Could not find closed entity type for id ${entityTypeId} in map`,
+        );
+      }
+
+      return nextEntityType;
+    },
+    unMappedFirstEntityType,
+  );
+
+  return unmappedClosedEntityType.schema as ClosedMultiEntityType;
+};
+
+export const getPropertyTypeForClosedEntityType = ({
+  closedMultiEntityType,
+  definitions,
+  propertyTypeBaseUrl,
+}: {
+  closedMultiEntityType: ClosedMultiEntityType;
+  definitions: ClosedMultiEntityTypesDefinitions;
+  propertyTypeBaseUrl: BaseUrl;
+}) => {
+  const schema = closedMultiEntityType.properties[propertyTypeBaseUrl];
+
+  if (!schema) {
+    throw new Error(
+      `Expected ${propertyTypeBaseUrl} to appear in entity properties`,
+    );
+  }
+
+  const propertyTypeId = "items" in schema ? schema.items.$ref : schema.$ref;
+
+  const propertyType = definitions.propertyTypes[propertyTypeId];
+
+  if (!propertyType) {
+    throw new Error(
+      `Expected ${propertyTypeId} to appear in definitions.propertyTypes`,
+    );
+  }
+
+  return {
+    propertyType,
+    schema,
+  };
+};
+
+/**
+ * Generate a new property metadata object based on an existing one, with a value's metadata set or deleted.
+ * This is a temporary solution to be replaced by the SDK accepting {@link PropertyPatchOperation}s directly,
+ * which it then applies to the entity to generate the new properties and metadata.
+ *
+ * @returns {PropertyMetadataObject} a new object with the changed metadata
+ * @throws {Error} if the path is not supported (complex arrays or property objects)
+ */
+export const generateChangedPropertyMetadataObject = (
+  path: PropertyPath,
+  metadata: PropertyMetadataValue | "delete",
+  baseMetadataObject: PropertyMetadataObject,
+): PropertyMetadataObject => {
+  const clonedMetadata = JSON.parse(JSON.stringify(baseMetadataObject)) as
+    | PropertyMetadataObject
     | undefined;
+
+  if (!clonedMetadata) {
+    throw new Error(
+      `Expected metadata to be an object, but got metadata for property array: ${JSON.stringify(
+        clonedMetadata,
+        null,
+        2,
+      )}`,
+    );
+  }
+
+  const firstKey = path[0];
+
+  if (!firstKey) {
+    throw new Error("Expected path to have at least one key");
+  }
+
+  if (typeof firstKey === "number") {
+    throw new Error(`Expected first key to be a string, but got ${firstKey}`);
+  }
+
+  const propertyMetadata = clonedMetadata.value[firstKey];
+
+  const secondKey = path[1];
+
+  const remainingKeys = path.slice(2);
+
+  const thirdKey = remainingKeys[0];
+
+  if (typeof secondKey === "undefined") {
+    /**
+     * Set or delete metadata for a single value.
+     * This happens regardless of whether there's already metadata set at this baseUrl on the entity's properties,
+     * because we're just going to overwrite it or delete it regardless.
+     */
+    if (metadata === "delete") {
+      delete clonedMetadata.value[firstKey];
+    } else {
+      clonedMetadata.value[firstKey] = metadata;
+    }
+    return clonedMetadata;
+  }
+
+  if (!propertyMetadata) {
+    if (metadata === "delete") {
+      /**
+       * We've been asked to delete metadata at a path, but we don't have any metadata for it anyway.
+       */
+      return clonedMetadata;
+    }
+
+    if (typeof secondKey === "number") {
+      if (thirdKey) {
+        if (typeof thirdKey === "number") {
+          throw new Error(
+            `Multi-dimensional arrays as property values are not yet supported`,
+          );
+        } else {
+          throw new Error(`Arrays of property objects are not yet supported`);
+        }
+      }
+
+      if (secondKey !== 0) {
+        throw new Error(
+          `Expected array index to be 0 on new array, got ${secondKey}`,
+        );
+      }
+
+      /**
+       * Set metadata for a new array
+       */
+      clonedMetadata.value[firstKey] = {
+        value: [metadata],
+      } satisfies PropertyMetadataArray;
+      return clonedMetadata;
+    }
+
+    /**
+     * Set metadata for a new property object
+     */
+    if (typeof thirdKey !== "number") {
+      throw new Error("Nested property objects are not yet supported");
+    }
+
+    if (typeof thirdKey !== "undefined") {
+      if (thirdKey !== 0) {
+        throw new Error(
+          `Expected array index to be 0 on new array, got ${thirdKey}`,
+        );
+      }
+
+      /**
+       * This is a new property object with an array set one of its inner properties,
+       * i.e. metadata for entity properties that looks like this
+       * {
+       *   properties: {
+       *     [firstKey]: {
+       *       [secondKey]: [value that `metadata` identifies]
+       *     }
+       *   }
+       * }
+       */
+      clonedMetadata.value[firstKey] = {
+        value: {
+          [secondKey]: { value: [metadata] } satisfies PropertyMetadataArray,
+        },
+      } satisfies PropertyMetadataObject;
+    } else {
+      /**
+       * This is a new property object with a single value set for one of its properties
+       */
+      clonedMetadata.value[firstKey] = {
+        value: { [secondKey]: metadata },
+      } satisfies PropertyMetadataObject;
+    }
+
+    return clonedMetadata;
+  }
+
+  /**
+   * If we reached here, we already have metadata set at this baseUrl on the entity's properties,
+   * and it isn't a single value.
+   */
+  if (typeof secondKey === "number") {
+    if (!isArrayMetadata(propertyMetadata)) {
+      throw new Error(
+        `Expected property metadata to be an array at path ${JSON.stringify([firstKey, secondKey])}, but got ${JSON.stringify(
+          propertyMetadata,
+        )}`,
+      );
+    }
+
+    if (typeof thirdKey !== "undefined") {
+      if (typeof thirdKey === "number") {
+        throw new Error(
+          `Multi-dimensional arrays as property values are not yet supported`,
+        );
+      } else {
+        throw new Error(`Arrays of property objects are not yet supported`);
+      }
+    }
+
+    if (metadata === "delete") {
+      propertyMetadata.value.splice(secondKey, 1);
+    } else {
+      propertyMetadata.value[secondKey] = metadata;
+    }
+    return clonedMetadata;
+  }
+
+  /**
+   * This is an existing property object
+   */
+  if (!isObjectMetadata(propertyMetadata)) {
+    throw new Error(
+      `Expected property metadata to be an object at path ${firstKey}, but got ${JSON.stringify(
+        propertyMetadata,
+      )}`,
+    );
+  }
+
+  if (typeof thirdKey !== "undefined") {
+    if (typeof thirdKey !== "number") {
+      throw new Error("Nested property objects are not yet supported");
+    }
+
+    propertyMetadata.value[secondKey] ??= {
+      value: [],
+    };
+
+    if (!isArrayMetadata(propertyMetadata.value[secondKey])) {
+      throw new Error(
+        `Expected property metadata to be an array at path ${JSON.stringify([firstKey, secondKey])}, but got ${JSON.stringify(
+          propertyMetadata.value[secondKey],
+        )}`,
+      );
+    }
+
+    const propertyObjectArrayValueMetadata =
+      propertyMetadata.value[secondKey].value;
+
+    if (metadata === "delete") {
+      propertyObjectArrayValueMetadata.splice(thirdKey, 1);
+    } else {
+      propertyObjectArrayValueMetadata[thirdKey] = metadata;
+    }
+  } else if (metadata === "delete") {
+    delete propertyMetadata.value[secondKey];
+  } else {
+    propertyMetadata.value[secondKey] = metadata;
+  }
+
+  return clonedMetadata;
 };
 
 export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
@@ -535,7 +912,9 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
             .entityTypeIds as PropertyMap["entityTypeIds"],
           temporalVersioning: entity.metadata
             .temporalVersioning as EntityTemporalVersioningMetadata,
-          properties: entity.metadata.properties as PropertyMetadataObject,
+          properties: entity.metadata.properties as
+            | PropertyMetadataObject
+            | undefined,
           provenance: {
             ...entity.metadata.provenance,
             createdById: entity.metadata.provenance.createdById as CreatedById,
@@ -606,6 +985,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       )
       .then(
         ({ data: entities }) =>
+          // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           entities.map((entity, index) => {
             return new Entity<T[typeof index]>(entity);
           }) as { [I in keyof T]: Entity<T[I]> },
@@ -618,10 +999,10 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     params: Omit<ValidateEntityParams, "properties"> & {
       properties: PropertyObjectWithMetadata;
     },
-  ): Promise<void> {
+  ): Promise<EntityValidationReport | undefined> {
     return await graphAPI
       .validateEntity(authentication.actorId, params)
-      .then(({ data }) => data);
+      .then(({ data }) => data["0"] as EntityValidationReport);
   }
 
   public async patch(
@@ -634,13 +1015,13 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       ...params
     }: PatchEntityParameters,
     /**
-     * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of the update.
-     *    I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId is changed, but
-     *    it isn't causing a compiler error:
+     * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of
+     *   the update. I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId
+     *   is changed, but it isn't causing a compiler error:
      *
      *    public async patch<NewPropertyMap extends EntityProperties = PropertyMap>(
-     *      // PatchEntityParams sets a specific VersionedUrl based on NewPropertyMap, but this is not enforced by the compiler
-     *      params: PatchEntityParameters<NewPropertyMap>,
+     *      // PatchEntityParams sets a specific VersionedUrl based on NewPropertyMap, but this is not enforced by the
+     *   compiler params: PatchEntityParameters<NewPropertyMap>,
      *    )
      */
   ): Promise<this> {
@@ -727,7 +1108,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     return this.#entity.metadata.properties ?? { value: {} };
   }
 
-  public propertyMetadata(path: PropertyPath): PropertyMetadata["metadata"] {
+  public propertyMetadata(path: PropertyPath): PropertyMetadata | undefined {
     return path.reduce<PropertyMetadata | undefined>((map, key) => {
       if (!map || !("value" in map)) {
         return undefined;
@@ -743,7 +1124,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       } else {
         return undefined;
       }
-    }, this.#entity.metadata.properties)?.metadata;
+    }, this.#entity.metadata.properties);
   }
 
   public flattenedPropertiesMetadata(): {

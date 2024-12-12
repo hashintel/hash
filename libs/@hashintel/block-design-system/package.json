@@ -37,26 +37,26 @@
     "react-type-animation": "3.2.0"
   },
   "devDependencies": {
-    "@emotion/react": "11.13.3",
-    "@emotion/styled": "11.13.0",
-    "@local/eslint-config": "0.0.0-private",
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.0",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@mui/material": "5.16.7",
-    "@mui/system": "5.16.7",
+    "@mui/material": "5.16.11",
+    "@mui/system": "5.16.8",
     "@types/react": "18.2.68",
     "@types/react-dom": "18.2.25",
     "@types/react-syntax-highlighter": "15.5.13",
-    "eslint": "8.57.0",
-    "eslint-plugin-storybook": "0.8.0",
+    "eslint": "9.16.0",
+    "eslint-plugin-storybook": "0.11.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "5.6.3"
   },
   "peerDependencies": {
-    "@emotion/react": "11.13.3",
-    "@emotion/styled": "11.13.0",
-    "@mui/material": "5.16.7",
-    "@mui/system": "5.16.7",
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.0",
+    "@mui/material": "5.16.11",
+    "@mui/system": "5.16.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }

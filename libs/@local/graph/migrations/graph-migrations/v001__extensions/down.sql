@@ -1,0 +1,1 @@
+-- We cannot remove the extensions again as extensions are global

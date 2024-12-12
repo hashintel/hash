@@ -1,6 +1,6 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
-import { dirname, join } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { test } from "vitest";
@@ -131,9 +131,9 @@ const metrics: MetricDefinition[] = testData.map((testItem) => {
 });
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-const baseDirectoryPath = join(
+const baseDirectoryPath = path.join(
   __dirname,
   "/var/get-entity-summaries-from-text-test",
 );

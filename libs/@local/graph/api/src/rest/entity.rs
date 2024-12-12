@@ -28,9 +28,12 @@ use hash_graph_store::{
         ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityRequest, DiffEntityParams,
         DiffEntityResult, EntityQueryCursor, EntityQueryPath, EntityQuerySorting,
         EntityQuerySortingRecord, EntityQuerySortingToken, EntityQueryToken, EntityStore as _,
-        EntityValidationType, GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams,
-        PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
-        ValidateEntityParams,
+        EntityTypesError, EntityValidationReport, EntityValidationType, GetEntitiesParams,
+        GetEntitiesResponse, GetEntitySubgraphParams, LinkDataStateError, LinkDataValidationReport,
+        LinkError, LinkTargetError, LinkValidationReport, LinkedEntityError,
+        MetadataValidationReport, PatchEntityParams, PropertyMetadataValidationReport,
+        QueryConversion, UnexpectedEntityType, UpdateEntityEmbeddingsParams,
+        ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     filter::Filter,
@@ -56,6 +59,16 @@ use hash_graph_types::{
             PropertyPathElement, PropertyProvenance, PropertyWithMetadata,
             PropertyWithMetadataArray, PropertyWithMetadataObject, PropertyWithMetadataValue,
             ValueMetadata,
+            visitor::{
+                ArrayItemNumberMismatch, ArrayValidationReport, DataTypeCanonicalCalculation,
+                DataTypeConversionError, DataTypeInferenceError, InvalidCanonicalValue,
+                JsonSchemaValueTypeMismatch, ObjectPropertyValidationReport,
+                ObjectValidationReport, OneOfArrayValidationReports, OneOfObjectValidationReports,
+                OneOfPropertyValidationReports, PropertyArrayValidationReport,
+                PropertyObjectValidationReport, PropertyValidationReport,
+                PropertyValueTypeMismatch, PropertyValueValidationReport, ValueValidationError,
+                ValueValidationReport,
+            },
         },
     },
     owned_by_id::OwnedById,
@@ -161,6 +174,36 @@ use crate::rest::{
             EntityTemporalMetadata,
             EntityQueryToken,
             LinkData,
+            EntityValidationReport,
+            LinkedEntityError,
+            LinkDataValidationReport,
+            LinkDataStateError,
+            LinkValidationReport,
+            LinkError,
+            LinkTargetError,
+            UnexpectedEntityType,
+            MetadataValidationReport,
+            EntityTypesError,
+            PropertyMetadataValidationReport,
+            ObjectPropertyValidationReport,
+            JsonSchemaValueTypeMismatch,
+            ArrayValidationReport,
+            ArrayItemNumberMismatch,
+            PropertyValidationReport,
+            OneOfPropertyValidationReports,
+            PropertyValueValidationReport,
+            ObjectValidationReport,
+            DataTypeConversionError,
+            DataTypeCanonicalCalculation,
+            DataTypeInferenceError,
+            PropertyValueTypeMismatch,
+            InvalidCanonicalValue,
+            OneOfArrayValidationReports,
+            PropertyArrayValidationReport,
+            OneOfObjectValidationReports,
+            PropertyObjectValidationReport,
+            ValueValidationReport,
+            ValueValidationError,
 
             DiffEntityParams,
             DiffEntityResult,
@@ -339,7 +382,7 @@ where
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 204, description = "The validation passed"),
+        (status = 200, content_type = "application/json", description = "The validation report", body = HashMap<usize, EntityValidationReport>),
         (status = 400, content_type = "application/json", description = "The entity validation failed"),
 
         (status = 404, description = "Entity Type URL was not found"),
@@ -356,7 +399,7 @@ async fn validate_entity<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<StatusCode, Response>
+) -> Result<Json<HashMap<usize, EntityValidationReport>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -375,13 +418,11 @@ where
         .await
         .map_err(report_to_response)?;
 
-    store
-        .validate_entity(actor_id, Consistency::FullyConsistent, params)
-        .await
-        .attach(hash_status::StatusCode::InvalidArgument)
-        .map_err(report_to_response)?;
-
-    Ok(StatusCode::NO_CONTENT)
+    Ok(Json(
+        store
+            .validate_entity(actor_id, Consistency::FullyConsistent, params)
+            .await,
+    ))
 }
 
 #[utoipa::path(

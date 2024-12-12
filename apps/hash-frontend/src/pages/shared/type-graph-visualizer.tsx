@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type {
   DataTypeWithMetadata,

@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [package]
 name              = "hash-graph-validation"
 version.workspace = true
@@ -16,18 +14,19 @@ hash-graph-types = { workspace = true, public = true }
 # Public third-party dependencies
 
 # Private workspace dependencies
-error-stack = { workspace = true, features = ["hooks"] }
+error-stack = { workspace = true, features = ["hooks", "unstable", "futures"] }
 type-system = { workspace = true }
 
 # Private third-party dependencies
-futures    = { workspace = true }
-regex      = { workspace = true }
-serde      = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
-thiserror  = { workspace = true }
-url        = { workspace = true }
-utoipa     = { workspace = true, optional = true }
-uuid       = { workspace = true, features = ["std"] }
+derive_more = { workspace = true, features = ["display", "error"] }
+futures     = { workspace = true }
+regex       = { workspace = true }
+serde       = { workspace = true, features = ["derive"] }
+serde_json  = { workspace = true }
+thiserror   = { workspace = true }
+url         = { workspace = true }
+utoipa      = { workspace = true, optional = true }
+uuid        = { workspace = true, features = ["std"] }
 
 [dev-dependencies]
 hash-graph-temporal-versioning = { workspace = true }

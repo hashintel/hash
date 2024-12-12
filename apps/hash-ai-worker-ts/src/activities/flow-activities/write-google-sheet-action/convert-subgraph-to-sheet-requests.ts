@@ -542,6 +542,12 @@ export const convertSubgraphToSheetRequests = ({
             const { sheetId, rowIndex } = entityPosition;
             const linkedEntity = getEntityRevision(subgraph, leftEntityId);
 
+            if (!linkedEntity) {
+              throw new Error(
+                `Entity ${leftEntityId} not found in subgraph when processing link entity ${entity.metadata.recordId.entityId}`,
+              );
+            }
+
             /** Create the link from this sheet to the source entity */
             entityCells.push(
               createHyperlinkCell({
@@ -598,6 +604,12 @@ export const convertSubgraphToSheetRequests = ({
             const { sheetId, rowIndex } = entityPosition;
 
             const linkedEntity = getEntityRevision(subgraph, rightEntityId);
+
+            if (!linkedEntity) {
+              throw new Error(
+                `Entity ${rightEntityId} not found in subgraph when processing link entity ${entity.metadata.recordId.entityId}`,
+              );
+            }
 
             entityCells.push(
               createHyperlinkCell({

@@ -42,7 +42,7 @@
     },
     "start:healthcheck": {
       "cache": false,
-      "dependsOn": ["compile:release"]
+      "dependsOn": ["start:migrate"]
     },
 
     "start:test:migrate": {
@@ -87,7 +87,7 @@
     "lint:clippy": {},
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen", "@local/eslint#build"]
     },
     "lint:tsc": {
       "dependsOn": ["codegen"]

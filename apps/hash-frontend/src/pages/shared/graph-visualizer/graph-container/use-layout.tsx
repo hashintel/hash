@@ -22,7 +22,7 @@ export const useLayout = () => {
       settings: {
         ...settings,
         outboundAttractionDistribution: true,
-        gravity: 2.5,
+        gravity: 1,
         scalingRatio: 10,
       },
     });

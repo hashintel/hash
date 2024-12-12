@@ -7,17 +7,19 @@ import {
   faPencil,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
+import {
+  formatDataValue,
+  getMergedDataTypeSchema,
+} from "@local/hash-isomorphic-utils/data-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import { Box, Divider, Typography } from "@mui/material";
+import { Box, Divider, Stack, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 
 import { getEditorSpecs } from "../editor-specs";
 import { BooleanInput } from "../inputs/boolean-input";
 import { JsonInput } from "../inputs/json-input";
 import { NumberOrTextInput } from "../inputs/number-or-text-input";
-import { guessEditorTypeFromValue } from "../utils";
 import { RowAction } from "./row-action";
 import type { SortableItem } from "./types";
 import { ValueChip } from "./value-chip";
@@ -29,7 +31,7 @@ interface SortableRowProps {
   onSelect?: (id: string) => void;
   onEditClicked?: (id: string) => void;
   editing: boolean;
-  expectedTypes: DataTypeWithMetadata["schema"][];
+  expectedTypes: ClosedDataTypeDefinition[];
   onSaveChanges: (index: number, value: unknown) => void;
   onDiscardChanges: () => void;
 }
@@ -43,9 +45,8 @@ export const SortableRow = ({
   onSaveChanges,
   onDiscardChanges,
   editing,
-  expectedTypes,
 }: SortableRowProps) => {
-  const { id, value, index, overriddenEditorType } = item;
+  const { id, value, index, dataType } = item;
   const {
     attributes,
     isDragging,
@@ -59,23 +60,22 @@ export const SortableRow = ({
     animateLayoutChanges: undefined,
   });
 
+  const schema = getMergedDataTypeSchema(dataType);
+
+  const editorSpec =
+    "anyOf" in schema ? undefined : getEditorSpecs(dataType, schema);
+
   const [hovered, setHovered] = useState(false);
-  const [draftValue, setDraftValue] = useState(value);
+  const [draftValue, setDraftValue] = useState(
+    value === undefined ? editorSpec?.defaultValue : value,
+  );
   const [prevEditing, setPrevEditing] = useState(editing);
 
-  const editorType =
-    overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
-
-  const expectedType = expectedTypes.find((type) =>
-    "type" in type
-      ? type.type === editorType
-      : /**
-         * @todo H-3374 support multiple expected data types
-         */
-        type.anyOf.some((subType) => subType.type === editorType),
-  );
-
-  const editorSpec = getEditorSpecs(editorType, expectedType);
+  if ("anyOf" in schema || !editorSpec) {
+    throw new Error(
+      "Data types with different expected sets of constraints (anyOf) are not yet supported",
+    );
+  }
 
   const { arrayEditException } = editorSpec;
 
@@ -90,7 +90,7 @@ export const SortableRow = ({
   const textInputFormRef = useRef<HTMLFormElement>(null);
 
   const saveChanges = () => {
-    if (!["object", "boolean"].includes(editorType)) {
+    if (!["object", "boolean"].includes(schema.type)) {
       /**
        * We want form validation triggered when the user tries to add a text or number value
        */
@@ -101,7 +101,7 @@ export const SortableRow = ({
   };
 
   const renderEditor = () => {
-    if (editorType === "boolean") {
+    if (schema.type === "boolean") {
       return (
         <BooleanInput
           showChange
@@ -111,7 +111,7 @@ export const SortableRow = ({
       );
     }
 
-    if (editorType === "object") {
+    if (schema.type === "object") {
       return (
         <JsonInput
           value={draftValue}
@@ -126,28 +126,20 @@ export const SortableRow = ({
       );
     }
 
-    if (!expectedType) {
-      throw new Error(
-        `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
-          .map((opt) => opt.$id)
-          .join(", ")}`,
-      );
-    }
-
     return (
       <NumberOrTextInput
-        expectedType={expectedType}
-        isNumber={editorType === "number"}
+        isNumber={schema.type === "number"}
         onEnterPressed={saveChanges}
         /** @todo is this casting ok? */
         value={draftValue as number | string}
+        schema={schema}
         onChange={setDraftValue}
       />
     );
   };
 
   const renderValue = () => {
-    if (editorType === "boolean") {
+    if (schema.type === "boolean") {
       return (
         <BooleanInput
           showChange={shouldShowActions}
@@ -157,22 +149,21 @@ export const SortableRow = ({
       );
     }
 
-    if (!expectedType) {
-      throw new Error(
-        `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
-          .map((opt) => opt.$id)
-          .join(", ")}`,
-      );
-    }
-
     return (
       <ValueChip
-        title={formatDataValue(value as JsonValue, expectedType)
-          .map((part) => part.text)
-          .join("")}
+        title={
+          <Stack direction="row">
+            {formatDataValue(value as JsonValue, schema).map((part, idx) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <Box component="span" key={idx} sx={{ color: part.color }}>
+                {part.text}
+              </Box>
+            ))}
+          </Stack>
+        }
         selected={!!selected}
         icon={{ icon: editorSpec.icon }}
-        tooltip={expectedType.title}
+        tooltip={dataType.title}
       />
     );
   };

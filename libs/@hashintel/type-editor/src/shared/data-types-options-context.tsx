@@ -16,7 +16,6 @@ import {
   fa100,
   faAtRegular,
   faBracketsCurly,
-  faBracketsSquare,
   faCalendarClockRegular,
   faCalendarRegular,
   faClockRegular,
@@ -28,6 +27,8 @@ import {
   faRulerRegular,
   faSquareCheck,
   faText,
+  identifierTypeTitles,
+  measurementTypeTitles,
 } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
 import type { PropsWithChildren } from "react";
@@ -99,10 +100,6 @@ const expectedValuesDisplayMap = {
     icon: faBracketsCurly,
     colors: chipColors.blue,
   },
-  emptyList: {
-    icon: faBracketsSquare,
-    colors: chipColors.blue,
-  },
   null: {
     icon: faEmptySet,
     colors: chipColors.blue,
@@ -149,20 +146,6 @@ const expectedValuesDisplayMap = {
   },
 } as const satisfies Record<string, Omit<ExpectedValueDisplay, "title">>;
 
-const measurementTypeTitles = [
-  "Inches",
-  "Feet",
-  "Yards",
-  "Miles",
-  "Nanometers",
-  "Millimeters",
-  "Centimeters",
-  "Meters",
-  "Kilometers",
-];
-
-const identifierTypeTitles = ["URL", "URI"];
-
 export type CustomExpectedValueTypeId = VersionedUrl | "array" | "object";
 
 export type DataTypesByVersionedUrl = Record<VersionedUrl, DataType>;
@@ -191,7 +174,7 @@ const getArrayDataTypeDisplay = (
 
   if (isTupleConstraints(dataType)) {
     if (!dataType.prefixItems) {
-      return expectedValuesDisplayMap.emptyList;
+      throw new Error("TupleConstraints must have prefixItems");
     }
 
     items = dataType.prefixItems;

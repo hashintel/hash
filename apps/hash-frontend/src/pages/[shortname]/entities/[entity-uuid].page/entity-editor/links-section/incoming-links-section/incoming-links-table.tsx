@@ -1,18 +1,19 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  getClosedMultiEntityTypeFromMap,
+  getDisplayFieldsForClosedEntityType,
+  getPropertyTypeForClosedMultiEntityType,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { PartialEntityType } from "@local/hash-graph-types/ontology";
 import {
   generateEntityLabel,
   generateLinkEntityLabel,
 } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { LinkEntityAndLeftEntity } from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getPropertyTypeForEntity,
-} from "@local/hash-subgraph/stdlib";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
 import {
   memo,
@@ -51,14 +52,7 @@ import {
   maxLinksTableHeight,
 } from "../shared/table-styling";
 
-const fieldIds = [
-  "linkedFrom",
-  "linkTypes",
-  "linkedFromTypes",
-  "link",
-] as const;
-
-type FieldId = (typeof fieldIds)[number];
+type FieldId = "linkedFrom" | "linkTypes" | "linkedFromTypes" | "link";
 
 const staticColumns: VirtualizedTableColumn<FieldId>[] = [
   {
@@ -106,11 +100,17 @@ type IncomingLinkRow = {
   sourceEntity: Entity;
   sourceEntityLabel: string;
   sourceEntityProperties: { [propertyTitle: string]: string };
-  sourceEntityTypes: EntityType[];
+  sourceEntityTypes: Pick<
+    PartialEntityType,
+    "icon" | "$id" | "inverse" | "title"
+  >[];
   linkEntity: Entity;
   linkEntityLabel: string;
   linkEntityProperties: { [propertyTitle: string]: string };
-  linkEntityTypes: EntityType[];
+  linkEntityTypes: Pick<
+    PartialEntityType,
+    "icon" | "$id" | "inverse" | "title"
+  >[];
   onEntityClick: (entityId: EntityId) => void;
   customFields: { [fieldId: string]: string | number };
 };
@@ -259,7 +259,14 @@ export const IncomingLinksTable = memo(
       direction: "asc",
     });
 
-    const { customColumns, entitySubgraph, onEntityClick } = useEntityEditor();
+    const {
+      closedMultiEntityTypesMap,
+      closedMultiEntityTypesDefinitions,
+      customColumns,
+      draftLinksToArchive,
+      entitySubgraph,
+      onEntityClick,
+    } = useEntityEditor();
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
     const [outputContainerHeight, setOutputContainerHeight] = useState(400);
@@ -310,8 +317,6 @@ export const IncomingLinksTable = memo(
         },
       } as const satisfies VirtualizedTableFilterDefinitionsByFieldId<FieldId>;
 
-      const entityTypesByVersionedUrl: Record<VersionedUrl, EntityType> = {};
-
       for (const {
         leftEntity: leftEntityRevisions,
         linkEntity: linkEntityRevisions,
@@ -319,6 +324,14 @@ export const IncomingLinksTable = memo(
         const linkEntity = linkEntityRevisions[0];
         if (!linkEntity) {
           throw new Error("Expected at least one link revision");
+        }
+
+        const isMarkedToArchive = draftLinksToArchive.some(
+          (markedLinkId) => markedLinkId === linkEntity.entityId,
+        );
+
+        if (isMarkedToArchive) {
+          continue;
         }
 
         const linkEntityTypeIds = linkEntity.metadata.entityTypeIds;
@@ -333,33 +346,30 @@ export const IncomingLinksTable = memo(
           }
         }
 
-        const linkEntityTypes: EntityType[] = [];
-        for (const linkEntityTypeId of linkEntityTypeIds) {
-          let linkEntityType = entityTypesByVersionedUrl[linkEntityTypeId];
+        if (!closedMultiEntityTypesMap) {
+          throw new Error("Expected closedMultiEntityTypesMap to be defined");
+        }
 
-          if (!linkEntityType) {
-            const foundType = getEntityTypeById(
-              entitySubgraph,
-              linkEntityTypeId,
-            );
+        const linkEntityClosedMultiType = getClosedMultiEntityTypeFromMap(
+          closedMultiEntityTypesMap,
+          linkEntity.metadata.entityTypeIds,
+        );
 
-            if (!foundType) {
-              throw new Error(
-                `Could not find linkEntityType with id ${linkEntityTypeId} in subgraph`,
-              );
-            }
+        const linkEntityLabel = generateEntityLabel(
+          linkEntityClosedMultiType,
+          linkEntity,
+        );
 
-            linkEntityType = foundType.schema;
-            linkEntityTypes.push(linkEntityType);
+        for (const linkType of linkEntityClosedMultiType.allOf) {
+          const linkEntityTypeId = linkType.$id;
 
-            filterDefs.linkTypes.options[linkEntityTypeId] ??= {
-              label: linkEntityType.title,
-              count: 0,
-              value: linkEntityTypeId,
-            };
-          }
+          filterDefs.linkTypes.options[linkEntityTypeId] ??= {
+            label: linkType.title,
+            count: 0,
+            value: linkEntityTypeId,
+          };
 
-          filterDefs.linkTypes.options[linkEntityTypeId]!.count++;
+          filterDefs.linkTypes.options[linkEntityTypeId].count++;
           filterDefs.linkTypes.initialValue.add(linkEntityTypeId);
         }
 
@@ -368,9 +378,19 @@ export const IncomingLinksTable = memo(
           throw new Error("Expected at least one left entity revision");
         }
 
+        const leftEntityClosedMultiType = getClosedMultiEntityTypeFromMap(
+          closedMultiEntityTypesMap,
+          leftEntity.metadata.entityTypeIds,
+        );
+
         const leftEntityLabel = leftEntity.linkData
-          ? generateLinkEntityLabel(entitySubgraph, leftEntity)
-          : generateEntityLabel(entitySubgraph, leftEntity);
+          ? generateLinkEntityLabel(
+              entitySubgraph,
+              leftEntity,
+              leftEntityClosedMultiType,
+              closedMultiEntityTypesDefinitions,
+            )
+          : generateEntityLabel(leftEntityClosedMultiType, leftEntity);
 
         filterDefs.linkedFrom.options[leftEntity.metadata.recordId.entityId] ??=
           {
@@ -384,38 +404,19 @@ export const IncomingLinksTable = memo(
           leftEntity.metadata.recordId.entityId,
         );
 
-        const leftEntityTypeIds = leftEntity.metadata.entityTypeIds;
-        const leftEntityTypes: EntityType[] = [];
-        for (const leftEntityTypeId of leftEntityTypeIds) {
-          let leftEntityType = entityTypesByVersionedUrl[leftEntityTypeId];
+        for (const leftType of leftEntityClosedMultiType.allOf) {
+          const leftEntityTypeId = leftType.$id;
 
-          if (!leftEntityType) {
-            const foundType = getEntityTypeById(
-              entitySubgraph,
-              leftEntityTypeId,
-            );
+          filterDefs.linkedFromTypes.options[leftEntityTypeId] ??= {
+            label: leftType.title,
+            count: 0,
+            value: leftEntityTypeId,
+          };
 
-            if (!foundType) {
-              throw new Error(
-                `Could not find leftEntityType with id ${leftEntityTypeId} in subgraph`,
-              );
-            }
-
-            leftEntityType = foundType.schema;
-            leftEntityTypes.push(leftEntityType);
-
-            filterDefs.linkedFromTypes.options[leftEntityTypeId] ??= {
-              label: leftEntityType.title,
-              count: 0,
-              value: leftEntityTypeId,
-            };
-          }
-
-          filterDefs.linkedFromTypes.options[leftEntityTypeId]!.count++;
+          filterDefs.linkedFromTypes.options[leftEntityTypeId].count++;
           filterDefs.linkedFromTypes.initialValue.add(leftEntityTypeId);
         }
 
-        const linkEntityLabel = generateEntityLabel(entitySubgraph, linkEntity);
         filterDefs.link.options[linkEntity.metadata.recordId.entityId] ??= {
           label: linkEntityLabel,
           count: 0,
@@ -429,11 +430,12 @@ export const IncomingLinksTable = memo(
         for (const [propertyBaseUrl, propertyValue] of typedEntries(
           linkEntity.properties,
         )) {
-          const { propertyType } = getPropertyTypeForEntity(
-            entitySubgraph,
-            linkEntityTypeIds,
+          const propertyType = getPropertyTypeForClosedMultiEntityType(
+            linkEntityClosedMultiType,
             propertyBaseUrl,
+            closedMultiEntityTypesDefinitions,
           );
+
           linkEntityProperties[propertyType.title] =
             stringifyPropertyValue(propertyValue);
         }
@@ -443,11 +445,12 @@ export const IncomingLinksTable = memo(
         for (const [propertyBaseUrl, propertyValue] of typedEntries(
           leftEntity.properties,
         )) {
-          const { propertyType } = getPropertyTypeForEntity(
-            entitySubgraph,
-            leftEntityTypeIds,
+          const propertyType = getPropertyTypeForClosedMultiEntityType(
+            leftEntityClosedMultiType,
             propertyBaseUrl,
+            closedMultiEntityTypesDefinitions,
           );
+
           sourceEntityProperties[propertyType.title] =
             stringifyPropertyValue(propertyValue);
         }
@@ -456,7 +459,16 @@ export const IncomingLinksTable = memo(
           id: linkEntity.metadata.recordId.entityId,
           data: {
             customFields,
-            linkEntityTypes,
+            linkEntityTypes: linkEntityClosedMultiType.allOf.map((type) => {
+              const { icon } = getDisplayFieldsForClosedEntityType(type);
+
+              return {
+                $id: type.$id,
+                title: type.title,
+                icon,
+                inverse: type.inverse,
+              };
+            }),
             linkEntity,
             linkEntityLabel,
             linkEntityProperties,
@@ -464,7 +476,16 @@ export const IncomingLinksTable = memo(
             sourceEntity: leftEntity,
             sourceEntityLabel: leftEntityLabel,
             sourceEntityProperties,
-            sourceEntityTypes: leftEntityTypes,
+            sourceEntityTypes: leftEntityClosedMultiType.allOf.map((type) => {
+              const { icon } = getDisplayFieldsForClosedEntityType(type);
+
+              return {
+                $id: type.$id,
+                title: type.title,
+                icon,
+                inverse: type.inverse,
+              };
+            }),
           },
         });
       }
@@ -482,7 +503,15 @@ export const IncomingLinksTable = memo(
         ) as VirtualizedTableFilterValuesByFieldId<FieldId>,
         unsortedRows: rowData,
       };
-    }, [customColumns, entitySubgraph, incomingLinksAndSources, onEntityClick]);
+    }, [
+      closedMultiEntityTypesDefinitions,
+      closedMultiEntityTypesMap,
+      customColumns,
+      draftLinksToArchive,
+      entitySubgraph,
+      incomingLinksAndSources,
+      onEntityClick,
+    ]);
 
     const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
       defaultFilterValues: initialFilterValues,

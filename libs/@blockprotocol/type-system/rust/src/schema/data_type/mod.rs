@@ -2,7 +2,7 @@ mod constraint;
 mod conversion;
 
 pub use self::{
-    closed::{ClosedDataType, DataTypeResolveData, ResolvedDataType},
+    closed::{ClosedDataType, DataTypeResolveData},
     constraint::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
         BooleanSchema, BooleanTypeTag, ConstraintError, ConstraintValidator, NullSchema,
@@ -34,6 +34,7 @@ use crate::{schema::data_type::constraint::ValueConstraints, url::VersionedUrl};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "kebab-case")]
 pub enum JsonSchemaValueType {
     Null,
@@ -119,12 +120,12 @@ mod raw {
     use super::{DataTypeSchemaTag, DataTypeTag, ValueSchemaMetadata};
     use crate::{
         schema::{
-            ArrayTypeTag, BooleanTypeTag, DataTypeReference, NullSchema, NullTypeTag,
-            NumberTypeTag, ObjectTypeTag, StringTypeTag,
+            ArrayTypeTag, BooleanTypeTag, DataTypeReference, NullTypeTag, NumberTypeTag,
+            ObjectTypeTag, StringTypeTag,
             data_type::constraint::{
-                AnyOfConstraints, ArrayConstraints, ArraySchema, BooleanSchema, NumberConstraints,
-                NumberSchema, ObjectConstraints, ObjectSchema, SingleValueConstraints,
-                StringConstraints, StringSchema, TupleConstraints, ValueConstraints,
+                AnyOfConstraints, ArrayConstraints, ArraySchema, NumberConstraints, NumberSchema,
+                SingleValueConstraints, StringConstraints, StringSchema, TupleConstraints,
+                ValueConstraints,
             },
         },
         url::VersionedUrl,
@@ -222,8 +223,6 @@ mod raw {
             base: DataTypeBase,
             #[serde(flatten)]
             metadata: ValueSchemaMetadata,
-            #[serde(flatten)]
-            constraints: ObjectConstraints,
         },
         Array {
             r#type: ArrayTypeTag,
@@ -292,7 +291,7 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Null(NullSchema)),
+                    ValueConstraints::Typed(SingleValueConstraints::Null),
                 ),
                 DataType::Boolean {
                     r#type: _,
@@ -301,7 +300,7 @@ mod raw {
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Boolean(BooleanSchema)),
+                    ValueConstraints::Typed(SingleValueConstraints::Boolean),
                 ),
                 DataType::Number {
                     r#type: _,
@@ -379,13 +378,10 @@ mod raw {
                     r#type: _,
                     base,
                     metadata,
-                    constraints,
                 } => (
                     base,
                     metadata,
-                    ValueConstraints::Typed(SingleValueConstraints::Object(
-                        ObjectSchema::Constrained(constraints),
-                    )),
+                    ValueConstraints::Typed(SingleValueConstraints::Object),
                 ),
                 DataType::Array {
                     r#type: _,

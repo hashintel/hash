@@ -387,7 +387,11 @@ export type ProgressLogBase = {
   stepId: string;
 };
 
-export type WorkerType = "Coordinator" | "Sub-coordinator" | "Link explorer";
+export type WorkerType =
+  | "Coordinator"
+  | "Sub-coordinator"
+  | "Link explorer"
+  | "Document analyzer";
 
 /**
  * Identifiers for a 'worker' within the flow, which corresponds to an agent.
@@ -590,15 +594,12 @@ export type StepProgressLog =
   | ViewedFile
   | VisitedWebPageLog;
 
-const flowSignalTypes = [
-  "externalInputRequest",
-  "externalInputResponse",
-  "logProgress",
-  "researchActionCheckpoint",
-  "stopWorker",
-] as const;
-
-export type FlowSignalType = (typeof flowSignalTypes)[number];
+export type FlowSignalType =
+  | "externalInputRequest"
+  | "externalInputResponse"
+  | "logProgress"
+  | "researchActionCheckpoint"
+  | "stopWorker";
 
 export type ProgressLogSignal = {
   attempt: number;

@@ -1,4 +1,8 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Backdrop } from "@mui/material";
 import type { FunctionComponent, RefObject } from "react";
@@ -10,6 +14,8 @@ import type { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].pa
 import { generateEntityRootedSubgraph } from "./subgraphs";
 
 interface EntityEditorSlideStackProps {
+  closedMultiEntityTypesMap?: ClosedMultiEntityTypesRootMap;
+  closedMultiEntityTypesDefinitions?: ClosedMultiEntityTypesDefinitions;
   customColumns?: EntityEditorProps["customColumns"];
   disableTypeClick?: boolean;
   /**

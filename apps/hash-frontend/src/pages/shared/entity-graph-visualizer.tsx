@@ -1,4 +1,6 @@
-import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { ibm } from "@hashintel/design-system/palettes";
 import type {
   EntityId,
   EntityMetadata,
@@ -33,7 +35,7 @@ export type EntityForGraph = {
 };
 
 const fallbackDefaultConfig = {
-  graphKey: "entity-graph",
+  graphKey: "entity-graph-2024-11-19b",
   edgeSizing: {
     min: 2,
     max: 5,
@@ -87,28 +89,7 @@ export const EntityGraphVisualizer = memo(
     const [loading, setLoading] = useState(true);
 
     const nodeColors = useMemo(() => {
-      return [
-        {
-          color: palette.blue[30],
-          borderColor: palette.gray[50],
-        },
-        {
-          color: palette.purple[30],
-          borderColor: palette.gray[50],
-        },
-        {
-          color: palette.green[50],
-          borderColor: palette.gray[50],
-        },
-        {
-          color: palette.red[20],
-          borderColor: palette.gray[50],
-        },
-        {
-          color: palette.yellow[30],
-          borderColor: palette.gray[50],
-        },
-      ] as const;
+      return ibm.map((color) => ({ color, borderColor: palette.gray[50] }));
     }, [palette]);
 
     const defaultConfig = defaultConfigFromProps ?? fallbackDefaultConfig;
@@ -149,42 +130,43 @@ export const EntityGraphVisualizer = memo(
 
         const specialHighlight = isPrimaryEntity?.(entity) ?? false;
 
+        const sortedEntityTypeIds = mustHaveAtLeastOne(
+          entity.metadata.entityTypeIds.toSorted(),
+        );
+
+        const firstEntityTypeId = sortedEntityTypeIds[0];
+
         /**
          * @todo H-3539: take account of additional types an entity might have
          */
-        if (!entityTypeIdToColor.has(entity.metadata.entityTypeIds[0])) {
+        if (!entityTypeIdToColor.has(firstEntityTypeId)) {
           entityTypeIdToColor.set(
-            entity.metadata.entityTypeIds[0],
+            firstEntityTypeId,
             entityTypeIdToColor.size % nodeColors.length,
           );
         }
 
         const { color, borderColor } = specialHighlight
           ? { color: palette.blue[50], borderColor: palette.blue[60] }
-          : nodeColors[
-              entityTypeIdToColor.get(entity.metadata.entityTypeIds[0])!
-            ]!;
+          : nodeColors[entityTypeIdToColor.get(firstEntityTypeId)!]!;
 
         const entityType =
-          entityTypesById[entity.metadata.entityTypeIds[0]] ??
-          getEntityTypeById(
-            subgraphWithTypes,
-            entity.metadata.entityTypeIds[0],
-          );
+          entityTypesById[firstEntityTypeId] ??
+          getEntityTypeById(subgraphWithTypes, firstEntityTypeId);
 
         if (!entityType) {
           throw new Error(
-            `Could not find entity type for ${entity.metadata.entityTypeIds[0]}`,
+            `Could not find entity type for ${firstEntityTypeId}`,
           );
         }
 
-        entityTypesById[entity.metadata.entityTypeIds[0]] ??= entityType;
+        entityTypesById[firstEntityTypeId] ??= entityType;
 
         nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
           icon: entityType.schema.icon ?? undefined,
           label: generateEntityLabel(subgraphWithTypes, entity),
           nodeId: entity.metadata.recordId.entityId,
-          nodeTypeId: entity.metadata.entityTypeIds[0],
+          nodeTypeId: firstEntityTypeId,
           nodeTypeLabel: entityType.schema.title,
           color,
           borderColor,

@@ -13,7 +13,7 @@ use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
         AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
-        PostgresStorePool, error::BaseUrlAlreadyExists,
+        PostgresStorePool, PostgresStoreSettings, error::BaseUrlAlreadyExists,
     },
 };
 use hash_graph_store::{
@@ -128,6 +128,7 @@ where
             &source_db_connection_info,
             &DatabasePoolConfig::default(),
             NoTls,
+            PostgresStoreSettings::default(),
         )
         .await
         .expect("could not connect to database");
@@ -201,6 +202,7 @@ where
                 ),
                 &DatabasePoolConfig::default(),
                 NoTls,
+                PostgresStoreSettings::default(),
             )
             .await
             .expect("could not connect to database");
@@ -218,6 +220,7 @@ where
             &bench_db_connection_info,
             &DatabasePoolConfig::default(),
             NoTls,
+            PostgresStoreSettings::default(),
         )
         .await
         .expect("could not connect to database");

@@ -1,6 +1,8 @@
 pub mod error;
 pub mod visitor;
 
+use type_system::schema::PropertyValueType;
+
 pub use self::{
     array::PropertyWithMetadataArray,
     diff::PropertyDiff,
@@ -48,6 +50,17 @@ pub enum PropertyWithMetadata {
     Array(PropertyWithMetadataArray),
     Object(PropertyWithMetadataObject),
     Value(PropertyWithMetadataValue),
+}
+
+impl PropertyWithMetadata {
+    #[must_use]
+    pub const fn property_value_type(&self) -> PropertyValueType {
+        match self {
+            Self::Array(_) => PropertyValueType::Array,
+            Self::Object(_) => PropertyValueType::Object,
+            Self::Value(_) => PropertyValueType::Value,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -616,7 +629,7 @@ impl PartialEq<JsonValue> for Property {
                 lhs.len() == rhs.len()
                     && lhs.iter().all(|(key, value)| {
                         rhs.get(key.as_str())
-                            .map_or(false, |other_value| value == other_value)
+                            .is_some_and(|other_value| value == other_value)
                     })
             }
             Self::Value(lhs) => lhs == other,

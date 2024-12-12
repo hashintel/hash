@@ -1,11 +1,17 @@
 import { gql } from "apollo-server-express";
 
 export const entityTypeTypedef = gql`
+  scalar ClosedMultiEntityType
   scalar ConstructEntityTypeParams
   scalar EntityTypeWithMetadata
   scalar BaseUrl
   scalar Filter
   scalar UserPermissionsOnEntityType
+
+  type GetClosedMultiEntityTypeResponse {
+    closedMultiEntityType: ClosedMultiEntityType!
+    definitions: ClosedMultiEntityTypesDefinitions!
+  }
 
   extend type Query {
     """
@@ -34,6 +40,12 @@ export const entityTypeTypedef = gql`
       inheritsFrom: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
     ): Subgraph!
+
+    getClosedMultiEntityType(
+      entityTypeIds: [VersionedUrl!]!
+      includeArchived: Boolean = false
+      includeDrafts: Boolean = false
+    ): GetClosedMultiEntityTypeResponse!
 
     """
     Check the requesting user's permissions on an entity type

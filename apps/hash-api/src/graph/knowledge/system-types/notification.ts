@@ -44,7 +44,7 @@ import type {
 } from "../../context-types";
 import {
   createEntity,
-  getEntitySubgraph,
+  getEntitySubgraphResponse,
   updateEntity,
 } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
@@ -249,27 +249,34 @@ export const getMentionNotification: ImpureGraphFunction<
     includeDrafts = false,
   } = params;
 
-  const entitiesSubgraph = await getEntitySubgraph(context, authentication, {
-    filter: {
-      all: [
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.mentionNotification.entityTypeId,
-          { ignoreParents: true },
-        ),
-        {
-          equal: [{ path: ["ownedById"] }, { parameter: recipient.accountId }],
-        },
-        pageOrNotificationNotArchivedFilter,
-      ],
+  const { subgraph: entitiesSubgraph } = await getEntitySubgraphResponse(
+    context,
+    authentication,
+    {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.mentionNotification.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              { path: ["ownedById"] },
+              { parameter: recipient.accountId },
+            ],
+          },
+          pageOrNotificationNotArchivedFilter,
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        // Get the outgoing links of the entities
+        hasLeftEntity: { outgoing: 0, incoming: 1 },
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      // Get the outgoing links of the entities
-      hasLeftEntity: { outgoing: 0, incoming: 1 },
-    },
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts,
-  });
+  );
 
   /**
    * @todo: move these filters into the query when it is possible to filter
@@ -500,55 +507,62 @@ export const getCommentNotification: ImpureGraphFunction<
     includeDrafts = false,
   } = params;
 
-  const entitiesSubgraph = await getEntitySubgraph(context, authentication, {
-    filter: {
-      all: [
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.commentNotification.entityTypeId,
-          { ignoreParents: true },
-        ),
-        {
-          equal: [{ path: ["ownedById"] }, { parameter: recipient.accountId }],
-        },
-        /** @todo: enforce the type of these links somehow */
-        {
-          any: [
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    systemPropertyTypes.archived.propertyTypeBaseUrl,
-                  ],
-                },
-                // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-                //   @see https://linear.app/hash/issue/H-1207
-                null,
-              ],
-            },
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    systemPropertyTypes.archived.propertyTypeBaseUrl,
-                  ],
-                },
-                { parameter: false },
-              ],
-            },
-          ],
-        },
-      ],
+  const { subgraph: entitiesSubgraph } = await getEntitySubgraphResponse(
+    context,
+    authentication,
+    {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.commentNotification.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              { path: ["ownedById"] },
+              { parameter: recipient.accountId },
+            ],
+          },
+          /** @todo: enforce the type of these links somehow */
+          {
+            any: [
+              {
+                equal: [
+                  {
+                    path: [
+                      "properties",
+                      systemPropertyTypes.archived.propertyTypeBaseUrl,
+                    ],
+                  },
+                  // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+                  //   @see https://linear.app/hash/issue/H-1207
+                  null,
+                ],
+              },
+              {
+                equal: [
+                  {
+                    path: [
+                      "properties",
+                      systemPropertyTypes.archived.propertyTypeBaseUrl,
+                    ],
+                  },
+                  { parameter: false },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        // Get the outgoing links of the entities
+        hasLeftEntity: { outgoing: 0, incoming: 1 },
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      // Get the outgoing links of the entities
-      hasLeftEntity: { outgoing: 0, incoming: 1 },
-    },
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts,
-  });
+  );
 
   /**
    * @todo: move these filters into the query when it is possible to filter

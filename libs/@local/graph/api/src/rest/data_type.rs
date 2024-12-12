@@ -29,6 +29,7 @@ use hash_graph_store::{
         GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
+    entity_type::ClosedDataTypeDefinition,
     pool::StorePool,
     query::ConflictBehavior,
 };
@@ -47,7 +48,8 @@ use time::OffsetDateTime;
 use type_system::{
     schema::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeUuid, DomainValidator, Operator, ValidateOntologyType as _, Variable,
+        DataTypeUuid, DomainValidator, JsonSchemaValueType, Operator, ValidateOntologyType as _,
+        Variable,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -98,6 +100,8 @@ use crate::rest::{
             GetDataTypeSubgraphResponse,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
+            ClosedDataTypeDefinition,
+            JsonSchemaValueType,
 
             ConversionDefinition,
             ConversionExpression,

@@ -61,6 +61,9 @@ export const getEntitySubgraphQuery = gql`
     $includePermissions: Boolean!
   ) {
     getEntitySubgraph(request: $request) {
+      closedMultiEntityTypes
+      count
+      definitions
       userPermissionsOnEntities @include(if: $includePermissions)
       subgraph {
         ...SubgraphFields
@@ -184,5 +187,19 @@ export const getEntityDiffsQuery = gql`
       input
       diff
     }
+  }
+`;
+
+export const validateEntityQuery = gql`
+  query validateEntity(
+    $components: ValidateEntityParamsComponents!
+    $entityTypes: [VersionedUrl!]!
+    $properties: PropertyObjectWithMetadata!
+  ) {
+    validateEntity(
+      components: $components
+      entityTypes: $entityTypes
+      properties: $properties
+    )
   }
 `;

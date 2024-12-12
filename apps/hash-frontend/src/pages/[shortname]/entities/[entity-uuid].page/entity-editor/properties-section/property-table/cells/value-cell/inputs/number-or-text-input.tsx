@@ -1,6 +1,6 @@
 import type { TextFieldProps } from "@hashintel/design-system";
 import { TextField } from "@hashintel/design-system";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 import { format, formatISO, parseISO } from "date-fns";
 
 import type { CellInputProps } from "./types";
@@ -33,50 +33,50 @@ const convertDateTimeToLocalRFC3339 = (dateTimeStringWithoutOffset: string) => {
 };
 
 export const NumberOrTextInput = ({
-  expectedType,
+  isNumber,
   onBlur,
   onChange,
   onEnterPressed,
+  schema,
   value: uncheckedValue,
-  isNumber,
 }: CellInputProps<number | string | undefined> & {
-  onBlur?: TextFieldProps["onBlur"];
-  expectedType: DataTypeWithMetadata["schema"];
   isNumber: boolean;
+  onBlur?: TextFieldProps["onBlur"];
+  schema: MergedDataTypeSingleSchema;
   onEnterPressed?: () => void;
 }) => {
-  const minLength =
-    "minLength" in expectedType ? expectedType.minLength : undefined;
-  const maxLength =
-    "maxLength" in expectedType ? expectedType.maxLength : undefined;
+  const minLength = "minLength" in schema ? schema.minLength : undefined;
+  const maxLength = "maxLength" in schema ? schema.maxLength : undefined;
+
+  if ("multipleOf" in schema && schema.multipleOf?.[1] !== undefined) {
+    throw new Error("multipleOf with multiple values is not supported");
+  }
 
   const step =
-    "multipleOf" in expectedType && expectedType.multipleOf !== undefined
-      ? expectedType.multipleOf
-      : 0.01;
+    "multipleOf" in schema && schema.multipleOf?.[0] !== undefined
+      ? schema.multipleOf[0]
+      : 0.001;
 
   const exclusiveMinimum =
-    "exclusiveMinimum" in expectedType &&
-    typeof expectedType.exclusiveMinimum === "boolean"
-      ? expectedType.exclusiveMinimum
+    "exclusiveMinimum" in schema && typeof schema.exclusiveMinimum === "boolean"
+      ? schema.exclusiveMinimum
       : false;
+
   const minimum =
-    "minimum" in expectedType && typeof expectedType.minimum === "number"
-      ? expectedType.minimum + (exclusiveMinimum ? step : 0)
+    "minimum" in schema && typeof schema.minimum === "number"
+      ? schema.minimum + (exclusiveMinimum ? step : 0)
       : undefined;
 
   const exclusiveMaximum =
-    "exclusiveMaximum" in expectedType &&
-    typeof expectedType.exclusiveMaximum === "boolean"
-      ? expectedType.exclusiveMaximum
+    "exclusiveMaximum" in schema && typeof schema.exclusiveMaximum === "boolean"
+      ? schema.exclusiveMaximum
       : false;
   const maximum =
-    "maximum" in expectedType && typeof expectedType.maximum === "number"
-      ? expectedType.maximum - (exclusiveMaximum ? step : 0)
+    "maximum" in schema && typeof schema.maximum === "number"
+      ? schema.maximum - (exclusiveMaximum ? step : 0)
       : undefined;
 
-  const jsonStringFormat =
-    "format" in expectedType ? expectedType.format : undefined;
+  const jsonStringFormat = "format" in schema ? schema.format : undefined;
 
   let inputType: TextFieldProps["type"] = isNumber ? "number" : "text";
   let value = uncheckedValue;
@@ -127,7 +127,7 @@ export const NumberOrTextInput = ({
       value={value}
       type={inputType}
       inputMode={isNumber ? "numeric" : "text"}
-      placeholder="Start typing..."
+      placeholder={isNumber ? "Enter a number" : "Start typing..."}
       onBlur={onBlur}
       onChange={({ target }) => {
         const isEmptyString = target.value === "";

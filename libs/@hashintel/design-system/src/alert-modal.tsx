@@ -37,17 +37,25 @@ export const AlertModal: FunctionComponent<
       open={open}
       onClose={close}
       contentStyle={[
-        { p: { xs: 0, md: 0 } },
+        { p: { xs: 0, md: 0 }, maxHeight: "min(600px, 90vh)" },
         ...(Array.isArray(contentStyle) ? contentStyle : [contentStyle]),
       ]}
     >
       <Stack>
-        <Typography sx={{ p: { xs: 2, md: 2.5 }, py: { xs: 1.5, md: 2 } }}>
+        <Typography
+          component="div"
+          sx={{ p: { xs: 2, md: 2.5 }, py: { xs: 1.5, md: 2 } }}
+        >
           {header}
         </Typography>
         <Callout type={type}>{calloutMessage}</Callout>
         {children ? <Box p={{ xs: 2, md: 2.5 }}>{children}</Box> : null}
-        <Stack direction="row" spacing={1.5} p={{ xs: 2, md: 2.5 }}>
+        <Stack
+          direction="row"
+          spacing={1.5}
+          p={{ xs: 2, md: 2.5 }}
+          pt={{ xs: children ? 0 : 2, md: children ? 0 : 2.5 }}
+        >
           {callback && (
             <Button
               autoFocus

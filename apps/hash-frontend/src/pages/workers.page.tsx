@@ -73,7 +73,7 @@ const createColumns: (
     id: "web",
     label: "Web",
     sortable: true,
-    width: 120,
+    width: 150,
   },
   {
     id: "type",
@@ -111,7 +111,7 @@ const createColumns: (
           id: "cost" as const,
           label: "Cost",
           sortable: true,
-          width: 120,
+          width: 80,
         },
       ]
     : []),
@@ -153,7 +153,9 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
 
   return (
     <>
-      <MuiTableCell sx={{ ...flowTableCellSx, fontSize: 13 }}>
+      <MuiTableCell
+        sx={{ ...flowTableCellSx, fontSize: 13, overflowX: "hidden" }}
+      >
         <FlowTableWebChip {...web} />
       </MuiTableCell>
       <MuiTableCell sx={flowTableCellSx}>

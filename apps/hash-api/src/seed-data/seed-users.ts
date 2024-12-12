@@ -59,7 +59,7 @@ export const ensureUsersAreSeeded = async ({
     try {
       /** @todo validate the JSON parsed from the environment. */
       usersToSeed = JSON.parse(process.env.HASH_SEED_USERS) as SeededUser[];
-    } catch (error) {
+    } catch {
       logger.error(
         "Could not parse environment variable `HASH_SEED_USERS` as JSON. Make sure it's formatted correctly.",
       );

@@ -164,9 +164,7 @@ const generatePropertyMetadata = (params: {
   };
 };
 
-const toolNames = ["proposeEntity", "abandonEntity"] as const;
-
-type ToolName = (typeof toolNames)[number];
+type ToolName = "proposeEntity" | "abandonEntity";
 
 const generateToolDefinitions = (params: {
   dereferencedEntityTypes: DereferencedEntityType[];
@@ -447,13 +445,27 @@ export const proposeEntityFromClaimsAgent = async (params: {
   if (proposeEntityToolCall) {
     const { properties: inputProperties, outgoingLinks } =
       proposeEntityToolCall.input as {
-        properties: InputPropertiesObject;
+        properties?: InputPropertiesObject;
         outgoingLinks?: {
           entityTypeId: string;
           targetEntityId: string;
           properties: InputPropertiesObject;
         }[];
       };
+
+    if (!inputProperties) {
+      return retry({
+        retryMessage: {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `You must provide an object with 'properties' at the root to propose an entity – you provided ${JSON.stringify(proposeEntityToolCall.input)}.`,
+            },
+          ],
+        },
+      });
+    }
 
     const simplifiedProperties = mapInputPropertiesToPropertiesObject({
       inputProperties,

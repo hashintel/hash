@@ -41,6 +41,7 @@ const createSavePlugin = (
   onError: (message: string) => void,
 ) => {
   let saveQueue = Promise.resolve<unknown>(null);
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror typing issue
   const pluginKey = new PluginKey<unknown>("save");
 
   let view: EditorView;
@@ -87,6 +88,7 @@ const createSavePlugin = (
     maxWait: maxWaitTime,
   });
 
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror typing issue
   return new Plugin<unknown>({
     state: {
       init: () => null,
@@ -172,6 +174,7 @@ export const createEditorView = (params: {
 
   const errorSnackbarKey = "editor-saving-error-snackbar";
 
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror typing issue
   const plugins: Plugin<unknown>[] = readonly
     ? []
     : [

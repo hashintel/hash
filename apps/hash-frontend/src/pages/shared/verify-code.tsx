@@ -82,7 +82,7 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
         await requestCode();
         updateState({ emailResent: true, syntheticLoading: false });
         setTimeout(() => updateState({ emailResent: false }), 5000);
-      } catch (err) {
+      } catch {
         updateState({ syntheticLoading: false });
       }
     }, SYNTHETIC_LOADING_TIME_MS);

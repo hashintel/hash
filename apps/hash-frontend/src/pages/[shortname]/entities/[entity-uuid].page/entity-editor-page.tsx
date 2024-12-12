@@ -53,7 +53,7 @@ export const EntityEditorPage = ({
       setSelectedEntity({
         entityId,
       });
-    } catch (err) {
+    } catch {
       setSelectedEntity({ entityId });
     }
   }, []);
@@ -102,6 +102,7 @@ export const EntityEditorPage = ({
         <EntityPageWrapper
           header={
             <EntityPageHeader
+              closedMultiEntityType={entityEditorProps.closedMultiEntityType}
               entity={entity}
               entitySubgraph={entitySubgraph}
               isModifyingEntity={isModifyingEntity}

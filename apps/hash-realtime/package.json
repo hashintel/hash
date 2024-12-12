@@ -11,8 +11,8 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
-    "start:test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts"
+    "start": "NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
+    "start:test": "NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts"
   },
   "dependencies": {
     "@local/hash-backend-utils": "0.0.0-private",
@@ -22,10 +22,11 @@
     "typescript": "5.6.3"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/node": "22.9.0",
+    "@types/node": "22.10.2",
     "@types/set-interval-async": "1.0.3",
-    "eslint": "8.57.0"
+    "eslint": "9.16.0",
+    "typescript": "5.6.3"
   }
 }

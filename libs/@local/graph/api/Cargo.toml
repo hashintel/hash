@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [package]
 name              = "hash-graph-api"
 version.workspace = true
@@ -38,6 +36,7 @@ harpc-types                    = { workspace = true }
 hash-graph-store               = { workspace = true, features = ["utoipa"] }
 hash-graph-temporal-versioning = { workspace = true }
 hash-graph-type-defs           = { workspace = true }
+hash-graph-validation          = { workspace = true }
 hash-status                    = { workspace = true }
 type-system                    = { workspace = true, features = ["utoipa"] }
 

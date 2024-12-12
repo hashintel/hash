@@ -106,6 +106,7 @@ interface SuggesterState {
  * used to tag the suggester plugin/make it a singleton
  * @see https://prosemirror.net/docs/ref/#state.PluginKey
  */
+// eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
 export const suggesterPluginKey = new PluginKey<SuggesterState>("suggester");
 
 const docChangedInTransaction = (tr: Transaction) => {
@@ -135,6 +136,7 @@ export const createSuggester = (
   documentRoot: HTMLElement,
   getManager?: () => ProsemirrorManager,
 ) =>
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
   new Plugin<SuggesterState>({
     key: suggesterPluginKey,
     state: {
@@ -428,4 +430,5 @@ export const createSuggester = (
         },
       };
     },
+    // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
   }) as Plugin<unknown>;
