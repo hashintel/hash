@@ -79,8 +79,9 @@ use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{
-    AuthenticatedUserHeader, PermissionResponse, api_resource::RoutedResource, json::Json,
-    status::report_to_response, utoipa_typedef::subgraph::Subgraph,
+    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger,
+    api_resource::RoutedResource, json::Json, status::report_to_response,
+    utoipa_typedef::subgraph::Subgraph,
 };
 
 #[derive(OpenApi)]
@@ -398,12 +399,17 @@ async fn validate_entity<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<HashMap<usize, EntityValidationReport>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::ValidateEntity(&body));
+    }
+
     let params = ValidateEntityParams::deserialize(&body)
         .map_err(Report::from)
         .map_err(report_to_response)?;
@@ -418,11 +424,15 @@ where
         .await
         .map_err(report_to_response)?;
 
-    Ok(Json(
+    let response = Ok(Json(
         store
             .validate_entity(actor_id, Consistency::FullyConsistent, params)
             .await,
-    ))
+    ));
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[utoipa::path(
@@ -445,11 +455,19 @@ async fn check_entity_permission<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((entity_id, permission)): Path<(EntityId, EntityPermission)>,
     authorization_api_pool: Extension<Arc<A>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
 ) -> Result<Json<PermissionResponse>, Response>
 where
     A: AuthorizationApiPool + Send + Sync,
 {
-    Ok(Json(PermissionResponse {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::CheckEntityPermission {
+            entity_id,
+            permission,
+        });
+    }
+
+    let response = Ok(Json(PermissionResponse {
         has_permission: authorization_api_pool
             .acquire()
             .await
@@ -463,7 +481,11 @@ where
             .await
             .map_err(report_to_response)?
             .has_permission,
-    }))
+    }));
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 fn generate_sorting_paths(
@@ -618,12 +640,17 @@ async fn get_entities<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<GetEntitiesResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::GetEntities(&request));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -637,7 +664,7 @@ where
     let request = GetEntitiesRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
-    store
+    let response = store
         .get_entities(actor_id, GetEntitiesParams {
             filter: request.filter,
             sorting: generate_sorting_paths(
@@ -671,7 +698,11 @@ where
                 type_ids: response.type_ids,
             })
         })
-        .map_err(report_to_response)
+        .map_err(report_to_response);
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -764,12 +795,17 @@ async fn get_entity_subgraph<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<GetEntitySubgraphResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::GetEntitySubgraph(&request));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -783,7 +819,7 @@ where
     let request = GetEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
-    store
+    let response = store
         .get_entity_subgraph(actor_id, GetEntitySubgraphParams {
             filter: request.filter,
             sorting: generate_sorting_paths(
@@ -818,7 +854,11 @@ where
                 type_ids: response.type_ids,
             })
         })
-        .map_err(report_to_response)
+        .map_err(report_to_response);
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[utoipa::path(
@@ -849,12 +889,17 @@ async fn count_entities<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<usize>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::CountEntities(&request));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -865,7 +910,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    store
+    let response = store
         .count_entities(
             actor_id,
             CountEntitiesParams::deserialize(&request)
@@ -874,7 +919,11 @@ where
         )
         .await
         .map(Json)
-        .map_err(report_to_response)
+        .map_err(report_to_response);
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[utoipa::path(
@@ -1012,12 +1061,17 @@ async fn diff_entity<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(params): Json<DiffEntityParams>,
 ) -> Result<Json<DiffEntityResult<'static>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::DiffEntity(&params));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -1028,7 +1082,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    store
+    let response = store
         .diff_entity(actor_id, params)
         .await
         .map_err(|report| {
@@ -1039,7 +1093,11 @@ where
             }
         })
         .map_err(report_to_response)
-        .map(Json)
+        .map(Json);
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[utoipa::path(
@@ -1061,21 +1119,30 @@ async fn get_entity_authorization_relationships<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(entity_id): Path<EntityId>,
     authorization_api_pool: Extension<Arc<A>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
 ) -> Result<Json<Vec<EntityRelationAndSubject>>, Response>
 where
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::GetEntityAuthorizationRelationships { entity_id });
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
-    Ok(Json(
+    let response = Ok(Json(
         authorization_api
             .get_entity_relations(entity_id, Consistency::FullyConsistent)
             .await
             .map_err(report_to_response)?,
-    ))
+    ));
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

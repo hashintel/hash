@@ -57,7 +57,7 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::rest::{
-    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
+    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, RestApiStore,
     json::Json,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{ListOrValue, MaybeListOfPropertyType, subgraph::Subgraph},
@@ -393,12 +393,17 @@ async fn get_property_types<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<GetPropertyTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::GetPropertyTypes(&request));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -409,7 +414,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    store
+    let response = store
         .get_property_types(
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
@@ -420,7 +425,11 @@ where
         )
         .await
         .map_err(report_to_response)
-        .map(Json)
+        .map(Json);
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[derive(Serialize, ToSchema)]
@@ -463,12 +472,17 @@ async fn get_property_type_subgraph<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<GetPropertyTypeSubgraphResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::GetPropertyTypeSubgraph(&request));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -479,7 +493,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    store
+    let response = store
         .get_property_type_subgraph(
             actor_id,
             GetPropertyTypeSubgraphParams::deserialize(&request)
@@ -493,7 +507,11 @@ where
                 subgraph: Subgraph::from(response.subgraph),
                 cursor: response.cursor,
             })
-        })
+        });
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -854,16 +872,23 @@ async fn get_property_type_authorization_relationships<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(property_type_id): Path<VersionedUrl>,
     authorization_api_pool: Extension<Arc<A>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
 ) -> Result<Json<Vec<PropertyTypeRelationAndSubject>>, Response>
 where
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::GetPropertyTypeAuthorizationRelationships {
+            property_type_id: &property_type_id,
+        });
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
-    Ok(Json(
+    let response = Ok(Json(
         authorization_api
             .get_property_type_relations(
                 PropertyTypeUuid::from_url(&property_type_id),
@@ -871,7 +896,11 @@ where
             )
             .await
             .map_err(report_to_response)?,
-    ))
+    ));
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[utoipa::path(
@@ -894,11 +923,19 @@ async fn check_property_type_permission<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((property_type_id, permission)): Path<(VersionedUrl, PropertyTypePermission)>,
     authorization_api_pool: Extension<Arc<A>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
 ) -> Result<Json<PermissionResponse>, Response>
 where
     A: AuthorizationApiPool + Send + Sync,
 {
-    Ok(Json(PermissionResponse {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::CheckPropertyTypePermission {
+            property_type_id: &property_type_id,
+            permission,
+        });
+    }
+
+    let response = Ok(Json(PermissionResponse {
         has_permission: authorization_api_pool
             .acquire()
             .await
@@ -912,5 +949,9 @@ where
             .await
             .map_err(report_to_response)?
             .has_permission,
-    }))
+    }));
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }

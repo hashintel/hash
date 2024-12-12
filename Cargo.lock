@@ -2730,6 +2730,7 @@ dependencies = [
  "error-stack",
  "frunk",
  "futures",
+ "futures-channel",
  "harpc-client",
  "harpc-codec",
  "harpc-server",
