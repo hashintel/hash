@@ -1,4 +1,4 @@
-import type {
+import {
   DataType,
   VersionedUrl,
 } from "@blockprotocol/type-system-rs/pkg/type-system";

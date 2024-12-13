@@ -27,7 +27,6 @@ import type {
   Property,
   PropertyArrayWithMetadata,
   PropertyMetadata,
-  PropertyMetadataArray,
   PropertyMetadataObject,
   PropertyMetadataValue,
   PropertyObject,

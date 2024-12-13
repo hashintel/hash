@@ -610,6 +610,7 @@ const EditEntitySlideOver = memo(
                 draftLinksToArchive={draftLinksToArchive}
                 setDraftLinksToArchive={setDraftLinksToArchive}
                 slideContainerRef={slideContainerRef}
+                validationReport={null}
               />
             </Stack>
           </Box>
