@@ -73,6 +73,12 @@ export const getEntitySubgraphQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
+export const countEntitiesQuery = gql`
+  query countEntities($request: CountEntitiesParams!) {
+    countEntities(request: $request)
+  }
+`;
+
 export const updateEntityMutation = gql`
   mutation updateEntity($entityUpdate: EntityUpdateDefinition!) {
     # This is a scalar, which has no selection.
