@@ -1,7 +1,16 @@
 import dns from "node:dns/promises";
 import { isIPv4, isIPv6 } from "node:net";
 
-import { Array, Cause, Data, Duration, Effect, Function } from "effect";
+import {
+  Array,
+  Cause,
+  Data,
+  Duration,
+  Effect,
+  Function,
+  pipe,
+  Record,
+} from "effect";
 import type { NonEmptyReadonlyArray } from "effect/Array";
 
 /** @internal */
@@ -69,6 +78,35 @@ const resolveAAAA = (hostname: string) =>
     ),
   );
 
+const logEnvironment = (hostname: string) =>
+  Effect.gen(function* () {
+    const servers = dns.getServers();
+    const records = yield* Effect.tryPromise(() => dns.resolveAny(hostname));
+
+    yield* Effect.logTrace("resolved DNS environment").pipe(
+      Effect.annotateLogs({ hostname, servers, records }),
+    );
+  });
+
+const logReverse = (records: DnsRecord[]) =>
+  Effect.gen(function* () {
+    const reverseRecords = yield* pipe(
+      records,
+      Array.map((record) =>
+        Effect.tryPromise(() => dns.reverse(record.address)).pipe(
+          Effect.merge,
+          Effect.map((reverse) => [record.address, reverse] as const),
+        ),
+      ),
+      (effects) => Effect.all(effects, { concurrency: "unbounded" }),
+      Effect.map(Record.fromEntries),
+    );
+
+    yield* Effect.logTrace("queried DNS for hostname").pipe(
+      Effect.annotateLogs({ reverse: reverseRecords }),
+    );
+  });
+
 /** @internal */
 export const resolve = (
   hostname: string,
@@ -115,6 +153,8 @@ export const resolve = (
       });
     }
 
+    yield* Effect.fork(logEnvironment(hostname));
+
     const [excluded, satisfying] = yield* Effect.partition(
       resolvers,
       Function.identity,
@@ -133,4 +173,8 @@ export const resolve = (
     }
 
     return Array.flatten(satisfying);
-  });
+  }).pipe(
+    Effect.tap((records) =>
+      logReverse(records).pipe(Effect.annotateLogs({ hostname, query })),
+    ),
+  );
