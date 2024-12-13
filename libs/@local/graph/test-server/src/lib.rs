@@ -112,6 +112,7 @@ where
                 JsonLinesDecoder::default(),
             ),
             10_000,
+            false,
         )
         .await
         .map_err(|report| {
