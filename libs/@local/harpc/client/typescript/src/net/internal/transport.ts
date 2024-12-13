@@ -268,7 +268,7 @@ const lookupPeer = (transport: Transport, address: Multiaddr) =>
       Array.filter(
         flow(
           Struct.get("addresses"),
-          Array.unionWith(resolved, (a, b) => a.equals(b)),
+          Array.intersectionWith<Multiaddr>((a, b) => a.equals(b))(resolved),
           Array.isNonEmptyArray,
         ),
       ),
