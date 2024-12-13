@@ -580,7 +580,7 @@ export const Grid = <T extends GridRow>({
           if (onSelectedRowsChange && sortedAndFilteredRows) {
             newSelection.rows.toArray();
             const updatedSelectedRows = sortedAndFilteredRows.filter(
-              (_, rowIndex) => selection.rows.hasIndex(rowIndex),
+              (_, rowIndex) => newSelection.rows.hasIndex(rowIndex),
             );
 
             onSelectedRowsChange(updatedSelectedRows);
