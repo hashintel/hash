@@ -66,6 +66,10 @@ pub struct SnapshotRestoreArgs {
     #[clap(long)]
     pub skip_validation: bool,
 
+    /// Whether to skip the validation checks.
+    #[clap(long)]
+    pub ignore_validation_errors: bool,
+
     /// Whether to skip the authorization restoring.
     #[clap(long)]
     pub skip_authorization: bool,
@@ -187,7 +191,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
                             report
                         })?,
                 )
-                    .restore_snapshot(read, 10_000)
+                    .restore_snapshot(read, 10_000, args.ignore_validation_errors)
                     .await
             } else {
                 SnapshotStore::new(pool.acquire(NoAuthorization, None).await
@@ -196,7 +200,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
                         tracing::error!(error = ?report, "Failed to acquire database connection");
                         report
                     })?)
-                    .restore_snapshot(read, 10_000)
+                    .restore_snapshot(read, 10_000, args.ignore_validation_errors)
                     .await
             }
             .change_context(GraphError)
