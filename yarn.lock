@@ -13140,6 +13140,8 @@ __metadata:
   resolution: "@rust/hash-graph-benches@workspace:tests/graph/benches"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
+    "@rust/error-stack": "npm:0.5.0"
+    "@rust/hash-graph-api": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@rust/hash-graph-postgres-store": "npm:0.0.0-private"
     "@rust/hash-graph-store": "npm:0.0.0-private"

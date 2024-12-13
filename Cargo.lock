@@ -2794,6 +2794,8 @@ version = "0.0.0"
 dependencies = [
  "criterion",
  "criterion-macro",
+ "error-stack",
+ "hash-graph-api",
  "hash-graph-authorization",
  "hash-graph-postgres-store",
  "hash-graph-store",
@@ -2802,6 +2804,7 @@ dependencies = [
  "hash-graph-types",
  "hash-repo-chores",
  "rand",
+ "serde",
  "serde_json",
  "tokio",
  "tokio-postgres",
@@ -2810,6 +2813,7 @@ dependencies = [
  "tracing-subscriber",
  "type-system",
  "uuid",
+ "walkdir",
 ]
 
 [[package]]

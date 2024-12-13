@@ -2,18 +2,19 @@
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
+pub mod account;
+pub mod data_type;
+pub mod entity;
+pub mod entity_type;
+pub mod middleware;
+pub mod property_type;
+pub mod status;
+pub mod web;
+
 mod api_resource;
 mod json;
-pub mod middleware;
-pub mod status;
 mod utoipa_typedef;
 
-mod account;
-mod data_type;
-mod entity;
-mod entity_type;
-mod property_type;
-mod web;
 use alloc::{borrow::Cow, sync::Arc};
 use core::str::FromStr as _;
 use std::{fs, io, time::Instant};

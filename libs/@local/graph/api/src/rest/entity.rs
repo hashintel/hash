@@ -578,13 +578,13 @@ fn generate_sorting_paths(
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[expect(
     clippy::struct_excessive_bools,
     reason = "Parameter struct deserialized from JSON"
 )]
-struct GetEntitiesRequest<'q, 's, 'p> {
+pub struct GetEntitiesRequest<'q, 's, 'p> {
     #[serde(borrow)]
     filter: Filter<'q, Entity>,
     temporal_axes: QueryTemporalAxesUnresolved,
@@ -608,6 +608,30 @@ struct GetEntitiesRequest<'q, 's, 'p> {
     include_edition_created_by_ids: bool,
     #[serde(default)]
     include_type_ids: bool,
+}
+
+impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<'q> {
+    fn from(request: GetEntitiesRequest<'q, 's, 'p>) -> Self {
+        Self {
+            filter: request.filter,
+            sorting: generate_sorting_paths(
+                request.sorting_paths,
+                request.limit,
+                request.cursor,
+                &request.temporal_axes,
+            ),
+            limit: request.limit,
+            conversions: request.conversions,
+            include_drafts: request.include_drafts,
+            include_count: request.include_count,
+            include_entity_types: request.include_entity_types,
+            temporal_axes: request.temporal_axes,
+            include_web_ids: request.include_web_ids,
+            include_created_by_ids: request.include_created_by_ids,
+            include_edition_created_by_ids: request.include_edition_created_by_ids,
+            include_type_ids: request.include_type_ids,
+        }
+    }
 }
 
 #[utoipa::path(
@@ -674,25 +698,7 @@ where
     }
 
     let response = store
-        .get_entities(actor_id, GetEntitiesParams {
-            filter: request.filter,
-            sorting: generate_sorting_paths(
-                request.sorting_paths,
-                request.limit,
-                request.cursor,
-                &request.temporal_axes,
-            ),
-            limit: request.limit,
-            conversions: request.conversions,
-            include_drafts: request.include_drafts,
-            include_count: request.include_count,
-            include_entity_types: request.include_entity_types,
-            temporal_axes: request.temporal_axes,
-            include_web_ids: request.include_web_ids,
-            include_created_by_ids: request.include_created_by_ids,
-            include_edition_created_by_ids: request.include_edition_created_by_ids,
-            include_type_ids: request.include_type_ids,
-        })
+        .get_entities(actor_id, request.into())
         .await
         .map(|response| {
             Json(GetEntitiesResponse {
@@ -714,13 +720,13 @@ where
     response
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[expect(
     clippy::struct_excessive_bools,
     reason = "Parameter struct deserialized from JSON"
 )]
-struct GetEntitySubgraphRequest<'q, 's, 'p> {
+pub struct GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(borrow)]
     filter: Filter<'q, Entity>,
     graph_resolve_depths: GraphResolveDepths,
@@ -745,6 +751,31 @@ struct GetEntitySubgraphRequest<'q, 's, 'p> {
     include_edition_created_by_ids: bool,
     #[serde(default)]
     include_type_ids: bool,
+}
+
+impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySubgraphParams<'q> {
+    fn from(request: GetEntitySubgraphRequest<'q, 's, 'p>) -> Self {
+        Self {
+            filter: request.filter,
+            sorting: generate_sorting_paths(
+                request.sorting_paths,
+                request.limit,
+                request.cursor,
+                &request.temporal_axes,
+            ),
+            limit: request.limit,
+            conversions: request.conversions,
+            graph_resolve_depths: request.graph_resolve_depths,
+            include_drafts: request.include_drafts,
+            include_count: request.include_count,
+            include_entity_types: request.include_entity_types,
+            temporal_axes: request.temporal_axes,
+            include_web_ids: request.include_web_ids,
+            include_created_by_ids: request.include_created_by_ids,
+            include_edition_created_by_ids: request.include_edition_created_by_ids,
+            include_type_ids: request.include_type_ids,
+        }
+    }
 }
 
 #[derive(Serialize, ToSchema)]
@@ -838,26 +869,7 @@ where
     }
 
     let response = store
-        .get_entity_subgraph(actor_id, GetEntitySubgraphParams {
-            filter: request.filter,
-            sorting: generate_sorting_paths(
-                request.sorting_paths,
-                request.limit,
-                request.cursor,
-                &request.temporal_axes,
-            ),
-            limit: request.limit,
-            conversions: request.conversions,
-            graph_resolve_depths: request.graph_resolve_depths,
-            include_drafts: request.include_drafts,
-            include_count: request.include_count,
-            include_entity_types: request.include_entity_types,
-            temporal_axes: request.temporal_axes,
-            include_web_ids: request.include_web_ids,
-            include_created_by_ids: request.include_created_by_ids,
-            include_edition_created_by_ids: request.include_edition_created_by_ids,
-            include_type_ids: request.include_type_ids,
-        })
+        .get_entity_subgraph(actor_id, request.into())
         .await
         .map(|response| {
             Json(GetEntitySubgraphResponse {
