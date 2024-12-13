@@ -4,6 +4,7 @@ import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useState } from "react";
 
 import { TypeSlideOverSlide } from "./type-slide-over-stack/type-slide-over-slide";
+import { useScrollLock } from "../../../shared/use-scroll-lock";
 
 export const TypeSlideOverStack: FunctionComponent<{
   rootTypeId: VersionedUrl;
@@ -16,6 +17,8 @@ export const TypeSlideOverStack: FunctionComponent<{
   const [animateOut, setAnimateOut] = useState(false);
   const [items, setItems] = useState<VersionedUrl[]>([rootTypeId]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+
+  useScrollLock(true);
 
   if (rootTypeId !== items[0]) {
     setCurrentIndex(0);

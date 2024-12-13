@@ -31,5 +31,12 @@ export const isTypePropertyType = (
     | DataTypeWithMetadata,
 ) => type.schema.kind === "propertyType";
 
+export const isTypeDataType = (
+  type:
+    | EntityTypeWithMetadata
+    | PropertyTypeWithMetadata
+    | DataTypeWithMetadata,
+) => type.schema.kind === "dataType";
+
 export const isEntityPageEntity = (item: Entity) =>
   includesPageEntityTypeId(item.metadata.entityTypeIds);

@@ -541,6 +541,12 @@ const EditEntitySlideOver = memo(
                   color="gray.90"
                   fontWeight="bold"
                   ml={2}
+                  sx={{
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    maxWidth: "100%",
+                  }}
                 >
                   {entityLabel}
                 </Typography>
