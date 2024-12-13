@@ -22,8 +22,6 @@ export const projectIgnoreFiles = (directory: string): string[] => {
     const parent = path.dirname(currentDirectory);
     const files = fs.readdirSync(currentDirectory);
 
-    console.log({ parent, currentDirectory });
-
     if (files.includes(".gitignore")) {
       gitignoreFiles.push(path.join(currentDirectory, ".gitignore"));
     }

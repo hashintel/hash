@@ -86,8 +86,6 @@ export const useCreateOnCellEdited = () => {
           metadataKeyChain.push(propertyKeyChain[i]!);
         }
 
-        console.log({ metadataKeyChain });
-
         set(
           updatedMetadata,
           ["properties", "value", ...metadataKeyChain],

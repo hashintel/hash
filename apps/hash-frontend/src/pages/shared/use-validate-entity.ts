@@ -164,7 +164,7 @@ const generatePropertyObjectValidationReports = (
 };
 
 /**
- * Generate a validation report that  covers a few cases which can be
+ * Generate a validation report that covers a few cases which are handled in the entity editor
  */
 export const generateMinimalValidationReport = (
   validationReport: EntityValidationReport,

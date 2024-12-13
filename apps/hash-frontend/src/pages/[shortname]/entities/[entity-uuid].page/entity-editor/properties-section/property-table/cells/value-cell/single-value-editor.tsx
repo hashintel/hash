@@ -110,8 +110,6 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
         },
       });
 
-      console.log("Generated new", { propertyMetadata });
-
       const newCell = produce(cell, (draftCell) => {
         draftCell.data.propertyRow.valueMetadata = propertyMetadata;
       });
