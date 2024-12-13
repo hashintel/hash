@@ -53,6 +53,10 @@ export const scalars = {
   DiffEntityResult: "@local/hash-graph-client#DiffEntityResult",
   ValidateEntityParamsComponents:
     "@local/hash-graph-client#ValidateEntityParamsComponents",
+  EntityQueryCursor: "@local/hash-graph-client#EntityQueryCursor",
+  CreatedByIdsMap: "@local/hash-graph-sdk/entity#CreatedByIdsMap",
+  TypeIdsMap: "@local/hash-graph-sdk/entity#TypeIdsMap",
+  WebIdsMap: "@local/hash-graph-sdk/entity#WebIdsMap",
 
   Filter: "@local/hash-graph-client#Filter",
 

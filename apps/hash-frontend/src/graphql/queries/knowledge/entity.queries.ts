@@ -63,11 +63,16 @@ export const getEntitySubgraphQuery = gql`
     getEntitySubgraph(request: $request) {
       closedMultiEntityTypes
       count
+      cursor
+      createdByIds
+      editionCreatedByIds
       definitions
       userPermissionsOnEntities @include(if: $includePermissions)
       subgraph {
         ...SubgraphFields
       }
+      typeIds
+      webIds
     }
   }
   ${subgraphFieldsFragment}
