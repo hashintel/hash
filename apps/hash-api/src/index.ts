@@ -6,7 +6,7 @@ import {
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
-import type { ErrorRequestHandler } from "express";
+import { ErrorRequestHandler } from "express";
 import express, { raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 

@@ -1,8 +1,14 @@
+import type {
+  DataType,
+  VersionedUrl,
+} from "@blockprotocol/type-system-rs/pkg/type-system";
 import {
   buildDataTypeTreesForSelector,
   DataTypeSelector,
 } from "@hashintel/design-system";
-import { Box, Collapse, Stack, Typography } from "@mui/material";
+// eslint-disable-next-line no-restricted-imports -- TODO remove this dependency if seeking to use package outside the repo
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { Box, Collapse, Stack } from "@mui/material";
 import uniqueId from "lodash.uniqueid";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent } from "react";
@@ -17,11 +23,6 @@ import { ExpectedValueBadge } from "../shared/expected-value-badge";
 import type { ExpectedValueSelectorFormValues } from "../shared/expected-value-selector-form-values";
 import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
 import { ArrayMinMaxItems } from "./array-expected-value-builder/array-min-max-items";
-import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  DataType,
-  VersionedUrl,
-} from "@blockprotocol/type-system-rs/pkg/type-system";
 
 const deleteExpectedValueAndChildren = (
   id: string,
@@ -291,64 +292,64 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
         />
 
         {/* @todo H-3794: restore ability to create complex types, support them in entity editor */}
-        {/*<CustomExpectedValueSelector*/}
-        {/*  inputLabel="Add to array"*/}
-        {/*  collapsedWidth={145}*/}
-        {/*  value={value}*/}
-        {/*  options={dataTypeOptions}*/}
-        {/*  renderOption={(optProps, opt) => {*/}
-        {/*    return (*/}
-        {/*      <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>*/}
-        {/*        <FontAwesomeIcon*/}
-        {/*          icon={{ icon: getExpectedValueDisplay(opt!).icon }}*/}
-        {/*          sx={(theme) => ({ color: theme.palette.gray[50] })}*/}
-        {/*        />*/}
-        {/*        <Typography*/}
-        {/*          variant="smallTextLabels"*/}
-        {/*          component="span"*/}
-        {/*          ml={1.5}*/}
-        {/*          color={(theme) => theme.palette.gray[80]}*/}
-        {/*        >*/}
-        {/*          {getExpectedValueDisplay(opt!).title}*/}
-        {/*        </Typography>*/}
-        {/*        <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />*/}
-        {/*      </Box>*/}
-        {/*    );*/}
-        {/*  }}*/}
-        {/*  onChange={(_evt, _data, reason, details) => {*/}
-        {/*    const typeId = details?.option;*/}
-        {/*    if (typeId) {*/}
-        {/*      const allowMultiple = typeId === "object" || typeId === "array";*/}
+        {/* <CustomExpectedValueSelector */}
+        {/*  inputLabel="Add to array" */}
+        {/*  collapsedWidth={145} */}
+        {/*  value={value} */}
+        {/*  options={dataTypeOptions} */}
+        {/*  renderOption={(optProps, opt) => { */}
+        {/*    return ( */}
+        {/*      <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}> */}
+        {/*        <FontAwesomeIcon */}
+        {/*          icon={{ icon: getExpectedValueDisplay(opt!).icon }} */}
+        {/*          sx={(theme) => ({ color: theme.palette.gray[50] })} */}
+        {/*        /> */}
+        {/*        <Typography */}
+        {/*          variant="smallTextLabels" */}
+        {/*          component="span" */}
+        {/*          ml={1.5} */}
+        {/*          color={(theme) => theme.palette.gray[80]} */}
+        {/*        > */}
+        {/*          {getExpectedValueDisplay(opt!).title} */}
+        {/*        </Typography> */}
+        {/*        <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} /> */}
+        {/*      </Box> */}
+        {/*    ); */}
+        {/*  }} */}
+        {/*  onChange={(_evt, _data, reason, details) => { */}
+        {/*    const typeId = details?.option; */}
+        {/*    if (typeId) { */}
+        {/*      const allowMultiple = typeId === "object" || typeId === "array"; */}
 
-        {/*      const defaultData = getDefaultExpectedValue(typeId);*/}
+        {/*      const defaultData = getDefaultExpectedValue(typeId); */}
 
-        {/*      if (*/}
-        {/*        reason === "selectOption" ||*/}
-        {/*        (reason === "removeOption" && allowMultiple)*/}
-        {/*      ) {*/}
-        {/*        const childId = uniqueId();*/}
+        {/*      if ( */}
+        {/*        reason === "selectOption" || */}
+        {/*        (reason === "removeOption" && allowMultiple) */}
+        {/*      ) { */}
+        {/*        const childId = uniqueId(); */}
 
-        {/*        setValue(`flattenedCustomExpectedValueList`, {*/}
-        {/*          ...getValues("flattenedCustomExpectedValueList"),*/}
-        {/*          [childId]: {*/}
-        {/*            id: childId,*/}
-        {/*            parentId: expectedValueId,*/}
-        {/*            data: defaultData,*/}
-        {/*          },*/}
-        {/*        });*/}
-        {/*        setValue(*/}
-        {/*          `flattenedCustomExpectedValueList.${expectedValueId}.data.itemIds`,*/}
-        {/*          [...itemIds, childId],*/}
-        {/*        );*/}
+        {/*        setValue(`flattenedCustomExpectedValueList`, { */}
+        {/*          ...getValues("flattenedCustomExpectedValueList"), */}
+        {/*          [childId]: { */}
+        {/*            id: childId, */}
+        {/*            parentId: expectedValueId, */}
+        {/*            data: defaultData, */}
+        {/*          }, */}
+        {/*        }); */}
+        {/*        setValue( */}
+        {/*          `flattenedCustomExpectedValueList.${expectedValueId}.data.itemIds`, */}
+        {/*          [...itemIds, childId], */}
+        {/*        ); */}
 
-        {/*        // trigger popper reposition calculation*/}
-        {/*        window.dispatchEvent(new Event("resize"));*/}
-        {/*      } else if (reason === "removeOption") {*/}
-        {/*        deleteExpectedValueById(typeId);*/}
-        {/*      }*/}
-        {/*    }*/}
-        {/*  }}*/}
-        {/*/>*/}
+        {/*        // trigger popper reposition calculation */}
+        {/*        window.dispatchEvent(new Event("resize")); */}
+        {/*      } else if (reason === "removeOption") { */}
+        {/*        deleteExpectedValueById(typeId); */}
+        {/*      } */}
+        {/*    } */}
+        {/*  }} */}
+        {/* /> */}
 
         <DeleteExpectedValueModal
           expectedValueType="array"

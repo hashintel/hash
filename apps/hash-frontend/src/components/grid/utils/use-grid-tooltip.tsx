@@ -3,8 +3,8 @@ import type { PopoverPosition } from "@mui/material";
 import { Popover, Typography } from "@mui/material";
 import { isEqual } from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
-import { RefObject, useEffect } from "react";
-import { useCallback, useState } from "react";
+import type { RefObject } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWindowEventListener } from "rooks";
 
 import type {
@@ -134,7 +134,7 @@ export const useGridTooltip = (
           textAlign="center"
           color="white"
         >
-          {gridTooltip?.text}
+          {gridTooltip.text}
         </Typography>
       </Popover>
     ),

@@ -8,8 +8,8 @@ import {
 } from "../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawRoundRect } from "../../../../../../components/grid/utils/draw-round-rect";
-import { drawInteractableTooltipIcons } from "../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import { InteractableManager } from "../../../../../../components/grid/utils/interactable-manager";
+import { drawInteractableTooltipIcons } from "../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import type { TooltipCellProps } from "../../../../../../components/grid/utils/use-grid-tooltip/types";
 import type { PropertyRow } from "../properties-section/property-table/types";
 

@@ -2,11 +2,12 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityProperties } from "@local/hash-graph-types/entity";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { PropsWithChildren, useEffect } from "react";
+import type { PropsWithChildren } from "react";
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";

@@ -8,7 +8,7 @@ import type {
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 
 import type { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
-import { MinimalPropertyValidationReport } from "../../../../../../shared/use-validate-entity";
+import type { MinimalPropertyValidationReport } from "../../../../../../shared/use-validate-entity";
 
 export type PropertyRow = {
   children: PropertyRow[];

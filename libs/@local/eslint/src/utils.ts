@@ -22,6 +22,8 @@ export const projectIgnoreFiles = (directory: string): string[] => {
     const parent = path.dirname(currentDirectory);
     const files = fs.readdirSync(currentDirectory);
 
+    console.log({ parent, currentDirectory });
+
     if (files.includes(".gitignore")) {
       gitignoreFiles.push(path.join(currentDirectory, ".gitignore"));
     }
@@ -36,3 +38,7 @@ export const projectIgnoreFiles = (directory: string): string[] => {
 
   return gitignoreFiles;
 };
+
+projectIgnoreFiles(
+  "/Users/ciaran/dev/hash/libs/@hashintel/type-editor/src/entity-type-editor/property-list-card/property-type-form/expected-value-selector/custom-expected-value-builder",
+);

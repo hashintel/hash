@@ -1,10 +1,11 @@
 import { useLazyQuery } from "@apollo/client";
-import { mustHaveAtLeastOne, VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { ArrayItemNumberMismatch } from "@local/hash-graph-client/api";
 import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import {
+import type {
   EntityValidationReport,
   ObjectValidationReport,
   ValueValidationError,

@@ -11,6 +11,7 @@ import type {
   AccountId,
 } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityValidationReport } from "@local/hash-graph-types/validation";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   createDefaultAuthorizationRelationships,
@@ -74,7 +75,6 @@ import {
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { getUserPermissionsOnSubgraph } from "../shared/get-user-permissions-on-subgraph";
-import { EntityValidationReport } from "@local/hash-graph-types/validation";
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,
