@@ -1,7 +1,3 @@
-import type { LookupAddress } from "node:dns";
-import dns from "node:dns/promises";
-import { isIP, isIPv4, isIPv6 } from "node:net";
-
 import { noise } from "@chainsafe/libp2p-noise";
 import { yamux } from "@chainsafe/libp2p-yamux";
 import type { Identify } from "@libp2p/identify";
@@ -14,7 +10,7 @@ import { type DNS, dns as defaultDns } from "@multiformats/dns";
 import {
   multiaddr as makeMultiaddr,
   protocols as getProtocol,
-  resolvers,
+  resolvers as multiaddrResolvers,
 } from "@multiformats/multiaddr";
 import {
   Array,
@@ -33,12 +29,14 @@ import {
   Stream,
   Struct,
 } from "effect";
+import type { NonEmptyArray } from "effect/Array";
 import type { Libp2p } from "libp2p";
 import { createLibp2p } from "libp2p";
 
 import * as NetworkLogger from "../NetworkLogger.js";
 import type { DNSConfig, Multiaddr, TransportConfig } from "../Transport.js";
 import { InitializationError } from "../Transport.js";
+import * as Dns from "./dns.js";
 import * as HashableMultiaddr from "./multiaddr.js";
 
 /** @internal */
@@ -68,15 +66,6 @@ export class TransportError extends Data.TaggedError("TransportError")<{
   }
 }
 
-/** @internal */
-export class DnsError extends Data.TaggedError("DnsError")<{
-  cause: unknown;
-}> {
-  get message() {
-    return "Underlying DNS resolver experienced an error";
-  }
-}
-
 const DNS_PROTOCOL = getProtocol("dns");
 const DNS4_PROTOCOL = getProtocol("dns4");
 const DNS6_PROTOCOL = getProtocol("dns6");
@@ -100,46 +89,30 @@ const resolveDnsMultiaddrSegment = (code: number, value?: string) =>
     }
 
     const hostname = value;
+    const types: Dns.RecordType[] = [];
 
-    let family: 0 | 4 | 6;
-    if (code === DNS4_PROTOCOL.code) {
-      family = 4;
-
-      if (isIPv4(hostname)) {
-        return [[IPV4_PROTOCOL.code, hostname] as const];
-      }
-    } else if (code === DNS6_PROTOCOL.code) {
-      family = 6;
-
-      if (isIPv6(hostname)) {
-        return [[IPV6_PROTOCOL.code, hostname] as const];
-      }
-    } else {
-      family = 0;
-
-      const hostnameFamily = isIP(hostname);
-      if (hostnameFamily === 4) {
-        return [[IPV4_PROTOCOL.code, hostname] as const];
-      } else if (hostnameFamily === 6) {
-        return [[IPV6_PROTOCOL.code, hostname] as const];
-      }
+    if (code === DNS_PROTOCOL.code || code === DNS4_PROTOCOL.code) {
+      types.push("A");
     }
 
-    const responses = yield* Effect.tryPromise({
-      try: () => dns.lookup(hostname, { all: true, family }),
-      catch: (cause) => new DnsError({ cause }),
+    if (code === DNS_PROTOCOL.code || code === DNS6_PROTOCOL.code) {
+      types.push("AAAA");
+    }
+
+    const records = yield* Dns.resolve(hostname, {
+      records: types as NonEmptyArray<Dns.RecordType>,
     }).pipe(Effect.mapError((cause) => new TransportError({ cause })));
 
     return pipe(
-      responses,
+      records,
       Array.filterMap(
-        Match.type<LookupAddress>().pipe(
+        Match.type<Dns.DnsRecord>().pipe(
           Match.when(
-            { family: 4 },
+            { type: "A" },
             ({ address }) => [IPV4_PROTOCOL.code, address] as const,
           ),
           Match.when(
-            { family: 6 },
+            { type: "AAAA" },
             ({ address }) => [IPV6_PROTOCOL.code, address] as const,
           ),
           Match.option,
@@ -189,7 +162,7 @@ const resolveDnsMultiaddr = (multiaddr: Multiaddr) => {
       Effect.logDebug("resolved DNS multiaddr").pipe(
         Effect.annotateLogs({
           multiaddr: multiaddr.toString(),
-          resolved: resolved.map((address) => address.toString()),
+          resolved,
         }),
       ),
     ),
@@ -204,7 +177,7 @@ const resolveDnsMultiaddr = (multiaddr: Multiaddr) => {
 const resolveDnsaddrMultiaddr = (multiaddr: Multiaddr, options: DNSConfig) =>
   Effect.gen(function* () {
     // check multiaddr resolvers
-    const resolvable = Iterable.some(resolvers.keys(), (key) =>
+    const resolvable = Iterable.some(multiaddrResolvers.keys(), (key) =>
       multiaddr.protoNames().includes(key),
     );
 
@@ -268,7 +241,7 @@ const lookupPeer = (transport: Transport, address: Multiaddr) =>
       Array.filter(
         flow(
           Struct.get("addresses"),
-          Array.unionWith(resolved, (a, b) => a.equals(b)),
+          Array.intersectionWith<Multiaddr>((a, b) => a.equals(b))(resolved),
           Array.isNonEmptyArray,
         ),
       ),
@@ -278,7 +251,7 @@ const lookupPeer = (transport: Transport, address: Multiaddr) =>
       Effect.annotateLogs({
         known: addressesByPeer,
         match: matchingPeers,
-        resolved: resolved.map((resolvedAddress) => resolvedAddress.toString()),
+        resolved,
       }),
     );
 
