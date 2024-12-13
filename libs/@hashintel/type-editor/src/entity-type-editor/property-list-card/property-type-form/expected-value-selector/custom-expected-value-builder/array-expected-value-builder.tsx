@@ -1,7 +1,4 @@
-import {
-  DataType,
-  VersionedUrl,
-} from "@blockprotocol/type-system-rs/pkg/type-system";
+import type { DataType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   buildDataTypeTreesForSelector,
   DataTypeSelector,

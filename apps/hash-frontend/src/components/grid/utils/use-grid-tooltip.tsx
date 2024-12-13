@@ -21,14 +21,14 @@ export const useGridTooltip = (
     popupId: "grid-tooltip",
   });
 
+  const [gridTooltip, setGridTooltip] = useState<GridTooltip | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<PopoverPosition>();
+
   // prevent tooltip from staying at the same position when user scrolls vertically
   useWindowEventListener("scroll", () => {
     popupState.close();
     setGridTooltip(null);
   });
-
-  const [gridTooltip, setGridTooltip] = useState<GridTooltip | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<PopoverPosition>();
 
   useEffect(() => {
     const eventListener = (event: MouseEvent) => {

@@ -2,10 +2,7 @@ import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
-import {
-  getCellHorizontalPadding,
-  getYCenter,
-} from "../../../../../../components/grid/utils";
+import { getYCenter } from "../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawRoundRect } from "../../../../../../components/grid/utils/draw-round-rect";
 import { InteractableManager } from "../../../../../../components/grid/utils/interactable-manager";

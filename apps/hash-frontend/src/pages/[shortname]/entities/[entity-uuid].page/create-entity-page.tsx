@@ -156,11 +156,11 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       return;
     }
 
-    const validationReport = await validateEntity(draftEntity);
+    const report = await validateEntity(draftEntity);
 
-    setValidationReport(validationReport);
+    setValidationReport(report);
 
-    if (validationReport) {
+    if (report) {
       return;
     }
 

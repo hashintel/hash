@@ -77,7 +77,6 @@ const generatePropertyObjectValidationReports = (
   pathToObject: BaseUrl[] = [],
   reports: MinimalPropertyValidationReport[] = [],
 ): MinimalPropertyValidationReport[] => {
-  console.log({ objectValidation });
   if (!objectValidation.properties) {
     return [];
   }
