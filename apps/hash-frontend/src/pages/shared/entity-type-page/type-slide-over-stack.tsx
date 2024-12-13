@@ -3,8 +3,8 @@ import { Backdrop } from "@mui/material";
 import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useState } from "react";
 
-import { TypeSlideOverSlide } from "./type-slide-over-stack/type-slide-over-slide";
 import { useScrollLock } from "../../../shared/use-scroll-lock";
+import { TypeSlideOverSlide } from "./type-slide-over-stack/type-slide-over-slide";
 
 export const TypeSlideOverStack: FunctionComponent<{
   rootTypeId: VersionedUrl;
