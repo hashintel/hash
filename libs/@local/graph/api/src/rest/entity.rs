@@ -407,7 +407,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::ValidateEntity(&body));
+        query_logger.capture(actor_id, OpenApiQuery::ValidateEntity(&body));
     }
 
     let params = ValidateEntityParams::deserialize(&body)
@@ -461,7 +461,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::CheckEntityPermission {
+        query_logger.capture(actor_id, OpenApiQuery::CheckEntityPermission {
             entity_id,
             permission,
         });
@@ -633,7 +633,8 @@ struct GetEntitiesRequest<'q, 's, 'p> {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client, request)
+    skip_all,
+    fields(actor=%actor_id, %request)
 )]
 async fn get_entities<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -648,7 +649,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetEntities(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetEntities(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -664,6 +665,14 @@ where
     let request = GetEntitiesRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
+
+    if request.limit == Some(0) {
+        tracing::warn!(
+            %actor_id,
+            "The limit is set to zero, so no entities will be returned."
+        );
+    }
+
     let response = store
         .get_entities(actor_id, GetEntitiesParams {
             filter: request.filter,
@@ -788,7 +797,8 @@ struct GetEntitySubgraphResponse<'r> {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client, request)
+    skip_all,
+    fields(actor=%actor_id, %request)
 )]
 async fn get_entity_subgraph<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -803,7 +813,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetEntitySubgraph(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetEntitySubgraph(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -819,6 +829,14 @@ where
     let request = GetEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
+
+    if request.limit == Some(0) {
+        tracing::warn!(
+            %actor_id,
+            "The limit is set to zero, so no entities will be returned"
+        );
+    }
+
     let response = store
         .get_entity_subgraph(actor_id, GetEntitySubgraphParams {
             filter: request.filter,
@@ -897,7 +915,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::CountEntities(&request));
+        query_logger.capture(actor_id, OpenApiQuery::CountEntities(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -1069,7 +1087,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::DiffEntity(&params));
+        query_logger.capture(actor_id, OpenApiQuery::DiffEntity(&params));
     }
 
     let authorization_api = authorization_api_pool
@@ -1125,7 +1143,10 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetEntityAuthorizationRelationships { entity_id });
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::GetEntityAuthorizationRelationships { entity_id },
+        );
     }
 
     let authorization_api = authorization_api_pool

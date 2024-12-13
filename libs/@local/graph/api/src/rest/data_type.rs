@@ -412,7 +412,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetDataTypes(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetDataTypes(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -487,7 +487,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetDataTypeSubgraph(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetDataTypeSubgraph(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -890,9 +890,12 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetDataTypeAuthorizationRelationships {
-            data_type_id: &data_type_id,
-        });
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::GetDataTypeAuthorizationRelationships {
+                data_type_id: &data_type_id,
+            },
+        );
     }
 
     let authorization_api = authorization_api_pool
@@ -939,7 +942,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::CheckDataTypePermission {
+        query_logger.capture(actor_id, OpenApiQuery::CheckDataTypePermission {
             data_type_id: &data_type_id,
             permission,
         });

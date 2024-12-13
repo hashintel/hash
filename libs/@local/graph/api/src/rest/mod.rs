@@ -238,13 +238,15 @@ impl QueryLogger {
     }
 
     #[expect(clippy::missing_panics_doc)]
-    pub fn capture(&mut self, query: OpenApiQuery<'_>) {
+    pub fn capture(&mut self, actor: AccountId, query: OpenApiQuery<'_>) {
+        let mut record = serde_json::to_value(query)
+            .change_context(QueryLoggingError)
+            .expect("query should be serializable");
+        record
+            .as_object_mut()
+            .map(|object| object.insert("actor".to_owned(), JsonValue::String(actor.to_string())));
+        self.value = Some(record);
         self.created_at = Instant::now();
-        self.value = Some(
-            serde_json::to_value(query)
-                .change_context(QueryLoggingError)
-                .expect("query should be serializable"),
-        );
     }
 
     /// Sends the captured query to the query logger.

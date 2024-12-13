@@ -285,9 +285,12 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetEntityTypeAuthorizationRelationships {
-            entity_type_id: &entity_type_id,
-        });
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::GetEntityTypeAuthorizationRelationships {
+                entity_type_id: &entity_type_id,
+            },
+        );
     }
 
     let authorization_api = authorization_api_pool
@@ -336,7 +339,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::CheckEntityTypePermission {
+        query_logger.capture(actor_id, OpenApiQuery::CheckEntityTypePermission {
             entity_type_id: &entity_type_id,
             permission,
         });
@@ -725,7 +728,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetEntityTypes(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetEntityTypes(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -793,7 +796,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetClosedMultiEntityTypes(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetClosedMultiEntityTypes(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -874,7 +877,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetEntityTypeSubgraph(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetEntityTypeSubgraph(&request));
     }
 
     let authorization_api = authorization_api_pool
