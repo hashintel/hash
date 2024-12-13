@@ -9,6 +9,7 @@ use axum::{
     response::Response,
     routing::{get, post},
 };
+use error_stack::ResultExt as _;
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::ModifyRelationshipOperation,
@@ -31,7 +32,8 @@ use utoipa::OpenApi;
 
 use super::api_resource::RoutedResource;
 use crate::rest::{
-    AuthenticatedUserHeader, PermissionResponse, json::Json, status::report_to_response,
+    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, json::Json,
+    status::report_to_response,
 };
 
 #[derive(OpenApi)]
@@ -227,18 +229,23 @@ async fn check_account_group_permission<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((account_group_id, permission)): Path<(AccountGroupId, AccountGroupPermission)>,
     authorization_api_pool: Extension<Arc<A>>,
-) -> Result<Json<PermissionResponse>, StatusCode>
+    mut query_logger: Option<Extension<QueryLogger>>,
+) -> Result<Json<PermissionResponse>, Response>
 where
     A: AuthorizationApiPool + Send + Sync,
 {
-    Ok(Json(PermissionResponse {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(OpenApiQuery::CheckAccountGroupPermission {
+            account_group_id,
+            permission,
+        });
+    }
+
+    let response = Ok(Json(PermissionResponse {
         has_permission: authorization_api_pool
             .acquire()
             .await
-            .map_err(|error| {
-                tracing::error!(?error, "Could not acquire access to the authorization API");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?
+            .map_err(report_to_response)?
             .check_account_group_permission(
                 actor_id,
                 permission,
@@ -246,16 +253,17 @@ where
                 Consistency::FullyConsistent,
             )
             .await
-            .map_err(|error| {
-                tracing::error!(
-                    ?error,
-                    "Could not check if permission on the account group is granted to the \
-                     specified actor"
-                );
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?
+            .attach_printable(
+                "Could not check if permission on the account group is granted to the specified \
+                 actor",
+            )
+            .map_err(report_to_response)?
             .has_permission,
-    }))
+    }));
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[utoipa::path(

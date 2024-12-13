@@ -300,7 +300,7 @@ pub struct UpdateEntityEmbeddingsParams<'e> {
     pub reset: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DiffEntityParams {

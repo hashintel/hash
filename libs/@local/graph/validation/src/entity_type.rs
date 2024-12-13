@@ -611,7 +611,7 @@ impl EntityVisitor for EntityPreprocessor {
         P: DataTypeLookup + OntologyTypeProvider<PropertyType> + Sync,
     {
         let mut array_validation = ArrayValidationReport {
-            properties: walk_array(self, schema, array, type_provider).await,
+            items: walk_array(self, schema, array, type_provider).await,
             ..ArrayValidationReport::default()
         };
 
