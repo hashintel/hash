@@ -547,6 +547,7 @@ const main = async () => {
     const rpcPort = parseInt(process.env.HASH_GRAPH_RPC_PORT ?? "4002", 10);
 
     // print out (temporary) DNS diagnostics
+    // see: https://linear.app/hash/issue/H-3813/remove-dns-logging-durring-hash-api-start
     void (async () => {
       const { default: dns } = await import("node:dns/promises");
       const { default: fs } = await import("node:fs/promises");
