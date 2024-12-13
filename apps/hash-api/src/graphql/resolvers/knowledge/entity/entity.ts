@@ -11,6 +11,7 @@ import type {
   AccountId,
 } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityValidationReport } from "@local/hash-graph-types/validation";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   createDefaultAuthorizationRelationships,
@@ -403,7 +404,7 @@ export const updateEntitiesResolver: ResolverFn<
 };
 
 export const validateEntityResolver: ResolverFn<
-  Promise<boolean>,
+  Promise<EntityValidationReport | undefined>,
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryValidateEntityArgs
@@ -411,10 +412,13 @@ export const validateEntityResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  return (
-    (await Entity.validate(context.graphApi, authentication, params)) ===
-    undefined
+  const response = await Entity.validate(
+    context.graphApi,
+    authentication,
+    params,
   );
+
+  return response;
 };
 
 export const archiveEntityResolver: ResolverFn<

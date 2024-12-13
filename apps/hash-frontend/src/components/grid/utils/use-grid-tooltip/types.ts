@@ -11,6 +11,7 @@ export type GridTooltip = {
 };
 
 export type CellTooltipData = {
+  color?: string;
   text: string;
   icon: CustomIcon;
 };
@@ -24,7 +25,7 @@ export interface TooltipCellProps {
 export type TooltipCell = CustomCell<TooltipCellProps>;
 
 export interface UseGridTooltipResponse {
-  tooltipElement: ReactElement;
+  tooltipElement: ReactElement | null;
   showTooltip: (tooltip: GridTooltip) => void;
   hideTooltip: (colIndex: number, rowIndex: number) => void;
 }

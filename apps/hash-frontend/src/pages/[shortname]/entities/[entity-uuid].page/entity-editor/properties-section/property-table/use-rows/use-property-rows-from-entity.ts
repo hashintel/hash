@@ -16,8 +16,12 @@ import type { PropertyRow } from "../types";
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
 
 export const usePropertyRowsFromEntity = (): PropertyRow[] => {
-  const { entity, closedMultiEntityType, closedMultiEntityTypesDefinitions } =
-    useEntityEditor();
+  const {
+    entity,
+    closedMultiEntityType,
+    closedMultiEntityTypesDefinitions,
+    validationReport,
+  } = useEntityEditor();
 
   /**
    * Generate a new metadata object based on applying a patch to the previous version.
@@ -96,6 +100,7 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
           requiredPropertyTypes:
             (closedMultiEntityType.required as BaseUrl[] | undefined) ?? [],
           propertyRefSchema,
+          validationReport,
         });
       },
     );
@@ -104,5 +109,6 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
     closedMultiEntityType,
     closedMultiEntityTypesDefinitions,
     generateNewMetadataObject,
+    validationReport,
   ]);
 };

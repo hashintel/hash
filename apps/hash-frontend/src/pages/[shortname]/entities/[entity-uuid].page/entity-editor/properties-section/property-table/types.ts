@@ -8,6 +8,7 @@ import type {
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 
 import type { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
+import type { MinimalPropertyValidationReport } from "../../../../../../shared/use-validate-entity";
 
 export type PropertyRow = {
   children: PropertyRow[];
@@ -41,6 +42,7 @@ export type PropertyRow = {
   required: boolean;
   rowId: string;
   title: string;
+  validationError?: MinimalPropertyValidationReport;
   value: unknown;
   valueMetadata?: PropertyMetadata;
   verticalLinesForEachIndent: VerticalIndentationLineDir[];

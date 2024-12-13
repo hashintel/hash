@@ -148,7 +148,7 @@ export const CustomExpectedValueBuilder: FunctionComponent = () => {
           sx={{ paddingTop: 1.25, color: ({ palette }) => palette.gray[70] }}
         >
           Advanced users can specify property objects as well as arrays of data
-          types and/or property objects as expected values.
+          types as expected values.
         </Typography>
       </Stack>
 
