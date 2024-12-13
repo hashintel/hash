@@ -129,7 +129,7 @@ postgres-types     = { version = "=0.2.8", default-features = false }
 prometheus-client  = { version = "=0.22.3", default-features = false }
 regex              = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 reqwest            = { version = "=0.12.9", default-features = false, features = ["rustls-tls"] }
-semver             = { version = "=1.0.23", default-features = false }
+semver             = { version = "=1.0.24", default-features = false }
 sentry-types       = { version = "=0.35.0", default-features = false }
 serde              = { version = "=1.0.216", default-features = false }
 serde_json         = { version = "=1.0.133" }
