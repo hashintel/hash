@@ -81,7 +81,9 @@ const resolveAAAA = (hostname: string) =>
 const logEnvironment = (hostname: string) =>
   Effect.gen(function* () {
     const servers = dns.getServers();
-    const records = yield* Effect.tryPromise(() => dns.resolveAny(hostname));
+    const records = yield* Effect.tryPromise(() =>
+      dns.resolveAny(hostname),
+    ).pipe(Effect.merge);
 
     yield* Effect.logTrace("resolved DNS environment").pipe(
       Effect.annotateLogs({ hostname, servers, records }),
