@@ -82,7 +82,8 @@
         "/rimraf/",
         "/turbo/",
         "/yarn-deduplicate/",
-        "/@redocly/cli/"
+        "/@redocly/cli/",
+        "!/@effect/vitest/"
       ]
     },
     {
