@@ -21,6 +21,8 @@ import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
 import type {
+  CountEntitiesQuery,
+  CountEntitiesQueryVariables,
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
   UpdateEntitiesMutation,
@@ -29,6 +31,7 @@ import type {
   UpdateEntityMutationVariables,
 } from "../graphql/api-types.gen";
 import {
+  countEntitiesQuery,
   getEntitySubgraphQuery,
   updateEntitiesMutation,
   updateEntityMutation,
@@ -87,12 +90,11 @@ export const NotificationCountContextProvider: FunctionComponent<
     data: notificationCountData,
     loading: loadingNotificationCount,
     refetch: refetchNotificationCount,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
+  } = useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(
+    countEntitiesQuery,
     {
       pollInterval,
       variables: {
-        includePermissions: false,
         request: {
           filter: {
             all: [
@@ -109,11 +111,8 @@ export const NotificationCountContextProvider: FunctionComponent<
               pageOrNotificationNotArchivedFilter,
             ],
           },
-          graphResolveDepths: zeroedGraphResolveDepths,
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: false,
-          includeCount: true,
-          limit: 0,
         },
       },
       skip: !authenticatedUser,
@@ -311,7 +310,7 @@ export const NotificationCountContextProvider: FunctionComponent<
       markNotificationAsRead,
       markNotificationsAsReadForEntity,
       numberOfUnreadNotifications:
-        notificationCountData?.getEntitySubgraph.count ?? undefined,
+        notificationCountData?.countEntities ?? undefined,
     }),
     [
       archiveNotificationsForEntity,

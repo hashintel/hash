@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 export const entityTypedef = gql`
   scalar ClosedMultiEntityTypesRootMap
   scalar ClosedMultiEntityTypesDefinitions
+  scalar CountEntitiesParams
   scalar EntityId
   scalar EntityMetadata
   scalar EntityRecordId
@@ -123,6 +124,8 @@ export const entityTypedef = gql`
       hasRightEntity: EdgeResolveDepthsInput!
       includeDrafts: Boolean
     ): SubgraphAndPermissions!
+
+    countEntities(request: CountEntitiesParams!): Int!
 
     getEntitySubgraph(
       request: GetEntitySubgraphRequest!
