@@ -330,7 +330,7 @@ __metadata:
     cache-manager: "npm:5.7.6"
     dedent: "npm:0.7.0"
     dotenv-flow: "npm:3.3.0"
-    e2b: "npm:0.13.1"
+    e2b: "npm:0.16.2"
     eslint: "npm:9.17.0"
     exponential-backoff: "npm:3.1.1"
     googleapis: "npm:133.0.0"
@@ -25174,9 +25174,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"e2b@npm:0.13.1":
-  version: 0.13.1
-  resolution: "e2b@npm:0.13.1"
+"e2b@npm:0.16.2":
+  version: 0.16.2
+  resolution: "e2b@npm:0.16.2"
   dependencies:
     bufferutil: "npm:^4.0.8"
     isomorphic-ws: "npm:^5.0.0"
@@ -25186,14 +25186,12 @@ __metadata:
     platform: "npm:^1.3.6"
     utf-8-validate: "npm:^6.0.3"
     ws: "npm:^8.15.1"
-  peerDependencies:
-    openai: ^4.17.4
   dependenciesMeta:
     bufferutil:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 10c0/847029b8e83a6d60eff9d56e663231f6ecb474718698f391a37244e6e42188c1897be8129bfdd83cf6d03cc9365331d70845b230263a5e91e9a5d3f531230a4f
+  checksum: 10c0/7a5d0ba4c7c8b46147cdb6f70f8348ae877660a3b1ec643eba26b27e5844847f81e6eab53122272cdfcef45ee137f37d132d1247412b2e1defe1c7d05af272ec
   languageName: node
   linkType: hard
 
