@@ -1,9 +1,74 @@
 {
   "type": "getEntities",
-  "actorId": "00000000-0000-0000-0000-000000000000",
+  "actorId": "3660bed8-caae-4f20-a52c-a7e8ebca8bc4",
+  "settings": {
+    "sampleSize": 10,
+    "parameters": {
+      "actorId": [
+        "3660bed8-caae-4f20-a52c-a7e8ebca8bc4",
+        "90e041b9-4437-4a53-9832-1e04c2498aff",
+        "a0711135-214a-4a38-9e63-b01a1a14826f"
+      ],
+      "limit": [10, 100, 500],
+      "includeCount": [false]
+    }
+  },
   "request": {
     "filter": {
-      "all": []
+      "all": [
+        {
+          "any": [
+            {
+              "all": [
+                {
+                  "equal": [
+                    {
+                      "path": ["type(inheritanceDepth = 0)", "baseUrl"]
+                    },
+                    {
+                      "parameter": "https://hash.ai/@hash/types/entity-type/canvas/"
+                    }
+                  ]
+                },
+                {
+                  "equal": [
+                    {
+                      "path": ["type(inheritanceDepth = 0)", "version"]
+                    },
+                    {
+                      "parameter": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "all": [
+                {
+                  "equal": [
+                    {
+                      "path": ["type(inheritanceDepth = 0)", "baseUrl"]
+                    },
+                    {
+                      "parameter": "https://hash.ai/@hash/types/entity-type/document/"
+                    }
+                  ]
+                },
+                {
+                  "equal": [
+                    {
+                      "path": ["type(inheritanceDepth = 0)", "version"]
+                    },
+                    {
+                      "parameter": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
     "temporalAxes": {
       "pinned": {

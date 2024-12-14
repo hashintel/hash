@@ -28,6 +28,8 @@ type-system                    = { workspace = true }
 # Private third-party dependencies
 criterion          = { workspace = true, features = ["async_tokio", "html_reports"] }
 criterion-macro    = { workspace = true }
+either             = { workspace = true }
+itertools          = { workspace = true }
 rand               = { workspace = true }
 serde              = { workspace = true, features = ["derive"] }
 serde_json         = { workspace = true }
