@@ -5095,9 +5095,9 @@ checksum = "7f6316222b51039f5d61cae27dccf7167ba4d2fe98816e0fe46af8abd27a5ed3"
 
 [[package]]
 name = "orx-concurrent-vec"
-version = "3.0.2"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0022bc5fba197582938deb1a944d123c9034242a170d98200d0863e0e6b0157a"
+checksum = "186e4c404b07fe4c7937adacd7d81e3468500b577e07bd7fa1ca0cc28f896fdc"
 dependencies = [
  "orx-concurrent-option",
  "orx-fixed-vec",
@@ -5109,9 +5109,9 @@ dependencies = [
 
 [[package]]
 name = "orx-fixed-vec"
-version = "3.10.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a599bc903d8f7af099503fa67237aeb51f81918b37ebe043849baf4437168a58"
+checksum = "2c76340cf3cb33b8b890d8553164e64acdad5a619f476c60df23c3792bfa1638"
 dependencies = [
  "orx-pinned-vec",
  "orx-pseudo-default",
@@ -5119,9 +5119,9 @@ dependencies = [
 
 [[package]]
 name = "orx-pinned-concurrent-col"
-version = "2.8.0"
+version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "859bd0a451eff1c98da539ca79372c2295004e191b24371c2819f2e8c2608496"
+checksum = "ad874a35b15c02f49f39e0604e74911c66c2cf25606fde2ea3bdb6d4e438b05d"
 dependencies = [
  "orx-fixed-vec",
  "orx-pinned-vec",
@@ -5131,9 +5131,9 @@ dependencies = [
 
 [[package]]
 name = "orx-pinned-vec"
-version = "3.10.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd9630a8f2fb79750ce034d355fdce8d1729d39f42e76b9b849ddc6b9dda3110"
+checksum = "937c374a3c1b494878d2a9c76142041b14a5a59c317358d4ed0b2d4370788ccb"
 dependencies = [
  "orx-pseudo-default",
 ]
@@ -5146,9 +5146,9 @@ checksum = "b97dde303d83e7609797d0c1222a9fb02e66445abc47643cc3d7168fd7c804cc"
 
 [[package]]
 name = "orx-split-vec"
-version = "3.10.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35e520e3d4ae1c69a0dd0e03751f956f10d990bfa06d20791470aeeda2a758fa"
+checksum = "36b38e49b6bc0365b06b6010e775460f49d2da264db4971a385c0806afcc7607"
 dependencies = [
  "orx-pinned-vec",
  "orx-pseudo-default",
