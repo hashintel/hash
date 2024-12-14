@@ -342,7 +342,7 @@ jobs:
       - name: SQLFluff
         run: sqlfluff lint --warn-unused-ignores
 
-      - name: Crate SQLFluff annotationss
+      - name: Create SQLFluff annotations
         if: failure() && github.event.pull_request.head.repo.full_name == github.repository
         run: sqlfluff lint --warn-unused-ignores --format github-annotation --write-output annotations.json --annotation-level failure --nofail
 
