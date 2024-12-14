@@ -492,7 +492,7 @@ __metadata:
     "@dnd-kit/core": "npm:6.3.1"
     "@dnd-kit/sortable": "npm:7.0.2"
     "@dnd-kit/utilities": "npm:3.2.2"
-    "@emoji-mart/react": "npm:1.0.1"
+    "@emoji-mart/react": "npm:1.1.1"
     "@emotion/react": "npm:11.14.0"
     "@emotion/server": "npm:11.11.0"
     "@emotion/styled": "npm:11.14.0"
@@ -559,7 +559,7 @@ __metadata:
     date-fns: "npm:4.1.0"
     dotenv-flow: "npm:3.3.0"
     elkjs: "npm:0.9.3"
-    emoji-mart: "npm:5.2.1"
+    emoji-mart: "npm:5.6.0"
     eslint: "npm:9.17.0"
     fractional-indexing: "npm:2.1.0"
     framer-motion: "npm:6.5.1"
@@ -5812,13 +5812,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@emoji-mart/react@npm:1.0.1":
-  version: 1.0.1
-  resolution: "@emoji-mart/react@npm:1.0.1"
+"@emoji-mart/react@npm:1.1.1":
+  version: 1.1.1
+  resolution: "@emoji-mart/react@npm:1.1.1"
   peerDependencies:
     emoji-mart: ^5.2
     react: ^16.8 || ^17 || ^18
-  checksum: 10c0/b1f06331f29d333924005a678e1ccd9a8a49bf9522c90dad5d12cd8ca0e779a56a0cb1480ced583efe4ccea79b7caadca1dd855a68d11b5fb949c420eb152d01
+  checksum: 10c0/88a9c8c24bbc5695f0ed2458734c9982c965a16db1999bc731c7cce77f9bf228f1871e899744f9a3f9fdd36a11db7ad6c0e049d710cb91c66c69a2cd4d2ee40a
   languageName: node
   linkType: hard
 
@@ -25305,10 +25305,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"emoji-mart@npm:5.2.1":
-  version: 5.2.1
-  resolution: "emoji-mart@npm:5.2.1"
-  checksum: 10c0/2701424c834a5d69bb5deb91a1d4eb11276b4b7b1df236a612474d6e757ca8ea0a4e87af00cfab95b6d95250edda79aca127179af56429665017c01c0e6ecf35
+"emoji-mart@npm:5.6.0":
+  version: 5.6.0
+  resolution: "emoji-mart@npm:5.6.0"
+  checksum: 10c0/23e68ab10984f101b696d8f8e103e553ffa8e4d644e9a315190a9657903f71b833db09aac51b05de20f33bb9eef5bc1425eecdb2437042b25aff2dad0231f029
   languageName: node
   linkType: hard
 
