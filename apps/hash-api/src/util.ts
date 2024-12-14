@@ -10,19 +10,6 @@ export const exactlyOne = (...items: unknown[]): boolean =>
     .map((val) => val !== null && val !== undefined)
     .reduce((acc, val) => (val ? 1 : 0) + acc, 0) === 1;
 
-export const isRecord = (thing: unknown): thing is Record<string, unknown> => {
-  if (typeof thing !== "object") {
-    return false;
-  }
-  if (thing == null) {
-    return false;
-  }
-  if (thing instanceof Array) {
-    return false;
-  }
-  return true;
-};
-
 /** Returns the set intersection of `left` and `right`. */
 export const intersection = <T>(left: Set<T>, right: Set<T>): Set<T> => {
   const result = new Set<T>();
@@ -32,31 +19,6 @@ export const intersection = <T>(left: Set<T>, right: Set<T>): Set<T> => {
     }
   }
   return result;
-};
-
-/**
- * @todo this assumption of the slug might be brittle,
- */
-export const capitalizeComponentName = (cId: string) => {
-  let componentId = cId;
-
-  // If there's a trailing slash, remove it
-  const indexLastSlash = componentId.lastIndexOf("/");
-  if (indexLastSlash === componentId.length - 1) {
-    componentId = componentId.slice(0, -1);
-  }
-
-  //                      *
-  // "https://example.org/value"
-  const indexAfterLastSlash = componentId.lastIndexOf("/") + 1;
-  return (
-    //                      * and uppercase it
-    // "https://example.org/value"
-    componentId.charAt(indexAfterLastSlash).toUpperCase() +
-    //                       ****
-    // "https://example.org/value"
-    componentId.substring(indexAfterLastSlash + 1)
-  );
 };
 
 /**

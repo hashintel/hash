@@ -3,6 +3,7 @@ import { Backdrop } from "@mui/material";
 import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useState } from "react";
 
+import { useScrollLock } from "../../../shared/use-scroll-lock";
 import { TypeSlideOverSlide } from "./type-slide-over-stack/type-slide-over-slide";
 
 export const TypeSlideOverStack: FunctionComponent<{
@@ -16,6 +17,8 @@ export const TypeSlideOverStack: FunctionComponent<{
   const [animateOut, setAnimateOut] = useState(false);
   const [items, setItems] = useState<VersionedUrl[]>([rootTypeId]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+
+  useScrollLock(true);
 
   if (rootTypeId !== items[0]) {
     setCurrentIndex(0);
