@@ -138,7 +138,7 @@
     "@types/emoji-mart": "patch:@types/emoji-mart@npm%3A3.0.9#~/.yarn/patches/@types-emoji-mart-npm-3.0.9-ec5052fc0d.patch",
     "@types/gapi": "0.0.47",
     "@types/google.accounts": "0.0.15",
-    "@types/google.picker": "0.0.43",
+    "@types/google.picker": "0.0.47",
     "@types/iframe-resizer": "3.5.13",
     "@types/jsonpath": "0.2.4",
     "@types/lodash": "4.17.13",
