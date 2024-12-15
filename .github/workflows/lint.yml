@@ -339,8 +339,18 @@ jobs:
       - name: Install SQLFluff
         run: pip install sqlfluff
 
-      - name: SQLFluff
-        run: sqlfluff lint --warn-unused-ignores
+      - name: Run SQL formatter and linter
+        if: ${{ success() || failure() }}
+        run: |
+           if !sqlfluff lint --warn-unused-ignores; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `sqlfluff fix` locally to apply autofixes.'
+            echo 'Note, that SQLFluff does not come with `yarn install` and you may need to install it yourself.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
 
       - name: Create SQLFluff annotations
         if: failure() && github.event.pull_request.head.repo.full_name == github.repository
