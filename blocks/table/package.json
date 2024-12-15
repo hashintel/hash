@@ -55,7 +55,7 @@
     "@types/lodash.uniqueid": "4.0.9",
     "@types/react-dom": "18.2.25",
     "block-scripts": "0.3.4",
-    "eslint": "9.16.0",
+    "eslint": "9.17.0",
     "mock-block-dock": "0.1.9",
     "prettier": "3.4.2",
     "react": "18.2.0",

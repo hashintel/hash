@@ -118,7 +118,13 @@ export const EntityPageHeader = ({
               isLink={!!entity?.linkData}
               fontSize={40}
             />
-            <Typography variant="h1" fontWeight="bold" sx={{ lineHeight: 1 }}>
+            <Typography
+              variant="h1"
+              fontWeight="bold"
+              sx={{
+                lineHeight: 1.2,
+              }}
+            >
               {entityLabel}
             </Typography>
           </Stack>
