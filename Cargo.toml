@@ -189,7 +189,7 @@ once_cell                = { version = "=1.20.2", default-features = false }
 opentelemetry            = { version = "=0.27.1", default-features = false }
 opentelemetry-otlp       = { version = "=0.27.0", default-features = false }
 opentelemetry_sdk        = { version = "=0.27.1", default-features = false }
-orx-concurrent-vec       = { version = "=3.0.2", default-features = false }
+orx-concurrent-vec       = { version = "=3.1.0", default-features = false }
 owo-colors               = { version = "=4.1.0", default-features = false }
 paste                    = { version = "=1.0.15", default-features = false }
 pin-project              = { version = "=1.1.7", default-features = false }
@@ -220,7 +220,7 @@ temporal-sdk-core-protos = { git = "https://github.com/temporalio/sdk-core", rev
 test-fuzz                = { version = "=7.0.1", default-features = false }
 test-log                 = { version = "=0.2.16", default-features = false }
 test-strategy            = { version = "=0.4.0", default-features = false }
-thiserror                = { version = "=2.0.6", default-features = false }
+thiserror                = { version = "=2.0.7", default-features = false }
 tokio-stream             = { version = "=0.1.17", default-features = false }
 tokio-test               = { version = "=0.4.4", default-features = false }
 tower                    = { version = "=0.5.2", default-features = false }
