@@ -25,43 +25,26 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@anthropic-ai/bedrock-sdk@npm:0.10.0":
-  version: 0.10.0
-  resolution: "@anthropic-ai/bedrock-sdk@npm:0.10.0"
+"@anthropic-ai/bedrock-sdk@npm:0.11.2":
+  version: 0.11.2
+  resolution: "@anthropic-ai/bedrock-sdk@npm:0.11.2"
   dependencies:
     "@anthropic-ai/sdk": "npm:^0"
     "@aws-crypto/sha256-js": "npm:^4.0.0"
     "@aws-sdk/client-bedrock-runtime": "npm:^3.423.0"
     "@aws-sdk/credential-providers": "npm:^3.341.0"
-    "@aws-sdk/protocol-http": "npm:^3.341.0"
-    "@aws-sdk/signature-v4": "npm:^3.341.0"
     "@smithy/eventstream-serde-node": "npm:^2.0.10"
     "@smithy/fetch-http-handler": "npm:^2.2.1"
     "@smithy/protocol-http": "npm:^3.0.6"
+    "@smithy/signature-v4": "npm:^3.1.1"
     "@smithy/smithy-client": "npm:^2.1.9"
     "@smithy/types": "npm:^2.3.4"
     "@smithy/util-base64": "npm:^2.0.0"
-  checksum: 10c0/c69dd8bc7017d15ec0626f71410e0cf5c56b921b376bf0c2027ed4783e0f15db6af6ed0d63d279f98369b6a9468235a90f9a6490e1c8619d9fe6f582ae885f7e
+  checksum: 10c0/08534d8bc3a0887150d1e244e9f853d53e82b1b3fef871dc496b2095e71760373c6f0e54fd915db0d73913dd37ee2fc06206c6ac7a0b39de7628e21d47834a22
   languageName: node
   linkType: hard
 
-"@anthropic-ai/sdk@npm:0.24.0":
-  version: 0.24.0
-  resolution: "@anthropic-ai/sdk@npm:0.24.0"
-  dependencies:
-    "@types/node": "npm:^18.11.18"
-    "@types/node-fetch": "npm:^2.6.4"
-    abort-controller: "npm:^3.0.0"
-    agentkeepalive: "npm:^4.2.1"
-    form-data-encoder: "npm:1.7.2"
-    formdata-node: "npm:^4.3.2"
-    node-fetch: "npm:^2.6.7"
-    web-streams-polyfill: "npm:^3.2.1"
-  checksum: 10c0/0f1bb1777d3f7ff172fd9f63391e8023cfcd723e9051149763dd7fc84e3fcdd8b759a0377471e01019c1663e9fdf0862453f602b5440907faf480c3ee9d856fd
-  languageName: node
-  linkType: hard
-
-"@anthropic-ai/sdk@npm:^0":
+"@anthropic-ai/sdk@npm:0.32.1, @anthropic-ai/sdk@npm:^0":
   version: 0.32.1
   resolution: "@anthropic-ai/sdk@npm:0.32.1"
   dependencies:
@@ -287,8 +270,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@apps/hash-ai-worker-ts@workspace:apps/hash-ai-worker-ts"
   dependencies:
-    "@anthropic-ai/bedrock-sdk": "npm:0.10.0"
-    "@anthropic-ai/sdk": "npm:0.24.0"
+    "@anthropic-ai/bedrock-sdk": "npm:0.11.2"
+    "@anthropic-ai/sdk": "npm:0.32.1"
     "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
@@ -2251,7 +2234,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/protocol-http@npm:^3.341.0, @aws-sdk/protocol-http@npm:^3.374.0":
+"@aws-sdk/protocol-http@npm:^3.374.0":
   version: 3.374.0
   resolution: "@aws-sdk/protocol-http@npm:3.374.0"
   dependencies:
@@ -2336,7 +2319,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/signature-v4@npm:^3.341.0, @aws-sdk/signature-v4@npm:^3.374.0":
+"@aws-sdk/signature-v4@npm:^3.374.0":
   version: 3.374.0
   resolution: "@aws-sdk/signature-v4@npm:3.374.0"
   dependencies:
@@ -14491,6 +14474,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@smithy/signature-v4@npm:^3.1.1":
+  version: 3.1.2
+  resolution: "@smithy/signature-v4@npm:3.1.2"
+  dependencies:
+    "@smithy/is-array-buffer": "npm:^3.0.0"
+    "@smithy/types": "npm:^3.3.0"
+    "@smithy/util-hex-encoding": "npm:^3.0.0"
+    "@smithy/util-middleware": "npm:^3.0.3"
+    "@smithy/util-uri-escape": "npm:^3.0.0"
+    "@smithy/util-utf8": "npm:^3.0.0"
+    tslib: "npm:^2.6.2"
+  checksum: 10c0/252807b2c8a400e0eddf34c75fcaaf3d99b7bc0b31d4c79c0d48ee4572687279717d8b19fdd2acf597ade0d07c7355e6e93b74e9651786cf24317c2fcd1c0a06
+  languageName: node
+  linkType: hard
+
 "@smithy/signature-v4@npm:^4.2.2, @smithy/signature-v4@npm:^4.2.4":
   version: 4.2.4
   resolution: "@smithy/signature-v4@npm:4.2.4"
@@ -14554,7 +14552,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@smithy/types@npm:^3.7.1, @smithy/types@npm:^3.7.2":
+"@smithy/types@npm:^3.3.0, @smithy/types@npm:^3.7.1, @smithy/types@npm:^3.7.2":
   version: 3.7.2
   resolution: "@smithy/types@npm:3.7.2"
   dependencies:
@@ -14749,7 +14747,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@smithy/util-middleware@npm:^3.0.10, @smithy/util-middleware@npm:^3.0.11":
+"@smithy/util-middleware@npm:^3.0.10, @smithy/util-middleware@npm:^3.0.11, @smithy/util-middleware@npm:^3.0.3":
   version: 3.0.11
   resolution: "@smithy/util-middleware@npm:3.0.11"
   dependencies:
