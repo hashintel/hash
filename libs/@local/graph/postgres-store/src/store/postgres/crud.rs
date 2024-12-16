@@ -94,6 +94,8 @@ where
             compiler.set_limit(limit);
         }
 
+        compiler.add_filter(filter);
+
         let cursor_indices = sorting.compile(
             &mut compiler,
             cursor_parameters.as_ref(),
@@ -103,7 +105,6 @@ where
         let record_artifacts = R::parameters();
         let record_indices = R::compile(&mut compiler, &record_artifacts);
 
-        compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
         let stream = self
             .as_client()

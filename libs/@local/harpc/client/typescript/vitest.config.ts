@@ -12,7 +12,6 @@ export default defineConfig({
       provider: "istanbul",
       reporter: ["lcov", "text"],
       include: ["**/*.{c,m,}{j,t}s{x,}"],
-      exclude: ["**/node_modules/**", "**/dist/**"],
     },
     environment: "node",
     testTimeout: 30000,

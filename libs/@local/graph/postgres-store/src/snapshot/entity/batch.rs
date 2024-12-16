@@ -253,6 +253,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn commit(
         postgres_client: &mut PostgresStore<C, A>,
+        ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
@@ -388,10 +389,10 @@ where
             }
         }
 
-        ensure!(
-            validation_reports.is_empty(),
-            Report::new(InsertionError).attach(validation_reports)
-        );
+        if !validation_reports.is_empty() {
+            tracing::warn!("Validation errored: {:?}", validation_reports);
+            ensure!(ignore_validation_errors, InsertionError);
+        }
 
         postgres_client
             .as_client()

@@ -10,8 +10,8 @@ import {
   Protocol,
   ProtocolVersion,
 } from "../wire-protocol/models/index.js";
-import type { RequestId } from "../wire-protocol/models/request/index.js";
 import {
+  type RequestId,
   Request,
   RequestBegin,
   RequestBody,
@@ -22,6 +22,7 @@ import {
 import * as RequestIdProducer from "../wire-protocol/RequestIdProducer.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Request");
+
 export type TypeId = typeof TypeId;
 
 export interface Request<E, R> {
@@ -80,6 +81,7 @@ const splitBuffer = (scratch: Scratch, that: ArrayBuffer) => {
     const available = Payload.MAX_SIZE - self.length;
 
     const selfView = new Uint8Array(self.buffer);
+
     selfView.set(new Uint8Array(buffer, 0, available), self.length);
 
     output.push(self.buffer);
@@ -92,9 +94,10 @@ const splitBuffer = (scratch: Scratch, that: ArrayBuffer) => {
   // we can just copy the buffer into the scratch buffer.
   if (buffer.byteLength > 0) {
     const view = new Uint8Array(self.buffer);
+
     view.set(new Uint8Array(buffer), self.length);
 
-    self.length += buffer.byteLength;
+    self.length = self.length + buffer.byteLength;
   }
 
   return [self, output] as const;
@@ -115,9 +118,9 @@ const pack = <E, R>(
       return pipe(
         stream,
         Stream.mapConcat((buffer) => {
-          const [scratch, output] = splitBuffer(makeScratch(), buffer);
+          const [remaining, output] = splitBuffer(makeScratch(), buffer);
 
-          output.push(scratch.buffer.slice(0, scratch.length));
+          output.push(remaining.buffer.slice(0, remaining.length));
 
           return output;
         }),
@@ -246,7 +249,9 @@ export const encode: {
     options?: EncodeOptions,
   ): <E, R>(self: Request<E, R>) => Stream.Stream<Request.Request, E, R>;
 } = Function.dual(
-  // function is `DataFirst` (will be executed immediately), if:
+  /**
+   * Function is `DataFirst` (will be executed immediately), if...
+   */
   (args) => isRequest(args[0]),
   encodeImpl,
 );

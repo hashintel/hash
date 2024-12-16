@@ -26,6 +26,7 @@ describe.concurrent("JsonEncoder", () => {
       const payload = [{ key: "value" }];
 
       const items = yield* encode(payload);
+
       cx.expect(items).toMatchObject(['{"key":"value"}\x1E']);
     }).pipe(Effect.provide(JsonEncoder.layer)),
   );
@@ -35,6 +36,7 @@ describe.concurrent("JsonEncoder", () => {
       const payload = [{ key: "value1" }, { key: "value2" }];
 
       const items = yield* encode(payload);
+
       cx.expect(items).toMatchObject([
         '{"key":"value1"}\x1E',
         '{"key":"value2"}\x1E',

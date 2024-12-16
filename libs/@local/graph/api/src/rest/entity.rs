@@ -407,7 +407,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::ValidateEntity(&body));
+        query_logger.capture(actor_id, OpenApiQuery::ValidateEntity(&body));
     }
 
     let params = ValidateEntityParams::deserialize(&body)
@@ -461,7 +461,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::CheckEntityPermission {
+        query_logger.capture(actor_id, OpenApiQuery::CheckEntityPermission {
             entity_id,
             permission,
         });
@@ -578,13 +578,13 @@ fn generate_sorting_paths(
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[expect(
     clippy::struct_excessive_bools,
     reason = "Parameter struct deserialized from JSON"
 )]
-struct GetEntitiesRequest<'q, 's, 'p> {
+pub struct GetEntitiesRequest<'q, 's, 'p> {
     #[serde(borrow)]
     filter: Filter<'q, Entity>,
     temporal_axes: QueryTemporalAxesUnresolved,
@@ -608,6 +608,30 @@ struct GetEntitiesRequest<'q, 's, 'p> {
     include_edition_created_by_ids: bool,
     #[serde(default)]
     include_type_ids: bool,
+}
+
+impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<'q> {
+    fn from(request: GetEntitiesRequest<'q, 's, 'p>) -> Self {
+        Self {
+            filter: request.filter,
+            sorting: generate_sorting_paths(
+                request.sorting_paths,
+                request.limit,
+                request.cursor,
+                &request.temporal_axes,
+            ),
+            limit: request.limit,
+            conversions: request.conversions,
+            include_drafts: request.include_drafts,
+            include_count: request.include_count,
+            include_entity_types: request.include_entity_types,
+            temporal_axes: request.temporal_axes,
+            include_web_ids: request.include_web_ids,
+            include_created_by_ids: request.include_created_by_ids,
+            include_edition_created_by_ids: request.include_edition_created_by_ids,
+            include_type_ids: request.include_type_ids,
+        }
+    }
 }
 
 #[utoipa::path(
@@ -633,7 +657,8 @@ struct GetEntitiesRequest<'q, 's, 'p> {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client, request)
+    skip_all,
+    fields(actor=%actor_id, %request)
 )]
 async fn get_entities<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -648,7 +673,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetEntities(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetEntities(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -664,26 +689,16 @@ where
     let request = GetEntitiesRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
+
+    if request.limit == Some(0) {
+        tracing::warn!(
+            %actor_id,
+            "The limit is set to zero, so no entities will be returned."
+        );
+    }
+
     let response = store
-        .get_entities(actor_id, GetEntitiesParams {
-            filter: request.filter,
-            sorting: generate_sorting_paths(
-                request.sorting_paths,
-                request.limit,
-                request.cursor,
-                &request.temporal_axes,
-            ),
-            limit: request.limit,
-            conversions: request.conversions,
-            include_drafts: request.include_drafts,
-            include_count: request.include_count,
-            include_entity_types: request.include_entity_types,
-            temporal_axes: request.temporal_axes,
-            include_web_ids: request.include_web_ids,
-            include_created_by_ids: request.include_created_by_ids,
-            include_edition_created_by_ids: request.include_edition_created_by_ids,
-            include_type_ids: request.include_type_ids,
-        })
+        .get_entities(actor_id, request.into())
         .await
         .map(|response| {
             Json(GetEntitiesResponse {
@@ -705,13 +720,13 @@ where
     response
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[expect(
     clippy::struct_excessive_bools,
     reason = "Parameter struct deserialized from JSON"
 )]
-struct GetEntitySubgraphRequest<'q, 's, 'p> {
+pub struct GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(borrow)]
     filter: Filter<'q, Entity>,
     graph_resolve_depths: GraphResolveDepths,
@@ -736,6 +751,31 @@ struct GetEntitySubgraphRequest<'q, 's, 'p> {
     include_edition_created_by_ids: bool,
     #[serde(default)]
     include_type_ids: bool,
+}
+
+impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySubgraphParams<'q> {
+    fn from(request: GetEntitySubgraphRequest<'q, 's, 'p>) -> Self {
+        Self {
+            filter: request.filter,
+            sorting: generate_sorting_paths(
+                request.sorting_paths,
+                request.limit,
+                request.cursor,
+                &request.temporal_axes,
+            ),
+            limit: request.limit,
+            conversions: request.conversions,
+            graph_resolve_depths: request.graph_resolve_depths,
+            include_drafts: request.include_drafts,
+            include_count: request.include_count,
+            include_entity_types: request.include_entity_types,
+            temporal_axes: request.temporal_axes,
+            include_web_ids: request.include_web_ids,
+            include_created_by_ids: request.include_created_by_ids,
+            include_edition_created_by_ids: request.include_edition_created_by_ids,
+            include_type_ids: request.include_type_ids,
+        }
+    }
 }
 
 #[derive(Serialize, ToSchema)]
@@ -788,7 +828,8 @@ struct GetEntitySubgraphResponse<'r> {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client, request)
+    skip_all,
+    fields(actor=%actor_id, %request)
 )]
 async fn get_entity_subgraph<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -803,7 +844,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetEntitySubgraph(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetEntitySubgraph(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -819,27 +860,16 @@ where
     let request = GetEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
+
+    if request.limit == Some(0) {
+        tracing::warn!(
+            %actor_id,
+            "The limit is set to zero, so no entities will be returned"
+        );
+    }
+
     let response = store
-        .get_entity_subgraph(actor_id, GetEntitySubgraphParams {
-            filter: request.filter,
-            sorting: generate_sorting_paths(
-                request.sorting_paths,
-                request.limit,
-                request.cursor,
-                &request.temporal_axes,
-            ),
-            limit: request.limit,
-            conversions: request.conversions,
-            graph_resolve_depths: request.graph_resolve_depths,
-            include_drafts: request.include_drafts,
-            include_count: request.include_count,
-            include_entity_types: request.include_entity_types,
-            temporal_axes: request.temporal_axes,
-            include_web_ids: request.include_web_ids,
-            include_created_by_ids: request.include_created_by_ids,
-            include_edition_created_by_ids: request.include_edition_created_by_ids,
-            include_type_ids: request.include_type_ids,
-        })
+        .get_entity_subgraph(actor_id, request.into())
         .await
         .map(|response| {
             Json(GetEntitySubgraphResponse {
@@ -897,7 +927,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::CountEntities(&request));
+        query_logger.capture(actor_id, OpenApiQuery::CountEntities(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -1069,7 +1099,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::DiffEntity(&params));
+        query_logger.capture(actor_id, OpenApiQuery::DiffEntity(&params));
     }
 
     let authorization_api = authorization_api_pool
@@ -1125,7 +1155,10 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetEntityAuthorizationRelationships { entity_id });
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::GetEntityAuthorizationRelationships { entity_id },
+        );
     }
 
     let authorization_api = authorization_api_pool

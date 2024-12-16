@@ -546,6 +546,31 @@ const main = async () => {
     const rpcHost = getRequiredEnv("HASH_GRAPH_RPC_HOST");
     const rpcPort = parseInt(process.env.HASH_GRAPH_RPC_PORT ?? "4002", 10);
 
+    // print out (temporary) DNS diagnostics
+    // see: https://linear.app/hash/issue/H-3813/remove-dns-logging-durring-hash-api-start
+    void (async () => {
+      const { default: dns } = await import("node:dns/promises");
+      const { default: fs } = await import("node:fs/promises");
+
+      const servers = dns.getServers();
+      logger.info(`DNS servers: ${servers}`);
+
+      try {
+        const resolveAny = await dns.resolveAny(rpcHost);
+        logger.info(`DNS resolution for ${rpcHost}`, { resolveAny });
+      } catch (error) {
+        logger.error(`DNS resolution for ${rpcHost} failed`, { error });
+      }
+
+      // log out /etc/hosts, if it exists
+      try {
+        const hosts = await fs.readFile("/etc/hosts", "utf8");
+        logger.info(`Contents of /etc/hosts`, { hosts });
+      } catch (error) {
+        logger.error(`Could not read /etc/hosts`, { error });
+      }
+    })();
+
     app.get("/rpc/echo", (req, res) => {
       // eslint-disable-next-line func-names
       const effect = Effect.gen(function* () {

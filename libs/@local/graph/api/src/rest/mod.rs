@@ -2,18 +2,19 @@
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
+pub mod account;
+pub mod data_type;
+pub mod entity;
+pub mod entity_type;
+pub mod middleware;
+pub mod property_type;
+pub mod status;
+pub mod web;
+
 mod api_resource;
 mod json;
-pub mod middleware;
-pub mod status;
 mod utoipa_typedef;
 
-mod account;
-mod data_type;
-mod entity;
-mod entity_type;
-mod property_type;
-mod web;
 use alloc::{borrow::Cow, sync::Arc};
 use core::str::FromStr as _;
 use std::{fs, io, time::Instant};
@@ -238,13 +239,15 @@ impl QueryLogger {
     }
 
     #[expect(clippy::missing_panics_doc)]
-    pub fn capture(&mut self, query: OpenApiQuery<'_>) {
+    pub fn capture(&mut self, actor: AccountId, query: OpenApiQuery<'_>) {
+        let mut record = serde_json::to_value(query)
+            .change_context(QueryLoggingError)
+            .expect("query should be serializable");
+        record
+            .as_object_mut()
+            .map(|object| object.insert("actor".to_owned(), JsonValue::String(actor.to_string())));
+        self.value = Some(record);
         self.created_at = Instant::now();
-        self.value = Some(
-            serde_json::to_value(query)
-                .change_context(QueryLoggingError)
-                .expect("query should be serializable"),
-        );
     }
 
     /// Sends the captured query to the query logger.

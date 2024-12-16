@@ -1,10 +1,18 @@
-import type { ParseResult, Schema, Stream } from "effect";
-import { Data, Function, Inspectable, Pipeable } from "effect";
+import {
+  type ParseResult,
+  type Schema,
+  type Stream,
+  Data,
+  Function,
+  Inspectable,
+  Pipeable,
+} from "effect";
 import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/codec/Encoder");
+
 export type TypeId = typeof TypeId;
 
 export class EncodingError extends Data.TaggedError("EncodingError")<{
@@ -67,6 +75,7 @@ const EncoderProto: Omit<EncoderImpl, "encode"> = {
   },
 };
 
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- description is defined
 export const Encoder = GenericTag<Encoder>(TypeId.description!);
 
 export const make = <E = EncodingError, R = never>(

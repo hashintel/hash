@@ -401,7 +401,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetPropertyTypes(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetPropertyTypes(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -480,7 +480,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetPropertyTypeSubgraph(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetPropertyTypeSubgraph(&request));
     }
 
     let authorization_api = authorization_api_pool
@@ -878,9 +878,12 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::GetPropertyTypeAuthorizationRelationships {
-            property_type_id: &property_type_id,
-        });
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::GetPropertyTypeAuthorizationRelationships {
+                property_type_id: &property_type_id,
+            },
+        );
     }
 
     let authorization_api = authorization_api_pool
@@ -929,7 +932,7 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(OpenApiQuery::CheckPropertyTypePermission {
+        query_logger.capture(actor_id, OpenApiQuery::CheckPropertyTypePermission {
             property_type_id: &property_type_id,
             permission,
         });

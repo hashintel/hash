@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Effect,
   Equal,
   Function,
@@ -19,6 +19,7 @@ import * as Payload from "../Payload.js";
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestBegin",
 );
+
 export type TypeId = typeof TypeId;
 
 export interface RequestBegin
@@ -108,6 +109,7 @@ export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {
     const subsystem = yield* SubsystemDescriptor.decode(buffer);
     const procedure = yield* ProcedureDescriptor.decode(buffer);
+
     yield* Buffer.advance(buffer, 13);
     const payload = yield* Payload.decode(buffer);
 

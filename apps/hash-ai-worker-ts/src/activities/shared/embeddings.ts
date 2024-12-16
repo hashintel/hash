@@ -9,7 +9,8 @@ import type {
 } from "@local/hash-graph-types/ontology";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import OpenAI from "openai";
-import Usage = OpenAI.CreateEmbeddingResponse.Usage;
+
+type Usage = OpenAI.CreateEmbeddingResponse.Usage;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

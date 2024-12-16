@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Data,
   Effect,
   Equal,
@@ -15,9 +15,12 @@ import { createProto, encodeDual } from "../utils.js";
 import * as Buffer from "../wire-protocol/Buffer.js";
 
 const TypeId = Symbol("@local/harpc-client/wire-protocol/types/ErrorCode");
+
 export type TypeId = typeof TypeId;
 
-export class ErrorCodeTooLarge extends Data.TaggedError("ErrorCodeTooLarge")<{
+export class ErrorCodeTooLargeError extends Data.TaggedError(
+  "ErrorCodeTooLargeError",
+)<{
   received: number;
 }> {
   get message() {
@@ -25,8 +28,8 @@ export class ErrorCodeTooLarge extends Data.TaggedError("ErrorCodeTooLarge")<{
   }
 }
 
-export class ErrorCodeTooSmall extends Data.TaggedError(
-  "ErrorCodeNotPositive",
+export class ErrorCodeTooSmallError extends Data.TaggedError(
+  "ErrorCodeNotPositiveError",
 )<{ received: number }> {
   get message() {
     return `error code mut be a positive number, got ${this.received}`;
@@ -85,14 +88,18 @@ export const makeUnchecked = (value: number): ErrorCode =>
 
 export const make = (
   value: number,
-): Effect.Effect<ErrorCode, ErrorCodeTooLarge | ErrorCodeTooSmall> => {
+): Effect.Effect<
+  ErrorCode,
+  ErrorCodeTooLargeError | ErrorCodeTooSmallError
+> => {
   if (value < 1) {
-    return Effect.fail(new ErrorCodeTooSmall({ received: value }));
-  } else if (value > U16_MAX) {
-    return Effect.fail(new ErrorCodeTooLarge({ received: value }));
-  } else {
-    return Effect.succeed(makeUnchecked(value));
+    return Effect.fail(new ErrorCodeTooSmallError({ received: value }));
   }
+  if (value > U16_MAX) {
+    return Effect.fail(new ErrorCodeTooLargeError({ received: value }));
+  }
+
+  return Effect.succeed(makeUnchecked(value));
 };
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;

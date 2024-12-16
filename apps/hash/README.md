@@ -54,28 +54,28 @@ To run HASH locally, please follow these steps:
    ```sh
    git --version
    ## ≥ 2.17
-   
+
    node --version
    ## ≥ 20.12
-   
+
    yarn --version
    ## ≥ 1.16
-   
+
    rustup --version
    ## ≥ 1.27.1 (Required to match the toolchain as specified in `rust-toolchain.toml`)
-   
+
    docker --version
    ## ≥ 20.10
-   
+
    docker compose version
    ## ≥ 2.17.2
-   
+
    docker buildx version
    ## ≥ 0.10.4
-   
+
    protoc --version
    ## ≥ 25
-   
+
    java --version
    ## ≥ 8
    ```

@@ -1,6 +1,5 @@
 import { NodeContext } from "@effect/platform-node";
-import type { TestContext } from "@effect/vitest";
-import { describe, it } from "@effect/vitest";
+import { type TestContext, describe, it } from "@effect/vitest";
 import { Effect, Option, Predicate, Schema } from "effect";
 
 import { Buffer } from "../../src/wire-protocol/index.js";
@@ -12,6 +11,7 @@ import {
   RequestFrame,
   RequestHeader,
 } from "../../src/wire-protocol/models/request/index.js";
+
 import { callEncode } from "./utils.js";
 
 const RequestHeaderFromSelf = Schema.declare(RequestHeader.isRequestHeader, {
@@ -63,7 +63,7 @@ const assertRequestBegin = (
   cx.expect(a.subsystem.version.major).toBe(b.subsystem.version.major);
   cx.expect(a.subsystem.version.minor).toBe(b.subsystem.version.minor);
   cx.expect(a.procedure.id.value).toBe(b.procedure.id);
-  cx.expect(Array.from(a.payload.buffer)).toEqual(b.payload);
+  cx.expect([...a.payload.buffer]).toEqual(b.payload);
 };
 
 const RequestFrameFromSelf = Schema.declare(RequestFrame.isRequestFrame, {
@@ -79,7 +79,7 @@ const assertRequestFrame = (
   a: RequestFrame.RequestFrame,
   b: RequestFrameData,
 ) => {
-  cx.expect(Array.from(a.payload.buffer)).toEqual(b.payload);
+  cx.expect([...a.payload.buffer]).toEqual(b.payload);
 };
 
 const RequestFromSelf = Schema.declare(Request.isRequest, {
@@ -121,6 +121,7 @@ describe.concurrent("encode", () => {
     ({ header }, cx) =>
       Effect.gen(function* () {
         const buffer = yield* Buffer.makeWrite();
+
         yield* RequestHeader.encode(buffer, header);
 
         const array = yield* Buffer.take(buffer);
@@ -139,6 +140,7 @@ describe.concurrent("encode", () => {
     ({ begin }, cx) =>
       Effect.gen(function* () {
         const buffer = yield* Buffer.makeWrite();
+
         yield* RequestBegin.encode(buffer, begin);
 
         const array = yield* Buffer.take(buffer);
@@ -146,6 +148,7 @@ describe.concurrent("encode", () => {
           "request-begin",
           new Uint8Array(array),
         );
+
         assertRequestBegin(cx, begin, received as RequestBeginData);
       }).pipe(Effect.provide(NodeContext.layer)),
   );
@@ -156,6 +159,7 @@ describe.concurrent("encode", () => {
     ({ frame }, cx) =>
       Effect.gen(function* () {
         const buffer = yield* Buffer.makeWrite();
+
         yield* RequestFrame.encode(buffer, frame);
 
         const array = yield* Buffer.take(buffer);
@@ -174,6 +178,7 @@ describe.concurrent("encode", () => {
     ({ request }, cx) =>
       Effect.gen(function* () {
         const buffer = yield* Buffer.makeWrite();
+
         yield* Request.encode(buffer, request);
 
         const array = yield* Buffer.take(buffer);

@@ -2,7 +2,6 @@
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "include": ["src", "scripts", "eslint.config.js", "vitest.config.ts"],
   "compilerOptions": {
-    "lib": ["ESNext"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   }

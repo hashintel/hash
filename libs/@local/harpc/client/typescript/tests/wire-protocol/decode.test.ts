@@ -12,6 +12,7 @@ import {
   ResponseFrame,
   ResponseHeader,
 } from "../../src/wire-protocol/models/response/index.js";
+
 import { callDecode } from "./utils.js";
 
 const ResponseHeaderFromSelf = Schema.declare(ResponseHeader.isResponseHeader, {
@@ -50,9 +51,10 @@ const convertResponseBegin = (
 ): ResponseBeginData => ({
   kind: ResponseKind.match(begin.kind, {
     onOk: () => "Ok",
+    // eslint-disable-next-line unicorn/prevent-abbreviations
     onErr: (code) => ({ Err: code.value }),
   }),
-  payload: Array.from(begin.payload.buffer),
+  payload: [...begin.payload.buffer],
 });
 
 const ResponseFrameFromSelf = Schema.declare(ResponseFrame.isResponseFrame, {
@@ -66,7 +68,7 @@ interface ResponseFrameData {
 const convertResponseFrame = (
   frame: ResponseFrame.ResponseFrame,
 ): ResponseFrameData => ({
-  payload: Array.from(frame.payload.buffer),
+  payload: [...frame.payload.buffer],
 });
 
 const ResponseFromSelf = Schema.declare(Response.isResponse, {
