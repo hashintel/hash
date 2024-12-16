@@ -1,4 +1,3 @@
-import type { ClosedDataType } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type {
   PropertyMetadata,
@@ -6,8 +5,10 @@ import type {
   PropertyMetadataValue,
   PropertyPath,
 } from "@local/hash-graph-types/entity";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 
 import type { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
+import type { MinimalPropertyValidationReport } from "../../../../../../shared/use-validate-entity";
 
 export type PropertyRow = {
   children: PropertyRow[];
@@ -35,11 +36,13 @@ export type PropertyRow = {
   isSingleUrl: boolean;
   maxItems?: number;
   minItems?: number;
-  permittedDataTypes: ClosedDataType[];
+  permittedDataTypes: ClosedDataTypeDefinition[];
+  permittedDataTypesIncludingChildren: ClosedDataTypeDefinition[];
   propertyKeyChain: PropertyPath;
   required: boolean;
   rowId: string;
   title: string;
+  validationError?: MinimalPropertyValidationReport;
   value: unknown;
   valueMetadata?: PropertyMetadata;
   verticalLinesForEachIndent: VerticalIndentationLineDir[];

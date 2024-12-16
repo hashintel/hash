@@ -3,6 +3,7 @@ import { Match, Option, Pipeable, Predicate } from "effect";
 import { createProto } from "../utils.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/binary/Bytes");
+
 export type TypeId = typeof TypeId;
 
 export type GrowthStrategy = "doubling" | "linear" | "exponential";
@@ -38,13 +39,13 @@ export const make = (options?: {
   /**
    * The initial capacity of the buffer.
    *
-   * @default 1024
+   * @defaultValue 1024
    */
   readonly initialCapacity?: number;
   /**
    * The strategy for growing the buffer when more space is needed.
    *
-   * @default "doubling"
+   * @defaultValue "doubling"
    */
   readonly growthStrategy?: GrowthStrategy;
 }): MutableBytes =>
@@ -74,8 +75,10 @@ const allocate = (self: MutableBytes, newCapacity: number) => {
   const impl = self as MutableBytesImpl;
 
   const newBuffer = new ArrayBuffer(newCapacity);
+
   new Uint8Array(newBuffer).set(new Uint8Array(impl.inner));
   impl.inner = newBuffer;
+
   return self;
 };
 
@@ -86,11 +89,12 @@ const requiredCapacity = (self: MutableBytes, minimum: number) => {
 
   while (next < minimum) {
     next = Match.value(impl.growthStrategy).pipe(
-      // eslint-disable-next-line no-loop-func
+      // eslint-disable-next-line @typescript-eslint/no-loop-func
       Match.when(Match.is("doubling"), () => next * 2),
       Match.when(
         Match.is("linear"),
-        // eslint-disable-next-line no-loop-func
+
+        // eslint-disable-next-line @typescript-eslint/no-loop-func
         () =>
           next +
           // if the initialCapacity is 0 we should use the default, otherwise this turns into an infinite loop
@@ -98,7 +102,7 @@ const requiredCapacity = (self: MutableBytes, minimum: number) => {
             ? DEFAULT_INITIAL_CAPACITY
             : impl.initialCapacity),
       ),
-      // eslint-disable-next-line no-loop-func
+      // eslint-disable-next-line @typescript-eslint/no-loop-func
       Match.when(Match.is("exponential"), () => next ** 2),
       Match.exhaustive,
     );
@@ -133,13 +137,16 @@ export const appendArray = (
     return self;
   }
 
-  const totalLength = bytes.reduce((acc, b) => acc + b.byteLength, 0);
+  const totalLength = bytes.reduce(
+    (accumulator, b) => accumulator + b.byteLength,
+    0,
+  );
 
   reserve(self, totalLength);
 
   for (const array of bytes) {
     new Uint8Array(impl.inner).set(array, impl.length);
-    impl.length += array.byteLength;
+    impl.length = impl.length + array.byteLength;
   }
 
   return self;
@@ -160,20 +167,23 @@ export const append = (
     return self;
   }
 
-  const totalLength = other.reduce((acc, b) => acc + length(b), 0);
+  const totalLength = other.reduce(
+    (accumulator, b) => accumulator + length(b),
+    0,
+  );
 
   reserve(self, totalLength);
 
   for (const array of other) {
     new Uint8Array(impl.inner).set(asArray(array), impl.length);
-    impl.length += length(array);
+    impl.length = impl.length + length(array);
   }
 
   return self;
 };
 
 /**
- * Split the bytes object, so that bytes object contains `[at,length)` and the rest is returned as a new bytes object
+ * Split the bytes object, so that bytes object contains `[at,length)` and the rest is returned as a new bytes object.
  */
 export const splitTo = (self: MutableBytes, at: number) => {
   if (at > length(self)) {
@@ -186,10 +196,11 @@ export const splitTo = (self: MutableBytes, at: number) => {
     initialCapacity: at,
     growthStrategy: impl.growthStrategy,
   });
+
   appendBuffer(destination, impl.inner.slice(0, at));
 
   impl.inner = impl.inner.slice(at);
-  impl.length -= at;
+  impl.length = impl.length - at;
 
   return Option.some(destination);
 };

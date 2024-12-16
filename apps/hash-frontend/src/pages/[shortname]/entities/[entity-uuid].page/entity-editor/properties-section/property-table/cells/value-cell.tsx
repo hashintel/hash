@@ -37,8 +37,14 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
 
     const { readonly } = cell.data;
 
-    const { value, valueMetadata, permittedDataTypes, isArray, isSingleUrl } =
-      cell.data.propertyRow;
+    const {
+      value,
+      valueMetadata,
+      permittedDataTypesIncludingChildren,
+      isArray,
+      isSingleUrl,
+      validationError,
+    } = cell.data.propertyRow;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
@@ -102,8 +108,8 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
 
           const dataTypeId = arrayItemMetadata.metadata.dataTypeId;
 
-          const dataType = permittedDataTypes.find(
-            (type) => type.$id === dataTypeId,
+          const dataType = permittedDataTypesIncludingChildren.find(
+            (type) => type.schema.$id === dataTypeId,
           );
 
           if (!dataType) {
@@ -112,7 +118,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
             );
           }
 
-          const schema = getMergedDataTypeSchema(dataType);
+          const schema = getMergedDataTypeSchema(dataType.schema);
 
           if ("anyOf" in schema) {
             throw new Error(
@@ -138,8 +144,8 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
 
         const dataTypeId = valueMetadata.metadata.dataTypeId;
 
-        const dataType = permittedDataTypes.find(
-          (type) => type.$id === dataTypeId,
+        const dataType = permittedDataTypesIncludingChildren.find(
+          (type) => type.schema.$id === dataTypeId,
         );
 
         if (!dataType) {
@@ -148,7 +154,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
           );
         }
 
-        const schema = getMergedDataTypeSchema(dataType);
+        const schema = getMergedDataTypeSchema(dataType.schema);
 
         if ("anyOf" in schema) {
           throw new Error(
@@ -178,6 +184,18 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
 
     const tooltipInteractables = drawInteractableTooltipIcons(args);
     InteractableManager.setInteractablesForCell(args, tooltipInteractables);
+
+    if (validationError) {
+      ctx.beginPath();
+      ctx.strokeStyle = customColors.red[50];
+      ctx.lineWidth = 1;
+      ctx.moveTo(rect.x + getCellHorizontalPadding(), rect.y + rect.height - 4);
+      ctx.lineTo(
+        rect.x + rect.width - getCellHorizontalPadding(),
+        rect.y + rect.height - 4,
+      );
+      ctx.stroke();
+    }
   },
   onClick: (args) => {
     if (args.cell.data.readonly && args.cell.data.propertyRow.isSingleUrl) {

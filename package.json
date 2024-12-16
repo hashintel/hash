@@ -47,7 +47,6 @@
     "lint:constraints": "yarn constraints",
     "lint:eslint": "turbo --continue lint:eslint --",
     "lint:license-in-workspaces": "yarn workspace @local/repo-chores exe scripts/check-license-in-workspaces.ts",
-    "lint:lockfile-lint": "lockfile-lint --path yarn.lock --type yarn --allowed-hosts npm yarn",
     "lint:markdownlint": "markdownlint --dot .",
     "lint:prettier": "prettier --check --ignore-unknown .",
     "lint:taplo": "taplo fmt --check",
@@ -56,7 +55,7 @@
     "postinstall": "turbo run postinstall",
     "seed-data:opensearch": "yarn workspace @apps/hash-search-loader clear-opensearch",
     "seed-data:redis": "yarn workspace @apps/hash-realtime clear-redis",
-    "seed-data": "concurrently \"yarn:seed-data:*\"",
+    "seed-data": "npm-run-all --parallel \"seed-data:*\"",
     "test": "npm-run-all --continue-on-error \"test:*\"",
     "test:unit": "turbo run test:unit --env-mode=loose --",
     "test:integration": "turbo run test:integration --env-mode=loose --",
@@ -68,19 +67,9 @@
   },
   "prettier": {
     "plugins": [
-      "prettier-plugin-packagejson",
-      "prettier-plugin-sh"
+      "prettier-plugin-packagejson"
     ],
-    "trailingComma": "all",
-    "overrides": [
-      {
-        "files": "*.sql",
-        "options": {
-          "keywordCase": "upper",
-          "language": "postgresql"
-        }
-      }
-    ]
+    "trailingComma": "all"
   },
   "resolutions": {
     "@artilleryio/int-commons@npm:2.11.0": "patch:@artilleryio/int-commons@npm%3A2.11.0#~/.yarn/patches/@artilleryio-int-commons-npm-2.11.0-5b69c05121.patch",
@@ -116,15 +105,11 @@
     "@sentry/cli": "^2.39.1",
     "@taplo/cli": "0.7.0",
     "@yarnpkg/types": "^4.0.0",
-    "concurrently": "7.6.0",
-    "lefthook": "1.9.0",
-    "lockfile-lint": "4.14.0",
+    "lefthook": "1.9.2",
     "markdownlint-cli": "0.43.0",
     "npm-run-all2": "7.0.1",
     "prettier": "3.4.2",
     "prettier-plugin-packagejson": "2.5.6",
-    "prettier-plugin-sh": "0.14.0",
-    "suppress-exit-code": "3.2.0",
     "turbo": "2.3.3"
   },
   "packageManager": "yarn@4.5.3+sha512.3003a14012e2987072d244c720506549c1aab73ee728208f1b2580a9fd67b92d61ba6b08fe93f6dce68fd771e3af1e59a0afa28dd242dd0940d73b95fedd4e90"

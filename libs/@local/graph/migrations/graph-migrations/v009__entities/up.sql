@@ -78,6 +78,8 @@ CREATE TABLE entity_has_left_entity (
 );
 CREATE INDEX entity_has_left_entity_source_idx
 ON entity_has_left_entity (web_id, entity_uuid);
+CREATE INDEX entity_has_left_entity_target_idx
+ON entity_has_left_entity (left_web_id, left_entity_uuid);
 
 CREATE TABLE entity_has_right_entity (
     web_id UUID NOT NULL,
@@ -91,6 +93,8 @@ CREATE TABLE entity_has_right_entity (
 );
 CREATE INDEX entity_has_right_entity_source_idx
 ON entity_has_right_entity (web_id, entity_uuid);
+CREATE INDEX entity_has_right_entity_target_idx
+ON entity_has_right_entity (right_web_id, right_entity_uuid);
 
 CREATE TABLE entity_embeddings (
     web_id UUID NOT NULL,

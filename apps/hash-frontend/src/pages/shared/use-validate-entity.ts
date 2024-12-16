@@ -1,7 +1,15 @@
 import { useLazyQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { ArrayItemNumberMismatch } from "@local/hash-graph-client/api";
 import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type {
+  EntityValidationReport,
+  ObjectValidationReport,
+  ValueValidationError,
+} from "@local/hash-graph-types/validation";
 import { useCallback } from "react";
 
 import type {
@@ -10,73 +18,163 @@ import type {
 } from "../../graphql/api-types.gen";
 import { validateEntityQuery } from "../../graphql/queries/knowledge/entity.queries";
 
-type ContextObject = {
-  context: string;
-  sources: ContextObject[];
+type MinimalPropertyValueValidationReport = {
+  type: "valueValidation";
+  data: ValueValidationError;
 };
 
-const isContextObject = (obj: unknown): obj is ContextObject =>
-  !!obj &&
-  typeof obj === "object" &&
-  "context" in obj &&
-  typeof obj.context === "string" &&
-  "sources" in obj &&
-  Array.isArray(obj.sources);
+type MinimalPropertyArrayValidationReport = {
+  type: "array";
+  /**
+   * The editor currently does not support arrays of property objects or 2D arrays,
+   * so a single-value constraint violation is the only handled error.
+   */
+  items?: MinimalPropertyValueValidationReport;
+};
 
-/**
- * Extract validation failure messages from the error object, which at the time of writing looks like this:
- *
- * {
- *   "status": {
- *     "code": "INVALID_ARGUMENT",
- *     "message": "Entity validation failed",
- *     "contents": [
- *       [
- *         {
- *           "context": "Entity validation failed",
- *           "attachments": [],
- *           "sources": [
- *             {
- *               "context": "The properties of the entity do not match the schema",
- *               "attachments": [],
- *               "sources": [ // This might be empty depending on where the validation failure occurs
- *                 {
- *                   "context": "the property `https://hash.ai/@hash/types/property-type/title/` was specified, but not in the schema",
- *                   "attachments": [],
- *                   "sources": []
- *                 },
- */
-export const extractEntityValidationErrors = (err: unknown) => {
-  try {
-    if (
-      err &&
-      typeof err === "object" &&
-      "status" in err &&
-      err.status &&
-      typeof err.status === "object" &&
-      "contents" in err.status &&
-      Array.isArray(err.status.contents) &&
-      Array.isArray(err.status.contents[0]) &&
-      isContextObject(err.status.contents[0][0])
-    ) {
-      const nestedContextObject = err.status.contents[0][0].sources[0];
-      if (nestedContextObject) {
-        const thisLevelContextMessage = nestedContextObject.context;
+type MissingPropertyValidationReport = {
+  type: "missing";
+};
 
-        const nestedAgainFailureMessages = nestedContextObject.sources.map(
-          (source) => source.context,
+type ObjectError = {
+  type: "child-has-errors";
+};
+
+type PropertyValidationReportBase = {
+  /**
+   * The path to the property in the entity's properties.
+   * There will be multiple if this is a path within a property object.
+   *
+   * It doesn't contain numbers (indices) in the path because we do not support arrays of property objects in the editor.
+   */
+  message: string;
+  propertyPath: [BaseUrl, ...BaseUrl[]];
+};
+
+export type MinimalPropertyValidationReport = PropertyValidationReportBase &
+  (
+    | MissingPropertyValidationReport
+    | MinimalPropertyArrayValidationReport
+    | MinimalPropertyValueValidationReport
+    | ObjectError
+  );
+
+export type MinimalEntityValidationReport = {
+  errors: MinimalPropertyValidationReport[];
+};
+
+const generateArrayErrorMessage = (
+  numItems: ArrayItemNumberMismatch,
+): string => {
+  if (numItems.type === "tooFew") {
+    return `At least ${numItems.data.min} items required`;
+  }
+  return `No more than ${numItems.data.max} items allowed`;
+};
+
+const generatePropertyObjectValidationReports = (
+  objectValidation: ObjectValidationReport,
+  pathToObject: BaseUrl[] = [],
+  reports: MinimalPropertyValidationReport[] = [],
+): MinimalPropertyValidationReport[] => {
+  if (!objectValidation.properties) {
+    return [];
+  }
+
+  for (const [baseUrl, report] of typedEntries(objectValidation.properties)) {
+    const propertyPath = mustHaveAtLeastOne([...pathToObject, baseUrl]);
+
+    switch (report.type) {
+      case "missing": {
+        reports.push({
+          propertyPath,
+          type: "missing",
+          message: "Property is required",
+        });
+        break;
+      }
+      case "propertyArray": {
+        if (!report.numItems) {
+          /**
+           * @todo H-3790: Handle value constraint violations in array items
+           */
+          continue;
+        }
+
+        reports.push({
+          propertyPath,
+          type: "array",
+          message: generateArrayErrorMessage(report.numItems),
+        });
+        break;
+      }
+      case "array": {
+        const firstValidationError = report.validations?.[0];
+
+        if (firstValidationError?.type !== "arrayValidation") {
+          continue;
+        }
+
+        if (!firstValidationError.data.numItems) {
+          /**
+           * @todo H-3790: Handle value constraint violations in array items
+           */
+          continue;
+        }
+
+        reports.push({
+          propertyPath,
+          type: "array",
+          message: generateArrayErrorMessage(
+            firstValidationError.data.numItems,
+          ),
+        });
+        break;
+      }
+      case "object": {
+        if (report.validations?.[0]?.type !== "objectValidation") {
+          continue;
+        }
+
+        const childErrors = generatePropertyObjectValidationReports(
+          report.validations[0],
+          propertyPath,
         );
-
-        return nestedAgainFailureMessages.length
-          ? nestedAgainFailureMessages
-          : thisLevelContextMessage;
+        if (childErrors.length) {
+          reports.push({
+            propertyPath,
+            type: "child-has-errors",
+            message: "A property on this object has errors",
+          });
+          reports.push(...childErrors);
+        }
+        break;
+      }
+      default: {
+        /**
+         * @todo H-3790: Handle value constraint violations
+         */
+        throw new Error(`Unhandled report type ${report.type}`);
       }
     }
-  } catch {
-    // eslint-disable-next-line no-console
-    console.error(`Unexpected error message structure: ${stringifyError(err)}`);
   }
-  return stringifyError(err);
+
+  return reports;
+};
+
+/**
+ * Generate a validation report that covers a few cases which are handled in the entity editor
+ */
+export const generateMinimalValidationReport = (
+  validationReport: EntityValidationReport,
+): MinimalEntityValidationReport | null => {
+  if (!validationReport.properties) {
+    throw new Error(`No properties validation errors found`);
+  }
+
+  const reports = generatePropertyObjectValidationReports(validationReport);
+
+  return reports.length ? { errors: reports } : null;
 };
 
 export const useValidateEntity = () => {
@@ -95,24 +193,33 @@ export const useValidateEntity = () => {
       entityTypeIds: VersionedUrl[];
       properties: PropertyObjectWithMetadata;
     }) => {
-      try {
-        await validate({
-          variables: {
-            components: {
-              linkData: true,
-              linkValidation: true,
-              numItems: true,
-              requiredProperties: true,
-            },
-            entityTypes: entityTypeIds,
-            properties,
+      const { data, error } = await validate({
+        variables: {
+          components: {
+            linkData: true,
+            linkValidation: true,
+            numItems: true,
+            requiredProperties: true,
           },
-        });
+          entityTypes: entityTypeIds,
+          properties,
+        },
+      });
 
-        return true;
-      } catch (err) {
-        return extractEntityValidationErrors(err);
+      if (!data) {
+        throw new Error(
+          error?.message ?? "No data returned from validation query",
+        );
       }
+
+      if (!data.validateEntity) {
+        /**
+         * No validation errors
+         */
+        return null;
+      }
+
+      return generateMinimalValidationReport(data.validateEntity);
     },
     [validate],
   );

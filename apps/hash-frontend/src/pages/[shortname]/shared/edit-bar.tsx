@@ -11,16 +11,19 @@ import { useEffect, useRef } from "react";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
 import { PencilSimpleLine } from "../../../shared/icons/svg";
+import { WarnIcon } from "../../../shared/icons/warn-icon";
 import type { ButtonProps } from "../../../shared/ui/button";
 import { Button } from "../../../shared/ui/button";
 
 export const EditBarContents = ({
+  hideConfirm,
   icon,
   title,
   label,
-  discardButtonProps,
+  discardButtonProps: { sx: discardSx, ...discardButtonProps },
   confirmButtonProps,
 }: {
+  hideConfirm?: boolean;
   icon: ReactNode;
   title: ReactNode;
   label: ReactNode;
@@ -32,11 +35,12 @@ export const EditBarContents = ({
       sx={{
         display: "flex",
         alignItems: "center",
+        "& svg": { fontSize: 16 },
       }}
     >
       {icon}
       <Typography variant="smallTextLabels" sx={{ ml: 1 }}>
-        <Box component="span" sx={{ fontWeight: "bold", mr: 1 }}>
+        <Box component="span" sx={{ fontWeight: "bold" }}>
           {title}
         </Box>{" "}
         {label}
@@ -45,29 +49,34 @@ export const EditBarContents = ({
         <Button
           variant="tertiary"
           size="xs"
-          sx={(theme) => ({
-            borderColor: theme.palette.blue[50],
-            backgroundColor: "transparent",
-            color: "white",
-            "&:hover": {
-              backgroundColor: theme.palette.blue[80],
+          sx={[
+            (theme) => ({
+              borderColor: theme.palette.blue[50],
+              backgroundColor: "transparent",
               color: "white",
-            },
-          })}
+              "&:hover": {
+                backgroundColor: theme.palette.blue[80],
+                color: "white",
+              },
+            }),
+            ...(Array.isArray(discardSx) ? discardSx : [discardSx]),
+          ]}
           {...discardButtonProps}
         >
           {discardButtonProps.children}
         </Button>
-        <Button
-          variant="secondary"
-          size="xs"
-          type="submit"
-          loadingWithoutText
-          data-testid="editbar-confirm"
-          {...confirmButtonProps}
-        >
-          {confirmButtonProps.children}
-        </Button>
+        {!hideConfirm && (
+          <Button
+            variant="secondary"
+            size="xs"
+            type="submit"
+            loadingWithoutText
+            data-testid="editbar-confirm"
+            {...confirmButtonProps}
+          >
+            {confirmButtonProps.children}
+          </Button>
+        )}
       </Stack>
     </Container>
   );
@@ -213,13 +222,15 @@ export const useFreezeScrollWhileTransitioning = () => {
   return ref;
 };
 
-export const EditBarContainer = styled(Box)(({ theme }) => ({
-  height: EDIT_BAR_HEIGHT,
-  backgroundColor: theme.palette.blue[70],
-  color: theme.palette.white,
-  display: "flex",
-  alignItems: "center",
-}));
+export const EditBarContainer = styled(Box)<{ hasErrors?: boolean }>(
+  ({ hasErrors, theme }) => ({
+    height: EDIT_BAR_HEIGHT,
+    backgroundColor: hasErrors ? theme.palette.red[70] : theme.palette.blue[70],
+    color: theme.palette.white,
+    display: "flex",
+    alignItems: "center",
+  }),
+);
 
 export const EditBarCollapse = styled(Collapse)(({ theme }) => ({
   position: "sticky",
@@ -229,28 +240,39 @@ export const EditBarCollapse = styled(Collapse)(({ theme }) => ({
 }));
 
 export const EditBar = ({
-  discardButtonProps,
   confirmButtonProps,
-  visible,
+  discardButtonProps,
+  hasErrors,
   label,
+  visible,
 }: {
-  visible: boolean;
-  discardButtonProps: Partial<ButtonProps>;
   confirmButtonProps: Partial<ButtonProps>;
+  discardButtonProps: Partial<ButtonProps>;
+  hasErrors: boolean;
   label?: ReactNode;
+  visible: boolean;
 }) => {
   const ref = useFreezeScrollWhileTransitioning();
 
   return (
     <EditBarCollapse in={visible} ref={ref}>
-      <EditBarContainer>
+      <EditBarContainer hasErrors={hasErrors}>
         <EditBarContents
-          icon={<PencilSimpleLine />}
+          hideConfirm={hasErrors}
+          icon={hasErrors ? <WarnIcon /> : <PencilSimpleLine />}
           title="Currently editing"
-          label={label}
+          label={hasErrors ? "– changes required before submitting" : label}
           discardButtonProps={{
             children: "Discard changes",
             ...discardButtonProps,
+            sx: hasErrors
+              ? {
+                  borderColor: "white",
+                  "&:hover": {
+                    backgroundColor: ({ palette }) => palette.red[50],
+                  },
+                }
+              : undefined,
           }}
           confirmButtonProps={{
             children: "Publish update",

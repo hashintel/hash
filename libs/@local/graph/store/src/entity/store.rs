@@ -161,7 +161,7 @@ pub struct ValidateEntityParams<'a> {
     pub components: ValidateEntityComponents,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct QueryConversion<'a> {
@@ -300,7 +300,7 @@ pub struct UpdateEntityEmbeddingsParams<'e> {
     pub reset: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DiffEntityParams {

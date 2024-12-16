@@ -5,13 +5,16 @@ use core::{
     str::FromStr as _,
     time::Duration,
 };
+use std::path::PathBuf;
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
+use futures::{StreamExt as _, channel::mpsc};
 use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
+use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
-    rest::{RestRouterDependencies, rest_api_router},
+    rest::{QueryLogger, RestRouterDependencies, rest_api_router},
     rpc::Dependencies,
 };
 use hash_graph_authorization::{
@@ -28,8 +31,9 @@ use hash_temporal_client::TemporalClientConfig;
 use multiaddr::{Multiaddr, Protocol};
 use regex::Regex;
 use reqwest::{Client, Url};
-use tokio::{net::TcpListener, time::timeout};
+use tokio::{io, net::TcpListener, time::timeout};
 use tokio_postgres::NoTls;
+use tokio_util::codec::FramedWrite;
 use type_system::schema::DomainValidator;
 
 use crate::{
@@ -173,6 +177,10 @@ pub struct ServerArgs {
     /// This should only be used in development environments.
     #[clap(long)]
     pub skip_link_validation: bool,
+
+    /// Outputs the queries made to the graph to the specified file.
+    #[clap(long)]
+    pub log_queries: Option<PathBuf>,
 }
 
 fn server_rpc<S, A>(
@@ -223,6 +231,10 @@ where
     Ok(())
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "This function should be split into multiple smaller parts"
+)]
 pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
     if args.healthcheck {
         return wait_healthcheck(
@@ -296,6 +308,18 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         }
     };
 
+    let (query_logger, _handle) = if let Some(query_log_file) = args.log_queries {
+        let file = tokio::fs::File::create(query_log_file)
+            .await
+            .change_context(GraphError)?;
+        let write = FramedWrite::new(io::BufWriter::new(file), JsonLinesEncoder::default());
+        let (tx, rx) = mpsc::channel(1000);
+        let handle = tokio::spawn(rx.map(Ok).forward(write));
+        (Some(tx), Some(handle))
+    } else {
+        (None, None)
+    };
+
     let router = {
         let dependencies = RestRouterDependencies {
             store: Arc::new(pool),
@@ -303,6 +327,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
             domain_regex: DomainValidator::new(args.allowed_url_domain),
             temporal_client: temporal_client_fn(args.temporal_host.clone(), args.temporal_port)
                 .await?,
+            query_logger: query_logger.map(QueryLogger::new),
         };
 
         if args.rpc_enabled {

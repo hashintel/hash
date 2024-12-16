@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Data,
   Effect,
   Equal,
@@ -17,6 +17,7 @@ import * as Buffer from "../Buffer.js";
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Payload",
 );
+
 export type TypeId = typeof TypeId;
 
 export const MAX_SIZE = U16_MAX - 32;
@@ -67,7 +68,7 @@ const PayloadProto: Omit<Payload, "buffer"> = {
   toJSON(this: Payload) {
     return {
       _id: "Payload",
-      buffer: Array.from(this.buffer),
+      buffer: [...this.buffer],
     };
   },
 

@@ -220,7 +220,7 @@ pub enum ArrayItemNumberMismatch {
 #[must_use]
 pub struct ArrayValidationReport {
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub properties: HashMap<usize, PropertyValidationReport>,
+    pub items: HashMap<usize, PropertyValidationReport>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub num_items: Option<ArrayItemNumberMismatch>,
 }
@@ -228,7 +228,7 @@ pub struct ArrayValidationReport {
 impl ArrayValidationReport {
     #[must_use]
     pub fn is_valid(&self) -> bool {
-        self.properties.is_empty() && self.num_items.is_none()
+        self.items.is_empty() && self.num_items.is_none()
     }
 }
 
@@ -325,7 +325,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
                 Ok(())
             } else {
                 Err(ArrayValidationReport {
-                    properties,
+                    items: properties,
                     ..ArrayValidationReport::default()
                 })
             }

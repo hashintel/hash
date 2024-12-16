@@ -2,11 +2,13 @@ import { Effect, Function, Layer, type Scope } from "effect";
 import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
+
 import * as Connection from "./Connection.js";
 import * as internalTransport from "./internal/transport.js";
 import type * as Transport from "./Transport.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Client");
+
 export type TypeId = typeof TypeId;
 
 export interface ClientConfig {
@@ -27,10 +29,12 @@ const ClientProto: Omit<ClientImpl, "client" | "config"> = {
   [TypeId]: TypeId,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TypeId is defined
 export const Client = GenericTag<Client>(TypeId.description!);
 
 // TODO: add a metrics compatability layer
 //  see: https://linear.app/hash/issue/H-3712/libp2p-metrics-compatibility-layer
+
 export const make = (config?: ClientConfig) =>
   Effect.gen(function* () {
     const client = yield* internalTransport.make(config?.transport);

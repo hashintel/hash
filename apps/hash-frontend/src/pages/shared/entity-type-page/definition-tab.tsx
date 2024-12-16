@@ -29,7 +29,7 @@ export const DefinitionTab = ({
   const entityTypesContext = useEntityTypesContextRequired();
 
   const { propertyTypes: possiblyIncompletePropertyTypeOptions } =
-    usePropertyTypes();
+    usePropertyTypes({ latestOnly: true });
 
   const propertyTypeOptions = useMemo(() => {
     return {

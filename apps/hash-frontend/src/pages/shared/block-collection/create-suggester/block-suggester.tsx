@@ -114,7 +114,13 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
               }}
             />
             <Box sx={{ px: 0.75 }}>
-              <WarnIcon sx={{ width: "20px", height: "20px" }} />
+              <WarnIcon
+                sx={{
+                  width: "20px",
+                  height: "20px",
+                  fill: ({ palette }) => palette.orange[80],
+                }}
+              />
             </Box>
             <Box sx={{ px: 1, py: 0.5 }}>
               <Typography

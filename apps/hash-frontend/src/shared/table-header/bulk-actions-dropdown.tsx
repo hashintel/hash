@@ -6,6 +6,7 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
+import { isEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   Box,
@@ -25,6 +26,8 @@ import { useCallback, useMemo } from "react";
 
 import { useArchivePage } from "../../components/hooks/use-archive-page";
 import type {
+  ArchiveEntityMutation,
+  ArchiveEntityMutationVariables,
   ArchiveEntityTypeMutation,
   ArchiveEntityTypeMutationVariables,
   ArchivePropertyTypeMutation,
@@ -34,6 +37,7 @@ import type {
   UnarchivePropertyTypeMutation,
   UnarchivePropertyTypeMutationVariables,
 } from "../../graphql/api-types.gen";
+import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import {
   archiveEntityTypeMutation,
   unarchiveEntityTypeMutation,
@@ -49,6 +53,7 @@ import { isItemArchived } from "../is-archived";
 import {
   isEntityPageEntity,
   isType,
+  isTypeDataType,
   isTypeEntityType,
   isTypePropertyType,
 } from "../is-of-type";
@@ -69,6 +74,11 @@ export const BulkActionsDropdown: FunctionComponent<{
   const { archivePage, unarchivePage } = useArchivePage();
 
   const refetchEntityTypes = useFetchEntityTypes();
+
+  const [archiveEntity] = useMutation<
+    ArchiveEntityMutation,
+    ArchiveEntityMutationVariables
+  >(archiveEntityMutation);
 
   const [archiveEntityType] = useMutation<
     ArchiveEntityTypeMutation,
@@ -120,32 +130,20 @@ export const BulkActionsDropdown: FunctionComponent<{
             ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
           ].includes(itemOwnedById)
         ) {
+          /**
+           * @todo: use proper permission checking for entities
+           */
           return false;
         }
 
-        /**
-         * @todo: check whether the user has permission to archive the type
-         */
-
-        if (isType(item)) {
-          if (isTypeEntityType(item)) {
-            // Entity types can be archived
-            return true;
-          }
-          if (isTypePropertyType(item)) {
-            // Property types can be archived
-            return true;
-          }
-          /**
-           * @todo: support archiving data types when we have custom data types
-           */
-        } else if (isEntityPageEntity(item)) {
-          // Page entities can be archived
+        if (isEntity(item)) {
           return true;
         }
-        /** @todo: support archiving entities, including checking permissions */
-        // Everything else cannot be archived
-        return false;
+
+        /**
+         * @todo: support archiving data types when we have custom data types
+         */
+        return !isTypeDataType(item);
       }).length === selectedItems.length,
     [selectedItems, authenticatedUser],
   );
@@ -181,11 +179,19 @@ export const BulkActionsDropdown: FunctionComponent<{
         } else if (isEntityPageEntity(item)) {
           await archivePage(item.metadata.recordId.entityId);
         } else {
-          throw new Error("Archiving entities is not yet supported.");
+          await archiveEntity({
+            variables: { entityId: item.metadata.recordId.entityId },
+          });
         }
       }),
     );
-  }, [selectedItems, archiveEntityType, archivePage, archivePropertyType]);
+  }, [
+    selectedItems,
+    archiveEntity,
+    archiveEntityType,
+    archivePage,
+    archivePropertyType,
+  ]);
 
   // Whether or not the selected items can be un-archived
   const canUnarchiveSelectedItems = useMemo(
@@ -302,8 +308,8 @@ export const BulkActionsDropdown: FunctionComponent<{
               <MenuItem
                 onClick={async () => {
                   await onClick();
-                  popupState.close();
                   onBulkActionCompleted?.();
+                  popupState.close();
                 }}
                 disabled={disabled}
               >

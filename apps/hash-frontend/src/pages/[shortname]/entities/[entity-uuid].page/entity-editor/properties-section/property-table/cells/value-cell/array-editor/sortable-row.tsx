@@ -1,5 +1,4 @@
 import type { JsonValue } from "@blockprotocol/core";
-import type { ClosedDataType } from "@blockprotocol/type-system";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -8,6 +7,7 @@ import {
   faPencil,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 import {
   formatDataValue,
   getMergedDataTypeSchema,
@@ -31,7 +31,7 @@ interface SortableRowProps {
   onSelect?: (id: string) => void;
   onEditClicked?: (id: string) => void;
   editing: boolean;
-  expectedTypes: ClosedDataType[];
+  expectedTypes: ClosedDataTypeDefinition[];
   onSaveChanges: (index: number, value: unknown) => void;
   onDiscardChanges: () => void;
 }
@@ -60,19 +60,22 @@ export const SortableRow = ({
     animateLayoutChanges: undefined,
   });
 
-  const [hovered, setHovered] = useState(false);
-  const [draftValue, setDraftValue] = useState(value);
-  const [prevEditing, setPrevEditing] = useState(editing);
-
   const schema = getMergedDataTypeSchema(dataType);
 
-  if ("anyOf" in schema) {
+  const editorSpec =
+    "anyOf" in schema ? undefined : getEditorSpecs(dataType, schema);
+
+  const [hovered, setHovered] = useState(false);
+  const [draftValue, setDraftValue] = useState(
+    value === undefined ? editorSpec?.defaultValue : value,
+  );
+  const [prevEditing, setPrevEditing] = useState(editing);
+
+  if ("anyOf" in schema || !editorSpec) {
     throw new Error(
       "Data types with different expected sets of constraints (anyOf) are not yet supported",
     );
   }
-
-  const editorSpec = getEditorSpecs(dataType, schema);
 
   const { arrayEditException } = editorSpec;
 

@@ -1167,7 +1167,7 @@ dependencies = [
  "image",
  "insta",
  "pdfium-render",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
 ]
 
 [[package]]
@@ -1993,7 +1993,7 @@ dependencies = [
  "spin 0.9.8",
  "supports-color",
  "supports-unicode",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tracing",
  "tracing-error",
  "tracing-subscriber",
@@ -2514,7 +2514,7 @@ dependencies = [
  "multiaddr",
  "serde",
  "serde-value",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tokio-util",
  "tower 0.5.2",
 ]
@@ -2532,7 +2532,7 @@ dependencies = [
  "pin-project-lite",
  "serde",
  "serde_json",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tokio",
 ]
 
@@ -2570,7 +2570,7 @@ dependencies = [
  "serde",
  "tachyonix",
  "test-log",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -2598,7 +2598,7 @@ dependencies = [
  "multiaddr",
  "scc",
  "serde",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tokio",
  "tokio-util",
  "tower 0.5.2",
@@ -2631,7 +2631,7 @@ dependencies = [
  "pin-project",
  "pin-project-lite",
  "serde",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tokio",
  "tokio-test",
  "tokio-util",
@@ -2665,7 +2665,7 @@ dependencies = [
  "serde_json",
  "similar-asserts",
  "test-strategy",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
 ]
 
 [[package]]
@@ -2730,6 +2730,7 @@ dependencies = [
  "error-stack",
  "frunk",
  "futures",
+ "futures-channel",
  "harpc-client",
  "harpc-codec",
  "harpc-server",
@@ -2793,6 +2794,8 @@ version = "0.0.0"
 dependencies = [
  "criterion",
  "criterion-macro",
+ "error-stack",
+ "hash-graph-api",
  "hash-graph-authorization",
  "hash-graph-postgres-store",
  "hash-graph-store",
@@ -2801,6 +2804,7 @@ dependencies = [
  "hash-graph-types",
  "hash-repo-chores",
  "rand",
+ "serde",
  "serde_json",
  "tokio",
  "tokio-postgres",
@@ -2809,6 +2813,7 @@ dependencies = [
  "tracing-subscriber",
  "type-system",
  "uuid",
+ "walkdir",
 ]
 
 [[package]]
@@ -2922,7 +2927,7 @@ dependencies = [
  "postgres-types",
  "serde",
  "serde_json",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tokio",
  "tokio-postgres",
  "tracing",
@@ -3008,7 +3013,7 @@ name = "hash-graph-types"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "derive_more 1.0.0",
+ "derive_more",
  "error-stack",
  "futures",
  "hash-codec",
@@ -3018,7 +3023,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "time",
  "tokio",
  "trait-variant",
@@ -3042,7 +3047,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tokio",
  "type-system",
  "url",
@@ -3065,7 +3070,7 @@ dependencies = [
  "inferno",
  "serde",
  "serde_json",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tokio",
  "walkdir",
 ]
@@ -3087,7 +3092,7 @@ dependencies = [
  "serde_json",
  "temporal-client",
  "temporal-sdk-core-protos",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "url",
  "uuid",
 ]
@@ -3286,7 +3291,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "text-size",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
 ]
 
 [[package]]
@@ -5090,9 +5095,9 @@ checksum = "7f6316222b51039f5d61cae27dccf7167ba4d2fe98816e0fe46af8abd27a5ed3"
 
 [[package]]
 name = "orx-concurrent-vec"
-version = "3.0.2"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0022bc5fba197582938deb1a944d123c9034242a170d98200d0863e0e6b0157a"
+checksum = "186e4c404b07fe4c7937adacd7d81e3468500b577e07bd7fa1ca0cc28f896fdc"
 dependencies = [
  "orx-concurrent-option",
  "orx-fixed-vec",
@@ -5104,9 +5109,9 @@ dependencies = [
 
 [[package]]
 name = "orx-fixed-vec"
-version = "3.10.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a599bc903d8f7af099503fa67237aeb51f81918b37ebe043849baf4437168a58"
+checksum = "2c76340cf3cb33b8b890d8553164e64acdad5a619f476c60df23c3792bfa1638"
 dependencies = [
  "orx-pinned-vec",
  "orx-pseudo-default",
@@ -5114,9 +5119,9 @@ dependencies = [
 
 [[package]]
 name = "orx-pinned-concurrent-col"
-version = "2.8.0"
+version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "859bd0a451eff1c98da539ca79372c2295004e191b24371c2819f2e8c2608496"
+checksum = "ad874a35b15c02f49f39e0604e74911c66c2cf25606fde2ea3bdb6d4e438b05d"
 dependencies = [
  "orx-fixed-vec",
  "orx-pinned-vec",
@@ -5126,9 +5131,9 @@ dependencies = [
 
 [[package]]
 name = "orx-pinned-vec"
-version = "3.10.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd9630a8f2fb79750ce034d355fdce8d1729d39f42e76b9b849ddc6b9dda3110"
+checksum = "937c374a3c1b494878d2a9c76142041b14a5a59c317358d4ed0b2d4370788ccb"
 dependencies = [
  "orx-pseudo-default",
 ]
@@ -5141,9 +5146,9 @@ checksum = "b97dde303d83e7609797d0c1222a9fb02e66445abc47643cc3d7168fd7c804cc"
 
 [[package]]
 name = "orx-split-vec"
-version = "3.10.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35e520e3d4ae1c69a0dd0e03751f956f10d990bfa06d20791470aeeda2a758fa"
+checksum = "36b38e49b6bc0365b06b6010e775460f49d2da264db4971a385c0806afcc7607"
 dependencies = [
  "orx-pinned-vec",
  "orx-pseudo-default",
@@ -6455,9 +6460,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.23"
+version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
+checksum = "3cb6eb87a131f756572d7fb904f6e7b68633f09cca868c5df1c4b8d1a694bbba"
 dependencies = [
  "serde",
 ]
@@ -7144,7 +7149,7 @@ dependencies = [
  "slotmap",
  "temporal-sdk-core-api",
  "temporal-sdk-core-protos",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tokio",
  "tonic",
  "tower 0.5.2",
@@ -7165,7 +7170,7 @@ dependencies = [
  "prost-types",
  "serde_json",
  "temporal-sdk-core-protos",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tonic",
  "tracing-core",
  "url",
@@ -7187,7 +7192,7 @@ dependencies = [
  "prost-wkt-types",
  "serde",
  "serde_json",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tonic",
  "tonic-build",
 ]
@@ -7316,11 +7321,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.6"
+version = "2.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fec2a1820ebd077e2b90c4df007bebf344cd394098a13c563957d0afc83ea47"
+checksum = "93605438cbd668185516ab499d589afb7ee1859ea3d5fc8f6b0755e1c7443767"
 dependencies = [
- "thiserror-impl 2.0.6",
+ "thiserror-impl 2.0.7",
 ]
 
 [[package]]
@@ -7336,9 +7341,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.6"
+version = "2.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d65750cab40f4ff1929fb1ba509e9914eb756131cef4210da8d5d700d26f6312"
+checksum = "e1d8749b4531af2117677a5fcd12b1348a3fe2b81e36e61ffeac5c4aa3273e36"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7930,7 +7935,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
- "thiserror 2.0.6",
+ "thiserror 2.0.7",
  "tokio",
  "tsify",
  "url",

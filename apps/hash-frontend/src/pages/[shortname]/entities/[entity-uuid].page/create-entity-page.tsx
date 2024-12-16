@@ -27,6 +27,8 @@ import {
 import { Link } from "../../../../shared/ui/link";
 import { generateUseEntityTypeEntitiesQueryVariables } from "../../../../shared/use-entity-type-entities";
 import { useGetClosedMultiEntityType } from "../../../shared/use-get-closed-multi-entity-type";
+import type { MinimalEntityValidationReport } from "../../../shared/use-validate-entity";
+import { useValidateEntity } from "../../../shared/use-validate-entity";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { EditBar } from "../../shared/edit-bar";
 import { createInitialDraftEntitySubgraph } from "./create-entity-page/create-initial-draft-entity-subgraph";
@@ -114,6 +116,23 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const [creating, setCreating] = useState(false);
 
+  const [validationReport, setValidationReport] =
+    useState<MinimalEntityValidationReport | null>(null);
+
+  const { validateEntity: validateFn } = useValidateEntity();
+
+  const validateEntity = useCallback(
+    async (entity: Entity) => {
+      const report = await validateFn({
+        properties: entity.propertiesWithMetadata,
+        entityTypeIds: entity.metadata.entityTypeIds,
+      });
+
+      return report;
+    },
+    [validateFn],
+  );
+
   if (!draftEntitySubgraph) {
     throw new Error("No draft entity subgraph");
   }
@@ -134,6 +153,14 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     const draftEntity = getRoots(draftEntitySubgraph)[0];
 
     if (!draftEntity) {
+      return;
+    }
+
+    const report = await validateEntity(draftEntity);
+
+    setValidationReport(report);
+
+    if (report) {
       return;
     }
 
@@ -212,6 +239,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         closedMultiEntityTypesMap={null}
         editBar={
           <EditBar
+            hasErrors={!!validationReport}
             label="- this entity has not been created yet"
             visible
             discardButtonProps={{
@@ -232,8 +260,11 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         isDirty
         isDraft
         handleSaveChanges={handleCreateEntity}
-        handleTypesChange={handleTypeChanges}
-        setEntity={(changedEntity) => {
+        handleTypesChange={async (change) => {
+          const updatedEntity = await handleTypeChanges(change);
+          await validateEntity(updatedEntity).then(setValidationReport);
+        }}
+        setEntity={async (changedEntity) => {
           setDraftEntitySubgraph((prev) => {
             return createDraftEntitySubgraph({
               currentSubgraph: prev,
@@ -242,6 +273,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
               omitProperties: [],
             });
           });
+          await validateEntity(changedEntity).then(setValidationReport);
         }}
         draftLinksToCreate={draftLinksToCreate}
         setDraftLinksToCreate={setDraftLinksToCreate}
@@ -250,6 +282,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         entitySubgraph={draftEntitySubgraph}
         readonly={false}
         onEntityUpdated={null}
+        validationReport={validationReport}
       />
     </>
   );

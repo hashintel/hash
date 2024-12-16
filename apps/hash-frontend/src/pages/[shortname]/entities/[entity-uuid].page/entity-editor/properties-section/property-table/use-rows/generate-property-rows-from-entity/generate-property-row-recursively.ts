@@ -8,12 +8,14 @@ import type {
   ClosedMultiEntityType,
   ClosedMultiEntityTypesDefinitions,
 } from "@local/hash-graph-types/ontology";
+import { getPermittedDataTypes } from "@local/hash-isomorphic-utils/data-types";
 import get from "lodash/get";
 
 import {
   isPropertyValueArray,
   isPropertyValueObject,
 } from "../../../../../../../../../lib/typeguards";
+import type { MinimalEntityValidationReport } from "../../../../../../../../shared/use-validate-entity";
 import type { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
 
@@ -60,6 +62,7 @@ export const generatePropertyRowRecursively = ({
   requiredPropertyTypes,
   depth = 0,
   propertyRefSchema,
+  validationReport,
 }: {
   closedMultiEntityType: ClosedMultiEntityType;
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
@@ -70,6 +73,7 @@ export const generatePropertyRowRecursively = ({
   requiredPropertyTypes: BaseUrl[];
   depth?: number;
   propertyRefSchema: ValueOrArray<PropertyTypeReference>;
+  validationReport: MinimalEntityValidationReport | null;
 }): PropertyRow => {
   const propertyTypeId =
     "$ref" in propertyRefSchema
@@ -136,9 +140,11 @@ export const generatePropertyRowRecursively = ({
             subPropertyTypeBaseUrl,
           ] as BaseUrl[],
           entity,
-          requiredPropertyTypes,
+          requiredPropertyTypes:
+            (firstOneOf.required as BaseUrl[] | undefined) ?? [],
           depth: depth + 1,
           propertyRefSchema: subPropertyRefSchema,
+          validationReport,
         }),
       );
     }
@@ -177,6 +183,11 @@ export const generatePropertyRowRecursively = ({
     }
   }
 
+  const validationError = validationReport?.errors.find(
+    (report) =>
+      JSON.stringify(report.propertyPath) === JSON.stringify(propertyKeyChain),
+  );
+
   return {
     ...minMaxConfig,
     children,
@@ -186,10 +197,15 @@ export const generatePropertyRowRecursively = ({
     isArray,
     isSingleUrl,
     permittedDataTypes: expectedTypes,
+    permittedDataTypesIncludingChildren: getPermittedDataTypes({
+      targetDataTypes: expectedTypes,
+      dataTypePoolById: closedMultiEntityTypesDefinitions.dataTypes,
+    }),
     propertyKeyChain,
     required,
     rowId,
     title: propertyType.title,
+    validationError,
     value,
     valueMetadata,
     /**

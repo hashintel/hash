@@ -1,15 +1,20 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  BaseUrl,
+  DataType,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import {
-  AutocompleteDropdown,
+  buildDataTypeTreesForSelector,
   Button,
   Chip,
-  FontAwesomeIcon,
+  DataTypeSelector,
   StyledPlusCircleIcon,
   TextField,
 } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
-import type { PaperProps } from "@mui/material";
-import { Autocomplete, Box, Typography } from "@mui/material";
+// eslint-disable-next-line no-restricted-imports -- TODO needs fixing to use this package outside the repo
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { Autocomplete, Paper, Typography } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 import {
   FormProvider,
@@ -18,31 +23,79 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
+import { useOutsideClickRef } from "rooks";
 
 import { useDataTypesOptions } from "../../../shared/data-types-options-context";
-import { useStateCallback } from "../../shared/use-state-callback";
 import { getExpectedValueDescriptor } from "../shared/get-expected-value-descriptor";
 import type { PropertyTypeFormValues } from "../shared/property-type-form-values";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
 import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
-import type { CustomExpectedValueBuilderContextValue } from "./expected-value-selector/shared/custom-expected-value-builder-context";
+import type { ExpectedValueSelectorContextValue } from "./expected-value-selector/shared/expected-value-selector-context";
 import {
-  CustomExpectedValueBuilderContext,
-  useCustomExpectedValueBuilderContext,
-} from "./expected-value-selector/shared/custom-expected-value-builder-context";
+  ExpectedValueSelectorContext,
+  useExpectedValueSelectorContext,
+} from "./expected-value-selector/shared/expected-value-selector-context";
 import type { ExpectedValueSelectorFormValues } from "./expected-value-selector/shared/expected-value-selector-form-values";
 
-const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
-  const { customExpectedValueBuilderOpen, handleEdit } =
-    useCustomExpectedValueBuilderContext();
+const ExpectedValueSelectorDropdown = () => {
+  const {
+    addDataType,
+    autocompleteFocused,
+    closeAutocomplete,
+    customExpectedValueBuilderOpen,
+    handleEdit,
+    inputRef,
+    searchText,
+  } = useExpectedValueSelectorContext();
+
+  const { dataTypes } = useDataTypesOptions();
+
+  const dataTypeOptions = useMemo(() => {
+    return buildDataTypeTreesForSelector({
+      targetDataTypes: dataTypes.filter((dataType) =>
+        dataType.allOf?.some(
+          ({ $ref }) => $ref === blockProtocolDataTypes.value.dataTypeId,
+        ),
+      ),
+      dataTypePoolById: dataTypes.reduce<Record<VersionedUrl, DataType>>(
+        (acc, dataType) => {
+          acc[dataType.$id] = dataType;
+          return acc;
+        },
+        {},
+      ),
+    });
+  }, [dataTypes]);
+
+  const [paperRef] = useOutsideClickRef((event) => {
+    if (!customExpectedValueBuilderOpen && event.target === inputRef?.current) {
+      return;
+    }
+    closeAutocomplete();
+  }, autocompleteFocused);
 
   return (
-    <AutocompleteDropdown {...props}>
+    <Paper
+      ref={(el) => {
+        setTimeout(() => {
+          paperRef(el);
+        }, 100);
+      }}
+    >
       {customExpectedValueBuilderOpen ? (
         <CustomExpectedValueBuilder />
       ) : (
         <>
-          {children}
+          <DataTypeSelector
+            allowSelectingAbstractTypes
+            dataTypes={dataTypeOptions}
+            hideHint
+            maxHeight={300}
+            onSelect={(dataTypeId) => {
+              addDataType(dataTypeId);
+            }}
+            searchText={searchText}
+          />
 
           <Button
             variant="tertiary"
@@ -52,6 +105,9 @@ const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
               display: "flex",
               alignItems: "center",
               mt: 1,
+              borderBottom: "none",
+              borderLeft: "none",
+              borderRight: "none",
             }}
             onMouseDown={(event) => {
               // prevent dropdown from closing
@@ -71,11 +127,15 @@ const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
               Specify a custom expected value
             </Typography>
 
-            <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+            <Chip
+              color="purple"
+              label="PROPERTY TYPE"
+              sx={{ ml: 1.5, "& span": { fontSize: 12 } }}
+            />
           </Button>
         </>
       )}
-    </AutocompleteDropdown>
+    </Paper>
   );
 };
 
@@ -124,115 +184,132 @@ export const ExpectedValueSelector = ({
 
   const inputRef = useRef<HTMLInputElement | null>();
 
-  const [creatingCustomExpectedValue, setCreatingCustomExpectedValue] =
-    useStateCallback(false);
+  const [inputValue, setInputValue] = useState("");
 
-  const customExpectedValueBuilderContextValue =
-    useMemo((): CustomExpectedValueBuilderContextValue => {
-      const closeCustomExpectedValueBuilder = () => {
-        expectedValueSelectorFormMethods.setValue(
-          "editingExpectedValueIndex",
-          undefined,
-        );
-        expectedValueSelectorFormMethods.setValue(
-          "customExpectedValueId",
-          undefined,
-        );
+  const [creatingCustomExpectedValue, setCreatingCustomExpectedValue] =
+    useState(false);
+
+  const [autocompleteFocused, setAutocompleteFocused] = useState(false);
+
+  const infrequentlyChangingContextValues = useMemo<
+    Omit<ExpectedValueSelectorContextValue, "searchText">
+  >(() => {
+    const closeCustomExpectedValueBuilder = () => {
+      expectedValueSelectorFormMethods.setValue(
+        "editingExpectedValueIndex",
+        undefined,
+      );
+      expectedValueSelectorFormMethods.setValue(
+        "customExpectedValueId",
+        undefined,
+      );
+      expectedValueSelectorFormMethods.setValue(
+        "flattenedCustomExpectedValueList",
+        {},
+      );
+
+      setCreatingCustomExpectedValue(false);
+    };
+
+    return {
+      addDataType: (dataTypeId: VersionedUrl) => {
+        if (!expectedValuesField.value.includes(dataTypeId)) {
+          expectedValuesField.onChange([
+            ...expectedValuesField.value,
+            dataTypeId,
+          ]);
+        }
+
+        setInputValue("");
+        inputRef.current?.focus();
+      },
+      autocompleteFocused,
+      closeAutocomplete: () => {
+        setAutocompleteFocused(false);
+      },
+      customExpectedValueBuilderOpen: creatingCustomExpectedValue,
+      inputRef,
+      handleEdit: (index?: number, id?: string) => {
         expectedValueSelectorFormMethods.setValue(
           "flattenedCustomExpectedValueList",
-          {},
+          propertyTypeFormMethods.getValues("flattenedCustomExpectedValueList"),
+        );
+        expectedValueSelectorFormMethods.setValue(
+          "editingExpectedValueIndex",
+          index,
+        );
+        expectedValueSelectorFormMethods.setValue("customExpectedValueId", id);
+        setCreatingCustomExpectedValue(true);
+      },
+      handleCancelCustomBuilder: () => {
+        closeCustomExpectedValueBuilder();
+      },
+      handleSave: () => {
+        const [customExpectedValueId, editingExpectedValueIndex, newValues] =
+          expectedValueSelectorFormMethods.getValues([
+            "customExpectedValueId",
+            "editingExpectedValueIndex",
+            "flattenedCustomExpectedValueList",
+          ]);
+
+        const existingExpectedValues =
+          propertyTypeFormMethods.getValues("expectedValues");
+
+        if (!customExpectedValueId) {
+          throw new Error("Cannot save if not editing");
+        }
+
+        const expectedValue = getExpectedValueDescriptor(
+          customExpectedValueId,
+          newValues,
         );
 
-        setCreatingCustomExpectedValue(false, () => {
-          inputRef.current?.focus();
+        const newExpectedValues = [...existingExpectedValues];
+
+        if (editingExpectedValueIndex !== undefined) {
+          newExpectedValues[editingExpectedValueIndex] = expectedValue;
+        } else {
+          newExpectedValues.push(expectedValue);
+        }
+        propertyTypeFormMethods.setValue("expectedValues", newExpectedValues, {
+          shouldDirty: true,
         });
-      };
+        propertyTypeFormMethods.setValue(
+          "flattenedCustomExpectedValueList",
+          newValues,
+          { shouldDirty: true },
+        );
+        closeCustomExpectedValueBuilder();
+      },
+    };
+  }, [
+    autocompleteFocused,
+    creatingCustomExpectedValue,
+    expectedValuesField,
+    expectedValueSelectorFormMethods,
+    propertyTypeFormMethods,
+    setCreatingCustomExpectedValue,
+  ]);
 
+  const expectedValueSelectorContextValue =
+    useMemo((): ExpectedValueSelectorContextValue => {
       return {
-        customExpectedValueBuilderOpen: creatingCustomExpectedValue,
-        handleEdit: (index?: number, id?: string) => {
-          expectedValueSelectorFormMethods.setValue(
-            "flattenedCustomExpectedValueList",
-            propertyTypeFormMethods.getValues(
-              "flattenedCustomExpectedValueList",
-            ),
-          );
-          expectedValueSelectorFormMethods.setValue(
-            "editingExpectedValueIndex",
-            index,
-          );
-          expectedValueSelectorFormMethods.setValue(
-            "customExpectedValueId",
-            id,
-          );
-          setCreatingCustomExpectedValue(true);
-        },
-        handleCancel: closeCustomExpectedValueBuilder,
-        handleSave: () => {
-          const [customExpectedValueId, editingExpectedValueIndex, newValues] =
-            expectedValueSelectorFormMethods.getValues([
-              "customExpectedValueId",
-              "editingExpectedValueIndex",
-              "flattenedCustomExpectedValueList",
-            ]);
-
-          const existingExpectedValues =
-            propertyTypeFormMethods.getValues("expectedValues");
-
-          if (!customExpectedValueId) {
-            throw new Error("Cannot save if not editing");
-          }
-
-          const expectedValue = getExpectedValueDescriptor(
-            customExpectedValueId,
-            newValues,
-          );
-
-          const newExpectedValues = [...existingExpectedValues];
-
-          if (editingExpectedValueIndex !== undefined) {
-            newExpectedValues[editingExpectedValueIndex] = expectedValue;
-          } else {
-            newExpectedValues.push(expectedValue);
-          }
-          propertyTypeFormMethods.setValue(
-            "expectedValues",
-            newExpectedValues,
-            { shouldDirty: true },
-          );
-          propertyTypeFormMethods.setValue(
-            "flattenedCustomExpectedValueList",
-            newValues,
-            { shouldDirty: true },
-          );
-          closeCustomExpectedValueBuilder();
-        },
+        ...infrequentlyChangingContextValues,
+        searchText: inputValue,
       };
-    }, [
-      creatingCustomExpectedValue,
-      expectedValueSelectorFormMethods,
-      propertyTypeFormMethods,
-      setCreatingCustomExpectedValue,
-    ]);
+    }, [infrequentlyChangingContextValues, inputValue]);
 
   const { customExpectedValueBuilderOpen, handleEdit } =
-    customExpectedValueBuilderContextValue;
+    expectedValueSelectorContextValue;
 
   const creatingExpectedValue = useWatch({
     control: expectedValueSelectorFormMethods.control,
     name: "customExpectedValueId",
   });
 
-  const [inputValue, setInputValue] = useState("");
-
-  const [autocompleteFocused, setAutocompleteFocused] = useState(false);
-
-  const { dataTypes, getExpectedValueDisplay } = useDataTypesOptions();
-  const dataTypeOptions = dataTypes.map((option) => option.$id);
-
   return (
-    <CustomExpectedValueBuilderContext.Provider
-      value={customExpectedValueBuilderContextValue}
+    <ExpectedValueSelectorContext.Provider
+      value={expectedValueSelectorContextValue}
     >
       <FormProvider {...expectedValueSelectorFormMethods}>
         <Autocomplete
@@ -246,41 +323,16 @@ export const ExpectedValueSelector = ({
           selectOnFocus={false}
           clearOnBlur={false}
           {...expectedValuesField}
-          filterOptions={(options, { inputValue: searchValue }) => {
-            return options.filter((option) => {
-              const lowercaseInput = searchValue.toLowerCase();
-
-              if (typeof option === "object") {
-                return option.typeId.toLowerCase().includes(lowercaseInput);
-              }
-              const dataType = dataTypes.find((dt) => dt.$id === option);
-              if (!dataType) {
-                return option.toLowerCase().includes(lowercaseInput);
-              }
-              const { description, title } = dataType;
-
-              const leftLabel = dataType.label?.left ?? "";
-              const rightLabel = dataType.label?.right ?? "";
-
-              return (
-                (description &&
-                  description.toLowerCase().includes(lowercaseInput)) ||
-                title.toLowerCase().includes(lowercaseInput) ||
-                leftLabel.toLowerCase().includes(lowercaseInput) ||
-                rightLabel.toLowerCase().includes(lowercaseInput)
-              );
-            });
-          }}
           onFocus={() => {
             setAutocompleteFocused(true);
           }}
           onBlur={() => {
             expectedValuesField.onBlur();
-            setAutocompleteFocused(false);
           }}
           onChange={(_evt, data, reason) => {
             if (reason !== "createOption") {
               expectedValuesField.onChange(data);
+              setInputValue("");
             }
             return false;
           }}
@@ -290,9 +342,8 @@ export const ExpectedValueSelector = ({
               setInputValue(value);
             }
           }}
-          freeSolo
-          renderTags={(expectedValues, getTagProps) =>
-            expectedValues.map((expectedValue, index) => {
+          renderTags={(expectedValues, getTagProps) => {
+            return expectedValues.map((expectedValue, index) => {
               const typeId =
                 typeof expectedValue === "object"
                   ? expectedValue.typeId
@@ -317,8 +368,8 @@ export const ExpectedValueSelector = ({
                   }}
                 />
               );
-            })
-          }
+            });
+          }}
           renderInput={(inputProps) => (
             <TextField
               {...inputProps}
@@ -332,42 +383,18 @@ export const ExpectedValueSelector = ({
             />
           )}
           sx={{ width: "70%" }}
-          options={dataTypeOptions}
-          getOptionLabel={(opt) =>
-            getExpectedValueDisplay(
-              typeof opt === "object" ? opt.typeId : (opt as VersionedUrl),
-            ).title
-          }
+          options={[]}
           disableCloseOnSelect
-          renderOption={(optProps, opt) => {
-            const typeId = typeof opt === "object" ? opt.typeId : opt;
-
-            return (
-              <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
-                <FontAwesomeIcon
-                  icon={{
-                    icon: getExpectedValueDisplay(typeId).icon,
-                  }}
-                  sx={(theme) => ({ color: theme.palette.gray[50] })}
-                />
-                <Typography
-                  variant="smallTextLabels"
-                  component="span"
-                  ml={1.5}
-                  color={(theme) => theme.palette.gray[80]}
-                >
-                  {getExpectedValueDisplay(typeId).title}
-                </Typography>
-                <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
-              </Box>
-            );
-          }}
           componentsProps={{
             popper: {
               className: fluidFontClassName,
               sx: { minWidth: 520 },
               placement: "bottom-start",
               modifiers: [
+                {
+                  name: "computeStyles",
+                  enabled: true,
+                },
                 {
                   name: "preventOverflow",
                   enabled: true,
@@ -382,6 +409,6 @@ export const ExpectedValueSelector = ({
           }}
         />
       </FormProvider>
-    </CustomExpectedValueBuilderContext.Provider>
+    </ExpectedValueSelectorContext.Provider>
   );
 };
