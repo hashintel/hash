@@ -226,6 +226,8 @@ export const makeUnchecked = (
         (cause) => new Transport.TransportError({ cause }),
       ),
       Stream.mapConcat((list) => list),
+      // cast needed as uint8arraylist doesn't support Uint8Array<ArrayBuffer> yet
+      Stream.map((array) => array.buffer as ArrayBuffer),
       ResponseFromBytesStream.make,
     );
 

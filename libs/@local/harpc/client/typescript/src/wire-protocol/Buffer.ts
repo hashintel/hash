@@ -35,7 +35,7 @@ export type WriteBuffer = Buffer<Write>;
 export type ReadBuffer = Buffer<Read>;
 
 interface BufferImpl<T> extends Buffer<T> {
-  value: DataView;
+  value: DataView<ArrayBuffer>;
   index: SubscriptionRef.SubscriptionRef<number>;
 }
 
@@ -214,7 +214,7 @@ export const putSlice: {
 export const getSlice = (
   buffer: Buffer<Read>,
   byteLength: number,
-): ReadResult<Uint8Array> =>
+): ReadResult<Uint8Array<ArrayBuffer>> =>
   SubscriptionRef.modifyEffect(
     (buffer as unknown as BufferImpl<Read>).index,
     (index) =>

@@ -3,7 +3,6 @@
   "include": [
     "src",
     "codegen.config.ts",
-    "/**/*.gen.json",
     "eslint.config.js",
     "vitest.config.ts"
   ],
