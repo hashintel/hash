@@ -1,4 +1,4 @@
-import { createBase } from "@local/eslint/deprecated";
+import { create } from "@local/eslint";
 
 /**
  * @todo why is this required in this package but not others with the same config? if not explicitly typed, we get:
@@ -8,17 +8,17 @@ import { createBase } from "@local/eslint/deprecated";
  * @type {import('eslint').Linter.Config[]}
  */
 const config = [
-  ...createBase(import.meta.dirname),
+  ...create(import.meta.dirname, {
+    enabled: {
+      frontend: false,
+      playwright: false,
+      tests: true,
+      storybook: false,
+    },
+  }),
   {
     rules: {
-      "@typescript-eslint/no-redeclare": "off",
-      "unicorn/filename-case": "off",
-      "func-names": "off",
-      "canonical/filename-no-index": "off",
-      "@typescript-eslint/no-empty-object-type": [
-        "error",
-        { allowInterfaces: "with-single-extends" },
-      ],
+      "fsecond/prefer-destructured-optionals": "off",
     },
   },
 ];

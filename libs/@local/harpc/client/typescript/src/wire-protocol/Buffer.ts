@@ -3,16 +3,19 @@ import { Data, Effect, Function, SubscriptionRef } from "effect";
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Buffer",
 );
+
 export type TypeId = typeof TypeId;
 
 const Read: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Buffer/Read",
 );
+
 export type Read = typeof Read;
 
 const Write: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Buffer/Write",
 );
+
 export type Write = typeof Write;
 
 export class UnexpectedEndOfBufferError extends Data.TaggedError(
@@ -57,7 +60,7 @@ const validateBounds = <T>(
 const makeUnchecked = <T>(view: DataView, mode: T) =>
   Effect.gen(function* () {
     // the buffer we write to is always a single page of 64KiB
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
     const object = Object.create(BufferProto);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -72,7 +75,9 @@ const makeUnchecked = <T>(view: DataView, mode: T) =>
 
 export const makeRead = (view: DataView) => makeUnchecked(view, Read);
 
-// the buffer we write to is always a single page of 64KiB
+/**
+ * The buffer we write to is always a single page of 64KiB.
+ */
 export const makeWrite = () =>
   makeUnchecked(new DataView(new ArrayBuffer(64 * 1024)), Write);
 
@@ -147,23 +152,25 @@ export type ReadResult<T = number> = Effect.Effect<
   UnexpectedEndOfBufferError
 >;
 
-type WriteSignature = {
+interface WriteSignature {
   (value: number): (buffer: Buffer<Write>) => WriteResult;
   (buffer: Buffer<Write>, value: number): WriteResult;
-};
+}
 
 export const putU8: WriteSignature = Function.dual(
   2,
-  putInt(1, (view, byteOffset, value) => view.setUint8(byteOffset, value)),
+  putInt(1, (view, byteOffset, value) => {
+    view.setUint8(byteOffset, value);
+  }),
 );
 
 export const getU8 = getInt(1, (view, byteOffset) => view.getUint8(byteOffset));
 
 export const putU16: WriteSignature = Function.dual(
   2,
-  putInt(2, (view, byteOffset, value) =>
-    view.setUint16(byteOffset, value, false),
-  ),
+  putInt(2, (view, byteOffset, value) => {
+    view.setUint16(byteOffset, value, false);
+  }),
 );
 
 export const getU16 = getInt(2, (view, byteOffset) =>
@@ -172,9 +179,9 @@ export const getU16 = getInt(2, (view, byteOffset) =>
 
 export const putU32: WriteSignature = Function.dual(
   2,
-  putInt(4, (view, byteOffset, value) =>
-    view.setUint32(byteOffset, value, false),
-  ),
+  putInt(4, (view, byteOffset, value) => {
+    view.setUint32(byteOffset, value, false);
+  }),
 );
 
 export const getU32 = getInt(4, (view, byteOffset) =>
@@ -196,6 +203,7 @@ export const putSlice: {
           index,
           value.length,
         );
+
         uint8Array.set(value);
 
         return [buffer, index + value.length] as const;
@@ -205,7 +213,7 @@ export const putSlice: {
 
 export const getSlice = (
   buffer: Buffer<Read>,
-  length: number,
+  byteLength: number,
 ): ReadResult<Uint8Array<ArrayBuffer>> =>
   SubscriptionRef.modifyEffect(
     (buffer as unknown as BufferImpl<Read>).index,
@@ -213,28 +221,29 @@ export const getSlice = (
       Effect.gen(function* () {
         const impl = buffer as unknown as BufferImpl<Read>;
 
-        yield* validateBounds(impl, index, length);
+        yield* validateBounds(impl, index, byteLength);
 
         // clone the buffer
-        const clone = new ArrayBuffer(length);
+        const clone = new ArrayBuffer(byteLength);
         const value = new Uint8Array(clone);
-        value.set(new Uint8Array(impl.value.buffer, index, length));
 
-        return [value, index + length] as const;
+        value.set(new Uint8Array(impl.value.buffer, index, byteLength));
+
+        return [value, index + byteLength] as const;
       }),
   );
 
 export const advance: {
   (length: number): <T>(buffer: Buffer<T>) => WriteResult;
   <T>(buffer: Buffer<T>, length: number): WriteResult;
-} = Function.dual(2, <T>(buffer: Buffer<T>, length: number) =>
+} = Function.dual(2, <T>(buffer: Buffer<T>, byteLength: number) =>
   SubscriptionRef.modifyEffect(
     (buffer as unknown as BufferImpl<T>).index,
     (index) =>
       Effect.gen(function* () {
-        yield* validateBounds(buffer as BufferImpl<T>, index, length);
+        yield* validateBounds(buffer as BufferImpl<T>, index, byteLength);
 
-        return [buffer, index + length] as const;
+        return [buffer, index + byteLength] as const;
       }),
   ),
 );
@@ -264,5 +273,6 @@ export const take = (buffer: Buffer<Write>) =>
     const impl = buffer as unknown as BufferImpl<Write>;
 
     const inner = impl.value.buffer.slice(0, currentLength);
+
     return inner;
   });

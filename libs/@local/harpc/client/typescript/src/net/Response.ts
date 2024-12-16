@@ -4,13 +4,14 @@ import { MutableBytes } from "../binary/index.js";
 import { InvalidUtf8Error } from "../ClientError.js";
 import { type ErrorCode, ResponseKind } from "../types/index.js";
 import { createProto } from "../utils.js";
-import type { Response } from "../wire-protocol/models/response/index.js";
 import {
+  type Response,
   ResponseBody,
   ResponseFlags,
 } from "../wire-protocol/models/response/index.js";
 
 const TypeId = Symbol("@local/harpc-client/net/Response");
+
 export type TypeId = typeof TypeId;
 
 export class UnexpectedResponseTypeError extends Data.TaggedError(
@@ -79,8 +80,9 @@ const flattenResponseStream = <E, R>(
       const output: ResponseSegment[] = [];
 
       const begin = ResponseBody.getBegin(response.body);
+
       if (Option.isSome(begin)) {
-        const kind = begin.value.kind;
+        const { kind } = begin.value;
         const code = ResponseKind.getErr(kind);
 
         output.push(ResponseSegment.ControlFlow({ code }));
@@ -92,6 +94,7 @@ const flattenResponseStream = <E, R>(
       );
 
       output.push(ResponseSegment.Body({ data: payload }));
+
       return output;
     }),
   );
@@ -105,9 +108,11 @@ const processResponseStream = <E, R>(
     stream,
     Stream.mapConcatEffect((segment) => {
       return ResponseSegment.$match(segment, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         ControlFlow: ({ code }) => {
           // replace the existing error with a new one if we have an error
           const error = partialError;
+
           partialError = Option.map(
             code,
             (_) => new NetworkError({ code: _, bytes: MutableBytes.make() }),
@@ -118,12 +123,14 @@ const processResponseStream = <E, R>(
             onSome: Effect.fail,
           });
         },
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         Body: ({ data }) => {
           if (Option.isNone(partialError)) {
             return Effect.succeed([data]);
           }
 
           MutableBytes.appendBuffer(partialError.value.bytes, data);
+
           return Effect.succeed([]);
         },
       });

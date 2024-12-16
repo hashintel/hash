@@ -39,6 +39,7 @@ describe.concurrent("JsonDecoder", () => {
       const textPayload = '{"key": "value"}\x1E';
 
       const items = yield* decode(cx, [textPayload]);
+
       cx.expect(items).toMatchObject([{ key: "value" }]);
     }).pipe(Effect.provide(JsonDecoder.layer)),
   );
@@ -48,6 +49,7 @@ describe.concurrent("JsonDecoder", () => {
       const textPayload = '{"key": "value1"}\x1E{"key": "value2"}\x1E';
 
       const items = yield* decode(cx, [textPayload]);
+
       cx.expect(items).toMatchObject([{ key: "value1" }, { key: "value2" }]);
     }).pipe(Effect.provide(JsonDecoder.layer)),
   );
@@ -57,6 +59,7 @@ describe.concurrent("JsonDecoder", () => {
       const textPayload = '{"key": "value1"}\x1E{"key": "value2';
 
       const items = yield* decode(cx, [textPayload]);
+
       cx.expect(items).toMatchObject([{ key: "value1" }]);
     }).pipe(Effect.provide(JsonDecoder.layer)),
   );
@@ -66,6 +69,7 @@ describe.concurrent("JsonDecoder", () => {
       const textPayload = ['{"key": "val', 'ue1"}\x1E'];
 
       const items = yield* decode(cx, textPayload);
+
       cx.expect(items).toMatchObject([{ key: "value1" }]);
     }).pipe(Effect.provide(JsonDecoder.layer)),
   );
@@ -77,6 +81,7 @@ describe.concurrent("JsonDecoder", () => {
         const textPayload = ['{"key": "val', 'ue1"}\x1E{"key": "value2"}\x1E'];
 
         const items = yield* decode(cx, textPayload);
+
         cx.expect(items).toMatchObject([{ key: "value1" }, { key: "value2" }]);
       }).pipe(Effect.provide(JsonDecoder.layer)),
   );

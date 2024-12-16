@@ -154,6 +154,8 @@ export const unicorn = (config: readonly ESConfig[]): readonly ESConfig[] =>
         // spread operator. It's also a very common pattern in functional
         // programming.
         "unicorn/no-array-reduce": "off",
+        // This doesn't work well with `effect/Data/TaggedError`.
+        "unicorn/throw-new-error": "off",
       },
     },
     preventAbbreviations(),

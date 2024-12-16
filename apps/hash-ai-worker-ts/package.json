@@ -41,8 +41,8 @@
     "test:unit": "vitest --run  --exclude \"**/*.ai.test.ts\""
   },
   "dependencies": {
-    "@anthropic-ai/bedrock-sdk": "0.10.0",
-    "@anthropic-ai/sdk": "0.24.0",
+    "@anthropic-ai/bedrock-sdk": "0.11.2",
+    "@anthropic-ai/sdk": "0.32.1",
     "@apps/hash-graph": "0.0.0-private",
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@blockprotocol/type-system": "0.1.2-canary.0",
@@ -81,7 +81,7 @@
     "md5": "2.3.0",
     "mime-types": "2.1.35",
     "officeparser": "4.2.0",
-    "openai": "4.68.4",
+    "openai": "4.76.2",
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.4.1",
     "pdf2json": "3.1.4",

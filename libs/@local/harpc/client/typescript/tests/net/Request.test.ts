@@ -12,8 +12,8 @@ import {
 } from "../../src/types/index.js";
 import { RequestIdProducer } from "../../src/wire-protocol/index.js";
 import { Payload } from "../../src/wire-protocol/models/index.js";
-import type { Request as WireRequest } from "../../src/wire-protocol/models/request/index.js";
 import {
+  type Request as WireRequest,
   RequestBody,
   RequestFlags,
 } from "../../src/wire-protocol/models/request/index.js";
@@ -32,7 +32,7 @@ const makeRequest = <E, R>(stream: Stream.Stream<ArrayBuffer, E, R>) =>
   });
 
 const assertBody = (
-  cx: vitest.TaskContext<vitest.RunnerTestCase<object>> & vitest.TestContext,
+  cx: vitest.TaskContext<vitest.RunnerTestCase> & vitest.TestContext,
   request: WireRequest.Request,
   bodyIs: (request: RequestBody.RequestBody) => boolean,
   body: string | number,
@@ -46,6 +46,7 @@ const assertBody = (
 
   if (Predicate.isString(body)) {
     const text = new TextDecoder().decode(buffer);
+
     cx.expect(text).toBe(body);
   } else if (Predicate.isNumber(body)) {
     cx.expect(buffer.byteLength).toBe(body);
