@@ -17,6 +17,7 @@ import {
   RequestBody,
   RequestFlags,
 } from "../../src/wire-protocol/models/request/index.js";
+import { expectArrayBuffer } from "../wire-protocol/utils.js";
 
 const makeRequest = <E, R>(stream: Stream.Stream<ArrayBuffer, E, R>) =>
   Effect.gen(function* () {
@@ -78,7 +79,9 @@ describe.concurrent("Request", () => {
       const encoder = new TextEncoder();
 
       const request = yield* makeRequest(
-        Stream.fromIterable([encoder.encode("hello").buffer]),
+        Stream.fromIterable([
+          expectArrayBuffer(cx, encoder.encode("hello").buffer),
+        ]),
       );
 
       const items = yield* pipe(
@@ -117,7 +120,7 @@ describe.concurrent("Request", () => {
       const request = yield* makeRequest(
         Stream.fromIterable([
           array.buffer,
-          new TextEncoder().encode("hello").buffer,
+          expectArrayBuffer(cx, new TextEncoder().encode("hello").buffer),
         ]),
       );
 
@@ -158,8 +161,8 @@ describe.concurrent("Request", () => {
 
       const request = yield* makeRequest(
         Stream.fromIterable([
-          encoder.encode("hello").buffer,
-          encoder.encode("world").buffer,
+          expectArrayBuffer(cx, encoder.encode("hello").buffer),
+          expectArrayBuffer(cx, encoder.encode("world").buffer),
         ]),
       );
 
@@ -196,7 +199,9 @@ describe.concurrent("Request - noDelay", () => {
       const encoder = new TextEncoder();
 
       const request = yield* makeRequest(
-        Stream.fromIterable([encoder.encode("hello").buffer]),
+        Stream.fromIterable([
+          expectArrayBuffer(cx, encoder.encode("hello").buffer),
+        ]),
       );
 
       const items = yield* pipe(
@@ -253,8 +258,8 @@ describe.concurrent("Request - noDelay", () => {
 
       const request = yield* makeRequest(
         Stream.fromIterable([
-          encoder.encode("hello").buffer,
-          encoder.encode("world").buffer,
+          expectArrayBuffer(cx, encoder.encode("hello").buffer),
+          expectArrayBuffer(cx, encoder.encode("world").buffer),
         ]),
       );
 

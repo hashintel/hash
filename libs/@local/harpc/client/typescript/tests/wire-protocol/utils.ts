@@ -1,5 +1,6 @@
 import { Command, Path } from "@effect/platform";
 import { Effect } from "effect";
+import type * as vitest from "vitest";
 
 const packageDirectory = () =>
   Effect.gen(function* () {
@@ -59,3 +60,11 @@ export const callDecode = <T>(
     const buffer = Buffer.from(output, "base64");
     return Uint8Array.from(buffer);
   });
+
+export const expectArrayBuffer = (
+  cx: vitest.TaskContext<vitest.RunnerTestCase<object>> & vitest.TestContext,
+  value: ArrayBufferLike,
+): ArrayBuffer => {
+  cx.expect(value).toBeInstanceOf(ArrayBuffer);
+  return value as ArrayBuffer;
+};

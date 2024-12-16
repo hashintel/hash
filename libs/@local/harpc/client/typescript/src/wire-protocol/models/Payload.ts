@@ -35,7 +35,7 @@ export interface Payload
     Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
-  readonly buffer: Uint8Array;
+  readonly buffer: Uint8Array<ArrayBuffer>;
 }
 
 const PayloadProto: Omit<Payload, "buffer"> = {
@@ -84,7 +84,7 @@ const PayloadProto: Omit<Payload, "buffer"> = {
   },
 };
 
-const makeUnchecked = (buffer: Uint8Array): Payload =>
+const makeUnchecked = (buffer: Uint8Array<ArrayBuffer>): Payload =>
   createProto(PayloadProto, { buffer });
 
 /**
@@ -97,7 +97,7 @@ const makeUnchecked = (buffer: Uint8Array): Payload =>
  *
  * Dies if the buffer exceeds MAX_SIZE (U16_MAX - 32 bytes).
  */
-export const makeAssert = (buffer: Uint8Array) => {
+export const makeAssert = (buffer: Uint8Array<ArrayBuffer>) => {
   if (buffer.length > MAX_SIZE) {
     return Effect.die(new PayloadTooLargeError({ received: buffer.length }));
   }
@@ -116,7 +116,7 @@ export const makeAssert = (buffer: Uint8Array) => {
  * Returns a PayloadTooLargeError if the buffer exceeds MAX_SIZE (U16_MAX - 32 bytes).
  */
 export const make = (
-  buffer: Uint8Array,
+  buffer: Uint8Array<ArrayBuffer>,
 ): Effect.Effect<Payload, PayloadTooLargeError> => {
   if (buffer.length > MAX_SIZE) {
     return Effect.fail(new PayloadTooLargeError({ received: buffer.length }));
@@ -151,4 +151,8 @@ export const isPayload = (value: unknown): value is Payload =>
   Predicate.hasProperty(value, TypeId);
 
 export const arbitrary = (fc: typeof FastCheck) =>
-  fc.uint8Array({ minLength: U16_MIN, maxLength: MAX_SIZE }).map(makeUnchecked);
+  fc
+    .uint8Array({ minLength: U16_MIN, maxLength: MAX_SIZE })
+    // cast needed as fast-check doesn't support Uint8Array<ArrayBuffer> yet
+    .map((array) => array as Uint8Array<ArrayBuffer>)
+    .map(makeUnchecked);

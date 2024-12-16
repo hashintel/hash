@@ -88,7 +88,7 @@ const flattenResponseStream = <E, R>(
 
       const payload = ResponseBody.mapBoth(
         response.body,
-        (beginOrFrame) => beginOrFrame.payload.buffer.buffer as ArrayBuffer,
+        (beginOrFrame) => beginOrFrame.payload.buffer.buffer,
       );
 
       output.push(ResponseSegment.Body({ data: payload }));
