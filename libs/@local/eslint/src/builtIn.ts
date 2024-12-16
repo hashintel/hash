@@ -1,5 +1,6 @@
 import { Array as ReadonlyArray, Option, pipe, Predicate } from "effect";
 import type { PartialDeep } from "type-fest";
+import { baseNoRestrictedSyntaxRules } from "eslint-config-sheriff";
 
 import type { NoRestrictedImportsRule } from "./types.js";
 import { defineConfig, type ESConfig } from "./utils.js";
@@ -88,6 +89,18 @@ export const builtIn =
             {
               allowAsStatement: true,
             },
+          ],
+          "no-restricted-syntax": [
+            "error",
+            ...baseNoRestrictedSyntaxRules.map((rule) =>
+              // remap the `ClassDeclaration` rule to exclude `Error` classes
+              rule.selector === "ClassDeclaration"
+                ? {
+                    selector: "ClassDeclaration[id.name!=/Error$/]",
+                    message: rule.message,
+                  }
+                : rule,
+            ),
           ],
         },
       },
