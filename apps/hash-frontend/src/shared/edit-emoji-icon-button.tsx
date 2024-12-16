@@ -1,3 +1,4 @@
+import type { Emoji, Skin } from "@emoji-mart/data";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -7,7 +8,6 @@ import {
 import type { SxProps, Theme } from "@mui/material";
 import { Box, iconButtonClasses, Tooltip } from "@mui/material";
 import type { SystemStyleObject } from "@mui/system";
-import type { BaseEmoji } from "emoji-mart";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent, MouseEventHandler, ReactNode } from "react";
 import { useCallback, useState } from "react";
@@ -61,7 +61,7 @@ export const EditEmojiIconButton: FunctionComponent<
   });
 
   const handleOnEmojiSelect = useCallback(
-    async (emoji: BaseEmoji) => {
+    async (emoji: Emoji & Skin) => {
       const maybePromise = onChange(emoji.native);
 
       if (maybePromise) {

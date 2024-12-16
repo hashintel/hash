@@ -492,7 +492,7 @@ __metadata:
     "@dnd-kit/core": "npm:6.3.1"
     "@dnd-kit/sortable": "npm:7.0.2"
     "@dnd-kit/utilities": "npm:3.2.2"
-    "@emoji-mart/react": "npm:1.1.1"
+    "@emoji-mart/data": "npm:1.2.1"
     "@emotion/react": "npm:11.14.0"
     "@emotion/server": "npm:11.11.0"
     "@emotion/styled": "npm:11.14.0"
@@ -537,7 +537,6 @@ __metadata:
     "@tldraw/tldraw": "npm:2.0.0-alpha.12"
     "@tldraw/tlvalidate": "npm:2.0.0-alpha.12"
     "@types/dotenv-flow": "npm:3.3.3"
-    "@types/emoji-mart": "patch:@types/emoji-mart@npm%3A3.0.9#~/.yarn/patches/@types-emoji-mart-npm-3.0.9-ec5052fc0d.patch"
     "@types/gapi": "npm:0.0.47"
     "@types/google.accounts": "npm:0.0.15"
     "@types/google.picker": "npm:0.0.43"
@@ -5812,13 +5811,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@emoji-mart/react@npm:1.1.1":
-  version: 1.1.1
-  resolution: "@emoji-mart/react@npm:1.1.1"
-  peerDependencies:
-    emoji-mart: ^5.2
-    react: ^16.8 || ^17 || ^18
-  checksum: 10c0/88a9c8c24bbc5695f0ed2458734c9982c965a16db1999bc731c7cce77f9bf228f1871e899744f9a3f9fdd36a11db7ad6c0e049d710cb91c66c69a2cd4d2ee40a
+"@emoji-mart/data@npm:1.2.1":
+  version: 1.2.1
+  resolution: "@emoji-mart/data@npm:1.2.1"
+  checksum: 10c0/6784b97bf49a0d3ff110d8447bbd3b0449fcbc497294be3d1c3a6cb1609308776895c7520200be604cbecaa5e172c76927e47f34419c72ba8a76fd4e5a53674b
   languageName: node
   linkType: hard
 
@@ -17433,24 +17429,6 @@ __metadata:
   version: 3.1.5
   resolution: "@types/ejs@npm:3.1.5"
   checksum: 10c0/13d994cf0323d7e0ad33b9384914ccd3b4cd8bf282eced3649b1621b66ee7c784ac2d120a9d7b1f43d6f873518248fb8c3221b06a649b847860b9c2389a0b0ed
-  languageName: node
-  linkType: hard
-
-"@types/emoji-mart@npm:3.0.9":
-  version: 3.0.9
-  resolution: "@types/emoji-mart@npm:3.0.9"
-  dependencies:
-    "@types/react": "npm:*"
-  checksum: 10c0/42bc0ccb08b80284c2adaceb4cb25c9137e2bb33c94eff033ddf5266d2a23d01dea7a1be6bae2a4718b5f1e2c1317f5b48bb7f166451b102cee51deabb0c1767
-  languageName: node
-  linkType: hard
-
-"@types/emoji-mart@patch:@types/emoji-mart@npm%3A3.0.9#~/.yarn/patches/@types-emoji-mart-npm-3.0.9-ec5052fc0d.patch":
-  version: 3.0.9
-  resolution: "@types/emoji-mart@patch:@types/emoji-mart@npm%3A3.0.9#~/.yarn/patches/@types-emoji-mart-npm-3.0.9-ec5052fc0d.patch::version=3.0.9&hash=28c19b"
-  dependencies:
-    "@types/react": "npm:*"
-  checksum: 10c0/29576c3393ce8d75d16f767a4e7ce02dc18752e7e362c600c7f8a26430414371e323ae3b38c6327a4b6310412d26ee496fd4e45a6d7be3b6d0032e67f376293f
   languageName: node
   linkType: hard
 
