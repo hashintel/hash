@@ -1,4 +1,3 @@
-import type { Emoji, Skin } from "@emoji-mart/data";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -13,7 +12,10 @@ import type { FunctionComponent, MouseEventHandler, ReactNode } from "react";
 import { useCallback, useState } from "react";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
-import type { EmojiPickerPopoverProps } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+import type {
+  EmojiData,
+  EmojiPickerPopoverProps,
+} from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
 import { EmojiPicker } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
 
 export type SizeVariant = "small" | "medium";
@@ -61,7 +63,7 @@ export const EditEmojiIconButton: FunctionComponent<
   });
 
   const handleOnEmojiSelect = useCallback(
-    async (emoji: Emoji & Skin) => {
+    async (emoji: EmojiData) => {
       const maybePromise = onChange(emoji.native);
 
       if (maybePromise) {

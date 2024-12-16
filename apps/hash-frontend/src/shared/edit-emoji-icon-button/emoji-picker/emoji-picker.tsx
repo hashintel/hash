@@ -1,4 +1,3 @@
-import type { Emoji, Skin } from "@emoji-mart/data";
 import type { PopoverProps } from "@mui/material";
 import { Popover } from "@mui/material";
 import { Picker } from "emoji-mart";
@@ -15,6 +14,24 @@ export type EmojiPickerPopoverProps = Omit<
   | "sx"
 >;
 
+// extracted from https://github.com/missive/emoji-mart/blob/16978d04a766eec6455e2e8bb21cd8dc0b3c7436/packages/emoji-mart/src/utils.ts#L18
+export interface EmojiData {
+  id: string;
+  name: string;
+
+  native: string;
+  unified: string;
+
+  keywords: string[];
+  shortcodes: string[];
+
+  skin?: number;
+  src?: string;
+
+  aliases?: [string, ...string[]];
+  emoticons?: [string, ...string[]];
+}
+
 // see: https://github.com/missive/emoji-mart/issues/576#issuecomment-1678195620
 type ExtractProps<T> = {
   [K in keyof T]?: T[K] extends { value: infer V } ? V : never;
@@ -23,7 +40,7 @@ type ExtractProps<T> = {
 // vendored from https://github.com/missive/emoji-mart/blob/16978d04a766eec6455e2e8bb21cd8dc0b3c7436/packages/emoji-mart-react/react.tsx
 const EmojiPickerWrapper: FC<
   ExtractProps<typeof Picker.Props> & {
-    onEmojiSelect: (emoji: Emoji & Skin) => void;
+    onEmojiSelect: (emoji: EmojiData) => void;
   }
 > = (props: ExtractProps<typeof Picker.Props>) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -45,7 +62,7 @@ const EmojiPickerWrapper: FC<
 };
 
 interface EmojiPickerProps {
-  onEmojiSelect: (emoji: Emoji & Skin) => void;
+  onEmojiSelect: (emoji: EmojiData) => void;
   popupState: PopupState;
   popoverProps?: EmojiPickerPopoverProps;
 }
