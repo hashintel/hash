@@ -523,7 +523,7 @@ __metadata:
     "@types/emoji-mart": "patch:@types/emoji-mart@npm%3A3.0.9#~/.yarn/patches/@types-emoji-mart-npm-3.0.9-ec5052fc0d.patch"
     "@types/gapi": "npm:0.0.47"
     "@types/google.accounts": "npm:0.0.15"
-    "@types/google.picker": "npm:0.0.43"
+    "@types/google.picker": "npm:0.0.47"
     "@types/iframe-resizer": "npm:3.5.13"
     "@types/jsonpath": "npm:0.2.4"
     "@types/lodash": "npm:4.17.13"
@@ -17621,10 +17621,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/google.picker@npm:0.0.43":
-  version: 0.0.43
-  resolution: "@types/google.picker@npm:0.0.43"
-  checksum: 10c0/929671015dfffb2c73e8a52612505cee9273a49c557241ef3765d9927ea2327ef15047e64269ec2cc7088bc193f009d3e3e75e2ad6a7497603a6f1f9d8672c8e
+"@types/google.picker@npm:0.0.47":
+  version: 0.0.47
+  resolution: "@types/google.picker@npm:0.0.47"
+  checksum: 10c0/c7bbedd7a54a9cc8dd29b7a522d155260e17a3ae4a4617c32b34df65ba3fb0b3b5066e8f3f3e752fbd6670bc5b348af6f8eed3eaeda80411002c844559c22581
   languageName: node
   linkType: hard
 
