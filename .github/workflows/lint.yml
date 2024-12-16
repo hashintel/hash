@@ -342,7 +342,7 @@ jobs:
       - name: Run SQL formatter and linter
         if: ${{ success() || failure() }}
         run: |
-           if !sqlfluff lint --warn-unused-ignores; then
+           if ! sqlfluff lint --warn-unused-ignores; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
