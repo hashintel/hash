@@ -19,10 +19,7 @@ export const GoogleFilePicker = ({
           .addView(google.picker.ViewId.SPREADSHEETS)
           .setOAuthToken(accessToken)
           .setCallback((response) => {
-            if (
-              response.action !== google.picker.Action.PICKED ||
-              !response.docs[0]
-            ) {
+            if (response.action !== "picked" || !response.docs?.[0]) {
               onUserChoice(null);
               return;
             }
