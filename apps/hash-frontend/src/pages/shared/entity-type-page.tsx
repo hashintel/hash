@@ -22,8 +22,6 @@ import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageErrorState } from "../../components/page-error-state";
-import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
-import { useEntityTypeEntitiesContextValue } from "../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useIsSpecialEntityType } from "../../shared/entity-types-context/hooks";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../shared/is-archived";
@@ -57,10 +55,6 @@ export const EntityTypePage = ({
   requestedVersion,
 }: EntityTypeProps) => {
   const router = useRouter();
-
-  const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue({
-    entityTypeBaseUrl,
-  });
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { allOf: [], properties: [], links: [], inverse: {} },
@@ -243,138 +237,138 @@ export const EntityTypePage = ({
       <NextSeo title={`${entityType.schema.title} | Entity Type`} />
       <EntityTypeFormProvider {...formMethods}>
         <EntityTypeContext.Provider value={entityType.schema}>
-          <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-            <Box display="contents" component="form" onSubmit={handleSubmit}>
-              <TopContextBar
-                actionMenuItems={[
-                  ...(remoteEntityType && !isTypeArchived(remoteEntityType)
-                    ? [
-                        <ArchiveMenuItem
-                          key={entityType.schema.$id}
-                          item={remoteEntityType}
-                        />,
-                      ]
-                    : []),
-                  ...(!isReadonly && !isDraft && !isLink
-                    ? [
-                        <ConvertTypeMenuItem
-                          key={entityType.schema.$id}
-                          convertToLinkType={convertToLinkType}
-                          disabled={isDirty}
-                          typeTitle={entityType.schema.title}
-                        />,
-                      ]
-                    : []),
-                ]}
-                defaultCrumbIcon={null}
-                item={remoteEntityType ?? undefined}
-                crumbs={[
-                  {
-                    href: "/types",
-                    title: "Types",
-                    id: "types",
-                  },
-                  {
-                    href: "/types/entity-type",
-                    title: `${isLink ? "Link" : "Entity"} Types`,
-                    id: "entity-types",
-                  },
-                  {
-                    title: entityType.schema.title,
-                    href: "#",
-                    id: entityType.schema.$id,
-                    icon: (
-                      <EntityOrTypeIcon
-                        entity={null}
-                        fill={({ palette }) => palette.blue[70]}
-                        fontSize={24}
-                        icon={icon}
-                        isLink={isLink}
-                      />
-                    ),
-                  },
-                ]}
-                scrollToTop={() => {}}
-                sx={{ bgcolor: "white" }}
+          <Box display="contents" component="form" onSubmit={handleSubmit}>
+            <TopContextBar
+              actionMenuItems={[
+                ...(remoteEntityType && !isTypeArchived(remoteEntityType)
+                  ? [
+                      <ArchiveMenuItem
+                        key={entityType.schema.$id}
+                        item={remoteEntityType}
+                      />,
+                    ]
+                  : []),
+                ...(!isReadonly && !isDraft && !isLink
+                  ? [
+                      <ConvertTypeMenuItem
+                        key={entityType.schema.$id}
+                        convertToLinkType={convertToLinkType}
+                        disabled={isDirty}
+                        typeTitle={entityType.schema.title}
+                      />,
+                    ]
+                  : []),
+              ]}
+              defaultCrumbIcon={null}
+              item={remoteEntityType ?? undefined}
+              crumbs={[
+                {
+                  href: "/types",
+                  title: "Types",
+                  id: "types",
+                },
+                {
+                  href: "/types/entity-type",
+                  title: `${isLink ? "Link" : "Entity"} Types`,
+                  id: "entity-types",
+                },
+                {
+                  title: entityType.schema.title,
+                  href: "#",
+                  id: entityType.schema.$id,
+                  icon: (
+                    <EntityOrTypeIcon
+                      entity={null}
+                      fill={({ palette }) => palette.blue[70]}
+                      fontSize={24}
+                      icon={icon}
+                      isLink={isLink}
+                    />
+                  ),
+                },
+              ]}
+              scrollToTop={() => {}}
+              sx={{ bgcolor: "white" }}
+            />
+
+            {!isReadonly && (
+              <EditBarTypeEditor
+                currentVersion={currentVersion}
+                discardButtonProps={
+                  // @todo confirmation of discard when draft
+                  isDraft
+                    ? {
+                        href: `/new/types/entity-type`,
+                      }
+                    : {
+                        onClick() {
+                          reset();
+                        },
+                      }
+                }
+                key={entityType.schema.$id} // reset edit bar state when the entity type changes
               />
+            )}
 
-              {!isReadonly && (
-                <EditBarTypeEditor
-                  currentVersion={currentVersion}
-                  discardButtonProps={
-                    // @todo confirmation of discard when draft
-                    isDraft
-                      ? {
-                          href: `/new/types/entity-type`,
-                        }
-                      : {
-                          onClick() {
-                            reset();
-                          },
-                        }
+            <Box
+              ref={titleWrapperRef}
+              sx={{
+                borderBottom: 1,
+                borderColor: "gray.20",
+                pt: 3.75,
+                backgroundColor: "white",
+              }}
+            >
+              <Container>
+                <EntityTypeHeader
+                  isDraft={isDraft}
+                  ontologyChip={
+                    <OntologyChip
+                      domain={new URL(entityType.schema.$id).hostname}
+                      path={new URL(entityType.schema.$id).pathname.replace(
+                        /\d+$/,
+                        currentVersion.toString(),
+                      )}
+                    />
                   }
-                  key={entityType.schema.$id} // reset edit bar state when the entity type changes
+                  entityTypeSchema={entityType.schema}
+                  isLink={isLink}
+                  isReadonly={isReadonly}
+                  latestVersion={latestVersion}
                 />
-              )}
 
-              <Box
-                ref={titleWrapperRef}
-                sx={{
-                  borderBottom: 1,
-                  borderColor: "gray.20",
-                  pt: 3.75,
-                  backgroundColor: "white",
-                }}
-              >
-                <Container>
-                  <EntityTypeHeader
-                    isDraft={isDraft}
-                    ontologyChip={
-                      <OntologyChip
-                        domain={new URL(entityType.schema.$id).hostname}
-                        path={new URL(entityType.schema.$id).pathname.replace(
-                          /\d+$/,
-                          currentVersion.toString(),
-                        )}
-                      />
-                    }
-                    entityTypeSchema={entityType.schema}
-                    isLink={isLink}
-                    isReadonly={isReadonly}
-                    latestVersion={latestVersion}
-                  />
-
-                  <EntityTypeTabs
-                    canCreateEntity={userPermissions.instantiate}
-                    isDraft={isDraft}
-                    isFile={isFile}
-                    isImage={isImage}
-                  />
-                </Container>
-              </Box>
-
-              <Box py={5}>
-                <Container>
-                  {currentTab === "definition" ? (
-                    entityTypeAndPropertyTypes ? (
-                      <DefinitionTab
-                        entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
-                        onNavigateToType={onNavigateToType}
-                        ownedById={accountId as OwnedById | null}
-                        readonly={isReadonly}
-                      />
-                    ) : (
-                      "Loading..."
-                    )
-                  ) : null}
-                  {currentTab === "entities" ? <EntitiesTab /> : null}
-                  {isFile && currentTab === "upload" ? (
-                    <FileUploadsTab isImage={isImage} />
-                  ) : null}
-                </Container>
-              </Box>
+                <EntityTypeTabs
+                  canCreateEntity={userPermissions.instantiate}
+                  isDraft={isDraft}
+                  isFile={isFile}
+                  isImage={isImage}
+                />
+              </Container>
             </Box>
-          </EntityTypeEntitiesContext.Provider>
+
+            <Box py={5}>
+              <Container>
+                {currentTab === "definition" ? (
+                  entityTypeAndPropertyTypes ? (
+                    <DefinitionTab
+                      entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
+                      onNavigateToType={onNavigateToType}
+                      ownedById={accountId as OwnedById | null}
+                      readonly={isReadonly}
+                    />
+                  ) : (
+                    "Loading..."
+                  )
+                ) : null}
+                {currentTab === "entities" && entityTypeBaseUrl ? (
+                  <EntitiesTab entityTypeBaseUrl={entityTypeBaseUrl} />
+                ) : null}
+                {isFile && currentTab === "upload" ? (
+                  <FileUploadsTab isImage={isImage} />
+                ) : null}
+              </Container>
+            </Box>
+          </Box>
         </EntityTypeContext.Provider>
       </EntityTypeFormProvider>
 

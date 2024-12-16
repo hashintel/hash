@@ -8,18 +8,18 @@ import { Box, Typography } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 import { useMemo } from "react";
 
-import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { FileAudioLightIcon } from "../../../../shared/icons/file-audio-light-icon";
-import { FileExcelLightIcon } from "../../../../shared/icons/file-excel-light-icon";
-import { FileImageLightIcon } from "../../../../shared/icons/file-image-light";
-import { FileLightIcon } from "../../../../shared/icons/file-light-icon";
-import { FilePdfLightIcon } from "../../../../shared/icons/file-pdf-light-icon";
-import { FilePowerpointLightIcon } from "../../../../shared/icons/file-powerpoint-light-icon";
-import { FileVideoLightIcon } from "../../../../shared/icons/file-video-light-icon";
-import { FileWordLightIcon } from "../../../../shared/icons/file-word-light-icon";
-import { Link } from "../../../../shared/ui";
-import { getImageUrlFromEntityProperties } from "../../get-file-properties";
-import { useEntityHref } from "../../use-entity-href";
+import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { FileAudioLightIcon } from "../../../../../shared/icons/file-audio-light-icon";
+import { FileExcelLightIcon } from "../../../../../shared/icons/file-excel-light-icon";
+import { FileImageLightIcon } from "../../../../../shared/icons/file-image-light";
+import { FileLightIcon } from "../../../../../shared/icons/file-light-icon";
+import { FilePdfLightIcon } from "../../../../../shared/icons/file-pdf-light-icon";
+import { FilePowerpointLightIcon } from "../../../../../shared/icons/file-powerpoint-light-icon";
+import { FileVideoLightIcon } from "../../../../../shared/icons/file-video-light-icon";
+import { FileWordLightIcon } from "../../../../../shared/icons/file-word-light-icon";
+import { Link } from "../../../../../shared/ui";
+import { getImageUrlFromEntityProperties } from "../../../get-file-properties";
+import { useEntityHref } from "../../../use-entity-href";
 import { GridViewItemWrapper } from "./grid-view-item-wrapper";
 
 /**
