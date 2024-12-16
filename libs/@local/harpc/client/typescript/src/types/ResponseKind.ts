@@ -13,6 +13,7 @@ import {
 
 import { createProto, encodeDual } from "../utils.js";
 import * as Buffer from "../wire-protocol/Buffer.js";
+
 import * as ErrorCode from "./ErrorCode.js";
 
 const TypeId: unique symbol = Symbol(
@@ -68,6 +69,7 @@ const OkProto: Ok = {
 
 export const ok = (): Ok => createProto(OkProto, {});
 
+// eslint-disable-next-line unicorn/prevent-abbreviations -- same name as Rust implementation
 export interface Err
   extends Equal.Equal,
     Inspectable.Inspectable,
@@ -78,6 +80,7 @@ export interface Err
   readonly code: ErrorCode.ErrorCode;
 }
 
+// eslint-disable-next-line unicorn/prevent-abbreviations
 const ErrProto: Omit<Err, "code"> = {
   [TypeId]: TypeId,
   _tag: "Err",
@@ -130,9 +133,9 @@ export const encode = encodeDual(
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       if (isOk(kind)) {
         return yield* Buffer.putU16(buffer, 0);
-      } else {
-        return yield* ErrorCode.encode(buffer, kind.code);
       }
+
+      return yield* ErrorCode.encode(buffer, kind.code);
     }),
 );
 
@@ -141,12 +144,13 @@ export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 export const decode = (buffer: Buffer.ReadBuffer) =>
   Effect.gen(function* () {
     const value = yield* Buffer.getU16(buffer);
+
     if (value === 0) {
       return ok();
-    } else {
-      const code = ErrorCode.makeUnchecked(value);
-      return err(code);
     }
+    const code = ErrorCode.makeUnchecked(value);
+
+    return err(code);
   });
 
 export const isResponseKind = (value: unknown): value is ResponseKind =>
@@ -181,9 +185,9 @@ export const match: {
   ) => {
     if (isOk(self)) {
       return options.onOk();
-    } else {
-      return options.onErr(self.code);
     }
+
+    return options.onErr(self.code);
   },
 );
 

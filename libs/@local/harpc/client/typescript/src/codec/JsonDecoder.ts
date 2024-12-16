@@ -3,6 +3,7 @@ import { TextDecoder } from "node:util";
 import { Data, Effect, Layer, Option, pipe, Schema, Stream } from "effect";
 
 import { InvalidUtf8Error } from "../ClientError.js";
+
 import * as Decoder from "./Decoder.js";
 
 // 1E is the ASCII record separator character, and is invalid in JSON.
@@ -49,20 +50,23 @@ const processArrayBuffer = <T, E, R>(
     while (slice.byteLength > 0) {
       const separatorPosition = pipe(
         new Uint8Array(slice),
-        (array) => array.findIndex((byte) => byte === SEPARATOR),
+        (array) => array.indexOf(SEPARATOR),
         Option.liftPredicate((position) => position >= 0),
       );
 
       if (Option.isNone(separatorPosition)) {
-        fragment += yield* textDecode(decoder, slice, { stream: true });
+        fragment =
+          fragment + (yield* textDecode(decoder, slice, { stream: true }));
 
         return [fragment, items] as const;
       }
 
       const left = slice.slice(0, separatorPosition.value);
+
       slice = slice.slice(separatorPosition.value + 1);
 
-      fragment += yield* textDecode(decoder, left, { stream: false });
+      fragment =
+        fragment + (yield* textDecode(decoder, left, { stream: false }));
 
       if (Option.isSome(decodeText)) {
         items.push(yield* decodeText.value(fragment));

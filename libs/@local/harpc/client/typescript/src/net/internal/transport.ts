@@ -1,10 +1,8 @@
 import { noise } from "@chainsafe/libp2p-noise";
 import { yamux } from "@chainsafe/libp2p-yamux";
-import type { Identify } from "@libp2p/identify";
-import { identify } from "@libp2p/identify";
+import { type Identify, identify } from "@libp2p/identify";
 import { isPeerId, type PeerId } from "@libp2p/interface";
-import type { PingService } from "@libp2p/ping";
-import { ping } from "@libp2p/ping";
+import { type PingService, ping } from "@libp2p/ping";
 import { tcp } from "@libp2p/tcp";
 import { type DNS, dns as defaultDns } from "@multiformats/dns";
 import {
@@ -30,12 +28,16 @@ import {
   Struct,
 } from "effect";
 import type { NonEmptyArray } from "effect/Array";
-import type { Libp2p } from "libp2p";
-import { createLibp2p } from "libp2p";
+import { type Libp2p, createLibp2p } from "libp2p";
 
 import * as NetworkLogger from "../NetworkLogger.js";
-import type { DNSConfig, Multiaddr, TransportConfig } from "../Transport.js";
-import { InitializationError } from "../Transport.js";
+import {
+  type DNSConfig,
+  type Multiaddr,
+  type TransportConfig,
+  InitializationError,
+} from "../Transport.js";
+
 import * as Dns from "./dns.js";
 import * as HashableMultiaddr from "./multiaddr.js";
 
@@ -122,7 +124,7 @@ const resolveDnsMultiaddrSegment = (code: number, value?: string) =>
   });
 
 /**
- * Resolve DNS addresses in a multiaddr (excluding DNSADDR)
+ * Resolve DNS addresses in a multiaddr (excluding DNSADDR).
  *
  * @internal
  */
@@ -132,19 +134,25 @@ const resolveDnsMultiaddr = (multiaddr: Multiaddr) => {
     Stream.mapEffect(Function.tupled(resolveDnsMultiaddrSegment), {
       concurrency: "unbounded",
     }),
-    Stream.runFold([] as (number | string | undefined)[][], (acc, segments) => {
-      // we basically have a fan out approach here, meaning that if our output is:
-      // ["ip4", "127.0.0.1"], [["ip4", "192.168.178.1"], ["ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"]] [["tcp", "4002"]]
-      // the result will be:
-      // ["ip4", "127.0.0.1", "ip4", "192.168.178.1", "tcp", "4002"]
-      // ["ip4", "127.0.0.1", "ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "tcp", "4002"]
-      // This is also known as a cartesian product
-      if (acc.length === 0) {
-        return Array.map(segments, (segment) => [...segment]);
-      }
+    Stream.runFold(
+      [] as (number | string | undefined)[][],
+      (accumulator, segments) => {
+        // we basically have a fan out approach here, meaning that if our output is:
+        // ["ip4", "127.0.0.1"], [["ip4", "192.168.178.1"], ["ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"]] [["tcp", "4002"]]
+        // the result will be:
+        // ["ip4", "127.0.0.1", "ip4", "192.168.178.1", "tcp", "4002"]
+        // ["ip4", "127.0.0.1", "ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "tcp", "4002"]
+        // This is also known as a cartesian product
+        if (accumulator.length === 0) {
+          return Array.map(segments, (segment) => [...segment]);
+        }
 
-      return Array.cartesianWith(acc, segments, (a, b) => [...a, ...b]);
-    }),
+        return Array.cartesianWith(accumulator, segments, (a, b) => [
+          ...a,
+          ...b,
+        ]);
+      },
+    ),
     Effect.map(
       Array.map(
         flow(
@@ -170,9 +178,9 @@ const resolveDnsMultiaddr = (multiaddr: Multiaddr) => {
 };
 
 /**
- * Recursively resolve DNSADDR multiaddrs
+ * Recursively resolve DNSADDR multiaddrs.
  *
- * Adapted from: https://github.com/libp2p/js-libp2p/blob/92f9acbc1d2aa7b1bb5a8e460e4e0b5770f4455c/packages/libp2p/src/connection-manager/utils.ts#L9
+ * Adapted from: https://github.com/libp2p/js-libp2p/blob/92f9acbc1d2aa7b1bb5a8e460e4e0b5770f4455c/packages/libp2p/src/connection-manager/utils.ts#L9.
  */
 const resolveDnsaddrMultiaddr = (multiaddr: Multiaddr, options: DNSConfig) =>
   Effect.gen(function* () {
@@ -277,6 +285,7 @@ const resolvePeer = (
 
     const key = HashableMultiaddr.make(address);
     const peerIdEither = yield* cache.getEither(key);
+
     if (Either.isLeft(peerIdEither)) {
       yield* Effect.logTrace("retrieved PeerID from cache");
     } else {
@@ -284,6 +293,7 @@ const resolvePeer = (
     }
 
     const peerId = Either.merge(peerIdEither);
+
     if (Option.isNone(peerId)) {
       yield* Effect.logDebug("PeerID lookup failed, invalidating cache entry");
 
@@ -380,6 +390,7 @@ export const make = (config?: TransportConfig) =>
     const transport = yield* Effect.acquireRelease(acquire, (client) =>
       Effect.promise(() => {
         const result = client.stop();
+
         return Predicate.isPromise(result) ? result : Promise.resolve(result);
       }),
     );

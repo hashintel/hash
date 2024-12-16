@@ -57,5 +57,6 @@ export const callDecode = <T>(
 
     // convert base64 to Uint8Array
     const buffer = Buffer.from(output, "base64");
+
     return Uint8Array.from(buffer);
   });

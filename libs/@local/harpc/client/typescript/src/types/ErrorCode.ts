@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Data,
   Effect,
   Equal,
@@ -15,6 +15,7 @@ import { createProto, encodeDual } from "../utils.js";
 import * as Buffer from "../wire-protocol/Buffer.js";
 
 const TypeId = Symbol("@local/harpc-client/wire-protocol/types/ErrorCode");
+
 export type TypeId = typeof TypeId;
 
 export class ErrorCodeTooLarge extends Data.TaggedError("ErrorCodeTooLarge")<{
@@ -88,11 +89,12 @@ export const make = (
 ): Effect.Effect<ErrorCode, ErrorCodeTooLarge | ErrorCodeTooSmall> => {
   if (value < 1) {
     return Effect.fail(new ErrorCodeTooSmall({ received: value }));
-  } else if (value > U16_MAX) {
-    return Effect.fail(new ErrorCodeTooLarge({ received: value }));
-  } else {
-    return Effect.succeed(makeUnchecked(value));
   }
+  if (value > U16_MAX) {
+    return Effect.fail(new ErrorCodeTooLarge({ received: value }));
+  }
+
+  return Effect.succeed(makeUnchecked(value));
 };
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;

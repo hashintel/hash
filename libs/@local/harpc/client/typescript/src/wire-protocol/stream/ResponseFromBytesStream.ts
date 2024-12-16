@@ -14,7 +14,9 @@ export class IncompleteResponseError extends Data.TaggedError(
   }
 }
 
-// initial scratch buffer is 2x size of the largest possible packet
+/**
+ * Initial scratch buffer is 2x size of the largest possible packet.
+ */
 const makeScratch = () =>
   MutableBytes.make({
     initialCapacity: 2 * 1024 * 64,
@@ -33,6 +35,7 @@ const tryDecodePacket = (scratch: MutableBytes.MutableBytes) =>
     const packetLength = bufferView.getUint16(0, false);
 
     const split = MutableBytes.splitTo(scratch, packetLength + 32);
+
     if (Option.isNone(split)) {
       // we cannot yet read the full message
       return Option.none();
@@ -45,6 +48,7 @@ const tryDecodePacket = (scratch: MutableBytes.MutableBytes) =>
       new DataView(MutableBytes.asBuffer(packet)),
     );
     const response = yield* Response.decode(reader);
+
     return Option.some(response);
   });
 

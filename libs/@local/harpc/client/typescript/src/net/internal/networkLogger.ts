@@ -4,8 +4,8 @@
 
 import { isPeerId } from "@libp2p/interface";
 import { isMultiaddr } from "@multiformats/multiaddr";
-import type { LogLevel } from "effect";
 import {
+  type LogLevel,
   Effect,
   Inspectable,
   Option,
@@ -74,7 +74,7 @@ const tokenize = (format: string) => {
   let rest = format;
 
   while (rest.length > 0) {
-    const nextToken = rest.search(/%[a-zA-Z%]/);
+    const nextToken = rest.search(/%[a-z%]/i);
 
     if (nextToken === -1) {
       tokens.push({ value: rest });
@@ -147,19 +147,20 @@ export const format = (
 
   for (const token of tokens) {
     if (Predicate.hasProperty(token, "value")) {
-      output += token.value;
+      output = output + token.value;
       continue;
     }
 
     if (argumentIndex >= inputArguments.length) {
-      output += "???";
+      output = `${output}???`;
       continue;
     }
 
     const argument = inputArguments[argumentIndex];
+
     enrichContext(context, argumentIndex, argument);
 
-    argumentIndex += 1;
+    argumentIndex = argumentIndex + 1;
 
     const formatOutput = pipe(
       formatters[token.type],
@@ -169,7 +170,7 @@ export const format = (
       Option.getOrElse(() => "???"),
     );
 
-    output += formatOutput;
+    output = output + formatOutput;
   }
 
   // add any arguments to the context that were not used
@@ -199,12 +200,14 @@ const debugJsFormatters: FormatterCollection = {
   j: (value: unknown) => Option.some(JSON.stringify(value)),
   O: (value: unknown) => Option.some(Inspectable.toStringUnknown(value)),
   o: (value: unknown) =>
-    Option.some(Inspectable.toStringUnknown(value, "").replace(/\n/g, " ")),
+    Option.some(Inspectable.toStringUnknown(value, "").replaceAll("\n", " ")),
 };
 
 // Taken from libp2p/logger
 const libp2pFormatters: FormatterCollection = {
-  // custom (more sane) UTF-8 first formatter
+  /**
+   * Custom (more sane) UTF-8 first formatter.
+   */
   B: (value: unknown) =>
     pipe(
       Option.liftPredicate(value, Predicate.isUint8Array),
@@ -218,51 +221,66 @@ const libp2pFormatters: FormatterCollection = {
           Option.getOrElse(() =>
             // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toHex
             array.reduce(
-              (acc, val) => acc + val.toString(16).padStart(2, "0"),
+              (accumulator, value_) =>
+                accumulator + value_.toString(16).padStart(2, "0"),
               "",
             ),
           ),
         ),
       ),
     ),
-  // Uint8Array -> Base58
+  /**
+   * Uint8Array -> Base58.
+   */
   b: (value: unknown) =>
     pipe(
       Option.liftPredicate(value, Predicate.isUint8Array),
       Option.map(base58btc.baseEncode),
     ),
-  // Uint8Array -> Base32
+  /**
+   * Uint8Array -> Base32.
+   */
   t: (value: unknown) =>
     pipe(
       Option.liftPredicate(value, Predicate.isUint8Array),
       Option.map(base32.baseEncode),
     ),
-  // Uint8Array -> Base64
+  /**
+   * Uint8Array -> Base64.
+   */
   m: (value: unknown) =>
     pipe(
       Option.liftPredicate(value, Predicate.isUint8Array),
       Option.map(base64.baseEncode),
     ),
-  // PeerId
+  /**
+   * PeerId.
+   */
   p: (value: unknown) =>
     pipe(
       Option.liftPredicate(value, isPeerId),
       Option.map((peerId) => peerId.toString()),
     ),
-  // CID
+  /**
+   * CID.
+   */
   c: (value: unknown) =>
     pipe(
       Option.liftPredicate(value, (_) => _ instanceof CID),
       Option.map((cid) => cid.toString()),
     ),
   // interface-datastore (k) is not supported as it is IPFS only
-  // Multiaddr
+  /**
+   * Multiaddr.
+   */
   a: (value: unknown) =>
     pipe(
       Option.liftPredicate(value, isMultiaddr),
       Option.map((addr) => addr.toString()),
     ),
-  // Error
+  /**
+   * Error.
+   */
   e: (value: unknown) =>
     pipe(
       Option.liftPredicate(value, Predicate.isError),

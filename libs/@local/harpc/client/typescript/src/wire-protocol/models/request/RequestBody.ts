@@ -1,5 +1,6 @@
-import type { FastCheck, Option } from "effect";
 import {
+  type FastCheck,
+  type Option,
   Effect,
   Either,
   Equal,
@@ -13,12 +14,14 @@ import {
 
 import { createProto, encodeDual } from "../../../utils.js";
 import type * as Buffer from "../../Buffer.js";
+
 import * as RequestBegin from "./RequestBegin.js";
 import * as RequestFrame from "./RequestFrame.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestBody",
 );
+
 export type TypeId = typeof TypeId;
 
 export type RequestBodyVariant = "RequestBegin" | "RequestFrame";
@@ -154,18 +157,20 @@ export const decode = (
   variant: RequestBodyVariant,
 ) => {
   switch (variant) {
-    case "RequestBegin":
+    case "RequestBegin": {
       return pipe(
         buffer,
         RequestBegin.decode,
         Effect.andThen((begin) => make(Either.right(begin))),
       );
-    case "RequestFrame":
+    }
+    case "RequestFrame": {
       return pipe(
         buffer,
         RequestFrame.decode,
         Effect.andThen((frame) => make(Either.left(frame))),
       );
+    }
   }
 };
 

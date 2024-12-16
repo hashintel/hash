@@ -1,5 +1,6 @@
-import type { Chunk, Scope } from "effect";
 import {
+  type Chunk,
+  type Scope,
   Deferred,
   Duration,
   Effect,
@@ -15,18 +16,24 @@ import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
 import { Buffer } from "../wire-protocol/index.js";
-import type { RequestId } from "../wire-protocol/models/request/index.js";
-import { Request as WireRequest } from "../wire-protocol/models/request/index.js";
-import type { Response as WireResponse } from "../wire-protocol/models/response/index.js";
-import { ResponseFlags } from "../wire-protocol/models/response/index.js";
+import {
+  type RequestId,
+  Request as WireRequest,
+} from "../wire-protocol/models/request/index.js";
+import {
+  type Response as WireResponse,
+  ResponseFlags,
+} from "../wire-protocol/models/response/index.js";
 import { ResponseFromBytesStream } from "../wire-protocol/stream/index.js";
 import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
+
 import * as internalTransport from "./internal/transport.js";
 import * as Request from "./Request.js";
 import * as Transaction from "./Transaction.js";
 import * as Transport from "./Transport.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Connection");
+
 export type TypeId = typeof TypeId;
 
 interface ConnectionDuplex {
@@ -57,7 +64,7 @@ export interface ConnectionConfig {
   /**
    * The size of the number of buffered responses to keep in memory.
    * A larger buffer can improve performance and allows for more lenient timeouts,
-   * but consumes more memory. (a single response is a maximum of 64KiB)
+   * but consumes more memory. (a single response is a maximum of 64KiB).
    *
    * @default 16
    */
@@ -113,12 +120,12 @@ const ConnectionProto: Omit<
 export const Connection = GenericTag<Connection>(TypeId.description!);
 
 const makeSink = (connection: ConnectionImpl) =>
-  // eslint-disable-next-line unicorn/no-array-for-each
   Sink.forEach((response: WireResponse.Response) =>
     Effect.gen(function* () {
       const id = response.header.requestId;
 
       const transaction = MutableHashMap.get(connection.transactions, id);
+
       if (Option.isNone(transaction)) {
         yield* Effect.logWarning("response without a transaction found");
 
@@ -163,6 +170,7 @@ const wrapDrop = (
 ) =>
   Effect.gen(function* () {
     const transaction = MutableHashMap.get(connection.transactions, id);
+
     if (Option.isNone(transaction)) {
       yield* Effect.logWarning("transaction has been dropped multiple times");
 
@@ -174,6 +182,7 @@ const wrapDrop = (
 
     // call user defined drop function
     const dropImpl = yield* Deferred.poll(drop);
+
     if (Option.isSome(dropImpl)) {
       yield* dropImpl.value;
     }
@@ -233,6 +242,7 @@ export const makeUnchecked = (
           yield* WireRequest.encode(buffer, request);
 
           const array = yield* Buffer.take(buffer);
+
           return new Uint8Array(array);
         }),
       ),

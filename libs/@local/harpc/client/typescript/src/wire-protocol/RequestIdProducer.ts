@@ -2,11 +2,13 @@ import { Effect, Layer, Ref } from "effect";
 import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
+
 import * as RequestId from "./models/request/RequestId.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/RequestIdProducer",
 );
+
 export type TypeId = typeof TypeId;
 
 export interface RequestIdProducer {

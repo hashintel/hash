@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Data,
   Effect,
   Equal,
@@ -17,6 +17,7 @@ import * as Buffer from "../wire-protocol/Buffer.js";
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/SubsystemId",
 );
+
 export type TypeId = typeof TypeId;
 
 export class SubsystemIdTooLarge extends Data.TaggedError(
@@ -117,7 +118,6 @@ export const isSubsystemId = (value: unknown): value is SubsystemId =>
   Predicate.hasProperty(value, TypeId);
 
 export const isReserved = (value: SubsystemId) =>
-  // eslint-disable-next-line no-bitwise
   (value.value & 0xf0_00) === 0xf0_00;
 
 export const arbitrary = (fc: typeof FastCheck) =>
