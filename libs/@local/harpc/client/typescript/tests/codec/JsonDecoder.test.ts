@@ -11,7 +11,7 @@ import { Decoder, JsonDecoder } from "../../src/codec/index.js";
 import { expectArrayBuffer } from "../wire-protocol/utils.js";
 
 const decode = (
-  cx: vitest.TaskContext<vitest.RunnerTestCase<object>> & vitest.TestContext,
+  cx: vitest.TaskContext<vitest.RunnerTestCase> & vitest.TestContext,
   text: readonly string[],
 ) =>
   Effect.gen(function* () {
