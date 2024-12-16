@@ -84,7 +84,7 @@ interface Options {
   schema: boolean;
 }
 
-const decoder = (options: Options) =>
+const make = (options: Options) =>
   Decoder.make((input, schema) => {
     const useSchema = options.schema;
 
@@ -109,6 +109,7 @@ const decoder = (options: Options) =>
             useSchema ? Option.some(decodeJson) : Option.none(),
           );
 
+          // eslint-disable-next-line require-atomic-updates -- this is correct, as the stream runs sequentially
           fragment = nextFragment;
 
           return items;
@@ -117,7 +118,7 @@ const decoder = (options: Options) =>
     );
   });
 
-export const layer = Layer.succeed(Decoder.Decoder, decoder({ schema: true }));
+export const layer = Layer.succeed(Decoder.Decoder, make({ schema: true }));
 
 /**
  * Like `layer`, but won't invoke the schema decoder, therefore neither transforming or validating the input.
@@ -125,5 +126,5 @@ export const layer = Layer.succeed(Decoder.Decoder, decoder({ schema: true }));
  */
 export const layerUnchecked = Layer.succeed(
   Decoder.Decoder,
-  decoder({ schema: false }),
+  make({ schema: false }),
 );

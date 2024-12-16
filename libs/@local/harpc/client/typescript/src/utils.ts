@@ -10,7 +10,7 @@ export const createProto = <
   proto: T,
   readableProperties: ReadableProperties,
   writeableProperties?: WriteableProperties,
-): T & ReadableProperties & WriteableProperties => {
+): T & Readonly<ReadableProperties> & WriteableProperties => {
   const readablePropertyDescriptors = Record.map(
     readableProperties,
     (value): PropertyDescriptor => ({
@@ -38,7 +38,7 @@ export const createProto = <
       writeablePropertyDescriptors,
       Function.untupled(Tuple.getFirst),
     ),
-  ) as T & ReadableProperties & WriteableProperties;
+  ) as T & Readonly<ReadableProperties> & WriteableProperties;
 };
 
 /**
@@ -71,7 +71,7 @@ export const hashUint8Array = (array: Uint8Array) => {
   }
 
   // if there are any remaining bytes, we hash them as well
-  for (let i = array.length - remainder; i < array.length; i++) {
+  for (let i = array.length - remainder; i < array.length; i = i + 1) {
     state = Hash.combine(array[i]!)(state);
   }
 

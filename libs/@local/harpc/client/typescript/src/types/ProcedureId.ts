@@ -20,16 +20,16 @@ const TypeId: unique symbol = Symbol(
 
 export type TypeId = typeof TypeId;
 
-export class ProcedureIdTooLarge extends Data.TaggedError(
-  "ProcedureIdTooLarge",
+export class ProcedureIdTooLargeError extends Data.TaggedError(
+  "ProcedureIdTooLargeError",
 )<{ received: number }> {
   get message() {
     return `Procedure ID too large: ${this.received}, expected between ${U16_MIN} and ${U16_MAX}`;
   }
 }
 
-export class ProcedureIdTooSmall extends Data.TaggedError(
-  "ProcedureIdTooSmall",
+export class ProcedureIdTooSmallError extends Data.TaggedError(
+  "ProcedureIdTooSmallError",
 )<{ received: number }> {
   get message() {
     return `Procedure ID too small: ${this.received}, expected between ${U16_MIN} and ${U16_MAX}`;
@@ -90,12 +90,15 @@ export const makeUnchecked = (value: number): ProcedureId =>
 
 export const make = (
   id: number,
-): Effect.Effect<ProcedureId, ProcedureIdTooSmall | ProcedureIdTooLarge> => {
+): Effect.Effect<
+  ProcedureId,
+  ProcedureIdTooSmallError | ProcedureIdTooLargeError
+> => {
   if (id < U16_MIN) {
-    return Effect.fail(new ProcedureIdTooSmall({ received: id }));
+    return Effect.fail(new ProcedureIdTooSmallError({ received: id }));
   }
   if (id > U16_MAX) {
-    return Effect.fail(new ProcedureIdTooLarge({ received: id }));
+    return Effect.fail(new ProcedureIdTooLargeError({ received: id }));
   }
 
   return Effect.succeed(makeUnchecked(id));

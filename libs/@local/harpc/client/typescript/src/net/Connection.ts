@@ -57,7 +57,7 @@ export interface ConnectionConfig {
    * The maximum duration to wait for a response before considering the transaction lagged.
    * If a response is not received within this timeout, the transaction will be dropped.
    *
-   * @default 200ms
+   * @defaultValue 200ms
    */
   lagTimeout?: Duration.DurationInput;
 
@@ -66,7 +66,7 @@ export interface ConnectionConfig {
    * A larger buffer can improve performance and allows for more lenient timeouts,
    * but consumes more memory. (a single response is a maximum of 64KiB).
    *
-   * @default 16
+   * @defaultValue 16
    */
   responseBufferSize?: number;
 
@@ -85,7 +85,7 @@ export interface ConnectionConfig {
    * will be transferring a lot of data or the stream will be open for a long time
    * consider upgrading to a direct connection before opening the stream.
    *
-   * @default false
+   * @defaultValue false
    */
   runOnLimitedConnection?: boolean;
 }
@@ -117,6 +117,7 @@ const ConnectionProto: Omit<
   [TypeId]: TypeId,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- always defined
 export const Connection = GenericTag<Connection>(TypeId.description!);
 
 const makeSink = (connection: ConnectionImpl) =>

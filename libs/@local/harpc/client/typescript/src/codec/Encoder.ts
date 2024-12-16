@@ -75,6 +75,7 @@ const EncoderProto: Omit<EncoderImpl, "encode"> = {
   },
 };
 
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- description is defined
 export const Encoder = GenericTag<Encoder>(TypeId.description!);
 
 export const make = <E = EncodingError, R = never>(

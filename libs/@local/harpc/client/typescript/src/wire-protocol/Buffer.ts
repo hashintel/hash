@@ -213,7 +213,7 @@ export const putSlice: {
 
 export const getSlice = (
   buffer: Buffer<Read>,
-  length: number,
+  byteLength: number,
 ): ReadResult<Uint8Array> =>
   SubscriptionRef.modifyEffect(
     (buffer as unknown as BufferImpl<Read>).index,
@@ -221,29 +221,29 @@ export const getSlice = (
       Effect.gen(function* () {
         const impl = buffer as unknown as BufferImpl<Read>;
 
-        yield* validateBounds(impl, index, length);
+        yield* validateBounds(impl, index, byteLength);
 
         // clone the buffer
-        const clone = new ArrayBuffer(length);
+        const clone = new ArrayBuffer(byteLength);
         const value = new Uint8Array(clone);
 
-        value.set(new Uint8Array(impl.value.buffer, index, length));
+        value.set(new Uint8Array(impl.value.buffer, index, byteLength));
 
-        return [value, index + length] as const;
+        return [value, index + byteLength] as const;
       }),
   );
 
 export const advance: {
   (length: number): <T>(buffer: Buffer<T>) => WriteResult;
   <T>(buffer: Buffer<T>, length: number): WriteResult;
-} = Function.dual(2, <T>(buffer: Buffer<T>, length: number) =>
+} = Function.dual(2, <T>(buffer: Buffer<T>, byteLength: number) =>
   SubscriptionRef.modifyEffect(
     (buffer as unknown as BufferImpl<T>).index,
     (index) =>
       Effect.gen(function* () {
-        yield* validateBounds(buffer as BufferImpl<T>, index, length);
+        yield* validateBounds(buffer as BufferImpl<T>, index, byteLength);
 
-        return [buffer, index + length] as const;
+        return [buffer, index + byteLength] as const;
       }),
   ),
 );

@@ -24,6 +24,7 @@ const RequestIdProducerProto: Omit<RequestIdProducer, "value"> = {
 };
 
 export const RequestIdProducer = GenericTag<RequestIdProducer>(
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- always defined
   TypeId.description!,
 );
 

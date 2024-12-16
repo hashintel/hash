@@ -43,9 +43,9 @@ export const callEncode = (
     return received;
   });
 
-export const callDecode = <T>(
+export const callDecode = (
   mode: "response-header" | "response-begin" | "response-frame" | "response",
-  payload: T,
+  payload: unknown,
 ) =>
   Effect.gen(function* () {
     const binary = yield* executablePath();

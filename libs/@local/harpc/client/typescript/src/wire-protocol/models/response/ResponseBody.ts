@@ -148,9 +148,9 @@ export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
 export const decode = (
   buffer: Buffer.ReadBuffer,
-  variant: ResponseBodyVariant,
+  variantHint: ResponseBodyVariant,
 ) => {
-  switch (variant) {
+  switch (variantHint) {
     case "ResponseBegin": {
       return pipe(
         buffer,

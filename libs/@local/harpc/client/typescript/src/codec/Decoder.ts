@@ -75,6 +75,7 @@ const DecoderProto: Omit<DecoderImpl, "decode"> = {
   },
 };
 
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- description is defined
 export const Decoder = GenericTag<Decoder>(TypeId.description!);
 
 export const make = <E = DecodingError, R = never>(

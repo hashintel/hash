@@ -90,10 +90,10 @@ export const builtIn =
               allowAsStatement: true,
             },
           ],
+          // remap the `ClassDeclaration` rule to exclude `Error` classes
           "no-restricted-syntax": [
             "error",
             ...baseNoRestrictedSyntaxRules.map((rule) =>
-              // remap the `ClassDeclaration` rule to exclude `Error` classes
               rule.selector === "ClassDeclaration"
                 ? {
                     selector: "ClassDeclaration[id.name!=/Error$/]",
@@ -102,6 +102,8 @@ export const builtIn =
                 : rule,
             ),
           ],
+          // exclude forEach from `array-callback-return`, as it only checks by name, not by type and clashes with effect.
+          "array-callback-return": ["error", { allowImplicit: true }],
         },
       },
       ...noRestrictedImports(config, options.noRestrictedImports ?? (() => [])),

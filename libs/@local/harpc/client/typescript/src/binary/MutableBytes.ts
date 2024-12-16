@@ -39,13 +39,13 @@ export const make = (options?: {
   /**
    * The initial capacity of the buffer.
    *
-   * @default 1024
+   * @defaultValue 1024
    */
   readonly initialCapacity?: number;
   /**
    * The strategy for growing the buffer when more space is needed.
    *
-   * @default "doubling"
+   * @defaultValue "doubling"
    */
   readonly growthStrategy?: GrowthStrategy;
 }): MutableBytes =>

@@ -108,6 +108,7 @@ const processResponseStream = <E, R>(
     stream,
     Stream.mapConcatEffect((segment) => {
       return ResponseSegment.$match(segment, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         ControlFlow: ({ code }) => {
           // replace the existing error with a new one if we have an error
           const error = partialError;
@@ -122,6 +123,7 @@ const processResponseStream = <E, R>(
             onSome: Effect.fail,
           });
         },
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         Body: ({ data }) => {
           if (Option.isNone(partialError)) {
             return Effect.succeed([data]);

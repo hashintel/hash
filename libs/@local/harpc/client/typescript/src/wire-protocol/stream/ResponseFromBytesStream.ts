@@ -1,4 +1,4 @@
-import { Data, Effect, Option, pipe, Stream, Streamable } from "effect";
+import { Data, Effect, Option, pipe, Stream } from "effect";
 
 import { MutableBytes } from "../../binary/index.js";
 import * as Buffer from "../Buffer.js";
@@ -73,57 +73,39 @@ const tryDecode = (scratch: MutableBytes.MutableBytes) =>
     return output;
   });
 
-export class ResponseFromBytesStream<
-  E = never,
-  R = never,
-> extends Streamable.Class<
+export const make = <E, R>(
+  stream: Stream.Stream<ArrayBuffer, E, R>,
+): Stream.Stream<
   Response.Response,
   E | Response.DecodeError | IncompleteResponseError,
   R
-> {
-  readonly #stream: Stream.Stream<ArrayBuffer, E, R>;
+> => {
+  const scratch = makeScratch();
 
-  constructor(stream: Stream.Stream<ArrayBuffer, E, R>) {
-    super();
+  return pipe(
+    stream,
+    Stream.mapConcatEffect((chunk) =>
+      Effect.gen(function* () {
+        MutableBytes.appendBuffer(scratch, chunk);
 
-    this.#stream = stream;
-  }
+        return yield* tryDecode(scratch);
+      }),
+    ),
+    Stream.concat(
+      Stream.fromIterableEffect(
+        Effect.suspend(() =>
+          Effect.gen(function* () {
+            // we don't need to `tryDecode` here again, because anytime we receive a value, we try to decode as much as possible.
+            if (MutableBytes.length(scratch) > 0) {
+              yield* new IncompleteResponseError({
+                length: MutableBytes.length(scratch),
+              });
+            }
 
-  toStream(): Stream.Stream<
-    Response.Response,
-    E | Response.DecodeError | IncompleteResponseError,
-    R
-  > {
-    const scratch = makeScratch();
-
-    return pipe(
-      this.#stream,
-      Stream.mapConcatEffect((chunk) =>
-        Effect.gen(function* () {
-          MutableBytes.appendBuffer(scratch, chunk);
-
-          return yield* tryDecode(scratch);
-        }),
-      ),
-      Stream.concat(
-        Stream.fromIterableEffect(
-          Effect.suspend(() =>
-            Effect.gen(function* () {
-              // we don't need to `tryDecode` here again, because anytime we receive a value, we try to decode as much as possible.
-              if (MutableBytes.length(scratch) > 0) {
-                yield* new IncompleteResponseError({
-                  length: MutableBytes.length(scratch),
-                });
-              }
-
-              return [];
-            }),
-          ),
+            return [];
+          }),
         ),
       ),
-    );
-  }
-}
-
-export const make = <E, R>(stream: Stream.Stream<ArrayBuffer, E, R>) =>
-  new ResponseFromBytesStream(stream);
+    ),
+  );
+};

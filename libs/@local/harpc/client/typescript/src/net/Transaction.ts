@@ -29,10 +29,10 @@ const TransactionProto: Omit<TransactionImpl, "id" | "read" | "drop"> = {
 /** @internal */
 export const makeUnchecked = (
   id: RequestId.RequestId,
-  read: Queue.Dequeue<WireResponse.Response>,
+  readQueue: Queue.Dequeue<WireResponse.Response>,
   drop: Deferred.Deferred<void>,
 ): Transaction =>
-  createProto(TransactionProto, { id, read, drop }) as Transaction;
+  createProto(TransactionProto, { id, read: readQueue, drop }) as Transaction;
 
 export const registerDestructor: {
   (

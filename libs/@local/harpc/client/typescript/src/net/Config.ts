@@ -13,7 +13,7 @@ export interface KeyPair {
   privateKey: Uint8Array;
 }
 
-export interface ICryptoInterface {
+export interface CryptoInterface {
   hashSHA256: (data: Uint8Array | Uint8ArrayList) => Uint8Array;
 
   getHKDF: (
@@ -39,13 +39,13 @@ export interface ICryptoInterface {
     nonce: Uint8Array,
     ad: Uint8Array,
     k: Uint8Array,
-    dst?: Uint8Array,
+    destination?: Uint8Array,
   ) => Uint8ArrayList | Uint8Array;
 }
 
 export interface NoiseConfig {
   staticNoiseKey?: Uint8Array;
   extensions?: NoiseExtensions;
-  crypto?: ICryptoInterface;
+  crypto?: CryptoInterface;
   prologueBytes?: Uint8Array;
 }

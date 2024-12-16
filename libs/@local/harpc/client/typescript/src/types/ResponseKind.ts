@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prevent-abbreviations -- same name as Rust reference implementation */
 import {
   Effect,
   Equal,
@@ -69,7 +70,6 @@ const OkProto: Ok = {
 
 export const ok = (): Ok => createProto(OkProto, {});
 
-// eslint-disable-next-line unicorn/prevent-abbreviations -- same name as Rust implementation
 export interface Err
   extends Equal.Equal,
     Inspectable.Inspectable,
@@ -80,7 +80,6 @@ export interface Err
   readonly code: ErrorCode.ErrorCode;
 }
 
-// eslint-disable-next-line unicorn/prevent-abbreviations
 const ErrProto: Omit<Err, "code"> = {
   [TypeId]: TypeId,
   _tag: "Err",
