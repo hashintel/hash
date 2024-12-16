@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { expect, test as base } from "@playwright/test";
 
 const tolerableConsoleMessageMatches: RegExp[] = [
@@ -18,7 +19,7 @@ export * from "@playwright/test";
  * This is a wrapper around the Playwright test function that adds checks for console messages.
  * @see https://github.com/microsoft/playwright/discussions/11690#discussioncomment-2060397
  */
-export const test = base.extend({
+export const test = base.extend<Page>({
   page: async ({ page }, use) => {
     const messages: string[] = [];
 
