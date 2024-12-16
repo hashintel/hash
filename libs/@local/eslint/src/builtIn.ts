@@ -1,5 +1,6 @@
 import { Array as ReadonlyArray, Option, pipe, Predicate } from "effect";
 import type { PartialDeep } from "type-fest";
+import { baseNoRestrictedSyntaxRules } from "eslint-config-sheriff";
 
 import type { NoRestrictedImportsRule } from "./types.js";
 import { defineConfig, type ESConfig } from "./utils.js";
@@ -89,6 +90,20 @@ export const builtIn =
               allowAsStatement: true,
             },
           ],
+          // remap the `ClassDeclaration` rule to exclude `Error` classes
+          "no-restricted-syntax": [
+            "error",
+            ...baseNoRestrictedSyntaxRules.map((rule) =>
+              rule.selector === "ClassDeclaration"
+                ? {
+                    selector: "ClassDeclaration[id.name!=/Error$/]",
+                    message: rule.message,
+                  }
+                : rule,
+            ),
+          ],
+          // exclude forEach from `array-callback-return`, as it only checks by name, not by type and clashes with effect.
+          "array-callback-return": ["error", { allowImplicit: true }],
         },
       },
       ...noRestrictedImports(config, options.noRestrictedImports ?? (() => [])),
