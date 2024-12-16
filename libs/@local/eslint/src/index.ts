@@ -9,7 +9,9 @@ import { react } from "./react.js";
 import { stylistic } from "./stylistic.js";
 import type { NoRestrictedImportsRule } from "./types.js";
 import { typescript } from "./typescript.js";
+import { jsdoc } from "./jsdoc.js";
 import { unicorn } from "./unicorn.js";
+import { vitest } from "./vitest.js";
 import { projectIgnoreFiles, type ESConfig } from "./utils.js";
 
 export type * from "./types.js";
@@ -60,5 +62,7 @@ export const create = (
     react(options ?? {}),
     typescript,
     stylistic,
+    jsdoc,
+    vitest(options ?? {}),
   );
 };

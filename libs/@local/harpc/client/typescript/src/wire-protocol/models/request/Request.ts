@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Effect,
   Equal,
   Function,
@@ -12,6 +12,7 @@ import {
 
 import { createProto, encodeDual } from "../../../utils.js";
 import type * as Buffer from "../../Buffer.js";
+
 import * as RequestBody from "./RequestBody.js";
 import * as RequestFlags from "./RequestFlags.js";
 import * as RequestHeader from "./RequestHeader.js";
@@ -19,6 +20,7 @@ import * as RequestHeader from "./RequestHeader.js";
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/Request",
 );
+
 export type TypeId = typeof TypeId;
 
 export interface Request
@@ -79,7 +81,8 @@ export const make = (
   body: RequestBody.RequestBody,
 ): Request => createProto(RequestProto, { header, body });
 
-/*
+/**
+ *
  * Prepare a request for encoding, this will ensure that the header has all computed flags set.
  *
  * This step is automatically done during encoding, but can be useful to call manually if you want to inspect the
