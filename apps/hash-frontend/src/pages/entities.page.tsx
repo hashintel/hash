@@ -29,8 +29,6 @@ import { useCallback, useMemo } from "react";
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
 import { useHashInstance } from "../components/hooks/use-hash-instance";
-import { EntityTypeEntitiesContext } from "../shared/entity-type-entities-context";
-import { useEntityTypeEntitiesContextValue } from "../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { generateLinkParameters } from "../shared/generate-link-parameters";
@@ -209,11 +207,6 @@ const EntitiesPage: NextPageWithLayout = () => {
     [latestEntityTypes, entityTypeId, entityTypeBaseUrl],
   );
 
-  const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue({
-    entityTypeBaseUrl,
-    entityTypeId,
-  });
-
   const { userPermissions, loading: userPermissionsLoading } =
     useUserPermissionsOnEntityType(entityType?.schema.$id);
 
@@ -226,8 +219,6 @@ const EntitiesPage: NextPageWithLayout = () => {
       : // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
         entityType.schema.titlePlural || pluralize(entityType.schema.title)
     : "Entities";
-
-  const { entities, loading } = entityTypeEntitiesValue;
 
   const displayCreateEntityButton = useMemo(() => {
     if (userPermissionsLoading) {
@@ -347,14 +338,7 @@ const EntitiesPage: NextPageWithLayout = () => {
           </Stack>
           <Box display="flex" justifyContent="space-between">
             <Tabs value="all">
-              <TabLink
-                href="/"
-                value="all"
-                active
-                label={`All ${pageTitle}`}
-                count={entities?.length}
-                loading={loading}
-              />
+              <TabLink href="/" value="all" active label={`All ${pageTitle}`} />
             </Tabs>
             <Fade in={displayCreateEntityButton}>
               <Box>
@@ -365,11 +349,11 @@ const EntitiesPage: NextPageWithLayout = () => {
         </Container>
       </Box>
       <Container sx={{ maxWidth, py: 5 }}>
-        <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-          <EntitiesVisualizer
-            hideColumns={entityTypeId ? ["entityTypes"] : []}
-          />
-        </EntityTypeEntitiesContext.Provider>
+        <EntitiesVisualizer
+          entityTypeBaseUrl={entityTypeBaseUrl}
+          entityTypeId={entityTypeId}
+          hideColumns={entityTypeId ? ["entityTypes"] : []}
+        />
       </Container>
     </>
   );

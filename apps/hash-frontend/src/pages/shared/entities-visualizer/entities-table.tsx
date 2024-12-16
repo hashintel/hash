@@ -1,8 +1,4 @@
-import type {
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   CustomCell,
   Item,
@@ -11,12 +7,10 @@ import type {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { Box, Stack, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
@@ -28,30 +22,31 @@ import type {
 } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { GridProps } from "../../components/grid/grid";
+import type { GridProps } from "../../../components/grid/grid";
 import {
   Grid,
   gridHeaderHeightWithBorder,
   gridHorizontalScrollbarHeight,
-} from "../../components/grid/grid";
-import type { BlankCell } from "../../components/grid/utils";
-import { blankCell } from "../../components/grid/utils";
-import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
-import type { ColumnFilter } from "../../components/grid/utils/filtering";
-import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
-import { tableContentSx } from "../../shared/table-content";
-import type { FilterState } from "../../shared/table-header";
-import { tableHeaderHeight } from "../../shared/table-header";
-import { isAiMachineActor } from "../../shared/use-actors";
-import type { ChipCellProps } from "./chip-cell";
-import { createRenderChipCell } from "./chip-cell";
+} from "../../../components/grid/grid";
+import type { BlankCell } from "../../../components/grid/utils";
+import { blankCell } from "../../../components/grid/utils";
+import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
+import type { ColumnFilter } from "../../../components/grid/utils/filtering";
+import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+import { tableContentSx } from "../../../shared/table-content";
+import type { FilterState } from "../../../shared/table-header";
+import { tableHeaderHeight } from "../../../shared/table-header";
+import { isAiMachineActor } from "../../../shared/use-actors";
+import type { ChipCellProps } from "../chip-cell";
+import { createRenderChipCell } from "../chip-cell";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
 import type { TypeEntitiesRow } from "./entities-table/use-entities-table/types";
-import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
-import type { UrlCellProps } from "./url-cell";
-import { createRenderUrlCell } from "./url-cell";
+import { TOP_CONTEXT_BAR_HEIGHT } from "../top-context-bar";
+import type { UrlCellProps } from "../url-cell";
+import { createRenderUrlCell } from "../url-cell";
+import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 
 const noneString = "none";
 
@@ -72,36 +67,48 @@ const emptyTableData = {
   },
 };
 
-export const EntitiesTable: FunctionComponent<{
-  currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
-  currentlyDisplayedRowsRef: RefObject<TypeEntitiesRow[] | null>;
-  disableTypeClick?: boolean;
-  entities: Entity[];
-  entityTypes: EntityType[];
-  filterState: FilterState;
-  handleEntityClick: (
-    entityId: EntityId,
-    modalContainerRef?: RefObject<HTMLDivElement | null>,
-  ) => void;
-  hasSomeLinks: boolean;
-  hidePropertiesColumns?: boolean;
-  hideColumns?: (keyof TypeEntitiesRow)[];
-  loading: boolean;
-  loadingComponent: ReactElement;
-  isViewingOnlyPages: boolean;
-  maxHeight?: string | number;
-  propertyTypes: PropertyType[];
-  readonly?: boolean;
-  selectedRows: TypeEntitiesRow[];
-  setSelectedRows: (rows: TypeEntitiesRow[]) => void;
-  setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
-  setShowSearch: (showSearch: boolean) => void;
-  showSearch: boolean;
-  subgraph: Subgraph<EntityRootType>;
-}> = ({
+export const EntitiesTable: FunctionComponent<
+  Pick<
+    EntitiesVisualizerData,
+    | "createdByIds"
+    | "editionCreatedByIds"
+    | "entities"
+    | "entityTypes"
+    | "propertyTypes"
+    | "subgraph"
+    | "typeIds"
+    | "webIds"
+  > & {
+    currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
+    currentlyDisplayedRowsRef: RefObject<TypeEntitiesRow[] | null>;
+    disableTypeClick?: boolean;
+    filterState: FilterState;
+    handleEntityClick: (
+      entityId: EntityId,
+      modalContainerRef?: RefObject<HTMLDivElement | null>,
+    ) => void;
+    hasSomeLinks: boolean;
+    hidePropertiesColumns?: boolean;
+    hideColumns?: (keyof TypeEntitiesRow)[];
+    limit: number;
+    loading: boolean;
+    loadingComponent: ReactElement;
+    isViewingOnlyPages: boolean;
+    maxHeight?: string | number;
+    readonly?: boolean;
+    selectedRows: TypeEntitiesRow[];
+    setLimit: (limit: number) => void;
+    setSelectedRows: (rows: TypeEntitiesRow[]) => void;
+    setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
+    setShowSearch: (showSearch: boolean) => void;
+    showSearch: boolean;
+  }
+> = ({
+  createdByIds,
   currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
   disableTypeClick,
+  editionCreatedByIds,
   entities,
   entityTypes,
   filterState,
@@ -109,18 +116,22 @@ export const EntitiesTable: FunctionComponent<{
   handleEntityClick,
   hideColumns,
   hidePropertiesColumns = false,
+  limit,
   loading: entityDataLoading,
   loadingComponent,
   isViewingOnlyPages,
   maxHeight,
   propertyTypes,
   readonly,
+  setLimit,
   selectedRows,
   setSelectedRows,
   showSearch,
   setShowSearch,
   setSelectedEntityType,
   subgraph,
+  typeIds,
+  webIds,
 }) => {
   const router = useRouter();
 

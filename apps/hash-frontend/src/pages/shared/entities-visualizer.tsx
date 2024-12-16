@@ -1,8 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { LoadingSpinner } from "@hashintel/design-system";
+import type { EntityQueryCursor } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -14,22 +16,21 @@ import { Box, Stack, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactElement, RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
+import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
 import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
-import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import type {
   CustomColumn,
   EntityEditorProps,
 } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 import { useAuthenticatedUser } from "./auth-info-context";
-import { EntitiesTable } from "./entities-table";
-import { GridView } from "./entities-table/grid-view";
-import type { TypeEntitiesRow } from "./entities-table/use-entities-table/types";
+import { EntitiesTable } from "./entities-visualizer/entities-table";
+import { GridView } from "./entities-visualizer/entities-table/grid-view";
+import type { TypeEntitiesRow } from "./entities-visualizer/entities-table/use-entities-table/types";
 import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
@@ -67,22 +68,66 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
 );
 
 export const EntitiesVisualizer: FunctionComponent<{
+  /**
+   * Custom columns to display in the entities table
+   */
   customColumns?: CustomColumn[];
+  /**
+   * The default filter to apply
+   */
   defaultFilter?: FilterState;
+  /**
+   * The default graph configuration to apply
+   */
   defaultGraphConfig?: GraphVizConfig<DynamicNodeSizing>;
+  /**
+   * The default graph filters to apply
+   */
   defaultGraphFilters?: GraphVizFilters;
+  /**
+   * The default visualizer view
+   */
   defaultView?: VisualizerView;
+  /**
+   * Hide the option to open entities in a new tab
+   */
   disableEntityOpenInNew?: boolean;
+  /**
+   * Disable clicking on a type to navigate to it
+   */
   disableTypeClick?: boolean;
+  /**
+   * Limit the entities displayed to only those matching any version of this type
+   */
+  entityTypeBaseUrl?: BaseUrl;
+  /**
+   * Limit the entities displayed to only those matching this exact type version
+   */
+  entityTypeId?: VersionedUrl;
   /**
    * If the user activates fullscreen, whether to fullscreen the whole page or a specific element, e.g. the graph only.
    * Currently only used in the context of the graph visualizer, but the table could be usefully fullscreened as well.
    */
   fullScreenMode?: "document" | "element";
+  /**
+   * Hide the internal/external and archived filter controls
+   */
   hideFilters?: boolean;
+  /**
+   * Hide specific columns from the table
+   */
   hideColumns?: (keyof TypeEntitiesRow)[];
+  /**
+   * A custom component to display while loading data
+   */
   loadingComponent?: ReactElement;
+  /**
+   * The maximum height of the visualizer
+   */
   maxHeight?: string | number;
+  /**
+   * Whether to display in readonly mode (functionality such as archiving entities will be disabled)
+   */
   readonly?: boolean;
 }> = ({
   customColumns,
@@ -92,6 +137,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   defaultView = "Table",
   disableEntityOpenInNew,
   disableTypeClick,
+  entityTypeBaseUrl,
+  entityTypeId,
   fullScreenMode,
   hideColumns,
   hideFilters,
@@ -110,6 +157,30 @@ export const EntitiesVisualizer: FunctionComponent<{
     },
   );
 
+  const [limit, setLimit] = useState(100);
+  const [lastCursor, setLastCursor] = useState<EntityQueryCursor>();
+
+  const {
+    count,
+    createdByIds,
+    cursor: nextCursor,
+    editionCreatedByIds,
+    entities: lastLoadedEntities,
+    entityTypes,
+    hadCachedContent,
+    loading,
+    propertyTypes,
+    refetch: refetchWithoutLinks,
+    subgraph,
+    typeIds,
+    webIds,
+  } = useEntitiesVisualizerData({
+    cursor: lastCursor,
+    entityTypeBaseUrl,
+    entityTypeId,
+    limit,
+  });
+
   const loadingComponent = customLoadingComponent ?? (
     <LoadingSpinner size={42} color={theme.palette.blue[60]} />
   );
@@ -118,18 +189,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     entityTypeId: VersionedUrl;
     slideContainerRef?: RefObject<HTMLDivElement | null>;
   } | null>(null);
-
-  const {
-    entityTypeBaseUrl,
-    entityTypeId,
-    entities: lastLoadedEntities,
-    entityTypes,
-    hadCachedContent,
-    loading,
-    propertyTypes,
-    refetch: refetchWithoutLinks,
-    subgraph: subgraphPossiblyWithoutLinks,
-  } = useEntityTypeEntitiesContext();
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -166,29 +225,6 @@ export const EntitiesVisualizer: FunctionComponent<{
       setView(defaultView);
     }
   }, [defaultView, isDisplayingFilesOnly]);
-
-  const { subgraph: subgraphWithLinkedEntities, refetch: refetchWithLinks } =
-    useEntityTypeEntities({
-      entityTypeBaseUrl,
-      entityTypeId,
-      graphResolveDepths: {
-        constrainsLinksOn: { outgoing: 255 },
-        constrainsLinkDestinationsOn: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        constrainsValuesOn: { outgoing: 255 },
-        inheritsFrom: { outgoing: 255 },
-        isOfType: { outgoing: 1 },
-        hasLeftEntity: { outgoing: 1, incoming: 1 },
-        hasRightEntity: { outgoing: 1, incoming: 1 },
-      },
-    });
-
-  /**
-   The subgraphWithLinkedEntities can take a long time to load with many entities.
-   If absent, we pass the subgraph without linked entities so that there is _some_ data to load into the slideover,
-   which will be missing links until they load in by specifically fetching selectedEntity.entityId
-   */
-  const subgraph = subgraphWithLinkedEntities ?? subgraphPossiblyWithoutLinks;
 
   const entities = useMemo(
     /**
@@ -399,7 +435,6 @@ export const EntitiesVisualizer: FunctionComponent<{
           }
           onBulkActionCompleted={() => {
             void refetchWithoutLinks();
-            void refetchWithLinks();
           }}
         />
         {!subgraph ? (
@@ -433,8 +468,10 @@ export const EntitiesVisualizer: FunctionComponent<{
           <GridView entities={entities} />
         ) : (
           <EntitiesTable
+            createdByIds={createdByIds}
             currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
             currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+            editionCreatedByIds={editionCreatedByIds}
             entities={filteredEntities ?? []}
             entityTypes={entityTypes ?? []}
             filterState={filterState}
@@ -453,6 +490,8 @@ export const EntitiesVisualizer: FunctionComponent<{
             showSearch={showTableSearch}
             setShowSearch={setShowTableSearch}
             subgraph={subgraph}
+            typeIds={typeIds}
+            webIds={webIds}
           />
         )}
       </Box>

@@ -23,83 +23,94 @@ import {
   queryEntitiesQuery,
 } from "../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../lib/apollo-client";
-import type { EntityTypeEntitiesContextValue } from "./entity-type-entities-context";
+/**
+ * @todo H-3828 stop relying on this for account sidebar, then can move it into entities-visualizer
+ */
+import type { EntitiesVisualizerData } from "../pages/shared/entities-visualizer/use-entities-visualizer-data";
 
 type UseEntityTypeEntitiesQueryParams = {
-  cursor?: EntityQueryCursor;
-  limit?: number;
-  ownedById?: OwnedById;
+  cursor?: EntityQueryCursor | null;
   entityTypeBaseUrl?: BaseUrl;
   entityTypeId?: VersionedUrl;
   graphResolveDepths?: Partial<GraphResolveDepths>;
+  includeArchived?: boolean;
+  ownedByIds?: OwnedById[];
+  limit?: number;
   sort?: GetEntitySubgraphRequest["sortingPaths"];
 };
 
 export const generateUseEntityTypeEntitiesQueryVariables = ({
-  ownedById,
+  ownedByIds,
   entityTypeBaseUrl,
   entityTypeId,
   graphResolveDepths,
-}: UseEntityTypeEntitiesQueryParams): GetEntitySubgraphQueryVariables => ({
-  request: {
-    filter: {
-      all: [
-        ...(ownedById
-          ? [
-              {
-                equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-              },
-            ]
-          : []),
-        ...(entityTypeBaseUrl
-          ? [
-              {
-                equal: [
-                  { path: ["type", "baseUrl"] },
-                  { parameter: entityTypeBaseUrl },
-                ],
-              },
-            ]
-          : entityTypeId
+  ...rest
+}: UseEntityTypeEntitiesQueryParams): GetEntitySubgraphQueryVariables => {
+  return {
+    request: {
+      ...rest,
+      includeCreatedByIds: true,
+      includeCount: true,
+      includeEditionCreatedByIds: true,
+      includeTypeIds: true,
+      includeWebIds: true,
+      filter: {
+        all: [
+          ...(ownedByIds?.length
             ? [
                 {
-                  equal: [
-                    { path: ["type", "versionedUrl"] },
-                    { parameter: entityTypeId },
-                  ],
+                  any: ownedByIds.map((ownedById) => ({
+                    equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+                  })),
                 },
               ]
             : []),
-        ...(!entityTypeId && !entityTypeBaseUrl
-          ? [ignoreNoisySystemTypesFilter]
-          : []),
-      ],
+          ...(entityTypeBaseUrl
+            ? [
+                {
+                  equal: [
+                    { path: ["type", "baseUrl"] },
+                    { parameter: entityTypeBaseUrl },
+                  ],
+                },
+              ]
+            : entityTypeId
+              ? [
+                  {
+                    equal: [
+                      { path: ["type", "versionedUrl"] },
+                      { parameter: entityTypeId },
+                    ],
+                  },
+                ]
+              : []),
+          ...(!entityTypeId && !entityTypeBaseUrl
+            ? [ignoreNoisySystemTypesFilter]
+            : []),
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        ...graphResolveDepths,
+      },
+      includeDrafts: false,
+      /**
+       * @todo H-2633 when we use entity archival via timestamp, this will need varying to include archived entities
+       */
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      ...graphResolveDepths,
-    },
-    includeDrafts: false,
-    temporalAxes: currentTimeInstantTemporalAxes,
-  },
-  includePermissions: false,
-});
+    includePermissions: false,
+  };
+};
 
 export const useEntityTypeEntities = (
   params: UseEntityTypeEntitiesQueryParams,
-): EntityTypeEntitiesContextValue => {
-  const { entityTypeBaseUrl, entityTypeId, ownedById, graphResolveDepths } =
-    params;
+): EntitiesVisualizerData => {
+  const { entityTypeBaseUrl, entityTypeId } = params;
 
   const variables = useMemo<GetEntitySubgraphQueryVariables>(
-    () =>
-      generateUseEntityTypeEntitiesQueryVariables({
-        entityTypeBaseUrl,
-        entityTypeId,
-        ownedById,
-        graphResolveDepths,
-      }),
-    [entityTypeBaseUrl, graphResolveDepths, entityTypeId, ownedById],
+    () => generateUseEntityTypeEntitiesQueryVariables(params),
+    [params],
   );
 
   const { data, loading, refetch } = useQuery<
@@ -131,6 +142,7 @@ export const useEntityTypeEntities = (
   );
 
   return {
+    ...data?.getEntitySubgraph,
     entityTypeBaseUrl,
     entityTypeId,
     entities,

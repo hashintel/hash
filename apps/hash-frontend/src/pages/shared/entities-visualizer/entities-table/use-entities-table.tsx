@@ -1,14 +1,8 @@
-import type {
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
@@ -17,16 +11,17 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { gridHeaderBaseFont } from "../../../components/grid/grid";
-import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
-import type { MinimalActor } from "../../../shared/use-actors";
-import { useActors } from "../../../shared/use-actors";
+import { gridHeaderBaseFont } from "../../../../components/grid/grid";
+import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
+import type { MinimalActor } from "../../../../shared/use-actors";
+import { useActors } from "../../../../shared/use-actors";
 import type {
   EntitiesTableData,
   GenerateEntitiesTableDataRequestMessage,
   TypeEntitiesRow,
 } from "./use-entities-table/types";
 import { isGenerateEntitiesTableDataResultMessage } from "./use-entities-table/types";
+import type { EntitiesVisualizerData } from "../use-entities-visualizer-data";
 
 let canvas: HTMLCanvasElement | undefined = undefined;
 
@@ -48,17 +43,27 @@ type PropertiesByEntityTypeId = {
   }[];
 };
 
-export const useEntitiesTable = (params: {
-  entities?: Entity[];
-  entityTypes?: EntityType[];
-  propertyTypes?: PropertyType[];
-  subgraph?: Subgraph<EntityRootType>;
-  hasSomeLinks?: boolean;
-  hideColumns?: (keyof TypeEntitiesRow)[];
-  hideArchivedColumn?: boolean;
-  hidePropertiesColumns: boolean;
-}): { loading: boolean; tableData: EntitiesTableData | null } => {
+export const useEntitiesTable = (
+  params: Pick<
+    EntitiesVisualizerData,
+    | "createdByIds"
+    | "editionCreatedByIds"
+    | "entities"
+    | "entityTypes"
+    | "propertyTypes"
+    | "subgraph"
+    | "typeIds"
+    | "webIds"
+  > & {
+    hasSomeLinks?: boolean;
+    hideColumns?: (keyof TypeEntitiesRow)[];
+    hideArchivedColumn?: boolean;
+    hidePropertiesColumns: boolean;
+  },
+): { loading: boolean; tableData: EntitiesTableData | null } => {
   const {
+    createdByIds,
+    editionCreatedByIds,
     entities,
     entityTypes,
     subgraph,
@@ -67,6 +72,8 @@ export const useEntitiesTable = (params: {
     hideArchivedColumn = false,
     hidePropertiesColumns,
     propertyTypes,
+    typeIds,
+    webIds,
   } = params;
 
   const [worker, setWorker] = useState<Worker | null>(null);
@@ -95,7 +102,14 @@ export const useEntitiesTable = (params: {
     entityTypesWithMultipleVersionsPresent: VersionedUrl[];
     usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
   }>(() => {
-    if (!entities || !subgraph) {
+    if (
+      !createdByIds ||
+      !editionCreatedByIds ||
+      !entities ||
+      !subgraph ||
+      !typeIds ||
+      !webIds
+    ) {
       return {
         editorActorIds: [],
         entitiesHaveSameType: false,

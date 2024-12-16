@@ -14,7 +14,7 @@ import type {
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { SerializedSubgraph } from "@local/hash-subgraph";
 
-import type { MinimalActor } from "../../../../shared/use-actors";
+import type { MinimalActor } from "../../../../../shared/use-actors";
 
 export interface TypeEntitiesRow {
   rowId: string;
