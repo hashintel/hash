@@ -51,6 +51,7 @@ const convertResponseBegin = (
 ): ResponseBeginData => ({
   kind: ResponseKind.match(begin.kind, {
     onOk: () => "Ok",
+    // eslint-disable-next-line unicorn/prevent-abbreviations
     onErr: (code) => ({ Err: code.value }),
   }),
   payload: [...begin.payload.buffer],

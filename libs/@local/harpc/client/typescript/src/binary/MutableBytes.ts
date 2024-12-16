@@ -89,10 +89,12 @@ const requiredCapacity = (self: MutableBytes, minimum: number) => {
 
   while (next < minimum) {
     next = Match.value(impl.growthStrategy).pipe(
+      // eslint-disable-next-line @typescript-eslint/no-loop-func
       Match.when(Match.is("doubling"), () => next * 2),
       Match.when(
         Match.is("linear"),
 
+        // eslint-disable-next-line @typescript-eslint/no-loop-func
         () =>
           next +
           // if the initialCapacity is 0 we should use the default, otherwise this turns into an infinite loop
@@ -100,7 +102,7 @@ const requiredCapacity = (self: MutableBytes, minimum: number) => {
             ? DEFAULT_INITIAL_CAPACITY
             : impl.initialCapacity),
       ),
-
+      // eslint-disable-next-line @typescript-eslint/no-loop-func
       Match.when(Match.is("exponential"), () => next ** 2),
       Match.exhaustive,
     );

@@ -9,16 +9,9 @@ export default [
       storybook: false,
     },
   }),
-  // {
-  //   rules: {
-  //     "@typescript-eslint/no-redeclare": "off",
-  //     "unicorn/filename-case": "off",
-  //     "func-names": "off",
-  //     "canonical/filename-no-index": "off",
-  //     "@typescript-eslint/no-empty-object-type": [
-  //       "error",
-  //       { allowInterfaces: "with-single-extends" },
-  //     ],
-  //   },
-  // },
+  {
+    rules: {
+      "fsecond/prefer-destructured-optionals": "off",
+    },
+  },
 ];

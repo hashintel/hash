@@ -285,6 +285,7 @@ export const send: {
     request: Request.Request<never, R>,
   ): Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>> =>
     Effect.gen(function* () {
+      // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- it's indeed correct here
       const deferredDrop = yield* Deferred.make<void>();
       const drop = wrapDrop(self, request.id, deferredDrop);
 

@@ -31,12 +31,7 @@ import type { NonEmptyArray } from "effect/Array";
 import { type Libp2p, createLibp2p } from "libp2p";
 
 import * as NetworkLogger from "../NetworkLogger.js";
-import {
-  type DNSConfig,
-  type Multiaddr,
-  type TransportConfig,
-  InitializationError,
-} from "../Transport.js";
+import type { DNSConfig, Multiaddr, TransportConfig } from "../Transport.js";
 
 import * as Dns from "./dns.js";
 import * as HashableMultiaddr from "./multiaddr.js";
@@ -65,6 +60,15 @@ export class TransportError extends Data.TaggedError("TransportError")<{
 }> {
   get message() {
     return "Underlying transport stream experienced an error";
+  }
+}
+
+/** @internal */
+export class InitializationError extends Data.TaggedError(
+  "InitializationError",
+)<{ cause: unknown }> {
+  get message() {
+    return "Failed to initialize client";
   }
 }
 

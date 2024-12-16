@@ -62,9 +62,13 @@ export const hashUint8Array = (array: Uint8Array) => {
   // we can just take it in 32 bit chunks, which means we need to do less overall.
   for (let i = 0; i < array.length - remainder; i = i + 4) {
     const value =
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       array[i]! |
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       (array[i + 1]! << 8) |
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       (array[i + 2]! << 16) |
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       (array[i + 3]! << 24);
 
     state = Hash.combine(value)(state);
@@ -72,6 +76,7 @@ export const hashUint8Array = (array: Uint8Array) => {
 
   // if there are any remaining bytes, we hash them as well
   for (let i = array.length - remainder; i < array.length; i = i + 1) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     state = Hash.combine(array[i]!)(state);
   }
 

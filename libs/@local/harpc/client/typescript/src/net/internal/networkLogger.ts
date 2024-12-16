@@ -68,10 +68,10 @@ interface Literal {
 
 type Token = Format | Literal;
 
-const tokenize = (format: string) => {
+const tokenize = (spec: string) => {
   const tokens: Token[] = [];
 
-  let rest = format;
+  let rest = spec;
 
   while (rest.length > 0) {
     const nextToken = rest.search(/%[a-z%]/i);
@@ -83,6 +83,7 @@ const tokenize = (format: string) => {
 
     tokens.push({ value: rest.slice(0, nextToken) });
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- guaranteed by regex
     const type = rest[nextToken + 1]!;
 
     if (type === "%") {
@@ -110,6 +111,7 @@ const enrichContext = (
     Option.getOrElse(() => `unknown${index}`),
   );
 
+  // eslint-disable-next-line no-param-reassign
   context[name] = value;
 };
 
@@ -123,7 +125,7 @@ export const format = (
   const inputArguments = [...args];
   const context: Record<string, unknown> = {};
 
-  let formatString = "";
+  let formatString;
 
   // special casing of some arguments
   if (Predicate.isError(input)) {
@@ -174,7 +176,7 @@ export const format = (
   }
 
   // add any arguments to the context that were not used
-  for (let i = argumentIndex; i < inputArguments.length; i++) {
+  for (let i = argumentIndex; i < inputArguments.length; i = i + 1) {
     enrichContext(context, i, inputArguments[i]);
   }
 
@@ -197,7 +199,9 @@ const debugJsFormatters: FormatterCollection = {
       Option.liftPredicate(value, Predicate.isNumber), //
       Option.map((number) => number.toString()),
     ),
+  // eslint-disable-next-line unicorn/prevent-abbreviations
   j: (value: unknown) => Option.some(JSON.stringify(value)),
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   O: (value: unknown) => Option.some(Inspectable.toStringUnknown(value)),
   o: (value: unknown) =>
     Option.some(Inspectable.toStringUnknown(value, "").replaceAll("\n", " ")),
@@ -208,6 +212,7 @@ const libp2pFormatters: FormatterCollection = {
   /**
    * Custom (more sane) UTF-8 first formatter.
    */
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   B: (value: unknown) =>
     pipe(
       Option.liftPredicate(value, Predicate.isUint8Array),
@@ -221,8 +226,8 @@ const libp2pFormatters: FormatterCollection = {
           Option.getOrElse(() =>
             // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toHex
             array.reduce(
-              (accumulator, value_) =>
-                accumulator + value_.toString(16).padStart(2, "0"),
+              (accumulator, byte) =>
+                accumulator + byte.toString(16).padStart(2, "0"),
               "",
             ),
           ),
@@ -230,7 +235,7 @@ const libp2pFormatters: FormatterCollection = {
       ),
     ),
   /**
-   * Uint8Array -> Base58.
+   * Uint8Array as Base58.
    */
   b: (value: unknown) =>
     pipe(
@@ -238,7 +243,7 @@ const libp2pFormatters: FormatterCollection = {
       Option.map(base58btc.baseEncode),
     ),
   /**
-   * Uint8Array -> Base32.
+   * Uint8Array as Base32.
    */
   t: (value: unknown) =>
     pipe(
@@ -246,7 +251,7 @@ const libp2pFormatters: FormatterCollection = {
       Option.map(base32.baseEncode),
     ),
   /**
-   * Uint8Array -> Base64.
+   * Uint8Array as Base64.
    */
   m: (value: unknown) =>
     pipe(
@@ -281,6 +286,7 @@ const libp2pFormatters: FormatterCollection = {
   /**
    * Error.
    */
+  // eslint-disable-next-line unicorn/prevent-abbreviations
   e: (value: unknown) =>
     pipe(
       Option.liftPredicate(value, Predicate.isError),

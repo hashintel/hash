@@ -10,6 +10,8 @@ export const jsdoc = (config: readonly ESConfig[]): readonly ESConfig[] =>
           "error",
           { exemptedBy: ["inheritdoc", "internal"] },
         ],
+        // conflicts with tsdoc
+        "jsdoc/check-tag-names": "off",
       },
     },
   ]);

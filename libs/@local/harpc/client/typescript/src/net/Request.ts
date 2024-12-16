@@ -118,9 +118,9 @@ const pack = <E, R>(
       return pipe(
         stream,
         Stream.mapConcat((buffer) => {
-          const [scratch, output] = splitBuffer(makeScratch(), buffer);
+          const [remaining, output] = splitBuffer(makeScratch(), buffer);
 
-          output.push(scratch.buffer.slice(0, scratch.length));
+          output.push(remaining.buffer.slice(0, remaining.length));
 
           return output;
         }),
@@ -250,7 +250,7 @@ export const encode: {
   ): <E, R>(self: Request<E, R>) => Stream.Stream<Request.Request, E, R>;
 } = Function.dual(
   /**
-   * Function is `DataFirst` (will be executed immediately), if:
+   * Function is `DataFirst` (will be executed immediately), if...
    */
   (args) => isRequest(args[0]),
   encodeImpl,

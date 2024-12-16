@@ -29,6 +29,7 @@ const ClientProto: Omit<ClientImpl, "client" | "config"> = {
   [TypeId]: TypeId,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TypeId is defined
 export const Client = GenericTag<Client>(TypeId.description!);
 
 // TODO: add a metrics compatability layer
