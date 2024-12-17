@@ -9,6 +9,8 @@ import { SelectOrNameGoogleSheet } from "../../../../shared/integrations/google/
 import { inputHeight } from "./shared/dimensions";
 import type { FormState, LocalPayload } from "./types";
 
+import type { JSX } from "react";
+
 const textFieldSx: SxProps<Theme> = {
   width: "100%",
   /**

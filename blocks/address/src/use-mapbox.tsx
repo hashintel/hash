@@ -33,7 +33,7 @@ export type Address = {
 };
 
 export const useMapbox = (
-  blockRootRef: RefObject<HTMLDivElement>,
+  blockRootRef: RefObject<HTMLDivElement | null>,
   zoomLevel: number,
   shouldFetchImage: boolean,
   onSelectAddress: (address: Address) => void,

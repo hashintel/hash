@@ -45,13 +45,13 @@
     "eslint": "9.17.0",
     "mock-block-dock": "0.1.9",
     "prettier": "3.4.2",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "typescript": "5.7.2"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "block-scripts": {
     "port": 63212

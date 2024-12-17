@@ -48,8 +48,8 @@
     "@types/react-syntax-highlighter": "15.5.13",
     "eslint": "9.17.0",
     "eslint-plugin-storybook": "0.11.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "typescript": "5.7.2"
   },
   "peerDependencies": {
@@ -57,7 +57,7 @@
     "@emotion/styled": "11.14.0",
     "@mui/material": "5.16.11",
     "@mui/system": "5.16.8",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }

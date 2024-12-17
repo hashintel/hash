@@ -49,7 +49,7 @@ export const BlockContextMenuItem = forwardRef<
     // access offsetTop in the useLayoutEffect. Consider using an library to handle merging refs
     // @see https://github.com/gregberge/react-merge-refs, or better still, use the
     // useForkRef exported by MUI
-    const menuItemRef = (ref ?? localRef) as RefObject<HTMLLIElement>;
+    const menuItemRef = (ref ?? localRef) as RefObject<HTMLLIElement | null>;
 
     useLayoutEffect(() => {
       if (subMenu && !subMenuOffsetTop && menuItemRef.current) {

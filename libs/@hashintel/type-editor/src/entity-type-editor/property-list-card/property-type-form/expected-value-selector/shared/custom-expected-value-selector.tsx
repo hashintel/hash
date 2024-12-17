@@ -34,9 +34,11 @@ export const CustomExpectedValueSelector = <
   const textFieldRef = useRef<HTMLInputElement>(null);
 
   return (
-    <Autocomplete
+    (<Autocomplete
       {...props}
-      ref={(ref: HTMLDivElement) => setAutocompleteElem(ref)}
+      ref={(ref: HTMLDivElement) => {
+        setAutocompleteElem(ref);
+      }}
       value={value}
       multiple
       popupIcon={null}
@@ -123,6 +125,6 @@ export const CustomExpectedValueSelector = <
           />
         );
       }}
-    />
+    />)
   );
 };

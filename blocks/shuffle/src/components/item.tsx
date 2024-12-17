@@ -30,7 +30,7 @@ export type ItemProps = {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type -- this matches the library type we get listeners from
   listeners?: Record<string, Function>;
   style?: CSSProperties;
-  dragOverlay?: RefObject<HTMLDivElement>;
+  dragOverlay?: RefObject<HTMLDivElement | null>;
   linkedToEntity?: boolean;
   readonly?: boolean;
 };

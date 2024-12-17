@@ -1,3 +1,3 @@
-import graphModuleJson from "./graph-module.json" assert { type: "json" };
+import graphModuleJson from "./graph-module.json" with { type: "json" };
 
 export { graphModuleJson };

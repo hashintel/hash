@@ -7,7 +7,7 @@ import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-enti
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box } from "@mui/material";
-import type { ReactElement } from "react";
+import type { ReactElement, JSX } from "react";
 import { useMemo } from "react";
 
 import { CanvasIcon } from "./icons/canvas-icon";

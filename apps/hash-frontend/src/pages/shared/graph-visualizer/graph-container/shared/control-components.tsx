@@ -89,7 +89,7 @@ export const ControlPanel = ({
   open: boolean;
   onClose: () => void;
   position: "left" | "right";
-  panelRef?: RefObject<HTMLDivElement>;
+  panelRef?: RefObject<HTMLDivElement | null>;
   title: string;
 }>) => {
   return (

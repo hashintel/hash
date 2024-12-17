@@ -14,7 +14,7 @@ export const useMemoCompare = <Return, Dependencies extends unknown[]>(
   isReturnUnchanged: (oldValue: Return, newValue: Return) => boolean,
 ): Return => {
   const previousDependenciesRef = useRef<Dependencies>(dependencies);
-  const previousValueRef = useRef<Return>();
+  const previousValueRef = useRef<Return>(null);
   const hasRunOnceRef = useRef(false);
 
   let shouldComputeReturn = false;

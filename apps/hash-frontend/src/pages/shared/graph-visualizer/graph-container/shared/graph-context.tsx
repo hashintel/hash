@@ -27,7 +27,7 @@ export type GraphContextType<
   configPanelOpen: boolean;
   filters: GraphVizFilters;
   filterPanelOpen: boolean;
-  graphContainerRef: RefObject<HTMLDivElement>;
+  graphContainerRef: RefObject<HTMLDivElement | null>;
   graphState: GraphState;
   pathFinderPanelOpen: boolean;
   refreshGraphHighlights: () => void;
@@ -53,7 +53,7 @@ export type GraphContextProviderProps<
 > = {
   defaultConfig: GraphVizConfig<NodeSizing>;
   defaultFilters?: GraphVizFilters;
-  graphContainerRef: RefObject<HTMLDivElement>;
+  graphContainerRef: RefObject<HTMLDivElement | null>;
 } & Pick<RegisterEventsArgs, "onEdgeClick" | "onNodeSecondClick" | "onRender">;
 
 export const GraphContextProvider = <
