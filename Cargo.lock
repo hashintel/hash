@@ -808,7 +808,7 @@ dependencies = [
  "http 1.2.0",
  "http-body 1.0.1",
  "http-body-util",
- "hyper 1.5.1",
+ "hyper 1.5.2",
  "hyper-util",
  "itoa",
  "matchit",
@@ -1248,9 +1248,9 @@ dependencies = [
 
 [[package]]
 name = "clap_complete"
-version = "4.5.38"
+version = "4.5.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9647a559c112175f17cf724dc72d3645680a883c58481332779192b0d8e7a01"
+checksum = "fd4db298d517d5fa00b2b84bbe044efd3fde43874a41db0d46f91994646a2da4"
 dependencies = [
  "clap",
 ]
@@ -2748,7 +2748,7 @@ dependencies = [
  "hash-status",
  "hash-temporal-client",
  "http 1.2.0",
- "hyper 1.5.1",
+ "hyper 1.5.2",
  "include_dir",
  "mime",
  "opentelemetry 0.27.1",
@@ -3434,9 +3434,9 @@ dependencies = [
 
 [[package]]
 name = "hyper"
-version = "1.5.1"
+version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97818827ef4f364230e16705d4706e2897df2bb60617d6ca15d598025a3c481f"
+checksum = "256fb8d4bd6413123cc9d91832d78325c48ff41677595be797d90f42969beae0"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -3477,7 +3477,7 @@ checksum = "08afdbb5c31130e3034af566421053ab03787c640246a446327f550d11bcb333"
 dependencies = [
  "futures-util",
  "http 1.2.0",
- "hyper 1.5.1",
+ "hyper 1.5.2",
  "hyper-util",
  "rustls 0.23.19",
  "rustls-pki-types",
@@ -3493,7 +3493,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3203a961e5c83b6f5498933e78b6b263e208c197b63e9c6c53cc82ffd3f63793"
 dependencies = [
- "hyper 1.5.1",
+ "hyper 1.5.2",
  "hyper-util",
  "pin-project-lite",
  "tokio",
@@ -3511,7 +3511,7 @@ dependencies = [
  "futures-util",
  "http 1.2.0",
  "http-body 1.0.1",
- "hyper 1.5.1",
+ "hyper 1.5.2",
  "pin-project-lite",
  "socket2",
  "tokio",
@@ -3918,9 +3918,9 @@ dependencies = [
 
 [[package]]
 name = "jsonschema"
-version = "0.26.1"
+version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "893d6229c7315763ca0df9b29ab7661ee419f286577a02847c5521b462e071af"
+checksum = "26a960f0c34d5423581d858ce94815cc11f0171b09939409097969ed269ede1b"
 dependencies = [
  "ahash",
  "base64 0.22.1",
@@ -5981,9 +5981,9 @@ dependencies = [
 
 [[package]]
 name = "referencing"
-version = "0.26.1"
+version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb853437e467c693ac1dc8c1520105a31b8c2588544ff2f3cfa5a7c706c6c069"
+checksum = "fb8e15af8558cb157432dd3d88c1d1e982d0a5755cf80ce593b6499260aebc49"
 dependencies = [
  "ahash",
  "fluent-uri",
@@ -6099,7 +6099,7 @@ dependencies = [
  "http 1.2.0",
  "http-body 1.0.1",
  "http-body-util",
- "hyper 1.5.1",
+ "hyper 1.5.2",
  "hyper-rustls 0.27.3",
  "hyper-util",
  "ipnet",
@@ -7142,7 +7142,7 @@ dependencies = [
  "futures-util",
  "http 1.2.0",
  "http-body-util",
- "hyper 1.5.1",
+ "hyper 1.5.2",
  "hyper-util",
  "parking_lot",
  "prost-types",
@@ -7609,7 +7609,7 @@ dependencies = [
  "http 1.2.0",
  "http-body 1.0.1",
  "http-body-util",
- "hyper 1.5.1",
+ "hyper 1.5.2",
  "hyper-timeout",
  "hyper-util",
  "percent-encoding",
