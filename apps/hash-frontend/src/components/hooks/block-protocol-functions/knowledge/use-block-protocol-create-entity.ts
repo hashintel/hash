@@ -41,7 +41,7 @@ export const useBlockProtocolCreateEntity = (
             {
               query: getEntitySubgraphQuery,
               variables: generateUseEntityTypeEntitiesQueryVariables({
-                ownedById: activeWorkspaceOwnedById,
+                ownedByIds: [activeWorkspaceOwnedById],
               }),
             },
           ]

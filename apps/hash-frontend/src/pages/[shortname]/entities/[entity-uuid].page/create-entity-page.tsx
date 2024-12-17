@@ -108,7 +108,9 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       {
         query: getEntitySubgraphQuery,
         variables: generateUseEntityTypeEntitiesQueryVariables({
-          ownedById: activeWorkspaceOwnedById,
+          ownedByIds: activeWorkspaceOwnedById
+            ? [activeWorkspaceOwnedById]
+            : undefined,
         }),
       },
     ],

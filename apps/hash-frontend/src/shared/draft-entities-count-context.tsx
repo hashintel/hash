@@ -60,8 +60,6 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
             ],
           },
           temporalAxes: currentTimeInstantTemporalAxes,
-          graphResolveDepths: zeroedGraphResolveDepths,
-          includeCount: true,
           includeDrafts: true,
         },
       },

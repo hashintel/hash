@@ -12,6 +12,7 @@ import type {
   WebIdsMap,
 } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
@@ -27,8 +28,6 @@ export type EntitiesVisualizerData = {
   editionCreatedByIds?: CreatedByIdsMap | null;
   count?: number | null;
   cursor?: EntityQueryCursor | null;
-  entityTypeId?: VersionedUrl;
-  entityTypeBaseUrl?: BaseUrl;
   entities?: Entity[];
   entityTypes?: EntityType[];
   // Whether or not cached content was available immediately for the context data
@@ -49,10 +48,19 @@ export type EntitiesVisualizerData = {
 export const useEntitiesVisualizerData = (params: {
   cursor?: EntityQueryCursor;
   entityTypeBaseUrl?: BaseUrl;
-  entityTypeId?: VersionedUrl;
+  entityTypeIds?: VersionedUrl[];
+  includeArchived: boolean;
   limit?: number;
+  ownedByIds?: OwnedById[];
 }): EntitiesVisualizerData => {
-  const { cursor, entityTypeBaseUrl, entityTypeId, limit } = params;
+  const {
+    cursor,
+    entityTypeBaseUrl,
+    entityTypeIds,
+    includeArchived,
+    limit,
+    ownedByIds,
+  } = params;
 
   const {
     count,
@@ -69,8 +77,10 @@ export const useEntitiesVisualizerData = (params: {
   } = useEntityTypeEntities({
     cursor,
     entityTypeBaseUrl,
-    entityTypeId,
+    entityTypeIds,
+    includeArchived,
     limit,
+    ownedByIds,
     graphResolveDepths: {
       constrainsLinksOn: { outgoing: 255 },
       constrainsLinkDestinationsOn: { outgoing: 255 },
@@ -128,8 +138,6 @@ export const useEntitiesVisualizerData = (params: {
     cursor: nextCursor,
     editionCreatedByIds,
     entities,
-    entityTypeBaseUrl,
-    entityTypeId,
     entityTypes,
     hadCachedContent,
     loading,
