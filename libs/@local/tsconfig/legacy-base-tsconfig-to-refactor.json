@@ -5,7 +5,7 @@
     "checkJs": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2023"],
+    "lib": ["es2024"],
     "module": "esnext",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
@@ -13,7 +13,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2022",
+    "target": "es2024",
     "baseUrl": ".",
     "paths": {
       "@blockprotocol/graph": ["../../@blockprotocol/graph/src/main.ts"],
