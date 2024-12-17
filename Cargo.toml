@@ -198,7 +198,7 @@ postgres-protocol        = { version = "=0.6.7", default-features = false }
 pretty_assertions        = { version = "=1.4.1", default-features = false, features = ["alloc"] }
 proc-macro-error2        = { version = "=2.0.1", default-features = false }
 proc-macro2              = { version = "=1.0.92", default-features = false }
-proptest                 = { version = "=1.6.0", default-features = false, features = ["alloc"] }
+proptest                 = { version = "=1.6.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
 quote                    = { version = "=1.0.37", default-features = false }
 rand                     = { version = "=0.8.5", default-features = false }
 refinery                 = { version = "=0.8.14", default-features = false }
