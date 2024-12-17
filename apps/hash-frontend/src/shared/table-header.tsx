@@ -123,6 +123,8 @@ type TableHeaderProps = {
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
+  numberOfExternalItems?: number;
+  numberOfUserWebItems?: number;
   selectedItems?: (
     | Entity
     | EntityTypeWithMetadata
@@ -155,6 +157,8 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   internalWebIds,
   itemLabelPlural,
   items,
+  numberOfExternalItems,
+  numberOfUserWebItems,
   onBulkActionCompleted,
   selectedItems,
   setFilterState,
@@ -164,25 +168,6 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
   const [publicFilterHovered, setPublicFilterHovered] =
     useState<boolean>(false);
-
-  const numberOfUserWebItems = useMemo(
-    () =>
-      items?.filter(({ metadata }) =>
-        "entityTypeIds" in metadata
-          ? internalWebIds.includes(
-              extractOwnedByIdFromEntityId(metadata.recordId.entityId),
-            )
-          : isExternalOntologyElementMetadata(metadata)
-            ? false
-            : internalWebIds.includes(metadata.ownedById),
-      ).length,
-    [items, internalWebIds],
-  );
-
-  const numberOfGlobalItems =
-    items && typeof numberOfUserWebItems !== "undefined"
-      ? items.length - numberOfUserWebItems
-      : undefined;
 
   const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
     const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
@@ -322,7 +307,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                     <EarthAmericasRegularIcon />
                   )
                 }
-                label={`${numberOfGlobalItems ?? "–"} others`}
+                label={`${numberOfExternalItems ?? "–"} others`}
                 sx={({ palette }) => ({
                   ...commonChipSx,
                   [`.${chipClasses.label}`]: {

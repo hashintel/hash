@@ -60,6 +60,8 @@ export type GridProps<T extends GridRow> = Omit<
   currentlyDisplayedRowsRef?: MutableRefObject<T[] | null>;
   dataLoading: boolean;
   enableCheckboxSelection?: boolean;
+  externallyManagedFiltering?: boolean;
+  externallyManagedSorting?: boolean;
   firstColumnLeftPadding?: number;
   gridRef?: Ref<DataEditorRef>;
   initialSortedColumnKey?: string;
@@ -93,6 +95,8 @@ export const Grid = <T extends GridRow>({
   dataLoading,
   drawHeader,
   enableCheckboxSelection = false,
+  externallyManagedFiltering,
+  externallyManagedSorting,
   firstColumnLeftPadding,
   gridRef,
   initialSortedColumnKey,
@@ -227,6 +231,10 @@ export const Grid = <T extends GridRow>({
   );
 
   const filteredRows = useMemo<T[] | undefined>(() => {
+    if (externallyManagedFiltering) {
+      return rows;
+    }
+
     if (rows) {
       if (!columnFilters) {
         return rows;
@@ -241,9 +249,13 @@ export const Grid = <T extends GridRow>({
         return true;
       });
     }
-  }, [rows, columnFilters]);
+  }, [externallyManagedFiltering, rows, columnFilters]);
 
   const sortedAndFilteredRows = useMemo<T[] | undefined>(() => {
+    if (externallyManagedSorting) {
+      return filteredRows;
+    }
+
     if (filteredRows) {
       if (!sortable) {
         return filteredRows;
@@ -266,11 +278,12 @@ export const Grid = <T extends GridRow>({
       return sortRowFn(filteredRows, sortedColumn, previousSortedColumn);
     }
   }, [
-    sortable,
-    filteredRows,
-    sortRows,
     currentSortedColumnKey,
+    externallyManagedSorting,
+    filteredRows,
     previousSortedColumnKey,
+    sortRows,
+    sortable,
     sorts,
   ]);
 

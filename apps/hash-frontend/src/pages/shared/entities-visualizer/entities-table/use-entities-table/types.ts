@@ -84,20 +84,38 @@ export type GenerateEntitiesTableDataParams = {
   webNameByOwnedById: Record<OwnedById, string>;
 };
 
-export type ActorTableData = { accountId: AccountId; displayName?: string };
+export type ActorTableFilterData = {
+  accountId: AccountId;
+  displayName?: string;
+  count: number;
+};
+
+export type EntityTypeTableFilterData = {
+  entityTypeId: VersionedUrl;
+  title: string;
+  count: number;
+};
+
+export type WebTableFilterData = {
+  webId: OwnedById;
+  count: number;
+  shortname: string;
+};
+
+export type EntitiesTableFilterData = {
+  createdByActors: ActorTableFilterData[];
+  lastEditedByActors: ActorTableFilterData[];
+  entityTypeTitles: EntityTypeTableFilterData[];
+  noSourceCount: number;
+  noTargetCount: number;
+  sources: SourceOrTargetFilterData[];
+  targets: SourceOrTargetFilterData[];
+  webs: WebTableFilterData[];
+};
 
 export type EntitiesTableData = {
   columns: SizedGridColumn[];
-  filterData: {
-    createdByActors: ActorTableData[];
-    lastEditedByActors: ActorTableData[];
-    entityTypeTitles: { [entityTypeTitle: string]: number | undefined };
-    noSourceCount: number;
-    noTargetCount: number;
-    sources: SourceOrTargetFilterData[];
-    targets: SourceOrTargetFilterData[];
-    webs: { [web: string]: number | undefined };
-  };
+  filterData: EntitiesTableFilterData;
   rows: TypeEntitiesRow[];
 };
 
@@ -114,11 +132,18 @@ export const isGenerateEntitiesTableDataRequestMessage = (
   (message as Record<string, unknown>).type ===
     ("generateEntitiesTableData" satisfies GenerateEntitiesTableDataRequestMessage["type"]);
 
+export type WorkerDataReturn = Pick<EntitiesTableData, "rows" | "columns"> & {
+  filterData: Omit<
+    EntitiesTableFilterData,
+    "createdByActors" | "entityTypeTitles" | "lastEditedByActors" | "webs"
+  >;
+};
+
 export type GenerateEntitiesTableDataResultMessage = {
   done: boolean;
   type: "generateEntitiesTableDataResult";
   requestId: string;
-  result: EntitiesTableData;
+  result: WorkerDataReturn;
 };
 
 export const isGenerateEntitiesTableDataResultMessage = (

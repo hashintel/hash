@@ -1,9 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getPropertyTypesForEntityType,
@@ -15,13 +15,14 @@ import { gridHeaderBaseFont } from "../../../../components/grid/grid";
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import type { MinimalActor } from "../../../../shared/use-actors";
 import { useActors } from "../../../../shared/use-actors";
+import type { EntitiesVisualizerData } from "../use-entities-visualizer-data";
 import type {
   EntitiesTableData,
+  EntitiesTableFilterData,
   GenerateEntitiesTableDataRequestMessage,
   TypeEntitiesRow,
 } from "./use-entities-table/types";
 import { isGenerateEntitiesTableDataResultMessage } from "./use-entities-table/types";
-import type { EntitiesVisualizerData } from "../use-entities-visualizer-data";
 
 let canvas: HTMLCanvasElement | undefined = undefined;
 
@@ -92,26 +93,16 @@ export const useEntitiesTable = (
   const getOwnerForEntity = useGetOwnerForEntity();
 
   const {
-    editorActorIds,
     entitiesHaveSameType,
     entityTypesWithMultipleVersionsPresent,
     usedPropertyTypesByEntityTypeId,
   } = useMemo<{
-    editorActorIds: AccountId[];
     entitiesHaveSameType: boolean;
     entityTypesWithMultipleVersionsPresent: VersionedUrl[];
     usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
   }>(() => {
-    if (
-      !createdByIds ||
-      !editionCreatedByIds ||
-      !entities ||
-      !subgraph ||
-      !typeIds ||
-      !webIds
-    ) {
+    if (!entities || !subgraph) {
       return {
-        editorActorIds: [],
         entitiesHaveSameType: false,
         entityTypesWithMultipleVersionsPresent: [],
         usedPropertyTypesByEntityTypeId: {},
@@ -122,14 +113,8 @@ export const useEntitiesTable = (
 
     const typesWithMultipleVersions: VersionedUrl[] = [];
     const firstSeenTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
-    const actorIds: AccountId[] = [];
 
     for (const entity of entities) {
-      actorIds.push(
-        entity.metadata.provenance.edition.createdById,
-        entity.metadata.provenance.createdById,
-      );
-
       for (const entityTypeId of entity.metadata.entityTypeIds) {
         if (propertyMap[entityTypeId]) {
           continue;
@@ -169,12 +154,20 @@ export const useEntitiesTable = (
     }
 
     return {
-      editorActorIds: actorIds,
       entitiesHaveSameType: Object.keys(firstSeenTypeByBaseUrl).length === 1,
       entityTypesWithMultipleVersionsPresent: typesWithMultipleVersions,
       usedPropertyTypesByEntityTypeId: propertyMap,
     };
   }, [entities, subgraph]);
+
+  const editorActorIds = useMemo(() => {
+    const editorIds = new Set<AccountId>([
+      ...typedKeys(editionCreatedByIds ?? {}),
+      ...typedKeys(createdByIds ?? {}),
+    ]);
+
+    return [...editorIds];
+  }, [createdByIds, editionCreatedByIds]);
 
   const { actors, loading: actorsLoading } = useActors({
     accountIds: editorActorIds,
@@ -196,21 +189,19 @@ export const useEntitiesTable = (
     }, [actors]);
 
   const webNameByOwnedById = useMemo(() => {
-    if (!entities) {
+    if (!entities || !webIds) {
       return {};
     }
 
     const webNameByOwner: Record<OwnedById, string> = {};
 
-    for (const entity of entities) {
-      const owner = getOwnerForEntity(entity);
-      webNameByOwner[
-        extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
-      ] = owner.shortname;
+    for (const webId of typedKeys(webIds)) {
+      const owner = getOwnerForEntity({ ownedById: webId });
+      webNameByOwner[webId] = owner.shortname;
     }
 
     return webNameByOwner;
-  }, [entities, getOwnerForEntity]);
+  }, [entities, getOwnerForEntity, webIds]);
 
   const [tableData, setTableData] = useState<EntitiesTableData | null>(null);
   const [waitingTableData, setWaitingTableData] = useState(true);
@@ -220,6 +211,79 @@ export const useEntitiesTable = (
     rows: TypeEntitiesRow[];
   }>({ requestId: "none", rows: [] });
 
+  const { createdByActors, entityTypeTitles, lastEditedByActors, webs } =
+    useMemo<
+      Pick<
+        EntitiesTableFilterData,
+        "createdByActors" | "entityTypeTitles" | "lastEditedByActors" | "webs"
+      >
+    >(() => {
+      const createdBy: EntitiesTableFilterData["createdByActors"] = [];
+      for (const [accountId, count] of typedEntries(createdByIds ?? {})) {
+        const actor = actorsByAccountId[accountId];
+        createdBy.push({
+          accountId,
+          count,
+          displayName: actor?.displayName ?? accountId,
+        });
+      }
+
+      const editedBy: EntitiesTableFilterData["lastEditedByActors"] = [];
+      for (const [accountId, count] of typedEntries(
+        editionCreatedByIds ?? {},
+      )) {
+        const actor = actorsByAccountId[accountId];
+        editedBy.push({
+          accountId,
+          count,
+          displayName: actor?.displayName ?? accountId,
+        });
+      }
+
+      const typeTitles: EntitiesTableFilterData["entityTypeTitles"] = [];
+      for (const [entityTypeId, count] of typedEntries(typeIds ?? {})) {
+        const title = entityTypeId
+          .split("/")
+          .at(-3)!
+          .split("-")
+          .map(
+            (segment) =>
+              `${segment[0]?.toUpperCase() ?? ""}${segment.slice(1)}`,
+          )
+          .join(" ");
+
+        typeTitles.push({
+          count,
+          entityTypeId,
+          title,
+        });
+      }
+
+      const webCounts: EntitiesTableFilterData["webs"] = [];
+      for (const [ownedById, count] of typedEntries(webIds ?? {})) {
+        const webname = webNameByOwnedById[ownedById] ?? ownedById;
+        webCounts.push({
+          count,
+          shortname: `@${webname}`,
+          webId: ownedById,
+        });
+      }
+
+      return {
+        createdByActors: createdBy,
+        entityTypeTitles: typeTitles,
+        lastEditedByActors: editedBy,
+        webs: webCounts,
+      };
+    }, [
+      actorsByAccountId,
+      createdByIds,
+      editionCreatedByIds,
+      typeIds,
+      webIds,
+      webNameByOwnedById,
+    ]);
+
   useEffect(() => {
     if (!worker) {
       return;
@@ -228,6 +292,8 @@ export const useEntitiesTable = (
     worker.onmessage = ({ data }) => {
       if (isGenerateEntitiesTableDataResultMessage(data)) {
         const { done, requestId, result } = data;
+
+        console.log("MEssage", { done, result });
         setWaitingTableData(false);
 
         if (accumulatedDataRef.current.requestId !== requestId) {
@@ -239,13 +305,20 @@ export const useEntitiesTable = (
         if (done) {
           setTableData({
             ...result,
+            filterData: {
+              ...result.filterData,
+              createdByActors,
+              entityTypeTitles,
+              lastEditedByActors,
+              webs,
+            },
             rows: accumulatedDataRef.current.rows,
           });
           accumulatedDataRef.current.rows = [];
         }
       }
     };
-  }, [worker]);
+  }, [createdByActors, entityTypeTitles, lastEditedByActors, webs, worker]);
 
   useEffect(() => {
     if (entities && entityTypes && subgraph && !actorsLoading) {

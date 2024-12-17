@@ -9,6 +9,7 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { GetEntitySubgraphRequest } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -31,7 +32,7 @@ import type { EntitiesVisualizerData } from "../pages/shared/entities-visualizer
 type UseEntityTypeEntitiesQueryParams = {
   cursor?: EntityQueryCursor | null;
   entityTypeBaseUrl?: BaseUrl;
-  entityTypeId?: VersionedUrl;
+  entityTypeIds?: VersionedUrl[];
   graphResolveDepths?: Partial<GraphResolveDepths>;
   includeArchived?: boolean;
   ownedByIds?: OwnedById[];
@@ -42,8 +43,9 @@ type UseEntityTypeEntitiesQueryParams = {
 export const generateUseEntityTypeEntitiesQueryVariables = ({
   ownedByIds,
   entityTypeBaseUrl,
-  entityTypeId,
+  entityTypeIds,
   graphResolveDepths,
+  includeArchived,
   ...rest
 }: UseEntityTypeEntitiesQueryParams): GetEntitySubgraphQueryVariables => {
   return {
@@ -55,7 +57,43 @@ export const generateUseEntityTypeEntitiesQueryVariables = ({
       includeTypeIds: true,
       includeWebIds: true,
       filter: {
+        // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+        //   @see https://linear.app/hash/issue/H-1207
         all: [
+          ...(!includeArchived
+            ? [
+                {
+                  notEqual: [{ path: ["archived"] }, { parameter: true }],
+                },
+                {
+                  any: [
+                    {
+                      equal: [
+                        {
+                          path: [
+                            "properties",
+                            systemPropertyTypes.archived.propertyTypeBaseUrl,
+                          ],
+                        },
+
+                        null,
+                      ],
+                    },
+                    {
+                      equal: [
+                        {
+                          path: [
+                            "properties",
+                            systemPropertyTypes.archived.propertyTypeBaseUrl,
+                          ],
+                        },
+                        { parameter: false },
+                      ],
+                    },
+                  ],
+                },
+              ]
+            : []),
           ...(ownedByIds?.length
             ? [
                 {
@@ -74,17 +112,19 @@ export const generateUseEntityTypeEntitiesQueryVariables = ({
                   ],
                 },
               ]
-            : entityTypeId
+            : entityTypeIds?.length
               ? [
                   {
-                    equal: [
-                      { path: ["type", "versionedUrl"] },
-                      { parameter: entityTypeId },
-                    ],
+                    any: entityTypeIds.map((entityTypeId) => ({
+                      equal: [
+                        { path: ["type", "versionedUrl"] },
+                        { parameter: entityTypeId },
+                      ],
+                    })),
                   },
                 ]
               : []),
-          ...(!entityTypeId && !entityTypeBaseUrl
+          ...(!entityTypeIds && !entityTypeBaseUrl
             ? [ignoreNoisySystemTypesFilter]
             : []),
         ],
@@ -106,8 +146,6 @@ export const generateUseEntityTypeEntitiesQueryVariables = ({
 export const useEntityTypeEntities = (
   params: UseEntityTypeEntitiesQueryParams,
 ): EntitiesVisualizerData => {
-  const { entityTypeBaseUrl, entityTypeId } = params;
-
   const variables = useMemo<GetEntitySubgraphQueryVariables>(
     () => generateUseEntityTypeEntitiesQueryVariables(params),
     [params],
@@ -143,8 +181,6 @@ export const useEntityTypeEntities = (
 
   return {
     ...data?.getEntitySubgraph,
-    entityTypeBaseUrl,
-    entityTypeId,
     entities,
     hadCachedContent,
     loading,

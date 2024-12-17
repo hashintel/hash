@@ -11,7 +11,10 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
-import { isExternalOntologyElementMetadata } from "@local/hash-subgraph";
+import {
+  extractOwnedByIdFromEntityId,
+  isExternalOntologyElementMetadata,
+} from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
@@ -491,6 +494,21 @@ export const TypesTable: FunctionComponent<{
     [],
   );
 
+  const numberOfUserWebItems = useMemo(
+    () =>
+      types?.filter(({ metadata }) =>
+        isExternalOntologyElementMetadata(metadata)
+          ? false
+          : internalWebIds.includes(metadata.ownedById),
+      ).length,
+    [types, internalWebIds],
+  );
+
+  const numberOfExternalItems =
+    types && typeof numberOfUserWebItems !== "undefined"
+      ? types.length - numberOfUserWebItems
+      : undefined;
+
   return (
     <>
       {selectedEntityType && (
@@ -522,6 +540,8 @@ export const TypesTable: FunctionComponent<{
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           filterState={filterState}
+          numberOfExternalItems={numberOfExternalItems}
+          numberOfUserWebItems={numberOfUserWebItems}
           setFilterState={setFilterState}
           selectedItems={types?.filter((type) =>
             selectedRows.some(({ typeId }) => type.schema.$id === typeId),

@@ -26,11 +26,10 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { format } from "date-fns";
 
 import type {
-  ActorTableData,
-  EntitiesTableData,
   GenerateEntitiesTableDataParams,
   GenerateEntitiesTableDataResultMessage,
   TypeEntitiesRow,
+  WorkerDataReturn,
 } from "./types";
 import { isGenerateEntitiesTableDataRequestMessage } from "./types";
 
@@ -99,7 +98,7 @@ const isCancelled = async (requestId: string) => {
 const generateTableData = async (
   params: GenerateEntitiesTableDataParams,
   requestId: string,
-): Promise<EntitiesTableData | "cancelled"> => {
+): Promise<WorkerDataReturn | "cancelled"> => {
   const {
     actorsByAccountId,
     entities,
@@ -120,12 +119,6 @@ const generateTableData = async (
 
   const subgraph = deserializeSubgraph(serializedSubgraph);
 
-  const lastEditedBySet = new Set<ActorTableData>();
-  const createdBySet = new Set<ActorTableData>();
-  const entityTypeTitleCount: {
-    [entityTypeTitle: string]: number | undefined;
-  } = {};
-
   let noSource = 0;
   let noTarget = 0;
 
@@ -143,8 +136,6 @@ const generateTableData = async (
       label: string;
     };
   } = {};
-
-  const webCountById: { [web: string]: number } = {};
 
   const propertyColumnsMap = new Map<string, SizedGridColumn>();
 
@@ -233,23 +224,12 @@ const generateTableData = async (
     const lastEditedBy =
       actorsByAccountId[entity.metadata.provenance.edition.createdById];
 
-    if (lastEditedBy) {
-      lastEditedBySet.add({
-        accountId: lastEditedBy.accountId,
-        displayName: lastEditedBy.displayName,
-      });
-    }
-
     const created = format(
       new Date(entity.metadata.provenance.createdAtDecisionTime),
       "yyyy-MM-dd HH:mm",
     );
 
     const createdBy = actorsByAccountId[entity.metadata.provenance.createdById];
-
-    if (createdBy) {
-      createdBySet.add(createdBy);
-    }
 
     const applicableProperties = currentEntitysTypes.flatMap((entityType) =>
       usedPropertyTypesByEntityTypeId[entityType.$id]!.map(({ propertyType }) =>
@@ -321,14 +301,7 @@ const generateTableData = async (
       noTarget += 1;
     }
 
-    for (const entityType of currentEntitysTypes) {
-      entityTypeTitleCount[entityType.title] ??= 0;
-      entityTypeTitleCount[entityType.title]!++;
-    }
-
     const web = `@${entityNamespace}`;
-    webCountById[web] ??= 0;
-    webCountById[web]++;
 
     rows.push({
       rowId: entityId,
@@ -389,10 +362,6 @@ const generateTableData = async (
     columns,
     rows,
     filterData: {
-      lastEditedByActors: [...lastEditedBySet],
-      createdByActors: [...createdBySet],
-      entityTypeTitles: entityTypeTitleCount,
-      webs: webCountById,
       noSourceCount: noSource,
       noTargetCount: noTarget,
       sources: Object.values(sourcesByEntityId),
@@ -411,6 +380,8 @@ self.onmessage = async ({ data }) => {
 
     const result = await generateTableData(params, requestId);
 
+    console.log({ result });
+
     if (result !== "cancelled") {
       /**
        * Split the rows into chunks to avoid the message being too large.
@@ -419,6 +390,19 @@ self.onmessage = async ({ data }) => {
       const chunkedRows: TypeEntitiesRow[][] = [];
       for (let i = 0; i < result.rows.length; i += chunkSize) {
         chunkedRows.push(result.rows.slice(i, i + chunkSize));
+      }
+
+      if (chunkedRows.length === 0) {
+        // eslint-disable-next-line no-restricted-globals
+        self.postMessage({
+          type: "generateEntitiesTableDataResult",
+          requestId,
+          done: true,
+          result: {
+            ...result,
+            rows: [],
+          },
+        } satisfies GenerateEntitiesTableDataResultMessage);
       }
 
       for (const [index, rows] of chunkedRows.entries()) {

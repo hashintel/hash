@@ -7,9 +7,14 @@ import type {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import {
+  ArrowRightRegularIcon,
+  IconButton,
+  LoadingSpinner,
+  Select,
+} from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { Box, Stack, useTheme } from "@mui/material";
@@ -23,47 +28,42 @@ import type {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { GridProps } from "../../../components/grid/grid";
-import {
-  Grid,
-  gridHeaderHeightWithBorder,
-  gridHorizontalScrollbarHeight,
-} from "../../../components/grid/grid";
+import { Grid } from "../../../components/grid/grid";
 import type { BlankCell } from "../../../components/grid/utils";
 import { blankCell } from "../../../components/grid/utils";
 import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
 import type { ColumnFilter } from "../../../components/grid/utils/filtering";
-import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../../shared/table-content";
 import type { FilterState } from "../../../shared/table-header";
-import { tableHeaderHeight } from "../../../shared/table-header";
+import { MenuItem } from "../../../shared/ui/menu-item";
 import { isAiMachineActor } from "../../../shared/use-actors";
 import type { ChipCellProps } from "../chip-cell";
 import { createRenderChipCell } from "../chip-cell";
+import type { UrlCellProps } from "../url-cell";
+import { createRenderUrlCell } from "../url-cell";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
-import type { TypeEntitiesRow } from "./entities-table/use-entities-table/types";
-import { TOP_CONTEXT_BAR_HEIGHT } from "../top-context-bar";
-import type { UrlCellProps } from "../url-cell";
-import { createRenderUrlCell } from "../url-cell";
+import type {
+  EntitiesTableData,
+  TypeEntitiesRow,
+} from "./entities-table/use-entities-table/types";
 import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
-
-const noneString = "none";
 
 const firstColumnLeftPadding = 16;
 
-const emptyTableData = {
+const emptyTableData: EntitiesTableData = {
   columns: [],
   rows: [],
   filterData: {
     createdByActors: [],
     lastEditedByActors: [],
-    entityTypeTitles: {},
+    entityTypeTitles: [],
     noSourceCount: 0,
     noTargetCount: 0,
     sources: [],
     targets: [],
-    webs: {},
+    webs: [],
   },
 };
 
@@ -94,7 +94,8 @@ export const EntitiesTable: FunctionComponent<
     loading: boolean;
     loadingComponent: ReactElement;
     isViewingOnlyPages: boolean;
-    maxHeight?: string | number;
+    maxHeight: string | number;
+    goToNextPage?: () => void;
     readonly?: boolean;
     selectedRows: TypeEntitiesRow[];
     setLimit: (limit: number) => void;
@@ -121,6 +122,7 @@ export const EntitiesTable: FunctionComponent<
   loadingComponent,
   isViewingOnlyPages,
   maxHeight,
+  goToNextPage,
   propertyTypes,
   readonly,
   setLimit,
@@ -136,6 +138,8 @@ export const EntitiesTable: FunctionComponent<
   const router = useRouter();
 
   const { tableData, loading: tableDataCalculating } = useEntitiesTable({
+    createdByIds,
+    editionCreatedByIds,
     entities,
     entityTypes,
     propertyTypes,
@@ -144,21 +148,16 @@ export const EntitiesTable: FunctionComponent<
     hideColumns,
     hideArchivedColumn: !filterState.includeArchived,
     hidePropertiesColumns,
+    typeIds,
+    webIds,
   });
+
+  console.log({ entities, entityDataLoading, tableDataCalculating });
 
   const {
     columns,
     rows,
-    filterData: {
-      createdByActors,
-      lastEditedByActors,
-      entityTypeTitles,
-      noSourceCount,
-      noTargetCount,
-      sources,
-      targets,
-      webs,
-    },
+    filterData: { createdByActors, lastEditedByActors, entityTypeTitles, webs },
   } = tableData ?? emptyTableData;
 
   // eslint-disable-next-line no-param-reassign
@@ -561,10 +560,6 @@ export const EntitiesTable: FunctionComponent<
     });
   }, []);
 
-  const [selectedArchivedStatus, setSelectedArchivedStatus] = useState<
-    Set<"archived" | "not-archived">
-  >(new Set(["archived", "not-archived"]));
-
   const [selectedEntityTypeTitles, setSelectedEntityTypeTitles] = useState<
     Set<string>
   >(new Set(Object.keys(entityTypeTitles)));
@@ -603,89 +598,29 @@ export const EntitiesTable: FunctionComponent<
     setSelectedWebs(new Set(Object.keys(webs)));
   }, [webs]);
 
-  const [selectedSourceEntities, setSelectedSourceEntities] = useState(() => {
-    const selectedSources = new Set(sources.map(({ entityId }) => entityId));
-    if (noSourceCount) {
-      selectedSources.add(noneString);
-    }
-    return selectedSources;
-  });
-
-  useEffect(() => {
-    const selectedSources = new Set(sources.map(({ entityId }) => entityId));
-    if (noSourceCount) {
-      selectedSources.add(noneString);
-    }
-    setSelectedSourceEntities(selectedSources);
-  }, [sources, noSourceCount]);
-
-  const [selectedTargetEntities, setSelectedTargetEntities] = useState(() => {
-    const selectedTargets = new Set(targets.map(({ entityId }) => entityId));
-    if (noTargetCount) {
-      selectedTargets.add(noneString);
-    }
-    return selectedTargets;
-  });
-
-  useEffect(() => {
-    const selectedTargets = new Set(targets.map(({ entityId }) => entityId));
-    if (noTargetCount) {
-      selectedTargets.add(noneString);
-    }
-    setSelectedTargetEntities(selectedTargets);
-  }, [targets, noTargetCount]);
-
   const columnFilters = useMemo<ColumnFilter<string, TypeEntitiesRow>[]>(
     () => [
       {
         columnKey: "web",
-        filterItems: Object.entries(webs).map(([web, count]) => ({
-          id: web,
-          label: web,
+        filterItems: webs.map(({ shortname, webId, count }) => ({
+          id: webId,
+          label: shortname,
           count,
         })),
         selectedFilterItemIds: selectedWebs,
         setSelectedFilterItemIds: setSelectedWebs,
-        isRowFiltered: (row) => !selectedWebs.has(row.web),
+        isRowFiltered: () => false,
       },
       {
         columnKey: "entityTypes",
-        filterItems: Object.entries(entityTypeTitles).map(
-          ([entityTypeTitle, count]) => ({
-            id: entityTypeTitle,
-            label: entityTypeTitle,
-            count,
-          }),
-        ),
+        filterItems: entityTypeTitles.map(({ entityTypeId, count, title }) => ({
+          id: entityTypeId,
+          label: title,
+          count,
+        })),
         selectedFilterItemIds: selectedEntityTypeTitles,
         setSelectedFilterItemIds: setSelectedEntityTypeTitles,
-        isRowFiltered: (row) => {
-          return !row.entityTypes.some(({ title }) =>
-            selectedEntityTypeTitles.has(title),
-          );
-        },
-      },
-      {
-        columnKey: "archived",
-        filterItems: [
-          {
-            id: "archived",
-            label: "Archived",
-          },
-          {
-            id: "not-archived",
-            label: "Not Archived",
-          },
-        ],
-        selectedFilterItemIds: selectedArchivedStatus,
-        setSelectedFilterItemIds: (filterItemIds) =>
-          setSelectedArchivedStatus(
-            new Set(filterItemIds as Set<"archived" | "not-archived">),
-          ),
-        isRowFiltered: (row) =>
-          row.archived
-            ? !selectedArchivedStatus.has("archived")
-            : !selectedArchivedStatus.has("not-archived"),
+        isRowFiltered: () => false,
       },
       {
         columnKey: "lastEditedBy",
@@ -695,10 +630,7 @@ export const EntitiesTable: FunctionComponent<
         })),
         selectedFilterItemIds: selectedLastEditedByAccountIds,
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
-        isRowFiltered: (row) =>
-          row.lastEditedBy && row.lastEditedBy !== "loading"
-            ? !selectedLastEditedByAccountIds.has(row.lastEditedBy.accountId)
-            : false,
+        isRowFiltered: () => false,
       },
       {
         columnKey: "createdBy",
@@ -708,70 +640,7 @@ export const EntitiesTable: FunctionComponent<
         })),
         selectedFilterItemIds: selectedCreatedByAccountIds,
         setSelectedFilterItemIds: setSelectedCreatedByAccountIds,
-        isRowFiltered: (row) =>
-          row.createdBy && row.createdBy !== "loading"
-            ? !selectedCreatedByAccountIds.has(row.createdBy.accountId)
-            : false,
-      },
-      {
-        columnKey: "sourceEntity",
-        filterItems: (() => {
-          const items: ColumnFilter<string, TypeEntitiesRow>["filterItems"] =
-            [];
-          if (noSourceCount) {
-            items.push({
-              id: noneString,
-              doesNotApplyValue: true,
-              label: "Does not apply",
-              count: noSourceCount,
-            });
-          }
-          items.push(
-            ...sources.map((source) => ({
-              id: source.entityId,
-              label: source.label,
-              count: source.count,
-            })),
-          );
-
-          return items;
-        })(),
-        selectedFilterItemIds: selectedSourceEntities,
-        setSelectedFilterItemIds: setSelectedSourceEntities,
-        isRowFiltered: (row) =>
-          row.sourceEntity
-            ? !selectedSourceEntities.has(row.sourceEntity.entityId)
-            : !selectedSourceEntities.has(noneString),
-      },
-      {
-        columnKey: "targetEntity",
-        filterItems: (() => {
-          const items: ColumnFilter<string, TypeEntitiesRow>["filterItems"] =
-            [];
-          if (noTargetCount) {
-            items.push({
-              id: noneString,
-              doesNotApplyValue: true,
-              label: "Does not apply",
-              count: noTargetCount,
-            });
-          }
-          items.push(
-            ...targets.map((target) => ({
-              id: target.entityId,
-              label: target.label,
-              count: target.count,
-            })),
-          );
-
-          return items;
-        })(),
-        selectedFilterItemIds: selectedTargetEntities,
-        setSelectedFilterItemIds: setSelectedTargetEntities,
-        isRowFiltered: (row) =>
-          row.targetEntity
-            ? !selectedTargetEntities.has(row.targetEntity.entityId)
-            : !selectedTargetEntities.has(noneString),
+        isRowFiltered: () => false,
       },
     ],
     [
@@ -783,30 +652,17 @@ export const EntitiesTable: FunctionComponent<
       lastEditedByActors,
       selectedCreatedByAccountIds,
       selectedLastEditedByAccountIds,
-      selectedArchivedStatus,
-      selectedSourceEntities,
-      selectedTargetEntities,
-      noSourceCount,
-      noTargetCount,
-      sources,
-      targets,
     ],
   );
 
-  const maximumTableHeight =
-    maxHeight ??
-    `calc(100vh - (${
-      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 185 + tableHeaderHeight
-    }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
-
-  if (entityDataLoading || tableDataCalculating) {
+  if (!entities && (entityDataLoading || tableDataCalculating)) {
     return (
       <Stack
         alignItems="center"
         justifyContent="center"
         sx={[
           {
-            height: maximumTableHeight,
+            height: maxHeight,
             width: "100%",
           },
           tableContentSx,
@@ -818,36 +674,56 @@ export const EntitiesTable: FunctionComponent<
   }
 
   return (
-    <Grid
-      showSearch={showSearch}
-      onSearchClose={() => setShowSearch(false)}
-      columns={columns}
-      columnFilters={columnFilters}
-      dataLoading={false}
-      rows={rows}
-      enableCheckboxSelection={!readonly}
-      selectedRows={selectedRows}
-      onSelectedRowsChange={(updatedSelectedRows) =>
-        setSelectedRows(updatedSelectedRows)
-      }
-      sortRows={sortRows}
-      firstColumnLeftPadding={firstColumnLeftPadding}
-      height={`
-               min(
-                 ${maximumTableHeight},
-                calc(
-                 ${gridHeaderHeightWithBorder}px +
-                 (${rows.length ? rows.length : 1} * ${gridRowHeight}px) +
-                 ${gridHorizontalScrollbarHeight}px)
-               )`}
-      createGetCellContent={createGetCellContent}
-      customRenderers={[
-        createRenderTextIconCell({ firstColumnLeftPadding }),
-        createRenderUrlCell({ firstColumnLeftPadding }),
-        createRenderChipCell({ firstColumnLeftPadding }),
-      ]}
-      freezeColumns={1}
-      currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-    />
+    <Stack gap={1}>
+      <Grid
+        showSearch={showSearch}
+        onSearchClose={() => setShowSearch(false)}
+        columns={columns}
+        columnFilters={columnFilters}
+        dataLoading={false}
+        rows={rows}
+        enableCheckboxSelection={!readonly}
+        selectedRows={selectedRows}
+        onSelectedRowsChange={(updatedSelectedRows) =>
+          setSelectedRows(updatedSelectedRows)
+        }
+        sortRows={sortRows}
+        firstColumnLeftPadding={firstColumnLeftPadding}
+        height={`min(${maxHeight}, 600px)`}
+        createGetCellContent={createGetCellContent}
+        customRenderers={[
+          createRenderTextIconCell({ firstColumnLeftPadding }),
+          createRenderUrlCell({ firstColumnLeftPadding }),
+          createRenderChipCell({ firstColumnLeftPadding }),
+        ]}
+        freezeColumns={1}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+      />
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="flex-start"
+          gap={2}
+        >
+          <Select
+            value={limit.toString()}
+            onChange={(event) => setLimit(parseInt(event.target.value, 10))}
+            sx={{ width: 100 }}
+          >
+            <MenuItem value={10}>10</MenuItem>
+            <MenuItem value={50}>50</MenuItem>
+            <MenuItem value={100}>100</MenuItem>
+            <MenuItem value={500}>500</MenuItem>
+          </Select>
+          {(entityDataLoading || tableDataCalculating) && (
+            <LoadingSpinner size={28} color={theme.palette.blue[60]} />
+          )}
+        </Stack>
+        <IconButton onClick={goToNextPage} disabled={!goToNextPage}>
+          <ArrowRightRegularIcon />
+        </IconButton>
+      </Stack>
+    </Stack>
   );
 };
