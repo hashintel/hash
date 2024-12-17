@@ -1,9 +1,4 @@
-#![feature(
-    impl_trait_in_assoc_type,
-    return_type_notation,
-    async_closure,
-    never_type
-)]
+#![feature(impl_trait_in_assoc_type, return_type_notation, never_type)]
 #![expect(clippy::future_not_send)]
 
 extern crate alloc;
