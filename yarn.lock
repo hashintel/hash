@@ -478,8 +478,8 @@ __metadata:
     "@emotion/react": "npm:11.14.0"
     "@emotion/server": "npm:11.11.0"
     "@emotion/styled": "npm:11.14.0"
-    "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
-    "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
+    "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
+    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@glideapps/glide-data-grid": "patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch"
     "@graphql-codegen/cli": "npm:^5.0.3"
     "@graphql-codegen/fragment-matcher": "npm:3.3.3"
@@ -731,7 +731,7 @@ __metadata:
     "@emotion/react": "npm:11.14.0"
     "@emotion/server": "npm:11.11.0"
     "@emotion/styled": "npm:11.14.0"
-    "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
+    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@matejmazur/react-katex": "npm:3.1.3"
@@ -4620,8 +4620,8 @@ __metadata:
   dependencies:
     "@blockprotocol/graph": "npm:0.3.4"
     "@blockprotocol/service": "npm:0.1.4"
-    "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
-    "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
+    "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
+    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@hashintel/block-design-system": "npm:0.0.2"
     "@hashintel/design-system": "npm:0.0.8"
     "@local/eslint": "npm:0.0.0-private"
@@ -6778,28 +6778,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fortawesome/fontawesome-common-types@npm:6.7.1":
-  version: 6.7.1
-  resolution: "@fortawesome/fontawesome-common-types@npm:6.7.1"
-  checksum: 10c0/0345b896ad8df26fb823893ce0a405dd513e9ef34878dd7b94fbbbabe370379bf680a32199bcaaf7346acbcd2a10bf0072e305829b49e5d9b0bf1c5315d07c96
+"@fortawesome/fontawesome-common-types@npm:6.7.2":
+  version: 6.7.2
+  resolution: "@fortawesome/fontawesome-common-types@npm:6.7.2"
+  checksum: 10c0/0785df560542d9c08a0ba07bb7a39902274a3cd65c018672eb2520a99efccce18bdb7f7f4b1c6089763bc5627bf0f0837c3af963a8427eaeb535bd57c820a723
   languageName: node
   linkType: hard
 
-"@fortawesome/free-regular-svg-icons@npm:6.7.1":
-  version: 6.7.1
-  resolution: "@fortawesome/free-regular-svg-icons@npm:6.7.1"
+"@fortawesome/free-regular-svg-icons@npm:6.7.2":
+  version: 6.7.2
+  resolution: "@fortawesome/free-regular-svg-icons@npm:6.7.2"
   dependencies:
-    "@fortawesome/fontawesome-common-types": "npm:6.7.1"
-  checksum: 10c0/6d770622cd6519835d8557a0a562c5f2f877527bb65671a6136a558ce61024bf7baaeb8e29420f29da4893b815c3af8173c6f45064bbcc040db613998d77502e
+    "@fortawesome/fontawesome-common-types": "npm:6.7.2"
+  checksum: 10c0/3a334cb0c837170f7b14759ddc8ef2a821b8d2c59b23a7b852d7e3fb16b066dd5fe8649e47bc1ef91764c78a78f51d1c0c8c5b8567e1680eeb21e8afdc70f5f7
   languageName: node
   linkType: hard
 
-"@fortawesome/free-solid-svg-icons@npm:6.7.1":
-  version: 6.7.1
-  resolution: "@fortawesome/free-solid-svg-icons@npm:6.7.1"
+"@fortawesome/free-solid-svg-icons@npm:6.7.2":
+  version: 6.7.2
+  resolution: "@fortawesome/free-solid-svg-icons@npm:6.7.2"
   dependencies:
-    "@fortawesome/fontawesome-common-types": "npm:6.7.1"
-  checksum: 10c0/9b6e6ba383dfc456020b77a600edcccaf8131ebd472038bd6b6f2425f011c8c63c0a6049d798dc120512b9c5332043eb46bb815d9d55c56ebdf8ecc94afb0184
+    "@fortawesome/fontawesome-common-types": "npm:6.7.2"
+  checksum: 10c0/e900f3bb7b7d821421f11439ff78cd2b3c98ca31e848e1afebf7caa578d29a31fb6cf8ef283d4df342de777126a71fcbb154dd395b9d9ab6914a40a86df81413
   languageName: node
   linkType: hard
 
@@ -7864,8 +7864,8 @@ __metadata:
     "@emotion/cache": "npm:11.14.0"
     "@emotion/react": "npm:11.14.0"
     "@emotion/styled": "npm:11.14.0"
-    "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
-    "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
+    "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
+    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
@@ -7899,8 +7899,8 @@ __metadata:
   dependencies:
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
-    "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
-    "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
+    "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
+    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@hashintel/design-system": "npm:0.0.8"
     "@local/eslint": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.11"
@@ -7927,8 +7927,8 @@ __metadata:
   dependencies:
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
-    "@fortawesome/free-regular-svg-icons": "npm:6.7.1"
-    "@fortawesome/free-solid-svg-icons": "npm:6.7.1"
+    "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
+    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@hashintel/design-system": "npm:0.0.8"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
