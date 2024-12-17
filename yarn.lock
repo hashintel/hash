@@ -7835,17 +7835,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grpc/grpc-js@npm:^1.10.7, @grpc/grpc-js@npm:^1.12.1, @grpc/grpc-js@npm:^1.12.2, @grpc/grpc-js@npm:^1.7.1":
-  version: 1.12.2
-  resolution: "@grpc/grpc-js@npm:1.12.2"
-  dependencies:
-    "@grpc/proto-loader": "npm:^0.7.13"
-    "@js-sdsl/ordered-map": "npm:^4.4.2"
-  checksum: 10c0/0370bdec80a5d73f0929c4b7a882af3b0ca85ed1fda361ce3986b705eb2aa9be59bba39a18b99cc05080d5c0819b319a56796dfde248375971ba64efd55fc9d6
-  languageName: node
-  linkType: hard
-
-"@grpc/grpc-js@npm:^1.10.8":
+"@grpc/grpc-js@npm:^1.10.7, @grpc/grpc-js@npm:^1.10.8, @grpc/grpc-js@npm:^1.12.1, @grpc/grpc-js@npm:^1.12.2, @grpc/grpc-js@npm:^1.7.1":
   version: 1.12.4
   resolution: "@grpc/grpc-js@npm:1.12.4"
   dependencies:
@@ -46148,17 +46138,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"type-fest@npm:^4.30.0":
+"type-fest@npm:^4.30.0, type-fest@npm:^4.6.0, type-fest@npm:^4.7.1":
   version: 4.30.2
   resolution: "type-fest@npm:4.30.2"
   checksum: 10c0/c28db60ff57223fb23180e66bd9652fb3197fb533e9360f9ee76e66c3ccb6849b292df5e8fa5897f215f6685357dd31c946511da56be549cb5de9d42ac9ea67d
-  languageName: node
-  linkType: hard
-
-"type-fest@npm:^4.6.0, type-fest@npm:^4.7.1":
-  version: 4.29.1
-  resolution: "type-fest@npm:4.29.1"
-  checksum: 10c0/93019c35cedec6dc12a324edcf6bd71719881c944f70e6bf029fd2deb4132589439510f4043f82d7afa6238c0850becfe64fa299a0bca351bed9d839b65463e2
   languageName: node
   linkType: hard
 
