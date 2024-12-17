@@ -303,7 +303,7 @@ __metadata:
     googleapis: "npm:133.0.0"
     is-docker: "npm:3.0.0"
     jsdom: "npm:24.1.3"
-    llamaindex: "npm:0.8.29"
+    llamaindex: "npm:0.8.30"
     lodash.debounce: "npm:4.0.8"
     lodash.isequal: "npm:4.5.0"
     lodash.ismatch: "npm:4.4.0"
@@ -9101,13 +9101,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@llamaindex/cloud@npm:2.0.19":
-  version: 2.0.19
-  resolution: "@llamaindex/cloud@npm:2.0.19"
+"@llamaindex/cloud@npm:2.0.20":
+  version: 2.0.20
+  resolution: "@llamaindex/cloud@npm:2.0.20"
   peerDependencies:
     "@llamaindex/core": 0.4.19
     "@llamaindex/env": 0.1.25
-  checksum: 10c0/010a5df3c9acb3f160f2d27905bfd2b7f493dc374aa725df4ca8c4d8cc95b64537bc67dbdeef41b48c3fb073ce4cd015efab55d7a827f7a0006564df59affc16
+  checksum: 10c0/8288feba87f38cc13f2f35b410e2e8537868ebb90e46b332afa64d66d6433a3d56632d9ad256779ea6758238db986a2254e769acc2b8628f37890c92f5f33435
   languageName: node
   linkType: hard
 
@@ -33516,9 +33516,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"llamaindex@npm:0.8.29":
-  version: 0.8.29
-  resolution: "llamaindex@npm:0.8.29"
+"llamaindex@npm:0.8.30":
+  version: 0.8.30
+  resolution: "llamaindex@npm:0.8.30"
   dependencies:
     "@anthropic-ai/sdk": "npm:0.32.1"
     "@aws-crypto/sha256-js": "npm:^5.2.0"
@@ -33532,7 +33532,7 @@ __metadata:
     "@grpc/grpc-js": "npm:^1.12.2"
     "@llamaindex/anthropic": "npm:0.0.28"
     "@llamaindex/clip": "npm:0.0.28"
-    "@llamaindex/cloud": "npm:2.0.19"
+    "@llamaindex/cloud": "npm:2.0.20"
     "@llamaindex/core": "npm:0.4.19"
     "@llamaindex/deepinfra": "npm:0.0.28"
     "@llamaindex/env": "npm:0.1.25"
@@ -33580,7 +33580,7 @@ __metadata:
       optional: true
     pgvector:
       optional: true
-  checksum: 10c0/518303ccd493382e3427f00c577926ba63ca76241e9fe1c30cf064557beb84e2482ca1512320fd84919693cf77a37145e68453edec6e34d1add248e25b7a821c
+  checksum: 10c0/d3a5f0dc8931c031ab5efe223a136a6e8803720ab3cc84c403897542b58c5a4851f12094feaad160a079bdb9254c60dca52385258680f052d9d8af53ca92b7d1
   languageName: node
   linkType: hard
 

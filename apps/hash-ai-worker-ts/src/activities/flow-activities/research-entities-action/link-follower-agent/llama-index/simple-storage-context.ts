@@ -1,98 +1,70 @@
-import { access, mkdir } from "node:fs/promises";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { Subtype } from "@local/advanced-types/subtype";
-import type { StorageContext } from "llamaindex";
-import {
-  SimpleDocumentStore,
-  SimpleIndexStore,
-  SimpleVectorStore,
-} from "llamaindex";
-
-export type SimpleStorageContext = Subtype<
-  StorageContext,
-  {
-    docStore: SimpleDocumentStore;
-    indexStore: SimpleIndexStore;
-    vectorStore: SimpleVectorStore;
-  }
->;
+import { type StorageContext, storageContextFromDefaults } from "llamaindex";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const baseFilePath = path.join(__dirname, "/var/tmp_files");
 
-export const generateSimpleStorageContextFilePaths = (params: {
-  hash: string;
+export interface Storage extends StorageContext {
+  directory: string;
+}
+
+const directory = ({ hash }: { hash?: string }) => {
+  // if no hash is provided, use a random one
+  const segment = hash ?? Math.random().toString(36).substring(7);
+
+  return `${baseFilePath}/storage/${segment}`;
+};
+
+export const createStorageContext = async ({ hash }: { hash?: string }) => {
+  const directoryPath = directory({ hash });
+
+  try {
+    await fs.mkdir(directoryPath, { recursive: true });
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+      // eslint-disable-next-line no-console
+      console.info(
+        `Unable to create directory ${directoryPath}: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  const context = await storageContextFromDefaults({
+    persistDir: directoryPath,
+    storeImages: false,
+  });
+
+  return { ...context, directory: directoryPath };
+};
+
+const ensurePromise = <T>(value: T | Promise<T>): Promise<T> =>
+  value instanceof Promise ? value : Promise.resolve(value);
+
+export const persistStorageContext = ({
+  storageContext: { vectorStores, docStore, indexStore },
+}: {
+  storageContext: StorageContext;
 }) => {
-  const { hash } = params;
+  const promises: Promise<void>[] = [];
 
-  const directoryPath = `${baseFilePath}/storage/${hash}`;
-
-  return {
-    directoryPath,
-    vectorStorePath: `${directoryPath}/vector-store.json`,
-    docStorePath: `${directoryPath}/doc-store.json`,
-    indexStorePath: `${directoryPath}/index-store.json`,
+  const pushPersist = (store: object | undefined) => {
+    if (store && "persist" in store) {
+      const persist = store.persist as () => Promise<void> | void;
+      promises.push(ensurePromise(persist()));
+    }
   };
-};
 
-export const retrieveSimpleStorageContext = async (params: {
-  hash: string;
-}): Promise<{ simpleStorageContext: SimpleStorageContext | undefined }> => {
-  const { hash } = params;
-
-  const { directoryPath, vectorStorePath, docStorePath, indexStorePath } =
-    generateSimpleStorageContextFilePaths({ hash });
-
-  try {
-    // Check directory exists
-    await access(directoryPath);
-
-    await Promise.all([
-      access(vectorStorePath),
-      // access(docStorePath),
-      access(indexStorePath),
-    ]);
-
-    const simpleStorageContext: SimpleStorageContext = {
-      vectorStore: await SimpleVectorStore.fromPersistPath(vectorStorePath),
-      docStore: await SimpleDocumentStore.fromPersistPath(docStorePath),
-      indexStore: await SimpleIndexStore.fromPersistPath(indexStorePath),
-    };
-
-    return { simpleStorageContext };
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(
-      `Failed to retrieve storage context: ${(error as Error).message}`,
-    );
-    return { simpleStorageContext: undefined };
+  for (const store of Object.values(vectorStores)) {
+    pushPersist(store);
   }
-};
-
-export const persistSimpleStorageContext = async (params: {
-  hash: string;
-  simpleStorageContext: SimpleStorageContext;
-}) => {
-  const { hash, simpleStorageContext } = params;
-
-  const { vectorStore, docStore, indexStore } = simpleStorageContext;
-
-  const { directoryPath, vectorStorePath, docStorePath, indexStorePath } =
-    generateSimpleStorageContextFilePaths({ hash });
-
-  try {
-    await access(directoryPath);
-  } catch {
-    // If the directory does not exist, create it recursively
-    await mkdir(directoryPath, { recursive: true });
-  }
-
-  await vectorStore.persist(vectorStorePath);
   /** @todo: figure out why this doesn't get created */
-  await docStore.persist(docStorePath);
-  await indexStore.persist(indexStorePath);
+  pushPersist(docStore);
+  pushPersist(indexStore);
+
+  return Promise.all(promises);
 };
