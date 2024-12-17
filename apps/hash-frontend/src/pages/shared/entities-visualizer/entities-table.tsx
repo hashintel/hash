@@ -152,8 +152,6 @@ export const EntitiesTable: FunctionComponent<
     webIds,
   });
 
-  console.log({ entities, entityDataLoading, tableDataCalculating });
-
   const {
     columns,
     rows,

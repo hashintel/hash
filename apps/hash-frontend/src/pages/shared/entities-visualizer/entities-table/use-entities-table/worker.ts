@@ -380,8 +380,6 @@ self.onmessage = async ({ data }) => {
 
     const result = await generateTableData(params, requestId);
 
-    console.log({ result });
-
     if (result !== "cancelled") {
       /**
        * Split the rows into chunks to avoid the message being too large.

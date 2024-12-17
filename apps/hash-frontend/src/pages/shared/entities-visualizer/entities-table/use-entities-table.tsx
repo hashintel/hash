@@ -293,7 +293,6 @@ export const useEntitiesTable = (
       if (isGenerateEntitiesTableDataResultMessage(data)) {
         const { done, requestId, result } = data;
 
-        console.log("MEssage", { done, result });
         setWaitingTableData(false);
 
         if (accumulatedDataRef.current.requestId !== requestId) {
