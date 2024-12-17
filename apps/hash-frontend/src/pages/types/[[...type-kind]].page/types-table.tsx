@@ -480,7 +480,10 @@ export const TypesTable: FunctionComponent<{
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
   const onTypeClick = useCallback(
-    (typeId: VersionedUrl, slideContainerRef?: RefObject<HTMLDivElement | null>) =>
+    (
+      typeId: VersionedUrl,
+      slideContainerRef?: RefObject<HTMLDivElement | null>,
+    ) =>
       setSelectedEntityType({
         entityTypeId: typeId,
         slideContainerRef,

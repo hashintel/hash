@@ -153,7 +153,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   );
 
   return (
-    (<Box
+    <Box
       ref={(ref: HTMLDivElement) => {
         setContainer(ref);
       }}
@@ -376,6 +376,6 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         onDelete={async () => await deleteComment(commentEntityId)}
         onCancel={() => setDeleteConfirmationDialogOpen(false)}
       />
-    </Box>)
+    </Box>
   );
 };

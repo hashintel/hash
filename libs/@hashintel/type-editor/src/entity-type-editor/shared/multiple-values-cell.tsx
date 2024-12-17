@@ -236,285 +236,287 @@ export const MultipleValuesCell = ({
     }
   };
 
-  return (<>
-    <TableCell
-      ref={(ref: HTMLDivElement) => {
-        setAnchorEl(ref);
-      }}
-      sx={{
-        p: "0 !important",
-        position: "relative",
-      }}
-      width={MULTIPLE_VALUES_CELL_WIDTH}
-    >
-      <MultipleValuesControlContainer
-        canToggle={canToggle}
-        isReadOnly={isReadonly}
-        menuOpen={multipleValuesMenuOpen}
-        showSummary={showSummary}
-        onClick={() => {
-          if (isReadonly) {
-            return;
-          }
-          if (multipleValuesMenuOpen) {
-            setMultipleValuesMenuOpen(false);
-          } else if (array) {
-            setMultipleValuesMenuOpen(true);
-          } else if (canToggle) {
-            handleArrayChange(true);
-          }
+  return (
+    <>
+      <TableCell
+        ref={(ref: HTMLDivElement) => {
+          setAnchorEl(ref);
         }}
-        onMouseEnter={() => setHovered(!isReadonly)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        {canToggle ? (
-          <Checkbox
-            {...arrayController.field}
-            checked={arrayController.field.value}
-            onChange={(evt) => {
-              handleArrayChange(evt.target.checked);
-            }}
-            sx={{
-              "+ *": {
-                ml: 1,
-              },
-            }}
-          />
-        ) : null}
-        <MultipleValuesCellSummary
-          show={showSummary}
-          infinity={infinity}
-          min={minValue}
-          max={maxValue}
-        />
-        {canToggle ? null : (
-          <Collapse
-            in={hovered || multipleValuesMenuOpen}
-            orientation="horizontal"
-          >
-            <FontAwesomeIcon
-              icon={faEdit}
-              sx={(theme) => ({
-                fontSize: "13px",
-                color: theme.palette.gray[70],
-                ml: 0.5,
-                display: "block",
-              })}
-            />
-          </Collapse>
-        )}
-      </MultipleValuesControlContainer>
-      <Popper
-        open={multipleValuesMenuOpen}
-        anchorEl={anchorEl}
-        container={anchorEl}
-        placement="bottom"
         sx={{
-          width: 1,
-          zIndex: ({ zIndex }) => zIndex.drawer + 2,
+          p: "0 !important",
+          position: "relative",
         }}
-        transition
-        // Attempt to prevent this messing with the edit bar scroll freezing
-        modifiers={[
-          addPopperPositionClassPopperModifier,
-          // { name: "flip", enabled: false },
-          // { name: "preventOverflow", enabled: false },
-          {
-            name: "offset",
-            enabled: true,
-            options: {
-              // @todo check this is right
-              offset: () => [0, -1],
-            },
-          },
-        ]}
+        width={MULTIPLE_VALUES_CELL_WIDTH}
       >
-        {({ TransitionProps }) => (
-          <ClickAwayListener
-            onClickAway={() => setMultipleValuesMenuOpen(false)}
-          >
-            <Fade {...TransitionProps}>
-              <Box
-                sx={[
-                  ({ palette, boxShadows }) => ({
-                    border: 1,
-                    p: 1.5,
-                    background: palette.white,
-                    borderColor: palette.gray[30],
-                    boxShadow: boxShadows.md,
-                    borderRadius: "4px",
-                    userSelect: "none",
-                  }),
-                  popperPlacementPopperNoRadius,
-                ]}
-              >
-                {/* Controllers are used for min/max as their values are frozen during animation */}
-                <Controller
-                  render={({ field: { value: _, ...field } }) => (
-                    <TextField
-                      {...field}
-                      onChange={(evt) => {
-                        const target = evt.target as HTMLInputElement;
-                        let min = target.valueAsNumber;
+        <MultipleValuesControlContainer
+          canToggle={canToggle}
+          isReadOnly={isReadonly}
+          menuOpen={multipleValuesMenuOpen}
+          showSummary={showSummary}
+          onClick={() => {
+            if (isReadonly) {
+              return;
+            }
+            if (multipleValuesMenuOpen) {
+              setMultipleValuesMenuOpen(false);
+            } else if (array) {
+              setMultipleValuesMenuOpen(true);
+            } else if (canToggle) {
+              handleArrayChange(true);
+            }
+          }}
+          onMouseEnter={() => setHovered(!isReadonly)}
+          onMouseLeave={() => setHovered(false)}
+        >
+          {canToggle ? (
+            <Checkbox
+              {...arrayController.field}
+              checked={arrayController.field.value}
+              onChange={(evt) => {
+                handleArrayChange(evt.target.checked);
+              }}
+              sx={{
+                "+ *": {
+                  ml: 1,
+                },
+              }}
+            />
+          ) : null}
+          <MultipleValuesCellSummary
+            show={showSummary}
+            infinity={infinity}
+            min={minValue}
+            max={maxValue}
+          />
+          {canToggle ? null : (
+            <Collapse
+              in={hovered || multipleValuesMenuOpen}
+              orientation="horizontal"
+            >
+              <FontAwesomeIcon
+                icon={faEdit}
+                sx={(theme) => ({
+                  fontSize: "13px",
+                  color: theme.palette.gray[70],
+                  ml: 0.5,
+                  display: "block",
+                })}
+              />
+            </Collapse>
+          )}
+        </MultipleValuesControlContainer>
+        <Popper
+          open={multipleValuesMenuOpen}
+          anchorEl={anchorEl}
+          container={anchorEl}
+          placement="bottom"
+          sx={{
+            width: 1,
+            zIndex: ({ zIndex }) => zIndex.drawer + 2,
+          }}
+          transition
+          // Attempt to prevent this messing with the edit bar scroll freezing
+          modifiers={[
+            addPopperPositionClassPopperModifier,
+            // { name: "flip", enabled: false },
+            // { name: "preventOverflow", enabled: false },
+            {
+              name: "offset",
+              enabled: true,
+              options: {
+                // @todo check this is right
+                offset: () => [0, -1],
+              },
+            },
+          ]}
+        >
+          {({ TransitionProps }) => (
+            <ClickAwayListener
+              onClickAway={() => setMultipleValuesMenuOpen(false)}
+            >
+              <Fade {...TransitionProps}>
+                <Box
+                  sx={[
+                    ({ palette, boxShadows }) => ({
+                      border: 1,
+                      p: 1.5,
+                      background: palette.white,
+                      borderColor: palette.gray[30],
+                      boxShadow: boxShadows.md,
+                      borderRadius: "4px",
+                      userSelect: "none",
+                    }),
+                    popperPlacementPopperNoRadius,
+                  ]}
+                >
+                  {/* Controllers are used for min/max as their values are frozen during animation */}
+                  <Controller
+                    render={({ field: { value: _, ...field } }) => (
+                      <TextField
+                        {...field}
+                        onChange={(evt) => {
+                          const target = evt.target as HTMLInputElement;
+                          let min = target.valueAsNumber;
 
-                        if (Number.isNaN(min)) {
-                          field.onChange(target.value);
-                        } else {
-                          min = Math.max(0, min);
-                          const max = Number.isNaN(maxValue)
-                            ? 0
-                            : Number(maxValue);
+                          if (Number.isNaN(min)) {
+                            field.onChange(target.value);
+                          } else {
+                            min = Math.max(0, min);
+                            const max = Number.isNaN(maxValue)
+                              ? 0
+                              : Number(maxValue);
 
-                          if (min > max) {
-                            setValue(`${formPrefix}.maxValue`, min, {
+                            if (min > max) {
+                              setValue(`${formPrefix}.maxValue`, min, {
+                                shouldDirty: true,
+                              });
+                            }
+                            field.onChange(min);
+                          }
+                        }}
+                        onBlur={(evt) => {
+                          if (evt.target.value === "") {
+                            setValue(`${formPrefix}.minValue`, 0, {
                               shouldDirty: true,
                             });
                           }
-                          field.onChange(min);
-                        }
+                        }}
+                        type="number"
+                        size="small"
+                        label="Minimum"
+                        inputProps={{ min: 0 }}
+                        value={menuOpenFrozenMinValue}
+                        sx={{ mb: 2 }}
+                      />
+                    )}
+                    name={`${formPrefix}.minValue`}
+                    rules={{ min: 0, required: true }}
+                  />
+                  <FormControl>
+                    <InputLabel
+                      {...inputLabelProps}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
                       }}
-                      onBlur={(evt) => {
-                        if (evt.target.value === "") {
-                          setValue(`${formPrefix}.minValue`, 0, {
-                            shouldDirty: true,
-                          });
-                        }
-                      }}
-                      type="number"
-                      size="small"
-                      label="Minimum"
-                      inputProps={{ min: 0 }}
-                      value={menuOpenFrozenMinValue}
-                      sx={{ mb: 2 }}
-                    />
-                  )}
-                  name={`${formPrefix}.minValue`}
-                  rules={{ min: 0, required: true }}
-                />
-                <FormControl>
-                  <InputLabel
-                    {...inputLabelProps}
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                    htmlFor={maximumFieldId}
-                  >
-                    Maximum
-                    <Box
-                      display="flex"
-                      sx={({ palette }) => ({
-                        color: palette.gray[70],
-                      })}
+                      htmlFor={maximumFieldId}
                     >
-                      ∞
-                      <div ref={setInfinityCheckboxNode} />
-                    </Box>
-                  </InputLabel>
+                      Maximum
+                      <Box
+                        display="flex"
+                        sx={({ palette }) => ({
+                          color: palette.gray[70],
+                        })}
+                      >
+                        ∞
+                        <div ref={setInfinityCheckboxNode} />
+                      </Box>
+                    </InputLabel>
 
-                  <Collapse in={!menuOpenFrozenInfinity}>
-                    <Controller
-                      render={({ field: { value: _, ...field } }) => (
-                        <OutlinedInput
-                          {...getInputProps()}
-                          {...field}
-                          type="number"
-                          inputProps={{ min: 0 }}
-                          onChange={(evt) => {
-                            const target = evt.target as HTMLInputElement;
-                            let max = target.valueAsNumber;
+                    <Collapse in={!menuOpenFrozenInfinity}>
+                      <Controller
+                        render={({ field: { value: _, ...field } }) => (
+                          <OutlinedInput
+                            {...getInputProps()}
+                            {...field}
+                            type="number"
+                            inputProps={{ min: 0 }}
+                            onChange={(evt) => {
+                              const target = evt.target as HTMLInputElement;
+                              let max = target.valueAsNumber;
 
-                            if (Number.isNaN(max)) {
-                              field.onChange(target.value);
-                            } else {
-                              max = Math.max(max, 0);
+                              if (Number.isNaN(max)) {
+                                field.onChange(target.value);
+                              } else {
+                                max = Math.max(max, 0);
 
-                              const min = Number.isNaN(minValue)
-                                ? 0
-                                : Number(minValue);
-                              if (max < min) {
-                                setValue(`${formPrefix}.minValue`, max, {
-                                  shouldDirty: true,
-                                });
+                                const min = Number.isNaN(minValue)
+                                  ? 0
+                                  : Number(minValue);
+                                if (max < min) {
+                                  setValue(`${formPrefix}.minValue`, max, {
+                                    shouldDirty: true,
+                                  });
+                                }
+
+                                field.onChange(max);
                               }
-
-                              field.onChange(max);
-                            }
-                          }}
-                          onBlur={(evt) => {
-                            if (evt.target.value === "") {
-                              setValue(
-                                `${formPrefix}.maxValue`,
-                                Math.max(
-                                  1,
-                                  typeof minValue === "number" ? minValue : 0,
-                                ),
-                                { shouldDirty: true },
-                              );
-                            }
-                          }}
-                          value={menuOpenFrozenMaxValue}
-                          size="small"
-                          id={maximumFieldId}
-                        />
-                      )}
-                      name={`${formPrefix}.maxValue`}
-                      rules={{
-                        min: 0,
-                        required: true,
-                      }}
-                    />
-                  </Collapse>
-                </FormControl>
-              </Box>
-            </Fade>
-          </ClickAwayListener>
-        )}
-      </Popper>
-    </TableCell>
-    {
-      // We use a portal here, to ensure this is outside the
-      // FormControl context so clicking on it doesn't focus the
-      // field and cause a blue highlight
-      infinityCheckboxNode
-        ? createPortal(
-            <Controller
-              render={({ field: { value: _, ...field } }) => (
-                <Checkbox
-                  {...field}
-                  checked={menuOpenFrozenInfinity}
-                  onChange={(evt) => {
-                    if (
-                      typeof maxValue !== "number" ||
-                      typeof minValue !== "number"
-                    ) {
-                      setValue(
-                        `${formPrefix}.maxValue`,
-                        Math.max(
-                          1,
-                          typeof minValue === "number" ? minValue : 0,
-                        ),
-                        { shouldDirty: true },
-                      );
-                    } else if (maxValue < minValue) {
-                      setValue(`${formPrefix}.maxValue`, minValue, {
-                        shouldDirty: true,
-                      });
-                    }
-                    field.onChange(evt.target.checked);
-                  }}
-                  sx={{
-                    "&, > svg": { fontSize: "inherit" },
-                    ml: 0.6,
-                  }}
-                />
-              )}
-              name={`${formPrefix}.infinity`}
-            />,
-            infinityCheckboxNode,
-          )
-        : null
-    }
-  </>);
+                            }}
+                            onBlur={(evt) => {
+                              if (evt.target.value === "") {
+                                setValue(
+                                  `${formPrefix}.maxValue`,
+                                  Math.max(
+                                    1,
+                                    typeof minValue === "number" ? minValue : 0,
+                                  ),
+                                  { shouldDirty: true },
+                                );
+                              }
+                            }}
+                            value={menuOpenFrozenMaxValue}
+                            size="small"
+                            id={maximumFieldId}
+                          />
+                        )}
+                        name={`${formPrefix}.maxValue`}
+                        rules={{
+                          min: 0,
+                          required: true,
+                        }}
+                      />
+                    </Collapse>
+                  </FormControl>
+                </Box>
+              </Fade>
+            </ClickAwayListener>
+          )}
+        </Popper>
+      </TableCell>
+      {
+        // We use a portal here, to ensure this is outside the
+        // FormControl context so clicking on it doesn't focus the
+        // field and cause a blue highlight
+        infinityCheckboxNode
+          ? createPortal(
+              <Controller
+                render={({ field: { value: _, ...field } }) => (
+                  <Checkbox
+                    {...field}
+                    checked={menuOpenFrozenInfinity}
+                    onChange={(evt) => {
+                      if (
+                        typeof maxValue !== "number" ||
+                        typeof minValue !== "number"
+                      ) {
+                        setValue(
+                          `${formPrefix}.maxValue`,
+                          Math.max(
+                            1,
+                            typeof minValue === "number" ? minValue : 0,
+                          ),
+                          { shouldDirty: true },
+                        );
+                      } else if (maxValue < minValue) {
+                        setValue(`${formPrefix}.maxValue`, minValue, {
+                          shouldDirty: true,
+                        });
+                      }
+                      field.onChange(evt.target.checked);
+                    }}
+                    sx={{
+                      "&, > svg": { fontSize: "inherit" },
+                      ml: 0.6,
+                    }}
+                  />
+                )}
+                name={`${formPrefix}.infinity`}
+              />,
+              infinityCheckboxNode,
+            )
+          : null
+      }
+    </>
+  );
 };
