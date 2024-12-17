@@ -1,3 +1,4 @@
+import type { HTTPResolverOptions } from "@apidevtools/json-schema-ref-parser";
 import type {
   DataType,
   EntityType,
@@ -12,7 +13,6 @@ import { typedValues } from "../../util/typed-object-iter.js";
 import type { CompileContext } from "../context.js";
 import type { CompiledTsType, JsonSchema } from "../shared.js";
 import { redundantTypePlaceholder } from "../shared.js";
-import type { HTTPResolverOptions } from "@apidevtools/json-schema-ref-parser";
 
 const compileIndividualSchemaToTypescript = async (
   type: DataType | PropertyType | EntityType | JsonSchema,
