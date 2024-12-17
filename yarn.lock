@@ -527,9 +527,9 @@ __metadata:
     "@types/lodash": "npm:4.17.13"
     "@types/papaparse": "npm:5.3.15"
     "@types/prismjs": "npm:1.26.5"
-    "@types/react": "npm:18.2.68"
+    "@types/react": "npm:18.3.16"
     "@types/react-beautiful-dnd": "npm:13.1.8"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     "@types/react-window": "npm:1.8.8"
     "@types/url-regex-safe": "npm:1.0.2"
     "@types/uuid": "npm:10.0.0"
@@ -573,9 +573,9 @@ __metadata:
     prosemirror-state: "npm:1.4.3"
     prosemirror-transform: "npm:1.7.0"
     prosemirror-view: "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch"
-    react: "npm:18.2.0"
+    react: "npm:18.3.1"
     react-beautiful-dnd: "npm:13.1.1"
-    react-dom: "npm:18.2.0"
+    react-dom: "npm:18.3.1"
     react-dropzone: "npm:14.3.5"
     react-full-screen: "npm:1.1.1"
     react-hook-form: "npm:7.54.1"
@@ -708,8 +708,8 @@ __metadata:
     "@storybook/react": "npm:7.6.20"
     "@storybook/react-webpack5": "npm:7.6.20"
     "@storybook/testing-library": "npm:0.2.2"
-    "@types/react": "npm:18.2.68"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react": "npm:18.3.16"
+    "@types/react-dom": "npm:18.3.5"
     storybook: "npm:7.6.20"
   peerDependencies:
     "@emotion/cache": 11.14.0
@@ -745,8 +745,8 @@ __metadata:
     "@types/md5": "npm:2.3.5"
     "@types/node": "npm:22.10.2"
     "@types/prismjs": "npm:1.26.5"
-    "@types/react": "npm:18.2.68"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react": "npm:18.3.16"
+    "@types/react-dom": "npm:18.3.5"
     "@types/react-html-parser": "npm:2.0.6"
     "@types/unist": "npm:2.0.11"
     axios: "npm:1.7.9"
@@ -773,8 +773,8 @@ __metadata:
     nextjs-progressbar: "npm:0.0.16"
     plaiceholder: "npm:2.5.0"
     prismjs: "npm:1.29.0"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     react-full-screen: "npm:1.1.1"
     react-html-parser: "npm:2.0.2"
     remark-gfm: "npm:3.0.1"
@@ -817,8 +817,8 @@ __metadata:
     "@sentry/browser": "npm:7.120.2"
     "@sentry/webpack-plugin": "npm:2.22.7"
     "@types/lodash.debounce": "npm:4.0.9"
-    "@types/react": "npm:18.2.68"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react": "npm:18.3.16"
+    "@types/react-dom": "npm:18.3.5"
     "@types/webextension-polyfill": "patch:@types/webextension-polyfill@npm%3A0.10.4#~/.yarn/patches/@types-webextension-polyfill-npm-0.10.4-291152c615.patch"
     "@types/ws": "npm:8.5.13"
     babel-loader: "npm:9.2.1"
@@ -838,9 +838,9 @@ __metadata:
     html-webpack-plugin: "npm:5.6.3"
     lodash.debounce: "npm:4.0.8"
     process: "npm:0.11.10"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
-    react-refresh: "npm:0.14.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
+    react-refresh: "npm:0.16.0"
     react-refresh-typescript: "npm:2.0.9"
     rimraf: "npm:6.0.1"
     sass: "npm:1.83.0"
@@ -4512,7 +4512,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash.isequal": "npm:4.5.8"
     "@types/node": "npm:22.10.2"
-    "@types/react": "npm:18.2.68"
+    "@types/react": "npm:18.3.16"
     ajv: "npm:8.17.1"
     ajv-formats: "npm:3.0.1"
     eslint: "npm:9.17.0"
@@ -4601,10 +4601,10 @@ __metadata:
     "@rollup/plugin-typescript": "npm:12.1.2"
     "@rollup/plugin-wasm": "npm:6.2.2"
     "@types/node": "npm:22.10.2"
-    "@types/react": "npm:18.2.68"
+    "@types/react": "npm:18.3.16"
     "@vitest/coverage-istanbul": "npm:2.1.8"
     eslint: "npm:9.17.0"
-    react: "npm:18.2.0"
+    react: "npm:18.3.1"
     rimraf: "npm:6.0.1"
     rollup: "npm:4.28.1"
     tslib: "npm:2.8.1"
@@ -4627,15 +4627,15 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.11"
     "@types/lodash.debounce": "npm:4.0.9"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     "@types/uuid": "npm:10.0.0"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     lodash.debounce: "npm:4.0.8"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     react-sizeme: "npm:3.0.2"
     rooks: "npm:7.14.1"
     typescript: "npm:5.7.2"
@@ -4658,14 +4658,14 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.11"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     "@types/uuid": "npm:10.0.0"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     react-sizeme: "npm:3.0.2"
     react-transition-group: "npm:4.4.5"
     react-type-animation: "npm:3.2.0"
@@ -4688,14 +4688,14 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.11"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     "@types/uuid": "npm:10.0.0"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     react-sizeme: "npm:3.0.2"
     typescript: "npm:5.7.2"
     uuid: "npm:9.0.1"
@@ -4716,13 +4716,13 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.11"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
   peerDependencies:
     react: ^18.0.0
@@ -4738,13 +4738,13 @@ __metadata:
     "@blockprotocol/hook": "npm:0.1.3"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
   peerDependencies:
     react: ^18.2.0
@@ -4766,7 +4766,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.11"
     "@types/lodash.debounce": "npm:4.0.9"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     "@types/react-is": "npm:18.3.1"
     block-scripts: "npm:0.3.4"
     echarts: "npm:5.5.1"
@@ -4774,8 +4774,8 @@ __metadata:
     lodash.debounce: "npm:4.0.8"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     react-hook-form: "npm:7.54.1"
     typescript: "npm:5.7.2"
   peerDependencies:
@@ -4792,14 +4792,14 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/prismjs": "npm:1.26.5"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
     prismjs: "npm:1.29.0"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
   peerDependencies:
     react: ^18.2.0
@@ -4815,15 +4815,15 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/react-datepicker": "npm:4.19.6"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     date-fns: "npm:4.1.0"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
+    react: "npm:18.3.1"
     react-datepicker: "npm:4.25.0"
-    react-dom: "npm:18.2.0"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
   peerDependencies:
     react: ^18.2.0
@@ -4839,13 +4839,13 @@ __metadata:
     "@blockprotocol/graph": "npm:0.3.4"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
   peerDependencies:
     react: ^18.2.0
@@ -4860,14 +4860,14 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash": "npm:4.17.13"
-    "@types/react-dom": "npm:18.0.9"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.0.14"
     blockprotocol: "patch:blockprotocol@npm%3A0.0.12#~/.yarn/patches/blockprotocol-npm-0.0.12-2558a31f0a.patch"
     eslint: "npm:9.17.0"
     lodash: "npm:4.17.21"
     mock-block-dock: "npm:0.0.10"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     twind: "npm:0.16.19"
     typescript: "npm:5.7.2"
   peerDependencies:
@@ -4886,14 +4886,14 @@ __metadata:
     "@hashintel/design-system": "npm:0.0.8"
     "@local/eslint": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.11"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     "@types/uuid": "npm:10.0.0"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
     uuid: "npm:9.0.1"
   peerDependencies:
@@ -4910,13 +4910,13 @@ __metadata:
     "@blockprotocol/hook": "npm:0.1.3"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
   peerDependencies:
     react: ^18.2.0
@@ -4933,14 +4933,14 @@ __metadata:
     "@hashintel/design-system": "npm:0.0.8"
     "@local/eslint": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.11"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     "@types/uuid": "npm:10.0.0"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     react-sizeme: "npm:3.0.2"
     typescript: "npm:5.7.2"
     uuid: "npm:9.0.1"
@@ -4958,13 +4958,13 @@ __metadata:
     "@blockprotocol/hook": "npm:0.1.3"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     twind: "npm:0.16.19"
     typescript: "npm:5.7.2"
   peerDependencies:
@@ -4989,7 +4989,7 @@ __metadata:
     "@types/lodash.clonedeep": "npm:4.5.9"
     "@types/lodash.debounce": "npm:4.0.9"
     "@types/lodash.isequal": "npm:4.5.8"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     clsx: "npm:1.2.1"
     eslint: "npm:9.17.0"
@@ -4998,8 +4998,8 @@ __metadata:
     lodash.isequal: "npm:4.5.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     react-textarea-autosize: "npm:8.5.6"
     typescript: "npm:5.7.2"
   peerDependencies:
@@ -5015,15 +5015,15 @@ __metadata:
     "@blockprotocol/graph": "npm:0.3.4"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     lit: "npm:2.8.0"
     mine-sweeper-tag: "npm:1.0.6"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
   languageName: unknown
   linkType: soft
@@ -5036,13 +5036,13 @@ __metadata:
     "@blockprotocol/hook": "npm:0.1.3"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
   peerDependencies:
     react: ^18.2.0
@@ -5058,13 +5058,13 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/dompurify": "npm:2.4.0"
-    "@types/react-dom": "npm:18.0.9"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.0.14"
     dompurify: "npm:2.5.8"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.0.38"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
   peerDependencies:
     react: ^18.2.0
@@ -5093,8 +5093,8 @@ __metadata:
     lodash.isequal: "npm:4.5.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
     uuid: "npm:9.0.1"
   peerDependencies:
@@ -5118,7 +5118,7 @@ __metadata:
     "@types/lodash.debounce": "npm:4.0.9"
     "@types/lodash.isequal": "npm:4.5.8"
     "@types/lodash.uniqueid": "npm:4.0.9"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     clsx: "npm:1.2.1"
     eslint: "npm:9.17.0"
@@ -5128,9 +5128,9 @@ __metadata:
     lodash.uniqueid: "npm:4.0.1"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
+    react: "npm:18.3.1"
     react-device-detect: "npm:2.2.3"
-    react-dom: "npm:18.2.0"
+    react-dom: "npm:18.3.1"
     react-laag: "npm:2.0.5"
     react-sizeme: "npm:3.0.2"
     rooks: "npm:7.14.1"
@@ -5148,15 +5148,15 @@ __metadata:
     "@blockprotocol/graph": "npm:0.3.4"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     date-fns: "npm:4.1.0"
     duration-fns: "npm:3.0.2"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     typescript: "npm:5.7.2"
   peerDependencies:
     react: ^18.2.0
@@ -5171,13 +5171,13 @@ __metadata:
     "@blockprotocol/graph": "npm:0.3.4"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react-dom": "npm:18.3.5"
     block-scripts: "npm:0.3.4"
     eslint: "npm:9.17.0"
     mock-block-dock: "npm:0.1.9"
     prettier: "npm:3.4.2"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     twind: "npm:0.16.19"
     typescript: "npm:5.7.2"
   peerDependencies:
@@ -7834,14 +7834,14 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.11"
     "@mui/system": "npm:5.16.8"
-    "@types/react": "npm:18.2.68"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react": "npm:18.3.16"
+    "@types/react-dom": "npm:18.3.5"
     "@types/react-syntax-highlighter": "npm:15.5.13"
     eslint: "npm:9.17.0"
     eslint-plugin-storybook: "npm:0.11.1"
     lowlight: "npm:2.9.0"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     react-syntax-highlighter: "npm:15.6.1"
     react-type-animation: "npm:3.2.0"
     typescript: "npm:5.7.2"
@@ -7872,14 +7872,14 @@ __metadata:
     "@mui/material": "npm:5.16.11"
     "@mui/system": "npm:5.16.8"
     "@storybook/react": "npm:7.6.20"
-    "@types/react": "npm:18.2.68"
-    "@types/react-dom": "npm:18.2.25"
+    "@types/react": "npm:18.3.16"
+    "@types/react-dom": "npm:18.3.5"
     clsx: "npm:1.2.1"
     echarts: "npm:5.5.1"
     eslint: "npm:9.17.0"
     eslint-plugin-storybook: "npm:0.11.1"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     react-loading-skeleton: "npm:3.5.0"
     typescript: "npm:5.7.2"
   peerDependencies:
@@ -7908,8 +7908,8 @@ __metadata:
     clsx: "npm:1.2.1"
     eslint: "npm:9.17.0"
     eslint-plugin-storybook: "npm:0.11.1"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     react-hook-form: "npm:7.54.1"
     typescript: "npm:5.7.2"
   peerDependencies:
@@ -7943,8 +7943,8 @@ __metadata:
     lodash.memoize: "npm:4.1.2"
     lodash.uniqueid: "npm:4.0.1"
     material-ui-popup-state: "npm:4.1.0"
-    react: "npm:18.2.0"
-    react-dom: "npm:18.2.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
     react-hook-form: "npm:7.54.1"
     rooks: "npm:7.14.1"
     setimmediate: "npm:1.0.5"
@@ -9004,7 +9004,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     eslint: "npm:9.17.0"
-    react: "npm:18.2.0"
+    react: "npm:18.3.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.2"
   languageName: unknown
@@ -9219,7 +9219,7 @@ __metadata:
     prosemirror-state: "npm:1.4.3"
     prosemirror-transform: "npm:1.7.0"
     prosemirror-view: "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch"
-    react: "npm:18.2.0"
+    react: "npm:18.3.1"
     rimraf: "npm:6.0.1"
     serialize-error: "npm:11.0.3"
     tsx: "npm:4.19.2"
@@ -18157,21 +18157,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-dom@npm:18.0.9":
-  version: 18.0.9
-  resolution: "@types/react-dom@npm:18.0.9"
-  dependencies:
-    "@types/react": "npm:*"
-  checksum: 10c0/1c85b0889f15631132816fba93bf3aaa7b11cd0ce6f4a825d3c863a46b1b8d0b7fcdf03d7fcdf761f4a2e38312e5f26fc9b9ba34b486ee9f160477b9103625af
-  languageName: node
-  linkType: hard
-
-"@types/react-dom@npm:18.2.25":
-  version: 18.2.25
-  resolution: "@types/react-dom@npm:18.2.25"
-  dependencies:
-    "@types/react": "npm:*"
-  checksum: 10c0/87604407eca6884c5b4d4657cb511dc5ba28ea1cfa5d0ce1fc2d659a7ad1b64ae85dcda60e3f010641f9a52a6a60dfcaa6be3b0d0de9d624475052a13dae01f4
+"@types/react-dom@npm:18.3.5":
+  version: 18.3.5
+  resolution: "@types/react-dom@npm:18.3.5"
+  peerDependencies:
+    "@types/react": ^18.0.0
+  checksum: 10c0/b163d35a6b32a79f5782574a7aeb12a31a647e248792bf437e6d596e2676961c394c5e3c6e91d1ce44ae90441dbaf93158efb4f051c0d61e2612f1cb04ce4faa
   languageName: node
   linkType: hard
 
@@ -18233,14 +18224,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:18.2.68":
-  version: 18.2.68
-  resolution: "@types/react@npm:18.2.68"
+"@types/react@npm:18.3.16":
+  version: 18.3.16
+  resolution: "@types/react@npm:18.3.16"
   dependencies:
     "@types/prop-types": "npm:*"
-    "@types/scheduler": "npm:*"
     csstype: "npm:^3.0.2"
-  checksum: 10c0/c22e47cd8ba6d4e85681444e7fb8c5829bd86f51778222f09412ab00c2a766634500c8ff54331064ba27476fa5f20564464338816cf91ec1df1dddf8efea1e1e
+  checksum: 10c0/9113d3003865eda07be0fb596f5bd8d7784b8900675090c56e75bdee45499f0b0de2481cbbeb5980c3b4ad18f234a49f39c9e62fd7b89a4e8530c74789f739bd
   languageName: node
   linkType: hard
 
@@ -18309,13 +18299,6 @@ __metadata:
   dependencies:
     htmlparser2: "npm:^8.0.0"
   checksum: 10c0/c6614b38f67dd6fb3a94c9163a55fa43b9aa81a845fe9584d9ffbd5da0e00e0ac8162ede9f4bde095840b2ef9db12265f5fcc40b707f48a420405c6aa7c3ff51
-  languageName: node
-  linkType: hard
-
-"@types/scheduler@npm:*":
-  version: 0.23.0
-  resolution: "@types/scheduler@npm:0.23.0"
-  checksum: 10c0/5cf7f2ba3732b74877559eb20b19f95fcd0a20c17dcb20e75a7ca7c7369cd455aeb2d406b3ff5a38168a9750da3bad78dd20d96d11118468b78f4959b8e56090
   languageName: node
   linkType: hard
 
@@ -40229,15 +40212,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-dom@npm:18.2.0":
-  version: 18.2.0
-  resolution: "react-dom@npm:18.2.0"
+"react-dom@npm:18.3.1":
+  version: 18.3.1
+  resolution: "react-dom@npm:18.3.1"
   dependencies:
     loose-envify: "npm:^1.1.0"
-    scheduler: "npm:^0.23.0"
+    scheduler: "npm:^0.23.2"
   peerDependencies:
-    react: ^18.2.0
-  checksum: 10c0/66dfc5f93e13d0674e78ef41f92ed21dfb80f9c4ac4ac25a4b51046d41d4d2186abc915b897f69d3d0ebbffe6184e7c5876f2af26bfa956f179225d921be713a
+    react: ^18.3.1
+  checksum: 10c0/a752496c1941f958f2e8ac56239172296fcddce1365ce45222d04a1947e0cc5547df3e8447f855a81d6d39f008d7c32eab43db3712077f09e3f67c4874973e85
   languageName: node
   linkType: hard
 
@@ -40543,10 +40526,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-refresh@npm:0.14.0":
-  version: 0.14.0
-  resolution: "react-refresh@npm:0.14.0"
-  checksum: 10c0/b8ae07ad153357d77830928a7f1fc2df837aabefee907fa273ba04c7643f3b860e986f1d4b7ada9b721c8d79b8c24b5b911a314a1a2398b105f1b13d19ea2b8d
+"react-refresh@npm:0.16.0":
+  version: 0.16.0
+  resolution: "react-refresh@npm:0.16.0"
+  checksum: 10c0/122525dbd7a44140757f46b8b93df6a349126e64b270809a8f082809662be5837a97310e56df2cfc7dac98b8adfaaafa570ec579c8b269c374e6928394307c68
   languageName: node
   linkType: hard
 
@@ -40765,12 +40748,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:18.2.0":
-  version: 18.2.0
-  resolution: "react@npm:18.2.0"
+"react@npm:18.3.1":
+  version: 18.3.1
+  resolution: "react@npm:18.3.1"
   dependencies:
     loose-envify: "npm:^1.1.0"
-  checksum: 10c0/b562d9b569b0cb315e44b48099f7712283d93df36b19a39a67c254c6686479d3980b7f013dc931f4a5a3ae7645eae6386b4aa5eea933baa54ecd0f9acb0902b8
+  checksum: 10c0/283e8c5efcf37802c9d1ce767f302dd569dd97a70d9bb8c7be79a789b9902451e0d16334b05d73299b20f048cbc3c7d288bbbde10b701fa194e2089c237dbea3
   languageName: node
   linkType: hard
 
