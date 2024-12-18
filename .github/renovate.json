@@ -56,7 +56,7 @@
       "matchManagers": ["npm"],
       "commitMessageTopic": "npm package `{{depName}}`",
       "additionalBranchPrefix": "js/",
-      "assignees": ["CiaranMn"],
+      "assignees": ["CiaranMn"]
     },
     {
       "matchManagers": ["cargo"],
