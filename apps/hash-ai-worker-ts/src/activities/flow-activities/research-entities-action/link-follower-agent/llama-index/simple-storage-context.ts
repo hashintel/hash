@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import { type StorageContext, storageContextFromDefaults } from "llamaindex";
 
+import { logger } from "../../../../shared/activity-logger.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -24,8 +26,7 @@ export const createStorageContext = async ({ hash }: { hash: string }) => {
     await fs.mkdir(directoryPath, { recursive: true });
   } catch (error: unknown) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
-      // eslint-disable-next-line no-console
-      console.info(
+      logger.info(
         `Unable to create directory ${directoryPath}: ${(error as Error).message}`,
       );
     }
