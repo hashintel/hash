@@ -86,8 +86,5 @@
   },
   "peerDependencies": {
     "react": "^18.0.0"
-  },
-  "engines": {
-    "node": ">= v20"
   }
 }
