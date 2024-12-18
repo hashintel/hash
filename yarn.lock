@@ -22880,7 +22880,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"commander@npm:^12.0.0, commander@npm:^12.1.0, commander@npm:~12.1.0":
+"commander@npm:^12.0.0, commander@npm:^12.1.0":
   version: 12.1.0
   resolution: "commander@npm:12.1.0"
   checksum: 10c0/6e1996680c083b3b897bfc1cfe1c58dfbcd9842fd43e1aaf8a795fbc237f65efcc860a3ef457b318e73f29a4f4a28f6403c3d653d021d960e4632dd45bde54a9
@@ -28851,7 +28851,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:^11.0.0, glob@npm:~11.0.0":
+"glob@npm:^11.0.0":
   version: 11.0.0
   resolution: "glob@npm:11.0.0"
   dependencies:
@@ -28948,6 +28948,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"globby@npm:14.0.2, globby@npm:^14.0.2":
+  version: 14.0.2
+  resolution: "globby@npm:14.0.2"
+  dependencies:
+    "@sindresorhus/merge-streams": "npm:^2.1.0"
+    fast-glob: "npm:^3.3.2"
+    ignore: "npm:^5.2.4"
+    path-type: "npm:^5.0.0"
+    slash: "npm:^5.1.0"
+    unicorn-magic: "npm:^0.1.0"
+  checksum: 10c0/3f771cd683b8794db1e7ebc8b6b888d43496d93a82aad4e9d974620f578581210b6c5a6e75ea29573ed16a1345222fab6e9b877a8d1ed56eeb147e09f69c6f78
+  languageName: node
+  linkType: hard
+
 "globby@npm:^12.0.2":
   version: 12.2.0
   resolution: "globby@npm:12.2.0"
@@ -28972,20 +28986,6 @@ __metadata:
     merge2: "npm:^1.4.1"
     slash: "npm:^4.0.0"
   checksum: 10c0/a8d7cc7cbe5e1b2d0f81d467bbc5bc2eac35f74eaded3a6c85fc26d7acc8e6de22d396159db8a2fc340b8a342e74cac58de8f4aee74146d3d146921a76062664
-  languageName: node
-  linkType: hard
-
-"globby@npm:^14.0.2":
-  version: 14.0.2
-  resolution: "globby@npm:14.0.2"
-  dependencies:
-    "@sindresorhus/merge-streams": "npm:^2.1.0"
-    fast-glob: "npm:^3.3.2"
-    ignore: "npm:^5.2.4"
-    path-type: "npm:^5.0.0"
-    slash: "npm:^5.1.0"
-    unicorn-magic: "npm:^0.1.0"
-  checksum: 10c0/3f771cd683b8794db1e7ebc8b6b888d43496d93a82aad4e9d974620f578581210b6c5a6e75ea29573ed16a1345222fab6e9b877a8d1ed56eeb147e09f69c6f78
   languageName: node
   linkType: hard
 
@@ -29527,7 +29527,7 @@ __metadata:
     "@taplo/cli": "npm:0.7.0"
     "@yarnpkg/types": "npm:^4.0.0"
     lefthook: "npm:1.9.3"
-    markdownlint-cli: "npm:0.43.0"
+    markdownlint-cli2: "npm:0.16.0"
     npm-run-all2: "npm:7.0.2"
     prettier: "npm:3.4.2"
     prettier-plugin-packagejson: "npm:2.5.6"
@@ -30370,13 +30370,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ignore@npm:~6.0.2":
-  version: 6.0.2
-  resolution: "ignore@npm:6.0.2"
-  checksum: 10c0/9a38feac1861906a78ba0f03e8ef3cd6b0526dce2a1a84e1009324b557763afeb9c3ebcc04666b21f7bbf71adda45e76781bb9e2eaa0903d45dcaded634454f5
-  languageName: node
-  linkType: hard
-
 "image-size@npm:1.0.2":
   version: 1.0.2
   resolution: "image-size@npm:1.0.2"
@@ -30529,7 +30522,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ini@npm:^4.1.3, ini@npm:~4.1.0":
+"ini@npm:^4.1.3":
   version: 4.1.3
   resolution: "ini@npm:4.1.3"
   checksum: 10c0/0d27eff094d5f3899dd7c00d0c04ea733ca03a8eb6f9406ce15daac1a81de022cb417d6eaff7e4342451ffa663389c565ffc68d6825eaf686bf003280b945764
@@ -32547,7 +32540,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsonc-parser@npm:~3.3.1":
+"jsonc-parser@npm:3.3.1":
   version: 3.3.1
   resolution: "jsonc-parser@npm:3.3.1"
   checksum: 10c0/269c3ae0a0e4f907a914bf334306c384aabb9929bd8c99f909275ebd5c2d3bc70b9bcd119ad794f339dec9f24b6a4ee9cd5a8ab2e6435e730ad4075388fc2ab6
@@ -32632,13 +32625,6 @@ __metadata:
     static-eval: "npm:2.0.2"
     underscore: "npm:1.12.1"
   checksum: 10c0/4fea3f83bcb4df08c32090ba8a0d1a6d26244f6d19c4296f9b58caa01eeb7de0f8347eba40077ceee2f95acc69d032b0b48226d350339063ba580e87983f6dec
-  languageName: node
-  linkType: hard
-
-"jsonpointer@npm:5.0.1":
-  version: 5.0.1
-  resolution: "jsonpointer@npm:5.0.1"
-  checksum: 10c0/89929e58b400fcb96928c0504fcf4fc3f919d81e9543ceb055df125538470ee25290bb4984251e172e6ef8fcc55761eb998c118da763a82051ad89d4cb073fe7
   languageName: node
   linkType: hard
 
@@ -34049,23 +34035,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"markdownlint-cli@npm:0.43.0":
-  version: 0.43.0
-  resolution: "markdownlint-cli@npm:0.43.0"
+"markdownlint-cli2-formatter-default@npm:0.0.5":
+  version: 0.0.5
+  resolution: "markdownlint-cli2-formatter-default@npm:0.0.5"
+  peerDependencies:
+    markdownlint-cli2: ">=0.0.4"
+  checksum: 10c0/7041a5833846d895054cf273c8e75efc13a03bbc88679cd48ea77240318232e883846037e984358a3ad3825fbb602d83492417ed6e36051bc5b603c4bedb3622
+  languageName: node
+  linkType: hard
+
+"markdownlint-cli2@npm:0.16.0":
+  version: 0.16.0
+  resolution: "markdownlint-cli2@npm:0.16.0"
   dependencies:
-    commander: "npm:~12.1.0"
-    glob: "npm:~11.0.0"
-    ignore: "npm:~6.0.2"
-    js-yaml: "npm:^4.1.0"
-    jsonc-parser: "npm:~3.3.1"
-    jsonpointer: "npm:5.0.1"
-    markdownlint: "npm:~0.36.1"
-    minimatch: "npm:~10.0.1"
-    run-con: "npm:~1.3.2"
-    smol-toml: "npm:~1.3.1"
+    globby: "npm:14.0.2"
+    js-yaml: "npm:4.1.0"
+    jsonc-parser: "npm:3.3.1"
+    markdownlint: "npm:0.36.1"
+    markdownlint-cli2-formatter-default: "npm:0.0.5"
+    micromatch: "npm:4.0.8"
   bin:
-    markdownlint: markdownlint.js
-  checksum: 10c0/55c7fab5f3558a73840228eb92c8ef56873c160a0fcf92d350db7c9ee62fc732c70590a68efed9d93cd99551d559b5330065dc91c0764c1e38d01233c5b9d64a
+    markdownlint-cli2: markdownlint-cli2.js
+  checksum: 10c0/485fcddcba6e82bfd276cebb509bfa421d2a97e678a1db13b06af6e66bd3f5d518cde7f66bf138842ad984f00cd4ebe4f637bd6a351911d5d260707bb8f5b316
   languageName: node
   linkType: hard
 
@@ -34076,7 +34067,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"markdownlint@npm:~0.36.1":
+"markdownlint@npm:0.36.1":
   version: 0.36.1
   resolution: "markdownlint@npm:0.36.1"
   dependencies:
@@ -35548,7 +35539,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"micromatch@npm:^4.0.0, micromatch@npm:^4.0.2, micromatch@npm:^4.0.4, micromatch@npm:^4.0.5, micromatch@npm:^4.0.8":
+"micromatch@npm:4.0.8, micromatch@npm:^4.0.0, micromatch@npm:^4.0.2, micromatch@npm:^4.0.4, micromatch@npm:^4.0.5, micromatch@npm:^4.0.8":
   version: 4.0.8
   resolution: "micromatch@npm:4.0.8"
   dependencies:
@@ -35711,7 +35702,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimatch@npm:^10.0.0, minimatch@npm:^10.0.1, minimatch@npm:~10.0.1":
+"minimatch@npm:^10.0.0, minimatch@npm:^10.0.1":
   version: 10.0.1
   resolution: "minimatch@npm:10.0.1"
   dependencies:
@@ -42013,20 +42004,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"run-con@npm:~1.3.2":
-  version: 1.3.2
-  resolution: "run-con@npm:1.3.2"
-  dependencies:
-    deep-extend: "npm:^0.6.0"
-    ini: "npm:~4.1.0"
-    minimist: "npm:^1.2.8"
-    strip-json-comments: "npm:~3.1.1"
-  bin:
-    run-con: cli.js
-  checksum: 10c0/b0bdd3083cf9f188e72df8905a1a40a1478e2a7437b0312ab1b824e058129388b811705ee7874e9a707e5de0e8fb8eb790da3aa0a23375323feecd1da97d5cf6
-  languageName: node
-  linkType: hard
-
 "run-parallel@npm:^1.1.9":
   version: 1.2.0
   resolution: "run-parallel@npm:1.2.0"
@@ -43159,13 +43136,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"smol-toml@npm:~1.3.1":
-  version: 1.3.1
-  resolution: "smol-toml@npm:1.3.1"
-  checksum: 10c0/bac5bf4f2655fd561fe41f9426d70ab68b486631beff97a7f127f5d2f811b5e247d50a06583be03d35a625dcb05b7984b94a61a81c68ea2810ac7a9bf4edc64d
-  languageName: node
-  linkType: hard
-
 "snake-case@npm:^3.0.4":
   version: 3.0.4
   resolution: "snake-case@npm:3.0.4"
@@ -44086,7 +44056,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"strip-json-comments@npm:^3.0.1, strip-json-comments@npm:^3.1.1, strip-json-comments@npm:~3.1.1":
+"strip-json-comments@npm:^3.0.1, strip-json-comments@npm:^3.1.1":
   version: 3.1.1
   resolution: "strip-json-comments@npm:3.1.1"
   checksum: 10c0/9681a6257b925a7fa0f285851c0e613cc934a50661fa7bb41ca9cbbff89686bb4a0ee366e6ecedc4daafd01e83eee0720111ab294366fe7c185e935475ebcecd
