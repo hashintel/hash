@@ -5,6 +5,7 @@ import {
   bindFocus,
   bindHover,
   bindPopover,
+  type PopupState,
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import HoverPopover from "material-ui-popup-state/HoverPopover";
@@ -25,7 +26,7 @@ type BlockContextMenuItemProps = {
   onClick?: () => void;
   icon: ReactElement;
   title: string;
-  subMenu?: ReactElement;
+  subMenu?: ReactElement<{ closeMenu?: () => void; popupState?: PopupState }>;
   subMenuWidth?: number;
 };
 
@@ -114,7 +115,10 @@ export const BlockContextMenuItem = forwardRef<
                 },
               }}
             >
-              {cloneElement(subMenu, {
+              {cloneElement<{
+                closeMenu?: () => void;
+                popupState?: PopupState;
+              }>(subMenu, {
                 closeMenu,
                 popupState: subMenuPopupState,
               })}

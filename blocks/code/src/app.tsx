@@ -30,7 +30,7 @@ export const App: BlockComponent<BlockEntity> = ({
     },
   } = blockEntity;
 
-  const blockRef = useRef<HTMLDivElement>(null);
+  const blockRef = useRef<HTMLDivElement | null>(null);
   const { graphModule } = useGraphBlockModule(blockRef);
 
   const [localData, setLocalData] = useState(() => ({
