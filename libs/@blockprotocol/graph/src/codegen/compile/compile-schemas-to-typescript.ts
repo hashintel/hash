@@ -1,3 +1,4 @@
+import type { HTTPResolverOptions } from "@apidevtools/json-schema-ref-parser";
 import type {
   DataType,
   EntityType,
@@ -49,7 +50,7 @@ const compileIndividualSchemaToTypescript = async (
               const: redundantTypePlaceholder,
             };
           },
-        },
+        } as HTTPResolverOptions,
       },
     },
   });

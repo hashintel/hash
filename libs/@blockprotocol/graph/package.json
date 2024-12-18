@@ -69,12 +69,13 @@
     "@blockprotocol/type-system": "0.1.2-canary.0",
     "ajv": "8.17.1",
     "ajv-formats": "3.0.1",
-    "json-schema-to-typescript": "11.0.5",
+    "json-schema-to-typescript": "15.0.3",
     "lit": "2.8.0",
     "lodash.isequal": "4.5.0",
     "typescript": "5.7.2"
   },
   "devDependencies": {
+    "@apidevtools/json-schema-ref-parser": "11.7.3",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.isequal": "4.5.8",
