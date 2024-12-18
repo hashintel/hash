@@ -1,3 +1,4 @@
+import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   descriptionPropertyTypeUrl,
   fileUrlPropertyTypeUrl,
@@ -449,7 +450,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Website URL",
         description: "A URL for a website",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
       },
       webShortname: "hash",
       migrationState,
@@ -461,7 +462,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Pinned Entity Type Base URL",
         description: "The base URL of a pinned entity type.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
       },
       webShortname: "hash",
       migrationState,
@@ -582,7 +583,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Profile URL",
         description: "A URL to a profile",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
       },
       webShortname: "hash",
       migrationState,
@@ -700,7 +701,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Email",
         description: "An email address",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: systemDataTypes.email.dataTypeId }],
       },
       webShortname: "hash",
       migrationState,
@@ -1160,7 +1161,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Expired At",
         description: "Stringified timestamp of when something expired.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "hash",
       migrationState,
@@ -1322,7 +1325,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Resolved At",
         description: "Stringified timestamp of when something was resolved.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "hash",
       migrationState,
@@ -1336,7 +1341,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Deleted At",
         description: "Stringified timestamp of when something was deleted.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "hash",
       migrationState,
@@ -1424,7 +1431,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Read At",
         description: "The timestamp of when something was read.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "hash",
       migrationState,
