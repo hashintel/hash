@@ -181,7 +181,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       return () => {
         resizeObserver.unobserve(view.dom);
         view.destroy();
-        viewRef.current = undefined;
+        viewRef.current = null;
       };
     }
   }, [onChange, activeWorkspaceOwnedById, renderPortal]);
