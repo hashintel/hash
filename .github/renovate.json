@@ -24,7 +24,7 @@
   "npm": {
     "minimumReleaseAge": "3 days"
   },
-  "postUpdateOptions": ["yarnDedupeFewer"],
+  "postUpdateOptions": ["yarnDedupeHighest"],
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
   "schedule": ["before 4am every weekday", "every weekend"],
@@ -56,7 +56,7 @@
       "matchManagers": ["npm"],
       "commitMessageTopic": "npm package `{{depName}}`",
       "additionalBranchPrefix": "js/",
-      "assignees": ["CiaranMn"]
+      "assignees": ["CiaranMn"],
     },
     {
       "matchManagers": ["cargo"],
