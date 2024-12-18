@@ -527,7 +527,7 @@ __metadata:
     "@types/lodash": "npm:4.17.13"
     "@types/papaparse": "npm:5.3.15"
     "@types/prismjs": "npm:1.26.5"
-    "@types/react": "npm:18.3.16"
+    "@types/react": "npm:18.3.17"
     "@types/react-beautiful-dnd": "npm:13.1.8"
     "@types/react-dom": "npm:18.3.5"
     "@types/react-window": "npm:1.8.8"
@@ -708,7 +708,7 @@ __metadata:
     "@storybook/react": "npm:7.6.20"
     "@storybook/react-webpack5": "npm:7.6.20"
     "@storybook/testing-library": "npm:0.2.2"
-    "@types/react": "npm:18.3.16"
+    "@types/react": "npm:18.3.17"
     "@types/react-dom": "npm:18.3.5"
     storybook: "npm:7.6.20"
   peerDependencies:
@@ -745,7 +745,7 @@ __metadata:
     "@types/md5": "npm:2.3.5"
     "@types/node": "npm:22.10.2"
     "@types/prismjs": "npm:1.26.5"
-    "@types/react": "npm:18.3.16"
+    "@types/react": "npm:18.3.17"
     "@types/react-dom": "npm:18.3.5"
     "@types/react-html-parser": "npm:2.0.6"
     "@types/unist": "npm:2.0.11"
@@ -817,7 +817,7 @@ __metadata:
     "@sentry/browser": "npm:7.120.2"
     "@sentry/webpack-plugin": "npm:2.22.7"
     "@types/lodash.debounce": "npm:4.0.9"
-    "@types/react": "npm:18.3.16"
+    "@types/react": "npm:18.3.17"
     "@types/react-dom": "npm:18.3.5"
     "@types/webextension-polyfill": "patch:@types/webextension-polyfill@npm%3A0.10.4#~/.yarn/patches/@types-webextension-polyfill-npm-0.10.4-291152c615.patch"
     "@types/ws": "npm:8.5.13"
@@ -4512,7 +4512,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash.isequal": "npm:4.5.8"
     "@types/node": "npm:22.10.2"
-    "@types/react": "npm:18.3.16"
+    "@types/react": "npm:18.3.17"
     ajv: "npm:8.17.1"
     ajv-formats: "npm:3.0.1"
     eslint: "npm:9.17.0"
@@ -4601,7 +4601,7 @@ __metadata:
     "@rollup/plugin-typescript": "npm:12.1.2"
     "@rollup/plugin-wasm": "npm:6.2.2"
     "@types/node": "npm:22.10.2"
-    "@types/react": "npm:18.3.16"
+    "@types/react": "npm:18.3.17"
     "@vitest/coverage-istanbul": "npm:2.1.8"
     eslint: "npm:9.17.0"
     react: "npm:18.3.1"
@@ -7834,7 +7834,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.11"
     "@mui/system": "npm:5.16.8"
-    "@types/react": "npm:18.3.16"
+    "@types/react": "npm:18.3.17"
     "@types/react-dom": "npm:18.3.5"
     "@types/react-syntax-highlighter": "npm:15.5.13"
     eslint: "npm:9.17.0"
@@ -7872,7 +7872,7 @@ __metadata:
     "@mui/material": "npm:5.16.11"
     "@mui/system": "npm:5.16.8"
     "@storybook/react": "npm:7.6.20"
-    "@types/react": "npm:18.3.16"
+    "@types/react": "npm:18.3.17"
     "@types/react-dom": "npm:18.3.5"
     clsx: "npm:1.2.1"
     echarts: "npm:5.5.1"
@@ -18224,13 +18224,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:18.3.16":
-  version: 18.3.16
-  resolution: "@types/react@npm:18.3.16"
+"@types/react@npm:18.3.17":
+  version: 18.3.17
+  resolution: "@types/react@npm:18.3.17"
   dependencies:
     "@types/prop-types": "npm:*"
     csstype: "npm:^3.0.2"
-  checksum: 10c0/9113d3003865eda07be0fb596f5bd8d7784b8900675090c56e75bdee45499f0b0de2481cbbeb5980c3b4ad18f234a49f39c9e62fd7b89a4e8530c74789f739bd
+  checksum: 10c0/475191e9cd0ab5bef35cc1868295d6526cd78b25c1bb816f0747a1e92261688305f81c0e29aff52e6ea70397f133e34c399dc936cb5072f1acf465d9daacc0da
   languageName: node
   linkType: hard
 
