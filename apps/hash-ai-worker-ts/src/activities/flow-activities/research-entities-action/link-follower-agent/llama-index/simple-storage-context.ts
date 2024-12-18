@@ -13,14 +13,11 @@ export interface Storage extends StorageContext {
   directory: string;
 }
 
-const directory = ({ hash }: { hash?: string }) => {
-  // if no hash is provided, use a random one
-  const segment = hash ?? Math.random().toString(36).substring(7);
-
-  return `${baseFilePath}/storage/${segment}`;
+const directory = ({ hash }: { hash: string }) => {
+  return `${baseFilePath}/storage/${hash}`;
 };
 
-export const createStorageContext = async ({ hash }: { hash?: string }) => {
+export const createStorageContext = async ({ hash }: { hash: string }) => {
   const directoryPath = directory({ hash });
 
   try {
