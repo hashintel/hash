@@ -330,7 +330,7 @@ __metadata:
     puppeteer-extra: "npm:3.3.6"
     puppeteer-extra-plugin-stealth: "npm:2.11.2"
     rimraf: "npm:6.0.1"
-    sanitize-html: "npm:2.13.1"
+    sanitize-html: "npm:2.14.0"
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
     tsx: "npm:4.19.2"
     typescript: "npm:5.7.2"
@@ -42560,9 +42560,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sanitize-html@npm:2.13.1":
-  version: 2.13.1
-  resolution: "sanitize-html@npm:2.13.1"
+"sanitize-html@npm:2.14.0":
+  version: 2.14.0
+  resolution: "sanitize-html@npm:2.14.0"
   dependencies:
     deepmerge: "npm:^4.2.2"
     escape-string-regexp: "npm:^4.0.0"
@@ -42570,7 +42570,7 @@ __metadata:
     is-plain-object: "npm:^5.0.0"
     parse-srcset: "npm:^1.0.2"
     postcss: "npm:^8.3.11"
-  checksum: 10c0/306c811a254e48eb45e9c523fb91cced893d77786323a64fb47f4bb3f1237b4d29e3722c0723c329e6cb6ac674ae903e961d446c3636b9db5961c83b2c0995fe
+  checksum: 10c0/7e001ab18d09ce5c4d0dbb6837c7a36f132874267e5b724cdef79b21188b55e652a591d79d297f9473aaf80cf96bb1894c3fa1046ccba977ed9aa365d6eb3a5c
   languageName: node
   linkType: hard
 
