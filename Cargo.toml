@@ -160,7 +160,7 @@ aws-sdk-s3               = { version = "=1.65.0", default-features = false }
 bitvec                   = { version = "=1.0.1", default-features = false }
 bytes-utils              = { version = "=0.1.4", default-features = false }
 clap                     = { version = "=4.5.23", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
-clap_complete            = { version = "=4.5.39", default-features = false }
+clap_complete            = { version = "=4.5.40", default-features = false }
 convert_case             = { version = "=0.6.0", default-features = false }
 criterion-macro          = { version = "=0.4.0", default-features = false }
 derive-where             = { version = "=1.2.7", default-features = false, features = ["nightly"] }
@@ -220,7 +220,7 @@ temporal-sdk-core-protos = { git = "https://github.com/temporalio/sdk-core", rev
 test-fuzz                = { version = "=7.0.1", default-features = false }
 test-log                 = { version = "=0.2.16", default-features = false }
 test-strategy            = { version = "=0.4.0", default-features = false }
-thiserror                = { version = "=2.0.7", default-features = false }
+thiserror                = { version = "=2.0.8", default-features = false }
 tokio-stream             = { version = "=0.1.17", default-features = false }
 tokio-test               = { version = "=0.4.4", default-features = false }
 tower                    = { version = "=0.5.2", default-features = false }
