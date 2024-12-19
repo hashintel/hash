@@ -209,7 +209,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
     fetchPolicy: "cache-and-network",
   });
 
-  const pageHeaderRef = useRef<HTMLElement>();
+  const pageHeaderRef = useRef<HTMLElement>(null);
 
   // Collab position tracking is disabled.
   // const collabPositions = useCollabPositions(accountId, pageEntityId);

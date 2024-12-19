@@ -77,8 +77,8 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
   const [maxItemsWidth, setMaxItemsWidth] = useState(0);
   const [maxItemsHovered, setMaxItemsHovered] = useState(false);
 
-  const minItemsInputRef = useRef<HTMLInputElement | null>();
-  const maxItemsInputRef = useRef<HTMLInputElement | null>();
+  const minItemsInputRef = useRef<HTMLInputElement | null>(null);
+  const maxItemsInputRef = useRef<HTMLInputElement | null>(null);
 
   const setInputSize = useCallback(() => {
     setMinItemsWidth(minItemsInputRef.current?.value.length ?? 1);

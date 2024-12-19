@@ -85,7 +85,7 @@ export const SimpleAutocomplete = <
   autoFocus?: boolean;
   disabled?: boolean;
   endAdornment?: ReactNode;
-  inputRef?: RefObject<HTMLDivElement>;
+  inputRef?: RefObject<HTMLDivElement | null>;
   placeholder: string;
   options: T[];
   sortAlphabetically?: boolean;

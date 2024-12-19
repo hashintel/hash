@@ -12,6 +12,7 @@ export const App: BlockComponent<BlockEntity> = ({
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLHeadingElement>(null);
+  /* @ts-expect-error -- @todo H-3839 hook package in BP repo needs updating for new ref type */
   const { hookModule } = useHookBlockModule(containerRef);
 
   const {

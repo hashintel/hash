@@ -2,7 +2,7 @@ import { Plugin } from "prosemirror-state";
 import type { RefObject } from "react";
 
 export const createFocusPageTitlePlugin = (
-  pageTitleRef: RefObject<HTMLTextAreaElement>,
+  pageTitleRef: RefObject<HTMLTextAreaElement | null>,
 ) =>
   // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
   new Plugin<unknown>({

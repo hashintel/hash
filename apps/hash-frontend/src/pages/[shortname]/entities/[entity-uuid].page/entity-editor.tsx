@@ -52,7 +52,7 @@ export interface EntityEditorProps extends DraftLinkState {
    * If the editor is loaded inside a slide which is contained in a container other than the body,
    * the ref to the container. Used to correctly position popups within the editor.
    */
-  slideContainerRef?: RefObject<HTMLDivElement>;
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
   validationReport: MinimalEntityValidationReport | null;
 }
 

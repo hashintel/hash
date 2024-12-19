@@ -73,7 +73,7 @@ export const EntityGraphVisualizer = memo(
     entities?: T[];
     onEntityClick?: (
       entityId: EntityId,
-      containerRef?: RefObject<HTMLDivElement>,
+      containerRef?: RefObject<HTMLDivElement | null>,
       options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">,
     ) => void;
     onEntityTypeClick?: (entityTypeId: VersionedUrl) => void;

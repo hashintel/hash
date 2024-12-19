@@ -107,8 +107,10 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     graphModule.registerCallbacks(graphCallbacks);
   }, [graphCallbacks, graphModule]);
 
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating */
   useServiceEmbedderModule(wrapperRef, { callbacks: serviceModuleCallbacks });
 
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating */
   useHookEmbedderModule(wrapperRef, {
     callbacks: {
       // eslint-disable-next-line @typescript-eslint/require-await -- async is required upstream

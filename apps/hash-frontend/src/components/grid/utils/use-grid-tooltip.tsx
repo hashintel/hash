@@ -14,7 +14,7 @@ import type {
 } from "./use-grid-tooltip/types";
 
 export const useGridTooltip = (
-  gridRef: RefObject<DataEditorRef>,
+  gridRef: RefObject<DataEditorRef | null>,
 ): UseGridTooltipResponse => {
   const popupState = usePopupState({
     variant: "popover",
