@@ -16,6 +16,7 @@ authors:
     affiliation: HASH
   - name: HASH
     website: 'https://hash.ai/'
+    email: team@hash.ai
 abstract: >-
   HASH is an open, multi-tenant type system and
   self-building database that enables complex real-world
