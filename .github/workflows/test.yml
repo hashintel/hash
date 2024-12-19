@@ -163,7 +163,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@120c8997a0a81ef0701bb1f7166e7080143a96d5 # v2.46.12
+        uses: taiki-e/install-action@2c3c8dfabf5933531aca0613c6b0c173fa51745e # v2.46.15
         with:
           tool: just@1.34.0,cargo-hack@0.6.30,cargo-nextest@0.9.72,cargo-llvm-cov@0.6.11
 
@@ -191,7 +191,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.1
+      - uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5.1.2
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -281,7 +281,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@120c8997a0a81ef0701bb1f7166e7080143a96d5 # v2.46.12
+        uses: taiki-e/install-action@2c3c8dfabf5933531aca0613c6b0c173fa51745e # v2.46.15
         with:
           tool: just@1.34.0,cargo-hack@0.6.30,cargo-nextest@0.9.72,cargo-llvm-cov@0.6.11
 
@@ -367,7 +367,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.1
+      - uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5.1.2
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -385,13 +385,13 @@ jobs:
 
       - name: Upload artifact playwright-report
         if: matrix.package == '@tests/hash-playwright' && success() || failure()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}-report
           path: tests/hash-playwright/playwright-report
 
       - name: Upload logs
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         if: success() || failure()
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}-logs

@@ -39,8 +39,8 @@
     "uint8arraylist": "2.4.8"
   },
   "devDependencies": {
-    "@effect/platform": "0.71.4",
-    "@effect/platform-node": "0.67.0",
+    "@effect/platform": "0.71.5",
+    "@effect/platform-node": "0.67.1",
     "@effect/vitest": "0.14.8",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
