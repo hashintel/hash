@@ -1,6 +1,7 @@
 import { TextField } from "@hashintel/design-system";
 import type { SxProps, Theme } from "@mui/material";
 import { Switch } from "@mui/material";
+import type { JSX } from "react";
 
 import { EntitySelector } from "../../../../shared/entity-selector";
 import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
@@ -8,8 +9,6 @@ import { GoogleAccountSelect } from "../../../../shared/integrations/google/goog
 import { SelectOrNameGoogleSheet } from "../../../../shared/integrations/google/select-or-name-google-sheet";
 import { inputHeight } from "./shared/dimensions";
 import type { FormState, LocalPayload } from "./types";
-
-import type { JSX } from "react";
 
 const textFieldSx: SxProps<Theme> = {
   width: "100%",

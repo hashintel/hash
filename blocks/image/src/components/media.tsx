@@ -99,6 +99,7 @@ export const Media: FunctionComponent<
     [propertyIds.width]: initialWidth,
   } = properties;
 
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating, or this package updating to use graph in this repo */
   const { graphModule } = useGraphBlockModule(blockRef);
 
   const [draftSrc, setDraftSrc] = useDefaultState(

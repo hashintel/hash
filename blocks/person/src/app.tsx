@@ -1,3 +1,8 @@
+/* @todo This package needs updating to use the latest @blockprotocol/graph package in this repo */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
+/* eslint-disable */
+
 import "./index.css";
 
 import type { BlockComponent } from "@blockprotocol/graph/react";

@@ -41,6 +41,7 @@ export const useMapbox = (
   addressId?: string,
 ) => {
   const [selectedAddressLoading, setSelectedAddressLoading] = useState(false);
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating */
   const { serviceModule } = useServiceBlockModule(blockRootRef);
   const [sessionToken, setSessionToken] = useSessionstorageState<string | null>(
     "mapboxSessionToken",
