@@ -72,7 +72,7 @@ CMD ["start"]
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*  && \
+    rm -rf /var/lib/apt/lists/* && \
     install -d -m 0775 -o api -g hash /log
 
 USER api:hash
