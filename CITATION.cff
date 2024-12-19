@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: HASH
+type: software
+url: 'https://hash.ai/'
+repository-code: 'https://github.com/hashintel/hash'
+authors:
+  - given-names: Dei
+    family-names: Vilkinsons
+    affiliation: HASH
+    orcid: 'https://orcid.org/0000-0001-5348-3913'
+  - given-names: Ciaran
+    family-names: Morinan
+    affiliation: HASH
+  - given-names: Tim
+    family-names: Diekmann
+    affiliation: HASH
+  - name: HASH
+    website: 'https://hash.ai/'
+abstract: >-
+  HASH is an open, multi-tenant type system and
+  self-building database that enables complex real-world
+  data integration in the absence of consensus.
+keywords:
+  - semantic data
+  - graph database
+  - artificial intelligence
+  - world model
+message: 'If you this software, please cite it using this metadata.'
