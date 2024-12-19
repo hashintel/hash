@@ -4781,7 +4781,7 @@ __metadata:
     "@mui/material": "npm:5.16.11"
     "@types/lodash.debounce": "npm:4.0.9"
     "@types/react-dom": "npm:18.3.5"
-    "@types/react-is": "npm:18.3.1"
+    "@types/react-is": "npm:19.0.0"
     block-scripts: "npm:0.3.4"
     echarts: "npm:5.5.1"
     eslint: "npm:9.17.0"
@@ -18484,12 +18484,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-is@npm:18.3.1":
-  version: 18.3.1
-  resolution: "@types/react-is@npm:18.3.1"
+"@types/react-is@npm:19.0.0":
+  version: 19.0.0
+  resolution: "@types/react-is@npm:19.0.0"
   dependencies:
-    "@types/react": "npm:^18"
-  checksum: 10c0/c2a13c940c8dabc5fe38554f0b78560411a0618cc9b733c06d884b35f631b5c89eb88a016593df3b5bfd923517a337fd4a2f32598094f8924ac8e22b5f874c99
+    "@types/react": "npm:*"
+  checksum: 10c0/d5fa0294f95cf301540f3e28fb44c00524c74a7de3ef9757703d76067206f3ecc002da6486e1581f23b54173b6449db8631acc3088009116e4569ff216df3ecc
   languageName: node
   linkType: hard
 
