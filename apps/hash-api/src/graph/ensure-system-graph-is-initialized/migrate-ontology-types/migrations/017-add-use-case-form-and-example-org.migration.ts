@@ -93,6 +93,8 @@ const migrate: MigrationFunction = async ({
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
         title: "Prospective User",
+        titlePlural: "Prospective Users",
+        icon: "/icons/types/user-plus.svg",
         description:
           "Information about a prospective user of an application or system",
         labelProperty: systemPropertyTypes.email.propertyTypeBaseUrl,

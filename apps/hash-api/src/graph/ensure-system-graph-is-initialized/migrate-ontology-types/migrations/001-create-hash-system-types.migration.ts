@@ -563,7 +563,7 @@ const migrate: MigrationFunction = async ({
         title: "Organization",
         titlePlural: "Organizations",
         icon: "/icons/types/people-group.svg",
-        labelProperty: systemPropertyTypes.shortname.propertyTypeBaseUrl,
+        labelProperty: systemPropertyTypes.organizationName.propertyTypeBaseUrl,
         description:
           "An organization. Organizations are root-level objects that contain user accounts and teams.",
         properties: [
@@ -849,7 +849,7 @@ const migrate: MigrationFunction = async ({
         titlePlural: "Users",
         icon: "/icons/types/user.svg",
         description: "A user of the HASH application.",
-        labelProperty: systemPropertyTypes.shortname.propertyTypeBaseUrl,
+        labelProperty: systemPropertyTypes.preferredName.propertyTypeBaseUrl,
         properties: [
           {
             propertyType: shortnamePropertyType,
@@ -1345,6 +1345,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "User Secret",
+        titlePlural: "User Secrets",
+        icon: "/icons/types/user-lock.svg",
         description: "A secret or credential belonging to a user.",
         properties: [
           {
@@ -1475,7 +1477,7 @@ const migrate: MigrationFunction = async ({
         allOf: [linkEntityTypeUrl],
         title: "Authored By",
         titlePlural: "Authored By",
-        icon: "/icons/types/pencil.svg",
+        icon: "/icons/types/pen.svg",
         inverse: {
           title: "Author Of",
           titlePlural: "Author Ofs",

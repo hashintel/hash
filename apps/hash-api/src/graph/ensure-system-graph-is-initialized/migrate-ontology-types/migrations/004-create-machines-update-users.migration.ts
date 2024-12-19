@@ -57,6 +57,7 @@ const migrate: MigrationFunction = async ({
       title: "Machine",
       titlePlural: "Machines",
       icon: "/icons/types/user-robot.svg",
+      labelProperty: blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
       description: "A machine that can perform actions in the system",
       properties: [
         {

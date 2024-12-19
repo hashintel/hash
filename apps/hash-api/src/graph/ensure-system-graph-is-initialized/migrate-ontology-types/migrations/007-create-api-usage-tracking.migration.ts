@@ -151,6 +151,9 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Service Feature",
+        titlePlural: "Service Features",
+        icon: "/icons/types/plug-circle-check.svg",
+        labelProperty: serviceNamePropertyType.metadata.recordId.baseUrl,
         description: "A feature of a service",
         properties: [
           {

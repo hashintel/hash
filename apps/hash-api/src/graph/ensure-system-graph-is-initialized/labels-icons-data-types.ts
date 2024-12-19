@@ -4,6 +4,7 @@
  */
 import type { EntityType } from "@blockprotocol/type-system";
 import type {
+  googleEntityTypes,
   linearPropertyTypes,
   systemDataTypes,
   systemEntityTypes,
@@ -145,7 +146,7 @@ const entityTypeChanges: Record<
   },
   "https://hash.ai/@hash/types/entity-type/block-collection/v/1": {
     icon: "/icons/types/cubes.svg",
-    titlePlural: "Blocks",
+    titlePlural: "Block Collections",
   },
   "https://hash.ai/@hash/types/entity-type/profile-bio/v/1": {
     icon: "/icons/types/memo-circle-info.svg",
@@ -188,7 +189,7 @@ const entityTypeChanges: Record<
   "https://hash.ai/@hash/types/entity-type/user/v/6": {
     icon: "/icons/types/user.svg",
     titlePlural: "Users",
-    labelProperty: "https://hash.ai/@hash/types/property-type/shortname/",
+    labelProperty: "https://hash.ai/@hash/types/property-type/preferred-name/",
   },
   "https://hash.ai/@hash/types/entity-type/text/v/1": {
     icon: "/icons/types/text.svg",
@@ -200,7 +201,7 @@ const entityTypeChanges: Record<
     labelProperty: "https://hash.ai/@hash/types/property-type/title/",
   },
   "https://hash.ai/@hash/types/entity-type/canvas/v/1": {
-    icon: "/icons/types/canvas.svg",
+    icon: "/icons/types/rectangle.svg",
     titlePlural: "Canvases",
   },
   "https://hash.ai/@hash/types/entity-type/quick-note/v/1": {
@@ -231,10 +232,13 @@ const entityTypeChanges: Record<
   "https://hash.ai/@hash/types/entity-type/machine/v/2": {
     icon: "/icons/types/user-robot.svg",
     titlePlural: "Machines",
+    labelProperty:
+      "https://blockprotocol.org/types/property-type/display-name/",
   },
   "https://hash.ai/@hash/types/entity-type/service-feature/v/1": {
     icon: "/icons/types/plug-circle-check.svg",
     titlePlural: "Service Features",
+    labelProperty: "https://hash.ai/@hash/types/property-type/feature-name/",
   },
   "https://hash.ai/@hash/types/entity-type/usage-record/v/2": {
     icon: "/icons/types/gauge-max.svg",
@@ -243,6 +247,72 @@ const entityTypeChanges: Record<
   "https://hash.ai/@hash/types/entity-type/browser-plugin-settings/v/1": {
     icon: "/icons/types/gear.svg",
     titlePlural: "Browser Plugin Settings",
+  },
+  "https://hash.ai/@hash/types/entity-type/document-file/v/1": {
+    icon: "/icons/types/file-lines.svg",
+    titlePlural: "Document Files",
+  },
+  "https://hash.ai/@hash/types/entity-type/pdf-document/v/1": {
+    icon: "/icons/types/file-pdf.svg",
+    titlePlural: "PDF Documents",
+  },
+  "https://hash.ai/@hash/types/entity-type/docx-document/v/1": {
+    icon: "/icons/types/file-word.svg",
+    titlePlural: "DOCX Documents",
+  },
+  "https://hash.ai/@hash/types/entity-type/presentation-file/v/1": {
+    icon: "/icons/types/presentation-screen.svg",
+    titlePlural: "Presentation Files",
+  },
+  "https://hash.ai/@hash/types/entity-type/pptx-presentation/v/1": {
+    icon: "/icons/types/file-powerpoint.svg",
+    titlePlural: "PPTX Presentations",
+  },
+  "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1": {
+    icon: "/icons/types/file-spreadsheet.svg",
+    titlePlural: "Spreadsheet Files",
+  },
+  "https://hash.ai/@hash/types/entity-type/prospective-user/v/1": {
+    icon: "/icons/types/user-plus.svg",
+    titlePlural: "Prospective Users",
+    labelProperty: "https://hash.ai/@hash/types/property-type/email/",
+  },
+  "https://hash.ai/@hash/types/entity-type/institution/v/1": {
+    icon: "/icons/types/building-columns.svg",
+    titlePlural: "Institutions",
+    labelProperty:
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/",
+  },
+  "https://hash.ai/@hash/types/entity-type/doc/v/1": {
+    icon: "/icons/types/page-lines.svg",
+    titlePlural: "Docs",
+    labelProperty: "https://hash.ai/@hash/types/property-type/title/",
+  },
+  "https://hash.ai/@hash/types/entity-type/book/v/1": {
+    icon: "/icons/types/book.svg",
+    titlePlural: "Books",
+  },
+  "https://hash.ai/@hash/types/entity-type/academic-paper/v/1": {
+    icon: "/icons/types/memo.svg",
+    titlePlural: "Academic Papers",
+  },
+};
+
+type GoogleEntityTypeId =
+  (typeof googleEntityTypes)[keyof typeof googleEntityTypes]["entityTypeId"];
+
+const googleEntityTypeChanges: Record<
+  GoogleEntityTypeId,
+  {
+    icon?: `/icons/types/${string}.svg`;
+  } & Required<Pick<EntityType, "titlePlural">>
+> = {
+  "https://hash.ai/@google/types/entity-type/account/v/1": {
+    icon: "/icons/types/google.svg",
+    titlePlural: "Accounts",
+  },
+  "https://hash.ai/@google/types/entity-type/google-sheets-file/v/1": {
+    titlePlural: "Google Sheets Files",
   },
 };
 
@@ -336,7 +406,7 @@ const linkEntityTypeChanges: Record<
   },
   "https://hash.ai/@hash/types/entity-type/authored-by/v/1": {
     titlePlural: "Authored By",
-    icon: "/icons/types/pencil.svg",
+    icon: "/icons/types/pen.svg",
     inverse: {
       title: "Author Of",
       titlePlural: "Author Ofs",
@@ -417,6 +487,20 @@ const linkEntityTypeChanges: Record<
     inverse: {
       title: "Belongs To",
       titlePlural: "Belongs Tos",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1": {
+    titlePlural: "Associated With Accounts",
+    inverse: {
+      title: "Account For",
+      titlePlural: "Account Fors",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/affiliated-with/v/1": {
+    titlePlural: "Affiliated Withs",
+    inverse: {
+      title: "Affiliate With",
+      titlePlural: "Affiliate Withs",
     },
   },
 };
