@@ -835,7 +835,7 @@ __metadata:
     process: "npm:0.11.10"
     react: "npm:19.0.0"
     react-dom: "npm:19.0.0"
-    react-refresh: "npm:0.14.0"
+    react-refresh: "npm:0.16.0"
     react-refresh-typescript: "npm:2.0.9"
     rimraf: "npm:6.0.1"
     sass: "npm:1.83.0"
@@ -40772,10 +40772,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-refresh@npm:0.14.0":
-  version: 0.14.0
-  resolution: "react-refresh@npm:0.14.0"
-  checksum: 10c0/b8ae07ad153357d77830928a7f1fc2df837aabefee907fa273ba04c7643f3b860e986f1d4b7ada9b721c8d79b8c24b5b911a314a1a2398b105f1b13d19ea2b8d
+"react-refresh@npm:0.16.0":
+  version: 0.16.0
+  resolution: "react-refresh@npm:0.16.0"
+  checksum: 10c0/122525dbd7a44140757f46b8b93df6a349126e64b270809a8f082809662be5837a97310e56df2cfc7dac98b8adfaaafa570ec579c8b269c374e6928394307c68
   languageName: node
   linkType: hard
 
