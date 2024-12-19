@@ -575,7 +575,7 @@ __metadata:
     react-full-screen: "npm:1.1.1"
     react-hook-form: "npm:7.54.1"
     react-markdown: "npm:9.0.1"
-    react-pdf: "npm:9.1.1"
+    react-pdf: "npm:9.2.0"
     react-responsive-carousel: "npm:3.2.23"
     react-transition-group: "npm:4.4.5"
     react-virtuoso: "npm:4.12.3"
@@ -22268,6 +22268,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"canvas@npm:^3.0.0-rc2":
+  version: 3.0.0-rc3
+  resolution: "canvas@npm:3.0.0-rc3"
+  dependencies:
+    node-addon-api: "npm:^7.0.0"
+    node-gyp: "npm:latest"
+    prebuild-install: "npm:^7.1.1"
+    simple-get: "npm:^3.0.3"
+  checksum: 10c0/d12626082829b7da297b50b82ddd357434f9ffa99f9b5571316edee6853ae757a28747d187bfd7d2e7538a40c9b4f2ad1d1a7356806112f0ff0ad430f034cb75
+  languageName: node
+  linkType: hard
+
 "capital-case@npm:^1.0.4":
   version: 1.0.4
   resolution: "capital-case@npm:1.0.4"
@@ -38808,7 +38820,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"path2d@npm:^0.2.0":
+"path2d@npm:^0.2.1":
   version: 0.2.2
   resolution: "path2d@npm:0.2.2"
   checksum: 10c0/1bb76c7f275d07f1bc7ca12171d828e91bf8a12596f0765a52e9d4d47fe1a428455dc1dd4c9002924a9bc554f6ac25e09a6c22eaecf32e5e33fba2985b5168f8
@@ -38840,18 +38852,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pdfjs-dist@npm:4.4.168":
-  version: 4.4.168
-  resolution: "pdfjs-dist@npm:4.4.168"
+"pdfjs-dist@npm:4.8.69":
+  version: 4.8.69
+  resolution: "pdfjs-dist@npm:4.8.69"
   dependencies:
-    canvas: "npm:^2.11.2"
-    path2d: "npm:^0.2.0"
+    canvas: "npm:^3.0.0-rc2"
+    path2d: "npm:^0.2.1"
   dependenciesMeta:
     canvas:
       optional: true
     path2d:
       optional: true
-  checksum: 10c0/61bad19fe0aae8261631d425bd96368cf0b8803c3a4446615456dddd867ef3e5ba15c11a1caabb8033bce9538e3ad8262c24a56fa68b150c6ee0eb9e26a9f3a7
+  checksum: 10c0/dc297f2a36aa36834a2892cb78c3cafc7ac01753a2e7c4316a1f6e8c1d337a52a3bfbf7fdff7aaba615893b53f2d06a0efc2176525592b4d7b51021279c101be
   languageName: node
   linkType: hard
 
@@ -40917,16 +40929,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-pdf@npm:9.1.1":
-  version: 9.1.1
-  resolution: "react-pdf@npm:9.1.1"
+"react-pdf@npm:9.2.0":
+  version: 9.2.0
+  resolution: "react-pdf@npm:9.2.0"
   dependencies:
     clsx: "npm:^2.0.0"
     dequal: "npm:^2.0.3"
     make-cancellable-promise: "npm:^1.3.1"
     make-event-props: "npm:^1.6.0"
     merge-refs: "npm:^1.3.0"
-    pdfjs-dist: "npm:4.4.168"
+    pdfjs-dist: "npm:4.8.69"
     tiny-invariant: "npm:^1.0.0"
     warning: "npm:^4.0.0"
   peerDependencies:
@@ -40936,7 +40948,7 @@ __metadata:
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: 10c0/441faf64ef4809920b2fc1a9dfbbae976f74193f54015764beafd82981c79fa6bbaee9bf774633f6ea63f9b701523df7bbf48acae6e0fb100ccc2e1cc33fbdaa
+  checksum: 10c0/8f41a86196e309fc1eb255343bb512c18c65bee5cf19df46d7eb063125c0aae563777b58799121e7e622d6c9e4ab8f69d4c60b0f1d51887e2cb1327274992d05
   languageName: node
   linkType: hard
 
