@@ -76,9 +76,9 @@ export const useRemoteBlock: UseRemoteBlockHook = (
     }
   });
 
-  const onBlockLoadedRef = useRef<() => void>();
+  const onBlockLoadedRef = useRef<() => void>(null);
   useEffect(() => {
-    onBlockLoadedRef.current = onBlockLoaded;
+    onBlockLoadedRef.current = onBlockLoaded ?? null;
   });
 
   const loadedRef = useRef(false);

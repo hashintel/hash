@@ -5,6 +5,7 @@ import {
   bindFocus,
   bindHover,
   bindPopover,
+  type PopupState,
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import HoverPopover from "material-ui-popup-state/HoverPopover";
@@ -25,7 +26,7 @@ type BlockContextMenuItemProps = {
   onClick?: () => void;
   icon: ReactElement;
   title: string;
-  subMenu?: ReactElement;
+  subMenu?: ReactElement<{ closeMenu?: () => void; popupState?: PopupState }>;
   subMenuWidth?: number;
 };
 
@@ -49,7 +50,7 @@ export const BlockContextMenuItem = forwardRef<
     // access offsetTop in the useLayoutEffect. Consider using an library to handle merging refs
     // @see https://github.com/gregberge/react-merge-refs, or better still, use the
     // useForkRef exported by MUI
-    const menuItemRef = (ref ?? localRef) as RefObject<HTMLLIElement>;
+    const menuItemRef = (ref ?? localRef) as RefObject<HTMLLIElement | null>;
 
     useLayoutEffect(() => {
       if (subMenu && !subMenuOffsetTop && menuItemRef.current) {
@@ -114,7 +115,10 @@ export const BlockContextMenuItem = forwardRef<
                 },
               }}
             >
-              {cloneElement(subMenu, {
+              {cloneElement<{
+                closeMenu?: () => void;
+                popupState?: PopupState;
+              }>(subMenu, {
                 closeMenu,
                 popupState: subMenuPopupState,
               })}

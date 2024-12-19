@@ -147,7 +147,7 @@ export const createEditorView = (params: {
   isCommentingEnabled: boolean;
   ownedById: OwnedById;
   pageEntityId: EntityId;
-  pageTitleRef?: RefObject<HTMLTextAreaElement>;
+  pageTitleRef?: RefObject<HTMLTextAreaElement | null>;
   readonly: boolean;
   renderNode: HTMLElement;
   renderPortal: RenderPortal;

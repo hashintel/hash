@@ -9,7 +9,7 @@ import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
 
 import { apiGraphQLEndpoint } from "./environment.js";
-import possibleTypes from "./graphql/fragment-types.gen.json" assert { type: "json" };
+import possibleTypes from "./graphql/fragment-types.gen.json" with { type: "json" };
 import { hashClientHeaderKey } from "./http-requests.js";
 
 const errorLink = onError(({ graphQLErrors, operation }) => {

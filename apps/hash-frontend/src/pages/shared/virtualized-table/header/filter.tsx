@@ -100,7 +100,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
   open,
   onClose,
 }: {
-  buttonRef: RefObject<HTMLElement>;
+  buttonRef: RefObject<HTMLElement | null>;
   isFiltered: boolean;
   filterDefinition: Filter;
   filterValue: Filter["initialValue"];

@@ -67,10 +67,10 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const viewRef = useRef<EditorView>();
+  const viewRef = useRef<EditorView>(null);
   const [portals, renderPortal] = usePortals();
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
-  const editorContainerRef = useRef<HTMLDivElement>();
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   const editableRef = useRef(false);
   const eventsRef = useRef({ onClose, onSubmit, onLineCountChange });
 
@@ -181,7 +181,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       return () => {
         resizeObserver.unobserve(view.dom);
         view.destroy();
-        viewRef.current = undefined;
+        viewRef.current = null;
       };
     }
   }, [onChange, activeWorkspaceOwnedById, renderPortal]);

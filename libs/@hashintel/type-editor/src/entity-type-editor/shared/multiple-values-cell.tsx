@@ -239,7 +239,9 @@ export const MultipleValuesCell = ({
   return (
     <>
       <TableCell
-        ref={(ref: HTMLDivElement) => setAnchorEl(ref)}
+        ref={(ref: HTMLDivElement) => {
+          setAnchorEl(ref);
+        }}
         sx={{
           p: "0 !important",
           position: "relative",

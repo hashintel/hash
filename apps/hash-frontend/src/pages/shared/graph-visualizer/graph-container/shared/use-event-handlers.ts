@@ -13,11 +13,11 @@ import type { GraphVizEdge } from "./types";
 
 export type RegisterEventsArgs = {
   config: GraphVizConfig<DynamicNodeSizing | StaticNodeSizing>;
-  graphContainerRef: RefObject<HTMLDivElement>;
+  graphContainerRef: RefObject<HTMLDivElement | null>;
   graphState: GraphState;
   onEdgeClick?: (params: {
     edgeData: GraphVizEdge;
-    screenContainerRef?: RefObject<HTMLDivElement>;
+    screenContainerRef?: RefObject<HTMLDivElement | null>;
   }) => void;
   onRender?: () => void;
   onNodeSecondClick?: (params: {
@@ -27,7 +27,7 @@ export type RegisterEventsArgs = {
      * This means that MUI components (and any others) that attach to the body will not be visible.
      * If this is provided, components should attach any popups/modals to this ref's current element instead.
      */
-    screenContainerRef?: RefObject<HTMLDivElement>;
+    screenContainerRef?: RefObject<HTMLDivElement | null>;
   }) => void;
   setConfigPanelOpen: (open: boolean) => void;
   setFilterPanelOpen: (open: boolean) => void;

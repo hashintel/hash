@@ -75,7 +75,7 @@ const useDefaultState = <
  */
 export const Media: FunctionComponent<
   BlockGraphProperties<BlockEntity> & {
-    blockRef: RefObject<HTMLDivElement>;
+    blockRef: RefObject<HTMLDivElement | null>;
   }
 > = ({ blockRef, graph: { blockEntitySubgraph, readonly } }) => {
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
@@ -99,6 +99,7 @@ export const Media: FunctionComponent<
     [propertyIds.width]: initialWidth,
   } = properties;
 
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating, or this package updating to use graph in this repo */
   const { graphModule } = useGraphBlockModule(blockRef);
 
   const [draftSrc, setDraftSrc] = useDefaultState(

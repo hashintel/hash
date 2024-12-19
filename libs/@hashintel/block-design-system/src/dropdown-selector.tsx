@@ -10,7 +10,7 @@ import {
   selectClasses,
   Typography,
 } from "@mui/material";
-import type { ReactNode } from "react";
+import type { JSX, ReactNode } from "react";
 import { useMemo, useState } from "react";
 
 export interface Option<OptionId extends string = string> {

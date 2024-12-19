@@ -1,6 +1,6 @@
 import type { DataEditorProps } from "@glideapps/glide-data-grid";
 import { isObjectEditorCallbackResult } from "@glideapps/glide-data-grid";
-import type { MutableRefObject, PropsWithChildren } from "react";
+import type { PropsWithChildren, RefObject } from "react";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
 import { useScrollLock } from "../../../shared/use-scroll-lock";
@@ -28,7 +28,7 @@ const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
  */
 export const overrideCustomRenderers = (
   customRenderers: DataEditorProps["customRenderers"],
-  tableIdRef: MutableRefObject<string>,
+  tableIdRef: RefObject<string>,
 ): DataEditorProps["customRenderers"] => {
   return customRenderers?.map(
     ({ draw, provideEditor, onClick, ...restFields }) => {
@@ -57,11 +57,11 @@ export const overrideCustomRenderers = (
 
           return {
             ...editorProps,
-            editor: (props, context) => {
+            editor: (props) => {
               if (isObjectEditorCallbackResult(editorProps)) {
                 return (
                   <ScrollLockWrapper>
-                    {editorProps.editor(props, context)}
+                    {editorProps.editor(props)}
                   </ScrollLockWrapper>
                 );
               }

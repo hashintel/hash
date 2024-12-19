@@ -27,7 +27,7 @@ export const Grid = ({ gridRef, ...props }: GridProps) => {
 
   useRenderGridPortal();
   const uniqueClassNameRef = useRef(uniqueId("glide-data-grid"));
-  const observerRef = useRef<ResizeObserver>();
+  const observerRef = useRef<ResizeObserver>(null);
 
   const [scrollbarVisible, setScrollbarVisible] = useState(false);
 

@@ -11,7 +11,7 @@ import { variants } from "./variants";
 export const technologyTreeNodeWidth = 300;
 
 export const TechnologyTreeNode: FunctionComponent<{
-  graphWrapperRef: RefObject<Element>;
+  graphWrapperRef: RefObject<Element | null>;
   x: number;
   y: number;
   blurred: boolean;

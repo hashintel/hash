@@ -13,7 +13,7 @@ const getScrollbarSizeOfDocument = () => {
 
 const useLastScrollbarSize = (element: HTMLElement) => {
   const [lastScrollbarSize, setLastScrollbarSize] = useState(0);
-  const observerRef = useRef<ResizeObserver>();
+  const observerRef = useRef<ResizeObserver>(null);
 
   useEffect(() => {
     observerRef.current = new ResizeObserver(() => {

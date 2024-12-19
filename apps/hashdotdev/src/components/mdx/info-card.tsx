@@ -1,6 +1,6 @@
 import type { PaperProps } from "@mui/material";
 import { Paper, Typography } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 import { Children, isValidElement } from "react";
 
 export type InfoCardVariant = "info" | "warning";
@@ -56,7 +56,9 @@ export const InfoCard: FunctionComponent<InfoCardProps> = ({
           }),
         }}
       >
-        {isValidElement(child) ? child.props.children : child}
+        {isValidElement(child)
+          ? (child.props as PropsWithChildren).children
+          : child}
       </Typography>
     );
   };

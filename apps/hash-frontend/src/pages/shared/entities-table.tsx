@@ -74,14 +74,14 @@ const emptyTableData = {
 
 export const EntitiesTable: FunctionComponent<{
   currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
-  currentlyDisplayedRowsRef: RefObject<TypeEntitiesRow[]>;
+  currentlyDisplayedRowsRef: RefObject<TypeEntitiesRow[] | null>;
   disableTypeClick?: boolean;
   entities: Entity[];
   entityTypes: EntityType[];
   filterState: FilterState;
   handleEntityClick: (
     entityId: EntityId,
-    modalContainerRef?: RefObject<HTMLDivElement>,
+    modalContainerRef?: RefObject<HTMLDivElement | null>,
   ) => void;
   hasSomeLinks: boolean;
   hidePropertiesColumns?: boolean;

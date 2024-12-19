@@ -110,7 +110,7 @@ interface TypeSlideOverSlideProps {
   /**
    * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
    */
-  slideContainerRef?: RefObject<HTMLDivElement>;
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
   typeUrl: VersionedUrl;
 }
 
