@@ -1,4 +1,4 @@
-FROM node:20.13-alpine AS base
+FROM node:22.12-alpine AS base
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN turbo prune --scope='@apps/hash-ai-worker-ts' --docker && \
     cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
 
-FROM node:20.13-slim AS rust
+FROM node:22.12-slim AS rust
 
 WORKDIR /usr/local/
 
@@ -52,12 +52,21 @@ COPY --from=base /app/out/full/ .
 RUN yarn turbo build --filter '@apps/hash-ai-worker-ts' --env-mode=loose && rm -rf target/
 
 
-FROM node:20.13-slim AS runner
+FROM node:22.12-slim AS runner
 
 COPY --from=installer /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-ai-worker-ts
 
-ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
+RUN groupadd --system --gid 60000 hash && \
+    useradd --system tsworker -G hash
+
+# Set a writable Corepack cache directory
+ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
+RUN mkdir -p $COREPACK_HOME && \
+    chown tsworker:hash $COREPACK_HOME && \
+    corepack enable && corepack prepare --activate
+
+ENTRYPOINT [ "yarn"]
 CMD ["start"]
 
 ARG GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON
@@ -74,8 +83,6 @@ RUN if [ -n "$GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON" ]; then \
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/* && \
-    groupadd --system --gid 60000 hash && \
-    useradd --system tsworker -G hash && \
     install -d -m 0775 -o tsworker -g hash /log
 
 RUN mkdir -p officeParserTemp/tempfiles && \

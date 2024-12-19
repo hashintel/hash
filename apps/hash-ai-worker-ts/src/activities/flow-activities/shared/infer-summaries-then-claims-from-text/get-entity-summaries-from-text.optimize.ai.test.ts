@@ -1,6 +1,6 @@
 /**
  * @file
- * This file is set to 'esnext' because we want to use the Set methods available only in Node 22.
+ * This file is set to 'esnext' because we want to use the Set methods which are part of ES2025.
  * The only TSConfig 'lib' option that supports this is 'esnext', which is unsafe to set for the whole package
  * as it may include new APIs which are not yet supported by Node 22.
  * So we set it here for this file only.

@@ -37,7 +37,7 @@
     "eslint-plugin-react-hooks": "5.1.0",
     "eslint-plugin-storybook": "0.11.1",
     "eslint-unicorn": "55.0.0",
-    "globals": "15.13.0"
+    "globals": "15.14.0"
   },
   "devDependencies": {
     "@local/tsconfig": "0.0.0-private",
