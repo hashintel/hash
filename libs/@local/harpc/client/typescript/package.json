@@ -41,7 +41,7 @@
   "devDependencies": {
     "@effect/platform": "0.71.5",
     "@effect/platform-node": "0.67.1",
-    "@effect/vitest": "0.14.8",
+    "@effect/vitest": "0.14.9",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@rust/harpc-wire-protocol": "0.0.0-private",
