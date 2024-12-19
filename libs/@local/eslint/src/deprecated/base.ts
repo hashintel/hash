@@ -5,7 +5,6 @@ import getGitignorePatterns from "eslint-config-flat-gitignore";
 // @ts-expect-error - eslint-plugin-import does not expose types
 import importPlugin from "eslint-plugin-import";
 import { ignores } from "eslint-config-sheriff";
-// @ts-expect-error - react-hooks does not expose types
 import canonical from "eslint-plugin-canonical";
 // @ts-expect-error - react-hooks does not expose types
 import reactHooks from "eslint-plugin-react-hooks";
