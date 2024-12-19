@@ -197,7 +197,7 @@ export const createFileEntityFromUrl = async (params: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
       filename,
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-      displayName ?? undefined,
+      displayName ?? filename,
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
       originalUrl,
     "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":

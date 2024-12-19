@@ -2,14 +2,14 @@
  * @file this is a temporary file to store changes to types that will need amending directly in the production database
  *    it will be turned into a migration script and then deleted.
  */
-import {
+import type { EntityType } from "@blockprotocol/type-system";
+import type {
   linearPropertyTypes,
   systemDataTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityType } from "@blockprotocol/type-system-rs/pkg/type-system";
 
 type SystemPropertyTypeId =
   (typeof systemPropertyTypes)[keyof typeof systemPropertyTypes]["propertyTypeId"];
@@ -132,7 +132,7 @@ const entityTypeChanges: Record<
   "https://hash.ai/@hash/types/entity-type/file/v/2": {
     icon: "/icons/types/file.svg",
     labelProperty:
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/",
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
     titlePlural: "Files",
   },
   "https://hash.ai/@hash/types/entity-type/image/v/2": {
@@ -206,6 +206,43 @@ const entityTypeChanges: Record<
   "https://hash.ai/@hash/types/entity-type/quick-note/v/1": {
     icon: "/icons/types/note-sticky.svg",
     titlePlural: "Notes",
+  },
+  "https://hash.ai/@hash/types/entity-type/user-secret/v/1": {
+    titlePlural: "User Secrets",
+    icon: "/icons/types/user-lock.svg",
+  },
+  "https://hash.ai/@hash/types/entity-type/comment/v/6": {
+    icon: "/icons/types/comment.svg",
+    titlePlural: "Comments",
+  },
+  "https://hash.ai/@hash/types/entity-type/notification/v/1": {
+    icon: "/icons/types/megaphone.svg",
+    titlePlural: "Notifications",
+  },
+  "https://hash.ai/@hash/types/entity-type/mention-notification/v/6": {
+    titlePlural: "Mention Notifications",
+  },
+  "https://hash.ai/@hash/types/entity-type/comment-notification/v/6": {
+    titlePlural: "Comment Notifications",
+  },
+  "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1": {
+    titlePlural: "Graph Change Notifications",
+  },
+  "https://hash.ai/@hash/types/entity-type/machine/v/2": {
+    icon: "/icons/types/user-robot.svg",
+    titlePlural: "Machines",
+  },
+  "https://hash.ai/@hash/types/entity-type/service-feature/v/1": {
+    icon: "/icons/types/plug-circle-check.svg",
+    titlePlural: "Service Features",
+  },
+  "https://hash.ai/@hash/types/entity-type/usage-record/v/2": {
+    icon: "/icons/types/gauge-max.svg",
+    titlePlural: "Usage Records",
+  },
+  "https://hash.ai/@hash/types/entity-type/browser-plugin-settings/v/1": {
+    icon: "/icons/types/gear.svg",
+    titlePlural: "Browser Plugin Settings",
   },
 };
 
@@ -281,6 +318,105 @@ const linkEntityTypeChanges: Record<
     inverse: {
       title: "Parent Of",
       titlePlural: "Parent Ofs",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1": {
+    titlePlural: "Uses User Secrets",
+    inverse: {
+      title: "Used By",
+      titlePlural: "Used Bys",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/has-text/v/1": {
+    titlePlural: "Has Texts",
+    inverse: {
+      title: "Text For",
+      titlePlural: "Text Fors",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/authored-by/v/1": {
+    titlePlural: "Authored By",
+    icon: "/icons/types/pencil.svg",
+    inverse: {
+      title: "Author Of",
+      titlePlural: "Author Ofs",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": {
+    titlePlural: "Occurred In Entitys",
+    inverse: {
+      title: "Location Of",
+      titlePlural: "Location Ofs",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": {
+    titlePlural: "Occurred In Blocks",
+    inverse: {
+      title: "Location Of",
+      titlePlural: "Location Ofs",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1": {
+    titlePlural: "Occurred In Comments",
+    inverse: {
+      title: "Location Of",
+      titlePlural: "Location Ofs",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1": {
+    titlePlural: "Occurred In Texts",
+    inverse: {
+      title: "Location Of",
+      titlePlural: "Location Ofs",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": {
+    titlePlural: "Triggered By Users",
+    inverse: {
+      title: "Triggered",
+      titlePlural: "Triggereds",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1": {
+    titlePlural: "Triggered By Comments",
+    inverse: {
+      title: "Triggered",
+      titlePlural: "Triggereds",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1": {
+    titlePlural: "Replied To Comments",
+    inverse: {
+      title: "Replied To By",
+      titlePlural: "Replied To Bys",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1": {
+    titlePlural: "Records Usage Ofs",
+    inverse: {
+      title: "Usage Recorded By",
+      titlePlural: "Usage Recorded Bys",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/created/v/1": {
+    titlePlural: "Createds",
+    inverse: {
+      title: "Created By",
+      titlePlural: "Created Bys",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/updated/v/1": {
+    titlePlural: "Updateds",
+    inverse: {
+      title: "Updated By",
+      titlePlural: "Updated Bys",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/has/v/1": {
+    titlePlural: "Hases",
+    inverse: {
+      title: "Belongs To",
+      titlePlural: "Belongs Tos",
     },
   },
 };

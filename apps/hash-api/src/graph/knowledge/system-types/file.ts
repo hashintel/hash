@@ -139,12 +139,19 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   true
 > = async (ctx, authentication, params) => {
   const { uploadProvider } = ctx;
-  const { description, displayName, name: unnormalizedFilename, size } = params;
+  const {
+    description,
+    displayName: providedDisplayName,
+    name: unnormalizedFilename,
+    size,
+  } = params;
 
   const name = normalizeWhitespace(unnormalizedFilename);
 
   const { entityTypeIds, existingEntity, mimeType, ownedById } =
     await generateCommonParameters(ctx, authentication, params, name);
+
+  const displayName = providedDisplayName ?? name;
 
   const initialProperties: File["propertiesWithMetadata"] = {
     value: {
@@ -176,18 +183,14 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
-      ...(displayName !== undefined && displayName !== null
-        ? {
-            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-              {
-                value: displayName,
-                metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                },
-              },
-          }
-        : {}),
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+        {
+          value: displayName,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
       "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
         {
           value: mimeType,
@@ -294,12 +297,14 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { description, displayName, url } = params;
+  const { description, displayName: providedDisplayName, url } = params;
 
   const filename = normalizeWhitespace(url.split("/").pop()!);
 
   const { entityTypeIds, existingEntity, mimeType, ownedById } =
     await generateCommonParameters(ctx, authentication, params, filename);
+
+  const displayName = providedDisplayName ?? filename;
 
   try {
     const properties: File["propertiesWithMetadata"] = {
@@ -324,18 +329,14 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-        ...(displayName !== undefined && displayName !== null
-          ? {
-              "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-                {
-                  value: displayName,
-                  metadata: {
-                    dataTypeId:
-                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                  },
-                },
-            }
-          : {}),
+        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+          {
+            value: displayName,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
           {
             value: url,

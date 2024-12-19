@@ -78,6 +78,8 @@ const migrate: MigrationFunction = async ({
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
         title: "Browser Plugin Settings",
+        titlePlural: "Browser Plugin Settings",
+        icon: "/icons/types/gear.svg",
         description: "Settings for the HASH browser plugin",
         properties: [
           {

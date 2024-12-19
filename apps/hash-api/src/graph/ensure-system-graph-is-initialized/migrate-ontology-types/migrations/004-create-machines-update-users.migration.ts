@@ -55,6 +55,8 @@ const migrate: MigrationFunction = async ({
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
       title: "Machine",
+      titlePlural: "Machines",
+      icon: "/icons/types/user-robot.svg",
       description: "A machine that can perform actions in the system",
       properties: [
         {
@@ -173,6 +175,7 @@ const migrate: MigrationFunction = async ({
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
       title: "Graph Change Notification",
+      titlePlural: "Graph Change Notifications",
       description: "A notification of a change to a graph",
       allOf: [notificationEntityType],
       properties: [
