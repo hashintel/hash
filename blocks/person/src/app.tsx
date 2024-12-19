@@ -105,7 +105,6 @@ export const App: BlockComponent<BlockEntityProperties> = ({
               {safeAnchor && (
                 <div className="person-link">
                   <LinkIcon />
-                  {/* eslint-disable-next-line react/no-danger */}
                   <span dangerouslySetInnerHTML={{ __html: safeAnchor }} />
                 </div>
               )}
