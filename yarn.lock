@@ -575,7 +575,7 @@ __metadata:
     react-full-screen: "npm:1.1.1"
     react-hook-form: "npm:7.54.1"
     react-markdown: "npm:9.0.1"
-    react-pdf: "npm:9.2.0"
+    react-pdf: "npm:9.2.1"
     react-responsive-carousel: "npm:3.2.23"
     react-transition-group: "npm:4.4.5"
     react-virtuoso: "npm:4.12.3"
@@ -40929,9 +40929,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-pdf@npm:9.2.0":
-  version: 9.2.0
-  resolution: "react-pdf@npm:9.2.0"
+"react-pdf@npm:9.2.1":
+  version: 9.2.1
+  resolution: "react-pdf@npm:9.2.1"
   dependencies:
     clsx: "npm:^2.0.0"
     dequal: "npm:^2.0.3"
@@ -40948,7 +40948,7 @@ __metadata:
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: 10c0/8f41a86196e309fc1eb255343bb512c18c65bee5cf19df46d7eb063125c0aae563777b58799121e7e622d6c9e4ab8f69d4c60b0f1d51887e2cb1327274992d05
+  checksum: 10c0/69b5456b3941ea08f03319a94b155db782232dee4b3e03513c4a4c10cc3d81d129fc3284136990b51d5dcf766192abc64d71e1d258ca7e0eb4e6592343fea6a4
   languageName: node
   linkType: hard
 
