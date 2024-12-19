@@ -76,7 +76,7 @@ const migrate: MigrationFunction = async ({
    */
 
   const latestImageEntityTypeId = getCurrentHashSystemEntityTypeId({
-    entityTypeKey: "image",
+    entityTypeKey: "imageFile",
     migrationState,
   });
 

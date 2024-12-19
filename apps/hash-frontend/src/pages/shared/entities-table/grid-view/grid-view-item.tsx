@@ -52,7 +52,7 @@ const entityTypeIdToIcon: Record<BaseUrl, ReactNode> = {
   ),
   [systemEntityTypes.pdfDocument.entityTypeBaseUrl]: <FilePdfLightIcon />,
   [systemEntityTypes.docxDocument.entityTypeBaseUrl]: <FileWordLightIcon />,
-  [systemEntityTypes.image.entityTypeBaseUrl]: <FileImageLightIcon />,
+  [systemEntityTypes.imageFile.entityTypeBaseUrl]: <FileImageLightIcon />,
 };
 
 const defaultFileIcon = <FileLightIcon />;

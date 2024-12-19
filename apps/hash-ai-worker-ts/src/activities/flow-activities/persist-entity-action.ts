@@ -43,7 +43,7 @@ import type { FlowActionActivity } from "./types.js";
 
 export const fileEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.file.entityTypeId,
-  systemEntityTypes.image.entityTypeId,
+  systemEntityTypes.imageFile.entityTypeId,
   systemEntityTypes.documentFile.entityTypeId,
   systemEntityTypes.pdfDocument.entityTypeId,
   systemEntityTypes.docxDocument.entityTypeId,

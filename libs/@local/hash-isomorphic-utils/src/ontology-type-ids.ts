@@ -112,10 +112,10 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/hash-instance/" as BaseUrl,
   },
-  image: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/image/v/2",
+  imageFile: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/image-file/v/2",
     entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/image/" as BaseUrl,
+      "https://hash.ai/@hash/types/entity-type/image-file/" as BaseUrl,
   },
   instagramAccount: {
     entityTypeId:

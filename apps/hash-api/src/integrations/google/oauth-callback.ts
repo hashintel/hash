@@ -97,8 +97,7 @@ export const googleOAuthCallback: RequestHandler<
           "https://hash.ai/@hash/types/property-type/email/": {
             value: googleUser.data.email,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1",
             },
           },
           "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":

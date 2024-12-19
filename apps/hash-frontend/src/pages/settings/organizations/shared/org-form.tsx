@@ -159,7 +159,7 @@ export const OrgForm = ({
             }
           : {
               fileEntityCreationInput: {
-                entityTypeId: systemEntityTypes.image.entityTypeId,
+                entityTypeId: systemEntityTypes.imageFile.entityTypeId,
               },
             }),
       },

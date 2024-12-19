@@ -52,7 +52,7 @@ export const useUpdateProfileAvatar = (props: {
               }
             : {
                 fileEntityCreationInput: {
-                  entityTypeId: systemEntityTypes.image.entityTypeId,
+                  entityTypeId: systemEntityTypes.imageFile.entityTypeId,
                 },
               }),
         },

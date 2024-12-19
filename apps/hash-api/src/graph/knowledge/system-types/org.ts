@@ -160,8 +160,7 @@ export const createOrg: ImpureGraphFunction<
             "https://hash.ai/@hash/types/property-type/website-url/": {
               value: websiteUrl,
               metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1",
               },
             },
           }

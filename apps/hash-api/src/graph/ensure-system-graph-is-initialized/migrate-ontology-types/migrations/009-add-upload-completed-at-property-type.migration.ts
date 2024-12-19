@@ -74,7 +74,7 @@ const migrate: MigrationFunction = async ({
     upgradedEntityTypeIds: [updatedFileEntityTypeId],
     dependentEntityTypeKeys: [
       // `Image` inherits from the `File` entity type
-      "image",
+      "imageFile",
     ],
     migrationState,
   });
@@ -82,7 +82,7 @@ const migrate: MigrationFunction = async ({
   /** Step 4: Assign entities of updated types to the latest version */
   const baseUrls = [
     systemEntityTypes.file.entityTypeBaseUrl,
-    systemEntityTypes.image.entityTypeBaseUrl,
+    systemEntityTypes.imageFile.entityTypeBaseUrl,
   ] as BaseUrl[];
 
   await upgradeEntitiesToNewTypeVersion(context, authentication, {

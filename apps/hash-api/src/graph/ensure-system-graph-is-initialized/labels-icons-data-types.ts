@@ -24,7 +24,7 @@ type SystemDataTypeId =
 /**
  * A map of propertyTypeIds to the oneOf value that should be set on them
  */
-const propertyTypeOneOfChanges: Record<
+const _propertyTypeOneOfChanges: Record<
   SystemPropertyTypeId | SystemLinearPropertyTypeId,
   [{ $ref: SystemDataTypeId }]
 > = {
@@ -123,7 +123,7 @@ const propertyTypeOneOfChanges: Record<
 type SystemEntityTypeId =
   (typeof systemEntityTypes)[keyof typeof systemEntityTypes]["entityTypeId"];
 
-const entityTypeChanges: Record<
+const _entityTypeChanges: Record<
   SystemEntityTypeId,
   {
     icon?: `/icons/types/${string}.svg`;
@@ -199,6 +199,9 @@ const entityTypeChanges: Record<
     icon: "/icons/types/page.svg",
     titlePlural: "Pages",
     labelProperty: "https://hash.ai/@hash/types/property-type/title/",
+  },
+  "https://hash.ai/@hash/types/entity-type/document/v/1": {
+    titlePlural: "Documents",
   },
   "https://hash.ai/@hash/types/entity-type/canvas/v/1": {
     icon: "/icons/types/rectangle.svg",
@@ -301,7 +304,7 @@ const entityTypeChanges: Record<
 type GoogleEntityTypeId =
   (typeof googleEntityTypes)[keyof typeof googleEntityTypes]["entityTypeId"];
 
-const googleEntityTypeChanges: Record<
+const _googleEntityTypeChanges: Record<
   GoogleEntityTypeId,
   {
     icon?: `/icons/types/${string}.svg`;
@@ -319,13 +322,41 @@ const googleEntityTypeChanges: Record<
 type SystemLinkEntityTypeId =
   (typeof systemLinkEntityTypes)[keyof typeof systemLinkEntityTypes]["linkEntityTypeId"];
 
-const linkEntityTypeChanges: Record<
+const _linkEntityTypeChanges: Record<
   SystemLinkEntityTypeId,
   {
     icon?: `/icons/types/${string}.svg`;
     labelProperty?: `${string}/`;
   } & Required<Pick<EntityType, "titlePlural" | "inverse">>
 > = {
+  "https://hash.ai/@hash/types/entity-type/has-object/v/1": {
+    titlePlural: "Has Objects",
+    inverse: {
+      title: "Object Of",
+      titlePlural: "Object Ofs",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/has-subject/v/1": {
+    titlePlural: "Has Subjects",
+    inverse: {
+      title: "Subject Of",
+      titlePlural: "Subject Ofs",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1": {
+    titlePlural: "Sync Linear Data Withs",
+    inverse: {
+      title: "Linear Data Synced From",
+      titlePlural: "Linear Data Synced Froms",
+    },
+  },
+  "https://hash.ai/@hash/types/entity-type/incurred-in/v/1": {
+    titlePlural: "Incurred Ins",
+    inverse: {
+      title: "Incurred",
+      titlePlural: "Incurred",
+    },
+  },
   "https://hash.ai/@hash/types/entity-type/has-data/v/1": {
     titlePlural: "Has Datas",
     inverse: {
@@ -505,7 +536,7 @@ const linkEntityTypeChanges: Record<
   },
 };
 
-const typeRenames: Record<SystemEntityTypeId, string> = {
+const _typeRenames: Record<SystemEntityTypeId, string> = {
   "https://hash.ai/@hash/types/entity-type/image/v/2": "Image File",
   "https://hash.ai/@hash/types/entity-type/quick-note/v/1": "Note",
 };
