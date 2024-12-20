@@ -27,10 +27,10 @@ import { backOff } from "exponential-backoff";
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification.js";
-// import {
-//   findExistingEntity,
-//   findExistingLinkEntity,
-// } from "../shared/find-existing-entity";
+import {
+  findExistingEntity,
+  findExistingLinkEntity,
+} from "../shared/find-existing-entity.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
@@ -164,25 +164,21 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
     entity = updatedEntity;
   } else {
-    /**
-     * @todo: improve the logic for finding existing entities, to
-     * reduce the number of false positives.
-     */
-    // existingEntity = await (linkData
-    //   ? findExistingLinkEntity({
-    //       actorId,
-    //       graphApiClient,
-    //       ownedById,
-    //       linkData,
-    //       includeDrafts: createEditionAsDraft,
-    //     })
-    //   : findExistingEntity({
-    //       actorId,
-    //       graphApiClient,
-    //       ownedById,
-    //       proposedEntity: proposedEntityWithResolvedLinks,
-    //       includeDrafts: createEditionAsDraft,
-    //     }));
+    existingEntity = await (linkData
+      ? findExistingLinkEntity({
+          actorId,
+          graphApiClient,
+          ownedById,
+          linkData,
+          includeDrafts: createEditionAsDraft,
+        })
+      : findExistingEntity({
+          actorId,
+          graphApiClient,
+          ownedById,
+          proposedEntity: proposedEntityWithResolvedLinks,
+          includeDrafts: createEditionAsDraft,
+        }));
 
     operation = existingEntity ? "update" : "create";
 
@@ -193,13 +189,13 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
             existingEntity,
             newProperties: mergePropertyObjectAndMetadata(
               properties,
-              undefined,
+              propertyMetadata,
             ),
           });
 
-        const serializedEntity = existingEntity.toJSON();
-
         if (isExactMatch) {
+          const serializedEntity = existingEntity.toJSON();
+
           return {
             code: StatusCode.Ok,
             contents: [
@@ -223,9 +219,15 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           };
         }
 
+        /**
+         * In practice we don't reassign existingEntity anywhere below it doesn't harm to make sure it will always
+         * be the same thing in the backOff function.
+         */
+        const stableReferenceToExistingEntity = existingEntity;
+
         entity = await backOff(
           () =>
-            existingEntity.patch(
+            stableReferenceToExistingEntity.patch(
               graphApiClient,
               { actorId: webBotActorId },
               {

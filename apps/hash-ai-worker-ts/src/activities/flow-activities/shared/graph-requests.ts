@@ -4,6 +4,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
+  PropertyMetadataObject,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
 } from "@local/hash-graph-types/entity";
@@ -82,13 +83,19 @@ export const getLatestEntityById = async (params: {
 
 export const getEntityUpdate = <T extends PropertyObjectWithMetadata>({
   existingEntity,
+  newMetadata,
   newProperties,
 }: {
   existingEntity: Entity;
+  newMetadata: PropertyMetadataObject;
   newProperties: T;
 }) => {
   const patchOperations: PropertyPatchOperation[] = [];
 
+  /**
+   * @todo even if the properties are an exact match, there may be more sources added for a given value in the metadata.
+   *    we should merge the sources for properties also.
+   */
   const isExactMatch = isMatch(existingEntity.properties, newProperties);
 
   if (!isExactMatch) {
