@@ -73,6 +73,7 @@
   },
   "resolutions": {
     "@artilleryio/int-commons@npm:2.11.0": "patch:@artilleryio/int-commons@npm%3A2.11.0#~/.yarn/patches/@artilleryio-int-commons-npm-2.11.0-5b69c05121.patch",
+    "@blockprotocol/core@npm:0.1.3": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch",
     "@changesets/assemble-release-plan@npm:^5.2.3": "patch:@changesets/assemble-release-plan@npm%3A5.2.4#~/.yarn/patches/@changesets-assemble-release-plan-npm-5.2.4-2920e4dc4c.patch",
     "@changesets/assemble-release-plan@npm:^5.2.4": "patch:@changesets/assemble-release-plan@npm%3A5.2.4#~/.yarn/patches/@changesets-assemble-release-plan-npm-5.2.4-2920e4dc4c.patch",
     "@changesets/get-dependents-graph@npm:^1.3.5": "patch:@changesets/get-dependents-graph@npm%3A1.3.6#~/.yarn/patches/@changesets-get-dependents-graph-npm-1.3.6-ddd5f64f78.patch",
@@ -87,7 +88,7 @@
     "@tldraw/editor@npm:2.0.0-alpha.12": "patch:@tldraw/editor@npm%3A2.0.0-alpha.12#~/.yarn/patches/@tldraw-editor-npm-2.0.0-alpha.12-ba59bf001c.patch",
     "@tldraw/tlschema@npm:2.0.0-alpha.12": "patch:@tldraw/tlschema@npm%3A2.0.0-alpha.12#~/.yarn/patches/@tldraw-tlschema-npm-2.0.0-alpha.12-13bf88407b.patch",
     "@types/express": "4.17.21",
-    "@types/react": "18.3.17",
+    "@types/react": "19.0.1",
     "blockprotocol@npm:0.0.10": "patch:blockprotocol@npm%3A0.0.12#~/.yarn/patches/blockprotocol-npm-0.0.12-2558a31f0a.patch",
     "prosemirror-model@npm:>=1.0.0": "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch",
     "prosemirror-model@npm:^1.0.0": "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch",
@@ -96,8 +97,8 @@
     "prosemirror-model@npm:^1.21.0": "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch",
     "prosemirror-view@npm:^1.1.0": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
     "prosemirror-view@npm:^1.27.0": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
   },
   "devDependencies": {
     "@changesets/changelog-github": "0.5.0",

@@ -1,6 +1,7 @@
 import { TextField } from "@hashintel/design-system";
 import type { SxProps, Theme } from "@mui/material";
 import { Switch } from "@mui/material";
+import type { JSX } from "react";
 
 import { EntitySelector } from "../../../../shared/entity-selector";
 import { EntityTypeSelector } from "../../../../shared/entity-type-selector";

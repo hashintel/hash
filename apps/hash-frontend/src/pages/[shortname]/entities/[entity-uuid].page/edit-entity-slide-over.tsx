@@ -82,7 +82,7 @@ export interface EditEntitySlideOverProps {
   onForward?: () => void;
   onEntityClick: (
     entityId: EntityId,
-    slideContainerRef?: RefObject<HTMLDivElement>,
+    slideContainerRef?: RefObject<HTMLDivElement | null>,
   ) => void;
   onSubmit: () => void;
   readonly?: boolean;
@@ -103,7 +103,7 @@ export interface EditEntitySlideOverProps {
   /**
    * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
    */
-  slideContainerRef?: RefObject<HTMLDivElement>;
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
 }
 
 /**

@@ -39,7 +39,9 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating, or this package updating to use graph in this repo */
   const { graphModule } = useGraphBlockModule(blockRootRef);
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating */
   const { serviceModule } = useServiceBlockModule(blockRootRef);
 
   const [loading, setLoading] = useState(false);
