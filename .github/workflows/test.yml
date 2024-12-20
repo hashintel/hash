@@ -387,14 +387,14 @@ jobs:
         if: matrix.package == '@tests/hash-playwright' && success() || failure()
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
-          name: ${{ env.TRIMMED_PACKAGE_NAME }}-report
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}_report
           path: tests/hash-playwright/playwright-report
 
       - name: Upload logs
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         if: success() || failure()
         with:
-          name: ${{ env.TRIMMED_PACKAGE_NAME }}-logs
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
           path: |
             var/api
             var/logs

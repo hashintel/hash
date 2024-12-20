@@ -10,7 +10,6 @@ import {
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
 import {
-  Box,
   Checkbox,
   TableBody,
   TableCell,

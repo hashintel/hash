@@ -35,12 +35,11 @@
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
     "@mui/material": "5.16.11",
-    "uuid": "9.0.1"
+    "uuid": "11.0.3"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@types/react-dom": "19.0.2",
-    "@types/uuid": "10.0.0",
     "block-scripts": "0.3.4",
     "eslint": "9.17.0",
     "mock-block-dock": "0.1.9",

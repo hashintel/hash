@@ -36,13 +36,12 @@
     "@mui/material": "5.16.11",
     "immer": "9.0.21",
     "lodash.isequal": "4.5.0",
-    "uuid": "9.0.1"
+    "uuid": "11.0.3"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.isequal": "4.5.8",
-    "@types/uuid": "10.0.0",
     "block-scripts": "0.3.4",
     "eslint": "9.17.0",
     "mock-block-dock": "0.1.9",
