@@ -71,7 +71,7 @@ export const CreateQuickNote: FunctionComponent<{
 
   const createQuickNote = useCallback(async () => {
     const createdQuickNoteEntity = await createBlockCollectionEntity({
-      kind: "quickNote",
+      kind: "note",
     });
 
     const { data } = await getEntity({

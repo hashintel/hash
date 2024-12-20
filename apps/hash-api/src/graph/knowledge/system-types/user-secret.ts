@@ -98,8 +98,7 @@ export const createUserSecret = async <
       "https://hash.ai/@hash/types/property-type/expired-at/": {
         value: expiresAt,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1",
         },
       },
       "https://hash.ai/@hash/types/property-type/vault-path/": {

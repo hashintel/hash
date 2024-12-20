@@ -5,19 +5,27 @@
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 } from "./shared.js";
 
 export type {
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 };

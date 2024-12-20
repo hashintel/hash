@@ -138,18 +138,10 @@ export type PDFDocumentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A PDF document.
  */
-export type PDFDocumentProperties = PDFDocumentProperties1 &
-  PDFDocumentProperties2;
-export type PDFDocumentProperties1 = DocumentFileProperties;
-
-export type PDFDocumentProperties2 = {};
+export type PDFDocumentProperties = DocumentFileProperties & {};
 
 export type PDFDocumentPropertiesWithMetadata =
-  PDFDocumentPropertiesWithMetadata1 & PDFDocumentPropertiesWithMetadata2;
-export type PDFDocumentPropertiesWithMetadata1 =
-  DocumentFilePropertiesWithMetadata;
-
-export type PDFDocumentPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  DocumentFilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

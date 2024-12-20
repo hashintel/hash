@@ -10,6 +10,8 @@ import type {
   ArchivedPropertyValueWithMetadata,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   EntityEditionIdPropertyValue,
   EntityEditionIdPropertyValueWithMetadata,
   Link,
@@ -38,6 +40,8 @@ export type {
   ArchivedPropertyValueWithMetadata,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   EntityEditionIdPropertyValue,
   EntityEditionIdPropertyValueWithMetadata,
   Link,
@@ -87,26 +91,17 @@ export type GraphChangeNotificationOutgoingLinksByLinkEntityTypeId = {
 /**
  * A notification of a change to a graph
  */
-export type GraphChangeNotificationProperties =
-  GraphChangeNotificationProperties1 & GraphChangeNotificationProperties2;
-export type GraphChangeNotificationProperties1 = NotificationProperties;
-
-export type GraphChangeNotificationProperties2 = {
+export type GraphChangeNotificationProperties = NotificationProperties & {
   "https://hash.ai/@hash/types/property-type/graph-change-type/": GraphChangeTypePropertyValue;
 };
 
 export type GraphChangeNotificationPropertiesWithMetadata =
-  GraphChangeNotificationPropertiesWithMetadata1 &
-    GraphChangeNotificationPropertiesWithMetadata2;
-export type GraphChangeNotificationPropertiesWithMetadata1 =
-  NotificationPropertiesWithMetadata;
-
-export type GraphChangeNotificationPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/graph-change-type/": GraphChangeTypePropertyValueWithMetadata;
+  NotificationPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@hash/types/property-type/graph-change-type/": GraphChangeTypePropertyValueWithMetadata;
+    };
   };
-};
 
 /**
  * The type of change that occurred (e.g. create, update, archive)

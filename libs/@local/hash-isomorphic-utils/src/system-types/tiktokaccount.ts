@@ -14,6 +14,8 @@ import type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -26,6 +28,8 @@ export type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };
 
 /**
@@ -44,18 +48,10 @@ export type TikTokAccountOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A TikTok account.
  */
-export type TikTokAccountProperties = TikTokAccountProperties1 &
-  TikTokAccountProperties2;
-export type TikTokAccountProperties1 = ServiceAccountProperties;
-
-export type TikTokAccountProperties2 = {};
+export type TikTokAccountProperties = ServiceAccountProperties & {};
 
 export type TikTokAccountPropertiesWithMetadata =
-  TikTokAccountPropertiesWithMetadata1 & TikTokAccountPropertiesWithMetadata2;
-export type TikTokAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type TikTokAccountPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  ServiceAccountPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

@@ -14,6 +14,8 @@ import type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -26,6 +28,8 @@ export type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };
 
 /**
@@ -46,18 +50,10 @@ export type TwitterAccountOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A Twitter account.
  */
-export type TwitterAccountProperties = TwitterAccountProperties1 &
-  TwitterAccountProperties2;
-export type TwitterAccountProperties1 = ServiceAccountProperties;
-
-export type TwitterAccountProperties2 = {};
+export type TwitterAccountProperties = ServiceAccountProperties & {};
 
 export type TwitterAccountPropertiesWithMetadata =
-  TwitterAccountPropertiesWithMetadata1 & TwitterAccountPropertiesWithMetadata2;
-export type TwitterAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type TwitterAccountPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  ServiceAccountPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

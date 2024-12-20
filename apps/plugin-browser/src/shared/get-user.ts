@@ -9,7 +9,7 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
+import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import type {
   BrowserPluginSettingsProperties,
   BrowserPluginSettingsPropertiesWithMetadata,
@@ -34,7 +34,7 @@ import { getFromLocalStorage, setInLocalStorage } from "./storage";
 const getAvatarForEntity = (
   subgraph: Subgraph<EntityRootType>,
   entityId: EntityId,
-): Entity<Image> | undefined => {
+): Entity<ImageFile> | undefined => {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     entityId,
@@ -44,7 +44,9 @@ const getAvatarForEntity = (
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
     ),
   );
-  return avatarLinkAndEntities[0]?.rightEntity[0] as Entity<Image> | undefined;
+  return avatarLinkAndEntities[0]?.rightEntity[0] as
+    | Entity<ImageFile>
+    | undefined;
 };
 
 /**

@@ -85,41 +85,34 @@ export type {
 /**
  * A (usually) quick or short note.
  */
-export type QuickNote = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/quick-note/v/1"];
-  properties: QuickNoteProperties;
-  propertiesWithMetadata: QuickNotePropertiesWithMetadata;
+export type Note = {
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/note/v/1"];
+  properties: NoteProperties;
+  propertiesWithMetadata: NotePropertiesWithMetadata;
 };
 
-export type QuickNoteHasIndexedContentLink = {
+export type NoteHasIndexedContentLink = {
   linkEntity: HasIndexedContent;
   rightEntity: Block;
 };
 
-export type QuickNoteOutgoingLinkAndTarget = QuickNoteHasIndexedContentLink;
+export type NoteOutgoingLinkAndTarget = NoteHasIndexedContentLink;
 
-export type QuickNoteOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": QuickNoteHasIndexedContentLink;
+export type NoteOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": NoteHasIndexedContentLink;
 };
 
 /**
  * A (usually) quick or short note.
  */
-export type QuickNoteProperties = QuickNoteProperties1 & QuickNoteProperties2;
-export type QuickNoteProperties1 = BlockCollectionProperties;
-
-export type QuickNoteProperties2 = {
+export type NoteProperties = BlockCollectionProperties & {
   "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
 };
 
-export type QuickNotePropertiesWithMetadata = QuickNotePropertiesWithMetadata1 &
-  QuickNotePropertiesWithMetadata2;
-export type QuickNotePropertiesWithMetadata1 =
-  BlockCollectionPropertiesWithMetadata;
-
-export type QuickNotePropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
+export type NotePropertiesWithMetadata =
+  BlockCollectionPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
+    };
   };
-};

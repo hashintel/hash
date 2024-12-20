@@ -3,7 +3,7 @@
  *    Provenance will be made required, this is for use in writing a script to apply defaults to existing entities.
  */
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import {
+import type {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";

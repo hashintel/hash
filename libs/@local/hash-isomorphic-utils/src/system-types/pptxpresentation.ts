@@ -140,19 +140,10 @@ export type PPTXPresentationOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A Microsoft PowerPoint presentation.
  */
-export type PPTXPresentationProperties = PPTXPresentationProperties1 &
-  PPTXPresentationProperties2;
-export type PPTXPresentationProperties1 = PresentationFileProperties;
-
-export type PPTXPresentationProperties2 = {};
+export type PPTXPresentationProperties = PresentationFileProperties & {};
 
 export type PPTXPresentationPropertiesWithMetadata =
-  PPTXPresentationPropertiesWithMetadata1 &
-    PPTXPresentationPropertiesWithMetadata2;
-export type PPTXPresentationPropertiesWithMetadata1 =
-  PresentationFilePropertiesWithMetadata;
-
-export type PPTXPresentationPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  PresentationFilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

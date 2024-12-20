@@ -14,6 +14,8 @@ import type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -26,6 +28,8 @@ export type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };
 
 /**
@@ -44,18 +48,10 @@ export type GitHubAccountOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A GitHub account.
  */
-export type GitHubAccountProperties = GitHubAccountProperties1 &
-  GitHubAccountProperties2;
-export type GitHubAccountProperties1 = ServiceAccountProperties;
-
-export type GitHubAccountProperties2 = {};
+export type GitHubAccountProperties = ServiceAccountProperties & {};
 
 export type GitHubAccountPropertiesWithMetadata =
-  GitHubAccountPropertiesWithMetadata1 & GitHubAccountPropertiesWithMetadata2;
-export type GitHubAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type GitHubAccountPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  ServiceAccountPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

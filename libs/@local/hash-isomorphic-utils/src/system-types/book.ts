@@ -27,6 +27,8 @@ import type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   Institution,
@@ -84,6 +86,8 @@ export type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   Institution,
@@ -138,18 +142,11 @@ export type BookOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A written work, typically longer than an article, often published in print form.
  */
-export type BookProperties = BookProperties1 & BookProperties2;
-export type BookProperties1 = DocProperties;
-
-export type BookProperties2 = {
+export type BookProperties = DocProperties & {
   "https://hash.ai/@hash/types/property-type/isbn/"?: ISBNPropertyValue;
 };
 
-export type BookPropertiesWithMetadata = BookPropertiesWithMetadata1 &
-  BookPropertiesWithMetadata2;
-export type BookPropertiesWithMetadata1 = DocPropertiesWithMetadata;
-
-export type BookPropertiesWithMetadata2 = {
+export type BookPropertiesWithMetadata = DocPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/isbn/"?: ISBNPropertyValueWithMetadata;
@@ -159,10 +156,7 @@ export type BookPropertiesWithMetadata2 = {
 /**
  * International Standard Book Number: a numeric commercial book identifier that is intended to be unique, issued by an affiliate of the International ISBN Agency.
  */
-export type ISBNDataType = ISBNDataType1;
-export type ISBNDataType1 = TextDataType;
-
-export type ISBNDataType2 = string;
+export type ISBNDataType = TextDataType;
 
 export type ISBNDataTypeWithMetadata = {
   value: ISBNDataType;

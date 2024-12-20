@@ -214,7 +214,7 @@ export const NotificationCountContextProvider: FunctionComponent<
                   value: now.toISOString(),
                   metadata: {
                     dataTypeId:
-                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                      "https://hash.ai/@hash/types/data-type/datetime/v/1",
                   },
                 } satisfies ReadAtPropertyValueWithMetadata,
               },
@@ -253,7 +253,7 @@ export const NotificationCountContextProvider: FunctionComponent<
                     value: now.toISOString(),
                     metadata: {
                       dataTypeId:
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "https://hash.ai/@hash/types/data-type/datetime/v/1",
                     },
                   } satisfies ReadAtPropertyValueWithMetadata,
                 },

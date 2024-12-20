@@ -151,6 +151,11 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/mention-notification/" as BaseUrl,
   },
+  note: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/note/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/note/" as BaseUrl,
+  },
   notification: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/notification/v/1",
     entityTypeBaseUrl:
@@ -198,11 +203,6 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/prospective-user/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/prospective-user/" as BaseUrl,
-  },
-  quickNote: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/quick-note/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/quick-note/" as BaseUrl,
   },
   serviceAccount: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/service-account/v/1",
