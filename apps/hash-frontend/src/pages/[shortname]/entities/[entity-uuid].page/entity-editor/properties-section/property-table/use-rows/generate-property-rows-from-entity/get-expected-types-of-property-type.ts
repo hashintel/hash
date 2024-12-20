@@ -1,10 +1,12 @@
 import type {
-  ClosedDataType,
   DataTypeReference,
   PropertyType,
   PropertyValues,
 } from "@blockprotocol/type-system";
-import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-types/ontology";
+import type {
+  ClosedDataTypeDefinition,
+  ClosedMultiEntityTypesDefinitions,
+} from "@local/hash-graph-types/ontology";
 
 import { isPropertyValueArray } from "../../../../../../../../../lib/typeguards";
 
@@ -26,7 +28,7 @@ const getReferencedDataTypes = (
   propertyValues: PropertyValues[],
   definitions: ClosedMultiEntityTypesDefinitions,
 ) => {
-  const types: ClosedDataType[] = [];
+  const types: ClosedDataTypeDefinition[] = [];
 
   for (const value of propertyValues) {
     if ("$ref" in value) {
@@ -41,11 +43,11 @@ export const getExpectedTypesOfPropertyType = (
   propertyType: PropertyType,
   definitions: ClosedMultiEntityTypesDefinitions,
 ): {
-  expectedTypes: ClosedDataType[];
+  expectedTypes: ClosedDataTypeDefinition[];
   isArray: boolean;
 } => {
   let isArray = false;
-  let expectedTypes: ClosedDataType[] = [];
+  let expectedTypes: ClosedDataTypeDefinition[] = [];
 
   /**
    * @todo handle property types with multiple expected values -- H-2257

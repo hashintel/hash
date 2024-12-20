@@ -1,92 +1,191 @@
-import type { ValueConstraints } from "@blockprotocol/type-system-rs/pkg/type-system";
+import type { ClosedDataType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
+import type { PropertyMetadataValue } from "@local/hash-graph-types/entity";
+import { isValueMetadata } from "@local/hash-graph-types/entity";
+import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useEffect, useRef, useState } from "react";
 
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
-import { isValueEmpty } from "../../../is-value-empty";
 import { getEditorSpecs } from "./editor-specs";
 import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
 import { JsonInput } from "./inputs/json-input";
 import { NumberOrTextInput } from "./inputs/number-or-text-input";
-import type { EditorType, ValueCell, ValueCellEditorComponent } from "./types";
-import {
-  guessEditorTypeFromExpectedType,
-  guessEditorTypeFromValue,
-} from "./utils";
+import type { ValueCell, ValueCellEditorComponent } from "./types";
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   const { value: cell, onChange, onFinishedEditing } = props;
-  const { permittedDataTypes, value } = cell.data.propertyRow;
+  const {
+    generateNewMetadataObject,
+    permittedDataTypes,
+    permittedDataTypesIncludingChildren,
+    propertyKeyChain,
+    value,
+    valueMetadata,
+  } = cell.data.propertyRow;
+
+  const { showTypePicker } = cell.data;
 
   const textInputFormRef = useRef<HTMLFormElement>(null);
 
-  const [editorType, setEditorType] = useState<EditorType | null>(() => {
-    // if there are multiple expected types
-    if (permittedDataTypes.length > 1) {
-      // show type picker if value is empty, guess editor type using value if it's not
-      const guessedEditorType = guessEditorTypeFromValue(
-        value,
-        permittedDataTypes,
-      );
+  const [chosenDataType, setChosenDataType] = useState<{
+    dataType: ClosedDataType;
+    schema: MergedDataTypeSingleSchema;
+  } | null>(() => {
+    if (
+      permittedDataTypes.length === 1 &&
+      !permittedDataTypes[0]!.schema.abstract
+    ) {
+      const dataType = permittedDataTypes[0]!;
+      const schema = getMergedDataTypeSchema(dataType.schema);
 
-      if (guessedEditorType === "null" || guessedEditorType === "emptyList") {
-        return guessedEditorType;
+      if ("anyOf" in schema) {
+        throw new Error(
+          "Data types with different expected sets of constraints (anyOf) are not yet supported",
+        );
       }
 
-      return isValueEmpty(value)
-        ? null
-        : guessEditorTypeFromValue(value, permittedDataTypes);
+      return {
+        dataType: dataType.schema,
+        schema,
+      };
     }
 
-    const expectedType = permittedDataTypes[0];
-
-    if (!expectedType) {
-      throw new Error("there is no expectedType found on property type");
+    if (!valueMetadata) {
+      /**
+       * We don't yet have a value set
+       */
+      return null;
     }
 
-    // if the value is empty, guess the editor type from expected type
-    if (isValueEmpty(value)) {
-      return guessEditorTypeFromExpectedType(expectedType);
+    if (!isValueMetadata(valueMetadata)) {
+      throw new Error(
+        `Expected single value metadata in SingleValueEditor, got ${JSON.stringify(valueMetadata)}`,
+      );
     }
 
-    // if the value is not empty, guess the editor type using value
-    return guessEditorTypeFromValue(value, permittedDataTypes);
+    const dataTypeId = valueMetadata.metadata.dataTypeId;
+
+    const dataType = permittedDataTypesIncludingChildren.find(
+      (type) => type.schema.$id === dataTypeId,
+    );
+
+    if (!dataType) {
+      throw new Error(
+        "Expected a data type to be set on the value or at least one permitted data type",
+      );
+    }
+
+    const schema = getMergedDataTypeSchema(dataType.schema);
+
+    if ("anyOf" in schema) {
+      throw new Error(
+        "Data types with different expected sets of constraints (anyOf) are not yet supported",
+      );
+    }
+
+    return {
+      dataType: dataType.schema,
+      schema,
+    };
   });
+
+  useEffect(() => {
+    if (
+      chosenDataType &&
+      (valueMetadata as PropertyMetadataValue | undefined)?.metadata
+        .dataTypeId !== chosenDataType.dataType.$id
+    ) {
+      const { propertyMetadata } = generateNewMetadataObject({
+        propertyKeyChain,
+        valuePath: propertyKeyChain,
+        valueMetadata: {
+          metadata: {
+            dataTypeId: chosenDataType.dataType.$id,
+          },
+        },
+      });
+
+      const newCell = produce(cell, (draftCell) => {
+        draftCell.data.propertyRow.valueMetadata = propertyMetadata;
+      });
+
+      onChange(newCell);
+    }
+  }, [
+    cell,
+    chosenDataType,
+    generateNewMetadataObject,
+    onChange,
+    propertyKeyChain,
+    valueMetadata,
+  ]);
 
   const latestValueCellRef = useRef<ValueCell>(cell);
   useEffect(() => {
     latestValueCellRef.current = cell;
   });
 
-  if (!editorType) {
+  if (
+    !chosenDataType ||
+    !cell.data.propertyRow.valueMetadata ||
+    showTypePicker
+  ) {
     return (
       <GridEditorWrapper>
         <EditorTypePicker
           expectedTypes={permittedDataTypes}
           onTypeChange={(type) => {
-            const editorSpec = getEditorSpecs(type);
+            const schema = getMergedDataTypeSchema(type);
+
+            if ("anyOf" in schema) {
+              throw new Error(
+                "Data types with different expected sets of constraints (anyOf) are not yet supported",
+              );
+            }
+
+            const editorSpec = getEditorSpecs(type, schema);
+
+            setChosenDataType({
+              dataType: type,
+              schema,
+            });
 
             // if no edit mode supported for selected type, set the default value and close the editor
             if (editorSpec.arrayEditException === "no-edit-mode") {
               const newCell = produce(cell, (draftCell) => {
                 draftCell.data.propertyRow.value = editorSpec.defaultValue;
+                draftCell.data.propertyRow.valueMetadata = {
+                  metadata: { dataTypeId: type.$id },
+                };
+                draftCell.data.showTypePicker = false;
               });
 
               return onFinishedEditing(newCell);
-            }
+            } else {
+              const newCell = produce(cell, (draftCell) => {
+                draftCell.data.propertyRow.valueMetadata = {
+                  metadata: { dataTypeId: type.$id },
+                };
+                draftCell.data.showTypePicker = false;
+              });
 
-            setEditorType(type);
+              return onChange(newCell);
+            }
           }}
+          selectedDataTypeId={chosenDataType?.dataType.$id}
         />
       </GridEditorWrapper>
     );
   }
 
-  if (editorType === "boolean") {
+  const { schema } = chosenDataType;
+
+  if (schema.type === "boolean") {
     return (
       <GridEditorWrapper sx={{ px: 2, alignItems: "flex-start" }}>
         <BooleanInput
@@ -104,7 +203,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
-  if (editorType === "object") {
+  if (schema.type === "object") {
     return (
       <JsonInput
         value={value}
@@ -123,9 +222,9 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
-  if (editorType === "null" || editorType === "emptyList") {
-    const spec = getEditorSpecs(editorType);
-    const title = editorType === "null" ? "Null" : "Empty List";
+  if (schema.type === "null") {
+    const spec = getEditorSpecs(chosenDataType.dataType, chosenDataType.schema);
+    const title = "Null";
 
     const shouldClearOnClick = value !== undefined;
 
@@ -148,38 +247,6 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
-  let valueConstraints: ValueConstraints | undefined;
-  /** @todo H-3374 don't guess the type, take it from the data type metadata */
-  /* eslint-disable no-labels */
-  outerLoop: for (const expectedType of permittedDataTypes) {
-    for (const constraint of expectedType.allOf) {
-      if ("type" in constraint) {
-        if (constraint.type === editorType) {
-          valueConstraints = constraint;
-          break outerLoop;
-        }
-      } else {
-        for (const innerConstraint of constraint.anyOf) {
-          if ("type" in innerConstraint) {
-            if (innerConstraint.type === editorType) {
-              valueConstraints = innerConstraint;
-              break outerLoop;
-            }
-          }
-        }
-      }
-    }
-  }
-  /* eslint-enable no-labels */
-
-  if (!valueConstraints) {
-    throw new Error(
-      `Could not find guessed editor type ${editorType} among expected types ${permittedDataTypes
-        .map((opt) => opt.$id)
-        .join(", ")}`,
-    );
-  }
-
   /**
    * Force validation on the text input form.
    * If the form is valid or if the form has been unmounted, allow <Grid /> to handle click events again.
@@ -198,10 +265,10 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
      * 1. The form is valid
      * 2. The form has been unmounted and we can't check its validity – this happens if another grid cell is clicked
      *
-     * If another grid cell is clicked, we cannot validate using the input and we may have an invalid value in the table.
-     * The alternative is that clicking another cell wipes the value, which is slightly worse UX.
-     * Ideally we would prevent the form being closed when another cell is clicked, to allow validation to run,
-     * and in any case have an indicator that an invalid value is in the form – tracked in H-1834
+     * If another grid cell is clicked, we cannot validate using the input and we may have an invalid value in the
+     * table. The alternative is that clicking another cell wipes the value, which is slightly worse UX. Ideally we
+     * would prevent the form being closed when another cell is clicked, to allow validation to run, and in any case
+     * have an indicator that an invalid value is in the form – tracked in H-1834
      */
     onFinishedEditing(latestValueCellRef.current);
     document.removeEventListener("click", validationHandler);
@@ -234,34 +301,32 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
         ref={textInputFormRef}
       >
         <NumberOrTextInput
-          valueConstraints={valueConstraints}
-          isNumber={editorType === "number"}
+          schema={schema}
+          isNumber={schema.type === "number"}
           value={(value as number | string | undefined) ?? ""}
           onChange={(newValue) => {
             if (
-              ("format" in valueConstraints &&
-                valueConstraints.format &&
+              ("format" in schema &&
+                schema.format &&
                 /**
                  * We use the native browser date/time inputs which handle validation for us,
                  * and the validation click handler assumes there will be a click outside after a change
                  * - which there won't for those inputs, because clicking to select a value closes the input.
                  */
-                !["date", "date-time", "time"].includes(
-                  valueConstraints.format,
-                )) ||
-              "minLength" in valueConstraints ||
-              "maxLength" in valueConstraints ||
-              "minimum" in valueConstraints ||
-              "maximum" in valueConstraints ||
-              "step" in valueConstraints
+                !["date", "date-time", "time"].includes(schema.format)) ||
+              "minLength" in schema ||
+              "maxLength" in schema ||
+              "minimum" in schema ||
+              "maximum" in schema ||
+              "step" in schema
             ) {
               /**
                * Add the validation enforcer if there are any validation rules.
-               * We don't add this if we know the user cannot input an invalid value (e.g. unconstrained string or number).
-               * Adding the validation enforcer means clicking into another cell requires a second click to activate it,
-               * so we don't want to add it unnecessarily.
-               * Ideally we wouldn't need the click handler hacks to enforce validation, or have a different validation strategy –
-               * especially given that the validation enforcement can be bypassed by clicking another cell – see H-1834.
+               * We don't add this if we know the user cannot input an invalid value (e.g. unconstrained string or
+               * number). Adding the validation enforcer means clicking into another cell requires a second click to
+               * activate it, so we don't want to add it unnecessarily. Ideally we wouldn't need the click handler
+               * hacks to enforce validation, or have a different validation strategy – especially given that the
+               * validation enforcement can be bypassed by clicking another cell – see H-1834.
                */
               ensureFormValidation();
             }

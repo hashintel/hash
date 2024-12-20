@@ -39,7 +39,7 @@ export const BlockPromptInput = forwardRef<
     },
     ref,
   ) => {
-    const inputRef = useRef<HTMLTextAreaElement | null>();
+    const inputRef = useRef<HTMLTextAreaElement>(null);
     const [hasMultipleLines, setHasMultipleLines] = useState(false);
 
     const calculateMultipleLines = useCallback(() => {

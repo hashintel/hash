@@ -54,6 +54,7 @@ export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating, or this package updating to use graph in this repo */
   const { graphModule } = useGraphBlockModule(blockRootRef);
   const { rootEntity: blockEntity, linkedEntities } = useEntitySubgraph<
     BlockEntity,
@@ -330,65 +331,59 @@ export const App: BlockComponent<BlockEntity> = ({
                         }),
                   }}
                 >
-                  {
-                    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
-                    title || description || !readonly ? (
-                      <Stack
-                        sx={{
-                          gap: 1.5,
-                        }}
-                      >
-                        <EditableField
-                          value={titleValue}
-                          onChange={(event) => {
-                            if (!readonly) {
-                              setTitleValue(event.target.value);
-                            }
-                          }}
-                          onBlur={(event) =>
-                            updateField(event.target.value, titleKey)
+                  {title || description || !readonly ? (
+                    <Stack
+                      sx={{
+                        gap: 1.5,
+                      }}
+                    >
+                      <EditableField
+                        value={titleValue}
+                        onChange={(event) => {
+                          if (!readonly) {
+                            setTitleValue(event.target.value);
                           }
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 21,
-                            lineHeight: 1,
-                            letterSpacing: "-0.02em",
-                            color: theme.palette.common.black,
-                          }}
-                          placeholder="Enter a how-to guide name"
-                          readonly={readonly}
-                        />
+                        }}
+                        onBlur={(event) =>
+                          updateField(event.target.value, titleKey)
+                        }
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: 21,
+                          lineHeight: 1,
+                          letterSpacing: "-0.02em",
+                          color: theme.palette.common.black,
+                        }}
+                        placeholder="Enter a how-to guide name"
+                        readonly={readonly}
+                      />
 
-                        <EditableField
-                          editIconFontSize={14}
-                          value={descriptionValue}
-                          onChange={(event) => {
-                            if (!readonly) {
-                              setDescriptionValue(event.target.value);
-                            }
-                          }}
-                          onBlur={(event) => {
-                            void updateField(
-                              event.target.value,
-                              descriptionKey,
-                            );
-                          }}
-                          sx={{
-                            fontWeight: 500,
-                            fontSize: 14,
-                            lineHeight: 1.3,
-                            letterSpacing: "-0.02em",
-                            color: theme.palette.gray[90],
-                          }}
-                          placeholder="Click here to add a description of the how-to process"
-                          placeholderSx={{
-                            fontStyle: "italic",
-                          }}
-                          readonly={readonly}
-                        />
-                      </Stack>
-                    ) : null
-                  }
+                      <EditableField
+                        editIconFontSize={14}
+                        value={descriptionValue}
+                        onChange={(event) => {
+                          if (!readonly) {
+                            setDescriptionValue(event.target.value);
+                          }
+                        }}
+                        onBlur={(event) => {
+                          void updateField(event.target.value, descriptionKey);
+                        }}
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: 14,
+                          lineHeight: 1.3,
+                          letterSpacing: "-0.02em",
+                          color: theme.palette.gray[90],
+                        }}
+                        placeholder="Click here to add a description of the how-to process"
+                        placeholderSx={{
+                          fontStyle: "italic",
+                        }}
+                        readonly={readonly}
+                      />
+                    </Stack>
+                  ) : null}
 
                   {(introEntity ?? !readonly) ? (
                     <Box>

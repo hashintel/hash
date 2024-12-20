@@ -123,19 +123,44 @@ test("propertyMetadata access", () => {
   const entityInstance = new Entity(createTestEntity());
 
   expect(entityInstance.propertyMetadata([base_url_a])).toEqual({
-    confidence: 0.2,
+    value: {
+      [base_url_aa]: {
+        value: {
+          [base_url_aaa]: {
+            metadata: {
+              confidence: 0.1,
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
+      },
+    },
+    metadata: {
+      confidence: 0.2,
+    },
   });
 
-  expect(
-    entityInstance.propertyMetadata([base_url_a, base_url_aa]),
-  ).toBeUndefined();
+  expect(entityInstance.propertyMetadata([base_url_a, base_url_aa])).toEqual({
+    value: {
+      [base_url_aaa]: {
+        metadata: {
+          confidence: 0.1,
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+    },
+  });
 
   expect(
     entityInstance.propertyMetadata([base_url_a, base_url_aa, base_url_aaa]),
   ).toEqual({
-    confidence: 0.1,
-    dataTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+    metadata: {
+      confidence: 0.1,
+      dataTypeId:
+        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+    },
   });
 
   expect(
@@ -148,7 +173,22 @@ test("propertyMetadata access", () => {
   ).toBeUndefined();
 
   expect(entityInstance.propertyMetadata([base_url_b])).toEqual({
-    confidence: 0.4,
+    value: [
+      {
+        value: {
+          [base_url_b10b]: {
+            metadata: {
+              confidence: 0.3,
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+            },
+          },
+        },
+      },
+    ],
+    metadata: {
+      confidence: 0.4,
+    },
   });
 
   expect(
@@ -162,9 +202,11 @@ test("propertyMetadata access", () => {
   expect(
     entityInstance.propertyMetadata([base_url_b, 0, base_url_b10b]),
   ).toEqual({
-    confidence: 0.3,
-    dataTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+    metadata: {
+      confidence: 0.3,
+      dataTypeId:
+        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+    },
   });
 
   expect(
@@ -176,7 +218,17 @@ test("propertyMetadata access", () => {
     ]),
   ).toBeUndefined();
 
-  expect(entityInstance.propertyMetadata([base_url_c])).toBeUndefined();
+  expect(entityInstance.propertyMetadata([base_url_c])).toEqual({
+    value: [
+      {
+        metadata: {
+          confidence: 0.5,
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+        },
+      },
+    ],
+  });
 
   expect(entityInstance.propertyMetadata([base_url_c, 1])).toBeUndefined();
 
@@ -185,9 +237,11 @@ test("propertyMetadata access", () => {
   ).toBeUndefined();
 
   expect(entityInstance.propertyMetadata([base_url_c, 0])).toEqual({
-    confidence: 0.5,
-    dataTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+    metadata: {
+      confidence: 0.5,
+      dataTypeId:
+        "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+    },
   });
 });
 

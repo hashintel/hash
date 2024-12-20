@@ -60,7 +60,7 @@ const useDraggableInPortal = () => {
     };
   }, [element]);
 
-  return (render: (provided: DraggableProvided) => ReactElement) =>
+  return (render: (provided: DraggableProvided) => ReactElement<HTMLElement>) =>
     (provided: DraggableProvided) => {
       const result = render(provided);
 
@@ -271,6 +271,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                       isDragDisabled={isDragDisabled}
                       index={index}
                     >
+                      {/* @ts-expect-error -- fix maybe is https://github.com/atlassian/react-beautiful-dnd/blob/HEAD/docs/guides/reparenting.md  */}
                       {renderDraggable((provided) => (
                         <Box
                           ref={provided.innerRef}

@@ -26,7 +26,7 @@ use utoipa::{
 };
 
 use crate::{
-    entity::{EntityQueryCursor, EntityQuerySorting},
+    entity::{EntityQueryCursor, EntityQuerySorting, EntityValidationReport},
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     error::{InsertionError, QueryError, UpdateError},
     filter::Filter,
@@ -161,7 +161,7 @@ pub struct ValidateEntityParams<'a> {
     pub components: ValidateEntityComponents,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct QueryConversion<'a> {
@@ -300,7 +300,7 @@ pub struct UpdateEntityEmbeddingsParams<'e> {
     pub reset: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DiffEntityParams {
@@ -383,7 +383,7 @@ pub trait EntityStore {
         actor_id: AccountId,
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
-    ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send {
+    ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send {
         self.validate_entities(actor_id, consistency, vec![params])
     }
 
@@ -397,7 +397,7 @@ pub trait EntityStore {
         actor_id: AccountId,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
-    ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send;
+    ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send;
 
     /// Get a list of entities specified by the [`GetEntitiesParams`].
     ///

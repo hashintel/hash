@@ -22,7 +22,9 @@ export const App: BlockComponent<BlockEntity> = ({
   const { entityId } = rootEntity.metadata.recordId;
 
   const blockRef = useRef<HTMLDivElement>(null);
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating, or this package updating to use graph in this repo */
   const { graphModule } = useGraphBlockModule(blockRef);
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating */
   const { hookModule } = useHookBlockModule(blockRef);
 
   useHook(

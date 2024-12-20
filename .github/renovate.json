@@ -24,7 +24,7 @@
   "npm": {
     "minimumReleaseAge": "3 days"
   },
-  "postUpdateOptions": ["yarnDedupeFewer"],
+  "postUpdateOptions": ["yarnDedupeHighest"],
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
   "schedule": ["before 4am every weekday", "every weekend"],
@@ -75,18 +75,18 @@
         "/^vite-/",
         "/vitest$/",
         "/lint-staged/",
-        "/lockfile-lint/",
-        "/markdownlint-cli/",
+        "/markdownlint-cli2/",
         "/^prettier/",
         "/prettier$/",
         "/rimraf/",
         "/turbo/",
         "/yarn-deduplicate/",
-        "/@redocly/cli/"
+        "/@redocly/cli/",
+        "!/@effect/vitest/"
       ]
     },
     {
-      "groupName": "Artillery npm packages",
+      "groupName": "`artillery` npm packages",
       "matchManagers": ["npm"],
       "automerge": false,
       "matchPackageNames": [
@@ -105,34 +105,38 @@
       "matchPackageNames": ["/^@openai//", "/^@anthropic-ai//", "/groq-sdk/"]
     },
     {
-      "groupName": "katex npm packages",
+      "groupName": "`katex` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/@matejmazur/react-katex/", "/^katex/"]
     },
     {
-      "groupName": "Ory npm packages",
+      "groupName": "`ory` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^@ory//"]
     },
     {
-      "groupName": "rollup npm packages",
+      "groupName": "`rollup` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^@rollup//", "/^rollup$/"],
       "dependencyDashboardApproval": false
     },
     {
-      "groupName": "sigma npm packages",
+      "groupName": "`sigma` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^@sigma/", "/sigma$/"]
     },
     {
-      "groupName": "signia npm packages",
+      "groupName": "`libp2p` npm packages",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@libp2p/", "/libp2p$/"]
+    },
+    {
+      "groupName": "`signia` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^signia/", "/signia$/"]
     },
-
     {
-      "groupName": "Block Protocol npm packages",
+      "groupName": "HASH `blockprotocol` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": [
         "/^@blockprotocol//",
@@ -143,7 +147,7 @@
       ]
     },
     {
-      "groupName": "ESLint npm packages",
+      "groupName": "`eslint` npm packages",
       "matchManagers": ["npm"],
       "dependencyDashboardApproval": false,
       "matchPackageNames": [
@@ -154,17 +158,17 @@
       ]
     },
     {
-      "groupName": "effect npm packages",
+      "groupName": "`effect` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^@effect//", "/^effect-/", "/effect$/"]
     },
     {
-      "groupName": "GraphQL npm packages",
+      "groupName": "`graphql` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^@graphql//", "/^graphql-/", "/graphql$/"]
     },
     {
-      "description": "Exclude tldraw from updates due to non-OSS license in later releases",
+      "description": "Exclude `tldraw` from updates due to non-OSS license in later releases",
       "matchManagers": ["npm"],
       "enabled": false,
       "matchPackageNames": ["/^@tldraw//"]
@@ -182,58 +186,58 @@
       "matchPackageNames": ["/httpyac/"]
     },
     {
-      "groupName": "Vitest npm packages",
+      "groupName": "`vitest` npm packages",
       "matchManagers": ["npm"],
       "dependencyDashboardApproval": false,
       "matchPackageNames": ["/^@vitest//", "/^vitest/", "/^vite-/", "/vitest$/"]
     },
     {
-      "groupName": "emoji-mart npm packages",
+      "groupName": "`emoji-mart` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^@emoji-mart//", "/^emoji-mart/", "/emoji-mart$/"]
     },
     {
-      "groupName": "Lodash npm packages",
+      "groupName": "`lodash` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^@types/lodash/", "/^lodash/", "/lodash$/"]
     },
     {
-      "groupName": "OpenTelemetry npm packages",
+      "groupName": "`opentelemetry` npm packages",
       "matchManagers": ["npm"],
       "assignees": ["TimDiekmann"],
       "matchPackageNames": ["/^@opentelemetry//"]
     },
     {
-      "groupName": "changesets npm packages",
+      "groupName": "`changesets` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^@changesets//"]
     },
     {
-      "groupName": "Playwright npm packages",
+      "groupName": "`playwright` npm packages",
       "matchManagers": ["npm"],
       "dependencyDashboardApproval": false,
       "assignees": ["CiaranMn"],
       "matchPackageNames": ["/^@playwright//", "/^playwright/", "/playwright$/"]
     },
     {
-      "groupName": "Prettier npm packages",
+      "groupName": "`prettier` npm packages",
       "matchManagers": ["npm"],
       "dependencyDashboardApproval": false,
       "matchPackageNames": ["/^prettier/", "/prettier$/"]
     },
     {
-      "groupName": "ProseMirror npm packages",
+      "groupName": "`prosemirror` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^prosemirror/", "/prosemirror$/"]
     },
     {
-      "groupName": "Sentry npm packages",
+      "groupName": "`sentry` npm packages",
       "matchManagers": ["npm"],
       "assignees": ["TimDiekmann"],
       "matchPackageNames": ["/^@sentry//"]
     },
     {
-      "groupName": "Signia npm packages",
+      "groupName": "`signia` npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^@signia//"]
     },

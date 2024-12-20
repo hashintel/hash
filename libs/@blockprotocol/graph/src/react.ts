@@ -22,7 +22,7 @@ export type BlockComponent<RootEntity extends Entity = Entity> =
  * Updates to any callbacks after first constructing should be made by calling graphModule.on("messageName", callback);
  */
 export const useGraphBlockModule = (
-  ref: RefObject<HTMLElement>,
+  ref: RefObject<HTMLElement | null>,
   constructorArgs?: Omit<
     ConstructorParameters<typeof GraphBlockHandler>[0],
     "element"
@@ -44,7 +44,7 @@ export const useGraphBlockModule = (
  * 2. to register multiple, call graphModule.registerCallbacks({ [messageName]: callback });
  */
 export const useGraphEmbedderModule = (
-  ref: RefObject<HTMLElement>,
+  ref: RefObject<HTMLElement | null>,
   constructorArgs: Omit<
     ConstructorParameters<typeof GraphEmbedderHandler>[0],
     "element"

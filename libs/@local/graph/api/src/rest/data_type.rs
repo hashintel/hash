@@ -29,6 +29,7 @@ use hash_graph_store::{
         GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
+    entity_type::ClosedDataTypeDefinition,
     pool::StorePool,
     query::ConflictBehavior,
 };
@@ -47,7 +48,8 @@ use time::OffsetDateTime;
 use type_system::{
     schema::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeUuid, DomainValidator, Operator, ValidateOntologyType as _, Variable,
+        DataTypeUuid, DomainValidator, JsonSchemaValueType, Operator, ValidateOntologyType as _,
+        Variable,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -55,7 +57,7 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::rest::{
-    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
+    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, RestApiStore,
     json::Json,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{ListOrValue, MaybeListOfDataType, subgraph::Subgraph},
@@ -98,6 +100,8 @@ use crate::rest::{
             GetDataTypeSubgraphResponse,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
+            ClosedDataTypeDefinition,
+            JsonSchemaValueType,
 
             ConversionDefinition,
             ConversionExpression,
@@ -400,12 +404,17 @@ async fn get_data_types<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<GetDataTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(actor_id, OpenApiQuery::GetDataTypes(&request));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -416,7 +425,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    store
+    let response = store
         .get_data_types(
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
@@ -427,7 +436,11 @@ where
         )
         .await
         .map_err(report_to_response)
-        .map(Json)
+        .map(Json);
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[derive(Serialize, ToSchema)]
@@ -466,12 +479,17 @@ async fn get_data_type_subgraph<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<GetDataTypeSubgraphResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(actor_id, OpenApiQuery::GetDataTypeSubgraph(&request));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -482,7 +500,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    store
+    let response = store
         .get_data_type_subgraph(
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
@@ -498,7 +516,11 @@ where
                 subgraph: Subgraph::from(response.subgraph),
                 cursor: response.cursor,
             })
-        })
+        });
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -862,24 +884,36 @@ async fn get_data_type_authorization_relationships<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(data_type_id): Path<VersionedUrl>,
     authorization_api_pool: Extension<Arc<A>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
 ) -> Result<Json<Vec<DataTypeRelationAndSubject>>, Response>
 where
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::GetDataTypeAuthorizationRelationships {
+                data_type_id: &data_type_id,
+            },
+        );
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
-    Ok(Json(
-        authorization_api
-            .get_data_type_relations(
-                DataTypeUuid::from_url(&data_type_id),
-                Consistency::FullyConsistent,
-            )
-            .await
-            .map_err(report_to_response)?,
-    ))
+    let response = authorization_api
+        .get_data_type_relations(
+            DataTypeUuid::from_url(&data_type_id),
+            Consistency::FullyConsistent,
+        )
+        .await
+        .map_err(report_to_response)?;
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    Ok(Json(response))
 }
 
 #[utoipa::path(
@@ -900,13 +934,21 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn check_data_type_permission<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Path((data_type_id, permission)): Path<(VersionedUrl, DataTypePermission)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<Json<PermissionResponse>, Response>
 where
     A: AuthorizationApiPool + Send + Sync,
 {
-    Ok(Json(PermissionResponse {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(actor_id, OpenApiQuery::CheckDataTypePermission {
+            data_type_id: &data_type_id,
+            permission,
+        });
+    }
+
+    let response = Ok(Json(PermissionResponse {
         has_permission: authorization_api_pool
             .acquire()
             .await
@@ -920,5 +962,9 @@ where
             .await
             .map_err(report_to_response)?
             .has_permission,
-    }))
+    }));
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }

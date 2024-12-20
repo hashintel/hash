@@ -6,6 +6,7 @@ export * from "./button";
 export * from "./callout";
 export * from "./chip";
 export * from "./chip-group";
+export * from "./data-type-selector";
 export * from "./e-chart";
 export * from "./entity-or-type-icon";
 export * from "./fa-icons/icons";

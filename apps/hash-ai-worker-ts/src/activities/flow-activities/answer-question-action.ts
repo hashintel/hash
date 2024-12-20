@@ -17,15 +17,9 @@ import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { CodeInterpreter, Sandbox } from "e2b";
-import { OpenAI } from "openai";
+import type { OpenAI } from "openai";
 
 import { logger } from "../shared/activity-logger.js";
-import type { PermittedOpenAiModel } from "../shared/openai-client.js";
-import { stringify } from "../shared/stringify.js";
-import type { FlowActionActivity } from "./types.js";
-import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
-import ChatCompletionToolMessageParam = OpenAI.ChatCompletionToolMessageParam;
-
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { getLlmResponse } from "../shared/get-llm-response.js";
 import {
@@ -37,6 +31,9 @@ import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities.js";
 import { openAiSeed } from "../shared/open-ai-seed.js";
+import type { PermittedOpenAiModel } from "../shared/openai-client.js";
+import { stringify } from "../shared/stringify.js";
+import type { FlowActionActivity } from "./types.js";
 
 const answerTools: LlmToolDefinition[] = [
   {
@@ -202,7 +199,7 @@ const callModel = async (
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
-  const responseMessages: ChatCompletionToolMessageParam[] = [];
+  const responseMessages: OpenAI.ChatCompletionToolMessageParam[] = [];
 
   /**
    * Defining these outside the loop so that in cases where the maximum iteration is reached,
@@ -316,7 +313,11 @@ const callModel = async (
             : dedent(`
         The Python code ran successfully.
         The stdout from your code was: ${stdout}
-        The following artifacts were generated:\n${artifacts.join("\n")}
+        The following artifacts were generated:\n${
+          // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          artifacts.join("\n")
+        }
 
         Please now review the code used and whether it correctly operates on the context data.
         If you spot errors in how the code attempts to access the code data, submit another code file with the corrections.
@@ -380,7 +381,7 @@ const callModel = async (
     );
   }
 
-  const responseMessage: ChatCompletionUserMessageParam = {
+  const responseMessage: OpenAI.ChatCompletionUserMessageParam = {
     role: "user",
     content:
       "You didn't make any valid tool calls as part of your response. Please review the tools available to you and use the appropriate one.",

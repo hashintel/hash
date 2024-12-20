@@ -1,6 +1,8 @@
 pub mod error;
 pub mod visitor;
 
+use type_system::schema::PropertyValueType;
+
 pub use self::{
     array::PropertyWithMetadataArray,
     diff::PropertyDiff,
@@ -48,6 +50,17 @@ pub enum PropertyWithMetadata {
     Array(PropertyWithMetadataArray),
     Object(PropertyWithMetadataObject),
     Value(PropertyWithMetadataValue),
+}
+
+impl PropertyWithMetadata {
+    #[must_use]
+    pub const fn property_value_type(&self) -> PropertyValueType {
+        match self {
+            Self::Array(_) => PropertyValueType::Array,
+            Self::Object(_) => PropertyValueType::Object,
+            Self::Value(_) => PropertyValueType::Value,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

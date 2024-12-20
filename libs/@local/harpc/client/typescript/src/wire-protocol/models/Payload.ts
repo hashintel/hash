@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Data,
   Effect,
   Equal,
@@ -11,12 +11,13 @@ import {
 } from "effect";
 
 import { U16_MAX, U16_MIN } from "../../constants.js";
-import { createProto, encodeDual } from "../../utils.js";
+import { createProto, encodeDual, hashUint8Array } from "../../utils.js";
 import * as Buffer from "../Buffer.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Payload",
 );
+
 export type TypeId = typeof TypeId;
 
 export const MAX_SIZE = U16_MAX - 32;
@@ -35,7 +36,7 @@ export interface Payload
     Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
-  readonly buffer: Uint8Array;
+  readonly buffer: Uint8Array<ArrayBuffer>;
 }
 
 const PayloadProto: Omit<Payload, "buffer"> = {
@@ -51,37 +52,6 @@ const PayloadProto: Omit<Payload, "buffer"> = {
   },
 
   [Hash.symbol](this: Payload) {
-    const hashUint8Array = (array: Uint8Array) => {
-      // same as array, so initial state is the same
-      let state = 6151;
-
-      // we take the array in steps of 4, and then just hash the 4 bytes
-      const remainder = array.length % 4;
-
-      // because they're just numbers and the safe integer range is 2^53 - 1,
-      // we can just take it in 32 bit chunks, which means we need to do less overall.
-      for (let i = 0; i < array.length - remainder; i += 4) {
-        const value =
-          // eslint-disable-next-line no-bitwise
-          array[i]! |
-          // eslint-disable-next-line no-bitwise
-          (array[i + 1]! << 8) |
-          // eslint-disable-next-line no-bitwise
-          (array[i + 2]! << 16) |
-          // eslint-disable-next-line no-bitwise
-          (array[i + 3]! << 24);
-
-        state = Hash.combine(value)(state);
-      }
-
-      // if there are any remaining bytes, we hash them as well
-      for (let i = array.length - remainder; i < array.length; i++) {
-        state = Hash.combine(array[i]!)(state);
-      }
-
-      return Hash.optimize(state);
-    };
-
     return pipe(
       Hash.hash(this[TypeId]),
       Hash.combine(hashUint8Array(this.buffer)),
@@ -98,7 +68,7 @@ const PayloadProto: Omit<Payload, "buffer"> = {
   toJSON(this: Payload) {
     return {
       _id: "Payload",
-      buffer: Array.from(this.buffer),
+      buffer: [...this.buffer],
     };
   },
 
@@ -115,11 +85,39 @@ const PayloadProto: Omit<Payload, "buffer"> = {
   },
 };
 
-const makeUnchecked = (buffer: Uint8Array): Payload =>
+const makeUnchecked = (buffer: Uint8Array<ArrayBuffer>): Payload =>
   createProto(PayloadProto, { buffer });
 
+/**
+ * Creates a new Payload from a buffer, asserting that the buffer is within size limits.
+ *
+ * This function should be used when you are confident that the buffer size will be valid
+ * and want to enforce this assumption at runtime.
+ *
+ * # Panics
+ *
+ * Dies if the buffer exceeds MAX_SIZE (U16_MAX - 32 bytes).
+ */
+export const makeAssert = (buffer: Uint8Array<ArrayBuffer>) => {
+  if (buffer.length > MAX_SIZE) {
+    return Effect.die(new PayloadTooLargeError({ received: buffer.length }));
+  }
+
+  return Effect.succeed(makeUnchecked(buffer));
+};
+
+/**
+ * Creates a new Payload from a buffer, safely handling size validation.
+ *
+ * This function validates that the buffer size is within acceptable limits and returns
+ * an Effect that will fail if the validation does not pass.
+ *
+ * # Errors
+ *
+ * Returns a PayloadTooLargeError if the buffer exceeds MAX_SIZE (U16_MAX - 32 bytes).
+ */
 export const make = (
-  buffer: Uint8Array,
+  buffer: Uint8Array<ArrayBuffer>,
 ): Effect.Effect<Payload, PayloadTooLargeError> => {
   if (buffer.length > MAX_SIZE) {
     return Effect.fail(new PayloadTooLargeError({ received: buffer.length }));
@@ -154,4 +152,8 @@ export const isPayload = (value: unknown): value is Payload =>
   Predicate.hasProperty(value, TypeId);
 
 export const arbitrary = (fc: typeof FastCheck) =>
-  fc.uint8Array({ minLength: U16_MIN, maxLength: MAX_SIZE }).map(makeUnchecked);
+  fc
+    .uint8Array({ minLength: U16_MIN, maxLength: MAX_SIZE })
+    // cast needed as fast-check doesn't support Uint8Array<ArrayBuffer> yet
+    .map((array) => array as Uint8Array<ArrayBuffer>)
+    .map(makeUnchecked);

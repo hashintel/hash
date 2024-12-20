@@ -1,3 +1,4 @@
+import type { ClosedDataType } from "@blockprotocol/type-system";
 import type {
   CustomCell,
   ProvideEditorComponent,
@@ -10,19 +11,13 @@ export interface ValueCellProps extends TooltipCellProps {
   readonly kind: "value-cell";
   propertyRow: PropertyRow;
   readonly: boolean;
+  showTypePicker?: boolean;
 }
 
 export type ValueCell = CustomCell<ValueCellProps>;
 
-export type EditorType =
-  | "boolean"
-  | "number"
-  | "string"
-  | "object"
-  | "emptyList"
-  | "null"
-  | "unknown";
+export type EditorType = "boolean" | "null" | "number" | "object" | "string";
 
-export type OnTypeChange = (type: EditorType) => void;
+export type OnTypeChange = (dataType: ClosedDataType) => void;
 
 export type ValueCellEditorComponent = ProvideEditorComponent<ValueCell>;

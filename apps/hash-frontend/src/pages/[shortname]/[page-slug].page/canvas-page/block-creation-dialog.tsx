@@ -173,7 +173,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         setCreatingEntity(true);
         try {
           await createBlock(blockMeta);
-        } catch (err) {
+        } catch {
           setCreatingEntity(false);
         }
       }}

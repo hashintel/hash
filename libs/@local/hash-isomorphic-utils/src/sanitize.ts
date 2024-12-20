@@ -17,7 +17,7 @@ export const sanitizeHref = (url?: string) => {
     }
 
     return href;
-  } catch (err) {
+  } catch {
     // eslint-disable-next-line no-console
     console.error(`Could not construct URL from ${url}`);
     return "";

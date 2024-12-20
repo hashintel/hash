@@ -17,6 +17,11 @@ pub enum EntityTypeValidationError {
     #[display("Property object validation failed: {_0}")]
     #[from]
     ObjectValidationFailed(ObjectSchemaValidationError),
+    #[display(
+        "Unsatisfiable link number constraints, expected minimum amount of items ({min}) to be \
+         less than or equal to the maximum amount of items ({max})"
+    )]
+    IncompatibleLinkNumberConstraints { min: usize, max: usize },
 }
 
 #[derive(Debug)]
@@ -29,8 +34,6 @@ impl Validator<EntityType> for EntityTypeValidator {
         &self,
         value: &'v EntityType,
     ) -> Result<&'v Valid<EntityType>, Self::Error> {
-        ObjectSchemaValidator.validate_ref(value)?;
-
         for (property, value) in &value.constraints.properties {
             let reference = match value {
                 ValueOrArray::Value(value) => value,
@@ -42,8 +45,16 @@ impl Validator<EntityType> for EntityTypeValidator {
                     reference: reference.clone(),
                 });
             }
-            // TODO: Validate reference
-            //   see https://linear.app/hash/issue/H-3046
+        }
+
+        for links in value.constraints.links.values() {
+            if let Some((min, max)) = links.min_items.zip(links.max_items) {
+                if min > max {
+                    return Err(
+                        EntityTypeValidationError::IncompatibleLinkNumberConstraints { min, max },
+                    );
+                }
+            }
         }
 
         Ok(Valid::new_ref_unchecked(value))
@@ -70,8 +81,16 @@ impl Validator<ClosedEntityType> for EntityTypeValidator {
                     reference: reference.clone(),
                 });
             }
-            // TODO: Validate reference
-            //   see https://linear.app/hash/issue/H-3046
+        }
+
+        for links in value.constraints.links.values() {
+            if let Some((min, max)) = links.min_items.zip(links.max_items) {
+                if min > max {
+                    return Err(
+                        EntityTypeValidationError::IncompatibleLinkNumberConstraints { min, max },
+                    );
+                }
+            }
         }
 
         Ok(Valid::new_ref_unchecked(value))

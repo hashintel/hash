@@ -44,7 +44,7 @@ export const Subscribe: FunctionComponent<
   const [loading, setLoading] = useState(false);
   const [userJoined, setUserJoined] = useState<boolean>(false);
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const hashChangeHandler = useCallback((path: string) => {
     const url = new URL(path, FRONTEND_URL);
@@ -194,7 +194,7 @@ export const Subscribe: FunctionComponent<
                       setError("Something went wrong.️ Please try again later");
                     }
                   });
-                } catch (err) {
+                } catch {
                   // eslint-disable-next-line no-console
                   console.log(error);
                   unstable_batchedUpdates(() => {

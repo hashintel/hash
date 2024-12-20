@@ -1,6 +1,6 @@
 import { createWriteStream } from "node:fs";
 import { mkdir, unlink } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import path from "node:path";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
@@ -47,9 +47,9 @@ import { getLlmAnalysisOfDoc } from "./infer-metadata-from-document-action/get-l
 import type { FlowActionActivity } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-const baseFilePath = join(__dirname, "/var/tmp_files");
+const baseFilePath = path.join(__dirname, "/var/tmp_files");
 
 export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
   inputs,
@@ -200,6 +200,8 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
       resolve(pdfData);
     });
 
+    // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+    // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     pdfParser.loadPDF(filePath).catch((err) => reject(err));
   });
 

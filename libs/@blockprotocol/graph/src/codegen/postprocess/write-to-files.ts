@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import * as path from "node:path";
+import path from "node:path";
 
 import type { PostprocessContext } from "../context/postprocess.js";
 

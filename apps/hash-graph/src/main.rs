@@ -1,5 +1,4 @@
 #![forbid(unsafe_code)]
-#![feature(async_closure)]
 #![expect(
     unreachable_pub,
     reason = "This is a binary but as we want to document this crate as well this should be a \

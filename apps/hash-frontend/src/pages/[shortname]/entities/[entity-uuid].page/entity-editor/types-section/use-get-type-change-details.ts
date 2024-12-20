@@ -2,7 +2,6 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { extractVersion } from "@blockprotocol/type-system/slim";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { getPropertyTypeForClosedEntityType } from "@local/hash-graph-sdk/entity";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   componentsFromVersionedUrl,
   extractBaseUrl,
@@ -19,7 +18,6 @@ export const useGetTypeChangeDetails = () => {
   const {
     closedMultiEntityType: currentClosedType,
     closedMultiEntityTypesDefinitions: currentDefinitions,
-    entitySubgraph,
   } = useEntityEditor();
 
   return useCallback(
@@ -28,12 +26,6 @@ export const useGetTypeChangeDetails = () => {
     ): Promise<
       Pick<EntityTypeChangeDetails, "linkChanges" | "propertyChanges">
     > => {
-      const entity = getRoots(entitySubgraph)[0];
-
-      if (!entity) {
-        throw new Error("No entity found in entitySubgraph");
-      }
-
       const {
         closedMultiEntityType: proposedClosedMultiType,
         closedMultiEntityTypesDefinitions: proposedDefinitions,
@@ -296,11 +288,6 @@ export const useGetTypeChangeDetails = () => {
 
       return changeDetails;
     },
-    [
-      currentClosedType,
-      currentDefinitions,
-      entitySubgraph,
-      getClosedMultiEntityType,
-    ],
+    [currentClosedType, currentDefinitions, getClosedMultiEntityType],
   );
 };

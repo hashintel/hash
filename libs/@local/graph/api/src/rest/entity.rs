@@ -28,9 +28,12 @@ use hash_graph_store::{
         ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityRequest, DiffEntityParams,
         DiffEntityResult, EntityQueryCursor, EntityQueryPath, EntityQuerySorting,
         EntityQuerySortingRecord, EntityQuerySortingToken, EntityQueryToken, EntityStore as _,
-        EntityValidationType, GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams,
-        PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
-        ValidateEntityParams,
+        EntityTypesError, EntityValidationReport, EntityValidationType, GetEntitiesParams,
+        GetEntitiesResponse, GetEntitySubgraphParams, LinkDataStateError, LinkDataValidationReport,
+        LinkError, LinkTargetError, LinkValidationReport, LinkedEntityError,
+        MetadataValidationReport, PatchEntityParams, PropertyMetadataValidationReport,
+        QueryConversion, UnexpectedEntityType, UpdateEntityEmbeddingsParams,
+        ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     filter::Filter,
@@ -56,6 +59,16 @@ use hash_graph_types::{
             PropertyPathElement, PropertyProvenance, PropertyWithMetadata,
             PropertyWithMetadataArray, PropertyWithMetadataObject, PropertyWithMetadataValue,
             ValueMetadata,
+            visitor::{
+                ArrayItemNumberMismatch, ArrayValidationReport, DataTypeCanonicalCalculation,
+                DataTypeConversionError, DataTypeInferenceError, InvalidCanonicalValue,
+                JsonSchemaValueTypeMismatch, ObjectPropertyValidationReport,
+                ObjectValidationReport, OneOfArrayValidationReports, OneOfObjectValidationReports,
+                OneOfPropertyValidationReports, PropertyArrayValidationReport,
+                PropertyObjectValidationReport, PropertyValidationReport,
+                PropertyValueTypeMismatch, PropertyValueValidationReport, ValueValidationError,
+                ValueValidationReport,
+            },
         },
     },
     owned_by_id::OwnedById,
@@ -66,8 +79,9 @@ use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{
-    AuthenticatedUserHeader, PermissionResponse, api_resource::RoutedResource, json::Json,
-    status::report_to_response, utoipa_typedef::subgraph::Subgraph,
+    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger,
+    api_resource::RoutedResource, json::Json, status::report_to_response,
+    utoipa_typedef::subgraph::Subgraph,
 };
 
 #[derive(OpenApi)]
@@ -161,6 +175,36 @@ use crate::rest::{
             EntityTemporalMetadata,
             EntityQueryToken,
             LinkData,
+            EntityValidationReport,
+            LinkedEntityError,
+            LinkDataValidationReport,
+            LinkDataStateError,
+            LinkValidationReport,
+            LinkError,
+            LinkTargetError,
+            UnexpectedEntityType,
+            MetadataValidationReport,
+            EntityTypesError,
+            PropertyMetadataValidationReport,
+            ObjectPropertyValidationReport,
+            JsonSchemaValueTypeMismatch,
+            ArrayValidationReport,
+            ArrayItemNumberMismatch,
+            PropertyValidationReport,
+            OneOfPropertyValidationReports,
+            PropertyValueValidationReport,
+            ObjectValidationReport,
+            DataTypeConversionError,
+            DataTypeCanonicalCalculation,
+            DataTypeInferenceError,
+            PropertyValueTypeMismatch,
+            InvalidCanonicalValue,
+            OneOfArrayValidationReports,
+            PropertyArrayValidationReport,
+            OneOfObjectValidationReports,
+            PropertyObjectValidationReport,
+            ValueValidationReport,
+            ValueValidationError,
 
             DiffEntityParams,
             DiffEntityResult,
@@ -339,7 +383,7 @@ where
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 204, description = "The validation passed"),
+        (status = 200, content_type = "application/json", description = "The validation report", body = HashMap<usize, EntityValidationReport>),
         (status = 400, content_type = "application/json", description = "The entity validation failed"),
 
         (status = 404, description = "Entity Type URL was not found"),
@@ -355,12 +399,17 @@ async fn validate_entity<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<StatusCode, Response>
+) -> Result<Json<HashMap<usize, EntityValidationReport>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(actor_id, OpenApiQuery::ValidateEntity(&body));
+    }
+
     let params = ValidateEntityParams::deserialize(&body)
         .map_err(Report::from)
         .map_err(report_to_response)?;
@@ -375,13 +424,15 @@ where
         .await
         .map_err(report_to_response)?;
 
-    store
-        .validate_entity(actor_id, Consistency::FullyConsistent, params)
-        .await
-        .attach(hash_status::StatusCode::InvalidArgument)
-        .map_err(report_to_response)?;
-
-    Ok(StatusCode::NO_CONTENT)
+    let response = Ok(Json(
+        store
+            .validate_entity(actor_id, Consistency::FullyConsistent, params)
+            .await,
+    ));
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[utoipa::path(
@@ -404,11 +455,19 @@ async fn check_entity_permission<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((entity_id, permission)): Path<(EntityId, EntityPermission)>,
     authorization_api_pool: Extension<Arc<A>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
 ) -> Result<Json<PermissionResponse>, Response>
 where
     A: AuthorizationApiPool + Send + Sync,
 {
-    Ok(Json(PermissionResponse {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(actor_id, OpenApiQuery::CheckEntityPermission {
+            entity_id,
+            permission,
+        });
+    }
+
+    let response = Ok(Json(PermissionResponse {
         has_permission: authorization_api_pool
             .acquire()
             .await
@@ -422,7 +481,11 @@ where
             .await
             .map_err(report_to_response)?
             .has_permission,
-    }))
+    }));
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 fn generate_sorting_paths(
@@ -515,13 +578,13 @@ fn generate_sorting_paths(
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[expect(
     clippy::struct_excessive_bools,
     reason = "Parameter struct deserialized from JSON"
 )]
-struct GetEntitiesRequest<'q, 's, 'p> {
+pub struct GetEntitiesRequest<'q, 's, 'p> {
     #[serde(borrow)]
     filter: Filter<'q, Entity>,
     temporal_axes: QueryTemporalAxesUnresolved,
@@ -545,6 +608,30 @@ struct GetEntitiesRequest<'q, 's, 'p> {
     include_edition_created_by_ids: bool,
     #[serde(default)]
     include_type_ids: bool,
+}
+
+impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<'q> {
+    fn from(request: GetEntitiesRequest<'q, 's, 'p>) -> Self {
+        Self {
+            filter: request.filter,
+            sorting: generate_sorting_paths(
+                request.sorting_paths,
+                request.limit,
+                request.cursor,
+                &request.temporal_axes,
+            ),
+            limit: request.limit,
+            conversions: request.conversions,
+            include_drafts: request.include_drafts,
+            include_count: request.include_count,
+            include_entity_types: request.include_entity_types,
+            temporal_axes: request.temporal_axes,
+            include_web_ids: request.include_web_ids,
+            include_created_by_ids: request.include_created_by_ids,
+            include_edition_created_by_ids: request.include_edition_created_by_ids,
+            include_type_ids: request.include_type_ids,
+        }
+    }
 }
 
 #[utoipa::path(
@@ -570,19 +657,25 @@ struct GetEntitiesRequest<'q, 's, 'p> {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client, request)
+    skip_all,
+    fields(actor=%actor_id, %request)
 )]
 async fn get_entities<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<GetEntitiesResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(actor_id, OpenApiQuery::GetEntities(&request));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -596,26 +689,16 @@ where
     let request = GetEntitiesRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
-    store
-        .get_entities(actor_id, GetEntitiesParams {
-            filter: request.filter,
-            sorting: generate_sorting_paths(
-                request.sorting_paths,
-                request.limit,
-                request.cursor,
-                &request.temporal_axes,
-            ),
-            limit: request.limit,
-            conversions: request.conversions,
-            include_drafts: request.include_drafts,
-            include_count: request.include_count,
-            include_entity_types: request.include_entity_types,
-            temporal_axes: request.temporal_axes,
-            include_web_ids: request.include_web_ids,
-            include_created_by_ids: request.include_created_by_ids,
-            include_edition_created_by_ids: request.include_edition_created_by_ids,
-            include_type_ids: request.include_type_ids,
-        })
+
+    if request.limit == Some(0) {
+        tracing::warn!(
+            %actor_id,
+            "The limit is set to zero, so no entities will be returned."
+        );
+    }
+
+    let response = store
+        .get_entities(actor_id, request.into())
         .await
         .map(|response| {
             Json(GetEntitiesResponse {
@@ -630,16 +713,20 @@ where
                 type_ids: response.type_ids,
             })
         })
-        .map_err(report_to_response)
+        .map_err(report_to_response);
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[expect(
     clippy::struct_excessive_bools,
     reason = "Parameter struct deserialized from JSON"
 )]
-struct GetEntitySubgraphRequest<'q, 's, 'p> {
+pub struct GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(borrow)]
     filter: Filter<'q, Entity>,
     graph_resolve_depths: GraphResolveDepths,
@@ -664,6 +751,31 @@ struct GetEntitySubgraphRequest<'q, 's, 'p> {
     include_edition_created_by_ids: bool,
     #[serde(default)]
     include_type_ids: bool,
+}
+
+impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySubgraphParams<'q> {
+    fn from(request: GetEntitySubgraphRequest<'q, 's, 'p>) -> Self {
+        Self {
+            filter: request.filter,
+            sorting: generate_sorting_paths(
+                request.sorting_paths,
+                request.limit,
+                request.cursor,
+                &request.temporal_axes,
+            ),
+            limit: request.limit,
+            conversions: request.conversions,
+            graph_resolve_depths: request.graph_resolve_depths,
+            include_drafts: request.include_drafts,
+            include_count: request.include_count,
+            include_entity_types: request.include_entity_types,
+            temporal_axes: request.temporal_axes,
+            include_web_ids: request.include_web_ids,
+            include_created_by_ids: request.include_created_by_ids,
+            include_edition_created_by_ids: request.include_edition_created_by_ids,
+            include_type_ids: request.include_type_ids,
+        }
+    }
 }
 
 #[derive(Serialize, ToSchema)]
@@ -716,19 +828,25 @@ struct GetEntitySubgraphResponse<'r> {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client, request)
+    skip_all,
+    fields(actor=%actor_id, %request)
 )]
 async fn get_entity_subgraph<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<GetEntitySubgraphResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(actor_id, OpenApiQuery::GetEntitySubgraph(&request));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -742,27 +860,16 @@ where
     let request = GetEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
-    store
-        .get_entity_subgraph(actor_id, GetEntitySubgraphParams {
-            filter: request.filter,
-            sorting: generate_sorting_paths(
-                request.sorting_paths,
-                request.limit,
-                request.cursor,
-                &request.temporal_axes,
-            ),
-            limit: request.limit,
-            conversions: request.conversions,
-            graph_resolve_depths: request.graph_resolve_depths,
-            include_drafts: request.include_drafts,
-            include_count: request.include_count,
-            include_entity_types: request.include_entity_types,
-            temporal_axes: request.temporal_axes,
-            include_web_ids: request.include_web_ids,
-            include_created_by_ids: request.include_created_by_ids,
-            include_edition_created_by_ids: request.include_edition_created_by_ids,
-            include_type_ids: request.include_type_ids,
-        })
+
+    if request.limit == Some(0) {
+        tracing::warn!(
+            %actor_id,
+            "The limit is set to zero, so no entities will be returned"
+        );
+    }
+
+    let response = store
+        .get_entity_subgraph(actor_id, request.into())
         .await
         .map(|response| {
             Json(GetEntitySubgraphResponse {
@@ -777,7 +884,11 @@ where
                 type_ids: response.type_ids,
             })
         })
-        .map_err(report_to_response)
+        .map_err(report_to_response);
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[utoipa::path(
@@ -808,12 +919,17 @@ async fn count_entities<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<usize>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(actor_id, OpenApiQuery::CountEntities(&request));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -824,7 +940,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    store
+    let response = store
         .count_entities(
             actor_id,
             CountEntitiesParams::deserialize(&request)
@@ -833,7 +949,11 @@ where
         )
         .await
         .map(Json)
-        .map_err(report_to_response)
+        .map_err(report_to_response);
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[utoipa::path(
@@ -971,12 +1091,17 @@ async fn diff_entity<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
     Json(params): Json<DiffEntityParams>,
 ) -> Result<Json<DiffEntityResult<'static>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(actor_id, OpenApiQuery::DiffEntity(&params));
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
@@ -987,7 +1112,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    store
+    let response = store
         .diff_entity(actor_id, params)
         .await
         .map_err(|report| {
@@ -998,7 +1123,11 @@ where
             }
         })
         .map_err(report_to_response)
-        .map(Json)
+        .map(Json);
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[utoipa::path(
@@ -1020,21 +1149,33 @@ async fn get_entity_authorization_relationships<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(entity_id): Path<EntityId>,
     authorization_api_pool: Extension<Arc<A>>,
+    mut query_logger: Option<Extension<QueryLogger>>,
 ) -> Result<Json<Vec<EntityRelationAndSubject>>, Response>
 where
     A: AuthorizationApiPool + Send + Sync,
 {
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::GetEntityAuthorizationRelationships { entity_id },
+        );
+    }
+
     let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
-    Ok(Json(
+    let response = Ok(Json(
         authorization_api
             .get_entity_relations(entity_id, Consistency::FullyConsistent)
             .await
             .map_err(report_to_response)?,
-    ))
+    ));
+    if let Some(query_logger) = &mut query_logger {
+        query_logger.send().await.map_err(report_to_response)?;
+    }
+    response
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

@@ -1,86 +1,50 @@
-import type { ClosedDataType } from "@blockprotocol/type-system/slim";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, ButtonBase, Typography } from "@mui/material";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import {
+  buildDataTypeTreesForSelector,
+  DataTypeSelector,
+} from "@hashintel/design-system";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
+import { useMemo } from "react";
 
-import { getEditorSpecs } from "./editor-specs";
+import { useEntityEditor } from "../../../../entity-editor-context";
 import type { OnTypeChange } from "./types";
-import { guessEditorTypeFromExpectedType } from "./utils";
-
-const ExpectedTypeButton = ({
-  onClick,
-  expectedType,
-}: {
-  onClick: () => void;
-  expectedType: ClosedDataType;
-}) => {
-  const editorSpec = getEditorSpecs(
-    guessEditorTypeFromExpectedType(expectedType),
-    expectedType,
-  );
-
-  const { description, title } = expectedType;
-
-  return (
-    <ButtonBase
-      onClick={onClick}
-      disableRipple
-      disableTouchRipple
-      sx={{
-        border: "1px solid",
-        borderColor: "gray.30",
-        borderRadius: 1,
-        minHeight: 42,
-        justifyContent: "flex-start",
-        px: 2.5,
-        py: 1.5,
-        gap: 1.5,
-        "&:hover": {
-          backgroundColor: "gray.10",
-        },
-      }}
-    >
-      <FontAwesomeIcon icon={{ icon: editorSpec.icon }} />
-      <Typography variant="smallTextLabels">{title}</Typography>
-      {!!description && (
-        <Typography variant="microText" color="gray.50" textAlign="start">
-          {description}
-        </Typography>
-      )}
-    </ButtonBase>
-  );
-};
 
 interface EditorTypePickerProps {
-  expectedTypes: ClosedDataType[];
+  expectedTypes: ClosedDataTypeDefinition[];
   onTypeChange: OnTypeChange;
+  selectedDataTypeId?: VersionedUrl;
 }
 
 export const EditorTypePicker = ({
   expectedTypes,
   onTypeChange,
+  selectedDataTypeId,
 }: EditorTypePickerProps) => {
-  return (
-    <Box sx={{ px: 2, py: 1.5 }}>
-      <Typography variant="smallCaps" mr={1}>
-        Choose data type
-      </Typography>
-      <Typography variant="smallTextLabels">
-        How are you representing this value?
-      </Typography>
+  const { closedMultiEntityTypesDefinitions } = useEntityEditor();
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
-        {expectedTypes.map((expectedType) => {
-          return (
-            <ExpectedTypeButton
-              expectedType={expectedType}
-              key={expectedType.$id}
-              onClick={() =>
-                onTypeChange(guessEditorTypeFromExpectedType(expectedType))
-              }
-            />
-          );
-        })}
-      </Box>
-    </Box>
+  const dataTypeTrees = useMemo(() => {
+    return buildDataTypeTreesForSelector({
+      targetDataTypes: expectedTypes,
+      dataTypePoolById: closedMultiEntityTypesDefinitions.dataTypes,
+    });
+  }, [expectedTypes, closedMultiEntityTypesDefinitions]);
+
+  const onSelect = (dataTypeId: VersionedUrl) => {
+    const selectedType =
+      closedMultiEntityTypesDefinitions.dataTypes[dataTypeId];
+
+    if (!selectedType) {
+      throw new Error(`Could not find data type with id ${dataTypeId}`);
+    }
+
+    onTypeChange(selectedType.schema);
+  };
+
+  return (
+    <DataTypeSelector
+      dataTypes={dataTypeTrees}
+      onSelect={onSelect}
+      selectedDataTypeId={selectedDataTypeId}
+    />
   );
 };

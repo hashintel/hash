@@ -1,17 +1,13 @@
+import { TextDecoder } from "node:util";
+
 import { Data, Effect, Layer, Option, pipe, Schema, Stream } from "effect";
+
+import { InvalidUtf8Error } from "../ClientError.js";
 
 import * as Decoder from "./Decoder.js";
 
 // 1E is the ASCII record separator character, and is invalid in JSON.
 const SEPARATOR = 0x1e;
-
-export class InvalidUtf8Error extends Data.TaggedError("InvalidUtf8Error")<{
-  cause: unknown;
-}> {
-  get message() {
-    return "Invalid UTF-8 encoding";
-  }
-}
 
 export class InvalidJsonError extends Data.TaggedError("InvalidJsonError")<{
   cause: unknown;
@@ -54,20 +50,23 @@ const processArrayBuffer = <T, E, R>(
     while (slice.byteLength > 0) {
       const separatorPosition = pipe(
         new Uint8Array(slice),
-        (array) => array.findIndex((byte) => byte === SEPARATOR),
+        (array) => array.indexOf(SEPARATOR),
         Option.liftPredicate((position) => position >= 0),
       );
 
       if (Option.isNone(separatorPosition)) {
-        fragment += yield* textDecode(decoder, slice, { stream: true });
+        fragment =
+          fragment + (yield* textDecode(decoder, slice, { stream: true }));
 
         return [fragment, items] as const;
       }
 
       const left = slice.slice(0, separatorPosition.value);
+
       slice = slice.slice(separatorPosition.value + 1);
 
-      fragment += yield* textDecode(decoder, left, { stream: false });
+      fragment =
+        fragment + (yield* textDecode(decoder, left, { stream: false }));
 
       if (Option.isSome(decodeText)) {
         items.push(yield* decodeText.value(fragment));
@@ -85,7 +84,7 @@ interface Options {
   schema: boolean;
 }
 
-const decoder = (options: Options) =>
+const make = (options: Options) =>
   Decoder.make((input, schema) => {
     const useSchema = options.schema;
 
@@ -110,6 +109,7 @@ const decoder = (options: Options) =>
             useSchema ? Option.some(decodeJson) : Option.none(),
           );
 
+          // eslint-disable-next-line require-atomic-updates -- this is correct, as the stream runs sequentially
           fragment = nextFragment;
 
           return items;
@@ -118,7 +118,7 @@ const decoder = (options: Options) =>
     );
   });
 
-export const layer = Layer.succeed(Decoder.Decoder, decoder({ schema: true }));
+export const layer = Layer.succeed(Decoder.Decoder, make({ schema: true }));
 
 /**
  * Like `layer`, but won't invoke the schema decoder, therefore neither transforming or validating the input.
@@ -126,5 +126,5 @@ export const layer = Layer.succeed(Decoder.Decoder, decoder({ schema: true }));
  */
 export const layerUnchecked = Layer.succeed(
   Decoder.Decoder,
-  decoder({ schema: false }),
+  make({ schema: false }),
 );

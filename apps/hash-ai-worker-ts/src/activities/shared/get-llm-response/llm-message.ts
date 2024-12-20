@@ -110,6 +110,12 @@ export const mapAnthropicMessageToLlmMessage = (params: {
             } else if (block.type === "tool_use") {
               throw new Error("Tool use content not supported");
             } else if (block.type === "tool_result") {
+              if (typeof block.content === "string") {
+                throw new Error(
+                  "Unexpected string content for tool result, expected object with type field",
+                );
+              }
+
               /**
                * Currently images are not supported in LLM messages,
                * so we filter them out from the content.
@@ -130,6 +136,8 @@ export const mapAnthropicMessageToLlmMessage = (params: {
               return {
                 type: "tool_result" as const,
                 tool_use_id: block.tool_use_id,
+                // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+                // eslint-disable-next-line @typescript-eslint/no-base-to-string
                 content: textBlocks?.join("\n") ?? "",
               } satisfies LlmMessageToolResultContent;
             }

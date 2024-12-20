@@ -5,10 +5,15 @@ import { customColors } from "@hashintel/design-system/theme";
 import { getYCenter } from "../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawRoundRect } from "../../../../../../components/grid/utils/draw-round-rect";
+import { InteractableManager } from "../../../../../../components/grid/utils/interactable-manager";
+import { drawInteractableTooltipIcons } from "../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
+import type { TooltipCellProps } from "../../../../../../components/grid/utils/use-grid-tooltip/types";
+import type { PropertyRow } from "../properties-section/property-table/types";
 
-export interface SummaryChipCellProps {
+export interface SummaryChipCellProps extends TooltipCellProps {
   readonly kind: "summary-chip-cell";
   primaryText?: string;
+  propertyRow: PropertyRow;
   secondaryText?: string;
 }
 
@@ -55,6 +60,9 @@ export const renderSummaryChipCell: CustomRenderer<SummaryChipCell> = {
 
     ctx.fillStyle = customColors.gray[60];
     ctx.fillText(secondaryText, secondaryTextLeft, yCenter);
+
+    const tooltipInteractables = drawInteractableTooltipIcons(args);
+    InteractableManager.setInteractablesForCell(args, tooltipInteractables);
 
     drawCellFadeOutGradient(args);
   },

@@ -8,12 +8,14 @@ import type {
   ClosedMultiEntityType,
   ClosedMultiEntityTypesDefinitions,
 } from "@local/hash-graph-types/ontology";
+import { getPermittedDataTypes } from "@local/hash-isomorphic-utils/data-types";
 import get from "lodash/get";
 
 import {
   isPropertyValueArray,
   isPropertyValueObject,
 } from "../../../../../../../../../lib/typeguards";
+import type { MinimalEntityValidationReport } from "../../../../../../../../shared/use-validate-entity";
 import type { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
 
@@ -53,21 +55,25 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
 export const generatePropertyRowRecursively = ({
   closedMultiEntityType,
   closedMultiEntityTypesDefinitions,
+  generateNewMetadataObject,
   propertyTypeBaseUrl,
   propertyKeyChain,
   entity,
   requiredPropertyTypes,
   depth = 0,
   propertyRefSchema,
+  validationReport,
 }: {
   closedMultiEntityType: ClosedMultiEntityType;
   closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
+  generateNewMetadataObject: PropertyRow["generateNewMetadataObject"];
   propertyTypeBaseUrl: BaseUrl;
   propertyKeyChain: BaseUrl[];
   entity: Entity;
   requiredPropertyTypes: BaseUrl[];
   depth?: number;
   propertyRefSchema: ValueOrArray<PropertyTypeReference>;
+  validationReport: MinimalEntityValidationReport | null;
 }): PropertyRow => {
   const propertyTypeId =
     "$ref" in propertyRefSchema
@@ -81,12 +87,22 @@ export const generatePropertyRowRecursively = ({
     throw new Error(`Property type ${propertyTypeId} not found in definitions`);
   }
 
-  const { isArray: isPropertyTypeArray, expectedTypes } =
-    getExpectedTypesOfPropertyType(
-      propertyType,
-      closedMultiEntityTypesDefinitions,
-    );
+  const {
+    /**
+     * Whether the property type specifies that it expects an array of values.
+     */
+    isArray: isPropertyTypeArray,
+    expectedTypes,
+  } = getExpectedTypesOfPropertyType(
+    propertyType,
+    closedMultiEntityTypesDefinitions,
+  );
 
+  /**
+   * Whether the entity type has specified that it expects multiple instances of whatever value this property expects.
+   * Note that the editor currently only supports 1D arrays, and therefore does not support
+   * isPropertyTypeArray && isAllowMultiple, which would be a 2D array.
+   */
   const isAllowMultiple = "type" in propertyRefSchema;
 
   const isArray = isPropertyTypeArray || isAllowMultiple;
@@ -95,6 +111,10 @@ export const generatePropertyRowRecursively = ({
 
   const value = get(entity.properties, propertyKeyChain);
   const valueMetadata = entity.propertyMetadata(propertyKeyChain);
+
+  if (value !== undefined && !valueMetadata) {
+    throw new Error(`Property metadata not found for path ${propertyKeyChain}`);
+  }
 
   const children: PropertyRow[] = [];
 
@@ -111,6 +131,7 @@ export const generatePropertyRowRecursively = ({
         generatePropertyRowRecursively({
           closedMultiEntityType,
           closedMultiEntityTypesDefinitions,
+          generateNewMetadataObject,
           propertyTypeBaseUrl: subPropertyTypeBaseUrl as BaseUrl,
           propertyKeyChain: [
             ...propertyKeyChain,
@@ -119,9 +140,11 @@ export const generatePropertyRowRecursively = ({
             subPropertyTypeBaseUrl,
           ] as BaseUrl[],
           entity,
-          requiredPropertyTypes,
+          requiredPropertyTypes:
+            (firstOneOf.required as BaseUrl[] | undefined) ?? [],
           depth: depth + 1,
           propertyRefSchema: subPropertyRefSchema,
+          validationReport,
         }),
       );
     }
@@ -160,18 +183,29 @@ export const generatePropertyRowRecursively = ({
     }
   }
 
+  const validationError = validationReport?.errors.find(
+    (report) =>
+      JSON.stringify(report.propertyPath) === JSON.stringify(propertyKeyChain),
+  );
+
   return {
     ...minMaxConfig,
     children,
     depth,
+    generateNewMetadataObject,
     indent,
     isArray,
     isSingleUrl,
     permittedDataTypes: expectedTypes,
+    permittedDataTypesIncludingChildren: getPermittedDataTypes({
+      targetDataTypes: expectedTypes,
+      dataTypePoolById: closedMultiEntityTypesDefinitions.dataTypes,
+    }),
     propertyKeyChain,
     required,
     rowId,
     title: propertyType.title,
+    validationError,
     value,
     valueMetadata,
     /**

@@ -22,6 +22,8 @@ const ignoredWorkspaces = [
   "@blocks/person",
 ];
 
+const allowedGitDependencies = [];
+
 /**
  *
  * @param {Dependency} dependency
@@ -72,39 +74,93 @@ function enforceNoDualTypeDependencies({ Yarn }) {
 }
 
 /**
- * Enforces the use of the `workspace:` protocol for all workspace dependencies.
+ * Enforce that the package protocols are correct.
  *
- * This rule ensures that all dependencies that are part of the workspace are
- * declared using the `workspace:` protocol.
- *
- * @param {Context} context - The Yarn constraint context.
+ * @param {Context} context
  */
-function enforceWorkspaceDependenciesDeclaredAsSuch({ Yarn }) {
+function enforceProtocols({ Yarn }) {
   const workspaces = Yarn.workspaces();
 
   for (const dependency of Yarn.dependencies()) {
-    if (
-      workspaces.some(
-        (workspace) =>
-          workspace.ident === dependency.ident &&
-          workspace.pkg.version === dependency.range,
-      )
-    ) {
-      dependency.update("workspace:^");
+    if (shouldIgnoreDependency(dependency)) {
+      continue;
     }
-  }
-}
 
-/**
- * This rule prohibits the use of the 'file:' protocol in dependency ranges
- * and replaces it with the 'portal:' protocol.
- *
- * @param {Context} context - The Yarn constraint context.
- */
-function enforcePortalProtocolInsteadOfFileProtocol({ Yarn }) {
-  for (const dependency of Yarn.dependencies()) {
+    const workspaceDependency = workspaces.find(
+      (workspace) => workspace.ident === dependency.ident,
+    );
+
+    if (workspaceDependency) {
+      // turbo doesn't support the `workspace:` protocol when rewriting lockfiles, leading to inconsistent lockfiles
+      dependency.update(workspaceDependency.pkg.version);
+    }
+
     if (dependency.range.startsWith("file:")) {
+      // the file: protocol makes problems when used in conjunction with pnpm mode, portal is the equivalent protocol
       dependency.update(dependency.range.replace("file:", "portal:"));
+    }
+
+    if (dependency.range.startsWith("link:")) {
+      dependency.error(
+        `The link protocol allows for non-packages to be linked and is not allowed, dependency: ${dependency.ident}`,
+      );
+    }
+
+    if (dependency.range.startsWith("exec:")) {
+      dependency.error(
+        `The exec protocol allows for arbitrary code execution and is not allowed, dependency: ${dependency.ident}`,
+      );
+    }
+
+    let shouldCheckIfValidGitDependency = false;
+
+    if (
+      dependency.range.startsWith("https://") ||
+      dependency.range.startsWith("http://")
+    ) {
+      // always prefix with the git protocol
+      dependency.update(`git:${dependency.range}`);
+      shouldCheckIfValidGitDependency = true;
+    }
+
+    if (dependency.range.startsWith("ssh://")) {
+      // always prefix with the git protocol
+      dependency.update(`git:${dependency.range.replace(/^ssh:\/\//, "git:")}`);
+      shouldCheckIfValidGitDependency = true;
+    }
+
+    if (
+      (shouldCheckIfValidGitDependency ||
+        dependency.range.startsWith("git:")) &&
+      !allowedGitDependencies.includes(dependency.ident)
+    ) {
+      dependency.error(
+        `arbitrary git dependencies are not allowed, dependency: ${dependency.ident}`,
+      );
+    }
+
+    // patches are only allowed if they are for an `npm:` dpeendenct
+    if (dependency.range.startsWith("patch:")) {
+      const dependencySpecification = dependency.range.match(/^patch:([^#]+)/);
+      if (!dependencySpecification) {
+        dependency.error(
+          `invalid patch protocol, dependency: ${dependency.ident}`,
+        );
+        continue;
+      }
+
+      // locator is on the right side
+      // splitRight at `@`
+      const segments = dependencySpecification[1].split("@");
+      const last = segments.pop();
+      // urldecode the last segment
+      const version = decodeURIComponent(last);
+
+      if (!version.startsWith("npm:")) {
+        dependency.error(
+          `patch protocol is only allowed for npm dependencies, dependency: ${dependency.ident}, patches: ${version}`,
+        );
+      }
     }
   }
 }
@@ -146,6 +202,10 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
       for (const [key, { commands }] of Object.entries(
         enforcedDevDependencies,
       )) {
+        if (workspace.ident === "@local/eslint" && key === "eslint") {
+          continue;
+        }
+
         const scriptSplit = script.split(" ");
 
         if (commands.some((command) => scriptSplit.includes(command))) {
@@ -176,10 +236,9 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
 
 module.exports = defineConfig({
   async constraints(context) {
-    // enforceWorkspaceDependenciesDeclaredAsSuch(context);
     enforceConsistentDependenciesAcrossTheProject(context);
     enforceNoDualTypeDependencies(context);
-    // enforcePortalProtocolInsteadOfFileProtocol(context);
+    enforceProtocols(context);
     enforceDevDependenciesAreProperlyDeclared(context);
   },
 });

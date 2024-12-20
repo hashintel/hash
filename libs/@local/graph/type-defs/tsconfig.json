@@ -1,6 +1,6 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["typescript"],
+  "include": ["typescript", "eslint.config.js"],
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext"

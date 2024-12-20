@@ -2,6 +2,8 @@
 import "./_app.page/why-did-you-render";
 
 // @todo have webpack polyfill this
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 require("setimmediate");
 
 import "./globals.scss";
@@ -35,14 +37,14 @@ import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
 import type { MinimalUser } from "../lib/user-and-org";
 import { constructMinimalUser } from "../lib/user-and-org";
-import { DraftEntitiesContextProvider } from "../shared/draft-entities-context";
+import { DraftEntitiesCountContextProvider } from "../shared/draft-entities-count-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar, getPlainLayout } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
-import { NotificationEntitiesContextProvider } from "../shared/notification-entities-context";
+import { NotificationCountContextProvider } from "../shared/notification-count-context";
 import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
 import { ErrorFallback } from "./_app.page/error-fallback";
@@ -108,8 +110,8 @@ const App: FunctionComponent<AppProps> = ({
             <WorkspaceContextProvider>
               <KeyboardShortcutsContextProvider>
                 <SnackbarProvider maxSnack={3}>
-                  <NotificationEntitiesContextProvider>
-                    <DraftEntitiesContextProvider>
+                  <NotificationCountContextProvider>
+                    <DraftEntitiesCountContextProvider>
                       <EntityTypesContextProvider>
                         <PropertyTypesContextProvider includeArchived>
                           <DataTypesContextProvider>
@@ -132,27 +134,32 @@ const App: FunctionComponent<AppProps> = ({
                           </DataTypesContextProvider>
                         </PropertyTypesContextProvider>
                       </EntityTypesContextProvider>
-                    </DraftEntitiesContextProvider>
-                  </NotificationEntitiesContextProvider>
+                    </DraftEntitiesCountContextProvider>
+                  </NotificationCountContextProvider>
                 </SnackbarProvider>
               </KeyboardShortcutsContextProvider>
             </WorkspaceContextProvider>
           </RoutePageInfoProvider>
         </ThemeProvider>
       </CacheProvider>
-      {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
-      {/* @todo remove when inline styles are replaced with MUI styles */}
       <GlobalStyles
-        styles={`
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        };
-      `}
+        styles={{
+          /**
+           * @see https://mui.com/material-ui/react-text-field/#performance
+           */
+          "@keyframes mui-auto-fill": { from: { display: "block" } },
+          "@keyframes mui-auto-fill-cancel": { from: { display: "block" } },
+          /* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */
+          /* @todo remove when inline styles are replaced with MUI styles */
+          "@keyframes spin": {
+            from: {
+              transform: "rotate(0deg)",
+            },
+            to: {
+              transform: "rotate(360deg)",
+            },
+          },
+        }}
       />
     </Suspense>
   );

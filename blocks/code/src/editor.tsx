@@ -9,7 +9,7 @@ type IEditorProps = {
   content: string;
   setContent: (content: string) => void;
   language: LanguageType;
-  editorRef: RefObject<HTMLTextAreaElement>;
+  editorRef: RefObject<HTMLTextAreaElement | null>;
   onBlur: () => void;
   readonly: boolean;
 };

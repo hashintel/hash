@@ -7,6 +7,7 @@ export const entityTypedef = gql`
   scalar EntityMetadata
   scalar EntityRecordId
   scalar EntityRelationAndSubject
+  scalar EntityValidationReport
   scalar GetEntitySubgraphRequest
   scalar LinkData
   scalar PropertyObject
@@ -16,6 +17,7 @@ export const entityTypedef = gql`
   scalar SerializedEntity
   scalar UserPermissions
   scalar UserPermissionsOnEntities
+  scalar ValidateEntityParamsComponents
 
   type SubgraphAndPermissions {
     userPermissionsOnEntities: UserPermissionsOnEntities!
@@ -23,6 +25,7 @@ export const entityTypedef = gql`
   }
 
   type GetEntitySubgraphResponse {
+    count: Int
     closedMultiEntityTypes: ClosedMultiEntityTypesRootMap
     definitions: ClosedMultiEntityTypesDefinitions
     userPermissionsOnEntities: UserPermissionsOnEntities!
@@ -157,6 +160,32 @@ export const entityTypedef = gql`
     checkUserPermissionsOnEntity(metadata: EntityMetadata!): UserPermissions!
 
     getEntityDiffs(inputs: [DiffEntityInput!]!): [EntityDiff!]!
+
+    """
+    Validates the requested aspects of an entity
+
+    Throws an error if the entity is invalid, with an object containing the invalid properties.
+
+    Returns 'true' if the entity is valid
+    """
+    validateEntity(
+      """
+      Which aspects of the entity to validate:
+      - linkData: validates that linkData is present if an entity is a link, or is absent if it isn't. Default: false if draft
+      - linkValidation: validates that the link target is valid for the source type(s). Default: true
+      - numItems: that the min/max number of items in a property array is respected.
+      - requiredProperties: whether or not the required properties are present
+      """
+      components: ValidateEntityParamsComponents!
+      """
+      The proposed entity types for the entity
+      """
+      entityTypes: [VersionedUrl!]!
+      """
+      The proposed properties for the entity
+      """
+      properties: PropertyObjectWithMetadata!
+    ): EntityValidationReport
   }
 
   enum AuthorizationSubjectKind {

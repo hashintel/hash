@@ -1,5 +1,3 @@
-/* eslint-disable canonical/filename-no-index */
-
 export * as Response from "./Response.js";
 export * as ResponseBegin from "./ResponseBegin.js";
 export * as ResponseBody from "./ResponseBody.js";

@@ -78,7 +78,7 @@ export const EntitySelector = <Multiple extends boolean>({
             : {
                 any: expectedEntityTypes.map(({ $id }) =>
                   generateVersionedUrlMatchingFilter($id, {
-                    ignoreParents: true,
+                    ignoreParents: false,
                   }),
                 ),
               },
@@ -89,6 +89,7 @@ export const EntitySelector = <Multiple extends boolean>({
       },
       includePermissions: false,
     },
+    fetchPolicy: "cache-and-network",
   });
 
   const entitiesSubgraph = entitiesData
@@ -222,7 +223,7 @@ export const EntitySelector = <Multiple extends boolean>({
               };
             }),
           ),
-          title: generateEntityLabel(entitiesSubgraph!, entity),
+          title: generateEntityLabel(closedType, entity),
           draft: !!extractDraftIdFromEntityId(
             entity.metadata.recordId.entityId,
           ),
@@ -230,14 +231,30 @@ export const EntitySelector = <Multiple extends boolean>({
       }}
       inputPlaceholder="Search for an entity"
       renderTags={(tagValue, getTagProps) =>
-        tagValue.map((option, index) => (
-          <Chip
-            {...getTagProps({ index })}
-            key={option.metadata.recordId.entityId}
-            variant="outlined"
-            label={generateEntityLabel(entitiesSubgraph!, option)}
-          />
-        ))
+        tagValue.map((option, index) => {
+          const typesMap =
+            entitiesData?.getEntitySubgraph.closedMultiEntityTypes;
+
+          if (!typesMap) {
+            throw new Error(
+              "Cannot render an entity without a closed multi entity types map",
+            );
+          }
+
+          const closedType = getClosedMultiEntityTypeFromMap(
+            typesMap,
+            option.metadata.entityTypeIds,
+          );
+
+          return (
+            <Chip
+              {...getTagProps({ index })}
+              key={option.metadata.recordId.entityId}
+              variant="outlined"
+              label={generateEntityLabel(closedType, option)}
+            />
+          );
+        })
       }
       {...autocompleteProps}
       dropdownProps={{

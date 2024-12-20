@@ -20,6 +20,8 @@ import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 import { LinksSectionEmptyState } from "./shared/links-section-empty-state";
 import { PropertiesSectionEmptyState } from "./shared/properties-section-empty-state";
 
+const selectorOrButtonHeight = 46;
+
 export const SelectEntityTypePage = () => {
   const router = useRouter();
   const { triggerSnackbar } = useSnackbar();
@@ -91,7 +93,7 @@ export const SelectEntityTypePage = () => {
                 display: "flex",
                 gap: 1,
                 alignItems: "center",
-                p: 3,
+                p: 4,
                 justifyContent: "center",
                 flexWrap: "wrap",
               }}
@@ -99,6 +101,7 @@ export const SelectEntityTypePage = () => {
               {isSelectingType ? (
                 <EntityTypeSelector
                   excludeLinkTypes
+                  inputHeight={selectorOrButtonHeight}
                   onCancel={() => setIsSelectingType(false)}
                   onSelect={async (entityType) => {
                     try {
@@ -130,8 +133,13 @@ export const SelectEntityTypePage = () => {
                   <Button
                     loading={loading}
                     onClick={() => setIsSelectingType(true)}
+                    size="small"
                     startIcon={!loading && <FontAwesomeIcon icon={faPlus} />}
-                    sx={{ fontSize: 14, paddingX: 2 }}
+                    sx={{
+                      fontSize: 14,
+                      paddingX: 2,
+                      height: selectorOrButtonHeight,
+                    }}
                   >
                     Add a type
                   </Button>

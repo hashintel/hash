@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Effect,
   Equal,
   Hash,
@@ -16,6 +16,7 @@ import * as Payload from "../Payload.js";
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/response/ResponseFrame",
 );
+
 export type TypeId = typeof TypeId;
 
 export interface ResponseFrame

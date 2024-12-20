@@ -1,6 +1,8 @@
 import type { UrlObject } from "node:url";
 
 import type { LinkProps as MuiLinkProps } from "@mui/material";
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// eslint-disable-next-line no-restricted-imports
 import { Link as MuiLink, styled } from "@mui/material";
 import clsx from "clsx";
 // eslint-disable-next-line no-restricted-imports

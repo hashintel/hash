@@ -36,7 +36,9 @@ export const CustomExpectedValueSelector = <
   return (
     <Autocomplete
       {...props}
-      ref={(ref: HTMLDivElement) => setAutocompleteElem(ref)}
+      ref={(ref: HTMLDivElement) => {
+        setAutocompleteElem(ref);
+      }}
       value={value}
       multiple
       popupIcon={null}

@@ -389,7 +389,7 @@ describe("Entity type CRU", () => {
         ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
-        includeResolved: true,
+        includeResolved: "resolved",
       });
 
     // It's not specified how `required` is ordered, so we need to sort it before comparing
@@ -497,6 +497,7 @@ describe("Entity type CRU", () => {
           { relation: "instantiator", subject: { kind: "public" } },
         ],
       },
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     ).catch((err) => Promise.reject(err.data));
 
     expect(

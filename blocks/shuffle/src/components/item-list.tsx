@@ -15,7 +15,9 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { List } from "@mui/material";
 import type { FunctionComponent } from "react";
-import React, { useMemo, useRef, useState } from "react";
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// removed React import
+import { useMemo, useRef, useState } from "react";
 
 import { propertyIds } from "../property-ids";
 import type { ShuffleBlockItemPropertyValue } from "../types/generated/block-entity";

@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -39,7 +40,7 @@ export const useHandleTypeChanges = ({
       entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
       removedPropertiesBaseUrls: BaseUrl[];
       removedLinkTypesBaseUrls: BaseUrl[];
-    }) => {
+    }): Promise<Entity> => {
       const {
         entityTypeIds,
         removedPropertiesBaseUrls,
@@ -89,6 +90,14 @@ export const useHandleTypeChanges = ({
       if (linkEntityIdsToArchive.length > 0) {
         setDraftLinksToArchive((prev) => [...prev, ...linkEntityIdsToArchive]);
       }
+
+      const newEntity = getRoots(entitySubgraph)[0];
+
+      if (!newEntity) {
+        throw new Error("Entity not found in subgraph");
+      }
+
+      return newEntity;
     },
     [
       entitySubgraph,

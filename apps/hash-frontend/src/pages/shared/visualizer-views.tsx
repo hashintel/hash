@@ -5,9 +5,7 @@ import type { ReactElement } from "react";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
 import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
 
-const visualizerViews = ["Table", "Graph", "Grid"] as const;
-
-export type VisualizerView = (typeof visualizerViews)[number];
+export type VisualizerView = "Table" | "Graph" | "Grid";
 
 export const visualizerViewIcons: Record<
   VisualizerView,

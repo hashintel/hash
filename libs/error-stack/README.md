@@ -7,7 +7,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-[![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2024-12-02&color=blue)][rust-version]
+[![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2024-12-16&color=blue)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 
@@ -146,4 +146,4 @@ For more examples of `error-stack` in use, please check out the [examples](https
 
 ## License
 
-`error-stack` is available under a number of different open-source licenses. Please see the [LICENSE] file to review your options.
+`error-stack` is available under either of the [Apache License, Version 2.0] or [MIT license] at your option. Please see the [LICENSE] file for more information.

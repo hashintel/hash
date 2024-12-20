@@ -1,14 +1,17 @@
-import { Data, Effect, pipe, Sink, Stream } from "effect";
+import { Data, Effect, Option, pipe, Stream } from "effect";
 
-import type { ResponseKind } from "../types/index.js";
+import { MutableBytes } from "../binary/index.js";
+import { InvalidUtf8Error } from "../ClientError.js";
+import { type ErrorCode, ResponseKind } from "../types/index.js";
 import { createProto } from "../utils.js";
-import type { Response } from "../wire-protocol/models/response/index.js";
 import {
+  type Response,
   ResponseBody,
   ResponseFlags,
 } from "../wire-protocol/models/response/index.js";
 
 const TypeId = Symbol("@local/harpc-client/net/Response");
+
 export type TypeId = typeof TypeId;
 
 export class UnexpectedResponseTypeError extends Data.TaggedError(
@@ -25,10 +28,23 @@ export class EmptyResponseError extends Data.TaggedError("EmptyResponseError") {
   }
 }
 
+export class NetworkError extends Data.TaggedError("NetworkError")<{
+  code: ErrorCode.ErrorCode;
+  bytes: MutableBytes.MutableBytes;
+}> {
+  get display() {
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+
+    return Effect.try({
+      try: () => decoder.decode(MutableBytes.asBuffer(this.bytes)),
+      catch: (cause) => new InvalidUtf8Error({ cause }),
+    });
+  }
+}
+
 export interface Response<E, R> {
   readonly [TypeId]: TypeId;
 
-  readonly kind: ResponseKind.ResponseKind;
   readonly body: Stream.Stream<ArrayBuffer, E, R>;
 }
 
@@ -36,78 +52,91 @@ const ResponseProto: Omit<Response<unknown, unknown>, "kind" | "body"> = {
   [TypeId]: TypeId,
 };
 
-const make = <E, R>(
-  kind: ResponseKind.ResponseKind,
-  body: Stream.Stream<ArrayBuffer, E, R>,
-): Response<E, R> =>
+const make = <E, R>(body: Stream.Stream<ArrayBuffer, E, R>): Response<E, R> =>
   createProto(ResponseProto, {
-    kind,
     body,
   });
 
-const bodyStream = <E, R>(
-  begin: Response.Response,
-  frames: Stream.Stream<Response.Response, E, R>,
-) => {
-  const beginArray = ResponseBody.mapBoth(
-    begin.body,
-    (_) => _.payload.buffer.buffer,
-  );
+type ResponseSegment = Data.TaggedEnum<{
+  ControlFlow: {
+    readonly code: Option.Option<ErrorCode.ErrorCode>;
+  };
+  Body: {
+    readonly data: ArrayBuffer;
+  };
+}>;
 
-  const beginBuffer = Stream.sync(() => beginArray);
+const ResponseSegment = Data.taggedEnum<ResponseSegment>();
 
-  if (ResponseFlags.isEndOfResponse(begin.header.flags)) {
-    return beginBuffer;
-  }
-
-  const frameBuffer = pipe(
-    frames,
-    Stream.takeWhile(
-      (response) => !ResponseFlags.isEndOfResponse(response.header.flags),
+const flattenResponseStream = <E, R>(
+  stream: Stream.Stream<Response.Response, E, R>,
+) =>
+  pipe(
+    stream,
+    Stream.takeUntil((response) =>
+      ResponseFlags.isEndOfResponse(response.header.flags),
     ),
-    Stream.mapEffect((response) =>
-      pipe(
+    Stream.mapConcat((response) => {
+      const output: ResponseSegment[] = [];
+
+      const begin = ResponseBody.getBegin(response.body);
+
+      if (Option.isSome(begin)) {
+        const { kind } = begin.value;
+        const code = ResponseKind.getErr(kind);
+
+        output.push(ResponseSegment.ControlFlow({ code }));
+      }
+
+      const payload = ResponseBody.mapBoth(
         response.body,
-        ResponseBody.getFrame,
-        Effect.map((_) => _.payload.buffer.buffer),
-        Effect.mapError(
-          (_) =>
-            new UnexpectedResponseTypeError({
-              expected: "Frame",
-              received: "Begin",
-            }),
-        ),
-      ),
-    ),
+        (beginOrFrame) => beginOrFrame.payload.buffer.buffer,
+      );
+
+      output.push(ResponseSegment.Body({ data: payload }));
+
+      return output;
+    }),
   );
 
-  return Stream.concat(beginBuffer, frameBuffer);
+const processResponseStream = <E, R>(
+  stream: Stream.Stream<ResponseSegment, E, R>,
+) => {
+  let partialError: Option.Option<NetworkError> = Option.none();
+
+  return pipe(
+    stream,
+    Stream.mapConcatEffect((segment) => {
+      return ResponseSegment.$match(segment, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        ControlFlow: ({ code }) => {
+          // replace the existing error with a new one if we have an error
+          const error = partialError;
+
+          partialError = Option.map(
+            code,
+            (_) => new NetworkError({ code: _, bytes: MutableBytes.make() }),
+          );
+
+          return Option.match(error, {
+            onNone: () => Effect.succeed([]),
+            onSome: Effect.fail,
+          });
+        },
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        Body: ({ data }) => {
+          if (Option.isNone(partialError)) {
+            return Effect.succeed([data]);
+          }
+
+          MutableBytes.appendBuffer(partialError.value.bytes, data);
+
+          return Effect.succeed([]);
+        },
+      });
+    }),
+  );
 };
 
-export type DecodeError<E = never> = Effect.Effect.Error<
-  ReturnType<typeof decode<E, never>>
->;
-
 export const decode = <E, R>(stream: Stream.Stream<Response.Response, E, R>) =>
-  Effect.gen(function* () {
-    const [beginResponseMaybe, frameResponse] = yield* Stream.peel(
-      stream,
-      Sink.head(),
-    );
-
-    const beginResponse = yield* Effect.mapError(
-      beginResponseMaybe,
-      () => new EmptyResponseError(),
-    );
-
-    const begin = yield* Effect.mapError(
-      ResponseBody.getBegin(beginResponse.body),
-      () =>
-        new UnexpectedResponseTypeError({
-          expected: "Begin",
-          received: "Frame",
-        }),
-    );
-
-    return make(begin.kind, bodyStream(beginResponse, frameResponse));
-  });
+  make(pipe(stream, flattenResponseStream, processResponseStream));

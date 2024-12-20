@@ -53,7 +53,7 @@ export const EntityEditorPage = ({
       setSelectedEntity({
         entityId,
       });
-    } catch (err) {
+    } catch {
       setSelectedEntity({ entityId });
     }
   }, []);

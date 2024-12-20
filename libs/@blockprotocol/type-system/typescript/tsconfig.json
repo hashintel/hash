@@ -1,13 +1,13 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["scripts", "src", "test"],
+  "include": ["scripts", "src", "test", "eslint.config.js", "vitest.config.ts"],
   "exclude": ["dist"],
   "compilerOptions": {
     /**
      * @todo ideally we wouldn't specify 'dom' as this library is supposed to be usable across environments,
      *    but we're using WebAssembly DOM types in the constructor input
      */
-    "lib": ["dom", "ES2023"],
+    "lib": ["dom", "ES2024"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   }

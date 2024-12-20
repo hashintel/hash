@@ -51,16 +51,13 @@ import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
 import type { VisualizerView } from "../../shared/visualizer-views";
 import { visualizerViewIcons } from "../../shared/visualizer-views";
 
-const typesTableColumnIds = [
-  "title",
-  "kind",
-  "webShortname",
-  "archived",
-  "lastEdited",
-  "lastEditedBy",
-] as const;
-
-type LinkColumnId = (typeof typesTableColumnIds)[number];
+type LinkColumnId =
+  | "title"
+  | "kind"
+  | "webShortname"
+  | "archived"
+  | "lastEdited"
+  | "lastEditedBy";
 
 type TypesTableColumn = {
   id: LinkColumnId;
@@ -86,15 +83,12 @@ const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
   return `${domain}/${firstPathSegment}`;
 };
 
-const typeTableKinds = [
-  "all",
-  "entity-type",
-  "link-type",
-  "property-type",
-  "data-type",
-] as const;
-
-type TypeTableKind = (typeof typeTableKinds)[number];
+type TypeTableKind =
+  | "all"
+  | "entity-type"
+  | "link-type"
+  | "property-type"
+  | "data-type";
 
 const typesTablesToTitle: Record<TypeTableKind, string> = {
   all: "Types",
@@ -130,7 +124,7 @@ export const TypesTable: FunctionComponent<{
 
   const [selectedEntityType, setSelectedEntityType] = useState<{
     entityTypeId: VersionedUrl;
-    slideContainerRef?: RefObject<HTMLDivElement>;
+    slideContainerRef?: RefObject<HTMLDivElement | null>;
   } | null>(null);
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
@@ -354,12 +348,15 @@ export const TypesTable: FunctionComponent<{
 
         switch (column.id) {
           case "title": {
+            const isClickable =
+              row.kind === "entity-type" || row.kind === "link-type";
+
             return {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: false,
               copyData: row.title,
-              cursor: "pointer",
+              cursor: isClickable ? "pointer" : "default",
               data: {
                 kind: "chip-cell",
                 chips: [
@@ -371,12 +368,11 @@ export const TypesTable: FunctionComponent<{
                             row.kind === "link-type" ? "bpLink" : "bpAsterisk",
                         },
                     text: row.title,
-                    onClick:
-                      row.kind === "entity-type" || row.kind === "link-type"
-                        ? () => {
-                            setSelectedEntityType({ entityTypeId: row.typeId });
-                          }
-                        : undefined,
+                    onClick: isClickable
+                      ? () => {
+                          setSelectedEntityType({ entityTypeId: row.typeId });
+                        }
+                      : undefined,
                     iconFill: theme.palette.blue[70],
                   },
                 ],
@@ -398,19 +394,23 @@ export const TypesTable: FunctionComponent<{
               ? `@${row.webShortname}`
               : typeNamespaceFromTypeId(row.typeId);
 
+            const isClickable = row.webShortname !== undefined;
+
             return {
               kind: GridCellKind.Custom,
               allowOverlay: false,
               readonly: true,
-              cursor: "pointer",
+              cursor: isClickable ? "pointer" : "default",
               copyData: value,
               data: {
                 kind: "text-icon-cell",
                 icon: null,
                 value,
-                onClick: () => {
-                  void router.push(`/${value}`);
-                },
+                onClick: isClickable
+                  ? () => {
+                      void router.push(`/${value}`);
+                    }
+                  : undefined,
               },
             };
           }
@@ -480,7 +480,10 @@ export const TypesTable: FunctionComponent<{
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
   const onTypeClick = useCallback(
-    (typeId: VersionedUrl, slideContainerRef?: RefObject<HTMLDivElement>) =>
+    (
+      typeId: VersionedUrl,
+      slideContainerRef?: RefObject<HTMLDivElement | null>,
+    ) =>
       setSelectedEntityType({
         entityTypeId: typeId,
         slideContainerRef,

@@ -14,7 +14,7 @@
     },
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
-      "dependsOn": ["schema"]
+      "dependsOn": ["schema", "@local/eslint#build"]
     },
     "fix:eslint": {
       "cache": false,

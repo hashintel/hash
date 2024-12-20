@@ -51,6 +51,8 @@ import {
 } from "../../../graphql/queries/knowledge/entity.queries";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
+import type { MinimalEntityValidationReport } from "../../shared/use-validate-entity";
+import { useValidateEntity } from "../../shared/use-validate-entity";
 import { EditBar } from "../shared/edit-bar";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 import type { EntityEditorProps } from "./[entity-uuid].page/entity-editor";
@@ -161,7 +163,7 @@ const Page: NextPageWithLayout = () => {
               hasLeftEntity: { outgoing: 1, incoming: 1 },
               hasRightEntity: { outgoing: 1, incoming: 1 },
             },
-            includeEntityTypes: "resolved",
+            includeEntityTypes: "resolvedWithDataTypeChildren",
             includeDrafts: !!draftId,
             temporalAxes: currentTimeInstantTemporalAxes,
           },
@@ -337,7 +339,7 @@ const Page: NextPageWithLayout = () => {
               oldProperties: entityFromDb?.properties ?? {},
               newProperties: mergePropertyObjectAndMetadata(
                 overrideProperties ?? draftEntity.properties,
-                undefined,
+                draftEntity.metadata.properties,
               ),
             }),
           },
@@ -384,6 +386,27 @@ const Page: NextPageWithLayout = () => {
     [draftId, refetch, router, routeNamespace],
   );
 
+  const draftEntity = draftEntitySubgraph
+    ? getRoots(draftEntitySubgraph)[0]
+    : null;
+
+  const [validationReport, setValidationReport] =
+    useState<MinimalEntityValidationReport | null>(null);
+
+  const { validateEntity: validateFn } = useValidateEntity();
+
+  const validateEntity = useCallback(
+    async (entity: Entity) => {
+      const report = await validateFn({
+        properties: entity.propertiesWithMetadata,
+        entityTypeIds: entity.metadata.entityTypeIds,
+      });
+
+      setValidationReport(report);
+    },
+    [validateFn],
+  );
+
   if (loading || !draftEntityTypesDetails) {
     return <EntityPageLoadingState />;
   }
@@ -392,7 +415,6 @@ const Page: NextPageWithLayout = () => {
     return <PageErrorState />;
   }
 
-  const draftEntity = getRoots(draftEntitySubgraph)[0];
   if (!draftEntity) {
     return <NextErrorComponent statusCode={404} />;
   }
@@ -424,6 +446,7 @@ const Page: NextPageWithLayout = () => {
             loading: savingChanges,
             children: "Save changes",
           }}
+          hasErrors={!!validationReport}
         />
       }
       isModifyingEntity={isModifyingEntity}
@@ -441,14 +464,16 @@ const Page: NextPageWithLayout = () => {
       readonly={isReadOnly}
       onEntityUpdated={(entity) => onEntityUpdated(entity)}
       handleTypesChange={async (change) => {
-        await handleTypeChanges(change);
+        const newEntity = await handleTypeChanges(change);
+
+        await validateEntity(newEntity);
 
         setIsDirty(
           JSON.stringify(change.entityTypeIds.toSorted()) !==
             JSON.stringify(entityFromDb?.metadata.entityTypeIds.toSorted()),
         );
       }}
-      setEntity={(changedEntity) => {
+      setEntity={async (changedEntity) => {
         setDraftEntitySubgraph((prev) =>
           createDraftEntitySubgraph({
             entity: changedEntity,
@@ -457,7 +482,12 @@ const Page: NextPageWithLayout = () => {
             omitProperties: [],
           }),
         );
+
+        await validateEntity(changedEntity);
+
+        setIsDirty(true);
       }}
+      validationReport={validationReport}
     />
   );
 };

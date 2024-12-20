@@ -1,25 +1,26 @@
 import { createWriteStream } from "node:fs";
-import { mkdir, rm, unlink } from "node:fs/promises";
+import fs from "node:fs/promises";
 import { Readable } from "node:stream";
-import { finished } from "node:stream/promises";
+import stream from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
 
-import {
-  PDFReader,
-  SimpleDocumentStore,
-  SimpleIndexStore,
-  SimpleVectorStore,
-  VectorStoreIndex,
-} from "llamaindex";
+import { PDFReader, VectorStoreIndex } from "llamaindex";
 import md5 from "md5";
 
 import { logger } from "../../../../shared/activity-logger.js";
-import type { SimpleStorageContext } from "./simple-storage-context.js";
 import {
-  generateSimpleStorageContextFilePaths,
-  persistSimpleStorageContext,
-  retrieveSimpleStorageContext,
+  createStorageContext,
+  persistStorageContext,
 } from "./simple-storage-context.js";
+
+const fileExists = async (path: string) => {
+  try {
+    await fs.access(path, fs.constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 export const indexPdfFile = async (params: {
   fileUrl: string;
@@ -28,12 +29,23 @@ export const indexPdfFile = async (params: {
 
   const hashedUrl = md5(fileUrl);
 
-  const { simpleStorageContext } = await retrieveSimpleStorageContext({
+  const storageContext = await createStorageContext({
     hash: hashedUrl,
   });
 
-  if (!simpleStorageContext) {
-    logger.info("No existing storage context found. Creating new one...");
+  const filePath = `${storageContext.directory}/file.pdf`;
+  const exists = await fileExists(filePath);
+
+  let vectorStoreIndex;
+
+  if (exists) {
+    logger.info("Retrieved existing storage context");
+
+    vectorStoreIndex = await VectorStoreIndex.init({
+      storageContext,
+    });
+  } else {
+    logger.info("File has not been indexed yet. Downloading...");
 
     const response = await fetch(fileUrl);
 
@@ -41,23 +53,15 @@ export const indexPdfFile = async (params: {
       throw new Error(`Failed to fetch ${fileUrl}: ${response.statusText}`);
     }
 
-    const { directoryPath } = generateSimpleStorageContextFilePaths({
-      hash: hashedUrl,
-    });
-
-    await mkdir(directoryPath, { recursive: true });
-
-    const filePath = `${directoryPath}/file.pdf`;
-
     try {
       const fileStream = createWriteStream(filePath);
-      await finished(
+      await stream.finished(
         Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(
           fileStream,
         ),
       );
     } catch (error) {
-      await unlink(filePath);
+      await fs.unlink(filePath);
       throw new Error(
         `Failed to write file to file system: ${(error as Error).message}`,
       );
@@ -69,45 +73,26 @@ export const indexPdfFile = async (params: {
 
     logger.info(`Loaded PDF File as ${documents.length} documents`);
 
-    const storageContext: SimpleStorageContext = {
-      vectorStore: new SimpleVectorStore(),
-      docStore: new SimpleDocumentStore(),
-      indexStore: new SimpleIndexStore(),
-    };
-
-    const vectorStoreIndex = await VectorStoreIndex.fromDocuments(documents, {
+    vectorStoreIndex = await VectorStoreIndex.fromDocuments(documents, {
       storageContext,
     });
-
-    logger.info(
-      `Indexed PDF File successfully as ${documents.length} documents`,
-    );
 
     if (process.env.NODE_ENV === "development") {
       /**
        * In development, cache the storage context for faster iteration
        * when testing the same PDF file.
        */
-      await persistSimpleStorageContext({
-        hash: hashedUrl,
-        simpleStorageContext: storageContext,
+      await persistStorageContext({
+        storageContext,
       });
     } else {
       /**
        * In production, remove the PDF file from disk once it's been
        * indexed in the simple vector store.
        */
-      await rm(filePath);
+      await fs.rm(filePath);
     }
-
-    return { vectorStoreIndex };
   }
-
-  logger.info("Retrieved existing storage context");
-
-  const vectorStoreIndex = await VectorStoreIndex.init({
-    storageContext: simpleStorageContext,
-  });
 
   return { vectorStoreIndex };
 };

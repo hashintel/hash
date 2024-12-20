@@ -42,11 +42,11 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
     - complete: complete the research task if the gathered claims fulfill the task
     - exploreLinks: call this tool to explore additional links to gather more claims that may fulfill the task
     - terminate: terminate the research task if it cannot be progressed further
-    
-  If you already have enough claims to meet the research brief, call 'complete'. 
+
+  If you already have enough claims to meet the research brief, call 'complete'.
   Don't follow more links unless it is required to meet the goal of the research task.
   </TaskDescription>
-  
+
   Balance any need to gather more claims with the need to complete the task in a timely manner.
   Consider the research task and the claims already gathered when making your decision.
 `);
@@ -116,9 +116,7 @@ Now decide what to do next. If you have gathered enough information about entiti
   };
 };
 
-const toolNames = ["exploreLinks", "complete", "terminate"] as const;
-
-type ToolName = (typeof toolNames)[number];
+type ToolName = "exploreLinks" | "complete" | "terminate";
 
 const suggestionForNextStepsDefinition = {
   type: "string",

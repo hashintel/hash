@@ -51,9 +51,11 @@ const getFallbackLabel = ({
 
   const entityTypeName = entityTypeTitle ?? "Entity";
 
+  const entityUuid = extractEntityUuidFromEntityId(entityId);
+
   return `${entityTypeName}${
     includeHexChars
-      ? `-${extractEntityUuidFromEntityId(entityId).slice(-4, -1)}`
+      ? `-${entityUuid.toLowerCase() === "draft" ? "draft" : entityUuid.slice(-4, -1)}`
       : ""
   }`;
 };

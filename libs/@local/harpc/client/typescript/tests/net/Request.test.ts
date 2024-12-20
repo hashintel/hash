@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest";
 import { Chunk, Effect, pipe, Predicate, Stream } from "effect";
-import type * as V from "vitest";
+import type * as vitest from "vitest";
 
 import { Request } from "../../src/net/index.js";
 import {
@@ -12,11 +12,12 @@ import {
 } from "../../src/types/index.js";
 import { RequestIdProducer } from "../../src/wire-protocol/index.js";
 import { Payload } from "../../src/wire-protocol/models/index.js";
-import type { Request as WireRequest } from "../../src/wire-protocol/models/request/index.js";
 import {
+  type Request as WireRequest,
   RequestBody,
   RequestFlags,
 } from "../../src/wire-protocol/models/request/index.js";
+import { expectArrayBuffer } from "../wire-protocol/utils.js";
 
 const makeRequest = <E, R>(stream: Stream.Stream<ArrayBuffer, E, R>) =>
   Effect.gen(function* () {
@@ -31,7 +32,7 @@ const makeRequest = <E, R>(stream: Stream.Stream<ArrayBuffer, E, R>) =>
   });
 
 const assertBody = (
-  cx: V.TaskContext<V.RunnerTestCase<object>> & V.TestContext,
+  cx: vitest.TaskContext<vitest.RunnerTestCase> & vitest.TestContext,
   request: WireRequest.Request,
   bodyIs: (request: RequestBody.RequestBody) => boolean,
   body: string | number,
@@ -45,6 +46,7 @@ const assertBody = (
 
   if (Predicate.isString(body)) {
     const text = new TextDecoder().decode(buffer);
+
     cx.expect(text).toBe(body);
   } else if (Predicate.isNumber(body)) {
     cx.expect(buffer.byteLength).toBe(body);
@@ -78,7 +80,9 @@ describe.concurrent("Request", () => {
       const encoder = new TextEncoder();
 
       const request = yield* makeRequest(
-        Stream.fromIterable([encoder.encode("hello").buffer]),
+        Stream.fromIterable([
+          expectArrayBuffer(cx, encoder.encode("hello").buffer),
+        ]),
       );
 
       const items = yield* pipe(
@@ -117,7 +121,7 @@ describe.concurrent("Request", () => {
       const request = yield* makeRequest(
         Stream.fromIterable([
           array.buffer,
-          new TextEncoder().encode("hello").buffer,
+          expectArrayBuffer(cx, new TextEncoder().encode("hello").buffer),
         ]),
       );
 
@@ -158,8 +162,8 @@ describe.concurrent("Request", () => {
 
       const request = yield* makeRequest(
         Stream.fromIterable([
-          encoder.encode("hello").buffer,
-          encoder.encode("world").buffer,
+          expectArrayBuffer(cx, encoder.encode("hello").buffer),
+          expectArrayBuffer(cx, encoder.encode("world").buffer),
         ]),
       );
 
@@ -196,7 +200,9 @@ describe.concurrent("Request - noDelay", () => {
       const encoder = new TextEncoder();
 
       const request = yield* makeRequest(
-        Stream.fromIterable([encoder.encode("hello").buffer]),
+        Stream.fromIterable([
+          expectArrayBuffer(cx, encoder.encode("hello").buffer),
+        ]),
       );
 
       const items = yield* pipe(
@@ -253,8 +259,8 @@ describe.concurrent("Request - noDelay", () => {
 
       const request = yield* makeRequest(
         Stream.fromIterable([
-          encoder.encode("hello").buffer,
-          encoder.encode("world").buffer,
+          expectArrayBuffer(cx, encoder.encode("hello").buffer),
+          expectArrayBuffer(cx, encoder.encode("world").buffer),
         ]),
       );
 

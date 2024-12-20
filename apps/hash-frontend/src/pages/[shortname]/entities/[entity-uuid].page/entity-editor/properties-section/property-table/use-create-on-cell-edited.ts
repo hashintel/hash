@@ -1,7 +1,6 @@
 import type { EditableGridCell, Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import cloneDeep from "lodash/cloneDeep";
 import set from "lodash/set";
 import { useCallback } from "react";
@@ -15,7 +14,7 @@ import type { PropertyRow } from "./types";
  * This onCellEdited is used to handle editing the data only at `Values` column
  */
 export const useCreateOnCellEdited = () => {
-  const { entitySubgraph, setEntity } = useEntityEditor();
+  const { entity, setEntity } = useEntityEditor();
 
   const createOnCellEdited = useCallback(
     (rows: PropertyRow[]) => {
@@ -27,9 +26,7 @@ export const useCreateOnCellEdited = () => {
           return;
         }
 
-        const entity = getRoots(entitySubgraph)[0]!;
-
-        const valueCell = newValue as ValueCell;
+        const newValueCell = newValue as ValueCell;
 
         const key = propertyGridIndexes[colIndex];
         const row = rows[rowIndex];
@@ -45,6 +42,8 @@ export const useCreateOnCellEdited = () => {
 
         const updatedProperties = cloneDeep(entity.properties);
 
+        const updatedMetadata = cloneDeep(entity.metadata);
+
         const { propertyKeyChain } = row;
 
         /**
@@ -55,12 +54,48 @@ export const useCreateOnCellEdited = () => {
         set(
           updatedProperties,
           propertyKeyChain,
-          valueCell.data.propertyRow.value,
+          newValueCell.data.propertyRow.value,
+        );
+
+        const metadataKeyChain: (string | number)[] = [];
+        for (let i = 0; i < propertyKeyChain.length; i++) {
+          if (
+            typeof propertyKeyChain[i - 1] === "string" &&
+            typeof propertyKeyChain[i] === "string"
+          ) {
+            /**
+             * Property object metadata has metadata on its properties nested under a 'value' key,
+             * so we need to insert 'value' when both the previous and this key is a string,
+             * indicating a nested property.
+             *
+             * e.g. metadata for a property object might look like this
+             * {
+             *   https://example.com/property-types/address/: {
+             *     value: {
+             *       https://example.com/property-types/street/: {
+             *         metadata: {
+             *           dataTypeId: "https://example.com/data-types/text/v/1"
+             *         }
+             *       }
+             *     }
+             *   }
+             * }
+             */
+            metadataKeyChain.push("value");
+          }
+          metadataKeyChain.push(propertyKeyChain[i]!);
+        }
+
+        set(
+          updatedMetadata,
+          ["properties", "value", ...metadataKeyChain],
+          newValueCell.data.propertyRow.valueMetadata,
         );
 
         setEntity(
           new Entity({
             ...entity.toJSON(),
+            metadata: updatedMetadata,
             properties: updatedProperties,
           }),
         );
@@ -68,7 +103,7 @@ export const useCreateOnCellEdited = () => {
 
       return onCellEdited;
     },
-    [entitySubgraph, setEntity],
+    [entity, setEntity],
   );
 
   return createOnCellEdited;

@@ -12,7 +12,9 @@ import { Suggester } from "./suggester";
 
 export interface BlockSuggesterProps {
   search?: string;
-  onChange(variant: BlockVariant, blockMeta: HashBlockMeta): void;
+  // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+  // before this was: onChange(variant: BlockVariant, blockMeta: HashBlockMeta): void;
+  onChange: (variant: BlockVariant, blockMeta: HashBlockMeta) => void;
   sx?: SxProps<Theme>;
 }
 
@@ -112,7 +114,13 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
               }}
             />
             <Box sx={{ px: 0.75 }}>
-              <WarnIcon sx={{ width: "20px", height: "20px" }} />
+              <WarnIcon
+                sx={{
+                  width: "20px",
+                  height: "20px",
+                  fill: ({ palette }) => palette.orange[80],
+                }}
+              />
             </Box>
             <Box sx={{ px: 1, py: 0.5 }}>
               <Typography

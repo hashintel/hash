@@ -116,7 +116,7 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const [selectedEntityType, setSelectedEntityType] = useState<{
     entityTypeId: VersionedUrl;
-    slideContainerRef?: RefObject<HTMLDivElement>;
+    slideContainerRef?: RefObject<HTMLDivElement | null>;
   } | null>(null);
 
   const {
@@ -127,6 +127,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     hadCachedContent,
     loading,
     propertyTypes,
+    refetch: refetchWithoutLinks,
     subgraph: subgraphPossiblyWithoutLinks,
   } = useEntityTypeEntitiesContext();
 
@@ -166,20 +167,21 @@ export const EntitiesVisualizer: FunctionComponent<{
     }
   }, [defaultView, isDisplayingFilesOnly]);
 
-  const { subgraph: subgraphWithLinkedEntities } = useEntityTypeEntities({
-    entityTypeBaseUrl,
-    entityTypeId,
-    graphResolveDepths: {
-      constrainsLinksOn: { outgoing: 255 },
-      constrainsLinkDestinationsOn: { outgoing: 255 },
-      constrainsPropertiesOn: { outgoing: 255 },
-      constrainsValuesOn: { outgoing: 255 },
-      inheritsFrom: { outgoing: 255 },
-      isOfType: { outgoing: 1 },
-      hasLeftEntity: { outgoing: 1, incoming: 1 },
-      hasRightEntity: { outgoing: 1, incoming: 1 },
-    },
-  });
+  const { subgraph: subgraphWithLinkedEntities, refetch: refetchWithLinks } =
+    useEntityTypeEntities({
+      entityTypeBaseUrl,
+      entityTypeId,
+      graphResolveDepths: {
+        constrainsLinksOn: { outgoing: 255 },
+        constrainsLinkDestinationsOn: { outgoing: 255 },
+        constrainsPropertiesOn: { outgoing: 255 },
+        constrainsValuesOn: { outgoing: 255 },
+        inheritsFrom: { outgoing: 255 },
+        isOfType: { outgoing: 1 },
+        hasLeftEntity: { outgoing: 1, incoming: 1 },
+        hasRightEntity: { outgoing: 1, incoming: 1 },
+      },
+    });
 
   /**
    The subgraphWithLinkedEntities can take a long time to load with many entities.
@@ -264,14 +266,14 @@ export const EntitiesVisualizer: FunctionComponent<{
   const [selectedEntity, setSelectedEntity] = useState<{
     entityId: EntityId;
     options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">;
-    slideContainerRef?: RefObject<HTMLDivElement>;
+    slideContainerRef?: RefObject<HTMLDivElement | null>;
     subgraph: Subgraph<EntityRootType>;
   } | null>(null);
 
   const handleEntityClick = useCallback(
     (
       entityId: EntityId,
-      modalContainerRef?: RefObject<HTMLDivElement>,
+      modalContainerRef?: RefObject<HTMLDivElement | null>,
       options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">,
     ) => {
       if (subgraph) {
@@ -395,7 +397,10 @@ export const EntitiesVisualizer: FunctionComponent<{
           toggleSearch={
             view === "Table" ? () => setShowTableSearch(true) : undefined
           }
-          onBulkActionCompleted={() => null}
+          onBulkActionCompleted={() => {
+            void refetchWithoutLinks();
+            void refetchWithLinks();
+          }}
         />
         {!subgraph ? (
           <Stack

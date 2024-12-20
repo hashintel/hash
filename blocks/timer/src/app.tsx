@@ -108,6 +108,7 @@ export const App: BlockComponent<BlockEntity> = ({
   const targetDateTime = getTargetDateTime(timerProgress);
 
   const blockRef = useRef<HTMLDivElement>(null);
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating, or this package updating to use graph in this repo */
   const { graphModule } = useGraphBlockModule(blockRef);
 
   const externalTimerState = useMemo<TimerState>(() => {

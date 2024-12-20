@@ -1,10 +1,13 @@
 locals {
-  graph_service_name        = "graph"
-  graph_prefix              = "${var.prefix}-${local.graph_service_name}"
-  graph_param_prefix        = "${local.param_prefix}/${local.graph_service_name}"
-  graph_container_port      = 4000
-  graph_container_port_name = local.graph_service_name
-  graph_container_port_dns  = "${local.graph_container_port_name}.${aws_service_discovery_private_dns_namespace.app.name}"
+  graph_service_name             = "graph"
+  graph_prefix                   = "${var.prefix}-${local.graph_service_name}"
+  graph_param_prefix             = "${local.param_prefix}/${local.graph_service_name}"
+  graph_http_container_port      = 4000
+  graph_http_container_port_name = "${local.graph_service_name}-http"
+  graph_http_container_port_dns  = "${local.graph_http_container_port_name}.${aws_service_discovery_private_dns_namespace.app.name}"
+  graph_rpc_container_port       = 4002
+  graph_rpc_container_port_name  = "${local.graph_service_name}-rpc"
+  graph_rpc_container_port_dns   = "${local.graph_rpc_container_port_name}.${aws_service_discovery_private_dns_namespace.app.name}"
 }
 
 
@@ -82,10 +85,18 @@ resource "aws_security_group" "graph" {
   }
 
   ingress {
-    from_port   = local.graph_container_port
-    to_port     = local.graph_container_port
+    from_port   = local.graph_http_container_port
+    to_port     = local.graph_http_container_port
     protocol    = "tcp"
-    description = "Allow communication with the graph"
+    description = "Allow communication with the graph through OpenAPI"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  ingress {
+    from_port   = local.graph_rpc_container_port
+    to_port     = local.graph_rpc_container_port
+    protocol    = "tcp"
+    description = "Allow communication with the graph through HaRPC"
     cidr_blocks = [var.vpc.cidr_block]
   }
 }
@@ -124,10 +135,18 @@ resource "aws_ecs_service" "graph" {
     namespace = aws_service_discovery_private_dns_namespace.app.arn
 
     service {
-      port_name = local.graph_container_port_name
+      port_name = local.graph_http_container_port_name
 
       client_alias {
-        port = local.graph_container_port
+        port = local.graph_http_container_port
+      }
+    }
+
+    service {
+      port_name = local.graph_rpc_container_port_name
+
+      client_alias {
+        port = local.graph_rpc_container_port
       }
     }
   }
@@ -180,9 +199,14 @@ locals {
     }
     portMappings = [
       {
-        name          = local.graph_container_port_name
+        name          = local.graph_http_container_port_name
         appProtocol   = "http"
-        containerPort = local.graph_container_port
+        containerPort = local.graph_http_container_port
+        protocol      = "tcp"
+      },
+      {
+        name          = local.graph_rpc_container_port_name
+        containerPort = local.graph_rpc_container_port
         protocol      = "tcp"
       }
     ]
@@ -200,8 +224,10 @@ locals {
       { name = env_var.name, value = env_var.value } if !env_var.secret
     ],
       [
-        { name = "HASH_GRAPH_API_HOST", value = "0.0.0.0" },
-        { name = "HASH_GRAPH_API_PORT", value = tostring(local.graph_container_port) },
+        { name = "HASH_GRAPH_HTTP_HOST", value = "0.0.0.0" },
+        { name = "HASH_GRAPH_HTTP_PORT", value = tostring(local.graph_http_container_port) },
+        { name = "HASH_GRAPH_RPC_HOST", value = "0.0.0.0" },
+        { name = "HASH_GRAPH_RPC_PORT", value = tostring(local.graph_rpc_container_port) },
         { name = "HASH_GRAPH_TYPE_FETCHER_HOST", value = local.type_fetcher_container_port_dns },
         { name = "HASH_GRAPH_TYPE_FETCHER_PORT", value = tostring(local.type_fetcher_container_port) },
         { name = "HASH_SPICEDB_HOST", value = "http://${local.spicedb_container_http_port_dns}" },

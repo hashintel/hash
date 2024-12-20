@@ -28,6 +28,7 @@ import type {
   PropertyArrayWithMetadata,
   PropertyMetadata,
   PropertyMetadataObject,
+  PropertyMetadataValue,
   PropertyObject,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
@@ -52,6 +53,7 @@ import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
+import type { EntityValidationReport } from "@local/hash-graph-types/validation";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { AuthenticationContext } from "./authentication-context.js";
@@ -255,6 +257,8 @@ export const isValueRemovedByPatches = <Properties extends PropertyObject>({
 /**
  * @hidden
  * @deprecated - For migration purposes only.
+ *
+ * Callers should instead specify property updates by specifying its metadata directly.
  */
 export const mergePropertiesAndMetadata = (
   property: Property,
@@ -402,8 +406,8 @@ export const mergePropertiesAndMetadata = (
 };
 
 /**
- * @hidden
- * @deprecated - For migration purposes only.
+ * Merge a property object with property metadata
+ * – this creates the format the Graph API requires for create and validate calls.
  */
 export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
   property: T["properties"],
@@ -490,7 +494,8 @@ export const getDisplayFieldsForClosedEntityType = (
          * This is a multi-entity-type, where each item in the root 'allOf' is a closed type,
          * each of which has its inheritance chain (including itself) in a breadth-first order in its own 'allOf'.
          * We need to sort all this by depth rather than going through the root 'allOf' directly,
-         * which would process the entire inheritance chain of each type in the multi-type before moving to the next one.
+         * which would process the entire inheritance chain of each type in the multi-type before moving to the next
+         * one.
          */
         closedType.allOf
           .flatMap((type) => type.allOf ?? [])
@@ -508,7 +513,8 @@ export const getDisplayFieldsForClosedEntityType = (
       isLink =
         $id ===
         /**
-         * Ideally this wouldn't be hardcoded but the only places to import it from would create a circular dependency between packages
+         * Ideally this wouldn't be hardcoded but the only places to import it from would create a circular dependency
+         * between packages
          * @todo do something about this
          */
         "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
@@ -679,6 +685,111 @@ export const getPropertyTypeForClosedEntityType = ({
   };
 };
 
+const setMetadataForPropertyPath = (
+  path: PropertyPath,
+  leafMetadata: PropertyMetadataValue | "delete",
+  currentMetadataUpToPath: PropertyMetadata | undefined,
+): PropertyMetadata | undefined => {
+  const nextKey = path[0];
+
+  if (typeof nextKey === "undefined") {
+    if (leafMetadata === "delete") {
+      return undefined;
+    } else {
+      return leafMetadata;
+    }
+  }
+
+  if (typeof nextKey === "number") {
+    const metadataUpToHere =
+      currentMetadataUpToPath && isArrayMetadata(currentMetadataUpToPath)
+        ? currentMetadataUpToPath
+        : { value: [] };
+
+    const innerMetadata = setMetadataForPropertyPath(
+      path.slice(1),
+      leafMetadata,
+      metadataUpToHere.value[nextKey],
+    );
+    if (!innerMetadata) {
+      metadataUpToHere.value.splice(nextKey, 1);
+    } else {
+      metadataUpToHere.value[nextKey] = innerMetadata;
+    }
+
+    return metadataUpToHere;
+  }
+
+  const metadataUpToHere =
+    currentMetadataUpToPath && isObjectMetadata(currentMetadataUpToPath)
+      ? currentMetadataUpToPath
+      : { value: {} };
+
+  const innerMetadata = setMetadataForPropertyPath(
+    path.slice(1),
+    leafMetadata,
+    metadataUpToHere.value[nextKey],
+  );
+
+  if (!innerMetadata) {
+    delete metadataUpToHere.value[nextKey];
+  } else {
+    metadataUpToHere.value[nextKey] = innerMetadata;
+  }
+  return metadataUpToHere;
+};
+
+/**
+ * Generate a new property metadata object based on an existing one, with a value's metadata set or deleted.
+ * This is a temporary solution to be replaced by the SDK accepting {@link PropertyPatchOperation}s directly,
+ * which it then applies to the entity to generate the new properties and metadata.
+ *
+ * @returns {PropertyMetadataObject} a new object with the changed metadata
+ * @throws {Error} if the path is not supported (complex arrays or property objects)
+ */
+export const generateChangedPropertyMetadataObject = (
+  path: PropertyPath,
+  metadata: PropertyMetadataValue | "delete",
+  baseMetadataObject: PropertyMetadataObject,
+): PropertyMetadataObject => {
+  const clonedMetadata = JSON.parse(JSON.stringify(baseMetadataObject)) as
+    | PropertyMetadataObject
+    | undefined;
+
+  if (!clonedMetadata || !isObjectMetadata(clonedMetadata)) {
+    throw new Error(
+      `Expected metadata to be an object, but got metadata for property array: ${JSON.stringify(
+        clonedMetadata,
+        null,
+        2,
+      )}`,
+    );
+  }
+
+  const firstKey = path[0];
+
+  if (!firstKey) {
+    throw new Error("Expected path to have at least one key");
+  }
+
+  if (typeof firstKey === "number") {
+    throw new Error(`Expected first key to be a string, but got ${firstKey}`);
+  }
+
+  const newMetadata = setMetadataForPropertyPath(
+    path.slice(1),
+    metadata,
+    clonedMetadata.value[firstKey],
+  );
+  if (!newMetadata) {
+    delete clonedMetadata.value[firstKey];
+  } else {
+    clonedMetadata.value[firstKey] = newMetadata;
+  }
+
+  return clonedMetadata;
+};
+
 export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   #entity: EntityData<PropertyMap>;
 
@@ -696,7 +807,9 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
             .entityTypeIds as PropertyMap["entityTypeIds"],
           temporalVersioning: entity.metadata
             .temporalVersioning as EntityTemporalVersioningMetadata,
-          properties: entity.metadata.properties as PropertyMetadataObject,
+          properties: entity.metadata.properties as
+            | PropertyMetadataObject
+            | undefined,
           provenance: {
             ...entity.metadata.provenance,
             createdById: entity.metadata.provenance.createdById as CreatedById,
@@ -767,6 +880,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       )
       .then(
         ({ data: entities }) =>
+          // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           entities.map((entity, index) => {
             return new Entity<T[typeof index]>(entity);
           }) as { [I in keyof T]: Entity<T[I]> },
@@ -779,10 +894,10 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     params: Omit<ValidateEntityParams, "properties"> & {
       properties: PropertyObjectWithMetadata;
     },
-  ): Promise<void> {
+  ): Promise<EntityValidationReport | undefined> {
     return await graphAPI
       .validateEntity(authentication.actorId, params)
-      .then(({ data }) => data);
+      .then(({ data }) => data["0"] as EntityValidationReport);
   }
 
   public async patch(
@@ -874,8 +989,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   }
 
   /**
-   * @hidden
-   * @deprecated - For migration purposes only.
+   * Get the merged object containing both property values and their metadata alongside them.
+   * For use when calling methods that require this format (create, validate)
    */
   public get propertiesWithMetadata(): PropertyMap["propertiesWithMetadata"] {
     return mergePropertyObjectAndMetadata<PropertyMap>(
@@ -888,7 +1003,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     return this.#entity.metadata.properties ?? { value: {} };
   }
 
-  public propertyMetadata(path: PropertyPath): PropertyMetadata["metadata"] {
+  public propertyMetadata(path: PropertyPath): PropertyMetadata | undefined {
     return path.reduce<PropertyMetadata | undefined>((map, key) => {
       if (!map || !("value" in map)) {
         return undefined;
@@ -904,7 +1019,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       } else {
         return undefined;
       }
-    }, this.#entity.metadata.properties)?.metadata;
+    }, this.#entity.metadata.properties);
   }
 
   public flattenedPropertiesMetadata(): {

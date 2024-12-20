@@ -5,12 +5,13 @@ import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityValidationReport } from "@local/hash-graph-types/validation";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   createDefaultAuthorizationRelationships,
@@ -63,6 +64,7 @@ import type {
   QueryGetEntitySubgraphArgs,
   QueryIsEntityPublicArgs,
   QueryResolvers,
+  QueryValidateEntityArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import {
@@ -401,6 +403,24 @@ export const updateEntitiesResolver: ResolverFn<
   return updatedEntities;
 };
 
+export const validateEntityResolver: ResolverFn<
+  Promise<EntityValidationReport | undefined>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  QueryValidateEntityArgs
+> = async (_, params, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  const response = await Entity.validate(
+    context.graphApi,
+    authentication,
+    params,
+  );
+
+  return response;
+};
+
 export const archiveEntityResolver: ResolverFn<
   Promise<boolean>,
   Record<string, never>,
@@ -446,7 +466,7 @@ export const archiveEntitiesResolver: ResolverFn<
         );
 
         archivedEntities.push(entity);
-      } catch (error) {
+      } catch {
         entitiesThatCouldNotBeArchived.push(entityId);
       }
     }),

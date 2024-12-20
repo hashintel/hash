@@ -20,7 +20,7 @@ RUN turbo prune --scope='@apps/hash-graph' --docker && \
     cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
 
-FROM node:20.13-alpine AS rust
+FROM node:22.12-alpine AS rust
 
 WORKDIR /usr/local/
 

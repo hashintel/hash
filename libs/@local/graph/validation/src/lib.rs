@@ -16,26 +16,15 @@ use error_stack::Report;
 use hash_graph_store::entity::ValidateEntityComponents;
 use hash_graph_types::knowledge::entity::{Entity, EntityId};
 
-pub trait Schema<V: ?Sized, P: Sync> {
-    type Error: Error + Send + Sync + 'static;
-
-    fn validate_value<'a>(
-        &'a self,
-        value: &'a V,
-        components: ValidateEntityComponents,
-        provider: &'a P,
-    ) -> impl Future<Output = Result<(), Report<[Self::Error]>>> + Send + 'a;
-}
-
 pub trait Validate<S, C> {
-    type Error: Error + Send + Sync + 'static;
+    type Report: Send + Sync;
 
     fn validate(
         &self,
         schema: &S,
         components: ValidateEntityComponents,
         context: &C,
-    ) -> impl Future<Output = Result<(), Report<[Self::Error]>>> + Send;
+    ) -> impl Future<Output = Self::Report> + Send;
 }
 
 pub trait EntityProvider {
@@ -67,13 +56,15 @@ mod tests {
             Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
             PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
             error::install_error_stack_hooks,
-            visitor::{EntityVisitor as _, TraversalError},
+            visitor::{
+                EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
+                ValueValidationReport,
+            },
         },
         ontology::{
-            DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, EntityTypeProvider,
-            OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-            OntologyTypeClassificationMetadata, OntologyTypeProvider, OntologyTypeRecordId,
-            PropertyTypeProvider, ProvidedOntologyEditionProvenance,
+            DataTypeLookup, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
+            OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+            OntologyTypeProvider, OntologyTypeRecordId, ProvidedOntologyEditionProvenance,
         },
         owned_by_id::OwnedById,
     };
@@ -191,27 +182,6 @@ mod tests {
         }
     }
 
-    impl EntityTypeProvider for Provider {
-        #[expect(refining_impl_trait)]
-        async fn is_super_type_of(
-            &self,
-            _: &VersionedUrl,
-            _: &VersionedUrl,
-        ) -> Result<bool, Report<InvalidEntityType>> {
-            // Not used in tests
-            Ok(false)
-        }
-
-        #[expect(refining_impl_trait)]
-        async fn find_parents(
-            &self,
-            _: &[VersionedUrl],
-        ) -> Result<Vec<VersionedUrl>, Report<InvalidEntityType>> {
-            // Not used in tests
-            Ok(Vec::new())
-        }
-    }
-
     impl OntologyTypeProvider<ClosedEntityType> for Provider {
         type Value = Arc<ClosedEntityType>;
 
@@ -250,10 +220,8 @@ mod tests {
         }
     }
 
-    impl PropertyTypeProvider for Provider {}
-
     impl DataTypeLookup for Provider {
-        type ClosedDataType = Arc<ClosedDataType>;
+        type ClosedDataType = ClosedDataType;
         type DataTypeWithMetadata = Arc<DataTypeWithMetadata>;
         type Error = InvalidDataType;
 
@@ -269,9 +237,25 @@ mod tests {
 
         async fn lookup_closed_data_type_by_uuid(
             &self,
-            _: DataTypeUuid,
+            data_type_uuid: DataTypeUuid,
         ) -> Result<Self::ClosedDataType, Report<Self::Error>> {
-            unimplemented!()
+            let mut ontology_type_resolver = OntologyTypeResolver::default();
+
+            for (data_type_id, data_type) in &self.data_types {
+                ontology_type_resolver
+                    .add_unresolved_data_type(*data_type_id, Arc::new(data_type.schema.clone()));
+            }
+
+            let schema_metadata = ontology_type_resolver
+                .resolve_data_type_metadata(data_type_uuid)
+                .change_context(InvalidDataType)?;
+            let data_type = self
+                .data_types
+                .get(&data_type_uuid)
+                .ok_or_else(|| Report::new(InvalidDataType))?;
+
+            ClosedDataType::from_resolve_data(data_type.schema.clone(), &schema_metadata)
+                .change_context(InvalidDataType)
         }
 
         async fn is_parent_of(
@@ -306,7 +290,7 @@ mod tests {
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadataObject, Report<[TraversalError]>> {
+    ) -> Result<PropertyWithMetadataObject, ObjectValidationReport> {
         install_error_stack_hooks();
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
@@ -379,7 +363,7 @@ mod tests {
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadata, Report<[TraversalError]>> {
+    ) -> Result<PropertyWithMetadata, PropertyValidationReport> {
         install_error_stack_hooks();
         let property = Property::deserialize(property).expect("failed to deserialize property");
 
@@ -402,6 +386,7 @@ mod tests {
         EntityPreprocessor { components }
             .visit_property(&property_type, &mut property, &provider)
             .await?;
+
         Ok(property)
     }
 
@@ -410,10 +395,10 @@ mod tests {
         data_type: &str,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadataValue, Report<[TraversalError]>> {
+    ) -> Result<PropertyWithMetadataValue, ValueValidationReport> {
         install_error_stack_hooks();
 
-        let provider = Provider::new(
+        let mut provider = Provider::new(
             [],
             [],
             [],
@@ -424,22 +409,27 @@ mod tests {
             }),
         );
 
-        let data_type = generate_data_type_metadata(
-            serde_json::from_str(data_type)
-                .attach_printable_lazy(|| data_type.to_owned())
-                .expect("failed to parse data type"),
+        let data_type = serde_json::from_str::<DataType>(data_type)
+            .attach_printable(data_type.to_owned())
+            .expect("failed to parse data type");
+        let data_type_ref = DataTypeReference {
+            url: data_type.id.clone(),
+        };
+        provider.data_types.insert(
+            DataTypeUuid::from_url(&data_type.id),
+            Arc::new(generate_data_type_metadata(data_type)),
         );
 
         let mut metadata = ValueMetadata {
-            data_type_id: Some(data_type.schema.id.clone()),
-            original_data_type_id: Some(data_type.schema.id.clone()),
+            data_type_id: Some(data_type_ref.url.clone()),
+            original_data_type_id: Some(data_type_ref.url.clone()),
             provenance: PropertyProvenance::default(),
             confidence: None,
             canonical: HashMap::default(),
         };
 
         EntityPreprocessor { components }
-            .visit_value(&data_type, &mut value, &mut metadata, &provider)
+            .visit_value(&data_type_ref, &mut value, &mut metadata, &provider)
             .await?;
         Ok(PropertyWithMetadataValue { value, metadata })
     }

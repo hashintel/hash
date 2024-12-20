@@ -257,6 +257,7 @@ module "application" {
     { name = "HASH_GRAPH_PG_HOST", secret = false, value = module.postgres.pg_host },
     { name = "HASH_GRAPH_PG_PORT", secret = false, value = module.postgres.pg_port },
     { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
+    { name = "HASH_GRAPH_RPC_ENABLED", secret = false, value = "true" },
     {
       name  = "HASH_SPICEDB_GRPC_PRESHARED_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"])
@@ -357,6 +358,7 @@ module "application" {
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
     { name = "HASH_REDIS_ENCRYPTED_TRANSIT", secret = false, value = "true" },
     { name = "HASH_INTEGRATION_QUEUE_NAME", secret = false, value = "integration" },
+    { name = "HASH_RPC_ENABLED", secret = false, value = "true" },
     {
       name  = "HASH_VAULT_HOST", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"])

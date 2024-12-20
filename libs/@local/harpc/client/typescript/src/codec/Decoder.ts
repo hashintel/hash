@@ -1,10 +1,18 @@
-import type { ParseResult, Schema, Stream } from "effect";
-import { Data, Function, Inspectable, Pipeable } from "effect";
+import {
+  type ParseResult,
+  type Schema,
+  type Stream,
+  Data,
+  Function,
+  Inspectable,
+  Pipeable,
+} from "effect";
 import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/codec/Decoder");
+
 export type TypeId = typeof TypeId;
 
 export class DecodingError extends Data.TaggedError("DecodingError")<{
@@ -57,7 +65,7 @@ const DecoderProto: Omit<DecoderImpl, "decode"> = {
     };
   },
 
-  [Inspectable.NodeInspectSymbol]() {
+  [Inspectable.NodeInspectSymbol](this: DecoderImpl) {
     return this.toJSON();
   },
 
@@ -67,7 +75,8 @@ const DecoderProto: Omit<DecoderImpl, "decode"> = {
   },
 };
 
-export const Decoder = GenericTag<Decoder>("@local/harpc-client/codec/Decoder");
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- description is defined
+export const Decoder = GenericTag<Decoder>(TypeId.description!);
 
 export const make = <E = DecodingError, R = never>(
   decode: <

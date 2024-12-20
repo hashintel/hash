@@ -300,44 +300,43 @@ async fn inheritance() {
         .await
         .expect_err("could create ambiguous entity");
 
-    // We specify `meter` as data type, it could be the child of `length` or `meter` but only one is
-    // allowed. This is expected to be lifted in the future.
-    _ = api
-        .create_entity(api.account_id, CreateEntityParams {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-            entity_uuid: None,
-            decision_time: None,
-            entity_type_ids: HashSet::from([VersionedUrl::from_str(
-                "http://localhost:3000/@alice/types/entity-type/line/v/1",
-            )
-            .expect("couldn't construct Base URL")]),
-            properties: PropertyWithMetadataObject {
-                value: HashMap::from([(
-                    BaseUrl::new(
-                        "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
-                    )
+    // We specify `meter` as data type, it could be the child of `length` or `meter`. We treat
+    // `oneOf` in property types as an `anyOf`, so this is allowed.
+    // TODO: Change the type system to use `anyOf` instead
+    //   see https://linear.app/hash/issue/H-3263/fix-type-system-to-use-anyof-instead-of-oneof
+    api.create_entity(api.account_id, CreateEntityParams {
+        owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+        entity_uuid: None,
+        decision_time: None,
+        entity_type_ids: HashSet::from([VersionedUrl::from_str(
+            "http://localhost:3000/@alice/types/entity-type/line/v/1",
+        )
+        .expect("couldn't construct Base URL")]),
+        properties: PropertyWithMetadataObject {
+            value: HashMap::from([(
+                BaseUrl::new("http://localhost:3000/@alice/types/property-type/length/".to_owned())
                     .expect("couldn't construct Base URL"),
-                    PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: json!(10),
-                        metadata: ValueMetadata {
-                            provenance: PropertyProvenance::default(),
-                            confidence: None,
-                            data_type_id: Some(meter_dt_v1.id.clone()),
-                            original_data_type_id: None,
-                            canonical: HashMap::default(),
-                        },
-                    }),
-                )]),
-                metadata: ObjectMetadata::default(),
-            },
-            confidence: None,
-            link_data: None,
-            draft: false,
-            relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
-        .await
-        .expect_err("could create ambiguous entity");
+                PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                    value: json!(10),
+                    metadata: ValueMetadata {
+                        provenance: PropertyProvenance::default(),
+                        confidence: None,
+                        data_type_id: Some(meter_dt_v1.id.clone()),
+                        original_data_type_id: None,
+                        canonical: HashMap::default(),
+                    },
+                }),
+            )]),
+            metadata: ObjectMetadata::default(),
+        },
+        confidence: None,
+        link_data: None,
+        draft: false,
+        relationships: [],
+        provenance: ProvidedEntityEditionProvenance::default(),
+    })
+    .await
+    .expect("should be able to create entity");
 
     // We specify `centimeter` as data type, so the validation for `length` passes, the validation
     // for `meter` fails, and the entity is created.
