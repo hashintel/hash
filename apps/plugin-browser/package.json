@@ -45,7 +45,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "uuid": "11.0.3",
-    "webextension-polyfill": "0.10.0",
+    "webextension-polyfill": "0.12.0",
     "ws": "8.18.0"
   },
   "devDependencies": {
@@ -65,7 +65,7 @@
     "@types/lodash.debounce": "4.0.9",
     "@types/react": "19.0.1",
     "@types/react-dom": "19.0.2",
-    "@types/webextension-polyfill": "patch:@types/webextension-polyfill@npm%3A0.10.4#~/.yarn/patches/@types-webextension-polyfill-npm-0.10.4-291152c615.patch",
+    "@types/webextension-polyfill": "0.12.0",
     "@types/ws": "8.5.13",
     "babel-loader": "9.2.1",
     "babel-preset-react-app": "10.0.1",
