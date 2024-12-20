@@ -54,6 +54,7 @@ export const imageMetadata = () => {
     // Create an array to hold all of the images from the markdown file
     const images: ImageNode[] = [];
 
+    // @ts-expect-error -- mismatched type with next-mdx-remote. have to update that and related deps (e.g. remark-*)
     visit(tree, "mdxJsxFlowElement", (node) => {
       // Visit every jsx flow element node in the tree, check if it's an image and push it in the images array
       if (isImageNode(node)) {
