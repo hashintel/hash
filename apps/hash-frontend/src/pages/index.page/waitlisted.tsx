@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client";
 import {
-  ArrowRightIconRegular,
+  ArrowRightRegularIcon,
   ArrowUpRightRegularIcon,
   CheckIcon,
   ChromeIcon,
@@ -49,7 +49,7 @@ const SelfHostedAccessDenied = () => (
       sx={{ borderRadius: 2 }}
     >
       Create an account
-      <ArrowRightIconRegular sx={{ fontSize: 14, ml: 1 }} />
+      <ArrowRightRegularIcon sx={{ fontSize: 14, ml: 1 }} />
     </Button>
   </HomepageCard>
 );
@@ -183,7 +183,7 @@ export const Waitlisted = () => {
                       Tell us about your
                     </Box>
                     use case
-                    <ArrowRightIconRegular sx={{ fontSize: 14, ml: 1 }} />
+                    <ArrowRightRegularIcon sx={{ fontSize: 14, ml: 1 }} />
                   </>
                 )}
               </Button>

@@ -10,8 +10,8 @@ use core::fmt::{Display, Formatter};
 use std::path::Path;
 
 use error_stack::{
+    Report,
     fmt::{Charset, ColorMode},
-    Report, Result,
 };
 
 type Config = String;
@@ -20,14 +20,14 @@ type Config = String;
 struct ParseConfigError;
 
 impl Display for ParseConfigError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str("unable to parse config")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str("unable to parse config")
     }
 }
 
 impl core::error::Error for ParseConfigError {}
 
-fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
+fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
     _ = path.as_ref();
 
     /*
@@ -41,7 +41,7 @@ fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
 fn main() {
     // error-stack only uses ANSI codes for colors
     let supports_color = supports_color::on_cached(supports_color::Stream::Stdout)
-        .map_or(false, |level| level.has_basic);
+        .is_some_and(|level| level.has_basic);
 
     let color_mode = if supports_color {
         ColorMode::Color

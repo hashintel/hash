@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 
-use error_stack::{Report, ResultExt};
-use graph_types::{
+use error_stack::{Report, ResultExt as _};
+use hash_graph_types::{
     account::AccountId,
     knowledge::entity::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use serde::Serialize;
-use temporal_io_client::{WorkflowClientTrait, WorkflowOptions};
-use temporal_io_sdk_core_protos::{
-    temporal::api::common::v1::Payload, ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL,
+use temporal_client::{WorkflowClientTrait as _, WorkflowOptions};
+use temporal_sdk_core_protos::{
+    ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL, temporal::api::common::v1::Payload,
 };
 use uuid::Uuid;
 
@@ -146,7 +146,7 @@ impl TemporalClient {
         &self,
         actor_id: AccountId,
         entities: &[Entity],
-    ) -> Result<String, Report<WorkflowError>> {
+    ) -> Result<Vec<String>, Report<WorkflowError>> {
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase")]
         struct UpdateEntityEmbeddingsParams<'a> {
@@ -154,13 +154,26 @@ impl TemporalClient {
             entities: &'a [Entity],
         }
 
-        self.start_ai_workflow(
-            "updateEntityEmbeddings",
-            &UpdateEntityEmbeddingsParams {
-                authentication: AuthenticationContext { actor_id },
-                entities,
-            },
-        )
-        .await
+        // There is an upper limit on how many bytes can be sent in a single workflow invocation so
+        // we need to split the entities into chunks.
+        const CHUNK_SIZE: usize = 100;
+
+        #[expect(
+            clippy::integer_division,
+            clippy::integer_division_remainder_used,
+            reason = "The devision is only used to calculate vector capacity and is rounded up."
+        )]
+        let mut workflow_ids = Vec::with_capacity(entities.len() / CHUNK_SIZE + 1);
+        for partial_entities in entities.chunks(CHUNK_SIZE) {
+            workflow_ids.push(
+                self.start_ai_workflow("updateEntityEmbeddings", &UpdateEntityEmbeddingsParams {
+                    authentication: AuthenticationContext { actor_id },
+                    entities: partial_entities,
+                })
+                .await?,
+            );
+        }
+
+        Ok(workflow_ids)
     }
 }

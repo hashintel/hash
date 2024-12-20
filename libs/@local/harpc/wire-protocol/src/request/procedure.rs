@@ -1,19 +1,13 @@
 use bytes::{Buf, BufMut};
-use error_stack::Result;
-use harpc_types::procedure::ProcedureId;
+use error_stack::Report;
+use harpc_types::procedure::{ProcedureDescriptor, ProcedureId};
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(test, derive(test_strategy::Arbitrary))]
-pub struct ProcedureDescriptor {
-    pub id: ProcedureId,
-}
 
 impl Encode for ProcedureDescriptor {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -25,7 +19,7 @@ impl Decode for ProcedureDescriptor {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -45,12 +39,9 @@ mod test {
 
     #[test]
     fn encode_id() {
-        assert_encode(
-            &ProcedureId::new(0x01_02),
-            expect![[r#"
+        assert_encode(&ProcedureId::new(0x01_02), expect![[r#"
                 0x01 0x02
-            "#]],
-        );
+            "#]]);
     }
 
     #[test]

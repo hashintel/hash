@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import {
@@ -28,9 +29,9 @@ import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-res
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
-import type { ExistingEntitySummary } from "../../research-entities-action/summarize-existing-entities.js";
-import type { LocalEntitySummary } from "../infer-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../infer-claims-from-text/types.js";
+import type { ExistingEntitySummary } from "../../research-entities-action/coordinating-agent/summarize-existing-entities.js";
+import type { Claim } from "../claims.js";
+import type { LocalEntitySummary } from "../infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 
 const mapPropertiesSchemaToInputPropertiesSchema = (params: {
   properties: DereferencedEntityType["properties"];
@@ -148,7 +149,10 @@ const generatePropertyMetadata = (params: {
     }
 
     propertyMetadata.value[baseUrl] = {
-      metadata: { provenance: { sources: sourcesUsedToDetermineValue } },
+      metadata: {
+        dataTypeId: null,
+        provenance: { sources: sourcesUsedToDetermineValue },
+      },
     };
   }
 
@@ -160,18 +164,16 @@ const generatePropertyMetadata = (params: {
   };
 };
 
-const toolNames = ["proposeEntity", "abandonEntity"] as const;
-
-type ToolName = (typeof toolNames)[number];
+type ToolName = "proposeEntity" | "abandonEntity";
 
 const generateToolDefinitions = (params: {
-  dereferencedEntityType: DereferencedEntityType;
+  dereferencedEntityTypes: DereferencedEntityType[];
   proposeOutgoingLinkEntityTypes: {
     schema: DereferencedEntityType;
     simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
   }[];
 }): Record<ToolName, LlmToolDefinition> => {
-  const { dereferencedEntityType, proposeOutgoingLinkEntityTypes } = params;
+  const { dereferencedEntityTypes, proposeOutgoingLinkEntityTypes } = params;
 
   return {
     proposeEntity: {
@@ -180,8 +182,7 @@ const generateToolDefinitions = (params: {
       inputSchema: {
         type: "object",
         additionalProperties: false,
-        title: dereferencedEntityType.title,
-        description: dereferencedEntityType.description,
+        title: `Proposed Entity with ${dereferencedEntityTypes.length > 1 ? "types" : "type"} ${dereferencedEntityTypes.map((type) => type.title).join(", ")}`,
         properties: {
           properties: {
             description: "The properties to set on the entity",
@@ -189,7 +190,12 @@ const generateToolDefinitions = (params: {
             type: "object",
             additionalProperties: false,
             properties: mapPropertiesSchemaToInputPropertiesSchema({
-              properties: dereferencedEntityType.properties,
+              properties: dereferencedEntityTypes.reduce((prev, type) => {
+                return {
+                  ...prev,
+                  ...type.properties,
+                };
+              }, {}),
             }),
           },
           ...(proposeOutgoingLinkEntityTypes.length > 0
@@ -293,7 +299,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
     isObjectOf: Claim[];
     isSubjectOf: Claim[];
   };
-  dereferencedEntityType: DereferencedEntityType;
+  dereferencedEntityTypes: DereferencedEntityType[];
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
   proposeOutgoingLinkEntityTypes: {
     schema: DereferencedEntityType;
@@ -324,7 +330,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
   const {
     entitySummary,
     claims,
-    dereferencedEntityType,
+    dereferencedEntityTypes,
     simplifiedPropertyTypeMappings,
     retryContext,
     proposeOutgoingLinkEntityTypes,
@@ -345,7 +351,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
       model: "gpt-4o-2024-08-06",
       tools: Object.values(
         generateToolDefinitions({
-          dereferencedEntityType,
+          dereferencedEntityTypes,
           proposeOutgoingLinkEntityTypes,
         }),
       ),
@@ -439,13 +445,27 @@ export const proposeEntityFromClaimsAgent = async (params: {
   if (proposeEntityToolCall) {
     const { properties: inputProperties, outgoingLinks } =
       proposeEntityToolCall.input as {
-        properties: InputPropertiesObject;
+        properties?: InputPropertiesObject;
         outgoingLinks?: {
           entityTypeId: string;
           targetEntityId: string;
           properties: InputPropertiesObject;
         }[];
       };
+
+    if (!inputProperties) {
+      return retry({
+        retryMessage: {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `You must provide an object with 'properties' at the root to propose an entity – you provided ${JSON.stringify(proposeEntityToolCall.input)}.`,
+            },
+          ],
+        },
+      });
+    }
 
     const simplifiedProperties = mapInputPropertiesToPropertiesObject({
       inputProperties,
@@ -470,7 +490,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
 
     try {
       await Entity.validate(graphApiClient, userAuthentication, {
-        entityTypes: [dereferencedEntityType.$id],
+        entityTypes: dereferencedEntityTypes.map((type) => type.$id),
         components: {
           linkData: false,
           numItems: false,
@@ -627,7 +647,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
                     kind: "existing-entity",
                     entityId: targetEntitySummary.entityId,
                   },
-            entityTypeId: outgoingLink.entityTypeId as VersionedUrl,
+            entityTypeIds: [outgoingLink.entityTypeId as VersionedUrl],
             propertyMetadata: outgoingLinkPropertyMetadata,
             properties: outgoingLinkProperties,
             provenance: editionProvenance,
@@ -664,7 +684,9 @@ export const proposeEntityFromClaimsAgent = async (params: {
       localEntityId: entitySummary.localId,
       propertyMetadata,
       summary: entitySummary.summary,
-      entityTypeId: dereferencedEntityType.$id,
+      entityTypeIds: mustHaveAtLeastOne(
+        dereferencedEntityTypes.map((type) => type.$id),
+      ),
       properties,
       provenance: editionProvenance,
     };

@@ -9,5 +9,8 @@
     "lint:clippy": "just clippy",
     "test:miri": "just miri",
     "test:unit": "just test-or-coverage"
+  },
+  "dependencies": {
+    "@rust/error-stack": "0.5.0"
   }
 }

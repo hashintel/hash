@@ -30,7 +30,8 @@ pub struct PropertyType<'a> {
     id: Cow<'a, VersionedUrl>,
     title: Cow<'a, str>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    description: Option<Cow<'a, str>>,
+    title_plural: Option<Cow<'a, str>>,
+    description: Cow<'a, str>,
     #[cfg_attr(
         target_arch = "wasm32",
         tsify(type = "[PropertyValues, ...PropertyValues[]]")
@@ -43,7 +44,8 @@ impl From<PropertyType<'_>> for super::PropertyType {
         Self {
             id: property_type.id.into_owned(),
             title: property_type.title.into_owned(),
-            description: property_type.description.map(Cow::into_owned),
+            title_plural: property_type.title_plural.map(Cow::into_owned),
+            description: property_type.description.into_owned(),
             one_of: property_type.one_of.into_owned(),
         }
     }
@@ -56,7 +58,8 @@ impl<'a> From<&'a super::PropertyType> for PropertyType<'a> {
             kind: PropertyTypeTag::PropertyType,
             id: Cow::Borrowed(&property_type.id),
             title: Cow::Borrowed(&property_type.title),
-            description: property_type.description.as_deref().map(Cow::Borrowed),
+            title_plural: property_type.title_plural.as_deref().map(Cow::Borrowed),
+            description: Cow::Borrowed(&property_type.description),
             one_of: Cow::Borrowed(&property_type.one_of),
         }
     }

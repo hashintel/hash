@@ -228,6 +228,7 @@ declare module "@mui/material/Chip" {
     green: true;
     navy: true;
     aqua: true;
+    white: true;
     // Disable defaults
     default: false;
     primary: false;

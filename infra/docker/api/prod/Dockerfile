@@ -1,10 +1,10 @@
-FROM node:20.13-alpine AS base
+FROM node:22.12-alpine AS base
 
 WORKDIR /app
 
 COPY package.json .
 RUN apk add --no-cache jq yq && \
-    yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+    npm install -g  "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-api' --docker && \
@@ -14,14 +14,10 @@ RUN turbo prune --scope='@apps/hash-api' --docker && \
         echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
         echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
       )' _ {} \; && \
-    cp Cargo.toml Cargo.lock /app/out/full/
-
-# Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
-# Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
-COPY patches /app/out/full/patches
+    cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
 
-FROM node:20.13-slim AS rust
+FROM node:22.12-slim AS rust
 
 WORKDIR /usr/local/
 
@@ -44,10 +40,11 @@ WORKDIR /usr/local/src/
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
-COPY --from=base /app/out/full/patches patches
+COPY --from=base /app/out/full/.yarn .yarn
 COPY --from=base /app/out/full/turbo.json turbo.json
 
-RUN yarn install --frozen-lockfile --prefer-offline && \
+RUN corepack enable && \
+    yarn install --immutable && \
     yarn cache clean
 
 COPY --from=base /app/out/full/ .
@@ -55,23 +52,30 @@ COPY --from=base /app/out/full/ .
 RUN yarn turbo build --filter '@apps/hash-api' --env-mode=loose && rm -rf target/
 
 
-FROM node:20.13-slim AS runner
+FROM node:22.12-slim AS runner
 
 COPY --from=installer /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-api
 RUN mkdir -p /usr/local/src/var/uploads
 
-ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
+RUN groupadd --system --gid 60000 hash && \
+    useradd --system api -G hash
+
+# Set a writable Corepack cache directory
+ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
+RUN mkdir -p $COREPACK_HOME && \
+    chown api:hash $COREPACK_HOME && \
+    corepack enable && corepack prepare --activate
+
+ENTRYPOINT [ "yarn"]
 CMD ["start"]
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/* && \
-    groupadd --system --gid 60000 hash && \
-    useradd --system api -G hash && \
     install -d -m 0775 -o api -g hash /log
 
 USER api:hash
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001/health-check || exit 1

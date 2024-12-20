@@ -2,7 +2,9 @@ use core::cell::{Cell, RefCell, UnsafeCell};
 #[cfg(nightly)]
 use core::cell::{OnceCell, SyncUnsafeCell};
 
-use crate::{error::DeserializeError, Deserialize, Deserializer, Document, Reflection, Schema};
+use error_stack::Report;
+
+use crate::{Deserialize, Deserializer, Document, Reflection, Schema, error::DeserializeError};
 
 macro_rules! impl_cell {
     ($(#[$attr:meta])* $cell:ident) => {
@@ -25,7 +27,7 @@ macro_rules! impl_cell {
 
             fn deserialize<D: Deserializer<'de>>(
                 deserializer: D,
-            ) -> error_stack::Result<Self, DeserializeError> {
+            ) -> Result<Self, Report<DeserializeError>> {
                 T::deserialize(deserializer).map(Self::from)
             }
         }

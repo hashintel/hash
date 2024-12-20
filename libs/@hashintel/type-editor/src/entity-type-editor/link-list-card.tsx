@@ -4,7 +4,13 @@ import {
   LinkTypeIcon,
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
-import { Box, TableBody, TableCell, TableHead } from "@mui/material";
+import {
+  Box,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+} from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import {
   useCallback,
@@ -76,7 +82,7 @@ export const LinkTypeForm = (props: TypeFormProps) => {
       title,
     });
 
-  return <TypeForm validateTitle={validateTitle} {...props} />;
+  return <TypeForm validateTitle={validateTitle} kind="link" {...props} />;
 };
 
 const LinkTypeRow = ({
@@ -406,7 +412,7 @@ export const LinkListCard = () => {
         )}
       </TableBody>
       {isReadonly || !ontologyFunctions ? (
-        <Box sx={{ height: "var(--table-padding)" }} />
+        <TableFooter sx={{ height: "var(--table-padding)" }} />
       ) : (
         <EntityTypeTableFooter enableShadow={fields.length > 0}>
           {addingNewLink ? (

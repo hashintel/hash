@@ -1,0 +1,93 @@
+diff --git a/dist/sigma-edge-curve.esm.js b/dist/sigma-edge-curve.esm.js
+index 7bbaeefb9262d9f2a766524c4152930d04132762..4809bb666244f28b076e8a90c6962ba903e5b7f6 100644
+--- a/dist/sigma-edge-curve.esm.js
++++ b/dist/sigma-edge-curve.esm.js
+@@ -302,8 +302,87 @@ function createDrawCurvedEdgeLabel(_ref) {
+ 
+ function getFragmentShader(_ref) {
+   var arrowHead = _ref.arrowHead;
++  /**
++   * Patched to add a border to the edges
++   */
+   // language=GLSL
+-  var SHADER = /*glsl*/"\nprecision highp float;\n\nvarying vec4 v_color;\nvarying float v_thickness;\nvarying float v_feather;\nvarying vec2 v_cpA;\nvarying vec2 v_cpB;\nvarying vec2 v_cpC;\n".concat(arrowHead ? "\nvarying float v_targetSize;\nvarying vec2 v_targetPoint;\n\nuniform float u_lengthToThicknessRatio;\nuniform float u_widenessToThicknessRatio;" : "", "\n\nfloat det(vec2 a, vec2 b) {\n  return a.x * b.y - b.x * a.y;\n}\n\nvec2 getDistanceVector(vec2 b0, vec2 b1, vec2 b2) {\n  float a = det(b0, b2), b = 2.0 * det(b1, b0), d = 2.0 * det(b2, b1);\n  float f = b * d - a * a;\n  vec2 d21 = b2 - b1, d10 = b1 - b0, d20 = b2 - b0;\n  vec2 gf = 2.0 * (b * d21 + d * d10 + a * d20);\n  gf = vec2(gf.y, -gf.x);\n  vec2 pp = -f * gf / dot(gf, gf);\n  vec2 d0p = b0 - pp;\n  float ap = det(d0p, d20), bp = 2.0 * det(d10, d0p);\n  float t = clamp((ap + bp) / (2.0 * a + b + d), 0.0, 1.0);\n  return mix(mix(b0, b1, t), mix(b1, b2, t), t);\n}\n\nfloat distToQuadraticBezierCurve(vec2 p, vec2 b0, vec2 b1, vec2 b2) {\n  return length(getDistanceVector(b0 - p, b1 - p, b2 - p));\n}\n\nconst vec4 transparent = vec4(0.0, 0.0, 0.0, 0.0);\n\nvoid main(void) {\n  float dist = distToQuadraticBezierCurve(gl_FragCoord.xy, v_cpA, v_cpB, v_cpC);\n  float thickness = v_thickness;\n").concat(arrowHead ? "\n  float distToTarget = length(gl_FragCoord.xy - v_targetPoint);\n  float arrowLength = v_targetSize + thickness * u_lengthToThicknessRatio;\n  if (distToTarget < arrowLength) {\n    thickness = (distToTarget - v_targetSize) / (arrowLength - v_targetSize) * u_widenessToThicknessRatio * thickness;\n  }" : "", "\n\n  float halfThickness = thickness / 2.0;\n  if (dist < halfThickness) {\n    #ifdef PICKING_MODE\n    gl_FragColor = v_color;\n    #else\n    float t = smoothstep(\n      halfThickness - v_feather,\n      halfThickness,\n      dist\n    );\n\n    gl_FragColor = mix(v_color, transparent, t);\n    #endif\n  } else {\n    gl_FragColor = transparent;\n  }\n}\n");
++  var SHADER = /*glsl*/`precision highp float;
++
++varying vec4 v_color;
++varying float v_thickness;
++varying float v_feather;
++varying vec2 v_cpA;
++varying vec2 v_cpB;
++varying vec2 v_cpC;
++${
++      arrowHead
++          ? `
++varying float v_targetSize;
++varying vec2 v_targetPoint;
++
++uniform float u_lengthToThicknessRatio;
++uniform float u_widenessToThicknessRatio;`
++          : ""
++  }
++
++const vec4 borderColor = vec4(0.0, 0.0, 0.0, 0.4);
++const float borderWidth = 1.0;
++
++float det(vec2 a, vec2 b) {
++  return a.x * b.y - b.x * a.y;
++}
++
++vec2 getDistanceVector(vec2 b0, vec2 b1, vec2 b2) {
++  float a = det(b0, b2), b = 2.0 * det(b1, b0), d = 2.0 * det(b2, b1);
++  float f = b * d - a * a;
++  vec2 d21 = b2 - b1, d10 = b1 - b0, d20 = b2 - b0;
++  vec2 gf = 2.0 * (b * d21 + d * d10 + a * d20);
++  gf = vec2(gf.y, -gf.x);
++  vec2 pp = -f * gf / dot(gf, gf);
++  vec2 d0p = b0 - pp;
++  float ap = det(d0p, d20), bp = 2.0 * det(d10, d0p);
++  float t = clamp((ap + bp) / (2.0 * a + b + d), 0.0, 1.0);
++  return mix(mix(b0, b1, t), mix(b1, b2, t), t);
++}
++
++float distToQuadraticBezierCurve(vec2 p, vec2 b0, vec2 b1, vec2 b2) {
++  return length(getDistanceVector(b0 - p, b1 - p, b2 - p));
++}
++
++const vec4 transparent = vec4(0.0, 0.0, 0.0, 0.0);
++
++void main(void) {
++  float dist = distToQuadraticBezierCurve(gl_FragCoord.xy, v_cpA, v_cpB, v_cpC);
++
++  float mainThickness = v_thickness / 2.0;
++
++${
++      arrowHead
++          ? `
++  float distToTarget = length(gl_FragCoord.xy - v_targetPoint);
++  float arrowLength = v_targetSize + mainThickness * u_lengthToThicknessRatio;
++  if (distToTarget < arrowLength) {
++    mainThickness = (distToTarget - v_targetSize) / (arrowLength - v_targetSize) * u_widenessToThicknessRatio * mainThickness;
++  }`
++          : ""
++  }
++
++  float feather = 1.5; // Anti-aliasing feathering value
++
++  // Render the border with anti-aliasing
++  if (dist < mainThickness + borderWidth && dist > mainThickness) {
++    float borderEdge = smoothstep(mainThickness + borderWidth, mainThickness + borderWidth - feather, dist);
++    gl_FragColor = mix(transparent, borderColor, borderEdge);
++  }
++  // Render the main edge inside the border
++  else if (dist < mainThickness) {
++    gl_FragColor = v_color;
++  } else {
++    // Outside the edge and border region, make it transparent
++    gl_FragColor = transparent;
++  }
++}
++`;
+   return SHADER;
+ }
+ 

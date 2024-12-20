@@ -6,7 +6,7 @@ import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
 import { logProgress } from "../shared/log-progress.js";
-import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url.js";
+import { createFileEntityFromUrl } from "./shared/create-file-entity-from-url.js";
 import type { FlowActionActivity } from "./types.js";
 
 export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
@@ -19,25 +19,25 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
     actionType: "getFileFromUrl",
   });
 
-  const getFileEntityFromUrlStatus = await getFileEntityFromUrl({
+  const createFileEntityFromUrlStatus = await createFileEntityFromUrl({
     entityUuid: null,
     url: originalUrl,
     description,
     displayName,
   });
 
-  if (getFileEntityFromUrlStatus.status !== "ok") {
+  if (createFileEntityFromUrlStatus.status !== "ok") {
     return {
       code: StatusCode.Internal,
-      message: getFileEntityFromUrlStatus.message,
+      message: createFileEntityFromUrlStatus.message,
       contents: [],
     };
   }
 
   // @todo look for an existing file with the same originalUrl in the graph, and update it if found?
-  const operation = "create" as const;
+  const operation = "create";
 
-  const fileEntity = getFileEntityFromUrlStatus.entity.toJSON();
+  const fileEntity = createFileEntityFromUrlStatus.entity.toJSON();
 
   logProgress([
     {

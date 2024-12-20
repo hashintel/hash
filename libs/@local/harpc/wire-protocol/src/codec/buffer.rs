@@ -1,7 +1,7 @@
 use std::io::Cursor;
 
 use bytes::{Buf, BufMut, Bytes};
-use error_stack::{Report, Result};
+use error_stack::Report;
 
 pub(crate) trait Number {
     const WIDTH: usize;
@@ -85,23 +85,19 @@ impl<'a, B> Buffer<'a, B> {
     }
 }
 
-impl<'a, B> Buffer<'a, B>
+impl<B> Buffer<'_, B>
 where
     B: Buf,
 {
-    pub(crate) fn next_number<N: Number>(&mut self) -> Result<N, BufferError> {
+    pub(crate) fn next_number<N: Number>(&mut self) -> Result<N, Report<BufferError>> {
         if self.0.remaining() < N::WIDTH {
             return Err(Report::new(BufferError::EarlyEndOfStream));
         }
 
-        #[expect(
-            clippy::needless_borrows_for_generic_args,
-            reason = "Would move the buffer"
-        )]
         Ok(N::unchecked_read_from_buf(&mut self.0))
     }
 
-    pub(crate) fn next_bytes(&mut self, at: usize) -> Result<Bytes, BufferError> {
+    pub(crate) fn next_bytes(&mut self, at: usize) -> Result<Bytes, Report<BufferError>> {
         if self.0.remaining() < at {
             return Err(Report::new(BufferError::EarlyEndOfStream));
         }
@@ -109,7 +105,7 @@ where
         Ok(self.0.copy_to_bytes(at))
     }
 
-    pub(crate) fn next_array<const N: usize>(&mut self) -> Result<[u8; N], BufferError> {
+    pub(crate) fn next_array<const N: usize>(&mut self) -> Result<[u8; N], Report<BufferError>> {
         if self.0.remaining() < N {
             return Err(Report::new(BufferError::EarlyEndOfStream));
         }
@@ -120,7 +116,7 @@ where
         Ok(bytes)
     }
 
-    pub(crate) fn discard(&mut self, count: usize) -> Result<(), BufferError> {
+    pub(crate) fn discard(&mut self, count: usize) -> Result<(), Report<BufferError>> {
         if self.0.remaining() < count {
             return Err(Report::new(BufferError::EarlyEndOfStream));
         }
@@ -131,25 +127,21 @@ where
     }
 }
 
-impl<'a, B> Buffer<'a, B>
+impl<B> Buffer<'_, B>
 where
     B: BufMut,
 {
-    pub(crate) fn push_number<N: Number>(&mut self, number: N) -> Result<(), BufferError> {
+    pub(crate) fn push_number<N: Number>(&mut self, number: N) -> Result<(), Report<BufferError>> {
         if self.0.remaining_mut() < N::WIDTH {
             return Err(Report::new(BufferError::NotEnoughCapacity));
         }
 
-        #[expect(
-            clippy::needless_borrows_for_generic_args,
-            reason = "Would move the buffer"
-        )]
         number.unchecked_write_to_buf(&mut self.0);
 
         Ok(())
     }
 
-    pub(crate) fn push_bytes(&mut self, bytes: &Bytes) -> Result<(), BufferError> {
+    pub(crate) fn push_bytes(&mut self, bytes: &Bytes) -> Result<(), Report<BufferError>> {
         if self.0.remaining_mut() < bytes.len() {
             return Err(Report::new(BufferError::NotEnoughCapacity));
         }
@@ -161,7 +153,7 @@ where
         Ok(())
     }
 
-    pub(crate) fn push_slice(&mut self, slice: &[u8]) -> Result<(), BufferError> {
+    pub(crate) fn push_slice(&mut self, slice: &[u8]) -> Result<(), Report<BufferError>> {
         if self.0.remaining_mut() < slice.len() {
             return Err(Report::new(BufferError::NotEnoughCapacity));
         }
@@ -171,7 +163,11 @@ where
         Ok(())
     }
 
-    pub(crate) fn push_repeat(&mut self, byte: u8, count: usize) -> Result<(), BufferError> {
+    pub(crate) fn push_repeat(
+        &mut self,
+        byte: u8,
+        count: usize,
+    ) -> Result<(), Report<BufferError>> {
         if self.0.remaining_mut() < count {
             return Err(Report::new(BufferError::NotEnoughCapacity));
         }

@@ -39,10 +39,10 @@ impl Note {
         }
 
         impl Display for DisplayColor<'_> {
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                Display::fmt(&self.style.render(), f)?;
-                Display::fmt(self.message, f)?;
-                Display::fmt(&self.style.render_reset(), f)
+            fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                Display::fmt(&self.style.render(), fmt)?;
+                Display::fmt(self.message, fmt)?;
+                Display::fmt(&self.style.render_reset(), fmt)
             }
         }
 

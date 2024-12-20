@@ -1,7 +1,5 @@
-cargo-features = ["edition2024"]
-
 [package]
-name = "harpc-tower"
+name              = "harpc-tower"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,23 +7,38 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
-bytes.workspace = true
-error-stack.workspace = true
-futures.workspace = true
-harpc-net.workspace = true
-harpc-types.workspace = true
-harpc-wire-protocol.workspace = true
-pin-project = "1.1.5"
-pin-project-lite = "0.2.14"
-thiserror = "1.0.61"
-tokio = { workspace = true, features = ["time"] }
-tower = { version = "0.4.13", features = ["util"] }
+# Public workspace dependencies
+harpc-net = { workspace = true, public = true }
+
+# Public third-party dependencies
+futures-core  = { workspace = true, public = true }
+tower-layer   = { workspace = true, public = true }
+tower-service = { workspace = true, public = true }
+
+# Private workspace dependencies
+error-stack = { workspace = true }
+harpc-codec = { workspace = true }
+harpc-types = { workspace = true, features = ["serde"] }
+
+# Private third-party dependencies
+bytes            = { workspace = true }
+derive_more      = { workspace = true, features = ["display"] }
+futures          = { workspace = true }
+pin-project      = { workspace = true }
+pin-project-lite = { workspace = true }
+serde            = { workspace = true, features = ["derive"] }
+thiserror        = { workspace = true }
+tokio            = { workspace = true, features = ["time"] }
+tower            = { workspace = true, features = ["util"] }
 
 [dev-dependencies]
-tokio-util = { workspace = true, features = ["time"] }
-tower-test = "0.4.0"
-harpc-net = { workspace = true, features = ["test-utils"] }
-tokio-test = "0.4.4"
+harpc-codec = { workspace = true, features = ["json"] }
+harpc-net   = { workspace = true, features = ["test-utils"] }
+insta       = { workspace = true }
+serde       = { workspace = true, features = ["unstable"] }
+tokio-test  = { workspace = true }
+tokio-util  = { workspace = true, features = ["time"] }
+tower-test  = { workspace = true }
 
 [lints]
 workspace = true

@@ -1,0 +1,24 @@
+{
+  "name": "@rust/hash-graph-benches",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "bench:integration": "cargo bench --bench read-scaling --bench representative-read",
+    "bench:integration:manual": "cargo bench --bench manual-queries",
+    "test:integration": "cargo test --bench read-scaling --bench representative-read",
+    "test:integration:manual": "cargo test --bench manual-queries"
+  },
+  "devDependencies": {
+    "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@rust/error-stack": "0.5.0",
+    "@rust/hash-graph-api": "0.0.0-private",
+    "@rust/hash-graph-authorization": "0.0.0-private",
+    "@rust/hash-graph-postgres-store": "0.0.0-private",
+    "@rust/hash-graph-store": "0.0.0-private",
+    "@rust/hash-graph-temporal-versioning": "0.0.0-private",
+    "@rust/hash-graph-test-data": "0.0.0-private",
+    "@rust/hash-graph-types": "0.0.0-private",
+    "@rust/hash-repo-chores": "0.0.0-private"
+  }
+}

@@ -140,13 +140,13 @@ impl Extensions {
     /// ```
     pub fn get_or_insert_with<T: Clone + Send + Sync + 'static, F: FnOnce() -> T>(
         &mut self,
-        f: F,
+        func: F,
     ) -> &mut T {
         let out = self
             .map
             .get_or_insert_with(Box::default)
             .entry(TypeId::of::<T>())
-            .or_insert_with(|| Box::new(f()));
+            .or_insert_with(|| Box::new(func()));
 
         (**out).as_any_mut().downcast_mut().unwrap_or_else(|| {
             unreachable!(
@@ -225,7 +225,7 @@ impl Extensions {
     #[inline]
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.map.as_ref().map_or(true, |map| map.is_empty())
+        self.map.as_ref().is_none_or(|map| map.is_empty())
     }
 
     /// Get the numer of extensions available.
@@ -280,8 +280,8 @@ impl Extensions {
 }
 
 impl fmt::Debug for Extensions {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Extensions").finish()
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("Extensions").finish()
     }
 }
 

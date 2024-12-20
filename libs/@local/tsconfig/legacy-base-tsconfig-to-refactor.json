@@ -5,7 +5,7 @@
     "checkJs": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2023"],
+    "lib": ["es2024"],
     "module": "esnext",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
@@ -13,7 +13,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2022",
+    "target": "es2024",
     "baseUrl": ".",
     "paths": {
       "@blockprotocol/graph": ["../../@blockprotocol/graph/src/main.ts"],
@@ -26,14 +26,19 @@
       ],
       "@local/advanced-types/*": ["../advanced-types/src/*.ts"],
       "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*.ts"],
-      "@local/hash-graph-client/*": ["../hash-graph-client/typescript/*.ts"],
-      "@local/hash-graph-sdk/*": ["../hash-graph-sdk/typescript/src/*.ts"],
-      "@local/hash-graph-types/*": ["../hash-graph-types/typescript/src/*.ts"],
+      "@local/hash-graph-client/*": ["../graph/client/typescript/*.ts"],
+      "@local/hash-graph-sdk/*": ["../graph/sdk/typescript/src/*.ts"],
+      "@local/hash-graph-types/*": ["../graph/types/typescript/src/*.ts"],
       "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*.ts"],
       "@local/status": ["../status/typescript/pkg/src/main.ts"],
       "@local/hash-subgraph": ["../hash-subgraph/src/main.ts"],
-      "@local/hash-subgraph/*": ["../hash-subgraph/src/*.ts"]
-    }
+      "@local/hash-subgraph/*": ["../hash-subgraph/src/*.ts"],
+      "@local/harpc-client": ["../harpc/client/typescript/src/index.ts"],
+      "@local/harpc-client/*": ["../harpc/client/typescript/src/*/index.ts"],
+      "@local/eslint": ["../eslint/src/index.ts"],
+      "@local/eslint/*": ["../eslint/src/*/index.ts"]
+    },
+    "outDir": "./dist"
   },
   "ts-node": {
     "transpileOnly": true

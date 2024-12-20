@@ -1,8 +1,9 @@
-#[cfg_attr(feature = "std", allow(unused_imports))]
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 use alloc::boxed::Box;
 #[cfg(nightly)]
-use core::error::{Error, Request};
-use core::{any::Any, fmt};
+use core::error::Request;
+use core::{any::Any, error::Error, fmt};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind};
 
@@ -19,22 +20,20 @@ pub(super) trait FrameImpl: Send + Sync + 'static {
     fn provide<'a>(&'a self, request: &mut Request<'a>);
 }
 
-#[cfg(nightly)]
 impl fmt::Debug for Box<dyn FrameImpl> {
     fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
         unreachable!()
     }
 }
 
-#[cfg(nightly)]
 impl fmt::Display for Box<dyn FrameImpl> {
     fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
         unreachable!()
     }
 }
 
-#[cfg(nightly)]
 impl Error for Box<dyn FrameImpl> {
+    #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
         (**self).provide(request);
     }

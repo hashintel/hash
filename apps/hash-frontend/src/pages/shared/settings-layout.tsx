@@ -4,6 +4,7 @@ import type { PropsWithChildren, ReactElement } from "react";
 import { useMemo } from "react";
 
 import type { Org } from "../../lib/user-and-org";
+import { HouseSolidIcon } from "../../shared/icons/house-solid-icon";
 import { PeopleGroupIcon } from "../../shared/icons/people-group-icon";
 import { PlugSolidIcon } from "../../shared/icons/plug-solid-icon";
 import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
@@ -48,7 +49,12 @@ const generateMenuLinks = (
     {
       label: "Integrations",
       href: "/settings/integrations",
-      icon: <PlugSolidIcon sx={{ fontSize: 12 }} />,
+      icon: <PlugSolidIcon sx={{ fontSize: 16 }} />,
+    },
+    {
+      label: "Personalization",
+      href: "/settings/personalization",
+      icon: <HouseSolidIcon sx={{ fontSize: 14 }} />,
     },
   ];
 

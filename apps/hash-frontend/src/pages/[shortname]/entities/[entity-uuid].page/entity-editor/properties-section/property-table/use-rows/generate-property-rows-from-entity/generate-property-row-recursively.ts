@@ -3,15 +3,19 @@ import type {
   ValueOrArray,
 } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getPropertyTypeById } from "@local/hash-subgraph/stdlib";
+import type {
+  BaseUrl,
+  ClosedMultiEntityType,
+  ClosedMultiEntityTypesDefinitions,
+} from "@local/hash-graph-types/ontology";
+import { getPermittedDataTypes } from "@local/hash-isomorphic-utils/data-types";
 import get from "lodash/get";
 
 import {
   isPropertyValueArray,
-  isPropertyValuePropertyObject,
+  isPropertyValueObject,
 } from "../../../../../../../../../lib/typeguards";
+import type { MinimalEntityValidationReport } from "../../../../../../../../shared/use-validate-entity";
 import type { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
 
@@ -49,38 +53,56 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
  * @returns property row (and nested rows as `children` if it's a nested property)
  */
 export const generatePropertyRowRecursively = ({
+  closedMultiEntityType,
+  closedMultiEntityTypesDefinitions,
+  generateNewMetadataObject,
   propertyTypeBaseUrl,
   propertyKeyChain,
   entity,
-  entitySubgraph,
   requiredPropertyTypes,
   depth = 0,
   propertyRefSchema,
+  validationReport,
 }: {
+  closedMultiEntityType: ClosedMultiEntityType;
+  closedMultiEntityTypesDefinitions: ClosedMultiEntityTypesDefinitions;
+  generateNewMetadataObject: PropertyRow["generateNewMetadataObject"];
   propertyTypeBaseUrl: BaseUrl;
   propertyKeyChain: BaseUrl[];
   entity: Entity;
-  entitySubgraph: Subgraph<EntityRootType>;
   requiredPropertyTypes: BaseUrl[];
   depth?: number;
   propertyRefSchema: ValueOrArray<PropertyTypeReference>;
+  validationReport: MinimalEntityValidationReport | null;
 }): PropertyRow => {
   const propertyTypeId =
     "$ref" in propertyRefSchema
       ? propertyRefSchema.$ref
       : propertyRefSchema.items.$ref;
 
-  const propertyType = getPropertyTypeById(
-    entitySubgraph,
-    propertyTypeId,
-  )?.schema;
+  const propertyType =
+    closedMultiEntityTypesDefinitions.propertyTypes[propertyTypeId];
+
   if (!propertyType) {
-    throw new Error(`Property type ${propertyTypeId} not found in subgraph`);
+    throw new Error(`Property type ${propertyTypeId} not found in definitions`);
   }
 
-  const { isArray: isPropertyTypeArray, expectedTypes } =
-    getExpectedTypesOfPropertyType(propertyType, entitySubgraph);
+  const {
+    /**
+     * Whether the property type specifies that it expects an array of values.
+     */
+    isArray: isPropertyTypeArray,
+    expectedTypes,
+  } = getExpectedTypesOfPropertyType(
+    propertyType,
+    closedMultiEntityTypesDefinitions,
+  );
 
+  /**
+   * Whether the entity type has specified that it expects multiple instances of whatever value this property expects.
+   * Note that the editor currently only supports 1D arrays, and therefore does not support
+   * isPropertyTypeArray && isAllowMultiple, which would be a 2D array.
+   */
   const isAllowMultiple = "type" in propertyRefSchema;
 
   const isArray = isPropertyTypeArray || isAllowMultiple;
@@ -88,11 +110,16 @@ export const generatePropertyRowRecursively = ({
   const required = requiredPropertyTypes.includes(propertyTypeBaseUrl);
 
   const value = get(entity.properties, propertyKeyChain);
+  const valueMetadata = entity.propertyMetadata(propertyKeyChain);
+
+  if (value !== undefined && !valueMetadata) {
+    throw new Error(`Property metadata not found for path ${propertyKeyChain}`);
+  }
 
   const children: PropertyRow[] = [];
 
   const firstOneOf = propertyType.oneOf[0];
-  const isFirstOneOfNested = isPropertyValuePropertyObject(firstOneOf);
+  const isFirstOneOfNested = isPropertyValueObject(firstOneOf);
   const isFirstOneOfArray = isPropertyValueArray(firstOneOf);
 
   // if first `oneOf` of property type is nested property, it means it should have children
@@ -102,6 +129,9 @@ export const generatePropertyRowRecursively = ({
     )) {
       children.push(
         generatePropertyRowRecursively({
+          closedMultiEntityType,
+          closedMultiEntityTypesDefinitions,
+          generateNewMetadataObject,
           propertyTypeBaseUrl: subPropertyTypeBaseUrl as BaseUrl,
           propertyKeyChain: [
             ...propertyKeyChain,
@@ -110,10 +140,11 @@ export const generatePropertyRowRecursively = ({
             subPropertyTypeBaseUrl,
           ] as BaseUrl[],
           entity,
-          entitySubgraph,
-          requiredPropertyTypes,
+          requiredPropertyTypes:
+            (firstOneOf.required as BaseUrl[] | undefined) ?? [],
           depth: depth + 1,
           propertyRefSchema: subPropertyRefSchema,
+          validationReport,
         }),
       );
     }
@@ -142,23 +173,46 @@ export const generatePropertyRowRecursively = ({
     }
   }
 
+  let isSingleUrl = false;
+  if (!isArray && typeof value === "string") {
+    try {
+      const url = new URL(value);
+      isSingleUrl = url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      // not parseable as URL
+    }
+  }
+
+  const validationError = validationReport?.errors.find(
+    (report) =>
+      JSON.stringify(report.propertyPath) === JSON.stringify(propertyKeyChain),
+  );
+
   return {
+    ...minMaxConfig,
+    children,
+    depth,
+    generateNewMetadataObject,
+    indent,
+    isArray,
+    isSingleUrl,
+    permittedDataTypes: expectedTypes,
+    permittedDataTypesIncludingChildren: getPermittedDataTypes({
+      targetDataTypes: expectedTypes,
+      dataTypePoolById: closedMultiEntityTypesDefinitions.dataTypes,
+    }),
+    propertyKeyChain,
+    required,
     rowId,
     title: propertyType.title,
+    validationError,
     value,
-    expectedTypes,
-    isArray,
-    ...minMaxConfig,
-    required,
-    depth,
-    children,
-    indent,
+    valueMetadata,
     /**
      * this will be filled by `fillRowIndentCalculations`
      * this is not filled here, because we'll use the whole flattened tree,
      * and check some values of prev-next items on the flattened tree while calculating this
      */
     verticalLinesForEachIndent: [],
-    propertyKeyChain,
   };
 };

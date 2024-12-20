@@ -1,7 +1,7 @@
 import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { DataTypeRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Container, Stack, Typography } from "@mui/material";
 import type { GetServerSideProps } from "next";
 import { NextSeo } from "next-seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -10,9 +10,11 @@ import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-pro
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
+import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { usePropertyTypes } from "../../shared/property-types-context";
+import { CreateButton } from "../shared/create-button";
 import { TopContextBar } from "../shared/top-context-bar";
 import {
   tabTitles,
@@ -20,14 +22,11 @@ import {
 } from "./[[...type-kind]].page/types-page-tabs";
 import { TypesTable } from "./[[...type-kind]].page/types-table";
 
-const parsedQueryParams = [
-  "entity-type",
-  "link-type",
-  "property-type",
-  "data-type",
-] as const;
-
-type ParsedQueryKindParam = (typeof parsedQueryParams)[number];
+type ParsedQueryKindParam =
+  | "entity-type"
+  | "link-type"
+  | "property-type"
+  | "data-type";
 
 type ParsedQueryParams = {
   ["type-kind"]?: ParsedQueryKindParam[];
@@ -154,6 +153,8 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     ],
   );
 
+  const maxWidth = { lg: `max(${contentMaxWidth}, "70%")` } as const;
+
   return (
     <>
       <NextSeo title="Types" />
@@ -185,7 +186,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           backgroundColor: ({ palette }) => palette.common.white,
         }}
       >
-        <Container sx={{ maxWidth: { lg: contentMaxWidth } }}>
+        <Container sx={{ maxWidth }}>
           <Typography variant="h1" fontWeight="bold" my={3}>
             <Box display="inline-flex">
               <FilesLightIcon
@@ -199,19 +200,28 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             </Box>
             Types
           </Typography>
-          <TypesPageTabs
-            currentTab={currentTab}
-            numberOfTypesByTab={{
-              all: allTypes?.length,
-              "entity-type": latestNonLinkEntityTypes?.length,
-              "link-type": latestLinkEntityTypes?.length,
-              "property-type": latestPropertyTypes?.length,
-              "data-type": latestDataTypes?.length,
-            }}
-          />
+          <Stack direction="row" justifyContent="space-between">
+            <TypesPageTabs
+              currentTab={currentTab}
+              numberOfTypesByTab={{
+                all: allTypes?.length,
+                "entity-type": latestNonLinkEntityTypes?.length,
+                "link-type": latestLinkEntityTypes?.length,
+                "property-type": latestPropertyTypes?.length,
+                "data-type": latestDataTypes?.length,
+              }}
+            />
+            <CreateButton
+              href="/new/types/entity-type"
+              variant="tertiary_quiet"
+              endIcon={<PlusRegularIcon />}
+            >
+              Create type
+            </CreateButton>
+          </Stack>
         </Container>
       </Box>
-      <Container sx={{ paddingTop: 5, maxWidth: { lg: contentMaxWidth } }}>
+      <Container sx={{ paddingTop: 5, maxWidth }}>
         <TypesTable kind={currentTab} types={currentTypes} />
       </Container>
     </>

@@ -1,0 +1,31 @@
+[package]
+name              = "hash-graph-type-defs"
+description       = "HASH Graph type definitions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[package.metadata.sync.turborepo]
+extra-dependencies = [
+    { name = "@local/status", version = "0.0.0-private" },
+]
+extra-dev-dependencies = [
+    { name = "@local/eslint", version = "0.0.0-private" },
+]
+
+[dependencies]
+# Public workspace dependencies
+hash-status = { workspace = true, public = true }
+
+# Public third-party dependencies
+serde_json = { workspace = true, public = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+serde = { workspace = true, features = ['derive'] }
+
+[lints]
+workspace = true

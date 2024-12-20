@@ -18,14 +18,17 @@ concurrency:
 
 jobs:
   setup:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       packages: ${{ steps.packages.outputs.packages }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 2
+
+      - name: Enable corepack
+        uses: ./.github/actions/enable-corepack
 
       - name: Install turbo
         uses: ./.github/actions/install-turbo
@@ -48,12 +51,15 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
       fail-fast: false
     if: needs.setup.outputs.packages != '{"package":[],"include":[]}'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 2
+
+      - name: Enable corepack
+        uses: ./.github/actions/enable-corepack
 
       - name: Install turbo
         uses: ./.github/actions/install-turbo
@@ -105,7 +111,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@4a27a04f8a48ceb6b30a8541bae8994ce2ea4dd7 # v2.42.33
+        uses: taiki-e/install-action@9023ed54c080c7ff1b3e4af335c729c3f9cb1dd7 # v2.46.16
         with:
           tool: just@1.34.0,cargo-hack@0.6.30,clippy-sarif@0.6.5,sarif-fmt@0.6.5
 
@@ -114,7 +120,7 @@ jobs:
 
       - name: Cache Rust dependencies
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
@@ -126,7 +132,7 @@ jobs:
         if: always() && steps.lints.outputs.codegen == 'true'
         run: |
           set -o pipefail
-          turbo run codegen --no-cache --filter "${{ matrix.package }}"
+          turbo run codegen --force --filter "${{ matrix.package }}"
           while IFS= read -r line; do
             if [[ -n "$line" ]]; then
               echo "Checking diff of ${{ matrix.directory }}/$line"
@@ -171,7 +177,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@2c779ab0d087cd7fe7b826087247c2c81f27bfa6 # v3.26.5
+        uses: github/codeql-action/upload-sarif@df409f7d9260372bd5f19e5b04e83cb3c43714ae # v3.27.9
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
@@ -182,23 +188,24 @@ jobs:
         working-directory: ${{ matrix.directory }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
-        run: just doc
+        run: cargo doc --all-features --no-deps -Zrustdoc-scrape-examples
 
       - name: Check private documentation
         if: always() && steps.lints.outputs.has-rust == 'true'
         working-directory: ${{ matrix.directory }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
-        run: just doc --document-private-items
+        run: cargo doc --all-features --no-deps -Zrustdoc-scrape-examples  --document-private-items
 
       - name: Show disk usage
         run: df -h
 
   global:
     name: Global
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -209,27 +216,14 @@ jobs:
           cargo -Zscript run --manifest-path ".github/scripts/rust/sync-turborepo.rs" . | xargs yarn prettier --write >/dev/null
           git --no-pager diff --exit-code --color '**/package.json'
 
-      - name: Run yarn lint:dependency-version-consistency
+      - name: Run yarn lint:constraints
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:dependency-version-consistency; then
+          if ! yarn lint:constraints; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:dependency-version-consistency` locally to apply autofixes.'
-            echo 'ℹ️ ℹ️ ℹ️'
-            exit 1
-          fi
-
-      - name: Run yarn lint:lockfile-lint
-        if: ${{ success() || failure() }}
-        run: |
-          if ! yarn lint:lockfile-lint; then
-            echo ''
-            echo ''
-            echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try resetting yarn.lock to its previous state and then run `yarn install`.'
-            echo 'If your `~/.npmrc` mentions a custom registry, you should remove this setting first.'
+            echo 'Try running `yarn fix:constraints` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -269,6 +263,18 @@ jobs:
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Try running `yarn fix:prettier` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:taplo
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:taplo; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:taplo` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -325,6 +331,39 @@ jobs:
             exit 1
           fi
 
+      - name: Install Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: 3.12
+
+      - name: Install SQLFluff
+        run: pip install sqlfluff
+
+      - name: Run SQL formatter and linter
+        if: ${{ success() || failure() }}
+        run: |
+          if ! sqlfluff lint --warn-unused-ignores; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `sqlfluff fix` locally to apply autofixes.'
+            echo 'Note, that SQLFluff does not come with `yarn install` and you may need to install it yourself.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Create SQLFluff annotations
+        if: failure() && github.event.pull_request.head.repo.full_name == github.repository
+        run: sqlfluff lint --warn-unused-ignores --format github-annotation --write-output annotations.json --annotation-level failure --nofail
+
+      - name: Annotate
+        uses: yuzutech/annotations-action@0e061a6e3ac848299310b6429b60d67cafd4e7f8 # v0.5.0
+        if: failure() && github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          title: "SQLFluff Lint"
+          input: "annotations.json"
+
   passed:
     name: Linting passed
     needs: [setup, package, global]
@@ -342,7 +381,7 @@ jobs:
           [[ ${{ needs.global.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@c318f0a93a2bbf24828a21c271765cb9a5c92727
+        uses: rtCamp/action-slack-notify@c33737706dea87cd7784c687dadc9adf1be59990
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

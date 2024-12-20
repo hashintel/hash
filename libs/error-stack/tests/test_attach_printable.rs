@@ -3,9 +3,8 @@
 #[macro_use]
 mod common;
 
-#[allow(clippy::wildcard_imports)]
 use common::*;
-use error_stack::{AttachmentKind, FrameKind, FutureExt, Report, ResultExt};
+use error_stack::{AttachmentKind, FrameKind, FutureExt as _, Report, ResultExt as _};
 
 fn test_messages<E>(report: &Report<E>) {
     assert_eq!(
@@ -21,16 +20,13 @@ fn test_messages<E>(report: &Report<E>) {
 }
 
 fn test_kinds<E>(report: &Report<E>) {
-    assert_kinds!(
-        report,
-        [
-            FrameKind::Attachment(AttachmentKind::Printable(_)),
-            FrameKind::Attachment(AttachmentKind::Printable(_)),
-            FrameKind::Attachment(AttachmentKind::Printable(_)),
-            FrameKind::Attachment(AttachmentKind::Printable(_)),
-            FrameKind::Context(_)
-        ]
-    );
+    assert_kinds!(report, [
+        FrameKind::Attachment(AttachmentKind::Printable(_)),
+        FrameKind::Attachment(AttachmentKind::Printable(_)),
+        FrameKind::Attachment(AttachmentKind::Printable(_)),
+        FrameKind::Attachment(AttachmentKind::Printable(_)),
+        FrameKind::Context(_)
+    ]);
 }
 
 #[test]

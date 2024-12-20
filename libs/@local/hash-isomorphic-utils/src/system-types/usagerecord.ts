@@ -113,7 +113,7 @@ export type {
  * The thing that something created.
  */
 export type Created = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/created/v/1";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/created/v/1"];
   properties: CreatedProperties;
   propertiesWithMetadata: CreatedPropertiesWithMetadata;
 };
@@ -151,7 +151,7 @@ export type CustomMetadataPropertyValueWithMetadata =
  * Something that was incurred in something else.
  */
 export type IncurredIn = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/incurred-in/v/1";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/incurred-in/v/1"];
   properties: IncurredInProperties;
   propertiesWithMetadata: IncurredInPropertiesWithMetadata;
 };
@@ -198,7 +198,9 @@ export type OutputUnitCountPropertyValueWithMetadata =
  * The thing that something records usage of.
  */
 export type RecordsUsageOf = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1",
+  ];
   properties: RecordsUsageOfProperties;
   propertiesWithMetadata: RecordsUsageOfPropertiesWithMetadata;
 };
@@ -229,7 +231,7 @@ export type RecordsUsageOfPropertiesWithMetadata2 = {
  * The thing that something created.
  */
 export type Updated = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/updated/v/1";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/updated/v/1"];
   properties: UpdatedProperties;
   propertiesWithMetadata: UpdatedPropertiesWithMetadata;
 };
@@ -259,7 +261,7 @@ export type UpdatedPropertiesWithMetadata2 = {
  * A record of usage of a service
  */
 export type UsageRecord = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/usage-record/v/2";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/usage-record/v/2"];
   properties: UsageRecordProperties;
   propertiesWithMetadata: UsageRecordPropertiesWithMetadata;
 };

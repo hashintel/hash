@@ -26,6 +26,7 @@ const nodes = {
 const createInitialDoc = (schema: Schema = createSchema(cloneDeep(nodes))) =>
   schema.node("doc", {}, [schema.node("loading")]);
 
+// eslint-disable-next-line no-restricted-syntax -- prosemirror issue
 const defaultPlugins: Plugin<unknown>[] = [
   ...wrapEntitiesPlugin(baseKeymap),
   // This enables an indicator to appear when drag and dropping blocks
@@ -39,6 +40,7 @@ export const createProseMirrorState = ({
 }: {
   ownedById: OwnedById;
   doc?: Node;
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
   plugins?: Plugin<unknown>[];
 }) => {
   return EditorState.create({

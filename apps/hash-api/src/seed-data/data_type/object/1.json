@@ -1,8 +1,0 @@
-{
-  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-  "kind": "dataType",
-  "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-  "title": "Object",
-  "description": "An opaque, untyped JSON object",
-  "type": "object"
-}

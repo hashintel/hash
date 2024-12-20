@@ -1,0 +1,55 @@
+{
+  "name": "@local/harpc-client",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Client for the HaRPC system",
+  "license": "AGPL-3",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
+    },
+    "./*": {
+      "import": "./dist/src/*/index.js",
+      "types": "./dist/src/*/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "test:unit": "vitest --run"
+  },
+  "dependencies": {
+    "@chainsafe/libp2p-noise": "16.0.0",
+    "@chainsafe/libp2p-yamux": "7.0.1",
+    "@libp2p/crypto": "5.0.8",
+    "@libp2p/identify": "3.0.14",
+    "@libp2p/interface": "2.3.0",
+    "@libp2p/ping": "2.0.14",
+    "@libp2p/tcp": "10.0.14",
+    "@multiformats/dns": "1.0.6",
+    "@multiformats/multiaddr": "12.3.4",
+    "effect": "3.11.9",
+    "it-stream-types": "2.0.2",
+    "libp2p": "2.4.2",
+    "multiformats": "13.3.1",
+    "uint8arraylist": "2.4.8"
+  },
+  "devDependencies": {
+    "@effect/platform": "0.71.6",
+    "@effect/platform-node": "0.67.2",
+    "@effect/vitest": "0.14.9",
+    "@local/eslint": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@rust/harpc-wire-protocol": "0.0.0-private",
+    "@types/node": "22.10.2",
+    "@vitest/coverage-istanbul": "2.1.8",
+    "eslint": "9.17.0",
+    "rimraf": "6.0.1",
+    "typescript": "5.7.2",
+    "vitest": "2.1.8"
+  }
+}

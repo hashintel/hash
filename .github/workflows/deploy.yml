@@ -18,14 +18,17 @@ concurrency:
 
 jobs:
   setup:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       sourcemaps: ${{ steps.packages.outputs.sourcemaps }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 2
+
+      - name: Enable corepack
+        uses: ./.github/actions/enable-corepack
 
       - name: Install turbo
         uses: ./.github/actions/install-turbo
@@ -48,8 +51,8 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.sourcemaps) }}
       fail-fast: false
-    if: needs.setup.outputs.sourcemaps != '{"package":[],"include":[]}'
-    runs-on: ubuntu-22.04
+    if: needs.setup.outputs.sourcemaps != '{"package":[],"include":[]}' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
     permissions:
       id-token: write
       contents: read
@@ -67,7 +70,10 @@ jobs:
             automation/data/pipelines/hash/${{ env.VAULT_ROLE }} sentry_auth_token | SENTRY_AUTH_TOKEN
 
       - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Enable corepack
+        uses: ./.github/actions/enable-corepack
 
       - name: Install turbo
         uses: ./.github/actions/install-turbo
@@ -100,7 +106,7 @@ jobs:
           [[ ${{ needs.sourcemaps.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@c318f0a93a2bbf24828a21c271765cb9a5c92727
+        uses: rtCamp/action-slack-notify@c33737706dea87cd7784c687dadc9adf1be59990
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

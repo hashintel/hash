@@ -9,7 +9,7 @@ pub enum Token {
     /// A serialized [`bool`]
     ///
     /// ```
-    /// use deer_desert::{assert_tokens, Token};
+    /// use deer_desert::{Token, assert_tokens};
     ///
     /// assert_tokens(&true, &[Token::Bool(true)])
     /// ```
@@ -19,7 +19,7 @@ pub enum Token {
     ///
     /// ```
     /// use deer::Number;
-    /// use deer_desert::{assert_tokens, Token};
+    /// use deer_desert::{Token, assert_tokens};
     ///
     /// assert_tokens(&Number::from(1), &[Token::Number(Number::from(1))])
     /// ```
@@ -31,7 +31,7 @@ pub enum Token {
     /// means that u128/i128 need special support.
     ///
     /// ```
-    /// use deer_desert::{assert_tokens, Token};
+    /// use deer_desert::{Token, assert_tokens};
     ///
     /// assert_tokens(&1u128, &[Token::U128(1)])
     /// ```
@@ -43,7 +43,7 @@ pub enum Token {
     /// means that u128/i128 need special support.
     ///
     /// ```
-    /// use deer_desert::{assert_tokens, Token};
+    /// use deer_desert::{Token, assert_tokens};
     ///
     /// assert_tokens(&1i128, &[Token::I128(1)])
     /// ```
@@ -52,7 +52,7 @@ pub enum Token {
     /// A serialized [`char`]
     ///
     /// ```
-    /// use deer_desert::{assert_tokens, Token};
+    /// use deer_desert::{Token, assert_tokens};
     ///
     /// assert_tokens(&'a', &[Token::Char('a')])
     /// ```
@@ -62,10 +62,10 @@ pub enum Token {
     ///
     /// ```
     /// use deer::{
-    ///     error::{DeserializeError, VisitorError},
     ///     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
+    ///     error::{DeserializeError, VisitorError},
     /// };
-    /// use deer_desert::{assert_tokens, Token};
+    /// use deer_desert::{Token, assert_tokens};
     /// use error_stack::ResultExt;
     ///
     /// #[derive(Debug, PartialEq, serde::Serialize)]
@@ -103,10 +103,9 @@ pub enum Token {
     ///
     /// impl Reflection for LogLevel {
     ///     fn schema(doc: &mut Document) -> Schema {
-    ///         Schema::new("string").with(
-    ///             "enum",
-    ///             ["trace", "debug", "info", "warn", "error", "critical"],
-    ///         )
+    ///         Schema::new("string").with("enum", [
+    ///             "trace", "debug", "info", "warn", "error", "critical",
+    ///         ])
     ///     }
     /// }
     ///
@@ -129,7 +128,7 @@ pub enum Token {
     /// A serialized [`str`]
     ///
     /// ```
-    /// use deer_desert::{assert_tokens, Token};
+    /// use deer_desert::{Token, assert_tokens};
     /// let test = "example";
     ///
     /// assert_tokens(&test, &[Token::BorrowedStr(test)])
@@ -148,18 +147,15 @@ pub enum Token {
     ///
     /// ```
     /// use deer::Number;
-    /// use deer_desert::{assert_tokens, Token};
+    /// use deer_desert::{Token, assert_tokens};
     ///
-    /// assert_tokens(
-    ///     &[1u8, 2, 3],
-    ///     &[
-    ///         Token::Array { length: Some(3) },
-    ///         Token::Number(Number::from(1)),
-    ///         Token::Number(Number::from(2)),
-    ///         Token::Number(Number::from(3)),
-    ///         Token::ArrayEnd,
-    ///     ],
-    /// );
+    /// assert_tokens(&[1u8, 2, 3], &[
+    ///     Token::Array { length: Some(3) },
+    ///     Token::Number(Number::from(1)),
+    ///     Token::Number(Number::from(2)),
+    ///     Token::Number(Number::from(3)),
+    ///     Token::ArrayEnd,
+    /// ]);
     /// ```
     Array {
         length: Option<usize>,
@@ -181,8 +177,8 @@ pub enum Token {
 }
 
 impl Display for Token {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Debug::fmt(self, f)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        Debug::fmt(self, fmt)
     }
 }
 

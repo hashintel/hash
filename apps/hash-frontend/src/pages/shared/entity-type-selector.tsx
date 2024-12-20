@@ -1,10 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import {
-  Chip,
-  EntityTypeIcon,
-  LinkTypeIcon,
-  SelectorAutocomplete,
-} from "@hashintel/design-system";
+import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { BoxProps } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
@@ -16,6 +11,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
   disableCreate,
   disableCreateNewEmpty,
   excludeEntityTypeIds,
+  excludeLinkTypes,
   inputHeight,
   autoFocus,
   multiple,
@@ -26,6 +22,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
   value,
 }: {
   excludeEntityTypeIds?: VersionedUrl[];
+  excludeLinkTypes?: boolean;
   inputHeight?: number;
   multiple?: Multiple;
   onSelect: (
@@ -51,9 +48,17 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
   const filteredEntityTypes = useMemo(
     () =>
       latestEntityTypes?.filter(
-        ({ schema }) => !excludeEntityTypeIds?.includes(schema.$id),
+        ({ schema }) =>
+          !excludeEntityTypeIds?.includes(schema.$id) &&
+          (!excludeLinkTypes ||
+            !isSpecialEntityTypeLookup?.[schema.$id]?.isLink),
       ),
-    [excludeEntityTypeIds, latestEntityTypes],
+    [
+      excludeEntityTypeIds,
+      excludeLinkTypes,
+      isSpecialEntityTypeLookup,
+      latestEntityTypes,
+    ],
   );
 
   const [open, setOpen] = useState(false);
@@ -86,24 +91,15 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
           const { title, description } = option.schema;
           const lowercaseInput = inputValue.toLowerCase();
           return (
-            !!description?.toLowerCase().includes(lowercaseInput) ||
+            !!description.toLowerCase().includes(lowercaseInput) ||
             title.toLowerCase().includes(lowercaseInput)
           );
         });
       }}
-      optionToRenderData={({
-        schema: { $id, title, description },
-        metadata: { icon },
-      }) => ({
+      optionToRenderData={({ schema: { $id, title, description, icon } }) => ({
         uniqueId: $id,
-        icon:
-          icon ??
-          (isSpecialEntityTypeLookup?.[$id]?.isLink ? (
-            <LinkTypeIcon />
-          ) : (
-            <EntityTypeIcon />
-          )),
-        typeId: $id,
+        icon: icon ?? null,
+        types: [{ $id, title, icon }],
         title,
         description,
       })}

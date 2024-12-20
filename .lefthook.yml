@@ -1,0 +1,38 @@
+$schema: https://json.schemastore.org/lefthook.json
+
+pre-commit:
+  parallel: true
+  skip:
+    - merge
+    - rebase
+  commands:
+    markdownlint:
+      tags: frontend style
+      glob: "*.md"
+      run: yarn run markdownlint-cli2 --fix --no-globs {staged_files} || true
+      stage_fixed: true
+    prettier:
+      tags: frontend style
+      glob: "*.{cjs,css,js,json,md,mdx,mjs,scss,ts,tsx,yml}"
+      run: yarn run prettier --write {staged_files} || true
+      stage_fixed: true
+    yarn:
+      tags: frontend style
+      glob: "{*/package.json, package.json}"
+      run: yarn fix:constraints && yarn fix:yarn-deduplicate
+      stage_fixed: true
+    sqlfluff:
+      tags: backend style
+      glob: "*.sql"
+      run: sqlfluff fix {staged_files} || true
+      stage_fixed: true
+    rust:
+      tags: backend style
+      glob: "*.rs"
+      run: cargo fmt -- {staged_files} || true
+      stage_fixed: true
+    toml:
+      tags: backend style
+      glob: "*.toml"
+      run: yarn run taplo format {staged_files} || true
+      stage_fixed: true

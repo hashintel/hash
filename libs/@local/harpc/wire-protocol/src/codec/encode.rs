@@ -1,19 +1,19 @@
-use core::fmt::Debug;
+use core::{error::Error, fmt::Debug};
 
 use bytes::{BufMut, Bytes};
-use error_stack::{Context, Report, Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
-use super::{buffer::Buffer, BufferError};
+use super::{BufferError, buffer::Buffer};
 
 pub trait Encode {
-    type Error: Context;
+    type Error: Error + Send + Sync + 'static;
 
     /// Encode the value into the buffer.
     ///
     /// # Errors
     ///
     /// Returns an error if the buffer is not large enough or if the to be encoded value is invalid.
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut;
 }
@@ -21,7 +21,7 @@ pub trait Encode {
 impl Encode for u8 {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -32,7 +32,7 @@ impl Encode for u8 {
 impl Encode for u16 {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -43,7 +43,7 @@ impl Encode for u16 {
 impl Encode for u32 {
     type Error = BufferError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -62,7 +62,7 @@ pub enum BytesEncodeError {
 impl Encode for Bytes {
     type Error = BytesEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -88,10 +88,10 @@ impl Encode for Bytes {
 #[cfg(test)]
 pub(crate) mod test {
     #![expect(clippy::needless_raw_strings)]
-    use core::fmt::Write;
+    use core::fmt::Write as _;
 
     use bytes::{Bytes, BytesMut};
-    use expect_test::{expect, Expect};
+    use expect_test::{Expect, expect};
 
     use super::{BytesEncodeError, Encode};
     use crate::codec::Buffer;
@@ -185,26 +185,17 @@ pub(crate) mod test {
 
     #[test]
     fn encode_u16() {
-        assert_encode(
-            &42_u16,
-            expect![[r#"
+        assert_encode(&42_u16, expect![[r#"
                 0x00 b'*'
-            "#]],
-        );
+            "#]]);
 
-        assert_encode(
-            &0_u16,
-            expect![[r#"
+        assert_encode(&0_u16, expect![[r#"
             0x00 0x00
-        "#]],
-        );
+        "#]]);
 
-        assert_encode(
-            &u16::MAX,
-            expect![[r#"
+        assert_encode(&u16::MAX, expect![[r#"
             0xFF 0xFF
-        "#]],
-        );
+        "#]]);
     }
 
     #[test]

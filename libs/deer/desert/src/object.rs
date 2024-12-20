@@ -1,8 +1,8 @@
 use deer::{
-    error::{ObjectAccessError, ObjectLengthError},
     Context, Deserializer as _, FieldVisitor,
+    error::{ObjectAccessError, ObjectLengthError},
 };
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{deserializer::Deserializer, skip::skip_tokens, token::Token};
 
@@ -35,10 +35,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         self.deserializer.context()
     }
 
-    fn try_field<F>(
-        &mut self,
-        visitor: F,
-    ) -> core::result::Result<Result<F::Value, ObjectAccessError>, F>
+    fn try_field<F>(&mut self, visitor: F) -> Result<Result<F::Value, Report<ObjectAccessError>>, F>
     where
         F: FieldVisitor<'de>,
     {
@@ -67,7 +64,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         self.length
     }
 
-    fn end(self) -> Result<(), ObjectAccessError> {
+    fn end(self) -> Result<(), Report<ObjectAccessError>> {
         // ensure that we consume the last token, if it is the wrong token error out
         let result = if self.deserializer.peek() == Token::ObjectEnd {
             Ok(())

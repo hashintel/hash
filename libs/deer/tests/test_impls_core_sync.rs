@@ -3,8 +3,8 @@
 
 use core::sync::Exclusive;
 
-use deer::{Deserialize, Number};
-use deer_desert::{assert_tokens_with_assertion, Token};
+use deer::{Deserialize as _, Number};
+use deer_desert::{Token, assert_tokens_with_assertion};
 use proptest::prelude::*;
 use serde::Serialize;
 use similar_asserts::assert_serde_eq;

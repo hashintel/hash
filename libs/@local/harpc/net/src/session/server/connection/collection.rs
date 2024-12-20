@@ -1,8 +1,8 @@
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use harpc_wire_protocol::request::{id::RequestId, Request};
-use scc::{ebr::Guard, hash_index::Entry, HashIndex};
+use harpc_wire_protocol::request::{Request, id::RequestId};
+use scc::{HashIndex, ebr::Guard, hash_index::Entry};
 use tachyonix::SendTimeoutError;
 use tokio::sync::{Notify, OwnedSemaphorePermit, Semaphore};
 use tokio_util::sync::CancellationToken;
@@ -10,7 +10,7 @@ use tokio_util::sync::CancellationToken;
 use crate::session::{
     error::{ConnectionTransactionLimitReachedError, TransactionLaggingError},
     gc::IsCancelled,
-    server::{transaction::ServerTransactionPermit, SessionConfig},
+    server::{SessionConfig, transaction::ServerTransactionPermit},
 };
 
 #[derive(Debug)]
@@ -166,7 +166,7 @@ impl TransactionCollection {
     pub(crate) async fn send(&self, request: Request) -> Result<(), TransactionLaggingError> {
         let id = request.header.request_id;
 
-        // `Clone` is perferred here instead of acquiring the entry, as we don't need to block, and
+        // `Clone` is preferred here instead of acquiring the entry, as we don't need to block, and
         // we just increment an `Arc`.
         let Some(sender) = self
             .storage
@@ -180,7 +180,7 @@ impl TransactionCollection {
             return Ok(());
         };
 
-        // this creates implicit backpressure, if the transaction cannot accept more
+        // This creates implicit backpressure, if the transaction cannot accept more
         // requests, we will wait a short amount (specified via the deadline), if we
         // haven't processed the data until then, we will drop the
         // transaction.
@@ -198,32 +198,32 @@ impl TransactionCollection {
         // and to prevent packet flooding.
         match result {
             Ok(()) => {
-                // everything is fine
+                // Everything is fine
                 Ok(())
             }
             Err(SendTimeoutError::Closed(_)) => {
                 tracing::info!("transaction request channel has been closed, dropping packet");
 
-                // the channel has already been closed, the upper layer must notify
+                // The channel has already been closed, the upper layer must notify
                 // the sender that the transaction is (potentially) incomplete.
                 //
                 // Otherwise this could also be a packet that is simply out of order or rogue
-                // in that case notifing the client would be confusing anyway.
+                // in that case notifying the client would be confusing anyway.
                 Ok(())
             }
             Err(SendTimeoutError::Timeout(_)) => {
                 tracing::warn!("transaction buffer is too slow, dropping transaction");
 
-                // we've missed the deadline, therefore we can no longer send data to the
+                // We've missed the deadline, therefore we can no longer send data to the
                 // transaction without risking the integrity of the transaction.
-                // we also send our own error to the client, so we need to cancel any existing
-                // transaction, so that we do not send any auxilirary data.
+                // We also send our own error to the client, so we need to cancel any existing
+                // transaction, so that we do not send any auxiliary data.
                 // Whenever we cancel a task, we do not flush, so no `EndOfResponse` is accidentally
                 // sent.
                 sender.close();
 
-                // TODO: is this behaviour we want, or do we want a more graceful approach?
-                // peek is not linearizable, so we need to peek again.
+                // TODO: is this behavior we want, or do we want a more graceful approach?
+                // Peek is not linearizable, so we need to peek again.
                 self.cancel(id);
 
                 Err(TransactionLaggingError)

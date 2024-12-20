@@ -1,5 +1,5 @@
 {
-  "name": "@rust/codec",
+  "name": "@rust/hash-codec",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",
@@ -8,6 +8,7 @@
     "lint:clippy": "just clippy"
   },
   "dependencies": {
+    "@rust/error-stack": "0.5.0",
     "@rust/harpc-wire-protocol": "0.0.0-private"
   }
 }

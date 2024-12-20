@@ -7,7 +7,7 @@ import { expect, test } from "vitest";
 
 import { getWebPageSummaryAction } from "./get-web-page-summary-action.js";
 
-test.skip(
+test(
   "Test getWebPageSummaryAction",
   async () => {
     const url = "https://www.amazon.com/stores/author/B072YR2LJP";

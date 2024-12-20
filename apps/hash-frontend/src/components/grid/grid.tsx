@@ -79,6 +79,8 @@ const gridHeaderHeight = 42;
 
 export const gridHeaderHeightWithBorder = gridHeaderHeight + 1;
 
+export const gridHeaderBaseFont = "600 14px Inter";
+
 export const gridHorizontalScrollbarHeight = 17;
 
 export const Grid = <T extends GridRow>({
@@ -123,10 +125,11 @@ export const Grid = <T extends GridRow>({
   }, []);
 
   const [sorts, setSorts] = useState<ColumnSort<Extract<keyof T, string>>[]>(
-    columns.map((column) => ({
-      columnKey: column.id as Extract<keyof T, string>,
-      direction: "asc",
-    })),
+    () =>
+      columns.map((column) => ({
+        columnKey: column.id as Extract<keyof T, string>,
+        direction: "asc",
+      })),
   );
 
   const [previousSortedColumnKey, setPreviousSortedColumnKey] = useState<
@@ -135,6 +138,32 @@ export const Grid = <T extends GridRow>({
   const [currentSortedColumnKey, setCurrentSortedColumnKey] = useState<
     string | undefined
   >(initialSortedColumnKey ?? columns[0]?.id);
+
+  useEffect(() => {
+    const currentSortColumns = new Set(sorts.map((sort) => sort.columnKey));
+    const newSortColumns = new Set(columns.map((column) => column.id));
+
+    if (
+      initialSortedColumnKey &&
+      (!currentSortedColumnKey || !newSortColumns.has(initialSortedColumnKey))
+    ) {
+      setCurrentSortedColumnKey(initialSortedColumnKey);
+    }
+
+    if (
+      currentSortColumns.size === newSortColumns.size &&
+      currentSortColumns.isSubsetOf(newSortColumns)
+    ) {
+      return;
+    }
+
+    setSorts(
+      columns.map((column) => ({
+        columnKey: column.id as Extract<keyof T, string>,
+        direction: "asc",
+      })),
+    );
+  }, [columns, currentSortedColumnKey, initialSortedColumnKey, sorts]);
 
   const [openFilterColumnKey, setOpenFilterColumnKey] = useState<string>();
 
@@ -171,14 +200,14 @@ export const Grid = <T extends GridRow>({
   }, []);
 
   const defaultDrawHeader = useDrawHeader({
-    tableId: tableIdRef.current,
-    sorts,
     activeSortColumnKey: currentSortedColumnKey,
-    onSortClick: handleSortClick,
-    filters: columnFilters,
-    onFilterClick: handleFilterClick,
     columns,
+    filters: columnFilters,
     firstColumnLeftPadding,
+    onFilterClick: handleFilterClick,
+    onSortClick: handleSortClick,
+    sorts,
+    tableId: tableIdRef.current,
   });
 
   const handleHeaderClicked = useCallback(
@@ -282,7 +311,7 @@ export const Grid = <T extends GridRow>({
       bgHeaderHovered: palette.white,
       cellHorizontalPadding: getCellHorizontalPadding(),
       baseFontStyle: "500 14px Inter",
-      headerFontStyle: "600 14px Inter",
+      headerFontStyle: gridHeaderBaseFont,
       editorFontSize: "14px",
       fgIconHeader: palette.gray[80],
     }),
@@ -488,6 +517,7 @@ export const Grid = <T extends GridRow>({
         open={!!openFilterColumn}
         columnFilter={openFilterColumn}
         onClose={() => setOpenFilterColumnKey(undefined)}
+        key={openFilterColumnKey}
         anchorEl={filterIconVirtualElement}
         popperRef={popperRef}
         transition
@@ -550,7 +580,7 @@ export const Grid = <T extends GridRow>({
           if (onSelectedRowsChange && sortedAndFilteredRows) {
             newSelection.rows.toArray();
             const updatedSelectedRows = sortedAndFilteredRows.filter(
-              (_, rowIndex) => selection.rows.hasIndex(rowIndex),
+              (_, rowIndex) => newSelection.rows.hasIndex(rowIndex),
             );
 
             onSelectedRowsChange(updatedSelectedRows);

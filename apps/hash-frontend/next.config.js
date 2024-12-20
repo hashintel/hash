@@ -93,6 +93,11 @@ export default withSentryConfig(
             destination: "/signin",
             permanent: true,
           },
+          {
+            source: "/inbox",
+            destination: "/notifications",
+            permanent: false,
+          },
         ];
       },
       async headers() {
@@ -197,6 +202,9 @@ export default withSentryConfig(
           ".mjs": [".mts", ".mjs"],
           ".cjs": [".cts", ".cjs"],
         };
+
+        // eslint-disable-next-line no-param-reassign
+        webpackConfig.resolve.alias.canvas = false;
 
         webpackConfig.plugins.push(
           new DefinePlugin({

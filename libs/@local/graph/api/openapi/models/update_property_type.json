@@ -1,0 +1,36 @@
+{
+  "description": "The contents of a Property Type update request",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
+      ]
+    },
+    "kind": {
+      "enum": ["propertyType"]
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "oneOf": {
+      "type": "array",
+      "items": {
+        "$ref": "./shared.json#/definitions/PropertyValues"
+      }
+    }
+  },
+  "required": [
+    "$schema",
+    "kind",
+    "title",
+    "description",
+    "description",
+    "oneOf"
+  ],
+  "additionalProperties": false
+}

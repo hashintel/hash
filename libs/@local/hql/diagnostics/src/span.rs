@@ -1,4 +1,4 @@
-use hql_span::{tree::SpanNode, SpanId, TextRange, TextSize};
+use hql_span::{SpanId, TextRange, TextSize, tree::SpanNode};
 
 pub trait TransformSpan<S> {
     fn transform(&mut self, span: &S) -> DiagnosticSpan;
@@ -53,6 +53,12 @@ impl AbsoluteDiagnosticSpan {
         let range = absolute_span(node, transform);
 
         Self { range }
+    }
+
+    pub(crate) const fn full() -> Self {
+        Self {
+            range: TextRange::new(TextSize::new(0), TextSize::new(u32::MAX)),
+        }
     }
 }
 

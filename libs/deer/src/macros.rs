@@ -16,7 +16,13 @@ macro_rules! forward_to_deserialize_any {
 macro_rules! forward_to_deserialize_any_method {
     ($func:ident < $l:tt, $v:ident > ()) => {
         #[inline]
-        fn $func<$v>(self, visitor: $v) -> error_stack::Result<$v::Value, $crate::DeserializerError>
+        fn $func<$v>(
+            self,
+            visitor: $v,
+        ) -> ::core::result::Result<
+            $v::Value,
+            $crate::export::error_stack::Report<$crate::DeserializerError>,
+        >
         where
             $v: $crate::Visitor<$l>,
         {
@@ -295,7 +301,7 @@ macro_rules! identifier {
         impl<'de> $crate::Deserialize<'de> for $name {
             type Reflection = Self;
 
-            fn deserialize<D>(deserializer: D) -> $crate::export::error_stack::Result<Self, $crate::error::DeserializeError> where D: $crate::Deserializer<'de> {
+            fn deserialize<D>(deserializer: D) -> ::core::result::Result<Self, $crate::export::error_stack::Report<$crate::error::DeserializeError>> where D: $crate::Deserializer<'de> {
                 struct Visitor;
 
                 impl<'de> $crate::IdentifierVisitor<'de> for Visitor {
@@ -305,7 +311,7 @@ macro_rules! identifier {
                         <Self::Value as $crate::Reflection>::document()
                     }
 
-                    fn visit_str(self, value: &str) -> $crate::export::error_stack::Result<Self::Value, $crate::error::VisitorError> {
+                    fn visit_str(self, value: &str) -> ::core::result::Result<Self::Value, $crate::export::error_stack::Report<$crate::error::VisitorError>> {
                         identifier!(@internal
                             match str, value; $name
                             @($(($variant, $str)),*)
@@ -313,7 +319,7 @@ macro_rules! identifier {
                         )
                     }
 
-                    fn visit_bytes(self, value: &[u8]) -> $crate::export::error_stack::Result<Self::Value, $crate::error::VisitorError> {
+                    fn visit_bytes(self, value: &[u8]) -> ::core::result::Result<Self::Value, $crate::export::error_stack::Report<$crate::error::VisitorError>> {
                         identifier!(@internal
                             match bytes, value; $name
                             @($(($variant, $bytes)),*)
@@ -321,7 +327,7 @@ macro_rules! identifier {
                         )
                     }
 
-                    fn visit_u64(self, value: u64) -> $crate::export::error_stack::Result<Self::Value, $crate::error::VisitorError> {
+                    fn visit_u64(self, value: u64) -> ::core::result::Result<Self::Value, $crate::export::error_stack::Report<$crate::error::VisitorError>> {
                         identifier!(@internal
                             match u64, value; $name
                             @($(($variant, $u64)),*)

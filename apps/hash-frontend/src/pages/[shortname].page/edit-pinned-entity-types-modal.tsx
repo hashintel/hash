@@ -60,7 +60,7 @@ const useDraggableInPortal = () => {
     };
   }, [element]);
 
-  return (render: (provided: DraggableProvided) => ReactElement) =>
+  return (render: (provided: DraggableProvided) => ReactElement<HTMLElement>) =>
     (provided: DraggableProvided) => {
       const result = render(provided);
 
@@ -141,7 +141,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
       variables: {
         entityUpdate: {
           entityId: profile.entity.metadata.recordId.entityId,
-          entityTypeId: profile.entity.metadata.entityTypeId,
+          entityTypeIds: profile.entity.metadata.entityTypeIds,
           propertyPatches: [
             {
               op: "add",
@@ -199,6 +199,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
           entityType: {
             title,
             type: "object",
+            description: "",
             properties: {},
           },
         },
@@ -270,6 +271,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                       isDragDisabled={isDragDisabled}
                       index={index}
                     >
+                      {/* @ts-expect-error -- fix maybe is https://github.com/atlassian/react-beautiful-dnd/blob/HEAD/docs/guides/reparenting.md  */}
                       {renderDraggable((provided) => (
                         <Box
                           ref={provided.innerRef}
@@ -322,7 +324,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                                   justifyContent: "center",
                                 }}
                               >
-                                {field.metadata.icon ??
+                                {field.schema.icon ??
                                   (isSpecialEntityTypeLookup?.[field.schema.$id]
                                     ?.isLink ? (
                                     <CustomLinkIcon

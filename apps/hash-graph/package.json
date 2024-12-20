@@ -2,44 +2,32 @@
   "name": "@apps/hash-graph",
   "version": "0.0.0-private",
   "private": true,
-  "description": "The HASH Graph",
-  "type": "module",
-  "exports": {
-    "./type-defs/*": {
-      "types": "./type-defs/*.ts",
-      "default": "./type-defs/*.ts",
-      "node": "./type-defs/*.ts"
-    }
-  },
+  "license": "AGPL-3",
   "scripts": {
     "build:docker": "docker buildx build --build-arg PROFILE=production --tag hash-graph --file docker/Dockerfile ../../ --load",
-    "codegen:generate-openapi-specs": "../../target/release/hash-graph server --generate-openapi-specs",
     "compile": "cargo build --bin hash-graph --all-features",
     "compile:release": "cargo build --bin hash-graph --all-features --release",
-    "exe": "tsx",
-    "fix:clippy": "just clippy --fix",
-    "lint:clippy": "just clippy",
-    "reset-database": "httpyac send --all tests/reset-database.http",
     "start": "../../target/release/hash-graph server",
     "start:healthcheck": "../../target/release/hash-graph server --healthcheck --wait --timeout 600 --logging-console-level=warn",
     "start:migrate": "../../target/release/hash-graph migrate --user postgres --password postgres",
     "start:test": "../../target/debug/hash-graph server",
     "start:test:healthcheck": "../../target/debug/hash-graph server --healthcheck --wait --timeout 300 --logging-console-level=warn",
-    "start:test:migrate": "../../target/debug/hash-graph migrate --user postgres --password postgres",
-    "test:integration": "just test-integration",
-    "test:unit": "just test-unit"
+    "start:test:migrate": "../../target/debug/hash-graph migrate --user postgres --password postgres"
   },
   "dependencies": {
-    "@rust/graph": "0.0.0-private",
-    "@rust/graph-api": "0.0.0-private",
-    "@rust/hash-graph": "0.0.0-private",
-    "@rust/type-fetcher": "0.0.0-private"
-  },
-  "devDependencies": {
-    "@rust/graph-test-data": "0.0.0-private",
-    "httpyac": "6.15.1",
-    "quicktype": "16.0.43",
-    "tsx": "4.16.2",
-    "typescript": "5.5.4"
+    "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@rust/error-stack": "0.5.0",
+    "@rust/harpc-codec": "0.0.0-private",
+    "@rust/harpc-server": "0.0.0-private",
+    "@rust/hash-codec": "0.0.0-private",
+    "@rust/hash-graph-api": "0.0.0-private",
+    "@rust/hash-graph-authorization": "0.0.0-private",
+    "@rust/hash-graph-postgres-store": "0.0.0-private",
+    "@rust/hash-graph-store": "0.0.0-private",
+    "@rust/hash-graph-test-server": "0.0.0-private",
+    "@rust/hash-graph-type-fetcher": "0.0.0-private",
+    "@rust/hash-graph-types": "0.0.0-private",
+    "@rust/hash-temporal-client": "0.0.0-private",
+    "@rust/hash-tracing": "0.0.0-private"
   }
 }

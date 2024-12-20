@@ -1,4 +1,7 @@
-import { atLeastOne } from "@blockprotocol/type-system";
+import {
+  atLeastOne,
+  getReferencedIdsFromDataType,
+} from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   getReferencedIdsFromEntityType,
@@ -144,6 +147,12 @@ export const traverseAndCollateSchemas = async (
     addFetchPromise(
       fetchTypeAsJson(rewrittenTypeId, initialContext).then((type) => {
         if (isDataType(type)) {
+          const { inheritsFromDataTypes } = getReferencedIdsFromDataType(type);
+
+          for (const dependencyTypeId of inheritsFromDataTypes) {
+            traversalContext.encounter(typeId, dependencyTypeId);
+          }
+
           initialContext.addDataType(type);
 
           const withMetadata = generateDataTypeWithMetadataSchema(type);

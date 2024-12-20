@@ -1,9 +1,9 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
-use futures::{prelude::stream::FusedStream, Stream};
+use futures::{Stream, prelude::stream::FusedStream};
 use tokio::sync::mpsc;
 
 use crate::session::client::{ErrorStream, ValueStream};

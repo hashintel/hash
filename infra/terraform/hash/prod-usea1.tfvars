@@ -39,12 +39,12 @@ hydra_env_vars = [
   { name = "COOKIES_PATH", secret = false, value = "/" },
   { name = "SERVE_COOKIES_DOMAIN", secret = false, value = "hash.ai" },
   { name = "SERVE_COOKIES_SAME_SITE_MODE", secret = false, value = "Lax" },
-  { name = "URLS_CONSENT", secret = false, value = "https://app-api.hash.ai/oauth2/consent"},
+  { name = "URLS_CONSENT", secret = false, value = "https://app-api.hash.ai/oauth2/consent" },
   { name = "URLS_LOGIN", secret = false, value = "https://app.hash.ai/signin" },
   { name = "URLS_REGISTRATION", secret = false, value = "https://app.hash.ai/signup" },
   { name = "URLS_POST_LOGOUT_REDIRECT", secret = false, value = "https://app.hash.ai" },
   { name = "URLS_IDENTITY_PROVIDER_PUBLICURL", secret = false, value = "http://localhost:4433" }, # Kratos public endpoint
-  { name = "URLS_IDENTITY_PROVIDER_URL", secret = false, value = "http://localhost:4434" }, # Kratos admin endpoint
+  { name = "URLS_IDENTITY_PROVIDER_URL", secret = false, value = "http://localhost:4434" },       # Kratos admin endpoint
   { name = "URLS_SELF_ISSUER", secret = false, value = "https://app-api.hash.ai" },
   { name = "URLS_SELF_PUBLIC", secret = false, value = "https://app-api.hash.ai" }
 ]
@@ -57,7 +57,7 @@ hash_graph_env_vars = [
   { name = "HASH_GRAPH_LOG_FILE_ENABLED", secret = false, value = "false" },
   { name = "HASH_GRAPH_LOG_CONSOLE_FORMAT", secret = false, value = "full" },
   { name = "HASH_GRAPH_LOG_CONSOLE_COLOR", secret = false, value = "never" },
-  { name = "HASH_GRAPH_LOG_LEVEL", secret = false, value = "trace,h2=info,tokio_util=debug,tower=info,tonic=debug,hyper=info,tokio_postgres=info,rustls=info,tarpc=info" },
+  { name = "HASH_GRAPH_LOG_LEVEL", secret = false, value = "info" },
   { name = "RUST_BACKTRACE", secret = false, value = "1" }
 ]
 
@@ -71,7 +71,7 @@ hash_api_env_vars = [
   { name = "FRONTEND_URL", secret = false, value = "https://app.hash.ai" },
   { name = "API_ORIGIN", secret = false, value = "https://app-api.hash.ai" },
 
-  { name = "LOG_LEVEL", secret = false, value = "debug" },
+  { name = "LOG_LEVEL", secret = false, value = "warn" },
 
   { name = "FILE_UPLOAD_PROVIDER", secret = false, value = "AWS_S3" },
 

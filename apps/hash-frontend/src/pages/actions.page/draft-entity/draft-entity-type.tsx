@@ -1,9 +1,7 @@
-import {
-  ArrowUpRegularIcon,
-  AsteriskRegularIcon,
-} from "@hashintel/design-system";
+import { ArrowUpRegularIcon, EntityOrTypeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -20,7 +18,7 @@ export const DraftEntityType: FunctionComponent<{
   const entityType = useMemo(() => {
     const entityTypeInSubgraph = getEntityTypeById(
       subgraph,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds[0],
     );
 
     if (!entityTypeInSubgraph) {
@@ -78,17 +76,29 @@ export const DraftEntityType: FunctionComponent<{
           alignItems: "center",
         }}
       >
-        <Typography sx={{ fontWeight: 500, fontSize: 12 }}>
-          {entityType.metadata.icon ?? (
-            <AsteriskRegularIcon
-              sx={{
-                fontSize: 12,
-                color: ({ palette }) => palette.blue[70],
-                position: "relative",
-                top: 1,
-              }}
-            />
-          )}{" "}
+        <Typography
+          sx={{
+            fontWeight: 500,
+            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <EntityOrTypeIcon
+            entity={null}
+            fill={({ palette }) => palette.gray[50]}
+            fontSize={12}
+            icon={entityType.schema.icon}
+            isLink={
+              /**
+               * @todo H-3363 use closed schema to take account of indirectly inherited link status
+               */
+              !!entityType.schema.allOf?.some(
+                (allOf) => allOf.$ref === linkEntityTypeUrl,
+              )
+            }
+            sx={{ mr: 0.5 }}
+          />
           {entityType.schema.title}
         </Typography>
       </Box>

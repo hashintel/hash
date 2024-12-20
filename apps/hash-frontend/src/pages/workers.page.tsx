@@ -52,9 +52,10 @@ import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort,
 } from "./shared/virtualized-table";
-import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
+import { VirtualizedTable } from "./shared/virtualized-table";
+import { virtualizedTableHeaderHeight } from "./shared/virtualized-table/header";
+import type { VirtualizedTableSort } from "./shared/virtualized-table/header/sort";
 
 type FieldId =
   | "web"
@@ -72,7 +73,7 @@ const createColumns: (
     id: "web",
     label: "Web",
     sortable: true,
-    width: 120,
+    width: 150,
   },
   {
     id: "type",
@@ -110,7 +111,7 @@ const createColumns: (
           id: "cost" as const,
           label: "Cost",
           sortable: true,
-          width: 120,
+          width: 80,
         },
       ]
     : []),
@@ -152,7 +153,9 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
 
   return (
     <>
-      <MuiTableCell sx={{ ...flowTableCellSx, fontSize: 13 }}>
+      <MuiTableCell
+        sx={{ ...flowTableCellSx, fontSize: 13, overflowX: "hidden" }}
+      >
         <FlowTableWebChip {...web} />
       </MuiTableCell>
       <MuiTableCell sx={flowTableCellSx}>
@@ -279,7 +282,7 @@ const LoadingComponent = ({ columnCount }: { columnCount: number }) => (
 
 const WorkersPageContent = () => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-    field: "closedAt",
+    fieldId: "closedAt",
     direction: "desc",
   });
 
@@ -388,7 +391,7 @@ const WorkersPageContent = () => {
     );
 
     return rowData.sort((a, b) => {
-      const field = sort.field;
+      const field = sort.fieldId;
       const direction = sort.direction === "asc" ? 1 : -1;
 
       if (field === "web") {
@@ -414,7 +417,7 @@ const WorkersPageContent = () => {
 
   const tableHeight = Math.min(
     600,
-    headerHeight +
+    virtualizedTableHeaderHeight +
       2 + // borders
       (flowRunRows.length
         ? flowRunRows.length * flowTableRowHeight

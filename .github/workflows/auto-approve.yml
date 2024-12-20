@@ -1,0 +1,24 @@
+name: Auto-approve
+
+on:
+  pull_request_target:
+    branches:
+      - main
+
+jobs:
+  auto-approve:
+    name: Dependency bump
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    # TODO: Further restrict this to
+    # - Check the PR author (not only the actor)
+    # - Check the event (only commits should trigger auto-approvals)
+    # - (optional) check for green CI
+    # see: https://linear.app/hash/issue/H-3313/further-restrict-auto-approval-workflow
+    if: github.actor == 'hash-worker[bot]' && startsWith(github.head_ref, 'deps/')
+    steps:
+      - name: Renovate
+        uses: hmarr/auto-approve-action@v4
+        with:
+          github-token: ${{ secrets.MACHINE_USER_TOKEN }}

@@ -12,8 +12,9 @@ pub fn create_report() -> Report<RootError> {
 extern crate alloc;
 
 use core::{any::TypeId, panic::Location};
-#[allow(unused_imports)]
+#[expect(unused_imports)]
 use core::{
+    error::Error,
     fmt,
     future::Future,
     iter,
@@ -21,10 +22,15 @@ use core::{
 };
 #[cfg(feature = "backtrace")]
 use std::backtrace::Backtrace;
+#[cfg(all(feature = "std", any(feature = "backtrace", feature = "spantrace")))]
+use std::sync::LazyLock;
 
-use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report, Result};
-#[allow(unused_imports)]
-use once_cell::sync::Lazy;
+use error_stack::{AttachmentKind, Frame, FrameKind, Report};
+#[cfg(all(
+    not(feature = "std"),
+    any(feature = "backtrace", feature = "spantrace")
+))]
+use once_cell::sync::Lazy as LazyLock;
 #[cfg(feature = "spantrace")]
 use tracing_error::SpanTrace;
 
@@ -37,7 +43,7 @@ impl fmt::Display for RootError {
     }
 }
 
-impl Context for RootError {}
+impl Error for RootError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContextA(pub u32);
@@ -48,7 +54,7 @@ impl fmt::Display for ContextA {
     }
 }
 
-impl Context for ContextA {
+impl Error for ContextA {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         request.provide_ref(&self.0);
@@ -65,7 +71,7 @@ impl fmt::Display for ContextB {
     }
 }
 
-impl Context for ContextB {
+impl Error for ContextB {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         request.provide_ref(&self.0);
@@ -92,7 +98,7 @@ impl fmt::Display for ErrorA {
 }
 
 #[cfg(feature = "spantrace")]
-impl Context for ErrorA {
+impl Error for ErrorA {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         request.provide_ref(&self.1);
@@ -117,8 +123,8 @@ impl fmt::Display for ErrorB {
     }
 }
 
-#[cfg(all(nightly, feature = "backtrace"))]
-impl core::error::Error for ErrorB {
+#[cfg(feature = "backtrace")]
+impl Error for ErrorB {
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         request.provide_ref(&self.1);
     }
@@ -163,19 +169,19 @@ impl fmt::Display for PrintableC {
     }
 }
 
-pub fn create_error() -> Result<(), RootError> {
+pub fn create_error() -> Result<(), Report<RootError>> {
     Err(create_report())
 }
 
-pub fn create_future() -> impl Future<Output = Result<(), RootError>> {
+pub fn create_future() -> impl Future<Output = Result<(), Report<RootError>>> {
     futures::future::err(create_report())
 }
 
-pub fn capture_ok<E>(closure: impl FnOnce() -> Result<(), E>) {
+pub fn capture_ok<E>(closure: impl FnOnce() -> Result<(), Report<E>>) {
     closure().expect("expected an OK value, found an error");
 }
 
-pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), E>) -> Report<E> {
+pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), Report<E>>) -> Report<E> {
     closure().expect_err("expected an error")
 }
 
@@ -211,7 +217,7 @@ pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
 
 #[cfg(feature = "backtrace")]
 pub fn supports_backtrace() -> bool {
-    static STATE: Lazy<bool> = Lazy::new(|| {
+    static STATE: LazyLock<bool> = LazyLock::new(|| {
         let bt = std::backtrace::Backtrace::capture();
         bt.status() == std::backtrace::BacktraceStatus::Captured
     });
@@ -221,7 +227,7 @@ pub fn supports_backtrace() -> bool {
 
 #[cfg(feature = "spantrace")]
 pub fn supports_spantrace() -> bool {
-    static STATE: Lazy<bool> = Lazy::new(|| {
+    static STATE: LazyLock<bool> = LazyLock::new(|| {
         let st = tracing_error::SpanTrace::capture();
         st.status() == tracing_error::SpanTraceStatus::CAPTURED
     });
@@ -236,8 +242,7 @@ pub fn remove_builtin_messages<S: AsRef<str>>(
         .into_iter()
         .filter_map(|message| {
             let message = message.as_ref();
-            // Reason: complexity + readability
-            #[allow(clippy::if_then_some_else_none)]
+            #[expect(clippy::if_then_some_else_none, reason = "complexity + readability")]
             if message != "Location" && message != "Backtrace" && message != "SpanTrace" {
                 Some(message.to_owned())
             } else {
@@ -263,8 +268,10 @@ pub fn remove_builtin_frames<E>(report: &Report<E>) -> impl Iterator<Item = &Fra
 }
 
 /// Conditionally add two new frames to the count, as these are backtrace and spantrace.
-#[allow(unused_mut)]
-#[allow(clippy::missing_const_for_fn)]
+#[cfg_attr(
+    not(any(feature = "backtrace", feature = "spantrace")),
+    expect(clippy::missing_const_for_fn, unused_mut)
+)]
 pub fn expect_count(mut count: usize) -> usize {
     #[cfg(feature = "backtrace")]
     if supports_backtrace() {
@@ -331,7 +338,11 @@ pub fn expect_count(mut count: usize) -> usize {
 /// ```
 ///
 /// This is simplified pseudo-code to illustrate how the macro works.
-#[allow(unused_macros)]
+#[expect(
+    clippy::allow_attributes,
+    reason = "It's not possible to avoid this warning"
+)]
+#[allow(unused_macros, reason = "Only used in some tests")]
 macro_rules! assert_kinds {
     ($report:ident, [
         $($pattern:pat_param),*

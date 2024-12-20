@@ -1,4 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  Conversions,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
@@ -21,7 +25,7 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  mapGraphApiDataTypeToDataType,
+  mapGraphApiDataTypesToDataTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
@@ -57,10 +61,11 @@ export const createDataType: ImpureGraphFunction<
     webShortname?: string;
     relationships: DataTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
+    conversions: Record<BaseUrl, Conversions>;
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname, provenance } = params;
+  const { ownedById, webShortname, provenance, conversions } = params;
 
   const shortname =
     webShortname ??
@@ -90,6 +95,7 @@ export const createDataType: ImpureGraphFunction<
       ownedById,
       relationships: params.relationships,
       provenance,
+      conversions,
     },
   );
 
@@ -103,7 +109,7 @@ export const getDataTypes: ImpureGraphFunction<
   graphApi
     .getDataTypes(actorId, { includeDrafts: false, ...request })
     .then(({ data: response }) =>
-      mapGraphApiDataTypeToDataType(response.dataTypes),
+      mapGraphApiDataTypesToDataTypes(response.dataTypes),
     );
 
 /**
@@ -207,10 +213,11 @@ export const updateDataType: ImpureGraphFunction<
     schema: ConstructDataTypeParams;
     relationships: DataTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
+    conversions: Record<BaseUrl, Conversions>;
   },
   Promise<DataTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { dataTypeId, schema, provenance } = params;
+  const { dataTypeId, schema, provenance, conversions } = params;
 
   const { data: metadata } = await graphApi.updateDataType(actorId, {
     typeToUpdate: dataTypeId,
@@ -221,6 +228,7 @@ export const updateDataType: ImpureGraphFunction<
     },
     relationships: params.relationships,
     provenance,
+    conversions,
   });
 
   const { recordId } = metadata;

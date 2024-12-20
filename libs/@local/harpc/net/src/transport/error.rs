@@ -1,32 +1,8 @@
-use core::fmt::{self, Debug, Display, Formatter};
+use core::fmt::Debug;
 
 use libp2p::PeerId;
-use libp2p_stream as stream;
 
 use super::PROTOCOL_NAME;
-
-/// Errors while opening a new stream.
-pub struct OpenStreamError(stream::OpenStreamError);
-
-impl Debug for OpenStreamError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.0, f)
-    }
-}
-
-impl Display for OpenStreamError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, f)
-    }
-}
-
-impl core::error::Error for OpenStreamError {}
-
-impl From<stream::OpenStreamError> for OpenStreamError {
-    fn from(err: stream::OpenStreamError) -> Self {
-        Self(err)
-    }
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 pub enum IpcError {

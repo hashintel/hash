@@ -1,44 +1,50 @@
-use alloc::sync::Arc;
-use core::{num::NonZero, time::Duration};
+use alloc::{borrow::Cow, sync::Arc};
+use core::{
+    error::Error,
+    fmt::{self, Display},
+    num::NonZero,
+    time::Duration,
+};
 
 use bytes::Bytes;
-use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+use harpc_codec::error::NetworkError;
+use harpc_types::{
+    error_code::ErrorCode,
+    procedure::{ProcedureDescriptor, ProcedureId},
+    response_kind::ResponseKind,
+    subsystem::{SubsystemDescriptor, SubsystemId},
+    version::Version,
+};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
+        Request,
         begin::RequestBegin,
         body::RequestBody,
         flags::{RequestFlag, RequestFlags},
         frame::RequestFrame,
         header::RequestHeader,
         id::RequestId,
-        procedure::ProcedureDescriptor,
-        service::ServiceDescriptor,
-        Request,
     },
     response::{
+        Response,
         begin::ResponseBegin,
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
-        kind::{ErrorCode, ResponseKind},
-        Response,
     },
     test_utils::mock_request_id,
 };
 use tokio::{sync::mpsc, task::JoinHandle};
-use tokio_stream::StreamExt;
+use tokio_stream::StreamExt as _;
 use tokio_util::sync::CancellationToken;
 
 use super::{ServerTransactionPermit, TransactionStream};
-use crate::session::{
-    error::TransactionError,
-    server::{
-        connection::test::make_transaction_permit, transaction::TransactionSendDelegateTask,
-        SessionConfig,
-    },
+use crate::session::server::{
+    SessionConfig, connection::test::make_transaction_permit,
+    transaction::TransactionSendDelegateTask,
 };
 
 fn config_delay() -> SessionConfig {
@@ -73,7 +79,7 @@ impl ServerTransactionPermit for StaticTransactionPermit {
 fn setup_send(
     no_delay: bool,
 ) -> (
-    mpsc::Sender<Result<Bytes, TransactionError>>,
+    mpsc::Sender<Result<Bytes, NetworkError>>,
     mpsc::Receiver<Response>,
     JoinHandle<()>,
 ) {
@@ -150,7 +156,7 @@ async fn send_delay_perfect_buffer() {
 
     // send a message that fits perfectly into the buffer
     // this should not trigger any splitting
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -169,14 +175,11 @@ async fn send_delay_perfect_buffer() {
     let available = response_rx.recv_many(&mut responses, 1).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &payload,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &payload,
+    });
 }
 
 #[tokio::test]
@@ -184,7 +187,7 @@ async fn send_delay_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a large message that needs to be split into multiple parts
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -203,22 +206,16 @@ async fn send_delay_split_large() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 2);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload[Payload::MAX_SIZE..],
+    });
 }
 
 #[tokio::test]
@@ -226,7 +223,7 @@ async fn send_delay_split_large_multiple() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a large message that needs to be split into multiple parts
-    let payload = Bytes::from_static(&[0; (Payload::MAX_SIZE * 2) + 8]);
+    let payload = Bytes::from(vec![0; (Payload::MAX_SIZE * 2) + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -245,30 +242,21 @@ async fn send_delay_split_large_multiple() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 3);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &payload[Payload::MAX_SIZE..(Payload::MAX_SIZE * 2)],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &payload[Payload::MAX_SIZE..(Payload::MAX_SIZE * 2)],
+    });
 
-    assert_frame(
-        &responses[2],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload[(Payload::MAX_SIZE * 2)..],
-        },
-    );
+    assert_frame(&responses[2], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload[(Payload::MAX_SIZE * 2)..],
+    });
 }
 
 #[tokio::test]
@@ -298,14 +286,11 @@ async fn send_delay_merge_small() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &payload.repeat(4),
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &payload.repeat(4),
+    });
 }
 
 #[tokio::test]
@@ -313,7 +298,7 @@ async fn send_delay_flush_remaining() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a packet that is to be split into multiple frames
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -330,14 +315,11 @@ async fn send_delay_flush_remaining() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload[..Payload::MAX_SIZE],
+    });
 
     // dropping the sender means that we now flush the remaining messages
     drop(bytes_tx);
@@ -353,13 +335,10 @@ async fn send_delay_flush_remaining() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_frame(
-        &responses[0],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[0], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload[Payload::MAX_SIZE..],
+    });
 }
 
 #[tokio::test]
@@ -397,14 +376,11 @@ async fn send_delay_flush_empty() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &payload.repeat(4),
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &payload.repeat(4),
+    });
 }
 
 #[tokio::test]
@@ -424,14 +400,11 @@ async fn send_delay_empty() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &[],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -456,29 +429,47 @@ async fn send_delay_empty_bytes() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &[],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &[],
+    });
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ExampleError {
+    code: ErrorCode,
+    message: Cow<'static, str>,
+}
+
+impl Display for ExampleError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.message, fmt)
+    }
+}
+
+impl Error for ExampleError {
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_value(self.code);
+    }
 }
 
 #[tokio::test]
 async fn send_delay_error_immediate() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
-    // send an error message
-    let payload = Bytes::from_static(&[0, 1, 2, 3, 4, 5, 6, 7]);
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("immediate delay"),
+        code,
+    });
+
+    // send an error message
+    let payload = error.bytes().clone();
+
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload.clone(),
-        }))
+        .send(Err(error))
         .await
         .expect("should not be closed");
 
@@ -493,14 +484,11 @@ async fn send_delay_error_immediate() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Err(code),
-            payload: &payload,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Err(code),
+        payload: &payload,
+    });
 }
 
 #[tokio::test]
@@ -509,22 +497,25 @@ async fn send_delay_error_delayed() {
 
     // if we send a packet that is too large, we'll split, but when we encounter an error we
     // will discard the remaining messages
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
         .await
         .expect("should not be closed");
 
-    // send an error message
-    let payload_err = Bytes::from_static(&[0, 1, 2, 3, 4, 5, 6, 7]);
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("delayed error"),
+        code,
+    });
+
+    // send an error message
+    let payload_err = error.bytes().clone();
+
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload_err.clone(),
-        }))
+        .send(Err(error))
         .await
         .expect("should not be closed");
 
@@ -540,23 +531,17 @@ async fn send_delay_error_delayed() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 2);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok[..Payload::MAX_SIZE],
+    });
 
-    assert_begin(
-        &responses[1],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Err(code),
-            payload: &payload_err,
-        },
-    );
+    assert_begin(&responses[1], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Err(code),
+        payload: &payload_err,
+    });
 }
 
 #[tokio::test]
@@ -566,16 +551,18 @@ async fn send_delay_error_multiple() {
     // errors behave the same as normal messages in their flushing behaviour, which means that
     // only that you are unable to have a stream or error bytes and their values need to be
     // fully buffered.
-
-    let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
         bytes_tx
-            .send(Err(TransactionError {
-                code,
-                bytes: payload_err.clone(),
-            }))
+            .send(Err(error.clone()))
             .await
             .expect("should not be closed");
     }
@@ -594,23 +581,17 @@ async fn send_delay_error_multiple() {
 
     // the first four should be the same
     for response in &responses[..4] {
-        assert_begin(
-            response,
-            ExpectedBegin {
-                flags: ResponseFlags::EMPTY,
-                kind: ResponseKind::Err(code),
-                payload: &payload_err[..Payload::MAX_SIZE],
-            },
-        );
+        assert_begin(response, ExpectedBegin {
+            flags: ResponseFlags::EMPTY,
+            kind: ResponseKind::Err(code),
+            payload: &payload_err[..Payload::MAX_SIZE],
+        });
     }
 
-    assert_frame(
-        &responses[4],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload_err[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[4], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload_err[Payload::MAX_SIZE..],
+    });
 }
 
 #[tokio::test]
@@ -618,9 +599,16 @@ async fn send_delay_error_interspersed() {
     // once we have an error message, we no longer send any more messages
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
-    let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
+
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
         bytes_tx
@@ -629,10 +617,7 @@ async fn send_delay_error_interspersed() {
             .expect("should not be closed");
 
         bytes_tx
-            .send(Err(TransactionError {
-                code,
-                bytes: payload_err.clone(),
-            }))
+            .send(Err(error.clone()))
             .await
             .expect("should not be closed");
     }
@@ -649,33 +634,24 @@ async fn send_delay_error_interspersed() {
     let available = response_rx.recv_many(&mut responses, 8).await;
     assert_eq!(available, 6);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok[..Payload::MAX_SIZE],
+    });
 
     for response in &responses[1..5] {
-        assert_begin(
-            response,
-            ExpectedBegin {
-                flags: ResponseFlags::EMPTY,
-                kind: ResponseKind::Err(code),
-                payload: &payload_err[..Payload::MAX_SIZE],
-            },
-        );
+        assert_begin(response, ExpectedBegin {
+            flags: ResponseFlags::EMPTY,
+            kind: ResponseKind::Err(code),
+            payload: &payload_err[..Payload::MAX_SIZE],
+        });
     }
 
-    assert_frame(
-        &responses[5],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload_err[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[5], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload_err[Payload::MAX_SIZE..],
+    });
 }
 
 #[tokio::test]
@@ -684,8 +660,15 @@ async fn send_delay_error_interspersed_small() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     let payload_ok = Bytes::from_static(&[0; 8]);
-    let payload_err = Bytes::from_static(&[0; 8]);
+
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("interspersed delayed errors"),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
         bytes_tx
@@ -694,10 +677,7 @@ async fn send_delay_error_interspersed_small() {
             .expect("should not be closed");
 
         bytes_tx
-            .send(Err(TransactionError {
-                code,
-                bytes: payload_err.clone(),
-            }))
+            .send(Err(error.clone()))
             .await
             .expect("should not be closed");
     }
@@ -714,14 +694,11 @@ async fn send_delay_error_interspersed_small() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Err(code),
-            payload: &payload_ok,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Err(code),
+        payload: &payload_err,
+    });
 }
 
 #[tokio::test]
@@ -729,14 +706,17 @@ async fn send_delay_error_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // if we have a large payload we split it into multiple frames
-    let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
+
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload_err.clone(),
-        }))
+        .send(Err(error.clone()))
         .await
         .expect("should not be closed");
 
@@ -752,29 +732,23 @@ async fn send_delay_error_split_large() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 2);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Err(code),
-            payload: &payload_err[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Err(code),
+        payload: &payload_err[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload_err[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload_err[Payload::MAX_SIZE..],
+    });
 }
 
 #[tokio::test]
 async fn send_no_delay_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -790,22 +764,16 @@ async fn send_no_delay_split_large() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 2);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &payload_ok[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &payload_ok[Payload::MAX_SIZE..],
+    });
 
     drop(bytes_tx);
 
@@ -819,20 +787,17 @@ async fn send_no_delay_split_large() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_frame(
-        &responses[0],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[0], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
 async fn send_no_delay_split_large_multiple() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_ok = Bytes::from_static(&[0; (Payload::MAX_SIZE * 2) + 8]);
+    let payload_ok = Bytes::from(vec![0; (Payload::MAX_SIZE * 2) + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -848,30 +813,21 @@ async fn send_no_delay_split_large_multiple() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 3);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &payload_ok[Payload::MAX_SIZE..(Payload::MAX_SIZE * 2)],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &payload_ok[Payload::MAX_SIZE..(Payload::MAX_SIZE * 2)],
+    });
 
-    assert_frame(
-        &responses[2],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &payload_ok[(Payload::MAX_SIZE * 2)..],
-        },
-    );
+    assert_frame(&responses[2], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &payload_ok[(Payload::MAX_SIZE * 2)..],
+    });
 
     drop(bytes_tx);
 
@@ -885,13 +841,10 @@ async fn send_no_delay_split_large_multiple() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_frame(
-        &responses[0],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[0], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -916,23 +869,17 @@ async fn send_no_delay_no_merge_small() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 4);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok,
+    });
 
     for response in &responses[1..] {
-        assert_frame(
-            response,
-            ExpectedFrame {
-                flags: ResponseFlags::EMPTY,
-                payload: &payload_ok,
-            },
-        );
+        assert_frame(response, ExpectedFrame {
+            flags: ResponseFlags::EMPTY,
+            payload: &payload_ok,
+        });
     }
 
     drop(bytes_tx);
@@ -947,13 +894,10 @@ async fn send_no_delay_no_merge_small() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_frame(
-        &responses[0],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[0], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -971,14 +915,11 @@ async fn send_no_delay_empty() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &[],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1001,14 +942,11 @@ async fn send_no_delay_empty_pushed() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &[],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1041,44 +979,38 @@ async fn send_no_delay_skip_empty() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 3);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &[0x00, 0x01],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &[0x00, 0x01],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &[0x02, 0x03],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &[0x02, 0x03],
+    });
 
-    assert_frame(
-        &responses[2],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[2], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
 async fn send_no_delay_error_immediate() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_err = Bytes::from_static(b"error");
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
+
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload_err.clone(),
-        }))
+        .send(Err(error))
         .await
         .expect("should not be closed");
 
@@ -1093,22 +1025,16 @@ async fn send_no_delay_error_immediate() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 2);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Err(code),
-            payload: &payload_err,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Err(code),
+        payload: &payload_err,
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1116,8 +1042,15 @@ async fn send_no_delay_error_delayed() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
     let payload_ok = Bytes::from_static(b"ok");
-    let payload_err = Bytes::from_static(b"error");
+
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -1125,10 +1058,7 @@ async fn send_no_delay_error_delayed() {
         .expect("should not be closed");
 
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload_err.clone(),
-        }))
+        .send(Err(error))
         .await
         .expect("should not be closed");
 
@@ -1143,31 +1073,22 @@ async fn send_no_delay_error_delayed() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 3);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok,
+    });
 
-    assert_begin(
-        &responses[1],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Err(code),
-            payload: &payload_err,
-        },
-    );
+    assert_begin(&responses[1], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Err(code),
+        payload: &payload_err,
+    });
 
-    assert_frame(
-        &responses[2],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[2], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1175,8 +1096,15 @@ async fn send_no_delay_error_multiple() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
     let payload_ok = Bytes::from_static(b"ok");
-    let payload_err = Bytes::from_static(b"error");
+
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -1185,10 +1113,7 @@ async fn send_no_delay_error_multiple() {
 
     for _ in 0..3 {
         bytes_tx
-            .send(Err(TransactionError {
-                code,
-                bytes: payload_err.clone(),
-            }))
+            .send(Err(error.clone()))
             .await
             .expect("should not be closed");
     }
@@ -1204,33 +1129,24 @@ async fn send_no_delay_error_multiple() {
     let available = response_rx.recv_many(&mut responses, 8).await;
     assert_eq!(available, 5);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok,
+    });
 
     for response in &responses[1..4] {
-        assert_begin(
-            response,
-            ExpectedBegin {
-                flags: ResponseFlags::EMPTY,
-                kind: ResponseKind::Err(code),
-                payload: &payload_err,
-            },
-        );
+        assert_begin(response, ExpectedBegin {
+            flags: ResponseFlags::EMPTY,
+            kind: ResponseKind::Err(code),
+            payload: &payload_err,
+        });
     }
 
-    assert_frame(
-        &responses[4],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[4], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1238,8 +1154,14 @@ async fn send_no_delay_error_interspersed() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
     let payload_ok = Bytes::from_static(b"ok");
-    let payload_err = Bytes::from_static(b"error");
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
+
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
 
     for _ in 0..3 {
         bytes_tx
@@ -1248,10 +1170,7 @@ async fn send_no_delay_error_interspersed() {
             .expect("should not be closed");
 
         bytes_tx
-            .send(Err(TransactionError {
-                code,
-                bytes: payload_err.clone(),
-            }))
+            .send(Err(error.clone()))
             .await
             .expect("should not be closed");
     }
@@ -1267,47 +1186,41 @@ async fn send_no_delay_error_interspersed() {
     let available = response_rx.recv_many(&mut responses, 8).await;
     assert_eq!(available, 5);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok,
+    });
 
     for response in &responses[1..4] {
-        assert_begin(
-            response,
-            ExpectedBegin {
-                flags: ResponseFlags::EMPTY,
-                kind: ResponseKind::Err(code),
-                payload: &payload_err,
-            },
-        );
+        assert_begin(response, ExpectedBegin {
+            flags: ResponseFlags::EMPTY,
+            kind: ResponseKind::Err(code),
+            payload: &payload_err,
+        });
     }
 
-    assert_frame(
-        &responses[4],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[4], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
 async fn send_no_delay_error_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_err = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("0".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
+
+    let payload_err = error.bytes().clone();
+
     bytes_tx
-        .send(Err(TransactionError {
-            code,
-            bytes: payload_err.clone(),
-        }))
+        .send(Err(error))
         .await
         .expect("should not be closed");
 
@@ -1322,30 +1235,21 @@ async fn send_no_delay_error_split_large() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 3);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Err(code),
-            payload: &payload_err[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Err(code),
+        payload: &payload_err[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &payload_err[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &payload_err[Payload::MAX_SIZE..],
+    });
 
-    assert_frame(
-        &responses[2],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[2], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 async fn setup_recv() -> (tachyonix::Sender<Request>, TransactionStream) {
@@ -1367,8 +1271,8 @@ fn make_begin(flags: impl Into<RequestFlags>, payload: impl Into<Bytes>) -> Requ
             request_id: mock_request_id(0x01),
         },
         body: RequestBody::Begin(RequestBegin {
-            service: ServiceDescriptor {
-                id: ServiceId::new(0x00),
+            subsystem: SubsystemDescriptor {
+                id: SubsystemId::new(0x00),
                 version: Version {
                     major: 0x00,
                     minor: 0x00,

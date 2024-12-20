@@ -1,5 +1,9 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
-import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
+import {
+  AsteriskRegularIcon,
+  EntityOrTypeIcon,
+  IconButton,
+} from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityTypeWithMetadata,
@@ -84,7 +88,7 @@ export const MentionSuggesterEntity = forwardRef<
     sortOrder: SortOrder;
     setSortOrder: (sortOrder: SortOrder) => void;
     entitiesSubgraph: Subgraph<EntityRootType>;
-    entityType: EntityTypeWithMetadata;
+    entityTypes: EntityTypeWithMetadata[];
     entity: Entity;
     displayTypeTitle?: boolean;
     displaySubMenu: boolean;
@@ -101,7 +105,7 @@ export const MentionSuggesterEntity = forwardRef<
       entitiesSubgraph,
       entity,
       displayTypeTitle = false,
-      entityType,
+      entityTypes,
       displaySubMenu,
       subMenuIndex,
       subMenuItems,
@@ -122,21 +126,34 @@ export const MentionSuggesterEntity = forwardRef<
       }
     }, [ref]);
 
-    const entityIcon = useEntityIcon({ entity, entityType });
+    const entityIcon = useEntityIcon({ entity, entityTypes });
 
     return (
       <>
         <ListItemButton ref={buttonRef} {...listItemButtonProps}>
-          <ListItemIcon sx={{ minWidth: "unset" }}>{entityIcon}</ListItemIcon>
+          <ListItemIcon sx={{ minWidth: "unset" }}>
+            <EntityOrTypeIcon
+              entity={entity}
+              fontSize={14}
+              isLink={!!entity.linkData}
+              icon={entityIcon}
+              fill={({ palette }) => palette.gray[50]}
+            />
+          </ListItemIcon>
           <ListItemPrimaryText>
             {generateEntityLabel(entitiesSubgraph, entity)}
           </ListItemPrimaryText>
           <Box display="flex" alignItems="center" gap={1}>
-            {displayTypeTitle ? (
-              <ListItemSecondaryText sx={{ marginLeft: 2 }}>
-                {entityType.schema.title}
-              </ListItemSecondaryText>
-            ) : null}
+            {displayTypeTitle
+              ? entityTypes.map((entityType) => (
+                  <ListItemSecondaryText
+                    key={entityType.schema.$id}
+                    sx={{ marginLeft: 2 }}
+                  >
+                    {entityType.schema.title}
+                  </ListItemSecondaryText>
+                ))
+              : null}
             <Box>
               <IconButton
                 onClick={(event) => {

@@ -1,10 +1,9 @@
 # General
 edition = "2024" # Default: "2015"
+style_edition = "2024" # Default: "2015"
 unstable_features = true # Default: false
-version = "Two" # Default: "One"
 
 # Settings
-condense_wildcard_suffixes = true # Default: false
 reorder_impl_items = true # Default: false
 use_field_init_shorthand = true # Default: false
 use_try_shorthand = true # Default: false

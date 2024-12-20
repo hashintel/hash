@@ -46,6 +46,7 @@ mod wasm {
 pub(crate) mod tests {
     use core::fmt::Debug;
 
+    use error_stack::ResultExt as _;
     use serde::{Deserialize, Serialize};
 
     use crate::{Valid, Validator};
@@ -77,7 +78,9 @@ pub(crate) mod tests {
     where
         for<'de> T: Serialize + Deserialize<'de>,
     {
-        let deserialized: T = serde_json::from_value(value.clone()).expect("failed to deserialize");
+        let deserialized: T = serde_json::from_value(value.clone())
+            .attach_printable_lazy(|| value.clone())
+            .expect("failed to deserialize");
         let re_serialized = serde_json::to_value(deserialized).expect("failed to serialize");
 
         if equality == JsonEqualityCheck::Yes {
@@ -118,11 +121,8 @@ pub(crate) mod tests {
         for<'de> T: Debug + Serialize + Deserialize<'de> + Send + Sync,
         V: Validator<T, Error: Sized> + Send + Sync,
     {
-        let value = ensure_serialization::<T>(input.clone(), equality);
-        validator
-            .validate(value)
-            .await
-            .expect_err("failed to validate")
+        let value = ensure_serialization::<T>(input, equality);
+        validator.validate(value).expect_err("failed to validate")
     }
 
     pub(crate) async fn ensure_validation_from_str<T, V>(
@@ -135,7 +135,7 @@ pub(crate) mod tests {
         V: Validator<T, Error: Debug> + Send + Sync,
     {
         let value = ensure_serialization_from_str::<T>(input, equality);
-        validator.validate(value).await.expect("failed to validate")
+        validator.validate(value).expect("failed to validate")
     }
 
     pub(crate) async fn ensure_validation<T, V>(
@@ -147,8 +147,8 @@ pub(crate) mod tests {
         for<'de> T: Serialize + Deserialize<'de> + Send + Sync,
         V: Validator<T, Error: Debug> + Send + Sync,
     {
-        let value = ensure_serialization::<T>(input.clone(), equality);
-        validator.validate(value).await.expect("failed to validate")
+        let value = ensure_serialization::<T>(input, equality);
+        validator.validate(value).expect("failed to validate")
     }
 
     /// Ensures a type can be deserialized from a given [`serde_json::Value`] to its equivalent

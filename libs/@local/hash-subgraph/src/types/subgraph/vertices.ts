@@ -124,5 +124,6 @@ export type SerializedKnowledgeGraphVertices = {
 };
 
 export type Vertices = OntologyVertices & KnowledgeGraphVertices;
+
 export type SerializedVertices = OntologyVertices &
   SerializedKnowledgeGraphVertices;

@@ -1,25 +1,24 @@
 use alloc::sync::Arc;
-use core::{num::NonZero, time::Duration};
-use std::assert_matches::assert_matches;
+use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
 
 use bytes::{Bytes, BytesMut};
-use futures::StreamExt;
+use futures::StreamExt as _;
+use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
-        begin::RequestBegin, body::RequestBody, flags::RequestFlag, frame::RequestFrame,
-        id::RequestId, Request,
+        Request, begin::RequestBegin, body::RequestBody, flags::RequestFlag, frame::RequestFrame,
+        id::RequestId,
     },
     response::{
+        Response,
         begin::ResponseBegin,
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
-        kind::{ErrorCode, ResponseKind},
-        Response,
     },
     test_utils::mock_request_id,
 };
@@ -31,7 +30,7 @@ use super::{
     ClientTransactionPermit, ErrorStream, TransactionReceiveTask, TransactionSendTask, ValueStream,
 };
 use crate::session::{
-    client::{config::SessionConfig, transaction::StreamState, TransactionStream},
+    client::{TransactionStream as _, config::SessionConfig, transaction::StreamState},
     test::Descriptor,
 };
 
@@ -180,7 +179,8 @@ async fn receive_single_response_ok() {
 async fn receive_empty_skipped() {
     let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
 
-    let response = make_response_begin(ResponseFlag::EndOfResponse, ResponseKind::Ok, &[] as &[_]);
+    let response =
+        make_response_begin(ResponseFlag::EndOfResponse, ResponseKind::Ok, &[] as &[_]);
 
     tx.send(response).await.expect("able to send response");
 
@@ -745,7 +745,7 @@ fn setup_send_mapped<T>(
 
     let task = TransactionSendTask {
         config,
-        service: descriptor.service,
+        subsystem: descriptor.subsystem,
         procedure: descriptor.procedure,
         rx: ReceiverStream::new(bytes_rx),
         tx: request_tx,
@@ -790,10 +790,10 @@ async fn send_drop_sender() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && payload.is_empty()
     );
@@ -848,7 +848,7 @@ async fn send_drop_receiver_delay() {
         .expect("able to send bytes");
     tokio::task::yield_now().await; // the other task needs to react to our message, so we need to yield control
     // force a flush
-    tx.send(Bytes::from_static(&[0; Payload::MAX_SIZE]))
+    tx.send(Bytes::from(vec![0; Payload::MAX_SIZE]))
         .await
         .expect_err("should not be able to send bytes");
 
@@ -879,10 +879,10 @@ async fn send_no_delay() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && *payload.as_bytes() == Bytes::from_static(b"apple")
     );
@@ -922,10 +922,10 @@ async fn send_no_delay_flush_empty() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && payload.is_empty()
     );
@@ -948,7 +948,7 @@ async fn send_delay() {
         descriptor,
     );
 
-    tx.send(Bytes::from_static(&[0; Payload::MAX_SIZE - 8]))
+    tx.send(Bytes::from(vec![0; Payload::MAX_SIZE - 8]))
         .await
         .expect("able to send bytes");
 
@@ -968,10 +968,10 @@ async fn send_delay() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && payload.len() == Payload::MAX_SIZE
     );
@@ -1004,7 +1004,7 @@ async fn send_delay_flush_partial() {
         descriptor,
     );
 
-    tx.send(Bytes::from_static(&[0; Payload::MAX_SIZE]))
+    tx.send(Bytes::from(vec![0; Payload::MAX_SIZE]))
         .await
         .expect("able to send bytes");
 
@@ -1020,10 +1020,10 @@ async fn send_delay_flush_partial() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && payload.len() == Payload::MAX_SIZE
     );
@@ -1053,10 +1053,10 @@ async fn send_delay_flush_empty() {
     assert_matches!(
         request.body,
         RequestBody::Begin(RequestBegin {
-            service,
+            subsystem,
             procedure,
             payload
-        }) if service == descriptor.service
+        }) if subsystem == descriptor.subsystem
             && procedure == descriptor.procedure
             && payload.is_empty()
     );

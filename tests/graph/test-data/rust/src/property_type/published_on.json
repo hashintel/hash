@@ -1,0 +1,12 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "kind": "propertyType",
+  "$id": "https://blockprotocol.org/@alice/types/property-type/published-on/v/1",
+  "title": "Published On",
+  "description": "The date and time the content was published.",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ]
+}

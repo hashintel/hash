@@ -36,13 +36,14 @@
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-graph-types": "0.0.0-private",
-    "uuid": "9.0.1"
+    "uuid": "11.0.3"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
-    "@types/uuid": "8.3.4",
-    "@vitest/coverage-istanbul": "2.0.5",
-    "typescript": "5.5.4",
-    "vitest": "2.0.5"
+    "@local/eslint": "0.0.0-private",
+    "@vitest/coverage-istanbul": "2.1.8",
+    "eslint": "9.17.0",
+    "rimraf": "6.0.1",
+    "typescript": "5.7.2",
+    "vitest": "2.1.8"
   }
 }

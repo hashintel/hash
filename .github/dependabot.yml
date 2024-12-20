@@ -1,0 +1,9 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directories:
+      - "**/*"
+    schedule:
+      interval: "daily"
+    labels: []
+    open-pull-requests-limit: 0

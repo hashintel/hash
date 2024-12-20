@@ -16,14 +16,14 @@ impl Category<'_> {
     pub fn canonical_id(&self) -> impl Display + '_ {
         struct DisplayCategoryId<'a, 'b>(&'a Category<'b>);
 
-        impl<'a, 'b> Display for DisplayCategoryId<'a, 'b> {
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        impl Display for DisplayCategoryId<'_, '_> {
+            fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 if let Some(parent) = &self.0.parent {
-                    DisplayCategoryId(parent.as_ref()).fmt(f)?;
-                    f.write_str("::")?;
+                    DisplayCategoryId(parent.as_ref()).fmt(fmt)?;
+                    fmt.write_str("::")?;
                 };
 
-                Display::fmt(&self.0.id, f)
+                Display::fmt(&self.0.id, fmt)
             }
         }
 
@@ -34,14 +34,14 @@ impl Category<'_> {
     pub fn canonical_name(&self) -> impl Display + '_ {
         struct DisplayCategoryName<'a, 'b>(&'a Category<'b>);
 
-        impl<'a, 'b> Display for DisplayCategoryName<'a, 'b> {
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        impl Display for DisplayCategoryName<'_, '_> {
+            fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 if let Some(parent) = &self.0.parent {
-                    DisplayCategoryName(parent.as_ref()).fmt(f)?;
-                    f.write_str(" / ")?;
+                    DisplayCategoryName(parent.as_ref()).fmt(fmt)?;
+                    fmt.write_str(" / ")?;
                 }
 
-                Display::fmt(&self.0.name, f)
+                Display::fmt(&self.0.name, fmt)
             }
         }
 

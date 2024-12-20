@@ -4,7 +4,7 @@ import { Paper, Stack } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useState } from "react";
 
-import { SectionWrapper } from "../../../shared/section-wrapper";
+import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { WhiteChip } from "../../../shared/white-chip";
 import { PropertiesSectionEmptyState } from "../shared/properties-section-empty-state";
 import { getPropertyCountSummary } from "./properties-section/get-property-count-summary";

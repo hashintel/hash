@@ -1,6 +1,8 @@
 pub mod boxed;
 pub mod controlled;
 pub mod empty;
+pub mod encode_error;
+pub mod encode_report;
 pub mod full;
 pub mod limited;
 pub mod map;
@@ -241,15 +243,13 @@ pub trait BodyExt: Body {
         Pin::new(self).poll_frame(cx)
     }
 
-    fn frame(
-        &mut self,
-    ) -> impl Future<Output = Option<Result<Frame<Self::Data, Self::Control>, Self::Error>>>
+    fn frame(&mut self) -> impl Future<Output = Option<BodyFrameResult<Self>>>
     where
         Self: Unpin,
     {
         struct FrameFuture<'a, T: ?Sized>(&'a mut T);
 
-        impl<'a, T: Body + Unpin + ?Sized> Future for FrameFuture<'a, T> {
+        impl<T: Body + Unpin + ?Sized> Future for FrameFuture<'_, T> {
             type Output = Option<Result<Frame<T::Data, T::Control>, T::Error>>;
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -260,29 +260,29 @@ pub trait BodyExt: Body {
         FrameFuture(self)
     }
 
-    fn map_data<F, B>(self, f: F) -> MapData<Self, F>
+    fn map_data<F, B>(self, func: F) -> MapData<Self, F>
     where
         Self: Sized,
         F: FnMut(Self::Data) -> B,
         B: Buf,
     {
-        MapData::new(self, f)
+        MapData::new(self, func)
     }
 
-    fn map_control<F, C>(self, f: F) -> MapControl<Self, F>
+    fn map_control<F, C>(self, func: F) -> MapControl<Self, F>
     where
         Self: Sized,
         F: FnMut(Self::Control) -> C,
     {
-        MapControl::new(self, f)
+        MapControl::new(self, func)
     }
 
-    fn map_err<F, E>(self, f: F) -> MapError<Self, F>
+    fn map_err<F, E>(self, func: F) -> MapError<Self, F>
     where
         Self: Sized,
         F: FnMut(Self::Error) -> E,
     {
-        MapError::new(self, f)
+        MapError::new(self, func)
     }
 
     fn boxed(self) -> BoxBody<Self::Data, Self::Control, Self::Error>

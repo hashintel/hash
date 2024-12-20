@@ -13,19 +13,16 @@ import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference
 import { dereferenceEntityType } from "./shared/dereference-entity-type.js";
 
 /**
- * @todo: allow for specifying additional entity types which may be linked to
- * when determining whether link types are "satisfiable".
+ * @see {@link dereferenceEntityType}
  *
- * @see https://linear.app/hash/issue/H-2685/in-getdereferencedentitytypesactivity-allow-for-specifying-additional
+ * @todo H-2685: allow for specifying additional entity types which may be linked to when determining whether link types are "satisfiable".
  */
 export const getDereferencedEntityTypesActivity = async (params: {
   entityTypeIds: VersionedUrl[];
   graphApiClient: GraphApi;
   actorId: AccountId;
-  simplifyPropertyKeys: boolean;
 }): Promise<DereferencedEntityTypesByTypeId> => {
-  const { graphApiClient, entityTypeIds, actorId, simplifyPropertyKeys } =
-    params;
+  const { graphApiClient, entityTypeIds, actorId } = params;
 
   /** Fetch the full schemas for the requested entity types */
   const entityTypes: DereferencedEntityTypesByTypeId = {};
@@ -58,7 +55,7 @@ export const getDereferencedEntityTypesActivity = async (params: {
     entityTypes[entityTypeId] = dereferenceEntityType({
       entityTypeId,
       subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph, actorId),
-      simplifyPropertyKeys,
+      simplifyPropertyKeys: true,
     });
   }
 

@@ -1,8 +1,8 @@
 use core::fmt::{self, Display, Formatter};
 
 use crate::{
-    fmt::r#override::{AtomicOverride, AtomicPreference},
     Report,
+    fmt::r#override::{AtomicOverride, AtomicPreference},
 };
 
 /// The available modes of color support
@@ -119,15 +119,15 @@ impl Report<()> {
     /// Which will result in something like:
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_none.snap"))]
+    #[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_none.snap")))]
     /// </pre>
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_emphasis.snap"))]
+    #[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_emphasis.snap")))]
     /// </pre>
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_color.snap"))]
+    #[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_color.snap")))]
     /// </pre>
     pub fn set_color_mode(mode: ColorMode) {
         COLOR_OVERRIDE.store(mode);
@@ -297,9 +297,9 @@ pub(crate) struct StyleDisplay<'a, T: Display> {
     value: &'a T,
 }
 
-impl<'a, T: Display> Display for StyleDisplay<'a, T> {
-    fn fmt(&self, mut f: &mut Formatter<'_>) -> fmt::Result {
-        let mut sequence = ControlSequence::new(f);
+impl<T: Display> Display for StyleDisplay<'_, T> {
+    fn fmt(&self, mut fmt: &mut Formatter<'_>) -> fmt::Result {
+        let mut sequence = ControlSequence::new(fmt);
 
         if let Some(display) = self.style.display {
             display.start_ansi(&mut sequence)?;
@@ -309,11 +309,11 @@ impl<'a, T: Display> Display for StyleDisplay<'a, T> {
             foreground.start_ansi(&mut sequence)?;
         }
 
-        f = sequence.finish()?;
+        fmt = sequence.finish()?;
 
-        Display::fmt(&self.value, f)?;
+        Display::fmt(&self.value, fmt)?;
 
-        let mut sequence = ControlSequence::new(f);
+        let mut sequence = ControlSequence::new(fmt);
 
         if let Some(display) = self.style.display {
             display.end_ansi(&mut sequence)?;

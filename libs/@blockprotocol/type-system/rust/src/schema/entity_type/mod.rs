@@ -1,63 +1,203 @@
 pub use self::{
-    closed::{ClosedEntityType, ClosedEntityTypeSchemaData},
+    closed::{
+        ClosedEntityType, ClosedEntityTypeMetadata, ClosedMultiEntityType, EntityTypeResolveData,
+        ResolveClosedEntityTypeError,
+    },
+    constraints::EntityConstraints,
     reference::EntityTypeReference,
     validation::{EntityTypeValidationError, EntityTypeValidator},
 };
 
 mod closed;
-mod raw;
+mod constraints;
 mod reference;
 mod validation;
 
-use std::collections::{hash_map::Entry, HashMap, HashSet};
+use core::iter;
+use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    schema::{one_of::OneOfSchema, ArraySchema, PropertyTypeReference, ValueOrArray},
+    schema::{
+        ObjectTypeTag, PropertyTypeReference, PropertyValueArray, ValueOrArray, one_of::OneOfSchema,
+    },
     url::{BaseUrl, VersionedUrl},
 };
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(from = "raw::EntityType")]
-pub struct EntityType {
-    pub id: VersionedUrl,
-    pub title: String,
-    pub description: Option<String>,
-    pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
-    pub required: HashSet<BaseUrl>,
-    pub all_of: HashSet<EntityTypeReference>,
-    pub links: HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>,
-    #[deprecated]
-    pub examples: Vec<HashMap<BaseUrl, serde_json::Value>>,
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InverseEntityTypeMetadata {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
 }
 
-impl Serialize for EntityType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        raw::EntityType::from(self).serialize(serializer)
+impl InverseEntityTypeMetadata {
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.title.is_none()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
+enum EntityTypeKindTag {
+    EntityType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
+enum EntityTypeSchemaTag {
+    #[serde(rename = "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type")]
+    V3,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityTypeSchemaMetadata {
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    pub description: String,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityTypeDisplayMetadata {
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
+    pub depth: u16,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityType {
+    #[serde(rename = "$schema")]
+    schema: EntityTypeSchemaTag,
+    kind: EntityTypeKindTag,
+    r#type: ObjectTypeTag,
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    pub description: String,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
+    #[serde(flatten)]
+    pub constraints: EntityConstraints,
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[EntityTypeReference, ...EntityTypeReference[]]")
+    )]
+    pub all_of: HashSet<EntityTypeReference>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PartialEntityType {
+    #[serde(rename = "$id")]
+    pub id: VersionedUrl,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    pub description: String,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    pub inverse: InverseEntityTypeMetadata,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+impl From<EntityType> for PartialEntityType {
+    fn from(value: EntityType) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            title_plural: value.title_plural,
+            description: value.description,
+            inverse: value.inverse,
+            label_property: value.label_property,
+            icon: value.icon,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum EntityTypeToEntityTypeEdge {
+    Inheritance,
+    Link,
+    LinkDestination,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum EntityTypeToPropertyTypeEdge {
+    Property,
 }
 
 impl EntityType {
-    #[must_use]
-    pub fn property_type_references(&self) -> HashSet<&PropertyTypeReference> {
-        self.properties
-            .values()
-            .map(|property_def| match property_def {
-                ValueOrArray::Value(url) => url,
-                ValueOrArray::Array(array) => &array.items,
-            })
-            .collect()
+    pub fn entity_type_references(
+        &self,
+    ) -> impl Iterator<Item = (&EntityTypeReference, EntityTypeToEntityTypeEdge)> {
+        self.all_of
+            .iter()
+            .map(|reference| (reference, EntityTypeToEntityTypeEdge::Inheritance))
+            .chain(self.constraints.links.iter().flat_map(
+                |(link_entity_type, destination_constraint_entity_types)| {
+                    iter::once((link_entity_type.into(), EntityTypeToEntityTypeEdge::Link)).chain(
+                        destination_constraint_entity_types
+                            .items
+                            .iter()
+                            .flat_map(|items| {
+                                items.possibilities.iter().map(|reference| {
+                                    (reference, EntityTypeToEntityTypeEdge::LinkDestination)
+                                })
+                            }),
+                    )
+                },
+            ))
     }
 
-    #[must_use]
-    pub fn link_mappings(&self) -> HashMap<&EntityTypeReference, Option<&[EntityTypeReference]>> {
-        self.links
-            .iter()
-            .map(|(link_entity_type, destination_constraint_entity_types)| {
+    pub fn property_type_references(
+        &self,
+    ) -> impl Iterator<Item = (&PropertyTypeReference, EntityTypeToPropertyTypeEdge)> {
+        self.constraints.properties.values().map(|property_def| {
+            (
+                match property_def {
+                    ValueOrArray::Value(url) => url,
+                    ValueOrArray::Array(array) => &array.items,
+                },
+                EntityTypeToPropertyTypeEdge::Property,
+            )
+        })
+    }
+
+    pub fn link_mappings(
+        &self,
+    ) -> impl Iterator<Item = (&EntityTypeReference, Option<&[EntityTypeReference]>)> {
+        self.constraints.links.iter().map(
+            |(link_entity_type, destination_constraint_entity_types)| {
                 (
                     <&EntityTypeReference>::from(link_entity_type),
                     destination_constraint_entity_types
@@ -65,17 +205,20 @@ impl EntityType {
                         .as_ref()
                         .map(|one_of| one_of.possibilities.as_slice()),
                 )
-            })
-            .collect()
+            },
+        )
     }
 }
 
 fn extend_links(
-    current: &mut HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>,
+    current: &mut HashMap<
+        VersionedUrl,
+        PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>,
+    >,
     iter: impl IntoIterator<
         Item = (
             VersionedUrl,
-            ArraySchema<Option<OneOfSchema<EntityTypeReference>>>,
+            PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>,
         ),
     >,
 ) {
@@ -131,13 +274,13 @@ fn extend_links(
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr;
+    use core::str::FromStr as _;
 
     use serde_json::json;
 
     use super::*;
     use crate::utils::tests::{
-        ensure_failed_validation, ensure_validation_from_str, JsonEqualityCheck,
+        JsonEqualityCheck, ensure_failed_validation, ensure_validation_from_str,
     };
 
     fn test_property_type_references(
@@ -151,8 +294,11 @@ mod tests {
 
         let property_type_references = entity_type
             .property_type_references()
-            .into_iter()
-            .map(|property_type_ref| property_type_ref.url.clone())
+            .map(
+                |(property_type_ref, EntityTypeToPropertyTypeEdge::Property)| {
+                    property_type_ref.url.clone()
+                },
+            )
             .collect::<HashSet<_>>();
 
         assert_eq!(property_type_references, expected_property_type_references);
@@ -179,7 +325,6 @@ mod tests {
 
         let link_entity_type_references = entity_type
             .link_mappings()
-            .into_iter()
             .map(|(link_entity_type_url, entity_type_ref)| {
                 (
                     link_entity_type_url.url.clone(),
@@ -202,47 +347,38 @@ mod tests {
     #[tokio::test]
     async fn book() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::BOOK_V1,
+            hash_graph_test_data::entity_type::BOOK_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_references(
-            &entity_type,
-            [
-                "https://blockprotocol.org/@alice/types/property-type/name/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/blurb/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/published-on/v/1",
-            ],
-        );
+        test_property_type_references(&entity_type, [
+            "https://blockprotocol.org/@alice/types/property-type/name/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/blurb/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/published-on/v/1",
+        ]);
 
-        test_link_mappings(
-            &entity_type,
-            [(
-                "https://blockprotocol.org/@alice/types/entity-type/written-by/v/1",
-                vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
-            )],
-        );
+        test_link_mappings(&entity_type, [(
+            "https://blockprotocol.org/@alice/types/entity-type/written-by/v/1",
+            vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
+        )]);
     }
 
     #[tokio::test]
     async fn address() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::UK_ADDRESS_V1,
+            hash_graph_test_data::entity_type::UK_ADDRESS_V1,
             EntityTypeValidator,
             JsonEqualityCheck::No,
         )
         .await;
 
-        test_property_type_references(
-            &entity_type,
-            [
-                "https://blockprotocol.org/@alice/types/property-type/address-line-1/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/postcode/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/city/v/1",
-            ],
-        );
+        test_property_type_references(&entity_type, [
+            "https://blockprotocol.org/@alice/types/property-type/address-line-1/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/postcode/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/city/v/1",
+        ]);
 
         test_link_mappings(&entity_type, []);
     }
@@ -250,16 +386,15 @@ mod tests {
     #[tokio::test]
     async fn organization() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::ORGANIZATION_V1,
+            hash_graph_test_data::entity_type::ORGANIZATION_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_references(
-            &entity_type,
-            ["https://blockprotocol.org/@alice/types/property-type/name/v/1"],
-        );
+        test_property_type_references(&entity_type, [
+            "https://blockprotocol.org/@alice/types/property-type/name/v/1",
+        ]);
 
         test_link_mappings(&entity_type, []);
     }
@@ -267,101 +402,86 @@ mod tests {
     #[tokio::test]
     async fn building() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::BUILDING_V1,
+            hash_graph_test_data::entity_type::BUILDING_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_references(
-            &entity_type,
-            ["https://blockprotocol.org/@alice/types/property-type/built-at/v/1"],
-        );
+        test_property_type_references(&entity_type, [
+            "https://blockprotocol.org/@alice/types/property-type/built-at/v/1",
+        ]);
 
-        test_link_mappings(
-            &entity_type,
-            [
-                (
-                    "https://blockprotocol.org/@alice/types/entity-type/located-at/v/1",
-                    vec!["https://blockprotocol.org/@alice/types/entity-type/uk-address/v/1"],
-                ),
-                (
-                    "https://blockprotocol.org/@alice/types/entity-type/tenant/v/1",
-                    vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
-                ),
-            ],
-        );
+        test_link_mappings(&entity_type, [
+            (
+                "https://blockprotocol.org/@alice/types/entity-type/located-at/v/1",
+                vec!["https://blockprotocol.org/@alice/types/entity-type/uk-address/v/1"],
+            ),
+            (
+                "https://blockprotocol.org/@alice/types/entity-type/tenant/v/1",
+                vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
+            ),
+        ]);
     }
 
     #[tokio::test]
     async fn person() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::PERSON_V1,
+            hash_graph_test_data::entity_type::PERSON_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_references(
-            &entity_type,
-            [
-                "https://blockprotocol.org/@alice/types/property-type/name/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/age/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/interests/v/1",
-            ],
-        );
+        test_property_type_references(&entity_type, [
+            "https://blockprotocol.org/@alice/types/property-type/name/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/age/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/interests/v/1",
+        ]);
 
-        test_link_mappings(
-            &entity_type,
-            [
-                (
-                    "https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1",
-                    vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
-                ),
-                (
-                    "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/v/1",
-                    vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
-                ),
-            ],
-        );
+        test_link_mappings(&entity_type, [
+            (
+                "https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1",
+                vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
+            ),
+            (
+                "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/v/1",
+                vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
+            ),
+        ]);
     }
 
     #[tokio::test]
     async fn playlist() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::PLAYLIST_V1,
+            hash_graph_test_data::entity_type::PLAYLIST_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_references(
-            &entity_type,
-            ["https://blockprotocol.org/@alice/types/property-type/name/v/1"],
-        );
+        test_property_type_references(&entity_type, [
+            "https://blockprotocol.org/@alice/types/property-type/name/v/1",
+        ]);
 
-        test_link_mappings(
-            &entity_type,
-            [(
-                "https://blockprotocol.org/@alice/types/entity-type/contains/v/1",
-                vec!["https://blockprotocol.org/@alice/types/entity-type/song/v/1"],
-            )],
-        );
+        test_link_mappings(&entity_type, [(
+            "https://blockprotocol.org/@alice/types/entity-type/contains/v/1",
+            vec!["https://blockprotocol.org/@alice/types/entity-type/song/v/1"],
+        )]);
     }
 
     #[tokio::test]
     async fn song() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::SONG_V1,
+            hash_graph_test_data::entity_type::SONG_V1,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_references(
-            &entity_type,
-            ["https://blockprotocol.org/@alice/types/property-type/name/v/1"],
-        );
+        test_property_type_references(&entity_type, [
+            "https://blockprotocol.org/@alice/types/property-type/name/v/1",
+        ]);
 
         test_link_mappings(&entity_type, []);
     }
@@ -369,30 +489,26 @@ mod tests {
     #[tokio::test]
     async fn page() {
         let entity_type = ensure_validation_from_str::<EntityType, _>(
-            graph_test_data::entity_type::PAGE_V2,
+            hash_graph_test_data::entity_type::PAGE_V2,
             EntityTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_references(
-            &entity_type,
-            ["https://blockprotocol.org/@alice/types/property-type/text/v/1"],
-        );
+        test_property_type_references(&entity_type, [
+            "https://blockprotocol.org/@alice/types/property-type/text/v/1",
+        ]);
 
-        test_link_mappings(
-            &entity_type,
-            [
-                (
-                    "https://blockprotocol.org/@alice/types/entity-type/written-by/v/1",
-                    vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
-                ),
-                (
-                    "https://blockprotocol.org/@alice/types/entity-type/contains/v/1",
-                    vec!["https://blockprotocol.org/@alice/types/entity-type/block/v/1"],
-                ),
-            ],
-        );
+        test_link_mappings(&entity_type, [
+            (
+                "https://blockprotocol.org/@alice/types/entity-type/written-by/v/1",
+                vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
+            ),
+            (
+                "https://blockprotocol.org/@alice/types/entity-type/contains/v/1",
+                vec!["https://blockprotocol.org/@alice/types/entity-type/block/v/1"],
+            ),
+        ]);
     }
 
     #[tokio::test]
@@ -405,6 +521,7 @@ mod tests {
                     "$id": "https://blockprotocol.org/@alice/types/entity-type/invalid/v/1",
                     "type": "object",
                     "title": "Invalid",
+                    "description": "An invalid entity type",
                     "properties": {
                         "https://example.com/property_type_a/": { "$ref": "https://example.com/property_type_b/v/1" }
                     }

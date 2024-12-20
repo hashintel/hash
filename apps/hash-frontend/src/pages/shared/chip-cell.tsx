@@ -4,11 +4,15 @@ import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Box } from "@mui/material";
 
-import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
+import { getCellHorizontalPadding } from "../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../components/grid/utils/draw-cell-fade-out-gradient";
+import type { DrawChipWithIconProps } from "../../components/grid/utils/draw-chip-with-icon";
 import { drawChipWithIcon } from "../../components/grid/utils/draw-chip-with-icon";
+import { InteractableManager } from "../../components/grid/utils/interactable-manager";
+import type { Interactable } from "../../components/grid/utils/interactable-manager/types";
 
 export type ChipCellColor = "blue" | "gray" | "white";
 export type ChipCellVariant = "outlined" | "filled";
@@ -17,7 +21,9 @@ export interface ChipCellProps {
   readonly kind: "chip-cell";
   chips: {
     text: string;
-    icon?: CustomIcon;
+    icon?: DrawChipWithIconProps["icon"];
+    iconFill?: DrawChipWithIconProps["iconFill"];
+    onClick?: () => void;
     faIconDefinition?: Pick<IconDefinition, "icon">;
   }[];
   color?: ChipCellColor;
@@ -63,31 +69,80 @@ export const getChipColors = (
   }
 };
 
-export const renderChipCell: CustomRenderer<ChipCell> = {
+export const createRenderChipCell = (params?: {
+  firstColumnLeftPadding?: number;
+}): CustomRenderer<ChipCell> => ({
   kind: GridCellKind.Custom,
   isMatch: (cell: CustomCell): cell is ChipCell =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (cell.data as any).kind === "chip-cell",
   draw: (args, cell) => {
-    const { theme, rect } = args;
+    const { theme, rect, ctx } = args;
     const { chips, color = "gray", variant } = cell.data;
 
     const chipGap = 8;
-    let chipLeft = rect.x + theme.cellHorizontalPadding;
+
+    const columnPadding =
+      typeof params?.firstColumnLeftPadding !== "undefined" && args.col === 1
+        ? params.firstColumnLeftPadding
+        : getCellHorizontalPadding();
+
+    let chipLeft = rect.x + columnPadding;
+
+    const interactables: Interactable[] = [];
 
     for (let i = 0; i < chips.length; i++) {
-      const { icon, text = "" } = chips[i] ?? {};
-      const chipWidth = drawChipWithIcon({
+      const { icon, iconFill, text = "", onClick } = chips[i] ?? {};
+
+      const { width, height, top } = drawChipWithIcon({
         args,
         color,
         text,
         left: chipLeft,
         icon,
+        iconFill,
         variant,
       });
 
-      chipLeft += chipWidth + chipGap;
+      if (onClick) {
+        const arrowSpacing = 4;
+        const arrowLeft = chipLeft + width + arrowSpacing;
+        const arrowSize = 12;
+
+        args.spriteManager.drawSprite(
+          "arrowUpRightRegular",
+          "normal",
+          ctx,
+          arrowLeft,
+          top + 6,
+          12,
+          {
+            ...theme,
+            bgIconHeader: "white",
+            fgIconHeader: customColors.blue[70],
+          },
+        );
+
+        interactables.push(
+          InteractableManager.createCellInteractable(args, {
+            id: generateUuid(),
+            pos: {
+              left: chipLeft,
+              right: chipLeft + width + arrowSize + arrowSpacing,
+              top,
+              bottom: top + height,
+            },
+            onClick,
+          }),
+        );
+
+        chipLeft += arrowSpacing + arrowSize;
+      }
+
+      chipLeft += chipGap + width;
     }
+
+    InteractableManager.setInteractablesForCell(args, interactables);
 
     drawCellFadeOutGradient(args);
   },
@@ -124,4 +179,4 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
       },
     };
   },
-};
+});

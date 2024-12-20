@@ -1,0 +1,43 @@
+---
+source: libs/@local/hql/syntax-jexpr/src/parser/expr.rs
+expression: "{\"type\": \"u32\", \"const\": 42}"
+---
+Expr {
+    kind: Constant(
+        Constant {
+            value: Value {
+                kind: Number(
+                    "42",
+                ),
+                span: SpanId(
+                    4,
+                ),
+            },
+            type: Some(
+                Type {
+                    kind: Path(
+                        Path {
+                            segments: [
+                                Symbol {
+                                    value: "u32",
+                                    span: SpanId(
+                                        1,
+                                    ),
+                                },
+                            ],
+                            span: SpanId(
+                                2,
+                            ),
+                        },
+                    ),
+                    span: SpanId(
+                        3,
+                    ),
+                },
+            ),
+        },
+    ),
+    span: SpanId(
+        5,
+    ),
+}

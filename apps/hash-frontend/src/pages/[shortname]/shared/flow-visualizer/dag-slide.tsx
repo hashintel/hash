@@ -1,4 +1,5 @@
 import { IconButton } from "@hashintel/design-system";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { Backdrop, Box, Slide, Stack } from "@mui/material";
 
@@ -23,6 +24,10 @@ export const DagSlide = ({
   onClose,
   selectedFlowDefinition,
 }: DagSlideProps) => {
+  const isGoal = goalFlowDefinitionIds.includes(
+    selectedFlowDefinition.flowDefinitionId,
+  );
+
   return (
     <Backdrop
       open={open}
@@ -55,6 +60,7 @@ export const DagSlide = ({
               handleRunFlowClicked={() => null}
               showRunButton={false}
               readonly
+              workerType={isGoal ? "goal" : "flow"}
             />
             <IconButton
               onClick={onClose}

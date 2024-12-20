@@ -2,11 +2,11 @@ use alloc::borrow::Cow;
 
 use aws_config::SdkConfig;
 use aws_sdk_s3::{
-    operation::put_object::{builders::PutObjectFluentBuilder, PutObjectOutput},
+    operation::put_object::{PutObjectOutput, builders::PutObjectFluentBuilder},
     types::ObjectCannedAcl,
 };
 use bytes::Bytes;
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use inferno::flamegraph;
 use serde::Serialize;
 

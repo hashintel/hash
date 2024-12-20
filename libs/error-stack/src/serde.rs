@@ -1,3 +1,5 @@
+#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+
 //! Implementation of general [`Report`] serialization.
 //!
 //! The value can be of any type, currently only printable attachments and context are supported, in
@@ -13,26 +15,24 @@
 //! }
 //! ```
 
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{format, vec, vec::Vec};
 
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeMap as _};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 struct SerializeAttachment<'a>(&'a Frame);
 
-impl<'a> Serialize for SerializeAttachment<'a> {
+impl Serialize for SerializeAttachment<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let Self(frame) = self;
 
-        #[allow(clippy::match_same_arms)]
         match frame.kind() {
             FrameKind::Context(_) => {
-                // TODO: for now `Context` is unsupported, upcoming PR will fix via hooks
+                // TODO: for now `Error` is unsupported, upcoming PR will fix via hooks
                 // `SerializeAttachmentList` ensures that no context is ever serialized
                 unimplemented!()
             }
@@ -50,7 +50,7 @@ impl<'a> Serialize for SerializeAttachment<'a> {
 
 struct SerializeAttachmentList<'a, 'b>(&'a [&'b Frame]);
 
-impl<'a, 'b> Serialize for SerializeAttachmentList<'a, 'b> {
+impl Serialize for SerializeAttachmentList<'_, '_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -77,7 +77,7 @@ struct SerializeContext<'a> {
     sources: &'a [Frame],
 }
 
-impl<'a> Serialize for SerializeContext<'a> {
+impl Serialize for SerializeContext<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -99,7 +99,7 @@ impl<'a> Serialize for SerializeContext<'a> {
 
 struct SerializeSources<'a>(&'a [Frame]);
 
-impl<'a> Serialize for SerializeSources<'a> {
+impl Serialize for SerializeSources<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -149,6 +149,15 @@ impl<C: Context> Serialize for Report<C> {
     where
         S: Serializer,
     {
-        SerializeSources(self.current_frames()).serialize(serializer)
+        SerializeSources(self.current_frames_unchecked()).serialize(serializer)
+    }
+}
+
+impl<C: Context> Serialize for Report<[C]> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        SerializeSources(self.current_frames_unchecked()).serialize(serializer)
     }
 }

@@ -1,5 +1,5 @@
 import {
-  ArrowRightIconRegular,
+  ArrowRightRegularIcon,
   CheckRegularIcon,
   CircleEllipsisRegularIcon,
   CloseIcon,
@@ -61,7 +61,7 @@ export const InProgressIcon = ({ statusFor }: IconProps) =>
       variant="indeterminate"
     />
   ) : (
-    <ArrowRightIconRegular
+    <ArrowRightRegularIcon
       sx={{ fill: ({ palette }) => palette.blue[70], ...iconSx[statusFor] }}
     />
   );

@@ -12,7 +12,7 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import {
   createEntityMutation,
-  queryEntitiesQuery,
+  getEntitySubgraphQuery,
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { generateUseEntityTypeEntitiesQueryVariables } from "../../../../shared/use-entity-type-entities";
@@ -39,7 +39,7 @@ export const useBlockProtocolCreateEntity = (
              * a type is created by a user that is from a different web.
              */
             {
-              query: queryEntitiesQuery,
+              query: getEntitySubgraphQuery,
               variables: generateUseEntityTypeEntitiesQueryVariables({
                 ownedById: activeWorkspaceOwnedById,
               }),
@@ -78,11 +78,11 @@ export const useBlockProtocolCreateEntity = (
         };
       }
 
-      const { entityTypeId, properties, linkData } = data;
+      const { entityTypeIds, properties, linkData } = data;
 
       const { data: createEntityResponseData } = await createFn({
         variables: {
-          entityTypeId,
+          entityTypeIds,
           ownedById,
           properties: mergePropertyObjectAndMetadata(properties, undefined),
           linkData,

@@ -14,7 +14,9 @@ import ShuffleIcon from "@mui/icons-material/Shuffle";
 import Box from "@mui/material/Box";
 import produce from "immer";
 import isEqual from "lodash.isequal";
-import React, { useMemo, useRef, useState } from "react";
+// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+// removed React import
+import { useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import { ItemList } from "./components/item-list";
@@ -42,6 +44,7 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
   const items = rootEntity.properties[propertyIds.list];
 
   const blockRootRef = useRef<HTMLDivElement>(null);
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating, or this package updating to use graph in this repo */
   const { graphModule } = useGraphBlockModule(blockRootRef);
   const [draftItems, setDraftItems] = useState<ShuffleBlockItemPropertyValue[]>(
     items?.length ? items : initialItems,

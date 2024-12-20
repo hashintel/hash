@@ -4,8 +4,8 @@ use core::{
 };
 
 use ariadne::ColorGenerator;
-use error_stack::{Report, Result};
-use hql_span::{storage::SpanStorage, tree::SpanNode, Span, SpanId};
+use error_stack::{Report, TryReportIteratorExt as _};
+use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
 
 use crate::{
     category::Category,
@@ -16,7 +16,7 @@ use crate::{
     note::Note,
     rob::RefOrBox,
     severity::Severity,
-    span::{absolute_span, AbsoluteDiagnosticSpan, TransformSpan},
+    span::{AbsoluteDiagnosticSpan, TransformSpan},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -26,7 +26,6 @@ pub struct Diagnostic<'a, S> {
     pub severity: RefOrBox<'a, Severity<'a>>,
 
     pub message: Option<Box<str>>,
-    pub span: Option<S>,
 
     pub labels: Vec<Label<S>>,
     pub note: Option<Note>,
@@ -43,7 +42,6 @@ impl<'a, S> Diagnostic<'a, S> {
             category: category.into(),
             severity: severity.into(),
             message: None,
-            span: None,
             labels: Vec::new(),
             note: None,
             help: None,
@@ -60,42 +58,21 @@ impl<'a> Diagnostic<'a, SpanId> {
     pub fn resolve<S>(
         self,
         storage: &SpanStorage<S>,
-    ) -> Result<Diagnostic<'a, SpanNode<S>>, ResolveError>
+    ) -> Result<Diagnostic<'a, SpanNode<S>>, Report<[ResolveError]>>
     where
         S: Span + Clone,
     {
-        let span = self
-            .span
-            .map(|id| {
-                storage
-                    .resolve(id)
-                    .ok_or_else(|| Report::new(ResolveError::UnknownSpan { id }))
-            })
-            .transpose();
-
-        let (span, labels) = self
+        let labels: Vec<_> = self
             .labels
             .into_iter()
             .map(|label| label.resolve(storage))
-            .fold(span.map(|node| (node, Vec::new())), |acc, label| {
-                match (acc, label) {
-                    (Ok((span, mut labels)), Ok(label)) => {
-                        labels.push(label);
-                        Ok((span, labels))
-                    }
-                    (Err(mut acc), Err(error)) => {
-                        acc.extend_one(error);
-                        Err(acc)
-                    }
-                    (Err(error), _) | (_, Err(error)) => Err(error),
-                }
-            })?;
+            .try_collect_reports()?;
 
         Ok(Diagnostic {
             category: self.category,
             severity: self.severity,
             message: self.message,
-            span,
+
             labels,
             note: self.note,
             help: self.help,
@@ -108,13 +85,19 @@ impl<S> Diagnostic<'_, SpanNode<S>> {
         &self,
         mut config: ReportConfig<impl TransformSpan<S>>,
     ) -> ariadne::Report<AbsoluteDiagnosticSpan> {
-        let start = self.span.as_ref().map_or(0, |span| {
-            u32::from(absolute_span(span, &mut config.transform_span).start())
-        });
+        // According to the examples, the span given to `Report::build` should be the span of the
+        // primary (first) label.
+        // See: https://github.com/zesterer/ariadne/blob/74c2a7f8881e95629f9fb8d70140c133972d81d3/examples/simple.rs#L14
+        let span = self
+            .labels
+            .first()
+            .map_or_else(AbsoluteDiagnosticSpan::full, |label| {
+                label.absolute_span(&mut config.transform_span)
+            });
 
         let mut generator = ColorGenerator::new();
 
-        let mut builder = ariadne::Report::build(self.severity.as_ref().kind(), (), start as usize)
+        let mut builder = ariadne::Report::build(self.severity.as_ref().kind(), span)
             .with_code(self.category.as_ref().canonical_id());
 
         builder.set_message(
@@ -149,9 +132,9 @@ impl<S> Display for Diagnostic<'_, S>
 where
     S: Display,
 {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
-            f,
+            fmt,
             "[{}] {}",
             self.severity,
             self.category.as_ref().canonical_name()

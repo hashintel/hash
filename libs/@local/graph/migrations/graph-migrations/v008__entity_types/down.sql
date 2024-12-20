@@ -1,0 +1,6 @@
+DROP TABLE entity_type_embeddings;
+DROP TABLE entity_type_constrains_link_destinations_on;
+DROP TABLE entity_type_constrains_links_on;
+DROP TABLE entity_type_constrains_properties_on;
+DROP TABLE entity_type_inherits_from;
+DROP TABLE entity_types;

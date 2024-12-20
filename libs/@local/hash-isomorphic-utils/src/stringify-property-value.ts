@@ -40,5 +40,7 @@ export const stringifyPropertyValue = (propertyValue: unknown): string => {
   }
 
   // Otherwise directly stringify the property value (for example if it's a number)
+  // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   return String(propertyValue);
 };

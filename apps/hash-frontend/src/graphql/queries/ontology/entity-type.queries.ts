@@ -53,20 +53,30 @@ export const queryEntityTypesQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
+export const getClosedMultiEntityTypeQuery = gql`
+  query getClosedMultiEntityType(
+    $entityTypeIds: [VersionedUrl!]!
+    $includeArchived: Boolean = false
+    $includeDrafts: Boolean = false
+  ) {
+    getClosedMultiEntityType(
+      entityTypeIds: $entityTypeIds
+      includeArchived: $includeArchived
+      includeDrafts: $includeDrafts
+    ) {
+      closedMultiEntityType
+      definitions
+    }
+  }
+`;
+
 export const createEntityTypeMutation = gql`
   mutation createEntityType(
     $ownedById: OwnedById!
     $entityType: ConstructEntityTypeParams!
-    $icon: String
-    $labelProperty: BaseUrl
   ) {
     # This is a scalar, which has no selection.
-    createEntityType(
-      ownedById: $ownedById
-      entityType: $entityType
-      icon: $icon
-      labelProperty: $labelProperty
-    )
+    createEntityType(ownedById: $ownedById, entityType: $entityType)
   }
 `;
 
@@ -74,14 +84,10 @@ export const updateEntityTypeMutation = gql`
   mutation updateEntityType(
     $entityTypeId: VersionedUrl!
     $updatedEntityType: ConstructEntityTypeParams!
-    $icon: String
-    $labelProperty: BaseUrl
   ) {
     updateEntityType(
       entityTypeId: $entityTypeId
       updatedEntityType: $updatedEntityType
-      icon: $icon
-      labelProperty: $labelProperty
     )
   }
 `;

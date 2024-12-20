@@ -4,13 +4,13 @@ use core::fmt::{Display, Formatter};
 #[cfg(not(feature = "arbitrary-precision"))]
 use core::ops::Neg;
 
-use error_stack::ResultExt;
+use error_stack::{Report, ResultExt as _};
 use num_traits::{FromPrimitive, ToPrimitive};
 use serde::{Serialize, Serializer};
 
 use crate::{
-    error::{DeserializeError, VisitorError},
     Deserialize, Deserializer, Document, Reflection, Schema,
+    error::{DeserializeError, VisitorError},
 };
 
 // This indirection helps us to "disguise" the underlying storage, enabling us to seamlessly convert
@@ -312,21 +312,21 @@ impl_from! {
 
 impl Display for Number {
     #[cfg(not(feature = "arbitrary-precision"))]
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
         match &self.0 {
-            OpaqueNumber::PosInt(pos) => Display::fmt(pos, f),
+            OpaqueNumber::PosInt(pos) => Display::fmt(pos, fmt),
             OpaqueNumber::NegInt(neg) => {
                 // emulate negative number
-                core::fmt::Write::write_char(f, '-')?;
-                Display::fmt(neg, f)
+                core::fmt::Write::write_char(fmt, '-')?;
+                Display::fmt(neg, fmt)
             }
-            OpaqueNumber::Float(float) => Display::fmt(float, f),
+            OpaqueNumber::Float(float) => Display::fmt(float, fmt),
         }
     }
 
     #[cfg(feature = "arbitrary-precision")]
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str(&self.0)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str(&self.0)
     }
 }
 
@@ -364,11 +364,11 @@ impl Serialize for Number {
     where
         S: Serializer,
     {
-        use serde::ser::SerializeStruct;
+        use serde::ser::SerializeStruct as _;
 
-        let mut s = serializer.serialize_struct(TOKEN, 1)?;
-        s.serialize_field(TOKEN, &self.0)?;
-        s.end()
+        let mut ser = serializer.serialize_struct(TOKEN, 1)?;
+        ser.serialize_field(TOKEN, &self.0)?;
+        ser.end()
     }
 }
 
@@ -383,17 +383,17 @@ impl<'de> Deserialize<'de> for Number {
 
     fn deserialize<D: Deserializer<'de>>(
         deserializer: D,
-    ) -> error_stack::Result<Self, DeserializeError> {
+    ) -> Result<Self, Report<DeserializeError>> {
         struct Visitor;
 
-        impl<'de> crate::Visitor<'de> for Visitor {
+        impl crate::Visitor<'_> for Visitor {
             type Value = Number;
 
             fn expecting(&self) -> Document {
                 Number::reflection()
             }
 
-            fn visit_number(self, value: Number) -> error_stack::Result<Self::Value, VisitorError> {
+            fn visit_number(self, value: Number) -> Result<Self::Value, Report<VisitorError>> {
                 Ok(value)
             }
 

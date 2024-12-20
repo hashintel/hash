@@ -1,16 +1,16 @@
 #[cfg(nightly)]
 use core::num::Saturating;
 use core::num::{
-    NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize, NonZeroU128,
-    NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize, Wrapping,
+    NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroIsize, NonZeroU8,
+    NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroUsize, Wrapping,
 };
 
-use error_stack::{Report, ResultExt};
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use error_stack::{Report, ResultExt as _};
+use serde::{Serialize, Serializer, ser::SerializeMap as _};
 
 use crate::{
-    error::{DeserializeError, Error, ExpectedType, ReceivedValue, ValueError},
     Deserialize, Deserializer, Document, Reflection, Schema,
+    error::{DeserializeError, Error, ExpectedType, ReceivedValue, ValueError},
 };
 
 struct Zero;
@@ -37,7 +37,7 @@ macro_rules! impl_nonzero {
         impl<'de> Deserialize<'de> for $typ {
             type Reflection = Self;
 
-            fn deserialize<D: Deserializer<'de>>(deserializer: D) -> error_stack::Result<Self, DeserializeError> {
+            fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, Report<DeserializeError>> {
                 let value = $int::deserialize(deserializer)?;
 
                 Self::new(value)
@@ -77,7 +77,7 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Wrapping<T> {
 
     fn deserialize<D: Deserializer<'de>>(
         deserializer: D,
-    ) -> error_stack::Result<Self, DeserializeError> {
+    ) -> Result<Self, Report<DeserializeError>> {
         T::deserialize(deserializer).map(Self)
     }
 }
@@ -88,7 +88,7 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Saturating<T> {
 
     fn deserialize<D: Deserializer<'de>>(
         deserializer: D,
-    ) -> error_stack::Result<Self, DeserializeError> {
+    ) -> Result<Self, Report<DeserializeError>> {
         T::deserialize(deserializer).map(Self)
     }
 }
@@ -104,7 +104,7 @@ macro_rules! impl_num {
         impl<'de> Deserialize<'de> for $primitive {
             type Reflection = Self;
 
-            fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+            fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
             where
                 D: Deserializer<'de>,
             {
@@ -128,7 +128,7 @@ macro_rules! impl_num {
 
 macro_rules! num_self {
     ($primitive:ident:: $visit:ident) => {
-        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+        fn $visit(self, value: $primitive) -> Result<Self::Value, Report<VisitorError>> {
             Ok(value)
         }
     };
@@ -136,7 +136,7 @@ macro_rules! num_self {
 
 macro_rules! num_from {
     ($primitive:ident:: $visit:ident) => {
-        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+        fn $visit(self, value: $primitive) -> Result<Self::Value, Report<VisitorError>> {
             Ok(Self::Value::from(value))
         }
     };
@@ -144,7 +144,7 @@ macro_rules! num_from {
 
 macro_rules! num_try_from {
     ($primitive:ident:: $visit:ident) => {
-        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+        fn $visit(self, value: $primitive) -> Result<Self::Value, Report<VisitorError>> {
             Self::Value::try_from(value)
                 .change_context(ValueError.into_error())
                 .attach(ExpectedType::new(self.expecting()))
@@ -156,7 +156,7 @@ macro_rules! num_try_from {
 
 macro_rules! num_as_lossy {
     ($primitive:ident:: $visit:ident) => {
-        fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
+        fn $visit(self, value: $primitive) -> Result<Self::Value, Report<VisitorError>> {
             Ok(value as Self::Value)
         }
     };
@@ -164,7 +164,7 @@ macro_rules! num_as_lossy {
 
 macro_rules! num_number {
     ($primitive:ident:: $to:ident) => {
-        fn visit_number(self, value: Number) -> Result<Self::Value, VisitorError> {
+        fn visit_number(self, value: Number) -> Result<Self::Value, Report<VisitorError>> {
             value.$to().ok_or_else(|| {
                 Report::new(ValueError.into_error())
                     .attach(ExpectedType::new(self.expecting()))

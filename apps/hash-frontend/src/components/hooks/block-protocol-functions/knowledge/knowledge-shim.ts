@@ -54,7 +54,7 @@ export type GetEntityMessageCallback = MessageCallback<
 
 export type UpdateEntityData = {
   entityId: EntityId;
-  entityTypeId: VersionedUrl;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   properties: PropertyObject;
 };
 
@@ -96,7 +96,7 @@ export type QueryEntitiesMessageCallback = MessageCallback<
 >;
 
 export type CreateEntityRequest = {
-  entityTypeId: VersionedUrl;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   properties: PropertyObject;
   linkData?: LinkData;
 };

@@ -3,269 +3,283 @@ import type {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { extractVersion } from "@blockprotocol/type-system";
-import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import {
+  getEntityTypeById,
+  getPropertyTypesForEntityType,
+} from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { format } from "date-fns";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import { gridHeaderBaseFont } from "../../../components/grid/grid";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import type { MinimalActor } from "../../../shared/use-actors";
 import { useActors } from "../../../shared/use-actors";
+import type {
+  EntitiesTableData,
+  GenerateEntitiesTableDataRequestMessage,
+  TypeEntitiesRow,
+} from "./use-entities-table/types";
+import { isGenerateEntitiesTableDataResultMessage } from "./use-entities-table/types";
 
-export interface TypeEntitiesRow {
-  rowId: string;
-  entityId: EntityId;
-  entity: Entity;
-  entityLabel: string;
-  entityTypeId: VersionedUrl;
-  entityTypeVersion: string;
-  archived?: boolean;
-  lastEdited: string;
-  lastEditedBy?: MinimalActor;
-  created: string;
-  createdBy?: MinimalActor;
-  web: string;
-  properties?: {
-    [k: string]: string;
-  };
-  /** @todo: get rid of this by typing `columnId` */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
+let canvas: HTMLCanvasElement | undefined = undefined;
+
+const getTextWidth = (text: string) => {
+  canvas ??= document.createElement("canvas");
+
+  const context = canvas.getContext("2d")!;
+
+  context.font = gridHeaderBaseFont;
+
+  const metrics = context.measureText(text);
+  return metrics.width;
+};
+
+type PropertiesByEntityTypeId = {
+  [entityTypeId: VersionedUrl]: {
+    propertyType: PropertyTypeWithMetadata;
+    width: number;
+  }[];
+};
 
 export const useEntitiesTable = (params: {
   entities?: Entity[];
   entityTypes?: EntityType[];
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
-  hidePageArchivedColumn?: boolean;
-  hideEntityTypeVersionColumn?: boolean;
+  hasSomeLinks?: boolean;
+  hideColumns?: (keyof TypeEntitiesRow)[];
+  hideArchivedColumn?: boolean;
   hidePropertiesColumns: boolean;
-  isViewingPages?: boolean;
-}) => {
+}): { loading: boolean; tableData: EntitiesTableData | null } => {
   const {
     entities,
     entityTypes,
-    propertyTypes,
     subgraph,
-    hidePageArchivedColumn = false,
-    hideEntityTypeVersionColumn = false,
+    hasSomeLinks,
+    hideColumns,
+    hideArchivedColumn = false,
     hidePropertiesColumns,
-    isViewingPages = false,
+    propertyTypes,
   } = params;
 
-  const editorActorIds = useMemo(
-    () =>
-      entities?.flatMap(({ metadata }) => [
-        metadata.provenance.edition.createdById,
-        metadata.provenance.createdById,
-      ]),
-    [entities],
-  );
+  const [worker, setWorker] = useState<Worker | null>(null);
 
-  const { actors } = useActors({ accountIds: editorActorIds });
+  useEffect(() => {
+    const webWorker = new Worker(
+      new URL("./use-entities-table/worker.ts", import.meta.url),
+    );
+    setWorker(webWorker);
+
+    return () => {
+      webWorker.terminate();
+    };
+  }, []);
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
-  const entitiesHaveSameType = useMemo(
-    () =>
-      !!entities &&
-      !!entities.length &&
-      entities
-        .map(({ metadata: { entityTypeId } }) => extractBaseUrl(entityTypeId))
-        .every((value, _i, all) => value === all[0]),
-    [entities],
-  );
+  const {
+    editorActorIds,
+    entitiesHaveSameType,
+    entityTypesWithMultipleVersionsPresent,
+    usedPropertyTypesByEntityTypeId,
+  } = useMemo<{
+    editorActorIds: AccountId[];
+    entitiesHaveSameType: boolean;
+    entityTypesWithMultipleVersionsPresent: VersionedUrl[];
+    usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
+  }>(() => {
+    if (!entities || !subgraph) {
+      return {
+        editorActorIds: [],
+        entitiesHaveSameType: false,
+        entityTypesWithMultipleVersionsPresent: [],
+        usedPropertyTypesByEntityTypeId: {},
+      };
+    }
 
-  return useMemo(() => {
-    const propertyColumnsMap = new Map<string, SizedGridColumn>();
+    const propertyMap: PropertiesByEntityTypeId = {};
 
-    if (propertyTypes) {
-      for (const propertyType of propertyTypes) {
-        const propertyTypeBaseUrl = extractBaseUrl(propertyType.$id);
+    const typesWithMultipleVersions: VersionedUrl[] = [];
+    const firstSeenTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
+    const actorIds: AccountId[] = [];
 
-        if (!propertyColumnsMap.has(propertyTypeBaseUrl)) {
-          propertyColumnsMap.set(propertyTypeBaseUrl, {
-            id: propertyTypeBaseUrl,
-            title: propertyType.title,
-            width: 200,
+    for (const entity of entities) {
+      actorIds.push(
+        entity.metadata.provenance.edition.createdById,
+        entity.metadata.provenance.createdById,
+      );
+
+      for (const entityTypeId of entity.metadata.entityTypeIds) {
+        if (propertyMap[entityTypeId]) {
+          continue;
+        }
+
+        const baseUrl = extractBaseUrl(entityTypeId);
+        if (firstSeenTypeByBaseUrl[baseUrl]) {
+          typesWithMultipleVersions.push(entityTypeId);
+          typesWithMultipleVersions.push(firstSeenTypeByBaseUrl[baseUrl]);
+        } else {
+          firstSeenTypeByBaseUrl[baseUrl] = entityTypeId;
+        }
+
+        const entityType = getEntityTypeById(subgraph, entityTypeId);
+        if (!entityType) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `Could not find entityType with id ${entityTypeId}, it may be loading...`,
+          );
+          continue;
+        }
+
+        const propertyTypesForEntity = getPropertyTypesForEntityType(
+          entityType.schema,
+          subgraph,
+        );
+
+        propertyMap[entityTypeId] ??= [];
+
+        for (const propertyType of propertyTypesForEntity.values()) {
+          propertyMap[entityTypeId].push({
+            propertyType,
+            width: getTextWidth(propertyType.schema.title) + 70,
           });
         }
       }
     }
-    const propertyColumns = Array.from(propertyColumnsMap.values());
 
-    const columns: SizedGridColumn[] = [
-      {
-        title: entitiesHaveSameType
-          ? (entityTypes?.find(
-              ({ $id }) => $id === entities?.[0]?.metadata.entityTypeId,
-            )?.title ?? "Entity")
-          : "Entity",
-        id: "entityLabel",
-        width: 252,
-        grow: 1,
-      },
-      ...(hideEntityTypeVersionColumn
-        ? []
-        : [
-            {
-              title: "Entity Type Version",
-              id: "entityTypeVersion",
-              width: 250,
-            },
-          ]),
-      {
-        title: "Web",
-        id: "web",
-        width: 200,
-      },
-      ...(isViewingPages && !hidePageArchivedColumn
-        ? [
-            {
-              title: "Archived",
-              id: "archived",
-              width: 200,
-            },
-          ]
-        : []),
-      {
-        title: "Last Edited",
-        id: "lastEdited",
-        width: 200,
-      },
-      {
-        title: "Last Edited By",
-        id: "lastEditedBy",
-        width: 200,
-      },
-      {
-        title: "Created",
-        id: "created",
-        width: 200,
-      },
-      {
-        title: "Created By",
-        id: "createdBy",
-        width: 200,
-      },
-      /** @todo: uncomment this when we have additional types for entities */
-      // {
-      //   title: "Additional Types",
-      //   id: "additionalTypes",
-      //   width: 250,
-      // },
-      ...(hidePropertiesColumns ? [] : propertyColumns),
-    ];
+    return {
+      editorActorIds: actorIds,
+      entitiesHaveSameType: Object.keys(firstSeenTypeByBaseUrl).length === 1,
+      entityTypesWithMultipleVersionsPresent: typesWithMultipleVersions,
+      usedPropertyTypesByEntityTypeId: propertyMap,
+    };
+  }, [entities, subgraph]);
 
-    const rows: TypeEntitiesRow[] | undefined =
-      subgraph && entityTypes
-        ? entities?.map((entity) => {
-            const entityLabel = generateEntityLabel(subgraph, entity);
+  const { actors, loading: actorsLoading } = useActors({
+    accountIds: editorActorIds,
+  });
 
-            const entityType = entityTypes.find(
-              (type) => type.$id === entity.metadata.entityTypeId,
-            );
+  const actorsByAccountId: Record<AccountId, MinimalActor | null> =
+    useMemo(() => {
+      if (!actors) {
+        return {};
+      }
 
-            if (!entityType) {
-              throw new Error(
-                `Could not find entity type with id ${entity.metadata.entityTypeId} in subgraph`,
-              );
-            }
+      const actorsByAccount: Record<AccountId, MinimalActor | null> = {};
 
-            const { shortname: entityNamespace } = getOwnerForEntity({
-              entityId: entity.metadata.recordId.entityId,
-            });
+      for (const actor of actors) {
+        actorsByAccount[actor.accountId] = actor;
+      }
 
-            const entityId = entity.metadata.recordId.entityId;
+      return actorsByAccount;
+    }, [actors]);
 
-            const isPage = isPageEntityTypeId(entity.metadata.entityTypeId);
+  const webNameByOwnedById = useMemo(() => {
+    if (!entities) {
+      return {};
+    }
 
-            /**
-             * @todo: consider displaying handling this differently for pages, where
-             * updates on nested blocks/text entities may be a better indicator of
-             * when a page has been last edited.
-             */
-            const lastEdited = format(
-              new Date(
-                entity.metadata.temporalVersioning.decisionTime.start.limit,
-              ),
-              "yyyy-MM-dd HH:mm",
-            );
+    const webNameByOwner: Record<OwnedById, string> = {};
 
-            const lastEditedBy = actors?.find(
-              ({ accountId }) =>
-                accountId === entity.metadata.provenance.edition.createdById,
-            );
+    for (const entity of entities) {
+      const owner = getOwnerForEntity(entity);
+      webNameByOwner[
+        extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+      ] = owner.shortname;
+    }
 
-            const created = format(
-              new Date(entity.metadata.provenance.createdAtDecisionTime),
-              "yyyy-MM-dd HH:mm",
-            );
+    return webNameByOwner;
+  }, [entities, getOwnerForEntity]);
 
-            const createdBy = actors?.find(
-              ({ accountId }) =>
-                accountId === entity.metadata.provenance.createdById,
-            );
+  const [tableData, setTableData] = useState<EntitiesTableData | null>(null);
+  const [waitingTableData, setWaitingTableData] = useState(true);
 
-            return {
-              rowId: entityId,
-              entityId,
-              entity,
-              entityLabel,
-              entityTypeId: entityType.$id,
-              entityTypeVersion: `${entityType.title} v${extractVersion(entityType.$id)}`,
-              web: `@${entityNamespace}`,
-              archived: isPage
-                ? simplifyProperties(entity.properties as PageProperties)
-                    .archived
-                : undefined,
-              lastEdited,
-              lastEditedBy,
-              created,
-              createdBy,
-              /** @todo: uncomment this when we have additional types for entities */
-              // additionalTypes: "",
-              ...propertyColumns.reduce((fields, column) => {
-                if (column.id) {
-                  const propertyValue = entity.properties[column.id as BaseUrl];
+  const accumulatedDataRef = useRef<{
+    requestId: string;
+    rows: TypeEntitiesRow[];
+  }>({ requestId: "none", rows: [] });
 
-                  const value =
-                    typeof propertyValue === "undefined"
-                      ? ""
-                      : stringifyPropertyValue(propertyValue);
+  useEffect(() => {
+    if (!worker) {
+      return;
+    }
 
-                  return { ...fields, [column.id]: value };
-                }
+    worker.onmessage = ({ data }) => {
+      if (isGenerateEntitiesTableDataResultMessage(data)) {
+        const { done, requestId, result } = data;
+        setWaitingTableData(false);
 
-                return fields;
-              }, {}),
-            };
-          })
-        : undefined;
+        if (accumulatedDataRef.current.requestId !== requestId) {
+          accumulatedDataRef.current = { requestId, rows: result.rows };
+        } else {
+          accumulatedDataRef.current.rows.push(...result.rows);
+        }
 
-    return { columns, rows };
+        if (done) {
+          setTableData({
+            ...result,
+            rows: accumulatedDataRef.current.rows,
+          });
+          accumulatedDataRef.current.rows = [];
+        }
+      }
+    };
+  }, [worker]);
+
+  useEffect(() => {
+    if (entities && entityTypes && subgraph && !actorsLoading) {
+      const serializedSubgraph = serializeSubgraph(subgraph);
+
+      if (!worker) {
+        throw new Error("No worker available");
+      }
+
+      worker.postMessage({
+        type: "generateEntitiesTableData",
+        params: {
+          actorsByAccountId,
+          entities: entities.map((entity) => entity.toJSON()),
+          entitiesHaveSameType,
+          entityTypesWithMultipleVersionsPresent,
+          entityTypes,
+          propertyTypes,
+          subgraph: serializedSubgraph,
+          hasSomeLinks,
+          hideColumns,
+          hideArchivedColumn,
+          hidePropertiesColumns,
+          usedPropertyTypesByEntityTypeId,
+          webNameByOwnedById,
+        },
+      } satisfies GenerateEntitiesTableDataRequestMessage);
+    }
   }, [
+    actorsByAccountId,
+    actorsLoading,
     entities,
     entityTypes,
-    getOwnerForEntity,
+    entitiesHaveSameType,
+    entityTypesWithMultipleVersionsPresent,
+    hasSomeLinks,
+    hideColumns,
+    hideArchivedColumn,
+    hidePropertiesColumns,
     propertyTypes,
     subgraph,
-    entitiesHaveSameType,
-    hideEntityTypeVersionColumn,
-    hidePageArchivedColumn,
-    hidePropertiesColumns,
-    isViewingPages,
-    actors,
+    usedPropertyTypesByEntityTypeId,
+    webNameByOwnedById,
+    worker,
   ]);
+
+  return {
+    tableData,
+    loading: waitingTableData,
+  };
 };

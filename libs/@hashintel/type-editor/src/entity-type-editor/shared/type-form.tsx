@@ -109,9 +109,11 @@ export const TypeFormTitleField = ({
 export const TypeFormDescriptionField = ({
   defaultValues,
   fieldDisabled,
+  kind,
 }: {
   defaultValues: { description?: string };
   fieldDisabled: boolean;
+  kind: "link" | "property";
 }) => {
   const {
     register,
@@ -155,7 +157,7 @@ export const TypeFormDescriptionField = ({
         </>
       }
       required={descriptionRequired}
-      placeholder="Describe this property type in one or two sentences"
+      placeholder={`Describe this ${kind} type in one or two sentences`}
       disabled={fieldDisabled || isSubmitting}
       {...(!fieldDisabled &&
         descriptionTouched && {
@@ -198,6 +200,7 @@ type PolymorphicComponent<
 
 // @ts-expect-error -- fix this at some point, search 'PolymorphicComponent with forwardRef'
 export const TypeFormModal: PolymorphicComponent = forwardRef(
+  // @ts-expect-error -- fix this at some point, search 'PolymorphicComponent with forwardRef'
   <T extends ElementType>(
     props: TypeFormModalProps<T>,
     ref: Ref<HTMLElement>,
@@ -245,6 +248,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
   disabledFields = [],
   getDefaultValues,
   getDirtyFields,
+  kind,
   onClose,
   modalTitle,
   popupState,
@@ -253,6 +257,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
   validateTitle,
 }: {
   children?: ReactNode;
+  kind: "link" | "property";
   validateTitle: (title: string) => ReturnType<TitleValidationFunction>;
 } & TypeFormProps<T>) => {
   const defaultValues = useMemo(() => getDefaultValues(), [getDefaultValues]);
@@ -378,6 +383,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
           />
           <TypeFormDescriptionField
             defaultValues={defaultValues}
+            kind={kind}
             fieldDisabled={disabledFields.includes("description")}
           />
           {children}

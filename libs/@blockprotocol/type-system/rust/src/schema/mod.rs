@@ -5,28 +5,52 @@
 //! specification, and are used to validate instances of types using [`serde`]. To aid with the
 //! de/serialization, intermediary structs and helpers are defined across various submodules.
 
+mod closed_resolver;
 mod data_type;
 mod entity_type;
 mod property_type;
 
 mod array;
+mod domain_validator;
 mod object;
 mod one_of;
 
+mod identifier;
+
 pub use self::{
-    array::{ArraySchema, ValueOrArray},
+    array::{
+        ArraySchemaValidationError, ArraySchemaValidator, PropertyArraySchema, PropertyValueArray,
+        ValueOrArray,
+    },
+    closed_resolver::{InheritanceDepth, OntologyTypeResolver},
     data_type::{
-        ClosedDataType, ClosedDataTypeMetadata, DataType, DataTypeLabel, DataTypeReference,
-        DataTypeValidator, JsonSchemaValueType, OntologyTypeResolver, ValidateDataTypeError,
+        AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
+        BooleanSchema, BooleanTypeTag, ClosedDataType, ConstraintError, ConstraintValidator,
+        ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
+        DataTypeEdge, DataTypeReference, DataTypeResolveData, DataTypeValidator,
+        JsonSchemaValueType, NullSchema, NullTypeTag, NumberConstraints, NumberSchema,
+        NumberTypeTag, NumberValidationError, ObjectConstraints, ObjectSchema, ObjectTypeTag,
+        ObjectValidationError, Operator, SingleValueConstraints, SingleValueSchema,
+        StringConstraints, StringFormat, StringFormatError, StringSchema, StringTypeTag,
+        StringValidationError, TupleConstraints, ValidateDataTypeError, ValueLabel,
+        ValueSchemaMetadata, Variable,
     },
+    domain_validator::{DomainValidationError, DomainValidator, ValidateOntologyType},
     entity_type::{
-        ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
-        EntityTypeValidationError, EntityTypeValidator,
+        ClosedEntityType, ClosedEntityTypeMetadata, ClosedMultiEntityType, EntityConstraints,
+        EntityType, EntityTypeReference, EntityTypeResolveData, EntityTypeSchemaMetadata,
+        EntityTypeToEntityTypeEdge, EntityTypeToPropertyTypeEdge, EntityTypeValidationError,
+        EntityTypeValidator, InverseEntityTypeMetadata, PartialEntityType,
+        ResolveClosedEntityTypeError,
     },
-    object::{ObjectSchema, ObjectSchemaValidationError, ObjectSchemaValidator},
+    identifier::{DataTypeUuid, EntityTypeUuid, OntologyTypeUuid, PropertyTypeUuid},
+    object::{
+        ObjectSchemaValidationError, ObjectSchemaValidator, PropertyObjectSchema,
+        PropertyValueObject,
+    },
     one_of::{OneOfSchema, OneOfSchemaValidationError, OneOfSchemaValidator},
     property_type::{
         PropertyType, PropertyTypeReference, PropertyTypeValidationError, PropertyTypeValidator,
-        PropertyValues,
+        PropertyValueSchema, PropertyValueType, PropertyValues,
     },
 };

@@ -22,7 +22,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 
 import { getDefaultExpectedValue } from "../../shared/default-expected-value";
 import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
-import { useCustomExpectedValueBuilderContext } from "./shared/custom-expected-value-builder-context";
+import { useExpectedValueSelectorContext } from "./shared/expected-value-selector-context";
 import type { ExpectedValueSelectorFormValues } from "./shared/expected-value-selector-form-values";
 import { ObjectExpectedValueBuilder } from "./shared/object-expected-value-builder";
 
@@ -47,7 +47,7 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
 }) => {
   const { control } = useFormContext<ExpectedValueSelectorFormValues>();
 
-  const { handleCancel } = useCustomExpectedValueBuilderContext();
+  const { handleCancelCustomBuilder } = useExpectedValueSelectorContext();
 
   const customDataType = useWatch({
     control,
@@ -59,14 +59,14 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
       return (
         <ArrayExpectedValueBuilder
           expectedValueId={expectedValueId}
-          onDelete={handleCancel}
+          onDelete={handleCancelCustomBuilder}
         />
       );
     case "object":
       return (
         <ObjectExpectedValueBuilder
           expectedValueId={expectedValueId}
-          onDelete={handleCancel}
+          onDelete={handleCancelCustomBuilder}
         />
       );
     default:
@@ -75,7 +75,8 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
 };
 
 export const CustomExpectedValueBuilder: FunctionComponent = () => {
-  const { handleSave, handleCancel } = useCustomExpectedValueBuilderContext();
+  const { handleSave, handleCancelCustomBuilder } =
+    useExpectedValueSelectorContext();
   const { getValues, setValue, control } =
     useFormContext<ExpectedValueSelectorFormValues>();
 
@@ -118,7 +119,7 @@ export const CustomExpectedValueBuilder: FunctionComponent = () => {
           </Stack>
 
           <Button
-            onClick={handleCancel}
+            onClick={handleCancelCustomBuilder}
             sx={({ palette, transitions }) => ({
               padding: 0,
               minWidth: 0,
@@ -147,7 +148,7 @@ export const CustomExpectedValueBuilder: FunctionComponent = () => {
           sx={{ paddingTop: 1.25, color: ({ palette }) => palette.gray[70] }}
         >
           Advanced users can specify property objects as well as arrays of data
-          types and/or property objects as expected values.
+          types as expected values.
         </Typography>
       </Stack>
 

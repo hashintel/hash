@@ -28,8 +28,12 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
    */
   const entitiesWithDependenciesSortedLast = proposedEntities.toSorted(
     (a, b) => {
-      const isAFileEntity = fileEntityTypeIds.includes(a.entityTypeId);
-      const isBFileEntity = fileEntityTypeIds.includes(b.entityTypeId);
+      const isAFileEntity = a.entityTypeIds.some((entityTypeId) =>
+        fileEntityTypeIds.includes(entityTypeId),
+      );
+      const isBFileEntity = b.entityTypeIds.some((entityTypeId) =>
+        fileEntityTypeIds.includes(entityTypeId),
+      );
       if (isAFileEntity && !isBFileEntity) {
         return -1;
       } else if (isBFileEntity && !isAFileEntity) {
@@ -40,7 +44,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
        * This assumes that there are no link entities which link to other link entities, which require being able to
        * create multiple entities at once in a single transaction (since they refer to each other).
        *
-       * @todo handle links pointing to other links via creating many entities at once, unblocked by H-1178
+       * @todo handle links pointing to other links via creating many entities at once, unblocked by H-1178. See also entity-result-table
        */
       if (
         (a.sourceEntityId && b.sourceEntityId) ||
@@ -75,7 +79,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
   for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
     const {
       claims,
-      entityTypeId,
+      entityTypeIds,
       localEntityId,
       properties,
       provenance,
@@ -86,7 +90,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
 
     const entityWithResolvedLinks: ProposedEntityWithResolvedLinks = {
       claims,
-      entityTypeId,
+      entityTypeIds,
       localEntityId,
       properties,
       propertyMetadata,

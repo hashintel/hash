@@ -10,9 +10,9 @@ use std::{
 };
 
 use clap::Parser;
-use error_stack::{Report, ResultExt};
-use repo_chores::benches::{
-    analyze::{criterion, AnalyzeError, BenchmarkAnalysis},
+use error_stack::{Report, ResultExt as _};
+use hash_repo_chores::benches::{
+    analyze::{AnalyzeError, BenchmarkAnalysis, criterion},
     report::Benchmark,
 };
 
@@ -46,8 +46,8 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
     struct BenchFormatter<'b>(&'b [BenchmarkAnalysis], &'b str);
 
     impl Display for BenchFormatter<'_> {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            criterion::format_github_markdown(f, self.0, self.1)
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            criterion::format_github_markdown(fmt, self.0, self.1)
         }
     }
 

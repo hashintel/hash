@@ -125,7 +125,10 @@ export const ListItem = ({ children }: HTMLAttributes<HTMLLIElement>) => {
 
 export const Pre = ({ children }: HTMLAttributes<HTMLElement>) => {
   if (isValidElement(children)) {
-    const childProps: { className?: string; children: string } = children.props;
+    const childProps = children.props as {
+      className?: string;
+      children: string;
+    };
 
     return (
       <Box

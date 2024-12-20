@@ -371,7 +371,7 @@ export const proposeEntities = async (params: {
 
           try {
             validateProposedEntitiesByType(proposedEntitiesByType, false);
-          } catch (err) {
+          } catch {
             logger.error(
               `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
                 toolCall.input,
@@ -549,6 +549,7 @@ export const proposeEntities = async (params: {
               typedEntries(validProposedEntitiesByType).flatMap(
                 ([entityTypeId, entities]) =>
                   entities.map((entity) => ({
+                    isUpdateToExistingProposal: false,
                     proposedEntity: {
                       ...entity,
                       claims: {
@@ -565,7 +566,7 @@ export const proposeEntities = async (params: {
                          */
                         entity.entityId.toString() as EntityUuid,
                       ),
-                      entityTypeId: entityTypeId as VersionedUrl,
+                      entityTypeIds: [entityTypeId as VersionedUrl],
                       properties: entity.properties ?? {},
                       propertyMetadata: { value: {} },
                       sourceEntityId:
@@ -595,6 +596,7 @@ export const proposeEntities = async (params: {
                     workerType: "Link explorer",
                     parentInstanceId: null,
                     workerInstanceId: "browser-plugin-flow",
+                    toolCallId: null,
                   })),
               ),
             );

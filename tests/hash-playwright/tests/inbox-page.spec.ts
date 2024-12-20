@@ -35,7 +35,7 @@ const createNotification = async ({
 
   const targetEntity = await createEntity<Page>(requestContext, {
     draft,
-    entityTypeId: systemEntityTypes.page.entityTypeId,
+    entityTypeIds: [systemEntityTypes.page.entityTypeId],
     ownedById,
     properties: {
       value: {
@@ -61,7 +61,7 @@ const createNotification = async ({
     requestContext,
     {
       draft: false,
-      entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
+      entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
       ownedById,
       properties: {
         value: {
@@ -79,7 +79,7 @@ const createNotification = async ({
 
   await createEntity<OccurredInEntity>(requestContext, {
     draft,
-    entityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+    entityTypeIds: [systemLinkEntityTypes.occurredInEntity.linkEntityTypeId],
     linkData: {
       leftEntityId: notificationEntity.metadata.recordId.entityId,
       rightEntityId: targetEntity.metadata.recordId.entityId,
@@ -102,7 +102,7 @@ const createNotification = async ({
   return targetEntityTitle;
 };
 
-test("new notifications are shown on inbox page", async ({ page }) => {
+test("new notifications are shown on notifications page", async ({ page }) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",
@@ -111,9 +111,9 @@ test("new notifications are shown on inbox page", async ({ page }) => {
 
   await expect(page.locator("text=Get support")).toBeVisible();
 
-  await page.goto("/inbox");
+  await page.goto("/notifications");
 
-  await page.waitForURL((url) => url.pathname === "/inbox");
+  await page.waitForURL((url) => url.pathname === "/notifications");
 
   const draftNotificationTitle = new Date().toISOString();
 

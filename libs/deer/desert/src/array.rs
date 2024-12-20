@@ -1,8 +1,8 @@
 use deer::{
-    error::{ArrayAccessError, ArrayLengthError},
     Context, Deserialize, Deserializer as _,
+    error::{ArrayAccessError, ArrayLengthError},
 };
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{deserializer::Deserializer, skip::skip_tokens, token::Token};
 
@@ -34,7 +34,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         self.deserializer.context()
     }
 
-    fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
+    fn next<T>(&mut self) -> Option<Result<T, Report<ArrayAccessError>>>
     where
         T: Deserialize<'de>,
     {
@@ -54,7 +54,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         self.length
     }
 
-    fn end(self) -> Result<(), ArrayAccessError> {
+    fn end(self) -> Result<(), Report<ArrayAccessError>> {
         // ensure that we consume the last token, if it is the wrong token error out
         let result = if self.deserializer.peek() == Token::ArrayEnd {
             Ok(())

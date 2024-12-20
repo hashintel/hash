@@ -114,3 +114,22 @@ html {
 body {
   overflow: auto;
 }
+
+.full-height-and-width-for-react-full-screen {
+  width: 100%;
+  height: 100%;
+}
+
+.react-pdf-page {
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  height: 100%;
+
+  .annotationLayer .popup {
+    min-width: 200px;
+  }
+}
+
+.react-pdf-document {
+  width: 100%;
+  height: 100%;
+}

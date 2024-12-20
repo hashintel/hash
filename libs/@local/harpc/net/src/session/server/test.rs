@@ -7,41 +7,44 @@ use core::{
 use std::io::{self, ErrorKind};
 
 use bytes::{Bytes, BytesMut};
-use error_stack::{Report, ResultExt};
-use futures::{SinkExt, Stream, StreamExt};
-use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+use error_stack::{Report, ResultExt as _};
+use futures::{SinkExt as _, Stream, StreamExt as _};
+use harpc_types::{
+    procedure::{ProcedureDescriptor, ProcedureId},
+    subsystem::{SubsystemDescriptor, SubsystemId},
+    version::Version,
+};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
+        Request,
         begin::RequestBegin,
         body::RequestBody,
         flags::{RequestFlag, RequestFlags},
         frame::RequestFrame,
         header::RequestHeader,
-        procedure::ProcedureDescriptor,
-        service::ServiceDescriptor,
-        Request,
     },
-    response::{flags::ResponseFlag, Response},
+    response::{Response, flags::ResponseFlag},
     test_utils::mock_request_id,
 };
 use libp2p::Multiaddr;
+use libp2p_stream::OpenStreamError;
 use tokio::{pin, sync::Notify};
 
 use super::{
-    transaction::{TransactionSink, TransactionStream},
     ListenStream, SessionConfig, SessionLayer,
+    transaction::{TransactionSink, TransactionStream},
 };
 use crate::{
     macros::non_zero,
-    session::{server::config::ConcurrentConnectionLimit, test::StringEncoder},
+    session::server::config::ConcurrentConnectionLimit,
     transport::{
-        connection::OutgoingConnection,
-        error::{OpenStreamError, TransportError},
-        test::{layer, memory_address},
         TransportLayer,
+        connection::OutgoingConnection,
+        error::TransportError,
+        test::{layer, memory_address},
     },
 };
 
@@ -62,8 +65,8 @@ pub(crate) fn make_request_begin(
     Request {
         header: make_request_header(flags),
         body: RequestBody::Begin(RequestBegin {
-            service: ServiceDescriptor {
-                id: ServiceId::new(0x01),
+            subsystem: SubsystemDescriptor {
+                id: SubsystemId::new(0x01),
                 version: Version {
                     major: 0x00,
                     minor: 0x01,
@@ -93,7 +96,7 @@ async fn session_map<T, U>(
     config: SessionConfig,
     address: Multiaddr,
     map_transport: impl FnOnce(&TransportLayer) -> T + Send,
-    map_layer: impl FnOnce(&SessionLayer<StringEncoder>) -> U + Send,
+    map_layer: impl FnOnce(&SessionLayer) -> U + Send,
 ) -> (ListenStream, T, U, impl Drop)
 where
     T: Send,
@@ -103,7 +106,7 @@ where
 
     let transport_data = map_transport(&transport);
 
-    let layer = SessionLayer::new(config, transport, StringEncoder);
+    let layer = SessionLayer::new(config, transport);
 
     let layer_data = map_layer(&layer);
 
@@ -172,11 +175,11 @@ impl EchoStatistics {
 }
 
 #[derive(Debug)]
-struct EchoService {
+struct EchoSystem {
     statistics: EchoStatistics,
 }
 
-impl EchoService {
+impl EchoSystem {
     fn new() -> Self {
         Self {
             statistics: EchoStatistics {
@@ -195,7 +198,7 @@ impl EchoService {
     async fn handle(
         mut sink: TransactionSink,
         mut stream: TransactionStream,
-    ) -> error_stack::Result<(), EchoError> {
+    ) -> Result<(), Report<EchoError>> {
         while let Some(bytes) = stream.next().await {
             sink.send(Ok(bytes)).await.change_context(EchoError::Sink)?;
         }
@@ -265,7 +268,7 @@ async fn connect_error(client: &TransportLayer, address: Multiaddr) -> Report<Tr
 
 #[track_caller]
 async fn assert_response(
-    stream: impl Stream<Item = error_stack::Result<Response, io::Error>> + Send + Sync,
+    stream: impl Stream<Item = Result<Response, Report<io::Error>>> + Send + Sync,
     expected: impl AsRef<[u8]> + Send,
 ) {
     pin!(stream);
@@ -291,10 +294,10 @@ async fn single_session() {
     let (server, _server_guard) = session(SessionConfig::default(), address.clone()).await;
     let (client, _client_guard) = layer();
 
-    let service = EchoService::new();
-    let statistics = service.statistics();
+    let system = EchoSystem::new();
+    let statistics = system.statistics();
 
-    service.spawn(server);
+    system.spawn(server);
 
     let OutgoingConnection {
         mut sink, stream, ..
@@ -340,10 +343,10 @@ async fn client_disconnect() {
 
     let (server, _server_guard) = session(SessionConfig::default(), address.clone()).await;
 
-    let service = EchoService::new();
-    let statistics = service.statistics();
+    let system = EchoSystem::new();
+    let statistics = system.statistics();
 
-    service.spawn(server);
+    system.spawn(server);
 
     let (client, _client_guard) = layer();
 
@@ -411,7 +414,7 @@ async fn server_disconnect_by_dropping_listen_stream() {
     .await;
     let (client, _client_guard) = layer();
 
-    let service = EchoService::new();
+    let system = EchoSystem::new();
 
     // we first start a connection, and accept that transaction with an echo service
     let OutgoingConnection {
@@ -429,7 +432,7 @@ async fn server_disconnect_by_dropping_listen_stream() {
         .expect("should be able to accept transaction");
 
     let (_, txn_sink, txn_stream) = transaction.into_parts();
-    service.accept(txn_sink, txn_stream);
+    system.accept(txn_sink, txn_stream);
 
     // we now shutdown the server
     drop(server);
@@ -470,9 +473,9 @@ async fn swarm_shutdown_client() {
     .await;
     let (client, _client_guard) = layer();
 
-    let service = EchoService::new();
+    let system = EchoSystem::new();
 
-    service.spawn(server);
+    system.spawn(server);
 
     let OutgoingConnection {
         mut sink,
@@ -592,8 +595,8 @@ async fn too_many_connections() {
 
     let (client, _client_guard) = layer();
 
-    let service = EchoService::new();
-    service.spawn(server);
+    let system = EchoSystem::new();
+    system.spawn(server);
 
     let OutgoingConnection {
         mut sink,
@@ -640,8 +643,8 @@ async fn connection_reclaim() {
 
     let (client, _client_guard) = layer();
 
-    let service = EchoService::new();
-    service.spawn(server);
+    let system = EchoSystem::new();
+    system.spawn(server);
 
     let OutgoingConnection {
         mut sink, stream, ..

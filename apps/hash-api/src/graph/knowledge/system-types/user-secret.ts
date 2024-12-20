@@ -166,8 +166,12 @@ export const createUserSecret = async <
 
     await Promise.all(
       linkAndSecretPairs.flatMap(({ userSecret, usesUserSecretLink }) => [
-        userSecret.archive(graphApi, managingBotAuthentication),
-        usesUserSecretLink.archive(graphApi, managingBotAuthentication),
+        userSecret.archive(graphApi, managingBotAuthentication, provenance),
+        usesUserSecretLink.archive(
+          graphApi,
+          managingBotAuthentication,
+          provenance,
+        ),
       ]),
     );
   }
@@ -176,7 +180,7 @@ export const createUserSecret = async <
     { graphApi, provenance },
     authentication,
     {
-      entityTypeId: systemEntityTypes.userSecret.entityTypeId,
+      entityTypeIds: [systemEntityTypes.userSecret.entityTypeId],
       ownedById: userAccountId as OwnedById,
       properties: secretMetadata,
       relationships: botEditorUserViewerOnly,
@@ -194,7 +198,7 @@ export const createUserSecret = async <
         leftEntityId: sourceIntegrationEntityId,
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
       },
-      entityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+      entityTypeIds: [systemLinkEntityTypes.usesUserSecret.linkEntityTypeId],
       relationships: botEditorUserViewerOnly,
     },
   );

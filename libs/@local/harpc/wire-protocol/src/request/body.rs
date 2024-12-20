@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use super::{
     begin::RequestBegin,
@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
 };
 
@@ -17,6 +17,7 @@ use crate::{
 pub struct RequestBodyEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub enum RequestBody {
     Begin(RequestBegin),
@@ -42,7 +43,7 @@ impl RequestBody {
 impl Encode for RequestBody {
     type Error = RequestBodyEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -89,7 +90,10 @@ impl Decode for RequestBody {
     type Context = RequestBodyContext;
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, context: Self::Context) -> Result<Self, Self::Error>
+    fn decode<B>(
+        buffer: &mut Buffer<B>,
+        context: Self::Context,
+    ) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -104,21 +108,22 @@ impl Decode for RequestBody {
 mod test {
     #![expect(clippy::needless_raw_strings)]
     use expect_test::expect;
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+    use harpc_types::{
+        procedure::{ProcedureDescriptor, ProcedureId},
+        subsystem::{SubsystemDescriptor, SubsystemId},
+        version::Version,
+    };
 
     use super::{RequestBody, RequestBodyContext};
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode, encode_value},
         payload::Payload,
-        request::{
-            begin::RequestBegin, body::RequestVariant, frame::RequestFrame,
-            procedure::ProcedureDescriptor, service::ServiceDescriptor,
-        },
+        request::{begin::RequestBegin, body::RequestVariant, frame::RequestFrame},
     };
 
     static EXAMPLE_BEGIN: RequestBegin = RequestBegin {
-        service: ServiceDescriptor {
-            id: ServiceId::new(0x0102),
+        subsystem: SubsystemDescriptor {
+            id: SubsystemId::new(0x0102),
             version: Version {
                 major: 0x03,
                 minor: 0x04,
@@ -136,24 +141,18 @@ mod test {
 
     #[test]
     fn encode_begin() {
-        assert_encode(
-            &RequestBody::Begin(EXAMPLE_BEGIN.clone()),
-            expect![[r#"
+        assert_encode(&RequestBody::Begin(EXAMPLE_BEGIN.clone()), expect![[r#"
             0x01 0x02 0x03 0x04 0x05 0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
             0x00 0x00 0x00 0x00 0x02 0x07 0x08
-        "#]],
-        );
+        "#]]);
     }
 
     #[test]
     fn encode_frame() {
-        assert_encode(
-            &RequestBody::Frame(EXAMPLE_FRAME.clone()),
-            expect![[r#"
+        assert_encode(&RequestBody::Frame(EXAMPLE_FRAME.clone()), expect![[r#"
             0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
             0x00 0x00 0x00 0x00 0x02 0x07 0x08
-        "#]],
-        );
+        "#]]);
     }
 
     #[test]

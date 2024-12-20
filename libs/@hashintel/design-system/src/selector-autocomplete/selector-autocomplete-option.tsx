@@ -2,15 +2,15 @@ import type { EntityPropertiesObject } from "@blockprotocol/graph";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Box, Paper, Popper, Stack, Tooltip, Typography } from "@mui/material";
 import clsx from "clsx";
-import type { HTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, ReactElement } from "react";
 import { useRef, useState } from "react";
 
 import { Chip } from "../chip";
 import { GRID_CLICK_IGNORE_CLASS } from "../constants";
+import { EntityOrTypeIcon } from "../entity-or-type-icon";
 import { FeatherRegularIcon } from "../icon-feather-regular";
 import { ImageWithCheckedBackground } from "../image-with-checked-background";
 import { OntologyChip } from "../ontology-chip";
-import { EntityTypeIcon } from "../ontology-icons";
 import { parseUrlForOntologyChip } from "../parse-url-for-ontology-chip";
 
 const descriptionPropertyKey: BaseUrl =
@@ -24,24 +24,17 @@ const mimeTypePropertyKey: BaseUrl =
 
 const imageThumbnailWidth = 90;
 
+type TypeDisplayData = { $id: VersionedUrl; icon?: string; title: string };
+
 export type SelectorAutocompleteOptionProps = {
   liProps: HTMLAttributes<HTMLLIElement>;
   description?: string;
   entityProperties?: EntityPropertiesObject;
-  icon: ReactNode | null;
+  icon: string | ReactElement | null;
   title: string;
-  /** the typeId associated with this entity type or entity, displayed as a chip in the option */
-  typeId: VersionedUrl;
+  types: [TypeDisplayData, ...TypeDisplayData[]];
   draft?: boolean;
 };
-
-const slugToTitleCase = (slug?: string) =>
-  slug
-    ? slug
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ")
-    : undefined;
 
 export const SelectorAutocompleteOption = ({
   liProps,
@@ -49,11 +42,9 @@ export const SelectorAutocompleteOption = ({
   entityProperties,
   icon,
   title,
-  typeId,
+  types,
   draft = false,
 }: SelectorAutocompleteOptionProps) => {
-  const ontology = parseUrlForOntologyChip(typeId);
-
   const optionRef = useRef<HTMLLIElement>(null);
   const [showPreviewPane, setShowPreviewPane] = useState(false);
 
@@ -72,7 +63,7 @@ export const SelectorAutocompleteOption = ({
   const onMouseEnter = () => (imageUrl ? setShowPreviewPane(true) : null);
   const onMouseLeave = () => (imageUrl ? setShowPreviewPane(false) : null);
 
-  const typeTitle = slugToTitleCase(typeId.split("/").slice(-3, -2)[0]);
+  /** @todo H-1978 use the entity type's icon below rather than hardcoding EntityTypeIcon */
 
   return (
     <li
@@ -109,7 +100,17 @@ export const SelectorAutocompleteOption = ({
                 src={imageUrl}
                 sx={{ mb: 1 }}
               />
-              <Typography sx={{ fontWeight: 500 }}>{title}</Typography>
+              <Typography
+                sx={{
+                  fontWeight: 500,
+                  display: "block",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {title}
+              </Typography>
               {subtitle && (
                 <Typography variant="smallTextLabels" mt={1.5}>
                   {subtitle}
@@ -117,7 +118,26 @@ export const SelectorAutocompleteOption = ({
               )}
             </Stack>
             <Stack direction="row" mt={1}>
-              <Chip color="gray" icon={<EntityTypeIcon />} label={typeTitle} />
+              <Chip
+                variant="outlined"
+                icon={
+                  typeof icon === "string" || !icon ? (
+                    <EntityOrTypeIcon
+                      entity={null}
+                      fill={({ palette }) =>
+                        entityProperties ? palette.gray[50] : palette.blue[70]
+                      }
+                      fontSize={12}
+                      icon={icon}
+                      /* @todo H-3363 set this using closed schema */
+                      isLink={false}
+                    />
+                  ) : (
+                    icon
+                  )
+                }
+                label={types[0].title}
+              />
             </Stack>
           </Paper>
         </Popper>
@@ -134,89 +154,103 @@ export const SelectorAutocompleteOption = ({
               component="span"
               display="flex"
               alignItems="center"
-              maxWidth="50%"
+              maxWidth="60%"
             >
-              {icon ? (
-                <Stack
-                  direction="row"
+              <Stack
+                direction="row"
+                sx={({ palette }) => ({
+                  alignItems: "center",
+                  background: palette.gray[10],
+                  border: `1px solid ${palette.gray[30]}`,
+                  borderRadius: 4,
+                  height: 26,
+                  maxWidth: "100%",
+                })}
+              >
+                <Box
                   sx={({ palette }) => ({
                     alignItems: "center",
-                    background: palette.gray[10],
-                    border: `1px solid ${palette.gray[30]}`,
+                    background: "white",
+                    borderRight: `1px solid ${palette.gray[30]}`,
                     borderRadius: 4,
-                    height: 26,
+                    display: "flex",
+                    px: 1.2,
+                    height: "100%",
                   })}
                 >
-                  <Box
-                    sx={({ palette }) => ({
-                      alignItems: "center",
-                      background: "white",
-                      borderRight: `1px solid ${palette.gray[30]}`,
-                      borderRadius: 4,
-                      display: "flex",
-                      px: 1.2,
-                      height: "100%",
-                      fontSize: 14,
-                      "> svg": {
-                        fontSize: 14,
-                      },
-                    })}
-                  >
-                    {icon}
-                  </Box>
-                  <Typography
-                    variant="smallTextLabels"
-                    sx={({ palette }) => ({
-                      color: palette.black,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      px: 1.2,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    })}
-                  >
-                    {title}
-                  </Typography>
-                </Stack>
-              ) : (
+                  {typeof icon === "string" || !icon ? (
+                    <EntityOrTypeIcon
+                      entity={null}
+                      fill={({ palette }) =>
+                        entityProperties ? palette.gray[50] : palette.blue[70]
+                      }
+                      fontSize={12}
+                      icon={icon}
+                      /* @todo H-3363 set this using closed schema */
+                      isLink={false}
+                    />
+                  ) : (
+                    icon
+                  )}
+                </Box>
                 <Typography
                   variant="smallTextLabels"
-                  sx={{
+                  sx={({ palette }) => ({
+                    color: palette.black,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    px: 1.2,
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    mr: 0.5,
-                    fontWeight: 500,
-                  }}
+                  })}
                 >
                   {title}
                 </Typography>
-              )}
+              </Stack>
             </Box>
-            <Tooltip title={typeId}>
-              {entityProperties && typeTitle ? (
-                <Chip
-                  icon={<EntityTypeIcon />}
-                  color="gray"
-                  label={typeTitle}
-                  sx={{
-                    ml: 1,
-                  }}
-                />
-              ) : (
-                <OntologyChip
-                  {...ontology}
-                  sx={({ palette }) => ({
-                    border: `1px solid ${palette.gray[30]}`,
-                    flexShrink: 1,
-                    minWidth: 150,
-                    ml: 1.25,
-                    mr: 2,
-                  })}
-                />
-              )}
-            </Tooltip>
+            <Stack direction="row" gap={0.5} ml={2}>
+              {types.map((type) => (
+                <Tooltip title={type.$id} key={type.$id}>
+                  {entityProperties ? (
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      sx={{
+                        fontSize: 12,
+                        px: 1,
+                        py: 0.5,
+                        border: ({ palette }) =>
+                          `1px solid ${palette.gray[30]}`,
+                        borderRadius: 4,
+                      }}
+                    >
+                      <EntityOrTypeIcon
+                        entity={null}
+                        icon={type.icon}
+                        fontSize={12}
+                        fill={({ palette }) => palette.blue[70]}
+                        /* @todo H-3363 set this using closed schema */
+                        isLink={false}
+                        sx={{ mr: 0.8 }}
+                      />
+                      {type.title}
+                    </Stack>
+                  ) : (
+                    <OntologyChip
+                      {...parseUrlForOntologyChip(type.$id)}
+                      sx={({ palette }) => ({
+                        border: `1px solid ${palette.gray[30]}`,
+                        flexShrink: 1,
+                        minWidth: 150,
+                        ml: 1.25,
+                        mr: 2,
+                      })}
+                    />
+                  )}
+                </Tooltip>
+              ))}
+            </Stack>
             {draft ? (
               <Chip
                 icon={<FeatherRegularIcon />}

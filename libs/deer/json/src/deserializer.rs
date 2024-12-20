@@ -1,26 +1,25 @@
 use core::ops::Range;
 
 use deer::{
+    Context, Deserialize as _, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor,
+    Reflection as _, StructVisitor, Visitor,
     error::{
         DeserializerError, Error, ExpectedLength, ExpectedType, ObjectLengthError, ReceivedType,
-        TypeError, Variant,
+        TypeError, Variant as _,
     },
     schema::Document,
     value::NoneDeserializer,
-    Context, Deserialize, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor, Reflection,
-    StructVisitor, Visitor,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, ResultExt as _};
 use justjson::{
-    parser::{PeekableTokenKind, Token, Tokenizer},
     AnyStr,
+    parser::{PeekableTokenKind, Token, Tokenizer},
 };
 
 use crate::{
     array::ArrayAccess,
     error::{
-        convert_tokenizer_error, BytesUnsupportedError, ErrorAccumulator, Position,
-        RecursionLimitError, SyntaxError,
+        BytesUnsupportedError, Position, RecursionLimitError, SyntaxError, convert_tokenizer_error,
     },
     number::try_convert_number,
     object::ObjectAccess,
@@ -53,7 +52,7 @@ impl Stack {
         Self { limit, depth: 0 }
     }
 
-    pub(crate) fn push(&mut self) -> Result<(), DeserializerError> {
+    pub(crate) fn push(&mut self) -> Result<(), Report<DeserializerError>> {
         self.depth += 1;
 
         if self.depth >= self.limit {
@@ -90,7 +89,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         }
     }
 
-    fn next(&mut self) -> Result<Token<'de>, DeserializerError> {
+    fn next(&mut self) -> Result<Token<'de>, Report<DeserializerError>> {
         let offset = self.tokenizer.offset();
         let Some(token) = self.tokenizer.next() else {
             return Err(Report::new(SyntaxError::UnexpectedEof.into_error())
@@ -103,7 +102,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
             .change_context(DeserializerError)
     }
 
-    fn next_value(&mut self) -> Result<ValueToken<'de>, DeserializerError> {
+    fn next_value(&mut self) -> Result<ValueToken<'de>, Report<DeserializerError>> {
         let token = self.next()?;
 
         ValueToken::try_from(token).change_context(DeserializerError)
@@ -140,7 +139,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         &mut self,
         token: PeekableTokenKind,
         error: SyntaxError,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Report<Error>> {
         if self.skip_if(token).is_none() {
             Err(Report::new(error.into_error()).attach(Position::new(self.offset())))
         } else {
@@ -156,7 +155,10 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         self.tokenizer.offset()
     }
 
-    pub(crate) fn try_stack_push(&mut self, token: &Token) -> Result<(), DeserializerError> {
+    pub(crate) fn try_stack_push(
+        &mut self,
+        token: &Token,
+    ) -> Result<(), Report<DeserializerError>> {
         if let Err(error) = self.stack.push() {
             // we can still recover, we pop us again from the stack as we stopped before and do not
             // commit. We still show the error, but we could continue, so we skip all tokens.
@@ -188,7 +190,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -212,7 +214,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         .change_context(DeserializerError)
     }
 
-    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -224,7 +226,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -236,7 +238,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -250,21 +252,21 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
         self.deserialize_str(visitor)
     }
 
-    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
         self.deserialize_str(visitor)
     }
 
-    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -280,21 +282,21 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_bytes<V>(self, _: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_bytes<V>(self, _: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
         Err(Report::new(BytesUnsupportedError.into_error()).change_context(DeserializerError))
     }
 
-    fn deserialize_bytes_buffer<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_bytes_buffer<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
         self.deserialize_bytes(visitor)
     }
 
-    fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -308,7 +310,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -322,7 +324,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: OptionalVisitor<'de>,
     {
@@ -341,7 +343,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: EnumVisitor<'de>,
     {
@@ -373,24 +375,25 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
 
         let discriminant = result?;
 
-        let mut value = if is_map {
-            let mut errors = ErrorAccumulator::new();
+        let value = if is_map {
+            let mut errors = ReportSink::new();
 
             if let Err(error) = self.try_skip(PeekableTokenKind::Colon, SyntaxError::ExpectedColon)
             {
-                errors.extend_one(error);
+                errors.append(error);
             }
 
-            let errors = errors.into_result().change_context(DeserializerError);
+            let errors = errors.finish().change_context(DeserializerError);
             let value = visitor
                 .visit_value(discriminant, &mut *self)
                 .change_context(DeserializerError);
 
             // same as folding the tuple in main deer
             match (value, errors) {
-                (Err(mut value), Err(errors)) => {
-                    value.extend_one(errors);
-                    Err(value)
+                (Err(value), Err(errors)) => {
+                    let mut value = value.expand();
+                    value.push(errors);
+                    Err(value.change_context(DeserializerError))
                 }
                 (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
                 (Ok(value), Ok(())) => Ok(value),
@@ -400,6 +403,8 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                 .visit_value(discriminant, NoneDeserializer::new(self.context))
                 .change_context(DeserializerError)
         };
+
+        let mut value = value.map_err(Report::expand);
 
         if is_map {
             if self.peek() == Some(PeekableTokenKind::ObjectEnd) {
@@ -416,16 +421,16 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                     .change_context(DeserializerError);
 
                 match &mut value {
-                    Err(value) => value.extend_one(error),
-                    value => *value = Err(error),
+                    Err(value) => value.push(error),
+                    value => *value = Err(error.expand()),
                 }
             }
         }
 
-        value
+        value.change_context(DeserializerError)
     }
 
-    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: StructVisitor<'de>,
     {
@@ -442,7 +447,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         }
     }
 
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: IdentifierVisitor<'de>,
     {

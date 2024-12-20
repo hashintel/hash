@@ -2,7 +2,7 @@ import type { SvgIconProps } from "@mui/material";
 import { SvgIcon } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const EyeIconRegular: FunctionComponent<SvgIconProps> = ({
+export const EyeRegularIcon: FunctionComponent<SvgIconProps> = ({
   sx,
   ...props
 }) => {

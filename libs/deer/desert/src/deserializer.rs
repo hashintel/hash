@@ -1,17 +1,17 @@
-use alloc::borrow::ToOwned;
+use alloc::borrow::ToOwned as _;
 use core::num::TryFromIntError;
 
 use deer::{
+    Context, EnumVisitor, IdentifierVisitor, OptionalVisitor, StructVisitor, Visitor,
     error::{
         DeserializerError, ExpectedType, ReceivedType, ReceivedValue, TypeError, ValueError,
-        Variant,
+        Variant as _,
     },
     helpers::EnumObjectVisitor,
     value::NoneDeserializer,
-    Context, EnumVisitor, IdentifierVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
-use error_stack::{Report, Result, ResultExt};
-use num_traits::ToPrimitive;
+use error_stack::{Report, ResultExt as _};
+use num_traits::ToPrimitive as _;
 
 use crate::{
     array::ArrayAccess, object::ObjectAccess, skip::skip_tokens, tape::Tape, token::Token,
@@ -20,7 +20,7 @@ use crate::{
 macro_rules! forward {
     ($($method:ident),*) => {
         $(
-        fn $method<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+        fn $method<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
         where
             V: Visitor<'de>,
         {
@@ -36,7 +36,7 @@ pub struct Deserializer<'a, 'de> {
     tape: Tape<'de>,
 }
 
-impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
+impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
     forward!(
         deserialize_null,
         deserialize_bool,
@@ -56,7 +56,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         self.context
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: Visitor<'de>,
     {
@@ -84,7 +84,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         .change_context(DeserializerError)
     }
 
-    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: OptionalVisitor<'de>,
     {
@@ -101,7 +101,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         .change_context(DeserializerError)
     }
 
-    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: EnumVisitor<'de>,
     {
@@ -120,7 +120,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         }
     }
 
-    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: StructVisitor<'de>,
     {
@@ -140,13 +140,13 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         }
     }
 
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Report<DeserializerError>>
     where
         V: IdentifierVisitor<'de>,
     {
         let token = self.next();
 
-        let visit_try = |value: core::result::Result<u64, TryFromIntError>| {
+        let visit_try = |value: Result<u64, TryFromIntError>| {
             value
                 .change_context(ValueError.into_error())
                 .attach(ExpectedType::new(visitor.expecting()))

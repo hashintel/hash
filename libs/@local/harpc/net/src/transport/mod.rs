@@ -11,18 +11,22 @@ pub(crate) mod test;
 
 use alloc::sync::Arc;
 
-use error_stack::{Result, ResultExt};
-use futures::stream::StreamExt;
-use libp2p::{core::transport::ListenerId, metrics, Multiaddr, PeerId, StreamProtocol};
+use error_stack::{Report, ResultExt as _};
+use futures::stream::StreamExt as _;
+use libp2p::{
+    Multiaddr, PeerId, StreamProtocol, metrics, tcp::tokio::Transport as TokioTcpTransport,
+};
+use libp2p_core::transport::MemoryTransport;
 use tokio::io::BufStream;
 use tokio_util::{
-    codec::Framed, compat::FuturesAsyncReadCompatExt, sync::CancellationToken, task::TaskTracker,
+    codec::Framed, compat::FuturesAsyncReadCompatExt as _, sync::CancellationToken,
+    task::TaskTracker,
 };
 
 use self::{
     client::ClientCodec,
     connection::{IncomingConnections, OutgoingConnection},
-    error::{OpenStreamError, TransportError},
+    error::TransportError,
     task::TransportTask,
 };
 pub use self::{
@@ -41,6 +45,7 @@ pub trait Transport = libp2p::Transport<
     + Unpin
     + 'static;
 
+#[derive(Debug)]
 pub struct TransportLayer {
     id: PeerId,
     ipc: TransportLayerIpc,
@@ -64,7 +69,7 @@ impl TransportLayer {
         config: TransportConfig,
         transport: impl Transport,
         cancel: CancellationToken,
-    ) -> Result<Self, TransportError> {
+    ) -> Result<Self, Report<TransportError>> {
         let task = TransportTask::new(config, transport)?;
         let id = task.peer_id();
         let ipc = task.ipc();
@@ -85,6 +90,36 @@ impl TransportLayer {
             cancel,
             cancel_task,
         })
+    }
+
+    /// Create a new TCP transport layer.
+    ///
+    /// This is a convenience method that creates a TCP transport and starts the transport layer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the task fails to start or if the TCP transport cannot be created.
+    pub fn tcp(
+        config: TransportConfig,
+        cancel: CancellationToken,
+    ) -> Result<Self, Report<TransportError>> {
+        let transport = TokioTcpTransport::new(libp2p::tcp::Config::default());
+        Self::start(config, transport, cancel)
+    }
+
+    /// Create a new memory transport layer.
+    ///
+    /// This is a convenience method that creates a memory transport and starts the transport layer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the task fails to start.
+    pub fn memory(
+        config: TransportConfig,
+        cancel: CancellationToken,
+    ) -> Result<Self, Report<TransportError>> {
+        let transport = MemoryTransport::new();
+        Self::start(config, transport, cancel)
     }
 
     pub(crate) fn cancellation_token(&self) -> CancellationToken {
@@ -121,7 +156,7 @@ impl TransportLayer {
     ///
     /// If the background task cannot be reached, crashes while processing the request, or is unable
     /// to dial the address provided.
-    pub async fn lookup_peer(&self, address: Multiaddr) -> Result<PeerId, TransportError> {
+    pub async fn lookup_peer(&self, address: Multiaddr) -> Result<PeerId, Report<TransportError>> {
         self.ipc
             .lookup_peer(address)
             .await
@@ -133,7 +168,7 @@ impl TransportLayer {
     /// # Errors
     ///
     /// If the background task cannot be reached or crashes while processing the request.
-    pub async fn external_addresses(&self) -> Result<Vec<Multiaddr>, TransportError> {
+    pub async fn external_addresses(&self) -> Result<Vec<Multiaddr>, Report<TransportError>> {
         self.ipc
             .external_addresses()
             .await
@@ -151,7 +186,7 @@ impl TransportLayer {
     ///
     /// If the background task cannot be reached, crashes while processing the request, or the
     /// multiaddr is not supported by the transport.
-    pub async fn listen_on(&self, address: Multiaddr) -> Result<ListenerId, TransportError> {
+    pub async fn listen_on(&self, address: Multiaddr) -> Result<Multiaddr, Report<TransportError>> {
         self.ipc
             .listen_on(address)
             .await
@@ -166,7 +201,7 @@ impl TransportLayer {
     ///
     /// If the background task cannot be reached, crashes while processing the request or there is
     /// already an active listener.
-    pub async fn listen(&self) -> Result<IncomingConnections, TransportError> {
+    pub async fn listen(&self) -> Result<IncomingConnections, Report<TransportError>> {
         let mut control = self
             .ipc
             .control()
@@ -189,7 +224,7 @@ impl TransportLayer {
     ///
     /// If the background task cannot be reached, crashes while processing the request or the remote
     /// peer does not support the protocol.
-    pub async fn dial(&self, peer: PeerId) -> Result<OutgoingConnection, TransportError> {
+    pub async fn dial(&self, peer: PeerId) -> Result<OutgoingConnection, Report<TransportError>> {
         let mut control = self
             .ipc
             .control()
@@ -199,7 +234,6 @@ impl TransportLayer {
         let stream = control
             .open_stream(peer, PROTOCOL_NAME)
             .await
-            .map_err(OpenStreamError::from)
             .change_context(TransportError::OpenStream { peer_id: peer })?;
 
         let stream = stream.compat();

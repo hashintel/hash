@@ -1,12 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
-  EntityType,
   EntityTypePermission,
+  GetClosedMultiEntityTypeParams,
+  GetClosedMultiEntityTypeResponse as GetClosedMultiEntityTypeResponseGraphApi,
   GetEntityTypesParams,
   GetEntityTypeSubgraphParams,
   ModifyRelationshipOperation,
@@ -16,8 +17,10 @@ import type {
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import type {
-  BaseUrl,
+  ClosedEntityTypeWithMetadata,
+  ClosedMultiEntityType,
   EntityTypeMetadata,
+  EntityTypeResolveDefinitions,
   EntityTypeWithMetadata,
   OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
@@ -25,7 +28,10 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  mapGraphApiEntityTypeToEntityType,
+  mapGraphApiClosedEntityTypesToClosedEntityTypes,
+  mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType,
+  mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
+  mapGraphApiEntityTypesToEntityTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
@@ -124,7 +130,8 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
  * Create an entity type.
  *
  * @param params.ownedById - the id of the account who owns the entity type
- * @param [params.webShortname] – the shortname of the web that owns the entity type, if the web entity does not yet exist.
+ * @param [params.webShortname] – the shortname of the web that owns the entity type, if the web entity does not yet
+ *   exist.
  *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
  * @param params.schema - the `EntityType`
  * @param params.actorId - the id of the account that is creating the entity type
@@ -133,15 +140,13 @@ export const createEntityType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     schema: ConstructEntityTypeParams;
-    labelProperty?: BaseUrl;
-    icon?: string | null;
     webShortname?: string;
     relationships: EntityTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, labelProperty, icon, webShortname, provenance } = params;
+  const { ownedById, webShortname, provenance } = params;
 
   const shortname =
     webShortname ??
@@ -169,8 +174,6 @@ export const createEntityType: ImpureGraphFunction<
     {
       ownedById,
       schema,
-      labelProperty,
-      icon,
       relationships: params.relationships,
       provenance,
     },
@@ -185,11 +188,9 @@ export const createEntityType: ImpureGraphFunction<
  * @param params.query the structural query to filter entity types by.
  */
 export const getEntityTypeSubgraph: ImpureGraphFunction<
-  Omit<GetEntityTypeSubgraphParams, "includeDrafts"> & {
-    temporalClient?: TemporalClient;
-  },
+  Omit<GetEntityTypeSubgraphParams, "includeDrafts">,
   Promise<Subgraph<EntityTypeRootType>>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+> = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   return await graphApi
@@ -205,19 +206,68 @@ export const getEntityTypeSubgraph: ImpureGraphFunction<
 };
 
 export const getEntityTypes: ImpureGraphFunction<
-  Omit<GetEntityTypesParams, "includeDrafts"> & {
-    temporalClient?: TemporalClient;
-  },
+  Omit<GetEntityTypesParams, "includeDrafts" | "includeEntityTypes">,
   Promise<EntityTypeWithMetadata[]>
-> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+> = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   return await graphApi
-    .getEntityTypes(actorId, { includeDrafts: false, ...request })
+    .getEntityTypes(actorId, {
+      includeDrafts: false,
+      ...request,
+    })
     .then(({ data: response }) =>
-      mapGraphApiEntityTypeToEntityType(response.entityTypes),
+      mapGraphApiEntityTypesToEntityTypes(response.entityTypes),
     );
 };
+
+export const getClosedEntityTypes: ImpureGraphFunction<
+  Omit<GetEntityTypesParams, "includeDrafts" | "includeEntityTypes"> & {
+    temporalClient?: TemporalClient;
+  },
+  Promise<ClosedEntityTypeWithMetadata[]>
+> = async ({ graphApi, temporalClient }, { actorId }, request) => {
+  await rewriteSemanticFilter(request.filter, temporalClient);
+
+  const { data: response } = await graphApi.getEntityTypes(actorId, {
+    includeDrafts: false,
+    includeEntityTypes: "closed",
+    ...request,
+  });
+  const entityTypes = mapGraphApiEntityTypesToEntityTypes(response.entityTypes);
+  const closedEntityTypes = mapGraphApiClosedEntityTypesToClosedEntityTypes(
+    response.closedEntityTypes!,
+  );
+  return closedEntityTypes.map((schema, idx) => ({
+    schema,
+    metadata: entityTypes[idx]!.metadata,
+  }));
+};
+
+export type GetClosedMultiEntityTypeResponse = Omit<
+  GetClosedMultiEntityTypeResponseGraphApi,
+  "entityType" | "definitions"
+> & {
+  entityType: ClosedMultiEntityType;
+  definitions?: EntityTypeResolveDefinitions;
+};
+
+export const getClosedMultiEntityType: ImpureGraphFunction<
+  GetClosedMultiEntityTypeParams,
+  Promise<GetClosedMultiEntityTypeResponse>
+> = async ({ graphApi }, { actorId }, request) =>
+  graphApi
+    .getClosedMultiEntityType(actorId, request)
+    .then(({ data: response }) => ({
+      entityType: mapGraphApiClosedMultiEntityTypeToClosedMultiEntityType(
+        response.entityType,
+      ),
+      definitions: response.definitions
+        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
+            response.definitions,
+          )
+        : undefined,
+    }));
 
 /**
  * Get an entity type by its versioned URL.
@@ -251,7 +301,8 @@ export const getEntityTypeById: ImpureGraphFunction<
 /**
  * Get an entity type rooted subgraph by its versioned URL.
  *
- * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
+ * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type
+ * into the Graph.
  */
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
   Omit<GetEntityTypeSubgraphParams, "filter" | "includeDrafts"> & {
@@ -294,14 +345,12 @@ export const updateEntityType: ImpureGraphFunction<
   {
     entityTypeId: VersionedUrl;
     schema: ConstructEntityTypeParams;
-    labelProperty?: BaseUrl;
-    icon?: string | null;
     relationships: EntityTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { entityTypeId, schema, labelProperty, icon, provenance } = params;
+  const { entityTypeId, schema, provenance } = params;
   const updateArguments: UpdateEntityTypeRequest = {
     typeToUpdate: entityTypeId,
     schema: {
@@ -309,8 +358,6 @@ export const updateEntityType: ImpureGraphFunction<
       $schema: ENTITY_TYPE_META_SCHEMA,
       ...schema,
     },
-    labelProperty,
-    icon,
     relationships: params.relationships,
     provenance,
   };
@@ -349,7 +396,7 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
   const parentTypes = await Promise.all(
     (allOf ?? []).map(async ({ $ref }) =>
       getEntityTypeById(context, authentication, {
-        entityTypeId: $ref as VersionedUrl,
+        entityTypeId: $ref,
       }),
     ),
   );

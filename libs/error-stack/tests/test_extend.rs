@@ -1,48 +1,50 @@
 #![cfg_attr(nightly, feature(error_generic_member_access))]
 
 mod common;
-use core::fmt::{Display, Formatter};
+use core::{
+    error::Error,
+    fmt::{Display, Formatter},
+};
 
-#[allow(clippy::wildcard_imports)]
 use common::*;
-use error_stack::{report, Context, Report};
+use error_stack::{Report, report};
 
 #[derive(Debug)]
-struct Error;
+struct MyError;
 
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str("Error")
+impl Display for MyError {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str("Error")
     }
 }
 
-impl Context for Error {}
+impl Error for MyError {}
 
 #[test]
-fn extend_one_nested() {
-    let mut err1 = report!(Error).attach_printable("Not Supported");
-    let err2 = report!(Error).attach_printable("Not Supported");
-    let mut err3 = report!(Error).attach_printable("Not Supported");
+fn push_append() {
+    let mut err1 = report!(MyError).attach_printable("Not Supported").expand();
+    let err2 = report!(MyError).attach_printable("Not Supported");
+    let mut err3 = report!(MyError).attach_printable("Not Supported").expand();
 
     let count = expect_count(2) * 3;
 
-    err1.extend_one(err2);
-    err3.extend_one(err1);
+    err1.push(err2);
+    err3.append(err1);
 
     assert_eq!(err3.current_frames().len(), 3);
     assert_eq!(err3.frames().count(), count);
 }
 
 #[test]
-fn extend_one() {
-    let mut err1 = report!(Error).attach_printable("Not Supported");
-    let err2 = report!(Error).attach_printable("Not Supported");
-    let err3 = report!(Error).attach_printable("Not Supported");
+fn push() {
+    let mut err1 = report!(MyError).attach_printable("Not Supported").expand();
+    let err2 = report!(MyError).attach_printable("Not Supported");
+    let err3 = report!(MyError).attach_printable("Not Supported");
 
     let count = expect_count(2) * 3;
 
-    err1.extend_one(err2);
-    err1.extend_one(err3);
+    err1.push(err2);
+    err1.push(err3);
 
     assert_eq!(err1.current_frames().len(), 3);
     assert_eq!(err1.frames().count(), count);
@@ -50,9 +52,9 @@ fn extend_one() {
 
 #[test]
 fn extend() {
-    let mut err1 = report!(Error).attach_printable("Not Supported");
-    let err2 = report!(Error).attach_printable("Not Supported");
-    let err3 = report!(Error).attach_printable("Not Supported");
+    let mut err1 = report!(MyError).attach_printable("Not Supported").expand();
+    let err2 = report!(MyError).attach_printable("Not Supported");
+    let err3 = report!(MyError).attach_printable("Not Supported");
 
     err1.extend([err2, err3]);
     assert_eq!(err1.current_frames().len(), 3);
@@ -60,10 +62,26 @@ fn extend() {
 }
 
 #[test]
-fn collect() {
-    let report: Option<Report<Error>> = vec![report!(Error), report!(Error), report!(Error)]
-        .into_iter()
-        .collect();
+fn collect_single() {
+    let report: Option<Report<[MyError]>> =
+        vec![report!(MyError), report!(MyError), report!(MyError)]
+            .into_iter()
+            .collect();
+
+    let report = report.expect("should be some");
+    assert_eq!(report.current_frames().len(), 3);
+    assert_eq!(report.frames().count(), expect_count(1) * 3);
+}
+
+#[test]
+fn collect_multiple() {
+    let report: Option<Report<[MyError]>> = vec![
+        report!(MyError).expand(),
+        report!(MyError).expand(),
+        report!(MyError).expand(),
+    ]
+    .into_iter()
+    .collect();
 
     let report = report.expect("should be some");
     assert_eq!(report.current_frames().len(), 3);
@@ -72,7 +90,7 @@ fn collect() {
 
 #[test]
 fn collect_none() {
-    let report: Option<Report<Error>> = vec![].into_iter().collect();
+    let report: Option<Report<[MyError]>> = ([] as [Report<MyError>; 0]).into_iter().collect();
 
     assert!(report.is_none());
 }

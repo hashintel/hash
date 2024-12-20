@@ -3,16 +3,16 @@
 #![allow(clippy::std_instead_of_core)]
 mod common;
 
-#[allow(clippy::wildcard_imports)]
 use common::*;
-use error_stack::fmt::{Charset, ColorMode};
-#[allow(unused_imports)]
-use error_stack::Report;
+use error_stack::{
+    Report,
+    fmt::{Charset, ColorMode},
+};
 use insta::assert_snapshot;
 #[cfg(feature = "spantrace")]
 use tracing_error::ErrorLayer;
 #[cfg(feature = "spantrace")]
-use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::layer::SubscriberExt as _;
 
 #[cfg(feature = "spantrace")]
 fn setup_tracing() {
@@ -50,7 +50,10 @@ fn setup() {
 }
 
 fn snap_suffix() -> String {
-    #[allow(unused_mut)]
+    #[cfg_attr(
+        not(any(feature = "backtrace", feature = "spantrace")),
+        expect(unused_mut)
+    )]
     let mut suffix: Vec<&'static str> = vec![];
 
     #[cfg(feature = "spantrace")]
@@ -70,12 +73,12 @@ fn snap_suffix() -> String {
 #[cfg(feature = "spantrace")]
 pub fn create_report() -> Report<RootError> {
     #[tracing::instrument]
-    fn func_b() -> error_stack::Result<(), RootError> {
+    fn func_b() -> Result<(), Report<RootError>> {
         create_error()
     }
 
     #[tracing::instrument]
-    fn func_a() -> error_stack::Result<(), RootError> {
+    fn func_a() -> Result<(), Report<RootError>> {
         func_b()
     }
 
@@ -176,16 +179,17 @@ fn create_sources_nested() -> Report<ContextA> {
 
     let mut r3 = create_report()
         .change_context(ContextA(8))
-        .attach_printable("13");
+        .attach_printable("13")
+        .expand();
 
-    r3.extend_one(r4);
+    r3.push(r4);
     let r3 = r3.attach_printable("10").attach_printable("16");
 
-    let mut r2 = create_report().change_context(ContextA(4));
+    let mut r2 = create_report().change_context(ContextA(4)).expand();
 
-    r2.extend_one(r3);
-    r2.extend_one(r5);
-    r2.extend_one(r6);
+    r2.append(r3);
+    r2.push(r5);
+    r2.push(r6);
 
     let r2 = r2
         .attach_printable("9")
@@ -198,9 +202,10 @@ fn create_sources_nested() -> Report<ContextA> {
     let mut r1 = create_report()
         .attach_printable("6")
         .change_context(ContextA(2))
-        .attach_printable("4");
+        .attach_printable("4")
+        .expand();
 
-    r1.extend_one(r2);
+    r1.push(r2);
 
     r1.attach_printable("3")
         .change_context(ContextA(1))
@@ -257,7 +262,6 @@ mod full {
         panic::Location,
     };
 
-    #[allow(clippy::wildcard_imports)]
     use super::*;
 
     #[test]
@@ -298,8 +302,8 @@ mod full {
     struct ContextC;
 
     impl Display for ContextC {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("A multiline\ncontext that might have\na bit more info")
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("A multiline\ncontext that might have\na bit more info")
         }
     }
 
@@ -349,12 +353,12 @@ mod full {
     fn sources() {
         let _guard = prepare(false);
 
-        let mut root1 = create_report().attach_printable(PrintableA(1));
+        let mut root1 = create_report().attach_printable(PrintableA(1)).expand();
         let root2 = create_report().attach_printable(PrintableB(2));
         let root3 = create_report().attach_printable(PrintableB(3));
 
-        root1.extend_one(root2);
-        root1.extend_one(root3);
+        root1.push(root2);
+        root1.push(root3);
 
         let report = root1
             .attach(AttachmentA(1))
@@ -387,12 +391,12 @@ mod full {
         let _guard = prepare(false);
 
         let report = {
-            let mut report = create_report().attach_printable(PrintableA(1));
+            let mut report = create_report().attach_printable(PrintableA(1)).expand();
 
-            report.extend_one({
-                let mut report = create_report().attach_printable(PrintableB(2));
+            report.append({
+                let mut report = create_report().attach_printable(PrintableB(2)).expand();
 
-                report.extend_one(create_report().attach_printable(PrintableB(3)));
+                report.push(create_report().attach_printable(PrintableB(3)));
 
                 report.attach_printable(PrintableA(4))
             });
@@ -410,11 +414,11 @@ mod full {
     fn complex() {
         let _guard = prepare(false);
 
-        let mut report = create_report().attach_printable(PrintableA(0));
-        report.extend_one({
-            let mut report = create_report().attach_printable(PrintableB(1));
+        let mut report = create_report().attach_printable(PrintableA(0)).expand();
+        report.append({
+            let mut report = create_report().attach_printable(PrintableB(1)).expand();
 
-            report.extend_one(
+            report.push(
                 create_report()
                     .attach(AttachmentB(0))
                     .attach(AttachmentA(1))
@@ -563,13 +567,12 @@ mod full {
 
     #[cfg(nightly)]
     impl Display for ContextD {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("context D")
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("context D")
         }
     }
 
     #[cfg(nightly)]
-    #[expect(clippy::incompatible_msrv, reason = "This is gated behind nightly")]
     impl Error for ContextD {
         fn provide<'a>(&'a self, request: &mut Request<'a>) {
             request.provide_ref(&self.code);

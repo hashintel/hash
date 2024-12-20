@@ -1,4 +1,4 @@
-import { ArrowRightIconRegular, BugIcon } from "@hashintel/design-system";
+import { ArrowRightRegularIcon, BugIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 
 import { EnvelopeRegularIcon } from "../../shared/icons/envelope-regular-icon";
@@ -61,7 +61,7 @@ export const LoggedIn = () => {
           >
             a suggestion
           </Box>
-          <ArrowRightIconRegular
+          <ArrowRightRegularIcon
             sx={{
               fontSize: 14,
               ml: 1.2,

@@ -1,22 +1,21 @@
 use std::{
     io,
-    io::IsTerminal,
+    io::IsTerminal as _,
     path::{Path, PathBuf},
 };
 
-use error_stack::{fmt::ColorMode, Report};
-use tracing::{level_filters::LevelFilter, Level, Subscriber};
+use error_stack::{Report, fmt::ColorMode};
+use tracing::{Level, Subscriber, level_filters::LevelFilter};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{
+    EnvFilter, Layer,
     filter::Directive,
     fmt::{
-        self,
+        self, FormatFields, MakeWriter,
         format::{DefaultFields, JsonFields},
         time::SystemTime,
-        FormatFields, MakeWriter,
     },
     registry::LookupSpan,
-    EnvFilter, Layer,
 };
 
 use crate::{console::ConsoleMakeWriter, formatter::TracingFormatter};

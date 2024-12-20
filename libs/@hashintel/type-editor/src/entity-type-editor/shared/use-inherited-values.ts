@@ -79,12 +79,12 @@ const addInheritedValuesForEntityType = (
 
   const newInheritanceChain = [...inheritanceChainToHere, entityType];
 
-  if (!inheritedValuesMap.labelProperty && entityType.metadata.labelProperty) {
+  if (!inheritedValuesMap.labelProperty && entityType.schema.labelProperty) {
     // eslint-disable-next-line no-param-reassign
-    inheritedValuesMap.labelProperty = entityType.metadata.labelProperty;
+    inheritedValuesMap.labelProperty = entityType.schema.labelProperty;
   }
 
-  const { properties, links } = getFormDataFromEntityType(entityType);
+  const { properties, links } = getFormDataFromEntityType(entityType.schema);
 
   for (const link of links) {
     const duplicateLinkKey = Object.keys(inheritedValuesMap.links).find(

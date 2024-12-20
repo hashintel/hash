@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 use aws_config::BehaviorVersion;
 use clap::Parser;
-use error_stack::{Report, ResultExt};
-use repo_chores::benches::{
+use error_stack::{Report, ResultExt as _};
+use hash_repo_chores::benches::{
     analyze::BenchmarkAnalysis,
     report::Benchmark,
     storage::{S3Storage, UploadError},

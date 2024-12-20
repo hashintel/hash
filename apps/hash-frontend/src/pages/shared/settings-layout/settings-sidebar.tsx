@@ -4,6 +4,7 @@ import {
   Box,
   Collapse,
   ListItem,
+  Stack,
   styled,
   Typography,
   useTheme,
@@ -106,7 +107,7 @@ const SidebarItem = ({
       >
         <Box
           sx={{
-            paddingRight: 1.2,
+            paddingRight: 2.5,
             width: "1rem",
             display: "flex",
             alignItems: "center",
@@ -120,7 +121,9 @@ const SidebarItem = ({
             typeof item.icon === "function" ? (
               <item.icon sx={{ width: "1rem" }} />
             ) : (
-              item.icon
+              <Stack justifyContent="center" sx={{ width: "1rem" }}>
+                {item.icon}
+              </Stack>
             )
           ) : (
             <Box width="1rem" minWidth="1rem" mr={1.2} />

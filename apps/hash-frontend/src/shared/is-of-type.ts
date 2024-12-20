@@ -4,7 +4,7 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 
 export const isType = (
   item:
@@ -31,5 +31,12 @@ export const isTypePropertyType = (
     | DataTypeWithMetadata,
 ) => type.schema.kind === "propertyType";
 
+export const isTypeDataType = (
+  type:
+    | EntityTypeWithMetadata
+    | PropertyTypeWithMetadata
+    | DataTypeWithMetadata,
+) => type.schema.kind === "dataType";
+
 export const isEntityPageEntity = (item: Entity) =>
-  isPageEntityTypeId(item.metadata.entityTypeId);
+  includesPageEntityTypeId(item.metadata.entityTypeIds);

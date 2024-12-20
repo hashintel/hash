@@ -1,0 +1,77 @@
+diff --git a/dist/cjs/data-editor/data-editor.js b/dist/cjs/data-editor/data-editor.js
+index 081f3b38d82107204ac3f3620d6724ffad01b43f..9dec0519a1e179ec127022c480f01187ad16c4ee 100644
+--- a/dist/cjs/data-editor/data-editor.js
++++ b/dist/cjs/data-editor/data-editor.js
+@@ -2597,7 +2597,9 @@ const DataEditorImpl = (p, forwardedRef) => {
+                 void normalSizeColumn(col + rowMarkerOffset);
+             }
+         },
+-    }), [appendRow, normalSizeColumn, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo]);
++        /** Patched to expose setOverlaySimple – search repo for usage */
++        setOverlaySimple
++    }), [appendRow, normalSizeColumn, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo, setOverlaySimple]);
+     const [selCol, selRow] = currentCell ?? [];
+     const onCellFocused = React.useCallback((cell) => {
+         const [col, row] = cell;
+diff --git a/dist/dts/cells/cell-types.d.ts b/dist/dts/cells/cell-types.d.ts
+index ba1b31716270ec2fe6bfda844a4b931549f015b2..f238812727481c01f482339814fd163a984a1835 100644
+--- a/dist/dts/cells/cell-types.d.ts
++++ b/dist/dts/cells/cell-types.d.ts
+@@ -24,6 +24,8 @@ export interface BaseDrawArgs {
+ export type DrawStateTuple = [any, (state: any) => void];
+ export interface DrawArgs<T extends InnerGridCell> extends BaseDrawArgs {
+     cell: T;
++    /** Patched to be able to use a tableId to distinguish between multiple tables on a page */
++    tableId: string;
+     requestAnimationFrame: (state?: any) => void;
+     drawState: DrawStateTuple;
+     frameTime: number;
+diff --git a/dist/dts/data-editor/data-editor.d.ts b/dist/dts/data-editor/data-editor.d.ts
+index 6194a163cf221484e448b1bdb792fec1eb389299..b932a78164b23708267ab9d22120f5cf3846bbc8 100644
+--- a/dist/dts/data-editor/data-editor.d.ts
++++ b/dist/dts/data-editor/data-editor.d.ts
+@@ -468,6 +468,15 @@ export interface DataEditorRef {
+      * Causes the columns in the selection to have their natural size recomputed and re-emitted as a resize event.
+      */
+     remeasureColumns: (cols: CompactSelection) => void;
++    /** Patched to expose setOverlaySimple – search repo for usage */
++    setOverlaySimple: (val: NonNullable<{
++       target: Rectangle;
++       content: GridCell;
++       initialValue: string | undefined;
++       cell: Item;
++       highlight: boolean;
++       forceEditMode: boolean;
++    }>) => void
+ }
+ /**
+  * The primary component of Glide Data Grid.
+diff --git a/dist/dts/internal/data-grid/data-grid-types.d.ts b/dist/dts/internal/data-grid/data-grid-types.d.ts
+index 4007ec6485ebdf8a5c60c30e3e82fb9468e6eba8..32971904056de270429100b9e34c53b4f299728b 100644
+--- a/dist/dts/internal/data-grid/data-grid-types.d.ts
++++ b/dist/dts/internal/data-grid/data-grid-types.d.ts
+@@ -141,7 +141,8 @@ export declare function isSizedGridColumn(c: GridColumn): c is SizedGridColumn;
+ /** @category Columns */
+ export interface SizedGridColumn extends BaseGridColumn {
+     readonly width: number;
+-    readonly id?: string;
++    /** Patched to require that SizedGridColumn has an id */
++    readonly id: string;
+ }
+ /** @category Columns */
+ export interface AutoGridColumn extends BaseGridColumn {
+diff --git a/dist/esm/data-editor/data-editor.js b/dist/esm/data-editor/data-editor.js
+index ec05aa9866c70032fc5509ff557cb8c542e384ed..675685a49e67a2deffa8afb6891be88005286034 100644
+--- a/dist/esm/data-editor/data-editor.js
++++ b/dist/esm/data-editor/data-editor.js
+@@ -2568,7 +2568,9 @@ const DataEditorImpl = (p, forwardedRef) => {
+                 void normalSizeColumn(col + rowMarkerOffset);
+             }
+         },
+-    }), [appendRow, normalSizeColumn, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo]);
++        /** Patched to expose setOverlaySimple – search repo for usage */
++        setOverlaySimple
++    }), [appendRow, normalSizeColumn, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo, setOverlaySimple]);
+     const [selCol, selRow] = currentCell ?? [];
+     const onCellFocused = React.useCallback((cell) => {
+         const [col, row] = cell;

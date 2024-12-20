@@ -15,7 +15,7 @@ import { isExternalOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import {
@@ -29,9 +29,9 @@ import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
 import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+import { tableContentSx } from "../../../shared/table-content";
 import type { FilterState } from "../../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../../shared/table-header";
 import {
@@ -41,22 +41,23 @@ import {
 } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import type { ChipCell } from "../../shared/chip-cell";
-import { renderChipCell } from "../../shared/chip-cell";
+import { createRenderChipCell } from "../../shared/chip-cell";
 import type { TextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { TypeSlideOverStack } from "../../shared/entity-type-page/type-slide-over-stack";
+import { TableHeaderToggle } from "../../shared/table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
+import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
+import type { VisualizerView } from "../../shared/visualizer-views";
+import { visualizerViewIcons } from "../../shared/visualizer-views";
 
-const typesTableColumnIds = [
-  "title",
-  "kind",
-  "webShortname",
-  "archived",
-  "lastEdited",
-  "lastEditedBy",
-] as const;
-
-type LinkColumnId = (typeof typesTableColumnIds)[number];
+type LinkColumnId =
+  | "title"
+  | "kind"
+  | "webShortname"
+  | "archived"
+  | "lastEdited"
+  | "lastEditedBy";
 
 type TypesTableColumn = {
   id: LinkColumnId;
@@ -67,6 +68,7 @@ export type TypesTableRow = {
   kind: "entity-type" | "property-type" | "link-type" | "data-type";
   lastEdited: string;
   lastEditedBy?: MinimalActor;
+  icon?: string;
   typeId: VersionedUrl;
   title: string;
   external: boolean;
@@ -81,15 +83,12 @@ const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
   return `${domain}/${firstPathSegment}`;
 };
 
-const typeTableKinds = [
-  "all",
-  "entity-type",
-  "link-type",
-  "property-type",
-  "data-type",
-] as const;
-
-type TypeTableKind = (typeof typeTableKinds)[number];
+type TypeTableKind =
+  | "all"
+  | "entity-type"
+  | "link-type"
+  | "property-type"
+  | "data-type";
 
 const typesTablesToTitle: Record<TypeTableKind, string> = {
   all: "Types",
@@ -98,6 +97,8 @@ const typesTablesToTitle: Record<TypeTableKind, string> = {
   "link-type": "Link Types",
   "data-type": "Data Types",
 };
+
+const firstColumnLeftPadding = 16;
 
 export const TypesTable: FunctionComponent<{
   types?: (
@@ -109,6 +110,8 @@ export const TypesTable: FunctionComponent<{
 }> = ({ types, kind }) => {
   const router = useRouter();
 
+  const [view, setView] = useState<VisualizerView>("Table");
+
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
   const [selectedRows, setSelectedRows] = useState<TypesTableRow[]>([]);
@@ -116,10 +119,13 @@ export const TypesTable: FunctionComponent<{
   const [filterState, setFilterState] = useState<FilterState>({
     includeArchived: false,
     includeGlobal: false,
+    limitToWebs: false,
   });
 
-  const [selectedEntityTypeId, setSelectedEntityTypeId] =
-    useState<VersionedUrl | null>(null);
+  const [selectedEntityType, setSelectedEntityType] = useState<{
+    entityTypeId: VersionedUrl;
+    slideContainerRef?: RefObject<HTMLDivElement | null>;
+  } | null>(null);
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -168,6 +174,9 @@ export const TypesTable: FunctionComponent<{
     [filterState.includeArchived, kind],
   );
 
+  const currentlyDisplayedColumnsRef = useRef<TypesTableColumn[] | null>(null);
+  currentlyDisplayedColumnsRef.current = typesTableColumns;
+
   const { users } = useUsers();
   const { orgs } = useOrgs();
 
@@ -195,68 +204,86 @@ export const TypesTable: FunctionComponent<{
     ];
   }, [authenticatedUser]);
 
+  const filteredTypes = useMemo(() => {
+    const filtered: ((
+      | EntityTypeWithMetadata
+      | PropertyTypeWithMetadata
+      | DataTypeWithMetadata
+    ) & { isExternal: boolean; webShortname?: string; archived: boolean })[] =
+      [];
+
+    for (const type of types ?? []) {
+      const isExternal = isExternalOntologyElementMetadata(type.metadata)
+        ? true
+        : !internalWebIds.includes(type.metadata.ownedById);
+
+      const namespaceOwnedById = isExternalOntologyElementMetadata(
+        type.metadata,
+      )
+        ? undefined
+        : type.metadata.ownedById;
+
+      const webShortname = namespaces?.find(
+        (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
+      )?.shortname;
+
+      const isArchived = isTypeArchived(type);
+
+      if (
+        (filterState.includeGlobal ? true : !isExternal) &&
+        (filterState.includeArchived ? true : !isArchived) &&
+        (filterState.limitToWebs
+          ? webShortname && filterState.limitToWebs.includes(webShortname)
+          : true)
+      ) {
+        filtered.push({
+          ...type,
+          isExternal,
+          webShortname,
+          archived: isArchived,
+        });
+      }
+    }
+
+    return filtered;
+  }, [types, filterState, namespaces, internalWebIds]);
+
   const filteredRows = useMemo<TypesTableRow[] | undefined>(
     () =>
-      types
-        ?.map((type) => {
-          const isExternal = isExternalOntologyElementMetadata(type.metadata)
-            ? true
-            : !internalWebIds.includes(type.metadata.ownedById);
+      filteredTypes.map((type) => {
+        const lastEdited = format(
+          new Date(
+            type.metadata.temporalVersioning.transactionTime.start.limit,
+          ),
+          "yyyy-MM-dd HH:mm",
+        );
 
-          const namespaceOwnedById = isExternalOntologyElementMetadata(
-            type.metadata,
-          )
-            ? undefined
-            : type.metadata.ownedById;
+        const lastEditedBy = actors?.find(
+          ({ accountId }) =>
+            accountId === type.metadata.provenance.edition.createdById,
+        );
 
-          const webShortname = namespaces?.find(
-            (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
-          )?.shortname;
-
-          const lastEdited = format(
-            new Date(
-              type.metadata.temporalVersioning.transactionTime.start.limit,
-            ),
-            "yyyy-MM-dd HH:mm",
-          );
-
-          const lastEditedBy = actors?.find(
-            ({ accountId }) =>
-              accountId === type.metadata.provenance.edition.createdById,
-          );
-
-          return {
-            rowId: type.schema.$id,
-            typeId: type.schema.$id,
-            title: type.schema.title,
-            lastEdited,
-            lastEditedBy,
-            kind:
-              type.schema.kind === "entityType"
-                ? isSpecialEntityTypeLookup?.[type.schema.$id]?.isFile
-                  ? "link-type"
-                  : "entity-type"
-                : type.schema.kind === "propertyType"
-                  ? "property-type"
-                  : "data-type",
-            external: isExternal,
-            webShortname,
-            archived: isTypeArchived(type),
-          } as const;
-        })
-        .filter(
-          ({ external, archived }) =>
-            (filterState.includeGlobal ? true : !external) &&
-            (filterState.includeArchived ? true : !archived),
-        ),
-    [
-      actors,
-      internalWebIds,
-      isSpecialEntityTypeLookup,
-      types,
-      namespaces,
-      filterState,
-    ],
+        return {
+          rowId: type.schema.$id,
+          typeId: type.schema.$id,
+          title: type.schema.title,
+          icon: "icon" in type.schema ? type.schema.icon : undefined,
+          lastEdited,
+          lastEditedBy,
+          kind:
+            type.schema.kind === "entityType"
+              ? isSpecialEntityTypeLookup?.[type.schema.$id]?.isFile
+                ? "link-type"
+                : "entity-type"
+              : type.schema.kind === "propertyType"
+                ? "property-type"
+                : "data-type",
+          external: type.isExternal,
+          webShortname: type.webShortname,
+          archived: type.archived,
+        } as const;
+      }),
+    [actors, isSpecialEntityTypeLookup, filteredTypes],
   );
 
   const sortRows = useCallback<
@@ -302,6 +329,8 @@ export const TypesTable: FunctionComponent<{
     });
   }, []);
 
+  const theme = useTheme();
+
   const createGetCellContent = useCallback(
     (rows: TypesTableRow[]) =>
       ([colIndex, rowIndex]: Item): TextCell | TextIconCell | ChipCell => {
@@ -318,26 +347,40 @@ export const TypesTable: FunctionComponent<{
         }
 
         switch (column.id) {
-          case "title":
+          case "title": {
+            const isClickable =
+              row.kind === "entity-type" || row.kind === "link-type";
+
             return {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: false,
               copyData: row.title,
-              cursor: "pointer",
+              cursor: isClickable ? "pointer" : "default",
               data: {
-                kind: "text-icon-cell",
-                icon: "bpAsterisk",
-                value: row.title,
-                onClick: () => {
-                  if (row.kind === "entity-type") {
-                    setSelectedEntityTypeId(row.typeId);
-                  } else {
-                    void router.push(generateLinkParameters(row.typeId).href);
-                  }
-                },
+                kind: "chip-cell",
+                chips: [
+                  {
+                    icon: row.icon
+                      ? { entityTypeIcon: row.icon }
+                      : {
+                          inbuiltIcon:
+                            row.kind === "link-type" ? "bpLink" : "bpAsterisk",
+                        },
+                    text: row.title,
+                    onClick: isClickable
+                      ? () => {
+                          setSelectedEntityType({ entityTypeId: row.typeId });
+                        }
+                      : undefined,
+                    iconFill: theme.palette.blue[70],
+                  },
+                ],
+                color: "white",
+                variant: "outlined",
               },
             };
+          }
           case "kind":
             return {
               kind: GridCellKind.Text,
@@ -351,19 +394,23 @@ export const TypesTable: FunctionComponent<{
               ? `@${row.webShortname}`
               : typeNamespaceFromTypeId(row.typeId);
 
+            const isClickable = row.webShortname !== undefined;
+
             return {
               kind: GridCellKind.Custom,
               allowOverlay: false,
               readonly: true,
-              cursor: "pointer",
+              cursor: isClickable ? "pointer" : "default",
               copyData: value,
               data: {
                 kind: "text-icon-cell",
                 icon: null,
                 value,
-                onClick: () => {
-                  void router.push(`/${value}`);
-                },
+                onClick: isClickable
+                  ? () => {
+                      void router.push(`/${value}`);
+                    }
+                  : undefined,
               },
             };
           }
@@ -410,7 +457,9 @@ export const TypesTable: FunctionComponent<{
                   ? [
                       {
                         text: actorName,
-                        icon: actorIcon,
+                        icon: actorIcon
+                          ? { inbuiltIcon: actorIcon }
+                          : undefined,
                       },
                     ]
                   : [],
@@ -421,28 +470,56 @@ export const TypesTable: FunctionComponent<{
           }
         }
       },
-    [typesTableColumns, router],
+    [typesTableColumns, router, theme],
   );
 
-  const theme = useTheme();
+  const maxTableHeight = `calc(100vh - (${
+    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
+  }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`;
 
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
+  const onTypeClick = useCallback(
+    (
+      typeId: VersionedUrl,
+      slideContainerRef?: RefObject<HTMLDivElement | null>,
+    ) =>
+      setSelectedEntityType({
+        entityTypeId: typeId,
+        slideContainerRef,
+      }),
+    [],
+  );
+
   return (
     <>
-      {selectedEntityTypeId && (
+      {selectedEntityType && (
         <TypeSlideOverStack
-          rootTypeId={selectedEntityTypeId}
-          onClose={() => setSelectedEntityTypeId(null)}
+          rootTypeId={selectedEntityType.entityTypeId}
+          onClose={() => setSelectedEntityType(null)}
+          slideContainerRef={selectedEntityType.slideContainerRef}
         />
       )}
       <Box>
         <TableHeader
+          endAdornment={
+            <TableHeaderToggle
+              value={view}
+              setValue={setView}
+              options={(
+                ["Table", "Graph"] as const satisfies VisualizerView[]
+              ).map((optionValue) => ({
+                icon: visualizerViewIcons[optionValue],
+                label: `${optionValue} view`,
+                value: optionValue,
+              }))}
+            />
+          }
           internalWebIds={internalWebIds}
           itemLabelPlural="types"
           items={types}
           title={typesTablesToTitle[kind]}
-          columns={typesTableColumns}
+          currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           filterState={filterState}
           setFilterState={setFilterState}
@@ -451,40 +528,51 @@ export const TypesTable: FunctionComponent<{
           )}
           onBulkActionCompleted={() => setSelectedRows([])}
         />
-        <Grid
-          showSearch={showSearch}
-          onSearchClose={() => setShowSearch(false)}
-          columns={typesTableColumns}
-          dataLoading={!types}
-          rows={filteredRows}
-          enableCheckboxSelection
-          selectedRows={selectedRows}
-          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          onSelectedRowsChange={(updatedSelectedRows) =>
-            setSelectedRows(updatedSelectedRows)
-          }
-          sortable
-          sortRows={sortRows}
-          firstColumnLeftPadding={16}
-          createGetCellContent={createGetCellContent}
-          // define max height if there are lots of rows
-          height={`
+        {view === "Table" ? (
+          <Box sx={tableContentSx}>
+            <Grid
+              showSearch={showSearch}
+              onSearchClose={() => setShowSearch(false)}
+              columns={typesTableColumns}
+              dataLoading={!types}
+              rows={filteredRows}
+              enableCheckboxSelection
+              selectedRows={selectedRows}
+              currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+              onSelectedRowsChange={(updatedSelectedRows) =>
+                setSelectedRows(updatedSelectedRows)
+              }
+              sortable
+              sortRows={sortRows}
+              firstColumnLeftPadding={firstColumnLeftPadding}
+              createGetCellContent={createGetCellContent}
+              // define max height if there are lots of rows
+              height={`
           min(
-            calc(100vh - (${
-              HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
-            }px + ${theme.spacing(5)}) - ${theme.spacing(5)}),
+            ${maxTableHeight},
             calc(
               ${gridHeaderHeightWithBorder}px +
-              (${filteredRows?.length ? filteredRows.length : 1} * ${gridRowHeight}px) +
+              (${
+                filteredRows?.length ? filteredRows.length : 1
+              } * ${gridRowHeight}px) +
               ${gridHorizontalScrollbarHeight}px
             )
           )`}
-          customRenderers={[
-            createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-            renderChipCell,
-          ]}
-          freezeColumns={1}
-        />
+              customRenderers={[
+                createRenderTextIconCell({ firstColumnLeftPadding }),
+                createRenderChipCell({ firstColumnLeftPadding }),
+              ]}
+              freezeColumns={1}
+            />
+          </Box>
+        ) : (
+          <Box height={maxTableHeight} sx={tableContentSx}>
+            <TypeGraphVisualizer
+              onTypeClick={onTypeClick}
+              types={filteredTypes}
+            />
+          </Box>
+        )}
       </Box>
     </>
   );

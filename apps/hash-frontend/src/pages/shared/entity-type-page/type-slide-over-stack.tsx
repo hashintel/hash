@@ -1,17 +1,24 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { Backdrop } from "@mui/material";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useState } from "react";
 
+import { useScrollLock } from "../../../shared/use-scroll-lock";
 import { TypeSlideOverSlide } from "./type-slide-over-stack/type-slide-over-slide";
 
 export const TypeSlideOverStack: FunctionComponent<{
   rootTypeId: VersionedUrl;
   onClose: () => void;
-}> = ({ rootTypeId, onClose }) => {
+  /**
+   * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
+   */
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
+}> = ({ rootTypeId, onClose, slideContainerRef }) => {
   const [animateOut, setAnimateOut] = useState(false);
   const [items, setItems] = useState<VersionedUrl[]>([rootTypeId]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+
+  useScrollLock(true);
 
   if (rootTypeId !== items[0]) {
     setCurrentIndex(0);
@@ -59,6 +66,7 @@ export const TypeSlideOverStack: FunctionComponent<{
           onForward={index < items.length - 1 ? handleForward : undefined}
           onClose={handleClose}
           onNavigateToType={handleNavigateToType}
+          slideContainerRef={slideContainerRef}
           typeUrl={typeId}
           stackPosition={index}
         />

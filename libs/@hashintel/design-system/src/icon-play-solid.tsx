@@ -2,7 +2,7 @@ import type { SvgIconProps } from "@mui/material";
 import { SvgIcon } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const PlayIconSolid: FunctionComponent<SvgIconProps> = (props) => {
+export const PlaySolidIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon
       width="384"

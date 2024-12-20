@@ -147,7 +147,9 @@ export type FileUploadsContextValue = {
 };
 
 // The main context to store file upload metadata and the function to request a new upload
-const FileUploadsContext = createContext<null | FileUploadsContextValue>(null);
+export const FileUploadsContext = createContext<null | FileUploadsContextValue>(
+  null,
+);
 
 type FileUploadsProgress = {
   [requestId: string]: number;
@@ -234,7 +236,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
 
       const newRequestId = requestId ? undefined : uuid();
 
-      const upload =
+      let upload: FileUpload =
         existingUpload ??
         ({
           fileData,
@@ -357,13 +359,13 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
 
             presignedPut = data.requestFileUpload.presignedPut;
 
-            const updatedUpload: FileUpload = {
+            upload = {
               ...upload,
               createdEntities: { fileEntity },
               presignedPut,
               status: "uploading-file-locally",
             };
-            updateUpload(updatedUpload);
+            updateUpload(upload);
           }
 
           if (!presignedPut) {
@@ -421,6 +423,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           const updatedUpload: FileUpload = {
             ...upload,
             ...(fileEntity ? { createdEntities: { fileEntity } } : {}),
+            presignedPut,
             status: "error",
             failedStep: "uploading-file-locally",
             errorMessage,
@@ -461,13 +464,14 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         linkEntityIdToDelete &&
         existingUpload?.failedStep !== "creating-link-entity"
       ) {
-        updateUpload({
+        upload = {
           ...upload,
           createdEntities: {
             fileEntity,
           },
           status: "archiving-link-entity",
-        });
+        };
+        updateUpload(upload);
 
         try {
           const { data: archiveData, errors: archiveErrors } =
@@ -498,18 +502,20 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         }
       }
 
-      updateUpload({
+      upload = {
         ...upload,
         createdEntities: {
           fileEntity,
         },
         status: "creating-link-entity",
-      });
+      };
+
+      updateUpload(upload);
 
       try {
         const { data, errors } = await createEntity({
           variables: {
-            entityTypeId: linkEntityTypeId,
+            entityTypeIds: [linkEntityTypeId],
             linkData: {
               leftEntityId: linkedEntityId,
               rightEntityId: fileEntity.metadata.recordId.entityId,

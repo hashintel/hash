@@ -2,13 +2,15 @@
 use core::error::Error;
 use core::{fmt, num::IntErrorKind, str::FromStr};
 
+#[cfg(feature = "postgres")]
+use bytes::BytesMut;
 pub use error::{ParseBaseUrlError, ParseVersionedUrlError};
 #[cfg(feature = "postgres")]
-use postgres_types::{private::BytesMut, FromSql, IsNull, ToSql, Type};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use postgres_types::{FromSql, IsNull, ToSql, Type};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use url::Url;
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::{ToSchema, openapi};
 
 mod error;
 // #[cfg(target_arch = "wasm32")]
@@ -220,7 +222,7 @@ impl FromStr for VersionedUrl {
                             IntErrorKind::Empty => ParseVersionedUrlError::MissingVersion,
                             IntErrorKind::InvalidDigit => {
                                 let invalid_digit_index =
-                                    version.find(|c: char| !c.is_numeric()).unwrap_or(0);
+                                    version.find(|ch: char| !ch.is_numeric()).unwrap_or(0);
 
                                 if invalid_digit_index == 0 {
                                     ParseVersionedUrlError::InvalidVersion(
@@ -293,7 +295,7 @@ mod tests {
 
     #[test]
     fn versioned_url() {
-        let input_str = "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1";
+        let input_str = "https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1";
         let url = VersionedUrl::from_str(input_str).expect("parsing versioned URL failed");
         assert_eq!(&url.to_string(), input_str);
     }

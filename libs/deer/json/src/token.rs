@@ -1,9 +1,9 @@
 use deer::{
-    error::{Error, Variant},
     Deserialize, Document, Number, Reflection, Schema,
+    error::{Error, Variant as _},
 };
 use error_stack::Report;
-use justjson::{parser::Token, JsonNumber, JsonString};
+use justjson::{JsonNumber, JsonString, parser::Token};
 
 use crate::error::SyntaxError;
 
@@ -52,7 +52,7 @@ impl Reflection for AnyArray {
     }
 }
 
-impl<'a> ValueToken<'a> {
+impl ValueToken<'_> {
     pub(crate) fn schema(&self) -> Document {
         match self {
             Self::Null => <() as Deserialize>::reflection(),

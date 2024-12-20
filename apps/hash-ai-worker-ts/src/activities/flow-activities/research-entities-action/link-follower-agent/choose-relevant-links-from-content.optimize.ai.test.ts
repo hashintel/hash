@@ -1,6 +1,6 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
-import { dirname, join } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import dedent from "dedent";
@@ -32,7 +32,7 @@ const ftse350Metric: MetricDefinition = {
     The user prompt provided to the LLM is: "${ftse350MetricPrompt}".
     The text provided to the LLM is the HTML of a web-page containing a table of
       FTSE350 constituents, paginated across multiple pages.
-    
+
     The LLM must extract all the paginated links from the FTSE350 constituents page, because
       the links must be followed to extract the full list of FTSE350 constituents.
 
@@ -45,14 +45,18 @@ const ftse350Metric: MetricDefinition = {
       contentUrl: ftse350WebPage.url,
       content: ftse350WebPage.htmlContent,
       contentType: "html",
-      prompt: ftse350MetricPrompt,
+      goal: ftse350MetricPrompt,
       testingParams,
     });
 
     if (response.status !== "ok") {
       return {
         score: 0,
-        naturalLanguageReport: `The LLM encountered an error: ${JSON.stringify(response, null, 2)}.`,
+        naturalLanguageReport: `The LLM encountered an error: ${JSON.stringify(
+          response,
+          null,
+          2,
+        )}.`,
         encounteredError: response,
         testingParams,
       };
@@ -84,7 +88,9 @@ const ftse350Metric: MetricDefinition = {
       testingParams,
       naturalLanguageReport:
         missedUrls.length > 0
-          ? `The LLM failed to extract the following paginated links from the FTSE350 constituents page: ${JSON.stringify(missedUrls)}`
+          ? `The LLM failed to extract the following paginated links from the FTSE350 constituents page: ${JSON.stringify(
+              missedUrls,
+            )}`
           : "The LLM successfully extracted all the paginated links from the FTSE350 constituents page.",
       additionalInfo: {
         missedUrls,
@@ -112,7 +118,7 @@ const marksAndSpencersAnnualInvestorsReport: MetricDefinition = {
     The text provided to the LLM is the HTML of the Marks and Spencers investors page, which
       includes links to a variety of documents, including the annual investor report published
       by the company every year.
-    
+
     To satisfy the prompt, the LLM must extract the link to the latest annual investor report PDF
       published by Marks and Spencers, which is https://corporate.marksandspencer.com/sites/marksandspencer/files/2024-06/M-and-S-2024-Annual-Report.pdf.
 
@@ -125,14 +131,18 @@ const marksAndSpencersAnnualInvestorsReport: MetricDefinition = {
       contentUrl: marksAndSpencersInvestorsPage.url,
       content: marksAndSpencersInvestorsPage.htmlContent,
       contentType: "html",
-      prompt: marksAndSpencerInvestorsPrompt,
+      goal: marksAndSpencerInvestorsPrompt,
       testingParams,
     });
 
     if (response.status !== "ok") {
       return {
         score: 0,
-        naturalLanguageReport: `The LLM encountered an error: ${JSON.stringify(response, null, 2)}.`,
+        naturalLanguageReport: `The LLM encountered an error: ${JSON.stringify(
+          response,
+          null,
+          2,
+        )}.`,
         encounteredError: response,
         testingParams,
       };
@@ -159,7 +169,9 @@ const marksAndSpencersAnnualInvestorsReport: MetricDefinition = {
       testingParams,
       naturalLanguageReport:
         missedUrls.length > 0
-          ? `The LLM failed to extract the following links from the page: ${JSON.stringify(missedUrls)}`
+          ? `The LLM failed to extract the following links from the page: ${JSON.stringify(
+              missedUrls,
+            )}`
           : "The LLM successfully extracted all the required links from the page.",
       additionalInfo: {
         missedUrls,
@@ -189,7 +201,7 @@ const graphicsCardSpecificationMetric: MetricDefinition = {
 
     To satisfy the prompt, the LLM must extract the link to the specification page of
       the NVIDIA GeForce RTX 4090 graphics card, which is https://www.techpowerup.com/gpu-specs/geforce-rtx-4090.c3889.
-    
+
     The score in this metric is calculated as 1 if the correct link is extracted, and 0 otherwise.
   `),
   executeMetric: async (params) => {
@@ -199,14 +211,18 @@ const graphicsCardSpecificationMetric: MetricDefinition = {
       contentUrl: gpuSpecsPage.url,
       content: gpuSpecsPage.htmlContent,
       contentType: "html",
-      prompt: graphicsCardSpecificationPrompt,
+      goal: graphicsCardSpecificationPrompt,
       testingParams,
     });
 
     if (response.status !== "ok") {
       return {
         score: 0,
-        naturalLanguageReport: `The LLM encountered an error: ${JSON.stringify(response, null, 2)}.`,
+        naturalLanguageReport: `The LLM encountered an error: ${JSON.stringify(
+          response,
+          null,
+          2,
+        )}.`,
         encounteredError: response,
         testingParams,
       };
@@ -233,7 +249,9 @@ const graphicsCardSpecificationMetric: MetricDefinition = {
       testingParams,
       naturalLanguageReport:
         missedUrls.length > 0
-          ? `The LLM failed to extract the following links from the page: ${JSON.stringify(missedUrls)}`
+          ? `The LLM failed to extract the following links from the page: ${JSON.stringify(
+              missedUrls,
+            )}`
           : "The LLM successfully extracted all the required links from the page.",
       additionalInfo: {
         missedUrls,
@@ -249,9 +267,9 @@ const metrics: MetricDefinition[] = [
 ];
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-const baseDirectoryPath = join(
+const baseDirectoryPath = path.join(
   __dirname,
   "/var/extract-links-from-text-testing",
 );

@@ -4,7 +4,7 @@ use core::{
 };
 
 use bytes::Bytes;
-use futures::StreamExt;
+use futures::StreamExt as _;
 use harpc_net::session::server::transaction::TransactionStream;
 
 use crate::body::{Body, BodyFrameResult, BodyState, Frame};
@@ -12,6 +12,13 @@ use crate::body::{Body, BodyFrameResult, BodyState, Frame};
 #[derive(Debug)]
 pub struct RequestBody {
     inner: TransactionStream,
+}
+
+impl RequestBody {
+    #[must_use]
+    pub const fn new(inner: TransactionStream) -> Self {
+        Self { inner }
+    }
 }
 
 impl Body for RequestBody {

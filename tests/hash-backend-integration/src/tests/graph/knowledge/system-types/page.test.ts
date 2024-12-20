@@ -63,7 +63,7 @@ describe("Page", () => {
 
     const blockData = await createEntity<Text>(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
-      entityTypeId: systemEntityTypes.text.entityTypeId,
+      entityTypeIds: [systemEntityTypes.text.entityTypeId],
       properties: {
         value: {
           "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":

@@ -18,6 +18,7 @@ import { useMemo, useState } from "react";
 import { isItemArchived } from "../../shared/is-archived";
 import { isEntityPageEntity } from "../../shared/is-of-type";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
+import type { MenuItemProps } from "../../shared/ui/menu-item";
 import type { BreadcrumbsProps } from "./breadcrumbs";
 import { Breadcrumbs } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
@@ -102,7 +103,7 @@ const PageRestoredMessageWrapper: FunctionComponent<{
 export const TOP_CONTEXT_BAR_HEIGHT = 50;
 
 type TopContextBarProps = {
-  actionMenuItems?: ReactElement[];
+  actionMenuItems?: ReactElement<MenuItemProps>[];
   crumbs: BreadcrumbsProps["crumbs"];
   item?: Entity | EntityTypeWithMetadata;
   defaultCrumbIcon?: ReactNode;
@@ -128,8 +129,8 @@ export const TopContextBar = ({
 
   const isCanvasPage =
     item &&
-    "entityTypeId" in item &&
-    item.entityTypeId === systemEntityTypes.canvas.entityTypeId;
+    "entityTypeIds" in item.metadata &&
+    item.metadata.entityTypeIds.includes(systemEntityTypes.canvas.entityTypeId);
 
   // @todo make 'additional buttons' a prop and move this to the page page
   const setCanvasLockState = (shouldLock: boolean) => {
@@ -213,7 +214,7 @@ export const TopContextBar = ({
           )}
         </Box>
       </Box>
-      {item && !(!isItemEntityType(item) && !isEntityPageEntity(item)) ? (
+      {item ? (
         <Collapse in={archived}>
           <ArchivedItemBanner
             item={item}

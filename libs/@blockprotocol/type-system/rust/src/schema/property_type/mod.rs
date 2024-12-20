@@ -12,7 +12,9 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::{
-    schema::{ArraySchema, DataTypeReference, ObjectSchema, OneOfSchema, ValueOrArray},
+    schema::{
+        DataTypeReference, OneOfSchema, PropertyValueArray, PropertyValueObject, ValueOrArray,
+    },
     url::VersionedUrl,
 };
 
@@ -21,7 +23,8 @@ use crate::{
 pub struct PropertyType {
     pub id: VersionedUrl,
     pub title: String,
-    pub description: Option<String>,
+    pub title_plural: Option<String>,
+    pub description: String,
     pub one_of: Vec<PropertyValues>,
 }
 
@@ -61,8 +64,17 @@ impl Serialize for PropertyType {
 )]
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
-    PropertyTypeObject(ObjectSchema<ValueOrArray<PropertyTypeReference>>),
-    ArrayOfPropertyValues(ArraySchema<OneOfSchema<PropertyValues>>),
+    PropertyTypeObject(PropertyValueObject<ValueOrArray<PropertyTypeReference>>),
+    ArrayOfPropertyValues(PropertyValueArray<OneOfSchema<PropertyValues>>),
+}
+
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "kebab-case")]
+pub enum PropertyValueType {
+    Value,
+    Array,
+    Object,
 }
 
 impl PropertyValues {
@@ -100,11 +112,36 @@ impl PropertyValues {
                 .collect(),
         }
     }
+
+    #[must_use]
+    pub const fn property_value_type(&self) -> PropertyValueType {
+        match self {
+            Self::DataTypeReference(_) => PropertyValueType::Value,
+            Self::PropertyTypeObject(_) => PropertyValueType::Object,
+            Self::ArrayOfPropertyValues(_) => PropertyValueType::Array,
+        }
+    }
+}
+
+pub trait PropertyValueSchema {
+    fn possibilities(&self) -> &[PropertyValues];
+}
+
+impl PropertyValueSchema for &PropertyType {
+    fn possibilities(&self) -> &[PropertyValues] {
+        &self.one_of
+    }
+}
+
+impl PropertyValueSchema for OneOfSchema<PropertyValues> {
+    fn possibilities(&self) -> &[PropertyValues] {
+        &self.possibilities
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr;
+    use core::str::FromStr as _;
 
     use serde_json::json;
 
@@ -113,8 +150,8 @@ mod tests {
         schema::property_type::validation::{PropertyTypeValidationError, PropertyTypeValidator},
         url::BaseUrl,
         utils::tests::{
-            ensure_failed_deserialization, ensure_failed_validation, ensure_validation_from_str,
-            JsonEqualityCheck,
+            JsonEqualityCheck, ensure_failed_deserialization, ensure_failed_validation,
+            ensure_validation_from_str,
         },
     };
 
@@ -158,16 +195,15 @@ mod tests {
     #[tokio::test]
     async fn favorite_quote() {
         let property_type = ensure_validation_from_str::<PropertyType, _>(
-            graph_test_data::property_type::FAVORITE_QUOTE_V1,
+            hash_graph_test_data::property_type::FAVORITE_QUOTE_V1,
             PropertyTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_data_refs(
-            &property_type,
-            ["https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
-        );
+        test_property_type_data_refs(&property_type, [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        ]);
 
         test_property_type_property_refs(&property_type, []);
     }
@@ -175,16 +211,15 @@ mod tests {
     #[tokio::test]
     async fn age() {
         let property_type = ensure_validation_from_str::<PropertyType, _>(
-            graph_test_data::property_type::AGE_V1,
+            hash_graph_test_data::property_type::AGE_V1,
             PropertyTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_data_refs(
-            &property_type,
-            ["https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"],
-        );
+        test_property_type_data_refs(&property_type, [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+        ]);
 
         test_property_type_property_refs(&property_type, []);
     }
@@ -192,19 +227,16 @@ mod tests {
     #[tokio::test]
     async fn user_id() {
         let property_type = ensure_validation_from_str::<PropertyType, _>(
-            graph_test_data::property_type::USER_ID_V2,
+            hash_graph_test_data::property_type::USER_ID_V2,
             PropertyTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_data_refs(
-            &property_type,
-            [
-                "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            ],
-        );
+        test_property_type_data_refs(&property_type, [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        ]);
 
         test_property_type_property_refs(&property_type, []);
     }
@@ -212,7 +244,7 @@ mod tests {
     #[tokio::test]
     async fn contact_information() {
         let property_type = ensure_validation_from_str::<PropertyType, _>(
-            graph_test_data::property_type::CONTACT_INFORMATION_V1,
+            hash_graph_test_data::property_type::CONTACT_INFORMATION_V1,
             PropertyTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -220,19 +252,16 @@ mod tests {
 
         test_property_type_data_refs(&property_type, []);
 
-        test_property_type_property_refs(
-            &property_type,
-            [
-                "https://blockprotocol.org/@alice/types/property-type/email/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/phone-number/v/1",
-            ],
-        );
+        test_property_type_property_refs(&property_type, [
+            "https://blockprotocol.org/@alice/types/property-type/email/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/phone-number/v/1",
+        ]);
     }
 
     #[tokio::test]
     async fn interests() {
         let property_type = ensure_validation_from_str::<PropertyType, _>(
-            graph_test_data::property_type::INTERESTS_V1,
+            hash_graph_test_data::property_type::INTERESTS_V1,
             PropertyTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -240,29 +269,25 @@ mod tests {
 
         test_property_type_data_refs(&property_type, []);
 
-        test_property_type_property_refs(
-            &property_type,
-            [
-                "https://blockprotocol.org/@alice/types/property-type/favorite-film/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/favorite-song/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/hobby/v/1",
-            ],
-        );
+        test_property_type_property_refs(&property_type, [
+            "https://blockprotocol.org/@alice/types/property-type/favorite-film/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/favorite-song/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/hobby/v/1",
+        ]);
     }
 
     #[tokio::test]
     async fn numbers() {
         let property_type = ensure_validation_from_str::<PropertyType, _>(
-            graph_test_data::property_type::NUMBERS_V1,
+            hash_graph_test_data::property_type::NUMBERS_V1,
             PropertyTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_data_refs(
-            &property_type,
-            ["https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"],
-        );
+        test_property_type_data_refs(&property_type, [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+        ]);
 
         test_property_type_property_refs(&property_type, []);
     }
@@ -270,16 +295,15 @@ mod tests {
     #[tokio::test]
     async fn contrived_property() {
         let property_type = ensure_validation_from_str::<PropertyType, _>(
-            graph_test_data::property_type::CONTRIVED_PROPERTY_V1,
+            hash_graph_test_data::property_type::CONTRIVED_PROPERTY_V1,
             PropertyTypeValidator,
             JsonEqualityCheck::Yes,
         )
         .await;
 
-        test_property_type_data_refs(
-            &property_type,
-            ["https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"],
-        );
+        test_property_type_data_refs(&property_type, [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+        ]);
 
         test_property_type_property_refs(&property_type, []);
     }
@@ -293,6 +317,7 @@ mod tests {
                   "kind": "propertyType",
                   "$id": "https://blockprotocol.org/@alice/types/property-type/age/v/",
                   "title": "Age",
+                  "description": "The age of a person.",
                   "oneOf": [
                     {
                       "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
@@ -314,6 +339,7 @@ mod tests {
                   "kind": "propertyType",
                   "$id": "https://blockprotocol.org/@alice/types/property-type/age/v/1",
                   "title": "Age",
+                  "description": "The age of a person.",
                   "oneOf": [
                     {
                       "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
@@ -334,6 +360,7 @@ mod tests {
                   "kind": "propertyType",
                   "$id": "https://blockprotocol.org/@alice/types/property-type/age/v/1",
                   "title": "Age",
+                  "description": "The age of a person.",
                   "oneOf": [
                     {
                       "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number"
@@ -355,6 +382,7 @@ mod tests {
                   "kind": "propertyType",
                   "$id": "https://blockprotocol.org/@alice/types/property-type/age/v/1",
                   "title": "Age",
+                  "description": "The age of a person.",
                   "oneOf": []
                 }),
                 PropertyTypeValidator,
@@ -383,6 +411,7 @@ mod tests {
                   "kind": "propertyType",
                   "$id": "https://blockprotocol.org/@alice/types/property-type/contact-information/v/1",
                   "title": "Contact Information",
+                  "description": "A contact information property type that can be either an email or a phone number.",
                   "oneOf": [
                     {
                       "type": "object",

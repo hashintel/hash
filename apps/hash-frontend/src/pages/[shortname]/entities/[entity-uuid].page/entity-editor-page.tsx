@@ -1,13 +1,14 @@
 import { OntologyChip } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { PropertyObject } from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { NextSeo } from "next-seo";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
+import { EntityEditorSlideStack } from "../../../shared/entity-editor-slide-stack";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditor } from "./entity-editor";
 import { EntityPageWrapper } from "./entity-page-wrapper";
@@ -15,9 +16,9 @@ import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 import { QueryEditorPage } from "./query-editor-page";
 import { QueryEditorToggle } from "./query-editor-toggle";
 
-interface EntityEditorPageProps extends EntityEditorProps {
+interface EntityEditorPageProps
+  extends Omit<EntityEditorProps, "onEntityClick"> {
   entity?: Entity;
-  entityLabel: string;
   editBar: ReactNode;
   owner: string;
   entityUuid: string;
@@ -29,7 +30,6 @@ interface EntityEditorPageProps extends EntityEditorProps {
 
 export const EntityEditorPage = ({
   entity,
-  entityLabel,
   editBar,
   entityUuid,
   owner,
@@ -42,11 +42,36 @@ export const EntityEditorPage = ({
   const [shouldShowQueryEditor, setShouldShowQueryEditor] = useState(true);
   const { triggerSnackbar } = useSnackbar();
 
-  const { entitySubgraph, onEntityUpdated } = entityEditorProps;
+  const { entityLabel, entitySubgraph, onEntityUpdated } = entityEditorProps;
+
+  const [selectedEntity, setSelectedEntity] = useState<{
+    entityId: EntityId;
+  } | null>(null);
+
+  const handleEntityClick = useCallback((entityId: EntityId) => {
+    try {
+      setSelectedEntity({
+        entityId,
+      });
+    } catch {
+      setSelectedEntity({ entityId });
+    }
+  }, []);
 
   return (
     <>
       <NextSeo title={`${entityLabel} | Entity`} />
+
+      {selectedEntity ? (
+        <EntityEditorSlideStack
+          rootEntityId={selectedEntity.entityId}
+          onClose={() => setSelectedEntity(null)}
+          onSubmit={() => {
+            throw new Error(`Editing not yet supported from this screen`);
+          }}
+          readonly
+        />
+      ) : null}
 
       {isQueryEntity && (
         <QueryEditorToggle
@@ -56,6 +81,7 @@ export const EntityEditorPage = ({
       )}
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditorPage
+          onEntityClick={handleEntityClick}
           mode={isDraft ? "create" : "edit"}
           handleSaveQuery={async (value) => {
             const properties = {
@@ -68,7 +94,6 @@ export const EntityEditorPage = ({
               triggerSnackbar.success("Changes saved successfully");
             }
           }}
-          entityLabel={entityLabel}
           entityUuid={entityUuid}
           owner={owner}
           {...entityEditorProps}
@@ -77,6 +102,7 @@ export const EntityEditorPage = ({
         <EntityPageWrapper
           header={
             <EntityPageHeader
+              closedMultiEntityType={entityEditorProps.closedMultiEntityType}
               entity={entity}
               entitySubgraph={entitySubgraph}
               isModifyingEntity={isModifyingEntity}
@@ -95,7 +121,10 @@ export const EntityEditorPage = ({
           }
         >
           {/* use `satisfies EntityEditorProps` here when satisfies keyword is supported to make this safer */}
-          <EntityEditor {...entityEditorProps} />
+          <EntityEditor
+            {...entityEditorProps}
+            onEntityClick={handleEntityClick}
+          />
         </EntityPageWrapper>
       )}
     </>

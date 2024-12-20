@@ -1,12 +1,12 @@
-use error_stack::Result;
+use error_stack::Report;
 
-use crate::{error::VisitorError, Deserialize, Document, OptionalVisitor};
+use crate::{Deserialize, Document, OptionalVisitor, error::VisitorError};
 
 mod core;
 
 pub(crate) struct UnitVariantVisitor;
 
-impl<'de> OptionalVisitor<'de> for UnitVariantVisitor {
+impl OptionalVisitor<'_> for UnitVariantVisitor {
     type Value = ();
 
     fn expecting(&self) -> Document {
@@ -14,11 +14,11 @@ impl<'de> OptionalVisitor<'de> for UnitVariantVisitor {
         <() as Deserialize>::reflection()
     }
 
-    fn visit_none(self) -> Result<Self::Value, VisitorError> {
+    fn visit_none(self) -> Result<Self::Value, Report<VisitorError>> {
         Ok(())
     }
 
-    fn visit_null(self) -> Result<Self::Value, VisitorError> {
+    fn visit_null(self) -> Result<Self::Value, Report<VisitorError>> {
         Ok(())
     }
 

@@ -1,3 +1,4 @@
+import type { ClosedDataType } from "@blockprotocol/type-system";
 import type {
   CustomCell,
   CustomRenderer,
@@ -5,7 +6,7 @@ import type {
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import produce from "immer";
 import type { RefObject } from "react";
 
@@ -17,11 +18,10 @@ import { propertyGridIndexes } from "../constants";
 import type { PropertyRow } from "../types";
 import { getEditorSpecs } from "./value-cell/editor-specs";
 import type { ValueCell } from "./value-cell/types";
-import { guessEditorTypeFromExpectedType } from "./value-cell/utils";
 
 export interface ChangeTypeCellProps {
   readonly kind: "change-type-cell";
-  currentType: DataTypeWithMetadata["schema"];
+  currentType: ClosedDataType;
   propertyRow: PropertyRow;
   valueCellOfThisRow: ValueCell;
 }
@@ -36,7 +36,7 @@ const changeText = "CHANGE";
 const changeTextFont = "700 11px Inter";
 
 export const createRenderChangeTypeCell = (
-  gridRef: RefObject<DataEditorRef>,
+  gridRef: RefObject<DataEditorRef | null>,
 ): CustomRenderer<ChangeTypeCell> => {
   return {
     kind: GridCellKind.Custom,
@@ -53,10 +53,15 @@ export const createRenderChangeTypeCell = (
       ctx.font = changeTextFont;
       const changeTextWidth = ctx.measureText(changeText).width;
 
-      const editorSpec = getEditorSpecs(
-        guessEditorTypeFromExpectedType(currentType),
-        currentType,
-      );
+      const schema = getMergedDataTypeSchema(currentType);
+
+      if ("anyOf" in schema) {
+        throw new Error(
+          "Data types with different expected sets of constraints (anyOf) are not yet supported",
+        );
+      }
+
+      const editorSpec = getEditorSpecs(currentType, schema);
 
       const drawTheLeftChip = () =>
         drawChipWithIcon({
@@ -64,10 +69,10 @@ export const createRenderChangeTypeCell = (
           text: currentType.title,
           left: chipLeft,
           color: "blue",
-          icon: editorSpec.gridIcon,
+          icon: { inbuiltIcon: editorSpec.gridIcon },
         });
 
-      const chipWidth = drawTheLeftChip();
+      const { width: chipWidth } = drawTheLeftChip();
 
       const changeTextLeft = chipLeft + chipWidth + changeTextGap;
 
@@ -109,7 +114,7 @@ export const createRenderChangeTypeCell = (
       );
 
       const newContent = produce(valueCellOfThisRow, (draft) => {
-        draft.data.propertyRow.value = undefined;
+        draft.data.showTypePicker = true;
       });
 
       /**

@@ -1,38 +1,39 @@
 use alloc::sync::Arc;
 use core::{
+    assert_matches::assert_matches,
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
-use std::{assert_matches::assert_matches, io};
+use std::io;
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::{Buf as _, BufMut as _, Bytes, BytesMut};
 use error_stack::Report;
-use futures::{stream, StreamExt};
+use futures::{StreamExt as _, stream};
+use harpc_types::response_kind::ResponseKind;
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
+        Request,
         begin::RequestBegin,
         body::RequestBody,
         flags::{RequestFlag, RequestFlags},
         frame::RequestFrame,
         header::RequestHeader,
-        Request,
     },
     response::{
+        Response,
         begin::ResponseBegin,
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
-        kind::ResponseKind,
-        Response,
     },
     test_utils::mock_request_id,
 };
 use tachyonix::RecvTimeoutError;
-use tokio::sync::{mpsc, Notify};
+use tokio::sync::{Notify, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::{
     sync::{CancellationToken, PollSender},
@@ -44,14 +45,15 @@ use crate::{
     macros::non_zero,
     session::{
         client::{
+            TransactionStream as _, ValueStream,
             config::SessionConfig,
             connection::{
-                collection::TransactionCollection, ConnectionRequestDelegateTask,
-                ConnectionResponseDelegateTask,
+                ConnectionRequestDelegateTask, ConnectionResponseDelegateTask,
+                collection::TransactionCollection,
             },
-            transaction::{stream::StreamState, ClientTransactionPermit},
-            TransactionStream, ValueStream,
+            transaction::{ClientTransactionPermit as _, stream::StreamState},
         },
+        error::ConnectionPartiallyClosedError,
         gc::ConnectionGarbageCollectorTask,
         test::Descriptor,
     },
@@ -576,11 +578,11 @@ fn setup_connection(
     (connection, stream_tx, sink_rx, tasks)
 }
 
-struct EchoService {
+struct EchoSystem {
     packets_received: Arc<AtomicUsize>,
 }
 
-impl EchoService {
+impl EchoSystem {
     fn new() -> Self {
         Self {
             packets_received: Arc::new(AtomicUsize::new(0)),
@@ -597,15 +599,15 @@ impl EchoService {
 
             let body = match request.body {
                 RequestBody::Begin(RequestBegin {
-                    service,
+                    subsystem,
                     procedure,
                     payload,
                 }) => {
                     let mut bytes = BytesMut::new();
 
-                    bytes.put_u16(service.id.value());
-                    bytes.put_u8(service.version.major);
-                    bytes.put_u8(service.version.minor);
+                    bytes.put_u16(subsystem.id.value());
+                    bytes.put_u8(subsystem.version.major);
+                    bytes.put_u8(subsystem.version.minor);
 
                     bytes.put_u16(procedure.id.value());
 
@@ -648,9 +650,9 @@ impl EchoService {
 #[track_caller]
 async fn assert_stream(stream: &mut ValueStream, descriptor: Descriptor, expected: &[Bytes]) {
     let mut bytes = stream.next().await.expect("should have a value");
-    assert_eq!(bytes.get_u16(), descriptor.service.id.value());
-    assert_eq!(bytes.get_u8(), descriptor.service.version.major);
-    assert_eq!(bytes.get_u8(), descriptor.service.version.minor);
+    assert_eq!(bytes.get_u16(), descriptor.subsystem.id.value());
+    assert_eq!(bytes.get_u8(), descriptor.subsystem.version.major);
+    assert_eq!(bytes.get_u8(), descriptor.subsystem.version.minor);
 
     assert_eq!(bytes.get_u16(), descriptor.procedure.id.value());
 
@@ -673,7 +675,7 @@ async fn call() {
         ..SessionConfig::default()
     });
 
-    tokio::spawn(EchoService::new().serve(sink_rx, stream_tx));
+    tokio::spawn(EchoSystem::new().serve(sink_rx, stream_tx));
 
     let descriptor = Descriptor::default();
 
@@ -681,7 +683,7 @@ async fn call() {
 
     let mut stream = connection
         .call(
-            descriptor.service,
+            descriptor.subsystem,
             descriptor.procedure,
             stream::iter(payload.clone()),
         )
@@ -715,14 +717,21 @@ async fn call_do_not_admit_if_partially_closed_read() {
     tokio::task::yield_now().await;
 
     let descriptor = Descriptor::default();
-    let _ = connection
-        .call(
-            descriptor.service,
-            descriptor.procedure,
-            stream::iter([Bytes::from_static(b"hello")]),
-        )
-        .await
-        .expect_err("should be closed");
+    assert_eq!(
+        *connection
+            .call(
+                descriptor.subsystem,
+                descriptor.procedure,
+                stream::iter([Bytes::from_static(b"hello")]),
+            )
+            .await
+            .expect_err("should be closed")
+            .current_context(),
+        ConnectionPartiallyClosedError {
+            read: true,
+            write: false
+        }
+    );
 }
 
 #[tokio::test]
@@ -738,17 +747,24 @@ async fn call_do_not_admit_if_partially_closed_write() {
 
     let descriptor = Descriptor::default();
     connection
-        .call(descriptor.service, descriptor.procedure, stream::empty())
+        .call(descriptor.subsystem, descriptor.procedure, stream::empty())
         .await
         .expect("should be open");
 
     tokio::task::yield_now().await;
 
     // now we have sent a packet, so the connection should be registered as closed
-    let _ = connection
-        .call(descriptor.service, descriptor.procedure, stream::empty())
-        .await
-        .expect_err("should be closed");
+    assert_eq!(
+        *connection
+            .call(descriptor.subsystem, descriptor.procedure, stream::empty())
+            .await
+            .expect_err("should be closed")
+            .current_context(),
+        ConnectionPartiallyClosedError {
+            read: false,
+            write: true
+        }
+    );
 }
 
 #[tokio::test]
@@ -773,14 +789,14 @@ async fn call_finished_removes_stale_entry() {
         ..SessionConfig::default()
     });
 
-    tokio::spawn(EchoService::new().serve(sink_rx, stream_tx));
+    tokio::spawn(EchoSystem::new().serve(sink_rx, stream_tx));
 
     let descriptor = Descriptor::default();
     let payload = [Bytes::from_static(b"hello"), Bytes::from_static(b"world")];
 
     let mut stream = connection
         .call(
-            descriptor.service,
+            descriptor.subsystem,
             descriptor.procedure,
             stream::iter(payload.clone()),
         )
@@ -806,7 +822,7 @@ async fn call_input_output_independent() {
         ..SessionConfig::default()
     });
 
-    let service = EchoService::new();
+    let service = EchoSystem::new();
     let packets_received = Arc::clone(&service.packets_received);
 
     tokio::spawn(service.serve(sink_rx, stream_tx));
@@ -816,7 +832,7 @@ async fn call_input_output_independent() {
 
     let stream = connection
         .call(
-            descriptor.service,
+            descriptor.subsystem,
             descriptor.procedure,
             stream::iter(payload.clone()),
         )
@@ -842,7 +858,7 @@ async fn call_cancel() {
         |parts| parts.cancel.clone(),
     );
 
-    tokio::spawn(EchoService::new().serve(sink_rx, stream_tx));
+    tokio::spawn(EchoSystem::new().serve(sink_rx, stream_tx));
 
     assert_eq!(tasks.len(), 3);
 
@@ -851,7 +867,7 @@ async fn call_cancel() {
 
     let _stream = connection
         .call(
-            descriptor.service,
+            descriptor.subsystem,
             descriptor.procedure,
             stream::iter(payload.clone()),
         )
@@ -891,7 +907,7 @@ async fn connection_idle_does_not_terminate() {
         ..SessionConfig::default()
     });
 
-    tokio::spawn(EchoService::new().serve(sink_rx, stream_tx));
+    tokio::spawn(EchoSystem::new().serve(sink_rx, stream_tx));
 
     let descriptor = Descriptor::default();
     let payload = [Bytes::from_static(b"hello"), Bytes::from_static(b"world")];
@@ -899,7 +915,7 @@ async fn connection_idle_does_not_terminate() {
     for _ in 0..2 {
         let mut stream = connection
             .call(
-                descriptor.service,
+                descriptor.subsystem,
                 descriptor.procedure,
                 stream::iter(payload.clone()),
             )
@@ -934,14 +950,14 @@ async fn connection_drop_waits_for_transaction_to_finish() {
         ..SessionConfig::default()
     });
 
-    tokio::spawn(EchoService::new().serve(sink_rx, stream_tx));
+    tokio::spawn(EchoSystem::new().serve(sink_rx, stream_tx));
 
     let descriptor = Descriptor::default();
     let payload = [Bytes::from_static(b"hello"), Bytes::from_static(b"world")];
 
     let mut stream = connection
         .call(
-            descriptor.service,
+            descriptor.subsystem,
             descriptor.procedure,
             stream::iter(payload.clone()),
         )
@@ -981,7 +997,7 @@ async fn call_release_on_deadline_missed() {
         ..SessionConfig::default()
     });
 
-    let service = EchoService::new();
+    let service = EchoSystem::new();
     let packets_received = Arc::clone(&service.packets_received);
 
     tokio::spawn(service.serve(sink_rx, stream_tx));
@@ -996,7 +1012,7 @@ async fn call_release_on_deadline_missed() {
 
     let mut stream = connection
         .call(
-            descriptor.service,
+            descriptor.subsystem,
             descriptor.procedure,
             stream::iter(payload.clone()),
         )

@@ -41,7 +41,8 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   { linearIntegrationEntityId, syncWithWorkspaces },
   graphQLContext,
 ) => {
-  const { dataSources, authentication, temporal, vault } = graphQLContext;
+  const { dataSources, authentication, provenance, temporal, vault } =
+    graphQLContext;
 
   if (!vault) {
     throw new Error("Vault client not available");
@@ -126,8 +127,9 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     ...removedSyncedWorkspaces.map(
       async ({ syncLinearDataWithLinkEntity, workspaceEntity }) => {
         if (
-          workspaceEntity.metadata.entityTypeId ===
-          systemEntityTypes.organization.entityTypeId
+          workspaceEntity.metadata.entityTypeIds.includes(
+            systemEntityTypes.organization.entityTypeId,
+          )
         ) {
           /** @todo: remove system account id as account group member if there are no other integrations */
         }
@@ -135,6 +137,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
         return syncLinearDataWithLinkEntity.archive(
           impureGraphContext.graphApi,
           authentication,
+          provenance,
         );
       },
     ),

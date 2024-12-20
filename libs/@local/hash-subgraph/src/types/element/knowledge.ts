@@ -47,6 +47,11 @@ export type LinkEntityAndRightEntity = {
   rightEntity: Entity[];
 };
 
+export type LinkEntityAndLeftEntity = {
+  linkEntity: LinkEntity[];
+  leftEntity: Entity[];
+};
+
 export type DiffEntityInput = Subtype<
   DiffEntityParams,
   {

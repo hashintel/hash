@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use super::{
     begin::ResponseBegin,
@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
 };
 
@@ -17,6 +17,7 @@ use crate::{
 pub struct ResponseBodyEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub enum ResponseBody {
     Begin(ResponseBegin),
@@ -35,7 +36,7 @@ impl ResponseBody {
 impl Encode for ResponseBody {
     type Error = ResponseBodyEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -81,7 +82,10 @@ impl Decode for ResponseBody {
     type Context = ResponseBodyContext;
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, context: Self::Context) -> Result<Self, Self::Error>
+    fn decode<B>(
+        buffer: &mut Buffer<B>,
+        context: Self::Context,
+    ) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -96,6 +100,7 @@ impl Decode for ResponseBody {
 mod test {
     #![expect(clippy::needless_raw_strings)]
     use expect_test::expect;
+    use harpc_types::response_kind::ResponseKind;
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
@@ -104,7 +109,6 @@ mod test {
             begin::ResponseBegin,
             body::{ResponseBody, ResponseBodyContext, ResponseVariant},
             frame::ResponseFrame,
-            kind::ResponseKind,
         },
     };
 
@@ -116,13 +120,10 @@ mod test {
             payload: Payload::new(&[0x01_u8, 0x02, 0x03, 0x04] as &[_]),
         });
 
-        assert_encode(
-            &body,
-            expect![[r#"
+        assert_encode(&body, expect![[r#"
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
                 0x00 0x00 0x00 0x00 0x04 0x01 0x02 0x03 0x04
-            "#]],
-        );
+            "#]]);
     }
 
     #[test]
@@ -131,13 +132,10 @@ mod test {
             payload: Payload::new(&[0x01_u8, 0x02, 0x03, 0x04] as &[_]),
         });
 
-        assert_encode(
-            &body,
-            expect![[r#"
+        assert_encode(&body, expect![[r#"
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
                 0x00 0x00 0x00 0x00 0x04 0x01 0x02 0x03 0x04
-            "#]],
-        );
+            "#]]);
     }
 
     #[test]

@@ -1,26 +1,25 @@
 use alloc::sync::Arc;
 
-use futures::{FutureExt, StreamExt};
+use futures::{FutureExt as _, StreamExt as _};
 use tokio::{
     select,
-    sync::{broadcast, mpsc, Semaphore, TryAcquireError},
+    sync::{Semaphore, TryAcquireError, broadcast, mpsc},
 };
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::{
-    connection::collection::TransactionCollection, session_id::SessionIdProducer,
-    transaction::Transaction, SessionConfig, SessionEvent,
+    SessionConfig, SessionEvent, connection::collection::TransactionCollection,
+    session_id::SessionIdProducer, transaction::Transaction,
 };
 use crate::{
-    codec::ErrorEncoder,
     session::server::connection::ConnectionTask,
     transport::{
-        connection::{IncomingConnection, IncomingConnections},
         TransportLayer,
+        connection::{IncomingConnection, IncomingConnections},
     },
 };
 
-pub(crate) struct Task<E> {
+pub(crate) struct Task {
     pub id: SessionIdProducer,
 
     pub config: SessionConfig,
@@ -29,16 +28,12 @@ pub(crate) struct Task<E> {
 
     pub output: mpsc::Sender<Transaction>,
     pub events: broadcast::Sender<SessionEvent>,
-    pub encoder: E,
 
     // significant because of the Drop, if dropped this will stop the task automatically
     pub _transport: TransportLayer,
 }
 
-impl<E> Task<E>
-where
-    E: ErrorEncoder + Clone + Send + Sync + 'static,
-{
+impl Task {
     #[expect(
         clippy::integer_division_remainder_used,
         reason = "required for select! macro"
@@ -110,7 +105,7 @@ where
                 transactions: TransactionCollection::new(self.config, cancel.clone()),
                 output: self.output.clone(),
                 events: self.events.clone(),
-                encoder: self.encoder.clone(),
+
                 _permit: permit,
             };
 

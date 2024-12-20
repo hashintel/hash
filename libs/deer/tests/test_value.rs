@@ -1,16 +1,18 @@
 use deer::{
-    error::{DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant, VisitorError},
+    Context, Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,
+    error::{
+        DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant as _, VisitorError,
+    },
     value::{
         BoolDeserializer, BorrowedBytesDeserializer, BorrowedStrDeserializer,
         BytesBufferDeserializer, BytesDeserializer, CharDeserializer, F32Deserializer,
-        F64Deserializer, I128Deserializer, I16Deserializer, I32Deserializer, I64Deserializer,
-        I8Deserializer, IntoDeserializer, IsizeDeserializer, NullDeserializer, NumberDeserializer,
-        StrDeserializer, U128Deserializer, U16Deserializer, U32Deserializer, U64Deserializer,
-        U8Deserializer, UsizeDeserializer,
+        F64Deserializer, I8Deserializer, I16Deserializer, I32Deserializer, I64Deserializer,
+        I128Deserializer, IntoDeserializer as _, IsizeDeserializer, NullDeserializer,
+        NumberDeserializer, StrDeserializer, U8Deserializer, U16Deserializer, U32Deserializer,
+        U64Deserializer, U128Deserializer, UsizeDeserializer,
     },
-    Context, Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use proptest::prelude::*;
 
 macro_rules! generate_proptest {
@@ -100,14 +102,14 @@ impl Reflection for Choice {
 
 struct ChoiceVisitor;
 
-impl<'de> Visitor<'de> for ChoiceVisitor {
+impl Visitor<'_> for ChoiceVisitor {
     type Value = Choice;
 
     fn expecting(&self) -> Document {
         Self::Value::document()
     }
 
-    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+    fn visit_str(self, value: &str) -> Result<Self::Value, Report<VisitorError>> {
         match value {
             "yes" => Ok(Choice::Yes),
             "no" => Ok(Choice::No),
@@ -122,7 +124,9 @@ impl<'de> Visitor<'de> for ChoiceVisitor {
 impl<'de> Deserialize<'de> for Choice {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_str(ChoiceVisitor)
             .change_context(DeserializeError)
@@ -139,14 +143,14 @@ impl Reflection for Null {
 
 struct NullVisitor;
 
-impl<'de> Visitor<'de> for NullVisitor {
+impl Visitor<'_> for NullVisitor {
     type Value = Null;
 
     fn expecting(&self) -> Document {
         Self::Value::document()
     }
 
-    fn visit_null(self) -> Result<Self::Value, VisitorError> {
+    fn visit_null(self) -> Result<Self::Value, Report<VisitorError>> {
         Ok(Null)
     }
 }
@@ -154,7 +158,9 @@ impl<'de> Visitor<'de> for NullVisitor {
 impl<'de> Deserialize<'de> for Null {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_null(NullVisitor)
             .change_context(DeserializeError)
@@ -302,7 +308,7 @@ impl<'de> Visitor<'de> for BytesVisitor {
         Bytes::document()
     }
 
-    fn visit_borrowed_bytes(self, value: &'de [u8]) -> Result<Self::Value, VisitorError> {
+    fn visit_borrowed_bytes(self, value: &'de [u8]) -> Result<Self::Value, Report<VisitorError>> {
         Ok(Bytes(value))
     }
 }
@@ -310,7 +316,9 @@ impl<'de> Visitor<'de> for BytesVisitor {
 impl<'de: 'a, 'a> Deserialize<'de> for Bytes<'a> {
     type Reflection = Bytes<'static>;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_bytes(BytesVisitor)
             .change_context(DeserializeError)
@@ -327,14 +335,14 @@ impl Reflection for BytesLength {
 
 struct BytesLengthVisitor;
 
-impl<'de> Visitor<'de> for BytesLengthVisitor {
+impl Visitor<'_> for BytesLengthVisitor {
     type Value = BytesLength;
 
     fn expecting(&self) -> Document {
         Self::Value::document()
     }
 
-    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+    fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, Report<VisitorError>> {
         Ok(BytesLength(value.len()))
     }
 }
@@ -342,7 +350,9 @@ impl<'de> Visitor<'de> for BytesLengthVisitor {
 impl<'de> Deserialize<'de> for BytesLength {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_bytes(BytesLengthVisitor)
             .change_context(DeserializeError)
@@ -359,14 +369,14 @@ impl Reflection for ByteBuffer {
 
 struct ByteBufferVisitor;
 
-impl<'de> Visitor<'de> for ByteBufferVisitor {
+impl Visitor<'_> for ByteBufferVisitor {
     type Value = ByteBuffer;
 
     fn expecting(&self) -> Document {
         Self::Value::document()
     }
 
-    fn visit_bytes_buffer(self, value: Vec<u8>) -> Result<Self::Value, VisitorError> {
+    fn visit_bytes_buffer(self, value: Vec<u8>) -> Result<Self::Value, Report<VisitorError>> {
         Ok(ByteBuffer(value))
     }
 }
@@ -374,7 +384,9 @@ impl<'de> Visitor<'de> for ByteBufferVisitor {
 impl<'de> Deserialize<'de> for ByteBuffer {
     type Reflection = Self;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_bytes_buffer(ByteBufferVisitor)
             .change_context(DeserializeError)

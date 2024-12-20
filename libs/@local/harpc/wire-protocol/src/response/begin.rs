@@ -1,7 +1,7 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
+use harpc_types::response_kind::ResponseKind;
 
-use super::kind::ResponseKind;
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},
     payload::Payload,
@@ -12,6 +12,7 @@ use crate::{
 pub struct ResponseBeginEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct ResponseBegin {
     pub kind: ResponseKind,
@@ -22,7 +23,7 @@ pub struct ResponseBegin {
 impl Encode for ResponseBegin {
     type Error = ResponseBeginEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -45,7 +46,7 @@ impl Decode for ResponseBegin {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {
@@ -64,11 +65,12 @@ impl Decode for ResponseBegin {
 mod test {
     #![expect(clippy::needless_raw_strings)]
     use expect_test::expect;
+    use harpc_types::response_kind::ResponseKind;
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
         payload::Payload,
-        response::{begin::ResponseBegin, kind::ResponseKind},
+        response::begin::ResponseBegin,
     };
 
     #[test]
@@ -78,13 +80,10 @@ mod test {
             payload: Payload::new(b"hello world" as &[_]),
         };
 
-        assert_encode(
-            &frame,
-            expect![[r#"
+        assert_encode(&frame, expect![[r#"
                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
                 0x00 0x00 0x00 0x00 0x0B b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
-            "#]],
-        );
+            "#]]);
     }
 
     #[test]

@@ -1,13 +1,13 @@
 use deer::{
-    error::{ArrayAccessError, ArrayLengthError, DeserializerError, Error, Variant},
     Context, Deserialize, Deserializer as _,
+    error::{ArrayAccessError, ArrayLengthError, DeserializerError, Error, Variant as _},
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, ResultExt as _};
 use justjson::parser::{PeekableTokenKind, Token};
 
 use crate::{
     deserializer::Deserializer,
-    error::{ErrorAccumulator, Position, SyntaxError},
+    error::{Position, SyntaxError},
     skip::skip_tokens,
 };
 
@@ -21,7 +21,7 @@ pub(crate) struct ArrayAccess<'a, 'b, 'de: 'a> {
 impl<'a, 'b, 'de: 'a> ArrayAccess<'a, 'b, 'de> {
     pub(crate) fn new(
         deserializer: &'a mut Deserializer<'b, 'de>,
-    ) -> Result<Self, DeserializerError> {
+    ) -> Result<Self, Report<DeserializerError>> {
         deserializer.try_stack_push(&Token::Array)?;
 
         Ok(Self {
@@ -31,7 +31,7 @@ impl<'a, 'b, 'de: 'a> ArrayAccess<'a, 'b, 'de> {
         })
     }
 
-    fn try_skip_comma(&mut self) -> Result<(), Error> {
+    fn try_skip_comma(&mut self) -> Result<(), Report<Error>> {
         self.deserializer
             .try_skip(PeekableTokenKind::Comma, SyntaxError::ExpectedComma)
     }
@@ -46,11 +46,11 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         self.deserializer.context()
     }
 
-    fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
+    fn next<T>(&mut self) -> Option<Result<T, Report<ArrayAccessError>>>
     where
         T: Deserialize<'de>,
     {
-        let mut errors = ErrorAccumulator::new();
+        let mut errors = ReportSink::new();
 
         if self.dirty {
             // we parse in a way where every subsequent invocation (except the first one)
@@ -60,8 +60,12 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
             // the statement after this _will_ fail and return the visitor, therefore we don't
             // need to check for EOF
             if let Err(error) = self.try_skip_comma() {
-                errors.extend_one(error);
+                errors.append(error);
             }
+        }
+
+        if let Err(error) = errors.finish() {
+            return Some(Err(error.change_context(ArrayAccessError)));
         }
 
         self.dirty = true;
@@ -85,7 +89,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         None
     }
 
-    fn end(self) -> Result<(), ArrayAccessError> {
+    fn end(self) -> Result<(), Report<ArrayAccessError>> {
         self.deserializer.stack.pop();
 
         let result = match self.deserializer.peek() {

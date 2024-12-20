@@ -25,8 +25,8 @@ import {
   useFileUploads,
   useFileUploadsProgress,
 } from "../../../shared/file-upload-context";
-import { SectionWrapper } from "../../[shortname]/shared/section-wrapper";
 import { FileUploadDropzone } from "../../settings/shared/file-upload-dropzone";
+import { SectionWrapper } from "../section-wrapper";
 import { WorkspaceContext } from "../workspace-context";
 import { Action } from "./file-uploads-tab/action";
 import { ShowUploadFormButton } from "./file-uploads-tab/show-upload-form-button";

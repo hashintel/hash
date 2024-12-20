@@ -1,20 +1,17 @@
 import type {
-  ArraySchema,
+  DataType,
   EntityType,
-  ObjectSchema,
   OneOfSchema,
   PropertyType,
+  PropertyValueArray,
+  PropertyValueObject,
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type {
-  BaseUrl,
-  CustomDataType,
-  EntityTypeMetadata,
-} from "@local/hash-graph-types/ontology";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Subgraph } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
@@ -29,16 +26,16 @@ import {
 
 import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 
-type MinimalDataType = Omit<CustomDataType, "$id" | "$schema" | "kind">;
+type MinimalDataType = Omit<DataType, "$id" | "$schema" | "kind" | "allOf">;
 
-type MinimalPropertyObject = ObjectSchema<
+type MinimalPropertyObject = PropertyValueObject<
   ValueOrArray<DereferencedPropertyType>
 > & { additionalProperties: false };
 
 export type MinimalPropertyTypeValue =
   | MinimalDataType
   | MinimalPropertyObject
-  | ArraySchema<OneOfSchema<MinimalPropertyTypeValue>>;
+  | PropertyValueArray<OneOfSchema<MinimalPropertyTypeValue>>;
 
 export type DereferencedPropertyType = Pick<
   PropertyType,
@@ -46,15 +43,30 @@ export type DereferencedPropertyType = Pick<
 > &
   OneOfSchema<MinimalPropertyTypeValue>;
 
+/**
+ * An entity type with all its dependencies dereferenced and their simplified schemas in-lined.
+ *
+ * If the dereference function is called with `simplifyPropertyKeys` set to `true`, the property keys in the schema
+ * will be simplified from BaseUrls to simple strings. The mapping back to BaseUrls is returned from the function
+ */
 export type DereferencedEntityType<
   PropertyTypeKey extends string | BaseUrl = BaseUrl,
-> = Pick<EntityType, "$id" | "description" | "links" | "required" | "title"> & {
+> = Pick<
+  EntityType,
+  "$id" | "description" | "links" | "required" | "title" | "labelProperty"
+> & {
   properties: Record<
     PropertyTypeKey,
-    DereferencedPropertyType | ArraySchema<DereferencedPropertyType>
+    DereferencedPropertyType | PropertyValueArray<DereferencedPropertyType>
   >;
   additionalProperties: false;
-} & Pick<EntityTypeMetadata, "labelProperty">;
+};
+
+export type DereferencedEntityTypeWithSimplifiedKeys = {
+  isLink: boolean;
+  schema: DereferencedEntityType<string>;
+  simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+};
 
 const dereferencePropertyTypeValue = (params: {
   valueReference: PropertyValues;
@@ -197,6 +209,7 @@ const dereferencePropertyTypeValue = (params: {
     $id: _$id,
     $schema: _$schema,
     kind: _kind,
+    allOf: _allOf,
     ...minimalDataType
   } = dataType.schema;
 
@@ -259,6 +272,8 @@ const dereferencePropertyType = (params: {
 
  * Does not dereference 'links', because 'links' is not an expected part of the data object the dereferenced schema describes.
  *
+ * If called with `simplifyPropertyKeys` set to `true`, the property keys in the schema will be simplified from BaseUrls to simple strings. The mapping back to BaseUrls is returned as simplifiedPropertyTypeMappings.
+ *
  * See the associated .test.ts file for example input/output
  */
 export const dereferenceEntityType = <
@@ -303,8 +318,8 @@ export const dereferenceEntityType = <
      * Take the label property from the first entity type in the inheritance chain which has one.
      * The first item in the array is the entity type itself.
      */
-    if (!labelProperty && entityType.metadata.labelProperty) {
-      labelProperty = entityType.metadata.labelProperty;
+    if (!labelProperty && entityType.schema.labelProperty) {
+      labelProperty = entityType.schema.labelProperty as BaseUrl;
     }
 
     for (const propertyRefSchema of Object.values(

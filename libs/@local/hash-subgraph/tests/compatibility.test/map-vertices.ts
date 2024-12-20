@@ -1,4 +1,5 @@
 import type {
+  DataType,
   EntityType,
   OneOfSchema,
   PropertyType,
@@ -43,7 +44,6 @@ import type {
 } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
-  CustomDataType,
   DataTypeMetadata,
   EntityTypeMetadata,
   OntologyProvenance,
@@ -62,7 +62,7 @@ import type {
 } from "../../src/main.js";
 import { isEntityId } from "../../src/main.js";
 
-const mapDataType = (dataType: DataTypeGraphApi): CustomDataType => {
+const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUrl(dataType.$id);
   if (idResult.type === "Err") {
     throw new Error(
@@ -74,7 +74,7 @@ const mapDataType = (dataType: DataTypeGraphApi): CustomDataType => {
   const { inner: $id } = idResult;
 
   return {
-    ...(dataType as CustomDataType),
+    ...(dataType as DataType),
     $id,
   };
 };
@@ -222,7 +222,6 @@ const mapEntityTypeMetadata = (
 ): EntityTypeMetadata => {
   return {
     recordId: mapOntologyTypeRecordId(metadata.recordId),
-    labelProperty: metadata.labelProperty as BaseUrl,
     provenance: mapOntologyProvenance(metadata.provenance),
     ...("fetchedAt" in metadata
       ? { fetchedAt: metadata.fetchedAt as Timestamp }
@@ -337,14 +336,9 @@ const mapEntityTemporalVersioningMetadata = (
 const mapEntityMetadata = (
   metadata: EntityMetadataGraphApi,
 ): EntityMetadata => {
-  if (metadata.entityTypeIds.length !== 1) {
-    throw new Error(
-      `Expected entity metadata to have exactly one entity type id, but got ${metadata.entityTypeIds.length}`,
-    );
-  }
   return {
     recordId: mapEntityRecordId(metadata.recordId),
-    entityTypeId: metadata.entityTypeIds[0] as VersionedUrl,
+    entityTypeIds: metadata.entityTypeIds as [VersionedUrl, ...VersionedUrl[]],
     temporalVersioning: mapEntityTemporalVersioningMetadata(
       metadata.temporalVersioning,
     ),

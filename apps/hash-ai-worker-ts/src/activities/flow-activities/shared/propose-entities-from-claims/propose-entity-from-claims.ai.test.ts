@@ -9,9 +9,16 @@ import { expect, test } from "vitest";
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import type { LocalEntitySummary } from "../infer-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../infer-claims-from-text/types.js";
+import type { Claim } from "../claims.js";
+import type { LocalEntitySummary } from "../infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import { proposeEntityFromClaimsAgent } from "./propose-entity-from-claims-agent.js";
+
+/**
+ * @file These are not 'tests' but rather ways of running specific agents,
+ *       the results of which can be inspected in the logs saved to the file system under get-llm-response/logs/
+ *
+ * NOTE: these tests depend on having run `npx tsx apps/hash-api/src/seed-data/seed-flow-test-types.ts`
+ */
 
 const ownedById = generateUuid();
 
@@ -23,8 +30,9 @@ const huntingPlcEntitySummary: LocalEntitySummary = {
   name: "HUNTING PLC ORD 25P",
   summary:
     "HUNTING PLC, represented by the stock code HTG, has a market cap of 614.40 million GBX, a last recorded price of 452.50 GBX, and experienced a recent price change of 80.00 GBX, translating to a 21.48% increase.",
-  entityTypeId:
-    "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+  ],
 };
 
 const huntingPlcEntityClaims = [
@@ -58,18 +66,17 @@ const huntingPlcEntityClaims = [
   },
 ];
 
-test.skip(
+test(
   "Test proposeEntityFromClaims: HUNTING PLC ORD 25P",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+        "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
@@ -97,8 +104,8 @@ test.skip(
         isSubjectOf: huntingPlcEntityClaimsWithSources,
         isObjectOf: [],
       },
-      dereferencedEntityType,
-      simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
+      dereferencedEntityTypes: [dereferencedEntityType],
+      simplifiedPropertyTypeMappings,
       proposeOutgoingLinkEntityTypes: [],
       possibleOutgoingLinkTargetEntitySummaries: [],
     });
@@ -118,7 +125,7 @@ const graphicsCardEntitySummary: LocalEntitySummary = {
   name: "NVIDIA GeForce RTX 2080 Ti",
   summary:
     "The GeForce RTX 2080 Ti is a PC GPU based on the TU102 graphics processor with 11GB of memory, 352-bit memory bus, and approximately 120 teraflops of performance.",
-  entityTypeId: "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/graphics-card/v/1"],
 };
 
 const claimsAboutGraphicsCard: Claim[] = [
@@ -226,18 +233,17 @@ const claimsAboutGraphicsCard: Claim[] = [
   },
 ];
 
-test.skip(
+test(
   "Test proposeEntityFromClaims with graphics card entity",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
+        "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
@@ -249,8 +255,8 @@ test.skip(
         isSubjectOf: claimsAboutGraphicsCard,
         isObjectOf: [],
       },
-      dereferencedEntityType,
-      simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
+      dereferencedEntityTypes: [dereferencedEntityType],
+      simplifiedPropertyTypeMappings,
       proposeOutgoingLinkEntityTypes: [],
       possibleOutgoingLinkTargetEntitySummaries: [],
     });

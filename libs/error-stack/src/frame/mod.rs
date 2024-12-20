@@ -1,11 +1,10 @@
 mod frame_impl;
 mod kind;
 
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::boxed::Box;
 #[cfg(nightly)]
-use core::error::{self, Error};
-use core::{any::TypeId, fmt};
+use core::error;
+use core::{any::TypeId, error::Error, fmt};
 
 use self::frame_impl::FrameImpl;
 pub use self::kind::{AttachmentKind, FrameKind};
@@ -97,7 +96,6 @@ impl Frame {
         self.frame.as_any().type_id()
     }
 
-    #[cfg(nightly)]
     pub(crate) fn as_error(&self) -> &impl Error {
         &self.frame
     }

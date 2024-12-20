@@ -8,11 +8,17 @@ import { SpinnerIcon } from "../../../../shared/icons";
 
 export interface SuggesterProps<T> {
   options: T[];
-  renderItem(item: T): ReactElement;
+  // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+  // before this was: renderItem(item: T): ReactElement;
+  renderItem: (item: T) => ReactElement;
   error?: ReactElement | null;
-  onChange(item: T): void;
+  // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+  // before this was: onChange(item: T): void;
+  onChange: (item: T) => void;
   loading?: boolean;
-  itemKey(option: T): string;
+  // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+  // before this was: itemKey(option: T): string;
+  itemKey: (option: T) => string;
   sx?: SxProps<Theme>;
 }
 

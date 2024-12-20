@@ -108,8 +108,8 @@ impl Severity<'_> {
 }
 
 impl Display for Severity<'_> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        Display::fmt(&self.name, f)
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.name, fmt)
     }
 }
 

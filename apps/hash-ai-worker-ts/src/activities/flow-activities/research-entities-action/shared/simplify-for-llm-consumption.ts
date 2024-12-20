@@ -1,4 +1,3 @@
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   LocalOrExistingEntityId,
   ProposedEntity,
@@ -7,10 +6,11 @@ import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-p
 
 import type {
   DereferencedEntityType,
+  DereferencedEntityTypeWithSimplifiedKeys,
   DereferencedPropertyType,
   MinimalPropertyTypeValue,
 } from "../../../shared/dereference-entity-type.js";
-import type { Claim } from "../../shared/infer-claims-from-text/types.js";
+import type { Claim } from "../../shared/claims.js";
 
 const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
   propertyTypeValue: MinimalPropertyTypeValue;
@@ -88,27 +88,36 @@ const getIdForLinkEndpoint = (endpoint: LocalOrExistingEntityId) =>
 
 export const simplifyProposedEntityForLlmConsumption = (params: {
   proposedEntity: ProposedEntity;
-  entityType: DereferencedEntityType;
+  entityTypes: DereferencedEntityTypeWithSimplifiedKeys[];
 }) => {
-  const { proposedEntity, entityType } = params;
+  const { proposedEntity, entityTypes } = params;
 
   const {
-    entityTypeId,
+    entityTypeIds,
     localEntityId,
     sourceEntityId,
     targetEntityId,
-    properties,
+    properties: entityProperties,
   } = proposedEntity;
+
+  const missingProperties = entityTypes.flatMap(
+    ({ schema, simplifiedPropertyTypeMappings }) =>
+      Object.entries(schema.properties).filter(
+        ([simpleKey]) =>
+          entityProperties[simplifiedPropertyTypeMappings[simpleKey]!] ===
+          undefined,
+      ),
+  );
 
   return `
 <Entity>
 <EntityId>${localEntityId}</EntityId>
-<EntityType>EntityType: ${urlToTitleCase(entityTypeId)}</EntityType>
+<EntityType>${entityTypeIds.length > 1 ? "Entity Types" : "Entity Type"}: ${entityTypeIds.map((entityTypeId) => urlToTitleCase(entityTypeId) ?? "").join(", ")}</EntityType>
 <Properties>
-${Object.entries(properties)
+${Object.entries(entityProperties)
   .map(
     ([baseUrl, value]) =>
-      `<Property>${urlToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}</Property>`,
+      `${urlToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}`,
   )
   .join("\n")}
 </Properties>
@@ -117,13 +126,16 @@ ${Object.entries(properties)
         ? `\n<LinkData>SourceEntityId: ${getIdForLinkEndpoint(sourceEntityId)}\nTargetEntityId: ${getIdForLinkEndpoint(targetEntityId)}</LinkData>`
         : ""
     }
-<MissingPropertes>${Object.entries(entityType.properties)
-    .filter(([baseUrl]) => properties[baseUrl as BaseUrl] === undefined)
-    .map(
-      ([_baseUrl, schema]) =>
-        `<MissingProperty>${"items" in schema ? schema.items.title : schema.title}</MissingProperty>`,
-    )
-    .join(", ")}
+    ${
+      missingProperties.length > 0
+        ? ` <MissingProperties>${missingProperties
+            .map(
+              ([_key, propertySchema]) =>
+                `${"items" in propertySchema ? propertySchema.items.title : propertySchema.title}`,
+            )
+            .join(", ")}</MissingProperties>`
+        : ""
+    }
 </Entity>
   `;
 };

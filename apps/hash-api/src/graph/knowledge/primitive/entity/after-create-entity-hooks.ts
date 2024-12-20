@@ -5,7 +5,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { entityIdFromComponents } from "@local/hash-subgraph";
@@ -59,7 +59,9 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
   // If the parent of the comment is a block, check if we need to create a comment notification
   if (
-    commentParent.metadata.entityTypeId === systemEntityTypes.block.entityTypeId
+    commentParent.metadata.entityTypeIds.includes(
+      systemEntityTypes.block.entityTypeId,
+    )
   ) {
     const parentBlock = getBlockFromEntity({ entity: commentParent });
     const blockCollectionEntity = await getBlockCollectionByBlock(
@@ -70,7 +72,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
     if (
       blockCollectionEntity &&
-      isPageEntityTypeId(blockCollectionEntity.metadata.entityTypeId)
+      includesPageEntityTypeId(blockCollectionEntity.metadata.entityTypeIds)
     ) {
       const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,
@@ -117,8 +119,9 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
     }
     // If the parent is another comment check if we need to create a comment reply notification
   } else if (
-    commentParent.metadata.entityTypeId ===
-    systemEntityTypes.comment.entityTypeId
+    commentParent.metadata.entityTypeIds.includes(
+      systemEntityTypes.comment.entityTypeId,
+    )
   ) {
     const parentComment = getCommentFromEntity({ entity: commentParent });
 
@@ -136,7 +139,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
     if (
       blockCollectionEntity &&
-      isPageEntityTypeId(blockCollectionEntity.metadata.entityTypeId)
+      includesPageEntityTypeId(blockCollectionEntity.metadata.entityTypeIds)
     ) {
       const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,

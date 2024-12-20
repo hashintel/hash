@@ -1,8 +1,14 @@
+#![expect(
+    clippy::ref_option,
+    reason = "serde requires &Option<_> not Option<&_>"
+)]
+
+pub mod constant;
 pub mod string_hash_map;
 
 mod size_hint;
 
-use ::time::format_description::well_known::{iso8601, Iso8601};
+use ::time::format_description::well_known::{Iso8601, iso8601};
 
 const CONFIG: iso8601::EncodedConfig = iso8601::Config::DEFAULT
     .set_year_is_six_digits(false)
@@ -21,7 +27,7 @@ pub mod time {
 
 pub mod regex {
     use regex::Regex;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use serde::{Deserialize as _, Deserializer, Serialize as _, Serializer};
 
     /// Serialize a [`Regex`] to a string.
     ///
@@ -44,7 +50,7 @@ pub mod regex {
 
     pub mod option {
         use regex::Regex;
-        use serde::{Deserialize, Deserializer, Serialize, Serializer};
+        use serde::{Deserialize as _, Deserializer, Serialize as _, Serializer};
 
         /// Serialize an optional [`Regex`] to a string.
         ///
@@ -80,7 +86,7 @@ pub mod regex {
         use alloc::borrow::Cow;
 
         use regex::Regex;
-        use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serializer};
+        use serde::{Deserialize as _, Deserializer, Serializer, ser::SerializeSeq as _};
 
         /// Serialize a sequence of [`Regex`]es.
         ///

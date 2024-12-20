@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::{schema::one_of::OneOfSchema, Valid, Validator};
+use crate::{Valid, Validator, schema::one_of::OneOfSchema};
 
 #[derive(Debug, Error)]
 pub enum OneOfSchemaValidationError {
@@ -13,7 +13,7 @@ pub struct OneOfSchemaValidator;
 impl<T: Sync> Validator<Vec<T>> for OneOfSchemaValidator {
     type Error = OneOfSchemaValidationError;
 
-    async fn validate_ref<'v>(&self, value: &'v Vec<T>) -> Result<&'v Valid<Vec<T>>, Self::Error> {
+    fn validate_ref<'v>(&self, value: &'v Vec<T>) -> Result<&'v Valid<Vec<T>>, Self::Error> {
         if value.is_empty() {
             return Err(OneOfSchemaValidationError::Empty);
         }
@@ -24,11 +24,11 @@ impl<T: Sync> Validator<Vec<T>> for OneOfSchemaValidator {
 impl<T: Sync> Validator<OneOfSchema<T>> for OneOfSchemaValidator {
     type Error = OneOfSchemaValidationError;
 
-    async fn validate_ref<'v>(
+    fn validate_ref<'v>(
         &self,
         value: &'v OneOfSchema<T>,
     ) -> Result<&'v Valid<OneOfSchema<T>>, Self::Error> {
-        self.validate_ref(&value.possibilities).await?;
+        self.validate_ref(&value.possibilities)?;
         Ok(Valid::new_ref_unchecked(value))
     }
 }
@@ -38,7 +38,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::utils::tests::{ensure_failed_validation, ensure_validation, JsonEqualityCheck};
+    use crate::utils::tests::{JsonEqualityCheck, ensure_failed_validation, ensure_validation};
 
     #[tokio::test]
     async fn empty() {

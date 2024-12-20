@@ -1,5 +1,5 @@
 {
-  "name": "@rust/repo-chores",
+  "name": "@rust/hash-repo-chores",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",
@@ -9,5 +9,8 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "upload-benchmarks": "../../../../target/debug/repo-chores-cli benches upload"
+  },
+  "dependencies": {
+    "@rust/error-stack": "0.5.0"
   }
 }

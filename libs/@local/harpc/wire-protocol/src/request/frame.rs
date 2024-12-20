@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},
@@ -11,6 +11,7 @@ use crate::{
 pub struct RequestFrameEncodeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct RequestFrame {
     pub payload: Payload,
@@ -19,7 +20,7 @@ pub struct RequestFrame {
 impl Encode for RequestFrame {
     type Error = RequestFrameEncodeError;
 
-    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Self::Error>
+    fn encode<B>(&self, buffer: &mut Buffer<B>) -> Result<(), Report<Self::Error>>
     where
         B: BufMut,
     {
@@ -38,7 +39,7 @@ impl Decode for RequestFrame {
     type Context = ();
     type Error = BufferError;
 
-    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Self::Error>
+    fn decode<B>(buffer: &mut Buffer<B>, (): ()) -> Result<Self, Report<Self::Error>>
     where
         B: Buf,
     {

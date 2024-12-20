@@ -1,4 +1,4 @@
-use crate::{deserializer::Deserializer, Token};
+use crate::{Token, deserializer::Deserializer};
 
 fn scan_object(deserializer: &Deserializer, stop: &Token) -> usize {
     let mut objects: usize = 0;

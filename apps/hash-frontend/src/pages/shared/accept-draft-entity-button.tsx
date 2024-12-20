@@ -15,13 +15,12 @@ import type {
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { useDraftEntities } from "../../shared/draft-entities-context";
+import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
-import { useNotificationEntities } from "../../shared/notification-entities-context";
+import { useNotificationCount } from "../../shared/notification-count-context";
 import type { ButtonProps } from "../../shared/ui";
 import { Button } from "../../shared/ui";
 import { LinkLabelWithSourceAndDestination } from "./link-label-with-source-and-destination";
-import { useNotificationsWithLinks } from "./notifications-with-links-context";
 
 const LeftOrRightEntityEndAdornment: FunctionComponent<{
   isDraft: boolean;
@@ -136,37 +135,15 @@ export const AcceptDraftEntityButton: FunctionComponent<
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
-  const { refetch: refetchDraftEntities } = useDraftEntities();
+  const { refetch: refetchDraftEntitiesCount } = useDraftEntitiesCount();
 
-  const { markNotificationAsRead } = useNotificationEntities();
-  const { notifications } = useNotificationsWithLinks();
-
-  /**
-   * Notifications are no longer created for draft entities, but they will exist for existing draft entities.
-   * Can be removed in the future – change to stop notifs for draft entities made in March 2024.
-   */
-  const markRelatedGraphChangeNotificationsAsRead = useCallback(
-    async (params: { draftEntity: Entity }) => {
-      const relatedGraphChangeNotifications =
-        notifications?.filter(
-          ({ kind, occurredInEntity }) =>
-            kind === "graph-change" &&
-            occurredInEntity.metadata.recordId.entityId ===
-              params.draftEntity.metadata.recordId.entityId,
-        ) ?? [];
-
-      await Promise.all(
-        relatedGraphChangeNotifications.map((notification) =>
-          markNotificationAsRead({ notificationEntity: notification.entity }),
-        ),
-      );
-    },
-    [notifications, markNotificationAsRead],
-  );
+  const { markNotificationsAsReadForEntity } = useNotificationCount();
 
   const acceptDraftEntity = useCallback(
     async (params: { draftEntity: Entity }) => {
-      await markRelatedGraphChangeNotificationsAsRead(params);
+      await markNotificationsAsReadForEntity({
+        targetEntityId: params.draftEntity.entityId,
+      });
 
       const response = await updateEntity({
         variables: {
@@ -178,7 +155,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
         },
       });
 
-      await refetchDraftEntities();
+      await refetchDraftEntitiesCount();
 
       if (!response.data) {
         throw new Error("An error occurred accepting the draft entity.");
@@ -186,11 +163,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
 
       return new Entity(response.data.updateEntity);
     },
-    [
-      updateEntity,
-      refetchDraftEntities,
-      markRelatedGraphChangeNotificationsAsRead,
-    ],
+    [markNotificationsAsReadForEntity, updateEntity, refetchDraftEntitiesCount],
   );
 
   const handleAccept = useCallback(async () => {
@@ -259,6 +232,8 @@ export const AcceptDraftEntityButton: FunctionComponent<
           }}
         >
           <LinkLabelWithSourceAndDestination
+            closedMultiEntityTypesMap={null}
+            closedMultiEntityTypesDefinitions={null}
             sx={{
               maxWidth: "100%",
             }}

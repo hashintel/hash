@@ -28,7 +28,7 @@ export const getWaitlistPositionResolver: ResolverFn<
   let data: GetWaitlistPosition200Response;
   try {
     ({ data } = await internalApiClient.getWaitlistPosition(email));
-  } catch (err) {
+  } catch {
     throw new Error("Error fetching waitlist position");
   }
 

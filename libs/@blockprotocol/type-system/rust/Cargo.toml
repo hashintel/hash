@@ -1,49 +1,57 @@
-cargo-features = ["edition2024"]
-
 [package]
-name = "type-system"
-description = "Definitions of types within the Block Protocol Type System"
+name              = "type-system"
+description       = "Definitions of types within the Block Protocol Type System"
 version.workspace = true
 edition.workspace = true
-license = "MIT OR Apache-2.0"
+license           = "MIT OR Apache-2.0"
 publish.workspace = true
 authors.workspace = true
-repository = "https://github.com/hashintel/hash/tree/main/libs/@blockprotocol/type-system/rust"
+repository        = "https://github.com/hashintel/hash/tree/main/libs/@blockprotocol/type-system/rust"
 
 [lib]
-name = "type_system"
+name       = "type_system"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-codec = { workspace = true, features = ["serde"] }
+# Public workspace dependencies
+error-stack = { workspace = true, public = true, features = ["unstable"] }
+hash-codec  = { workspace = true, public = true, features = ["serde"] }
 
-postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"], optional = true }
-serde = { workspace = true, features = ["derive", "rc"] }
-serde_json = { workspace = true }
-thiserror = "1.0.61"
-tsify = "0.4.5"
-url = "2.5.2"
-utoipa = { version = "4.2.3", features = ["url"], optional = true }
-regex = "1.10.5"
-error-stack = { workspace = true }
-iso8601-duration = "0.2.0"
-uuid = { workspace = true, features = ["std"] }
-email_address = { version = "0.2.5", default-features = false }
+# Public third-party dependencies
+bytes            = { workspace = true, public = true }
+email_address    = { workspace = true, public = true }
+iso8601-duration = { workspace = true, public = true }
+postgres-types   = { workspace = true, public = true, features = ["derive", "with-uuid-1", "with-serde_json-1"], optional = true }
+serde_json       = { workspace = true, public = true }
+url              = { workspace = true, public = true }
+utoipa           = { workspace = true, public = true, features = ["url"], optional = true }
+uuid             = { workspace = true, public = true, features = ["v5", "serde", "std"] }
+
+# Private workspace dependencies
+futures   = { workspace = true }
+itertools = { workspace = true, features = ["use_alloc"] }
+
+# Private third-party dependencies
+derive_more = { workspace = true, features = ["display", "error", "from"] }
+regex       = { workspace = true, features = ["std"] }
+serde       = { workspace = true, features = ["derive", "rc"] }
+thiserror   = { workspace = true }
+tsify       = { workspace = true, features = ["json"] }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros", "rt"] }
-graph-test-data = { workspace = true }
-pretty_assertions = "1.4.0"
+hash-graph-test-data = { workspace = true }
+pretty_assertions    = { workspace = true }
+tokio                = { workspace = true, features = ["macros", "rt"] }
 
 [features]
 postgres = ["dep:postgres-types"]
-utoipa = ["dep:utoipa"]
+utoipa   = ["dep:utoipa"]
 
 [lints]
 workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "0.2.92", features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.99", features = ["serde-serialize"] }
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
@@ -51,4 +59,4 @@ wasm-bindgen = { version = "0.2.92", features = ["serde-serialize"] }
 console_error_panic_hook = { version = "0.1.7" }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.42"
+wasm-bindgen-test = "0.3.49"

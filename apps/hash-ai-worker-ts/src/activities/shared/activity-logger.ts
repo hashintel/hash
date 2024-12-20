@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import path, { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { Context } from "@temporalio/activity";
@@ -7,7 +7,7 @@ import { Context } from "@temporalio/activity";
 import { logger as baseLogger } from "../../shared/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const log = (
   message: string,
@@ -74,7 +74,7 @@ const log = (
    * Save a file per workflow execution for debugging purposes.
    */
   if (["test", "development"].includes(process.env.NODE_ENV ?? "")) {
-    const logFolderPath = path.join(__dirname, "logs");
+    const logFolderPath = path.join(__dirname, "flow-run-logs");
 
     if (!fs.existsSync(logFolderPath)) {
       fs.mkdirSync(logFolderPath);

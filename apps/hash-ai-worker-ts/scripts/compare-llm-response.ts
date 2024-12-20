@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { type OwnedById } from "@local/hash-graph-types/web";
@@ -14,7 +14,7 @@ import { getAliceUserAccountId } from "../src/shared/testing-utilities/get-alice
 import type { CompareLlmResponseConfig } from "./compare-llm-response/types.js";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const configDirectory = `${__dirname}/compare-llm-response/var/config`;
 

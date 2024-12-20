@@ -2,6 +2,11 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export const systemEntityTypes = {
+  academicPaper: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/academic-paper/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/academic-paper/" as BaseUrl,
+  },
   actor: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/actor/v/2",
     entityTypeBaseUrl:
@@ -17,6 +22,11 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/block-collection/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/block-collection/" as BaseUrl,
+  },
+  book: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/book/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/book/" as BaseUrl,
   },
   browserPluginSettings: {
     entityTypeId:
@@ -35,15 +45,20 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/claim/" as BaseUrl,
   },
   comment: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/5",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/6",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/comment/" as BaseUrl,
   },
   commentNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/comment-notification/v/5",
+      "https://hash.ai/@hash/types/entity-type/comment-notification/v/6",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/comment-notification/" as BaseUrl,
+  },
+  doc: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/doc/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/doc/" as BaseUrl,
   },
   document: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/document/v/1",
@@ -108,9 +123,14 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/instagram-account/" as BaseUrl,
   },
+  institution: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/institution/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/institution/" as BaseUrl,
+  },
   linearIntegration: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/linear-integration/v/6",
+      "https://hash.ai/@hash/types/entity-type/linear-integration/v/7",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/linear-integration/" as BaseUrl,
   },
@@ -127,7 +147,7 @@ export const systemEntityTypes = {
   },
   mentionNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/mention-notification/v/5",
+      "https://hash.ai/@hash/types/entity-type/mention-notification/v/6",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/mention-notification/" as BaseUrl,
   },
@@ -150,6 +170,11 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/pdf-document/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/pdf-document/" as BaseUrl,
+  },
+  person: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/person/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/person/" as BaseUrl,
   },
   pptxPresentation: {
     entityTypeId:
@@ -216,7 +241,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/usage-record/" as BaseUrl,
   },
   user: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/5",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/6",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/user/" as BaseUrl,
   },
@@ -231,6 +256,12 @@ export const systemEntityTypes = {
 >;
 
 export const systemLinkEntityTypes = {
+  affiliatedWith: {
+    linkEntityTypeId:
+      "https://hash.ai/@hash/types/entity-type/affiliated-with/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/affiliated-with/" as BaseUrl,
+  },
   associatedWithAccount: {
     linkEntityTypeId:
       "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1",
@@ -393,6 +424,12 @@ export const systemLinkEntityTypes = {
 >;
 
 export const systemPropertyTypes = {
+  applicationPreferences: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/application-preferences/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/application-preferences/" as BaseUrl,
+  },
   appliesFrom: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/applies-from/v/1",
@@ -457,6 +494,16 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/deleted-at/" as BaseUrl,
   },
+  doi: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/doi/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/doi/" as BaseUrl,
+  },
+  doiLink: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/doi-link/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/doi-link/" as BaseUrl,
+  },
   draftNote: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/draft-note/v/1",
     propertyTypeBaseUrl:
@@ -478,6 +525,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/entity-edition-id/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/entity-edition-id/" as BaseUrl,
+  },
+  experimentalSubject: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/experimental-subject/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/experimental-subject/" as BaseUrl,
   },
   expiredAt: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/expired-at/v/1",
@@ -531,6 +584,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/file-storage-region/" as BaseUrl,
   },
+  finding: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/finding/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/finding/" as BaseUrl,
+  },
   flowDefinitionId: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/flow-definition-id/v/1",
@@ -578,6 +636,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/intended-use/" as BaseUrl,
   },
+  isbn: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/isbn/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/isbn/" as BaseUrl,
+  },
   kratosIdentityId: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/kratos-identity-id/v/1",
@@ -612,6 +675,17 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/manual-inference-configuration/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/manual-inference-configuration/" as BaseUrl,
+  },
+  methodology: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/methodology/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/methodology/" as BaseUrl,
+  },
+  numberOfPages: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/number-of-pages/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/number-of-pages/" as BaseUrl,
   },
   object: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/object/v/1",
@@ -681,6 +755,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/profile-url/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/profile-url/" as BaseUrl,
+  },
+  publicationYear: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/publication-year/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/publication-year/" as BaseUrl,
   },
   readAt: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/read-at/v/1",
@@ -826,6 +906,18 @@ export const systemDataTypes = {
     title: "Actor Type",
     description: "The type of thing that can, should or will act on something.",
   },
+  bits: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/bits/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/bits/" as BaseUrl,
+    title: "Bits",
+    description: "A unit of information equal to one binary digit.",
+  },
+  bytes: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/bytes/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/bytes/" as BaseUrl,
+    title: "Bytes",
+    description: "A unit of information equal to eight bits.",
+  },
   centimeters: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/centimeters/v/1",
     dataTypeBaseUrl:
@@ -833,6 +925,14 @@ export const systemDataTypes = {
     title: "Centimeters",
     description:
       "A unit of length in the International System of Units (SI), equal to one hundredth of a meter.",
+  },
+  currency: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/currency/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/currency/" as BaseUrl,
+    title: "Currency",
+    description:
+      "A system of money in common use within a specific environment over time, especially for people in a nation state.",
   },
   date: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/date/v/1",
@@ -849,6 +949,13 @@ export const systemDataTypes = {
     description:
       "A reference to a particular date and time, formatted according to RFC 3339.",
   },
+  doi: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/doi/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/doi/" as BaseUrl,
+    title: "DOI",
+    description:
+      "A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.",
+  },
   email: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1",
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/email/" as BaseUrl,
@@ -856,11 +963,32 @@ export const systemDataTypes = {
     description:
       "An identifier for an email box to which messages are delivered.",
   },
+  eur: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/eur/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/eur/" as BaseUrl,
+    title: "EUR",
+    description: "An amount denominated in Euros.",
+  },
+  feet: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/feet/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/feet/" as BaseUrl,
+    title: "Feet",
+    description:
+      "An imperial unit of length. 3 feet equals 1 yard. Equivalent to 0.3048 meters in the International System of Units (SI).",
+  },
+  frequency: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/frequency/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/frequency/" as BaseUrl,
+    title: "Frequency",
+    description:
+      "The number of occurrences of a repeating event per unit of time (temporal frequency).",
+  },
   gbp: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/gbp/v/1",
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/gbp/" as BaseUrl,
     title: "GBP",
-    description: "An amount denominated in British pounds sterling",
+    description: "An amount denominated in British pounds sterling.",
   },
   gigabytes: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/gigabytes/v/1",
@@ -874,7 +1002,83 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@hash/types/data-type/gigahertz/" as BaseUrl,
     title: "Gigahertz",
-    description: "A unit of frequency equal to one billion hertz.",
+    description:
+      "A unit of frequency in the International System of Units (SI), equal to one billion hertz.",
+  },
+  gigawatts: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/gigawatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/gigawatts/" as BaseUrl,
+    title: "Gigawatts",
+    description:
+      "A unit of power in the International System of Units (SI), equal to one billion watts.",
+  },
+  hertz: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/hertz/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/hertz/" as BaseUrl,
+    title: "Hertz",
+    description:
+      "A unit of frequency in the International System of Units (SI), equivalent to one cycle per second.",
+  },
+  "imperialLength(uk)": {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/imperial-length-uk/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/imperial-length-uk/" as BaseUrl,
+    title: "Imperial Length (UK)",
+    description:
+      "A measure of distance in the system of units defined in the British Weights and Measures Acts, in use alongside metric units in the UK and elsewhere.",
+  },
+  "imperialLength(us)": {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/imperial-length-us/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/imperial-length-us/" as BaseUrl,
+    title: "Imperial Length (US)",
+    description:
+      "A measure of distance in the system of units commonly used in the United States, formally known as United States customary units.",
+  },
+  inches: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/inches/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/inches/" as BaseUrl,
+    title: "Inches",
+    description:
+      "An imperial unit of length. 12 inches equals 1 foot. Equivalent to 0.0254 meters in the International System of Units (SI).",
+  },
+  information: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/information/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/information/" as BaseUrl,
+    title: "Information",
+    description: "A measure of information content.",
+  },
+  integer: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/integer/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/integer/" as BaseUrl,
+    title: "Integer",
+    description:
+      "The number zero (0), a positive natural number (e.g. 1, 2, 3), or the negation of a positive natural number (e.g. -1, -2, -3).",
+  },
+  isbn: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/isbn/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/isbn/" as BaseUrl,
+    title: "ISBN",
+    description:
+      "International Standard Book Number: a numeric commercial book identifier that is intended to be unique, issued by an affiliate of the International ISBN Agency.",
+  },
+  kilobytes: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/kilobytes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/kilobytes/" as BaseUrl,
+    title: "Kilobytes",
+    description: "A unit of information equal to one thousand bytes.",
+  },
+  kilohertz: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/kilohertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/kilohertz/" as BaseUrl,
+    title: "Kilohertz",
+    description:
+      "A unit of frequency in the International System of Units (SI), equal to one thousand hertz.",
   },
   kilometers: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/kilometers/v/1",
@@ -884,12 +1088,57 @@ export const systemDataTypes = {
     description:
       "A unit of length in the International System of Units (SI), equal to one thousand meters.",
   },
+  kilowatts: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/kilowatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/kilowatts/" as BaseUrl,
+    title: "Kilowatts",
+    description:
+      "A unit of power in the International System of Units (SI), equal to one thousand watts.",
+  },
+  length: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/length/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/length/" as BaseUrl,
+    title: "Length",
+    description: "A measure of distance.",
+  },
+  megabytes: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/megabytes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/megabytes/" as BaseUrl,
+    title: "Megabytes",
+    description: "A unit of information equal to one million bytes.",
+  },
+  megahertz: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/megahertz/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/megahertz/" as BaseUrl,
+    title: "Megahertz",
+    description:
+      "A unit of frequency in the International System of Units (SI), equal to one million hertz.",
+  },
+  megawatts: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/megawatts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/megawatts/" as BaseUrl,
+    title: "Megawatts",
+    description:
+      "A unit of power in the International System of Units (SI), equal to one million watts.",
+  },
   meters: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/meters/v/1",
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/meters/" as BaseUrl,
     title: "Meters",
     description:
       "The base unit of length in the International System of Units (SI).",
+  },
+  "metricLength(si)": {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/metric-length-si/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/metric-length-si/" as BaseUrl,
+    title: "Metric Length (SI)",
+    description:
+      "A measure of distance in the International System of Units (SI), the international standard for decimal-based measurements.",
   },
   miles: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/miles/v/1",
@@ -905,6 +1154,19 @@ export const systemDataTypes = {
     title: "Millimeters",
     description:
       "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
+  },
+  power: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/power/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/power/" as BaseUrl,
+    title: "Power",
+    description: "The amount of energy transferred or converted per unit time.",
+  },
+  terabytes: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/terabytes/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@hash/types/data-type/terabytes/" as BaseUrl,
+    title: "Terabytes",
+    description: "A unit of information equal to one trillion bytes.",
   },
   time: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/time/v/1",
@@ -923,14 +1185,27 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@hash/types/data-type/usd/v/1",
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/usd/" as BaseUrl,
     title: "USD",
-    description: "An amount denominated in US Dollars",
+    description: "An amount denominated in US Dollars.",
   },
   watts: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/watts/v/1",
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/watts/" as BaseUrl,
     title: "Watts",
     description:
-      "A unit of power in the International System of Units (SI) equal to one joule per second.",
+      "The unit of power or radiant flux in the International System of Units (SI) – the rate at which work is done or energy is transferred. Equal to one joule per second.",
+  },
+  yards: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/yards/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/yards/" as BaseUrl,
+    title: "Yards",
+    description:
+      "An imperial unit of length. 1,760 yards equals 1 mile. Equivalent to 0.9144 meters in the International System of Units (SI).",
+  },
+  year: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/year/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/year/" as BaseUrl,
+    title: "Year",
+    description: "A year in the Gregorian calendar.",
   },
 } as const satisfies Record<
   string,
@@ -1582,22 +1857,6 @@ export const blockProtocolDataTypes = {
     title: "Boolean",
     description: "A True or False value",
   },
-  emptyList: {
-    dataTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1",
-    dataTypeBaseUrl:
-      "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/" as BaseUrl,
-    title: "Empty List",
-    description: "An Empty List",
-  },
-  null: {
-    dataTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1",
-    dataTypeBaseUrl:
-      "https://blockprotocol.org/@blockprotocol/types/data-type/null/" as BaseUrl,
-    title: "Null",
-    description: "A placeholder value representing 'nothing'",
-  },
   number: {
     dataTypeId:
       "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
@@ -1621,6 +1880,15 @@ export const blockProtocolDataTypes = {
       "https://blockprotocol.org/@blockprotocol/types/data-type/text/" as BaseUrl,
     title: "Text",
     description: "An ordered sequence of characters",
+  },
+  value: {
+    dataTypeId:
+      "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
+    dataTypeBaseUrl:
+      "https://blockprotocol.org/@blockprotocol/types/data-type/value/" as BaseUrl,
+    title: "Value",
+    description:
+      "A piece of data that can be used to convey information about an attribute, quality or state of something.",
   },
 } as const satisfies Record<
   string,

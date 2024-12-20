@@ -86,7 +86,7 @@ export type {
  * A (usually) quick or short note.
  */
 export type QuickNote = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/quick-note/v/1";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/quick-note/v/1"];
   properties: QuickNoteProperties;
   propertiesWithMetadata: QuickNotePropertiesWithMetadata;
 };

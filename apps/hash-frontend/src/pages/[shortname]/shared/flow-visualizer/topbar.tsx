@@ -1,8 +1,7 @@
 import { useMutation } from "@apollo/client";
 import {
   AngleRightRegularIcon,
-  InfinityLightIcon,
-  PlayIconSolid,
+  PlaySolidIcon,
   Select,
 } from "@hashintel/design-system";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
@@ -31,7 +30,7 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import { cancelFlowMutation } from "../../../../graphql/queries/knowledge/flow.queries";
 import { BoltLightIcon } from "../../../../shared/icons/bolt-light-icon";
-import { StopIconSolid } from "../../../../shared/icons/stop-icon-solid";
+import { StopSolidIcon } from "../../../../shared/icons/stop-icon-solid";
 import { Button } from "../../../../shared/ui/button";
 import { Link } from "../../../../shared/ui/link";
 import { MenuItem } from "../../../../shared/ui/menu-item";
@@ -57,13 +56,14 @@ const selectSx: SxProps<Theme> = {
   },
 };
 
-const Divider = () => (
+const Divider = ({ topOffset }: { topOffset?: number }) => (
   <AngleRightRegularIcon
     sx={{
       fill: ({ palette }) => palette.gray[50],
       fontSize: 18,
       mr: 0.5,
       ml: 1,
+      mt: topOffset ?? 0,
     }}
   />
 );
@@ -152,10 +152,12 @@ export const Topbar = ({
   handleRunFlowClicked,
   readonly,
   showRunButton,
+  workerType,
 }: {
   handleRunFlowClicked: () => void;
   readonly?: boolean;
   showRunButton: boolean;
+  workerType: "goal" | "flow";
 }) => {
   const { push } = useRouter();
 
@@ -238,21 +240,17 @@ export const Topbar = ({
             Workers
           </Typography>
         </Link>
-        <Divider />
+        <Divider topOffset={0.1} />
 
-        <InfinityLightIcon
-          sx={{
-            fill: ({ palette }) => palette.gray[60],
-            fontSize: 20,
-            mr: 1,
-          }}
-        />
-        <Link href="/flows" noLinkStyle>
-          <Typography sx={typographySx} variant="smallTextParagraphs">
-            Flows
+        <Link href={`/${workerType}`} noLinkStyle sx={{ mr: 0.5 }}>
+          <Typography
+            sx={{ ...typographySx, textTransform: "capitalize" }}
+            variant="smallTextParagraphs"
+          >
+            {`${workerType}s`}
           </Typography>
         </Link>
-        <Divider />
+        <Divider topOffset={0.1} />
         <Box mr={1}>
           {readonly ? (
             <Typography sx={typographySx} variant="smallTextParagraphs">
@@ -348,7 +346,7 @@ export const Topbar = ({
       {selectedFlowRun && !selectedFlowRun.closedAt ? (
         <TopbarButton
           background="black"
-          Icon={StopIconSolid}
+          Icon={StopSolidIcon}
           onClick={onCancelFlowClicked}
           pending={cancelling}
           text="Stop"
@@ -356,7 +354,7 @@ export const Topbar = ({
       ) : showRunButton ? (
         <TopbarButton
           background="blue"
-          Icon={PlayIconSolid}
+          Icon={PlaySolidIcon}
           onClick={onRunFlowClicked}
           pending={waitingToRun}
           text={selectedFlowRun ? "Re-run" : "Run"}

@@ -1,33 +1,34 @@
 #![expect(clippy::significant_drop_tightening, reason = "this is test code")]
 use alloc::sync::Arc;
-use core::{num::NonZero, time::Duration};
-use std::{assert_matches::assert_matches, io};
+use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
+use std::io;
 
 use bytes::Bytes;
-use futures::{prelude::sink::SinkExt, StreamExt};
+use error_stack::Report;
+use futures::{StreamExt as _, prelude::sink::SinkExt as _};
+use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
+        Request,
         flags::{RequestFlag, RequestFlags},
         id::RequestId,
-        Request,
     },
     response::{
+        Response,
         begin::ResponseBegin,
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
-        kind::{ErrorCode, ResponseKind},
-        Response,
     },
     test_utils::mock_request_id,
 };
 use libp2p::PeerId;
 use tokio::{
-    sync::{broadcast, mpsc, Barrier, Semaphore},
+    sync::{Barrier, Semaphore, broadcast, mpsc},
     task::{JoinHandle, JoinSet},
 };
 use tokio_stream::wrappers::ReceiverStream;
@@ -37,22 +38,15 @@ use tokio_util::{
 };
 
 use super::{
-    collection::{TransactionPermit, TransactionStorage},
     ConnectionTask,
+    collection::{TransactionPermit, TransactionStorage},
 };
-use crate::session::{
-    error::{
-        ConnectionGracefulShutdownError, ConnectionTransactionLimitReachedError,
-        InstanceTransactionLimitReachedError, TransactionLaggingError,
-    },
-    server::{
-        connection::{ConnectionDelegateTask, TransactionCollection},
-        session_id::test_utils::mock_session_id,
-        test::{make_request_begin, make_request_frame},
-        transaction::ServerTransactionPermit,
-        SessionConfig, SessionEvent, SessionId, Transaction,
-    },
-    test::StringEncoder,
+use crate::session::server::{
+    SessionConfig, SessionEvent, SessionId, Transaction,
+    connection::{ConnectionDelegateTask, TransactionCollection},
+    session_id::test_utils::mock_session_id,
+    test::{make_request_begin, make_request_frame},
+    transaction::ServerTransactionPermit as _,
 };
 
 pub(crate) async fn make_transaction_permit(
@@ -75,7 +69,7 @@ struct Setup {
     output: mpsc::Receiver<Transaction>,
     events: broadcast::Receiver<SessionEvent>,
 
-    stream: mpsc::Sender<error_stack::Result<Request, io::Error>>,
+    stream: mpsc::Sender<Result<Request, Report<io::Error>>>,
     sink: mpsc::Receiver<Response>,
 
     handle: JoinHandle<()>,
@@ -107,7 +101,7 @@ impl Setup {
             output: output_tx,
             events: events_tx,
             config,
-            encoder: StringEncoder,
+
             _permit: permit,
         };
 
@@ -493,12 +487,9 @@ async fn transaction_limit_reached_connection() {
     let response = responses.pop().expect("infallible");
     assert_eq!(response.header.request_id, mock_request_id(0x02));
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
-    assert_eq!(
-        response.body.payload().as_bytes().as_ref(),
-        ConnectionTransactionLimitReachedError { limit: 1 }
-            .to_string()
-            .into_bytes()
-    );
+
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0ctransaction limit per connection has been reached, the transaction has been dropped. The limit is 1""###);
 }
 
 #[tokio::test]
@@ -534,12 +525,9 @@ async fn transaction_limit_reached_instance() {
         mock_request_id(Setup::OUTPUT_BUFFER_SIZE as u32)
     );
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
-    assert_eq!(
-        response.body.payload().as_bytes().as_ref(),
-        InstanceTransactionLimitReachedError
-            .to_string()
-            .into_bytes()
-    );
+
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0Wtransaction has been dropped, because the server is unable to process more transactions""###);
 }
 
 #[tokio::test]
@@ -883,10 +871,10 @@ async fn transaction_request_buffer_limit_reached() {
 
     let response = responses.pop().expect("should have a response");
     assert!(response.header.flags.contains(ResponseFlag::EndOfResponse));
-    assert_eq!(
-        response.body.payload().as_bytes().as_ref(),
-        TransactionLaggingError.to_string().as_bytes()
-    );
+
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0Rtransaction has been dropped, because it is unable to receive more request packets""###);
+
     assert_matches!(
         response.body,
         ResponseBody::Begin(ResponseBegin {
@@ -982,10 +970,9 @@ async fn transaction_send_output_closed() {
             ..
         })
     );
-    assert_eq!(
-        response.body.payload().as_bytes().as_ref(),
-        ConnectionGracefulShutdownError.to_string().into_bytes()
-    );
+
+    let bytes = response.body.payload().as_bytes().clone();
+    insta::assert_debug_snapshot!(bytes, @r###"b"\0\0\0[The connection is in the graceful shutdown state and no longer accepts any new transactions""###);
 
     stream
         .send(Ok(make_request_frame(RequestFlag::EndOfRequest, "hello")))
@@ -1146,12 +1133,9 @@ async fn graceful_shutdown() {
         .expect("should not panic");
 
     let event = events.recv().await.expect("should have a shutdown event");
-    assert_eq!(
-        event,
-        SessionEvent::SessionDropped {
-            id: Setup::SESSION_ID
-        }
-    );
+    assert_eq!(event, SessionEvent::SessionDropped {
+        id: Setup::SESSION_ID
+    });
 }
 
 #[tokio::test]

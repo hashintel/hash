@@ -1,9 +1,9 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
-use bytes::Buf;
+use bytes::Buf as _;
 use error_stack::Report;
 
 use super::{Body, BodyState, Frame, SizeHint};
@@ -114,8 +114,7 @@ where
 #[cfg(test)]
 mod test {
 
-    use core::task::Poll;
-    use std::assert_matches::assert_matches;
+    use core::{assert_matches::assert_matches, task::Poll};
 
     use bytes::Bytes;
     use error_stack::Report;
@@ -123,8 +122,8 @@ mod test {
 
     use super::Limited;
     use crate::body::{
-        full::Full, limited::LimitedError, stream::StreamBody, test::poll_frame_unpin, Body,
-        BodyExt, BodyState, Frame, SizeHint,
+        Body, BodyExt as _, BodyState, Frame, SizeHint, full::Full, limited::LimitedError,
+        stream::StreamBody, test::poll_frame_unpin,
     };
 
     const EXPECTED: &[u8] = b"hello, world";

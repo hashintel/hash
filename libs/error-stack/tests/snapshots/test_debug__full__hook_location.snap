@@ -1,5 +1,5 @@
 ---
-source: tests/test_debug.rs
+source: libs/error-stack/tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 root error

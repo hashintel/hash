@@ -19,7 +19,7 @@ error: unexpected end of macro invocation
 note: while trying to match meta-variable `$err:expr`
   --> src/macros.rs
    |
-   |     ($err:expr $(,)?) => {{
+   |     ($err:expr) => {{
    |      ^^^^^^^^^
 
 error: unexpected end of macro invocation

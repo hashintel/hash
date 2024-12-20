@@ -1,20 +1,21 @@
+#![expect(clippy::min_ident_chars, reason = "Simplifies test cases")]
+
 use deer::{
-    error::{ArrayAccessError, DeserializeError, Variant, VisitorError},
     ArrayAccess, Deserialize, Deserializer, Document, FieldVisitor, ObjectAccess, Reflection,
     Schema, StructVisitor, Visitor,
+    error::{ArrayAccessError, DeserializeError, Variant as _, VisitorError},
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 use serde_json::json;
 
 mod common;
 
-use common::TupleExt;
 use deer::{
     error::{ExpectedField, Location, ObjectAccessError, ReceivedField, UnknownFieldError},
     helpers::Properties,
     value::NoneDeserializer,
 };
-use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
+use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
 
 #[derive(Debug, Eq, PartialEq)]
 struct Example {
@@ -44,20 +45,20 @@ impl Reflection for ExampleFieldDiscriminator {
 impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
     type Reflection = Self;
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>,
     {
         struct IdentVisitor;
 
-        impl<'de> Visitor<'de> for IdentVisitor {
+        impl Visitor<'_> for IdentVisitor {
             type Value = ExampleFieldDiscriminator;
 
             fn expecting(&self) -> Document {
                 Self::Value::reflection()
             }
 
-            fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+            fn visit_str(self, value: &str) -> Result<Self::Value, Report<VisitorError>> {
                 match value {
                     "a" => Ok(ExampleFieldDiscriminator::A),
                     "b" => Ok(ExampleFieldDiscriminator::B),
@@ -71,7 +72,7 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 }
             }
 
-            fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+            fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, Report<VisitorError>> {
                 match value {
                     b"a" => Ok(ExampleFieldDiscriminator::A),
                     b"b" => Ok(ExampleFieldDiscriminator::B),
@@ -91,7 +92,7 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 }
             }
 
-            fn visit_u64(self, value: u64) -> Result<Self::Value, VisitorError> {
+            fn visit_u64(self, value: u64) -> Result<Self::Value, Report<VisitorError>> {
                 match value {
                     0 => Ok(ExampleFieldDiscriminator::A),
                     1 => Ok(ExampleFieldDiscriminator::B),
@@ -115,7 +116,11 @@ impl<'de> FieldVisitor<'de> for ExampleFieldVisitor<'_> {
     type Key = ExampleFieldDiscriminator;
     type Value = ();
 
-    fn visit_value<D>(self, key: Self::Key, deserializer: D) -> Result<Self::Value, VisitorError>
+    fn visit_value<D>(
+        self,
+        key: Self::Key,
+        deserializer: D,
+    ) -> Result<Self::Value, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
@@ -172,7 +177,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         Example::reflection()
     }
 
-    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ArrayAccess<'de>,
     {
@@ -212,13 +217,13 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             .attach(Location::Tuple(2));
 
         let (a, b, c, ()) = (a, b, c, array.end())
-            .fold_reports()
+            .try_collect()
             .change_context(VisitorError)?;
 
         Ok(Example { a, b, c })
     }
 
-    fn visit_object<A>(self, mut object: A) -> Result<Self::Value, VisitorError>
+    fn visit_object<A>(self, mut object: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ObjectAccess<'de>,
     {
@@ -226,7 +231,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         let mut b = None;
         let mut c = None;
 
-        let mut errors: Result<(), ObjectAccessError> = Ok(());
+        let mut errors = ReportSink::new();
 
         while let Some(field) = object.field(ExampleFieldVisitor {
             a: &mut a,
@@ -234,12 +239,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             c: &mut c,
         }) {
             if let Err(error) = field {
-                match &mut errors {
-                    Err(errors) => {
-                        errors.extend_one(error);
-                    }
-                    errors => *errors = Err(error),
-                }
+                errors.append(error);
             }
         }
 
@@ -270,8 +270,8 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             Ok,
         );
 
-        let (a, b, c, ..) = (a, b, c, errors, object.end())
-            .fold_reports()
+        let (a, b, c, ..) = (a, b, c, errors.finish(), object.end())
+            .try_collect()
             .change_context(VisitorError)?;
 
         Ok(Example { a, b, c })
@@ -297,7 +297,7 @@ impl Reflection for Example {
 impl<'de> Deserialize<'de> for Example {
     type Reflection = Self;
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, DeserializeError>
+    fn deserialize<D>(deserializer: D) -> Result<Self, Report<DeserializeError>>
     where
         D: Deserializer<'de>,
     {
@@ -309,36 +309,30 @@ impl<'de> Deserialize<'de> for Example {
 
 #[test]
 fn struct_object_ok() {
-    assert_tokens(
-        &Example { a: 2, b: 3, c: 4 },
-        &[
-            Token::Object { length: Some(3) },
-            Token::Str("a"),
-            Token::Number(2.into()),
-            Token::Str("b"),
-            Token::Number(3.into()),
-            Token::Str("c"),
-            Token::Number(4.into()),
-            Token::ObjectEnd,
-        ],
-    );
+    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
+        Token::Object { length: Some(3) },
+        Token::Str("a"),
+        Token::Number(2.into()),
+        Token::Str("b"),
+        Token::Number(3.into()),
+        Token::Str("c"),
+        Token::Number(4.into()),
+        Token::ObjectEnd,
+    ]);
 }
 
 #[test]
 fn struct_object_out_of_order_ok() {
-    assert_tokens(
-        &Example { a: 2, b: 3, c: 4 },
-        &[
-            Token::Object { length: Some(3) },
-            Token::Str("c"),
-            Token::Number(4.into()),
-            Token::Str("b"),
-            Token::Number(3.into()),
-            Token::Str("a"),
-            Token::Number(2.into()),
-            Token::ObjectEnd,
-        ],
-    );
+    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
+        Token::Object { length: Some(3) },
+        Token::Str("c"),
+        Token::Number(4.into()),
+        Token::Str("b"),
+        Token::Number(3.into()),
+        Token::Str("a"),
+        Token::Number(2.into()),
+        Token::ObjectEnd,
+    ]);
 }
 
 // TODO: key missing instead of value missing (or discriminant missing) ~> only possible with
@@ -450,16 +444,13 @@ fn struct_object_duplicate_err() {
 
 #[test]
 fn struct_array_ok() {
-    assert_tokens(
-        &Example { a: 2, b: 3, c: 4 },
-        &[
-            Token::Array { length: Some(3) },
-            Token::Number(2.into()),
-            Token::Number(3.into()),
-            Token::Number(4.into()),
-            Token::ArrayEnd,
-        ],
-    );
+    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
+        Token::Array { length: Some(3) },
+        Token::Number(2.into()),
+        Token::Number(3.into()),
+        Token::Number(4.into()),
+        Token::ArrayEnd,
+    ]);
 }
 
 #[test]

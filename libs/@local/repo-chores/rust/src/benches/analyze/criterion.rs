@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::benches::{
     analyze::BenchmarkAnalysis,
-    fmt::{latex::Latex, Braced, Color, Colored, Duration},
+    fmt::{Braced, Color, Colored, Duration, latex::Latex},
     report::Stat,
 };
 

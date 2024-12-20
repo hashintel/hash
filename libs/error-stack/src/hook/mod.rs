@@ -1,11 +1,10 @@
 pub(crate) mod context;
 
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::vec::Vec;
 
 use crate::{
-    fmt::{install_builtin_hooks, Hooks},
     Report,
+    fmt::{Hooks, install_builtin_hooks},
 };
 
 #[cfg(feature = "std")]
@@ -66,7 +65,7 @@ impl Report<()> {
     /// Which will result in something like:
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
+    #[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap")))]
     /// </pre>
     ///
     /// This example showcases the ability of hooks to be invoked for values provided via the
@@ -83,7 +82,7 @@ impl Report<()> {
     /// # #[cfg(nightly)]
     /// # mod nightly {
     /// use core::error::{Request, Error};
-    /// use core::fmt::{Display, Formatter};
+    /// use core::fmt;
     /// use error_stack::{Report, report};
     ///
     /// struct Suggestion(&'static str);
@@ -97,9 +96,9 @@ impl Report<()> {
     ///     code: ErrorCode
     /// }
     ///
-    /// impl Display for UserError {
-    ///     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    ///         f.write_str("invalid user input")
+    /// impl fmt::Display for UserError {
+    ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    ///         fmt.write_str("invalid user input")
     ///     }
     /// }
     ///
@@ -145,7 +144,7 @@ impl Report<()> {
     /// Which will result in something like:
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap"))]
+    #[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap")))]
     /// </pre>
     ///
     /// `error-stack` comes with some built-in hooks which can be overwritten. This is useful if you
@@ -187,7 +186,7 @@ impl Report<()> {
     /// Which will result in something like:
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__location_hook.snap"))]
+    #[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__location_hook.snap")))]
     /// </pre>
     ///
     /// [`Location`]: std::panic::Location

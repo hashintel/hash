@@ -62,6 +62,7 @@ beforeAll(async () => {
 
   propertyTypeSchema = {
     title: "A property type",
+    description: "A property type for testing",
     oneOf: [
       {
         $ref: textDataTypeId,
@@ -155,6 +156,7 @@ describe("Property type CRU", () => {
           },
         ],
       },
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     ).catch((err) => Promise.reject(err.data));
 
     expect(

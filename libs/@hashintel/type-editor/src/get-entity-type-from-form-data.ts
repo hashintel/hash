@@ -12,10 +12,16 @@ import type { EntityTypeEditorFormData } from "./shared/form-types";
 export const getEntityTypeFromFormData = (
   data: EntityTypeEditorFormData,
 ): {
-  icon: string | null;
-  labelProperty: string | null;
   schema: Required<Pick<EntityType, "description" | "links" | "properties">> &
-    Pick<EntityType, "allOf" | "required">;
+    Pick<
+      EntityType,
+      | "allOf"
+      | "required"
+      | "labelProperty"
+      | "icon"
+      | "titlePlural"
+      | "inverse"
+    >;
 } => {
   const allOf = atLeastOne<EntityTypeReference>(
     data.allOf.map((versionedUrl) => ({ $ref: versionedUrl })),
@@ -75,14 +81,16 @@ export const getEntityTypeFromFormData = (
   }
 
   return {
-    icon: data.icon ?? null,
-    labelProperty: data.labelProperty ?? null,
     schema: {
       allOf,
       description: data.description,
       properties: schemaProperties,
       links,
       required: atLeastOne(required),
+      icon: data.icon,
+      labelProperty: data.labelProperty,
+      titlePlural: data.titlePlural,
+      inverse: data.inverse,
     },
   };
 };

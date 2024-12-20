@@ -257,6 +257,7 @@ module "application" {
     { name = "HASH_GRAPH_PG_HOST", secret = false, value = module.postgres.pg_host },
     { name = "HASH_GRAPH_PG_PORT", secret = false, value = module.postgres.pg_port },
     { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
+    { name = "HASH_GRAPH_RPC_ENABLED", secret = false, value = "true" },
     {
       name  = "HASH_SPICEDB_GRPC_PRESHARED_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"])
@@ -357,6 +358,7 @@ module "application" {
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
     { name = "HASH_REDIS_ENCRYPTED_TRANSIT", secret = false, value = "true" },
     { name = "HASH_INTEGRATION_QUEUE_NAME", secret = false, value = "integration" },
+    { name = "HASH_RPC_ENABLED", secret = false, value = "true" },
     {
       name  = "HASH_VAULT_HOST", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"])
@@ -386,7 +388,11 @@ module "application" {
     {
       name  = "NODE_API_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["node_api_sentry_dsn"])
-    }
+    },
+    {
+      name  = "OPENAI_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
+    },
   ])
   temporal_worker_ai_ts_image    = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [
@@ -398,6 +404,25 @@ module "application" {
     {
       name  = "ANTHROPIC_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_anthropic_api_key"])
+    },
+    {
+      # The name of the HASH App project in Google Cloud
+      # Note that this is different to the project the service account and identity federation providers are in
+      # Must have Vertex AI enabled
+      name  = "GOOGLE_CLOUD_HASH_PROJECT_ID", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["google_cloud_hash_project_id"])
+    },
+    {
+      # The name of the Google Cloud Storage bucket to use for uploads
+      # The authenticated GCP user must have object write and read permissions on the bucket
+      name  = "GOOGLE_CLOUD_STORAGE_BUCKET", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["google_cloud_storage_bucket"])
+    },
+    {
+      # The JSON with the configuration for the AWS Identity Federation Provider, downloaded from GCP
+      # This should detail a connected service account with VertexAI permissions on the HASH project, and bucket read/write access
+      name  = "GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["google_cloud_workload_identity_federation_config_json"])
     },
     {
       name  = "INTERNAL_API_HOST", secret = true,

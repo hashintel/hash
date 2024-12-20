@@ -16,10 +16,12 @@ export const EntityTypeDescription = ({
     name: "description",
   });
 
+  const { ref, ...props } = descriptionController.field;
+
   return (
     <EditableField
-      {...descriptionController.field}
-      inputRef={descriptionController.field.ref}
+      {...props}
+      inputRef={ref}
       placeholder="Enter a description"
       readonly={readonly}
     />

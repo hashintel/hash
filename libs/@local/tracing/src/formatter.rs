@@ -1,9 +1,9 @@
 use tracing::{Event, Subscriber};
 use tracing_subscriber::{
     fmt::{
+        FmtContext, FormatEvent, FormatFields,
         format::{Compact, Format, Full, Json, Pretty, Writer},
         time::FormatTime,
-        FmtContext, FormatEvent, FormatFields,
     },
     registry::LookupSpan,
 };

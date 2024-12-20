@@ -33,8 +33,9 @@ const getServiceFeatureForUsage = ({
 
   const serviceFeatureLinkAndEntities = linkedEntities.filter(
     ({ linkEntity }) =>
-      linkEntity[0]!.metadata.entityTypeId ===
-      systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+      linkEntity[0]!.metadata.entityTypeIds.includes(
+        systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+      ),
   );
   if (serviceFeatureLinkAndEntities.length !== 1) {
     throw new Error(

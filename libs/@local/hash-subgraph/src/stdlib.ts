@@ -19,6 +19,7 @@ export {
 } from "./stdlib/interval.js";
 export { getPropertyTypesReferencedByEntityType } from "./stdlib/subgraph/edge/entity-type.js";
 export {
+  getIncomingLinkAndSourceEntities,
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinkAndTargetEntities,
@@ -38,6 +39,7 @@ export {
   getEntityRevisionsByEntityId,
 } from "./stdlib/subgraph/element/entity.js";
 export {
+  getBreadthFirstEntityTypesAndParents,
   getEntityTypeAndDescendantsById,
   getEntityTypeAndParentsById,
   getEntityTypeById,
@@ -45,6 +47,10 @@ export {
   getEntityTypes,
   getEntityTypesByBaseUrl,
 } from "./stdlib/subgraph/element/entity-type.js";
+export {
+  getPossibleLinkTypesForEntityType,
+  isLinkEntityType,
+} from "./stdlib/subgraph/element/link-type.js";
 export { mapElementsIntoRevisions } from "./stdlib/subgraph/element/map-revisions.js";
 export {
   getPropertyTypeById,

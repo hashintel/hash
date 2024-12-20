@@ -1,13 +1,13 @@
 use core::{marker::PhantomData, mem, mem::MaybeUninit, ptr};
 
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, ResultExt as _};
 
 use crate::{
+    ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
     error::{
         ArrayAccessError, ArrayLengthError, DeserializeError, ExpectedLength, Location,
-        ReceivedLength, Variant, VisitorError,
+        ReceivedLength, Variant as _, VisitorError,
     },
-    ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
 };
 
 struct ArrayVisitor<'de, T: Deserialize<'de>, const N: usize>(PhantomData<fn(&'de ()) -> [T; N]>);
@@ -19,14 +19,14 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         <[T; N]>::reflection()
     }
 
-    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, Report<VisitorError>>
     where
         A: ArrayAccess<'de>,
     {
         let mut array = array.into_bound(N).change_context(VisitorError)?;
         let size_hint = array.size_hint();
 
-        let mut result: Result<(), ArrayAccessError> = Ok(());
+        let mut result = ReportSink::new();
 
         #[expect(unsafe_code)]
         // SAFETY: `uninit_assumed_init` is fine here, as `[MaybeUninit<T>; N]` as no inhabitants,
@@ -60,10 +60,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                 Some(Err(error)) => {
                     let error = error.attach(Location::Array(index));
 
-                    match &mut result {
-                        Err(result) => result.extend_one(error),
-                        result => *result = Err(error),
-                    }
+                    result.append(error);
 
                     failed = true;
                 }
@@ -71,10 +68,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         }
 
         if let Err(error) = array.end() {
-            match &mut result {
-                Err(result) => result.extend_one(error),
-                result => *result = Err(error),
-            }
+            result.append(error);
         }
 
         if let Some(size_hint) = size_hint {
@@ -87,12 +81,11 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                     .change_context(ArrayAccessError);
 
                 // we received less items, which means we can emit another error
-                match &mut result {
-                    Err(result) => result.extend_one(error),
-                    result => *result = Err(error),
-                }
+                result.append(error);
             }
         }
+
+        let result = result.finish();
 
         // we do not need to check if we have enough items, as `set_bounded` guarantees that we
         // visit exactly `N` times and `v.end()` ensures that there aren't too many items.
@@ -162,7 +155,9 @@ impl<T: Reflection + ?Sized, const N: usize> Reflection for ArrayReflection<T, N
 impl<'de, T: Deserialize<'de>, const N: usize> Deserialize<'de> for [T; N] {
     type Reflection = ArrayReflection<T::Reflection, N>;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_array(ArrayVisitor(PhantomData))
             .change_context(DeserializeError)

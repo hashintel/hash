@@ -134,7 +134,9 @@ export const CompleteChat: FunctionComponent<{
     },
   } = aiChatBlockEntity;
 
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating */
   const { serviceModule } = useServiceBlockModule(blockRootRef);
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating, or this package updating to use graph in this repo */
   const { graphModule } = useGraphBlockModule(blockRootRef);
 
   const [chatModel, setChatModel] = useState<ChatModelId>(defaultChatModelId);

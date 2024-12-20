@@ -53,8 +53,8 @@ impl<B> Default for Empty<B> {
 }
 
 impl<B> Debug for Empty<B> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Empty").finish()
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        fmt.debug_struct("Empty").finish()
     }
 }
 

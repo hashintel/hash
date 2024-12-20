@@ -30,7 +30,9 @@ interface LinkPluginState {
   linkUrl: null | string;
 }
 
+// eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
 const markPluginKey = new PluginKey<MarksTooltipState>("markPlugin");
+// eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
 const linkPluginKey = new PluginKey<LinkPluginState>("linkPlugin");
 
 export function createFormatPlugins(renderPortal: RenderPortal) {
@@ -38,6 +40,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
 
   const linkModalRef = createRef<HTMLDivElement>();
 
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
   const marksTooltip = new Plugin<MarksTooltipState>({
     key: markPluginKey,
     /**
@@ -178,6 +181,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
     },
   });
 
+  // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
   const linkPlugin = new Plugin<LinkPluginState>({
     key: linkPluginKey,
     state: {
@@ -322,5 +326,6 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
     inputRules({
       rules: [linkInputRule()],
     }),
+    // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
   ] as Plugin<unknown>[];
 }

@@ -1,0 +1,71 @@
+[package]
+name              = "hash-graph-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+description       = "HASH Graph API"
+
+[[bin]]
+name = "openapi-spec-generator"
+path = "src/bin/openapi-spec-generator.rs"
+
+[dependencies]
+# Public workspace dependencies
+harpc-client              = { workspace = true, public = true }
+harpc-server              = { workspace = true, public = true }
+hash-graph-authorization  = { workspace = true, public = true }
+hash-graph-postgres-store = { workspace = true, public = true, features = ["utoipa"] }
+hash-graph-type-fetcher   = { workspace = true, public = true }
+hash-graph-types          = { workspace = true, public = true, features = ["utoipa"] }
+hash-temporal-client      = { workspace = true, public = true }
+
+# Public third-party dependencies
+axum            = { workspace = true, public = true }
+axum-core       = { workspace = true, public = true }
+futures-channel = { workspace = true, public = true }
+http            = { workspace = true, public = true }
+tower-http      = { workspace = true, public = true }
+tracing         = { workspace = true, public = true }
+
+# Private workspace dependencies
+harpc-codec                    = { workspace = true }
+harpc-system                   = { workspace = true }
+harpc-tower                    = { workspace = true }
+harpc-types                    = { workspace = true }
+hash-graph-store               = { workspace = true, features = ["utoipa"] }
+hash-graph-temporal-versioning = { workspace = true }
+hash-graph-type-defs           = { workspace = true }
+hash-graph-validation          = { workspace = true }
+hash-status                    = { workspace = true }
+type-system                    = { workspace = true, features = ["utoipa"] }
+
+# Private third-party dependencies
+async-trait           = { workspace = true }
+bytes                 = { workspace = true }
+derive-where          = { workspace = true }
+derive_more           = { workspace = true, features = ["display", "error"] }
+error-stack           = { workspace = true, features = ["futures", "spantrace", "unstable"] }
+frunk                 = { workspace = true }
+futures               = { workspace = true }
+hyper                 = { workspace = true }
+include_dir           = { workspace = true }
+mime                  = { workspace = true }
+opentelemetry         = { workspace = true }
+opentelemetry_sdk     = { workspace = true, features = ["rt-tokio"] }
+sentry                = { workspace = true }
+serde                 = { workspace = true, features = ['derive'] }
+serde_json            = { workspace = true }
+time                  = { workspace = true }
+tower                 = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+utoipa                = { workspace = true }
+uuid                  = { workspace = true }
+
+[lints]
+workspace = true
+
+[package.metadata.cargo-shear]
+# Used as public dependency
+ignored = ["axum-core"]

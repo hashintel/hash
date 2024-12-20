@@ -1,19 +1,20 @@
 use alloc::sync::Arc;
 use core::mem;
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::{HashMap, hash_map::Entry},
     io,
 };
 
-use error_stack::{Result, ResultExt};
-use futures::prelude::stream::StreamExt;
+use error_stack::{Report, ResultExt as _};
+use futures::prelude::stream::StreamExt as _;
 use libp2p::{
+    Multiaddr, PeerId, SwarmBuilder,
     core::{transport::ListenerId, upgrade},
     identify,
-    metrics::{self, Metrics, Recorder},
+    metrics::{self, Metrics, Recorder as _},
     noise, ping,
-    swarm::{dial_opts::DialOpts, ConnectionId, DialError, SwarmEvent},
-    yamux, Multiaddr, PeerId, SwarmBuilder,
+    swarm::{ConnectionId, DialError, SwarmEvent, dial_opts::DialOpts},
+    yamux,
 };
 use libp2p_stream as stream;
 use stream::Control;
@@ -24,15 +25,15 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use super::{
+    PROTOCOL_NAME, Transport, TransportConfig,
     behaviour::{TransportBehaviour, TransportBehaviourEvent, TransportSwarm},
     error::TransportError,
     ipc::TransportLayerIpc,
-    Transport, TransportConfig, PROTOCOL_NAME,
 };
 
 type SenderPeerId = oneshot::Sender<core::result::Result<PeerId, DialError>>;
-type SenderListenerId =
-    oneshot::Sender<core::result::Result<ListenerId, libp2p::TransportError<io::Error>>>;
+type SenderListenOn =
+    oneshot::Sender<core::result::Result<Multiaddr, libp2p::TransportError<io::Error>>>;
 
 pub(crate) enum Command {
     IssueControl {
@@ -44,7 +45,7 @@ pub(crate) enum Command {
     },
     ListenOn {
         address: Multiaddr,
-        tx: SenderListenerId,
+        tx: SenderListenOn,
     },
     ExternalAddresses {
         tx: oneshot::Sender<Vec<Multiaddr>>,
@@ -62,16 +63,18 @@ pub(crate) struct TransportTask {
     ipc: TransportLayerIpc,
 
     peers: HashMap<Multiaddr, PeerId>,
-
     peers_waiting: HashMap<Multiaddr, Vec<SenderPeerId>>,
     peers_address_lookup: HashMap<ConnectionId, Multiaddr>,
+
+    listeners: HashMap<ListenerId, Vec<Multiaddr>>,
+    listeners_waiting: HashMap<ListenerId, Vec<SenderListenOn>>,
 }
 
 impl TransportTask {
     pub(crate) fn new(
         config: TransportConfig,
         transport: impl Transport,
-    ) -> Result<Self, TransportError> {
+    ) -> Result<Self, Report<TransportError>> {
         let mut registry = metrics::Registry::default();
 
         let (ipx_tx, rx) = mpsc::channel(config.ipc_buffer_size.get());
@@ -107,10 +110,10 @@ impl TransportTask {
                 // 3-10% slower than using yamux.
                 //
                 // Another alternative would be using QUIC, this has a massive performance penalty
-                // of ~50% as well as is unable to be used with js as `nodejs` does not support QUIC
-                // yet.
+                // of ~50% as well as is unable to be used with JavaScript as `nodejs` does not
+                // support QUIC yet.
                 //
-                // As a compromise we're using `yamux 0.12` in  `WindowUpdateMode::OnReceive` mode
+                // As a compromise we're using `yamux 0.12` in `WindowUpdateMode::OnReceive` mode
                 // with a buffer that is 16x higher than the default (as default) with a value of
                 // 16MiB.
                 let yamux: yamux::Config = config.yamux.into();
@@ -132,7 +135,7 @@ impl TransportTask {
                     PROTOCOL_NAME.to_string(),
                     keys.public(),
                 )),
-                ping: ping::Behaviour::new(config.ping),
+                ping: ping::Behaviour::new(config.ping.into()),
             });
 
         let swarm = swarm
@@ -157,6 +160,9 @@ impl TransportTask {
             peers: HashMap::new(),
             peers_waiting: HashMap::new(),
             peers_address_lookup: HashMap::new(),
+
+            listeners: HashMap::new(),
+            listeners_waiting: HashMap::new(),
         })
     }
 
@@ -205,6 +211,34 @@ impl TransportTask {
         }
     }
 
+    fn handle_listen_on(&mut self, address: Multiaddr, tx: SenderListenOn) {
+        tracing::debug!(%address, "starting to listening on address");
+
+        match self.swarm.listen_on(address) {
+            Ok(id) => {
+                if let Some(addresses) = self.listeners.get(&id) {
+                    let address = addresses[0].clone();
+
+                    Self::send_ipc_response(tx, Ok(address));
+                } else {
+                    let entry = self.listeners_waiting.entry(id);
+
+                    match entry {
+                        Entry::Occupied(mut entry) => {
+                            entry.get_mut().push(tx);
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(vec![tx]);
+                        }
+                    }
+                }
+            }
+            Err(error) => {
+                Self::send_ipc_response(tx, Err(error));
+            }
+        }
+    }
+
     fn handle_command(&mut self, command: Command) {
         match command {
             Command::IssueControl { tx } => {
@@ -212,12 +246,8 @@ impl TransportTask {
 
                 Self::send_ipc_response(tx, control);
             }
-            Command::LookupPeer { address: addr, tx } => self.handle_dial(addr, tx),
-            Command::ListenOn { address, tx } => {
-                let result = self.swarm.listen_on(address);
-
-                Self::send_ipc_response(tx, result);
-            }
+            Command::LookupPeer { address, tx } => self.handle_dial(address, tx),
+            Command::ListenOn { address, tx } => self.handle_listen_on(address, tx),
             Command::ExternalAddresses { tx } => {
                 let addresses = self.swarm.listeners().cloned().collect();
 
@@ -268,6 +298,25 @@ impl TransportTask {
         }
     }
 
+    fn handle_new_listen_addr(&mut self, address: Multiaddr, listener_id: ListenerId) {
+        tracing::info!(%address, "listening on address");
+
+        if let Some(senders) = self.listeners_waiting.remove(&listener_id) {
+            for tx in senders {
+                Self::send_ipc_response(tx, Ok(address.clone()));
+            }
+        }
+
+        match self.listeners.entry(listener_id) {
+            Entry::Occupied(mut entry) => {
+                entry.get_mut().push(address);
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(vec![address]);
+            }
+        }
+    }
+
     fn handle_event(&mut self, event: SwarmEvent<TransportBehaviourEvent>) {
         tracing::debug!(?event, "received swarm event");
 
@@ -282,8 +331,11 @@ impl TransportTask {
         }
 
         match event {
-            SwarmEvent::NewListenAddr { address, .. } => {
-                tracing::info!(%address, "listening on address");
+            SwarmEvent::NewListenAddr {
+                address,
+                listener_id,
+            } => {
+                self.handle_new_listen_addr(address, listener_id);
             }
             SwarmEvent::NewExternalAddrOfPeer { peer_id, address } => {
                 self.handle_new_external_address_of_peer(peer_id, address);

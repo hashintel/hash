@@ -39,6 +39,8 @@ import {
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
 
+import type { UserPreferences } from "../shared/use-user-preferences";
+
 export const constructMinimalOrg = (params: {
   orgEntity: Entity<Organization>;
 }): MinimalOrg => {
@@ -80,7 +82,7 @@ export type MinimalUser = {
 export const isEntityUserEntity = (
   entity: Entity,
 ): entity is Entity<UserEntity> =>
-  entity.metadata.entityTypeId === systemEntityTypes.user.entityTypeId;
+  entity.metadata.entityTypeIds.includes(systemEntityTypes.user.entityTypeId);
 
 export const constructMinimalUser = (params: {
   userEntity: Entity<UserEntity>;
@@ -133,7 +135,9 @@ export type Org = MinimalOrg & {
 export const isEntityOrgEntity = (
   entity: Entity,
 ): entity is Entity<Organization> =>
-  entity.metadata.entityTypeId === systemEntityTypes.organization.entityTypeId;
+  entity.metadata.entityTypeIds.includes(
+    systemEntityTypes.organization.entityTypeId,
+  );
 
 /**
  * Constructs a simplified org object from a subgraph.
@@ -160,10 +164,10 @@ export const constructOrg = (params: {
     subgraph,
     orgEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
-    ({ linkEntity }) =>
-      linkEntity[0]?.metadata.entityTypeId ===
+  ).filter(({ linkEntity }) =>
+    linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
+    ),
   );
 
   const hasAvatar = avatarLinkAndEntities[0]
@@ -178,10 +182,10 @@ export const constructOrg = (params: {
     subgraph,
     orgEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
-    ({ linkEntity }) =>
-      linkEntity[0]?.metadata.entityTypeId ===
+  ).filter(({ linkEntity }) =>
+    linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasBio.linkEntityTypeId,
+    ),
   );
 
   const hasBio = hasBioLinkAndEntities[0]
@@ -197,10 +201,10 @@ export const constructOrg = (params: {
     subgraph,
     orgEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
-    (linkEntity): linkEntity is LinkEntity<IsMemberOf> =>
-      linkEntity.metadata.entityTypeId ===
+  ).filter((linkEntity): linkEntity is LinkEntity<IsMemberOf> =>
+    linkEntity.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+    ),
   );
 
   const memberships = orgMemberships.map((linkEntity) => {
@@ -227,7 +231,7 @@ export const constructOrg = (params: {
 
     if (!isEntityUserEntity(userEntity)) {
       throw new Error(
-        `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
+        `Entity with type(s) ${userEntity.metadata.entityTypeIds.join(", ")} is not a user entity`,
       );
     }
 
@@ -265,7 +269,6 @@ export type UserServiceAccount = {
 };
 
 export type User = MinimalUser & {
-  joinedAt: Date;
   emails: { address: string; primary: boolean; verified: boolean }[];
   hasAvatar?: {
     linkEntity: LinkEntity;
@@ -280,10 +283,12 @@ export type User = MinimalUser & {
     profileBioEntity: Entity<ProfileBio>;
   };
   hasServiceAccounts: UserServiceAccount[];
+  joinedAt: Date;
   memberOf: {
     linkEntity: Entity<IsMemberOf>;
     org: Org;
   }[];
+  preferences?: UserPreferences;
 };
 
 /**
@@ -328,10 +333,10 @@ export const constructUser = (params: {
       subgraph,
       userEntity.metadata.recordId.entityId,
       intervalForTimestamp(new Date().toISOString() as Timestamp),
-    ).filter(
-      (linkEntity) =>
-        linkEntity.metadata.entityTypeId ===
+    ).filter((linkEntity) =>
+      linkEntity.metadata.entityTypeIds.includes(
         systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+      ),
     );
 
   const memberOf = orgMemberships.map((untypedLinkEntity) => {
@@ -372,7 +377,7 @@ export const constructUser = (params: {
 
     if (!isEntityOrgEntity(orgEntity)) {
       throw new Error(
-        `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,
+        `Entity with type(s) ${orgEntity.metadata.entityTypeIds.join(", ")} is not an org entity`,
       );
     }
 
@@ -386,10 +391,10 @@ export const constructUser = (params: {
     subgraph,
     userEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
-    ({ linkEntity }) =>
-      linkEntity[0]?.metadata.entityTypeId ===
+  ).filter(({ linkEntity }) =>
+    linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
+    ),
   );
 
   const hasAvatar = avatarLinkAndEntities[0]
@@ -404,10 +409,10 @@ export const constructUser = (params: {
     subgraph,
     userEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
-    ({ linkEntity }) =>
-      linkEntity[0]?.metadata.entityTypeId ===
+  ).filter(({ linkEntity }) =>
+    linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
+    ),
   );
 
   const hasCoverImage = coverImageLinkAndEntities[0]
@@ -423,10 +428,10 @@ export const constructUser = (params: {
     subgraph,
     userEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
-    ({ linkEntity }) =>
-      linkEntity[0]?.metadata.entityTypeId ===
+  ).filter(({ linkEntity }) =>
+    linkEntity[0]?.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.hasBio.linkEntityTypeId,
+    ),
   );
 
   const hasBio = hasBioLinkAndEntities[0]
@@ -444,10 +449,10 @@ export const constructUser = (params: {
     userEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
   )
-    .filter(
-      ({ linkEntity }) =>
-        linkEntity[0]?.metadata.entityTypeId ===
+    .filter(({ linkEntity }) =>
+      linkEntity[0]?.metadata.entityTypeIds.includes(
         systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId,
+      ),
     )
     .map<User["hasServiceAccounts"][number]>(({ linkEntity, rightEntity }) => {
       const serviceAccountEntity = rightEntity[0]!;
@@ -456,9 +461,8 @@ export const constructUser = (params: {
         serviceAccountEntity.properties as ServiceAccount["properties"],
       );
 
-      const kind = Object.entries(systemEntityTypes).find(
-        ([_, type]) =>
-          type.entityTypeId === serviceAccountEntity.metadata.entityTypeId,
+      const kind = Object.entries(systemEntityTypes).find(([_, type]) =>
+        serviceAccountEntity.metadata.entityTypeIds.includes(type.entityTypeId),
       )?.[0] as ServiceAccountKind;
 
       return {
@@ -481,6 +485,9 @@ export const constructUser = (params: {
     hasServiceAccounts,
     joinedAt,
     memberOf,
+    preferences: userEntity.properties[
+      "https://hash.ai/@hash/types/property-type/application-preferences/"
+    ] as UserPreferences | undefined,
     emails: [
       {
         address: primaryEmailAddress,

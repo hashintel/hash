@@ -3,13 +3,12 @@
 // implementation: `pub(crate)` and `pub`.
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, string::String, vec::Vec};
 use core::{any::TypeId, mem};
 
 pub(crate) use default::install_builtin_hooks;
 
-use crate::fmt::{charset::Charset, ColorMode, Frame};
+use crate::fmt::{ColorMode, Frame, charset::Charset};
 
 pub(crate) struct Format {
     alternate: bool,
@@ -305,7 +304,7 @@ impl<T> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap"))]
+    #[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap")))]
     /// </pre>
     pub fn push_appendix(&mut self, content: impl Into<String>) {
         self.inner_mut().extra_mut().appendix.push(content.into());
@@ -352,7 +351,7 @@ impl<T> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
+    #[cfg_attr(doc, doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")))]
     /// </pre>
     pub fn push_body(&mut self, content: impl Into<String>) {
         self.inner_mut().extra_mut().body.push(content.into());
@@ -421,7 +420,7 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
 /// [`.insert()`]: Hooks::insert
-#[allow(clippy::field_scoped_visibility_modifiers)]
+#[expect(clippy::field_scoped_visibility_modifiers)]
 pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
@@ -455,8 +454,7 @@ impl Hooks {
 mod default {
     #[cfg(any(feature = "backtrace", feature = "spantrace"))]
     use alloc::format;
-    #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::string::ToString;
+    use alloc::string::ToString as _;
     use core::{
         panic::Location,
         sync::atomic::{AtomicBool, Ordering},
@@ -472,8 +470,8 @@ mod default {
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{hook::HookContext, location::LocationAttachment},
         Report,
+        fmt::{hook::HookContext, location::LocationAttachment},
     };
 
     pub(crate) fn install_builtin_hooks() {

@@ -27,7 +27,7 @@ import {
   mustGetDataTypeById,
 } from "./data-type.js";
 import {
-  getEntityTypeAndParentsById,
+  getBreadthFirstEntityTypesAndParents,
   getEntityTypeById,
 } from "./entity-type.js";
 
@@ -92,15 +92,15 @@ export const getPropertyTypesByBaseUrl = (
 
 export const getPropertyTypeForEntity = (
   subgraph: Subgraph,
-  entityTypeId: VersionedUrl,
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
   propertyBaseUrl: BaseUrl,
 ): {
   propertyType: PropertyType;
   refSchema: EntityType["properties"][string];
 } => {
-  const entityTypeAndParents = getEntityTypeAndParentsById(
+  const entityTypeAndParents = getBreadthFirstEntityTypesAndParents(
     subgraph,
-    entityTypeId,
+    entityTypeIds,
   );
 
   for (const entityType of entityTypeAndParents) {
@@ -126,7 +126,7 @@ export const getPropertyTypeForEntity = (
   }
 
   throw new Error(
-    `Property ${propertyBaseUrl} not found on entity type ${entityTypeId} or any ancestors`,
+    `Property ${propertyBaseUrl} not found on entity types ${entityTypeIds.join(", ")} or any ancestors`,
   );
 };
 
@@ -215,8 +215,12 @@ export const guessSchemaForPropertyValue = (
           const guessedSchemas = value.map((innerValue) => {
             const jsonSchemaType = getJsonSchemaTypeFromValue(innerValue);
 
-            const dataType = possibleDataTypes.find(
-              ({ schema }) => schema.type === jsonSchemaType,
+            const dataType = possibleDataTypes.find(({ schema }) =>
+              "type" in schema
+                ? schema.type === jsonSchemaType
+                : schema.anyOf.some(
+                    (anyOfOption) => anyOfOption.type === jsonSchemaType,
+                  ),
             );
 
             if (!dataType) {
@@ -261,7 +265,11 @@ export const guessSchemaForPropertyValue = (
 
       const guessedDataType = possibleDataTypes.find(({ schema }) => {
         const jsonSchemaType = getJsonSchemaTypeFromValue(value);
-        return schema.type === jsonSchemaType;
+        return "type" in schema
+          ? schema.type === jsonSchemaType
+          : schema.anyOf.some(
+              (anyOfOption) => anyOfOption.type === jsonSchemaType,
+            );
       });
 
       return {
@@ -329,7 +337,7 @@ const addPropertyTypesToMapFromReferences = (
 };
 
 /**
- * Gets a map of all property types referenced by the entity type to the provided map,
+ * Gets a map of all propertyTypeIds referenced by the entity type to the full property type,
  * including from any parents in its inheritance chain and nested property objects,
  *
  * The subgraph must be a result of having queried for an entity type with sufficiently high depth

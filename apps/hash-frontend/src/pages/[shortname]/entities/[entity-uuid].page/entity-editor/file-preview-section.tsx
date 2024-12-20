@@ -1,15 +1,17 @@
 import {
   ArrowLeftIcon,
-  DownloadIconRegular,
-  FileIconRegular,
+  ArrowUpRightFromSquareRegularIcon,
+  DownloadRegularIcon,
+  FileRegularIcon,
   ImageWithCheckedBackground,
-  RotateIconRegular,
+  MagnifyingGlassRegularIcon,
+  RotateRegularIcon,
+  SidebarRegularIcon,
 } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   Box,
   CircularProgress,
@@ -28,7 +30,8 @@ import { FileUploadDropzone } from "../../../../settings/shared/file-upload-drop
 import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { getFileProperties } from "../../../../shared/get-file-properties";
 import { GrayToBlueIconButton } from "../../../../shared/gray-to-blue-icon-button";
-import { SectionWrapper } from "../../../shared/section-wrapper";
+import { PdfPreview } from "../../../../shared/pdf-preview";
+import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
 
 const previewHeight = 250;
@@ -58,11 +61,9 @@ const ReplaceFile = ({
   isImage: boolean;
   close: () => void;
 }) => {
-  const { entitySubgraph, onEntityUpdated } = useEntityEditor();
+  const { entity, onEntityUpdated } = useEntityEditor();
   const { refetch: refetchUser } = useAuthInfo();
   const [fileBeingUploaded, setFileBeingUploaded] = useState<File | null>(null);
-
-  const entity = getRoots(entitySubgraph)[0]!;
 
   const { uploadFile, uploads } = useFileUploads();
   const uploadsProgress = useFileUploadsProgress();
@@ -148,7 +149,7 @@ const ReplaceFile = ({
         <Tooltip title="Cancel">
           <Box>
             <GrayToBlueIconButton onClick={close}>
-              <ArrowLeftIcon sx={{ width: 13, height: 13 }} />
+              <ArrowLeftIcon />
             </GrayToBlueIconButton>
           </Box>
         </Tooltip>
@@ -160,9 +161,14 @@ const ReplaceFile = ({
 export const FilePreviewSection = () => {
   const [replacing, setReplacing] = useState(false);
 
-  const { isDirty, entitySubgraph } = useEntityEditor();
+  /**
+   * Document-specific state
+   */
+  const [showSearch, setShowSearch] = useState(false);
+  const [showThumbnails, setShowThumbnails] = useState(true);
 
-  const entity = getRoots(entitySubgraph)[0]!;
+  const { isDirty, readonly, closedMultiEntityType, entity } =
+    useEntityEditor();
 
   const { isImage, fileUrl } = getFileProperties(entity.properties);
 
@@ -170,23 +176,102 @@ export const FilePreviewSection = () => {
     return null;
   }
 
-  const { description, displayName, fileName } = simplifyProperties(
+  const { description, displayName, fileName, mimeType } = simplifyProperties(
     entity.properties as FileProperties,
   );
 
-  const title = displayName ?? generateEntityLabel(entitySubgraph);
+  const title =
+    displayName ?? generateEntityLabel(closedMultiEntityType, entity);
 
   const alt = description ?? title;
 
+  const isPdf = mimeType === "application/pdf" || fileName?.endsWith(".pdf");
+
   return (
-    <SectionWrapper title="File Preview">
+    <SectionWrapper
+      title="File Preview"
+      titleStartContent={
+        isPdf ? (
+          <Stack direction="row" gap={1} ml={3}>
+            <GrayToBlueIconButton
+              onClick={() => setShowThumbnails(!showThumbnails)}
+            >
+              <SidebarRegularIcon
+                sx={{
+                  color: ({ palette }) =>
+                    showThumbnails ? palette.blue[70] : undefined,
+                }}
+              />
+            </GrayToBlueIconButton>
+            <GrayToBlueIconButton onClick={() => setShowSearch(!showSearch)}>
+              <MagnifyingGlassRegularIcon
+                sx={{
+                  color: ({ palette }) =>
+                    showSearch ? palette.blue[70] : undefined,
+                }}
+              />
+            </GrayToBlueIconButton>
+          </Stack>
+        ) : undefined
+      }
+      titleEndContent={
+        <Stack direction="row" gap={1}>
+          {" "}
+          {!readonly && (
+            <Tooltip
+              placement="top"
+              title={
+                isDirty
+                  ? "Save or discard your changes to replace the file"
+                  : "Replace"
+              }
+            >
+              <Box>
+                <GrayToBlueIconButton
+                  disabled={isDirty}
+                  onClick={() => setReplacing(true)}
+                >
+                  <RotateRegularIcon />
+                </GrayToBlueIconButton>
+              </Box>
+            </Tooltip>
+          )}
+          <Tooltip placement="top" title="Download">
+            <Box
+              component="a"
+              download
+              href={fileUrl}
+              rel="nofollow noopener noreferrer"
+            >
+              <GrayToBlueIconButton>
+                <DownloadRegularIcon />
+              </GrayToBlueIconButton>
+            </Box>
+          </Tooltip>
+          <Tooltip placement="top" title="Open in new tab">
+            <Box
+              component="a"
+              href={fileUrl}
+              target="_blank"
+              rel="nofollow noopener noreferrer"
+            >
+              <GrayToBlueIconButton>
+                <ArrowUpRightFromSquareRegularIcon
+                  sx={{ width: 13, height: 13 }}
+                />
+              </GrayToBlueIconButton>
+            </Box>
+          </Tooltip>
+        </Stack>
+      }
+    >
       <Stack
         sx={({ boxShadows }) => ({
           alignItems: "center",
           justifyContent: "center",
           boxShadow: boxShadows.sm,
           borderRadius: 1,
-          height: previewHeight,
+          height: isPdf ? "auto" : previewHeight,
           position: "relative",
         })}
       >
@@ -197,59 +282,31 @@ export const FilePreviewSection = () => {
             displayName={displayName}
             isImage={!!isImage}
           />
+        ) : isImage ? (
+          <ImageWithCheckedBackground
+            alt={alt}
+            src={fileUrl}
+            sx={{ height: previewHeight }}
+          />
+        ) : isPdf ? (
+          <PdfPreview
+            setShowSearch={setShowSearch}
+            showSearch={showSearch}
+            showThumbnails={showThumbnails}
+            url={fileUrl}
+          />
         ) : (
-          <>
-            <ActionButtonsContainer>
-              <Tooltip
-                placement="top"
-                title={
-                  isDirty
-                    ? "Save or discard your changes to replace the file"
-                    : "Replace"
-                }
-              >
-                <Box>
-                  <GrayToBlueIconButton
-                    disabled={isDirty}
-                    onClick={() => setReplacing(true)}
-                  >
-                    <RotateIconRegular sx={{ width: 13, height: 13 }} />
-                  </GrayToBlueIconButton>
-                </Box>
-              </Tooltip>
-              <Tooltip placement="top" title="Download">
-                <Box
-                  component="a"
-                  href={fileUrl}
-                  target="_blank"
-                  rel="nofollow noopener noreferrer"
-                >
-                  <GrayToBlueIconButton>
-                    <DownloadIconRegular sx={{ width: 13, height: 13 }} />
-                  </GrayToBlueIconButton>
-                </Box>
-              </Tooltip>
-            </ActionButtonsContainer>
-            {isImage ? (
-              <ImageWithCheckedBackground
-                alt={alt}
-                src={fileUrl}
-                sx={{ height: previewHeight }}
-              />
-            ) : (
-              <Stack alignItems="center" spacing={2}>
-                <FileIconRegular
-                  sx={{
-                    color: ({ palette }) => palette.gray[50],
-                    fontSize: 48,
-                  }}
-                />
-                <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
-                  {fileName}
-                </Typography>
-              </Stack>
-            )}
-          </>
+          <Stack alignItems="center" spacing={2}>
+            <FileRegularIcon
+              sx={{
+                color: ({ palette }) => palette.gray[50],
+                fontSize: 48,
+              }}
+            />
+            <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
+              {fileName}
+            </Typography>
+          </Stack>
         )}
       </Stack>
     </SectionWrapper>

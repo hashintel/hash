@@ -1,5 +1,5 @@
 ---
-source: tests/test_serialize.rs
+source: libs/error-stack/tests/test_serialize.rs
 expression: report
 ---
 [

@@ -1,10 +1,10 @@
 <b>could not parse configuration file</b>
-├╴at <i>libs/error-stack/src/lib.rs:25:10</i>
+├╴at <i>libs/error-stack/src/lib.rs:26:10</i>
 ├╴could not read file &quot;test.txt&quot;
 ├╴1 additional opaque attachment
 │
 ╰─▶ <b>No such file or directory (os error 2)</b>
-    ├╴at <i>libs/error-stack/src/lib.rs:25:10</i>
+    ├╴at <i>libs/error-stack/src/lib.rs:26:10</i>
     ╰╴backtrace (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

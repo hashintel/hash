@@ -1,4 +1,4 @@
-import { ArrowRightIconRegular } from "@hashintel/design-system";
+import { ArrowRightRegularIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 
 import { Button } from "../../shared/ui/button";
@@ -39,7 +39,7 @@ export const LoggedOut = () => {
           sx={{ borderRadius: 2 }}
         >
           Create an account
-          <ArrowRightIconRegular sx={{ fontSize: 14, ml: 1 }} />
+          <ArrowRightRegularIcon sx={{ fontSize: 14, ml: 1 }} />
         </Button>
       </HomepageCard>
       <HomepageCard wide>

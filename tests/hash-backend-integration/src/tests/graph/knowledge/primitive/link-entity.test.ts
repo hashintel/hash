@@ -147,6 +147,7 @@ describe("Link entity", () => {
 
     testEntityType = await createTestEntityType({
       title: "Person",
+      description: "A person",
       properties: [],
       outgoingLinks: [
         {
@@ -163,7 +164,7 @@ describe("Link entity", () => {
     await Promise.all([
       createEntity(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
-        entityTypeId: testEntityType.schema.$id,
+        entityTypeIds: [testEntityType.schema.$id],
         properties: { value: {} },
         relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
@@ -171,7 +172,7 @@ describe("Link entity", () => {
       }),
       createEntity(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
-        entityTypeId: testEntityType.schema.$id,
+        entityTypeIds: [testEntityType.schema.$id],
         properties: { value: {} },
         relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
@@ -179,7 +180,7 @@ describe("Link entity", () => {
       }),
       createEntity(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
-        entityTypeId: testEntityType.schema.$id,
+        entityTypeIds: [testEntityType.schema.$id],
         properties: { value: {} },
         relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
@@ -209,7 +210,7 @@ describe("Link entity", () => {
         leftEntityId: leftEntity.metadata.recordId.entityId,
         rightEntityId: friendRightEntity.metadata.recordId.entityId,
       },
-      entityTypeId: friendLinkEntityType.schema.$id,
+      entityTypeIds: [friendLinkEntityType.schema.$id],
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
 
@@ -223,7 +224,7 @@ describe("Link entity", () => {
           leftEntityId: leftEntity.metadata.recordId.entityId,
           rightEntityId: acquaintanceRightEntity.metadata.recordId.entityId,
         },
-        entityTypeId: acquaintanceLinkEntityType.schema.$id,
+        entityTypeIds: [acquaintanceLinkEntityType.schema.$id],
         relationships: createDefaultAuthorizationRelationships(authentication),
       },
     );
@@ -260,7 +261,7 @@ describe("Link entity", () => {
         linkEntity,
       }),
     ).toEqual(leftEntity);
-    expect(linkEntity.metadata.entityTypeId).toEqual(
+    expect(linkEntity.metadata.entityTypeIds).toContain(
       friendLinkEntityType.schema.$id,
     );
     expect(
@@ -273,7 +274,17 @@ describe("Link entity", () => {
   it("can archive a link", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    await linkEntityAcquaintance.archive(graphContext.graphApi, authentication);
+    await linkEntityAcquaintance.archive(
+      graphContext.graphApi,
+      authentication,
+      {
+        actorType: "machine",
+        origin: {
+          type: "api",
+          environment: "test",
+        },
+      },
+    );
 
     const links = await getEntityOutgoingLinks(graphContext, authentication, {
       entityId: leftEntity.metadata.recordId.entityId,

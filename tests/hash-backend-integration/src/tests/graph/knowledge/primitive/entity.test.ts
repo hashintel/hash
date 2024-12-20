@@ -12,10 +12,14 @@ import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/pri
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
+import {
+  createEntityType,
+  getClosedMultiEntityType,
+} from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -26,6 +30,10 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityRootType } from "@local/hash-subgraph";
@@ -113,6 +121,7 @@ describe("Entity CRU", () => {
         ownedById: testUser.accountId as OwnedById,
         schema: {
           title: "Favorite Book",
+          description: "The favorite book of a person",
           oneOf: [{ $ref: textDataTypeId }],
         },
         relationships: [
@@ -135,6 +144,7 @@ describe("Entity CRU", () => {
         ownedById: testUser.accountId as OwnedById,
         schema: {
           title: "Name",
+          description: "The name of a person",
           oneOf: [{ $ref: textDataTypeId }],
         },
         relationships: [
@@ -164,6 +174,7 @@ describe("Entity CRU", () => {
           title: "Person",
         }),
         title: "Person",
+        description: "A person",
         properties: [
           { propertyType: favoriteBookPropertyType },
           { propertyType: namePropertyType },
@@ -226,7 +237,37 @@ describe("Entity CRU", () => {
           },
         },
       },
-      entityTypeId: entityType.schema.$id,
+      entityTypeIds: [entityType.schema.$id],
+      relationships: createDefaultAuthorizationRelationships(authentication),
+    });
+  });
+
+  it("can create a multi-type entity", async () => {
+    const authentication = { actorId: testUser.accountId };
+    await createEntity(graphContext, authentication, {
+      ownedById: testOrg.accountGroupId as OwnedById,
+      properties: {
+        value: {
+          [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]: {
+            value: "Text",
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+          [blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl]: {
+            value: "https://example.com/file",
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
+      },
+      entityTypeIds: [
+        systemEntityTypes.image.entityTypeId,
+        systemEntityTypes.text.entityTypeId,
+      ],
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
   });
@@ -246,6 +287,76 @@ describe("Entity CRU", () => {
     expect(fetchedEntity.metadata.recordId.editionId).toEqual(
       createdEntity.metadata.recordId.editionId,
     );
+  });
+
+  it("can read a multi-type entity", async () => {
+    const { data: response } = await graphApi.getEntitySubgraph(
+      testUser.accountId,
+      {
+        filter: {
+          // We have quite a few entities seeded and above we inserted a multi-type entity as well.
+          // We can use the opportunity to simply test all entities
+          all: [],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includeEntityTypes: "resolved",
+      },
+    );
+
+    const entities = getRoots(
+      mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        response.subgraph,
+        testUser.accountId,
+      ),
+    );
+
+    // It should not matter if the entity type is read independently from the response or is part of the response. The result should be the same.
+    for (const entity of entities) {
+      const entityTypeFromResponse = getClosedMultiEntityTypeFromMap(
+        response.closedMultiEntityTypes,
+        entity.metadata.entityTypeIds,
+      );
+      expect(entityTypeFromResponse).toBeDefined();
+
+      const {
+        entityType: entityTypeFromGraph,
+        definitions: definitionsFromGraph,
+      } = await getClosedMultiEntityType(
+        graphContext,
+        { actorId: testUser.accountId },
+        {
+          entityTypeIds: entity.metadata.entityTypeIds,
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+          includeResolved: "resolved",
+        },
+      );
+
+      if (entityTypeFromResponse.required && entityTypeFromGraph.required) {
+        // The `required` field is not sorted, so we need to sort it before comparing
+        entityTypeFromResponse.required =
+          entityTypeFromResponse.required.sort();
+        entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
+      }
+
+      for (const [id, schema] of Object.entries(
+        definitionsFromGraph!.dataTypes,
+      )) {
+        expect(response.definitions?.dataTypes[id]).toEqual(schema);
+      }
+      for (const [id, schema] of Object.entries(
+        definitionsFromGraph!.propertyTypes,
+      )) {
+        expect(response.definitions?.propertyTypes[id]).toEqual(schema);
+      }
+      for (const [id, schema] of Object.entries(
+        definitionsFromGraph!.entityTypes,
+      )) {
+        expect(response.definitions?.entityTypes[id]).toEqual(schema);
+      }
+    }
   });
 
   let updatedEntity: Entity;
@@ -284,6 +395,7 @@ describe("Entity CRU", () => {
           },
         ],
       },
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     ).catch((err) => Promise.reject(err));
 
     expect(updatedEntity.metadata.provenance.edition.createdById).toBe(
@@ -352,7 +464,7 @@ describe("Entity CRU", () => {
       {
         ownedById: testUser.accountId as OwnedById,
         // First create a new entity given the following definition
-        entityTypeId: entityType.schema.$id,
+        entityTypeIds: [entityType.schema.$id],
         properties: {
           value: {
             [namePropertyType.metadata.recordId.baseUrl]: {
@@ -405,7 +517,7 @@ describe("Entity CRU", () => {
         { linkEntity },
       ),
     ).toEqual(updatedEntity);
-    expect(linkEntity.metadata.entityTypeId).toEqual(
+    expect(linkEntity.metadata.entityTypeIds).toContain(
       linkEntityTypeFriend.schema.$id,
     );
   });

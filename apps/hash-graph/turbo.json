@@ -8,10 +8,6 @@
     "start:test:migrate": {
       "cache": false,
       "dependsOn": ["compile"]
-    },
-    "codegen:generate-openapi-specs": {
-      "dependsOn": ["compile"],
-      "outputs": ["openapi/openapi.json", "openapi/models/**"]
     }
   }
 }

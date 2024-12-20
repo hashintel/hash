@@ -1,8 +1,8 @@
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
 use criterion::Throughput;
-use error_stack::{Report, ResultExt};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use error_stack::{Report, ResultExt as _};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use walkdir::WalkDir;
 
 use crate::benches::analyze::AnalyzeError;

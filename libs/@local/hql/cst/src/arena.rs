@@ -1,5 +1,5 @@
 use bumpalo::Bump;
-use hashbrown::hash_map::DefaultHashBuilder;
+use hashbrown::DefaultHashBuilder;
 
 pub type Box<'a, T> = alloc::boxed::Box<T, &'a Bump>;
 pub type Vec<'a, T> = alloc::vec::Vec<T, &'a Bump>;

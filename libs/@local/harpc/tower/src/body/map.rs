@@ -1,6 +1,6 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use bytes::Buf;
@@ -78,7 +78,6 @@ impl<B, F, T> Body for MapControl<B, F>
 where
     B: Body,
     F: FnMut(B::Control) -> T,
-    T: Buf,
 {
     type Control = T;
     type Data = B::Data;

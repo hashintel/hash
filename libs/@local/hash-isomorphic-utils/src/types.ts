@@ -1,5 +1,13 @@
-import type { EntityType, PropertyType } from "@blockprotocol/type-system/slim";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  EntityType,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
+import type {
+  GetEntitiesRequest as GetEntitiesRequestGraphApi,
+  GetEntitySubgraphRequest as GetEntitySubgraphRequestGraphApi,
+} from "@local/hash-graph-client";
+import type { EntityId, PropertyPath } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export type TextToken =
@@ -37,6 +45,20 @@ export type ConstructEntityTypeParams = Omit<
   EntityType,
   SystemDefinedProperties
 >;
+
+export type GetEntitiesRequest = Omit<
+  GetEntitiesRequestGraphApi,
+  "conversions"
+> & {
+  conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
+};
+
+export type GetEntitySubgraphRequest = Omit<
+  GetEntitySubgraphRequestGraphApi,
+  "conversions"
+> & {
+  conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
+};
 
 export type UserPermissions = {
   view: boolean;

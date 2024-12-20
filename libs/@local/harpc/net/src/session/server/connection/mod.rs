@@ -3,37 +3,35 @@ pub(super) mod collection;
 pub(crate) mod test;
 
 use alloc::sync::Arc;
-use core::{fmt::Debug, future};
+use core::{error::Error, fmt::Debug, future};
 use std::io;
 
-use futures::{stream, FutureExt, Sink, Stream, StreamExt};
+use error_stack::Report;
+use futures::{FutureExt as _, Sink, Stream, StreamExt as _, stream};
+use harpc_codec::error::NetworkError;
+use harpc_types::response_kind::ResponseKind;
 use harpc_wire_protocol::{
-    request::{body::RequestBody, id::RequestId, Request},
-    response::{kind::ResponseKind, Response},
+    request::{Request, body::RequestBody, id::RequestId},
+    response::Response,
 };
 use libp2p::PeerId;
 use tokio::{
     pin, select,
-    sync::{broadcast, mpsc, OwnedSemaphorePermit, Semaphore},
+    sync::{OwnedSemaphorePermit, Semaphore, broadcast, mpsc},
 };
-use tokio_stream::{wrappers::ReceiverStream, StreamNotifyClose};
+use tokio_stream::{StreamNotifyClose, wrappers::ReceiverStream};
 use tokio_util::{either::Either, sync::CancellationToken, task::TaskTracker};
 
 use self::collection::TransactionCollection;
 use super::{
+    SessionConfig, SessionEvent,
     session_id::SessionId,
     transaction::{Transaction, TransactionParts},
-    SessionConfig, SessionEvent,
 };
-use crate::{
-    codec::{ErrorEncoder, WireError},
-    session::{
-        error::{
-            ConnectionGracefulShutdownError, InstanceTransactionLimitReachedError, TransactionError,
-        },
-        gc::ConnectionGarbageCollectorTask,
-        writer::{ResponseContext, ResponseWriter, WriterOptions},
-    },
+use crate::session::{
+    error::{ConnectionGracefulShutdownError, InstanceTransactionLimitReachedError},
+    gc::ConnectionGarbageCollectorTask,
+    writer::{ResponseContext, ResponseWriter, WriterOptions},
 };
 
 struct ConnectionDelegateTask<T> {
@@ -64,7 +62,7 @@ where
     }
 }
 
-pub(crate) struct ConnectionTask<E> {
+pub(crate) struct ConnectionTask {
     pub peer: PeerId,
     pub session: SessionId,
 
@@ -73,19 +71,19 @@ pub(crate) struct ConnectionTask<E> {
     pub events: broadcast::Sender<SessionEvent>,
 
     pub config: SessionConfig,
-    pub encoder: E,
+
     pub _permit: OwnedSemaphorePermit,
 }
 
-impl<E> ConnectionTask<E>
-where
-    E: ErrorEncoder + Send + Sync + 'static,
-{
-    async fn respond_error<T>(&self, id: RequestId, error: T, tx: &mpsc::Sender<Response>)
+impl ConnectionTask {
+    async fn respond_error<E>(&self, id: RequestId, error: &E, tx: &mpsc::Sender<Response>)
     where
-        T: WireError + Send + Sync,
+        E: Error + Sync,
     {
-        let TransactionError { code, bytes } = self.encoder.encode_error(error).await;
+        let error = NetworkError::capture_error(error);
+
+        let code = error.code();
+        let bytes = error.into_bytes();
 
         let mut writer = ResponseWriter::new(
             WriterOptions { no_delay: false },
@@ -130,7 +128,7 @@ where
                         Err(error) => {
                             tracing::warn!("transaction limit reached, dropping transaction");
 
-                            self.respond_error(request_id, error, &tx).await;
+                            self.respond_error(request_id, &error, &tx).await;
                             return;
                         }
                     };
@@ -156,7 +154,7 @@ where
                         // be processed, this is also known as the "graceful shutdown" phase.
                         tracing::info!("supervisor has been dropped, dropping transaction");
 
-                        self.respond_error(request_id, ConnectionGracefulShutdownError, &tx)
+                        self.respond_error(request_id, &ConnectionGracefulShutdownError, &tx)
                             .await;
                         return;
                     }
@@ -168,23 +166,20 @@ where
 
                         self.transactions.release(request_id).await;
 
-                        self.respond_error(request_id, InstanceTransactionLimitReachedError, &tx)
+                        self.respond_error(request_id, &InstanceTransactionLimitReachedError, &tx)
                             .await;
                         return;
                     }
                 };
 
-                let (transaction, task) = Transaction::from_request(
-                    begin,
-                    TransactionParts {
-                        peer: self.peer,
-                        session: self.session,
-                        config: self.config,
-                        rx: request_rx,
-                        tx: tx.clone(),
-                        permit,
-                    },
-                );
+                let (transaction, task) = Transaction::from_request(begin, TransactionParts {
+                    peer: self.peer,
+                    session: self.session,
+                    config: self.config,
+                    rx: request_rx,
+                    tx: tx.clone(),
+                    permit,
+                });
 
                 // The channel size is a non-zero, meaning that we always have space in the buffer
                 // to send the request and resolve immediately.
@@ -198,14 +193,12 @@ where
             }
             RequestBody::Frame(_) => {
                 if let Err(error) = self.transactions.send(request).await {
-                    self.respond_error(request_id, error, &tx).await;
+                    self.respond_error(request_id, &error, &tx).await;
                 }
             }
         }
 
-        // TODO: forced gc on timeout in upper layer
-
-        // we do not need to check for `EndOfRequest` here and forcefully close the channel, as the
+        // We do not need to check for `EndOfRequest` here and forcefully close the channel, as the
         // task is already doing this for us.
     }
 
@@ -221,7 +214,7 @@ where
         cancel: CancellationToken,
     ) where
         T: Sink<Response, Error: Debug + Send> + Send + 'static,
-        U: Stream<Item = error_stack::Result<Request, io::Error>> + Send,
+        U: Stream<Item = Result<Request, Report<io::Error>>> + Send,
     {
         let stream = stream.fuse();
         let stream = StreamNotifyClose::new(stream);

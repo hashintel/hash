@@ -110,7 +110,11 @@ const BlockContextMenu: ForwardRefRenderFunction<
                 <LoadEntityMenuContent
                   blockEntityId={entityId}
                   childEntityEntityTypeId={
-                    blockEntity?.blockChildEntity?.metadata.entityTypeId ?? null
+                    /**
+                     * @todo make menu properly support multi-type entities
+                     */
+                    blockEntity?.blockChildEntity?.metadata.entityTypeIds[0] ??
+                    null
                   }
                   childEntityEntityId={
                     blockEntity?.blockChildEntity?.metadata.recordId.entityId ??
@@ -229,9 +233,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
       return;
     }
 
-    const { recordId, entityTypeId } = blockEntity.blockChildEntity.metadata;
+    const { recordId, entityTypeIds } = blockEntity.blockChildEntity.metadata;
     const newBlockSubgraph = await fetchBlockSubgraph(
-      entityTypeId,
+      entityTypeIds,
       recordId.entityId,
     );
 
@@ -248,9 +252,13 @@ const BlockContextMenu: ForwardRefRenderFunction<
         />
       ) : null}
       {blockSubgraph && (
+        // @todo replace this with EntityEditorSlideStack
         <EditEntitySlideOver
           open={entityEditorOpen}
           onClose={() => setEntityEditorOpen(false)}
+          onEntityClick={() => {
+            throw new Error(`Not yet implemented – please contact us.`);
+          }}
           entitySubgraph={
             /** @todo add timeProjection & resolvedTimeProjection properly */
             blockSubgraph

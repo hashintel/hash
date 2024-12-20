@@ -1,7 +1,7 @@
 #![expect(clippy::non_ascii_literal)]
 use core::time::Duration;
 
-use deer_desert::{assert_tokens_with_assertion, Token};
+use deer_desert::{Token, assert_tokens_with_assertion};
 use proptest::prelude::*;
 
 #[cfg(not(miri))]

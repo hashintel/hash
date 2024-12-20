@@ -4,17 +4,17 @@ use core::{
 };
 
 use futures::{
-    prelude::stream::StreamExt,
+    Stream,
+    prelude::stream::StreamExt as _,
     ready,
     stream::{SplitSink, SplitStream},
-    Stream,
 };
 use harpc_wire_protocol::{request::Request, response::Response};
 use libp2p::PeerId;
 use tokio::io::BufStream;
 use tokio_util::{
     codec::Framed,
-    compat::{Compat, FuturesAsyncReadCompatExt},
+    compat::{Compat, FuturesAsyncReadCompatExt as _},
 };
 
 use super::{client::ClientCodec, server::ServerCodec};

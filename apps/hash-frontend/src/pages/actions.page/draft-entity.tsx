@@ -1,16 +1,16 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Checkbox, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { useDraftEntities } from "../../shared/draft-entities-context";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { Link } from "../../shared/ui";
-import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
-import { generateEntityRootedSubgraph } from "../shared/subgraphs";
+import { EntityEditorSlideStack } from "../shared/entity-editor-slide-stack";
 import { useEntityHref } from "../shared/use-entity-href";
+import { useDraftEntities } from "./draft-entities-context";
 import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";
@@ -24,7 +24,8 @@ export const DraftEntity: FunctionComponent<{
 }> = ({ entity, subgraph, selected, toggleSelected }) => {
   const { refetch } = useDraftEntities();
 
-  const [displayEntityModal, setDisplayEntityModal] = useState<boolean>(false);
+  const [displayEntityIdInModal, setDisplayEntityIdInModal] =
+    useState<EntityId | null>(null);
 
   const href = useEntityHref(entity, true);
 
@@ -32,63 +33,6 @@ export const DraftEntity: FunctionComponent<{
     () => generateEntityLabel(subgraph, entity),
     [subgraph, entity],
   );
-
-  const [entityRootedSubgraph, setEntityRootedSubgraph] = useState<
-    Subgraph<EntityRootType> | undefined
-  >(generateEntityRootedSubgraph(entity.metadata.recordId.entityId, subgraph));
-
-  const previouslyEvaluatedSubgraph =
-    useRef<Subgraph<EntityRootType>>(subgraph);
-
-  const previouslyEvaluatedEntity = useRef<Entity>(entity);
-
-  /**
-   * Only re-evaluate the entity rooted subgraph if the entity edition
-   * has changed, as otherwise the entity editor entity selector will re-mount
-   * itself clearing any text input from the user. Ideally this would not be
-   * the case, and the latest version of the subgraph would become available
-   * to the entity editor, so that we can do something like this:
-   *
-   * const entityRootedSubgraph = useMemo<Subgraph<EntityRootType>>(
-   *   () => generateEntityRootedSubgraph(entity, subgraph),
-   *   [subgraph, entity],
-   * );
-   *
-   * @todo: figure out what the underlying issue is causing the `EntitySelector`
-   * component to re-mount when the subgraph changes.
-   */
-  if (
-    previouslyEvaluatedEntity.current.metadata.recordId.editionId !==
-    entity.metadata.recordId.editionId
-  ) {
-    previouslyEvaluatedEntity.current = entity;
-    previouslyEvaluatedSubgraph.current = subgraph;
-    setEntityRootedSubgraph(
-      generateEntityRootedSubgraph(entity.metadata.recordId.entityId, subgraph),
-    );
-  }
-
-  /**
-   * If the current `subgraph` has a root which is not present
-   * in the previously evaluated subgraph, then we need to re-evaluate
-   * the entity rooted subgraph.
-   */
-  if (
-    subgraph.roots.some(
-      (root) =>
-        previouslyEvaluatedSubgraph.current.roots.find(
-          (previouslyEvaluatedRoot) =>
-            previouslyEvaluatedRoot.baseId === root.baseId &&
-            previouslyEvaluatedRoot.revisionId === root.revisionId,
-        ) === undefined,
-    )
-  ) {
-    previouslyEvaluatedEntity.current = entity;
-    previouslyEvaluatedSubgraph.current = subgraph;
-    setEntityRootedSubgraph(
-      generateEntityRootedSubgraph(entity.metadata.recordId.entityId, subgraph),
-    );
-  }
 
   return (
     <Box paddingRight={4.5} paddingLeft={6} paddingY={3.25}>
@@ -113,15 +57,17 @@ export const DraftEntity: FunctionComponent<{
               paddingRight: 1.5,
             }}
           />
-          {entityRootedSubgraph ? (
-            <EditEntitySlideOver
-              open={displayEntityModal}
-              entitySubgraph={entityRootedSubgraph}
-              onClose={() => setDisplayEntityModal(false)}
+          {displayEntityIdInModal ? (
+            <EntityEditorSlideStack
+              rootEntityId={displayEntityIdInModal}
+              onClose={() => setDisplayEntityIdInModal(null)}
               onSubmit={() => {
                 void refetch();
-                setDisplayEntityModal(false);
+                setDisplayEntityIdInModal(null);
               }}
+              readonly={
+                displayEntityIdInModal !== entity.metadata.recordId.entityId
+              }
             />
           ) : null}
           <Link
@@ -136,7 +82,7 @@ export const DraftEntity: FunctionComponent<{
               if (event.metaKey) {
                 return;
               }
-              setDisplayEntityModal(true);
+              setDisplayEntityIdInModal(entity.metadata.recordId.entityId);
               event.preventDefault();
             }}
           >

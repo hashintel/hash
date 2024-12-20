@@ -9,7 +9,7 @@ import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
 
 import { apiGraphQLEndpoint } from "./environment.js";
-import possibleTypes from "./graphql/fragment-types.gen.json";
+import possibleTypes from "./graphql/fragment-types.gen.json" with { type: "json" };
 import { hashClientHeaderKey } from "./http-requests.js";
 
 const errorLink = onError(({ graphQLErrors, operation }) => {
@@ -117,6 +117,9 @@ export const createApolloClient = (params?: {
         FlowRun: { keyFields: ["flowRunId"] },
       },
     }),
+    connectToDevTools:
+      process.env.NEXT_PUBLIC_VERCEL_ENV === "development" ||
+      process.env.NODE_ENV === "development",
     credentials: "include",
     link,
     name: params?.name,

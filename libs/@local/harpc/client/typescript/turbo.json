@@ -1,0 +1,13 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": ["./dist/**"]
+    },
+    "test:unit": {
+      "dependsOn": ["@rust/harpc-wire-protocol#build:cli"],
+      "inputs": ["../../wire-protocol/dist/release/codec", "$TURBO_DEFAULT$"]
+    }
+  }
+}

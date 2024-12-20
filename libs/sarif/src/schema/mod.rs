@@ -42,10 +42,9 @@ impl SchemaVersion {
 
 #[cfg(test)]
 #[cfg(feature = "serde")]
+#[coverage(off)]
 pub(crate) mod tests {
-    use std::{eprintln, fs};
-
-    use coverage_helper::test;
+    use std::fs;
 
     use super::*;
 
@@ -63,17 +62,13 @@ pub(crate) mod tests {
         let json_schema_str = include_str!("../../tests/schemas/sarif-2.1.0.json");
         let json_schema_value =
             serde_json::from_str(json_schema_str).expect("could not parse JSON schema");
-        let json_schema = jsonschema::JSONSchema::options()
-            .compile(&json_schema_value)
+        let json_schema = jsonschema::Validator::options()
+            .build(&json_schema_value)
             .expect("could not compile JSON schema");
 
         let validation = json_schema.validate(&log_value);
-        if let Err(errors) = validation {
-            eprintln!("JSON schema validation failed:");
-            for error in errors {
-                eprintln!("{}: {error}", error.instance_path);
-            }
-            panic!("JSON schema validation failed");
+        if let Err(error) = validation {
+            panic!("JSON schema validation failed: {error}");
         }
     }
 

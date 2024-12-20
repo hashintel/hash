@@ -1,9 +1,9 @@
-use core::{fmt, fmt::Display};
+use core::fmt::{self, Display, Write as _};
 
 use hql_span::SpanId;
 
 use super::ExprKind;
-use crate::{arena, symbol::Symbol, r#type::Type, Spanned};
+use crate::{Spanned, arena, symbol::Symbol, r#type::Type};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct List<'arena, T> {
@@ -11,7 +11,7 @@ pub struct List<'arena, T> {
     pub span: SpanId,
 }
 
-impl<'arena, T> List<'arena, T> {
+impl<T> List<'_, T> {
     #[must_use]
     pub const fn len(&self) -> usize {
         self.items.len()
@@ -48,37 +48,37 @@ impl Spanned for Signature<'_> {
     }
 }
 
-impl<'a> Display for Signature<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for Signature<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         if !self.generics.is_empty() {
-            f.write_str("<")?;
+            fmt.write_char('<')?;
             for (index, generic) in self.generics.iter().enumerate() {
                 if index > 0 {
-                    f.write_str(", ")?;
+                    fmt.write_str(", ")?;
                 }
 
-                Display::fmt(generic, f)?;
+                Display::fmt(generic, fmt)?;
             }
-            f.write_str(">")?;
+            fmt.write_char('>')?;
         }
 
-        f.write_str("(")?;
+        fmt.write_char('(')?;
 
         for (index, argument) in self.arguments.iter().enumerate() {
             if index > 0 {
-                f.write_str(", ")?;
+                fmt.write_str(", ")?;
             }
 
-            Display::fmt(argument, f)?;
+            Display::fmt(argument, fmt)?;
         }
 
-        f.write_str(") -> ")?;
+        fmt.write_str(") -> ")?;
 
-        Display::fmt(&self.r#return, f)
+        Display::fmt(&self.r#return, fmt)
     }
 }
 
-impl<'arena, 'source> From<Signature<'arena>> for ExprKind<'arena, 'source> {
+impl<'arena> From<Signature<'arena>> for ExprKind<'arena, '_> {
     fn from(signature: Signature<'arena>) -> Self {
         Self::Signature(signature)
     }
@@ -92,19 +92,19 @@ pub struct Generic<'arena> {
     pub span: SpanId,
 }
 
-impl<'arena> Spanned for Generic<'arena> {
+impl Spanned for Generic<'_> {
     fn span(&self) -> SpanId {
         self.span
     }
 }
 
-impl<'a> Display for Generic<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.name, f)?;
+impl Display for Generic<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.name, fmt)?;
 
         if let Some(bound) = &self.bound {
-            f.write_str(": ")?;
-            Display::fmt(bound, f)
+            fmt.write_str(": ")?;
+            Display::fmt(bound, fmt)
         } else {
             Ok(())
         }
@@ -119,17 +119,17 @@ pub struct Argument<'arena> {
     pub span: SpanId,
 }
 
-impl<'arena> Spanned for Argument<'arena> {
+impl Spanned for Argument<'_> {
     fn span(&self) -> SpanId {
         self.span
     }
 }
 
-impl<'arena> Display for Argument<'arena> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.name, f)?;
-        f.write_str(": ")?;
-        Display::fmt(&self.r#type, f)
+impl Display for Argument<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.name, fmt)?;
+        fmt.write_str(": ")?;
+        Display::fmt(&self.r#type, fmt)
     }
 }
 
@@ -140,14 +140,14 @@ pub struct Return<'arena> {
     pub span: SpanId,
 }
 
-impl<'arena> Spanned for Return<'arena> {
+impl Spanned for Return<'_> {
     fn span(&self) -> SpanId {
         self.span
     }
 }
 
-impl<'arena> Display for Return<'arena> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.r#type, f)
+impl Display for Return<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.r#type, fmt)
     }
 }

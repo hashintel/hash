@@ -2,13 +2,15 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import {
   AsteriskRegularIcon,
-  EyeIconSolid,
-  PenToSquareIconSolid,
+  EntityOrTypeIcon,
+  EyeSolidIcon,
+  PenToSquareSolidIcon,
 } from "@hashintel/design-system";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { SxProps, Theme } from "@mui/material";
 import {
@@ -17,7 +19,6 @@ import {
   Container,
   Fade,
   Stack,
-  styled,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
@@ -33,7 +34,6 @@ import { useEntityTypeEntitiesContextValue } from "../shared/entity-type-entitie
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { generateLinkParameters } from "../shared/generate-link-parameters";
-import { AsteriskLightIcon } from "../shared/icons/asterisk-light-icon";
 import { CanvasNewIcon } from "../shared/icons/canvas-new-icon";
 import { FileCirclePlusRegularIcon } from "../shared/icons/file-circle-plus-regular-icon";
 import { FilesLightIcon } from "../shared/icons/files-light-icon";
@@ -46,7 +46,8 @@ import { TabLink } from "../shared/ui/tab-link";
 import { Tabs } from "../shared/ui/tabs";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
 import type { Breadcrumb } from "./shared/breadcrumbs";
-import { EntitiesTable } from "./shared/entities-table";
+import { CreateButton } from "./shared/create-button";
+import { EntitiesVisualizer } from "./shared/entities-visualizer";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "./shared/workspace-context";
@@ -56,23 +57,6 @@ const contentMaxWidth = 1000;
 type ParsedQueryParams = {
   entityTypeIdOrBaseUrl?: string;
 };
-
-export const CreateButton = styled(Button)(({ theme }) => ({
-  color: theme.palette.gray[90],
-  fontSize: 14,
-  padding: 0,
-  transition: theme.transitions.create("color"),
-  ":hover": {
-    background: "transparent",
-    color: theme.palette.blue[70],
-    [`.${buttonClasses.endIcon}`]: {
-      color: theme.palette.blue[70],
-    },
-  },
-  [`.${buttonClasses.endIcon}`]: {
-    color: theme.palette.blue[70],
-  },
-}));
 
 export const CreateButtons: FunctionComponent<{
   entityType?: EntityTypeWithMetadata;
@@ -239,7 +223,8 @@ const EntitiesPage: NextPageWithLayout = () => {
   const pageTitle = entityType
     ? entityTypeId
       ? `${entityType.schema.title} v${extractVersion(entityTypeId)}`
-      : pluralize(entityType.schema.title)
+      : // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+        entityType.schema.titlePlural || pluralize(entityType.schema.title)
     : "Entities";
 
   const { entities, loading } = entityTypeEntitiesValue;
@@ -281,13 +266,28 @@ const EntitiesPage: NextPageWithLayout = () => {
         icon: isViewAllPagesPage ? (
           <FilesRegularIcon />
         ) : (
-          <AsteriskRegularIcon />
+          <EntityOrTypeIcon
+            entity={null}
+            fill={({ palette }) => palette.gray[50]}
+            fontSize="inherit"
+            icon={entityType.schema.icon}
+            isLink={
+              /**
+               * @todo H-3363 use closed schema to take account of indirectly inherited link status
+               */
+              !!entityType.schema.allOf?.some(
+                (allOf) => allOf.$ref === linkEntityTypeUrl,
+              )
+            }
+          />
         ),
       });
     }
 
     return crumbs;
   }, [entityType, isViewAllPagesPage, pageTitle]);
+
+  const maxWidth = { lg: `max(${contentMaxWidth}, "70%")` } as const;
 
   return (
     <>
@@ -305,28 +305,31 @@ const EntitiesPage: NextPageWithLayout = () => {
           backgroundColor: ({ palette }) => palette.common.white,
         }}
       >
-        <Container sx={{ maxWidth: { lg: contentMaxWidth } }}>
+        <Container sx={{ maxWidth }}>
           <Stack direction="row" justifyContent="space-between">
-            <Typography variant="h1" fontWeight="bold" my={3}>
-              <Box
-                display="inline-flex"
-                sx={({ palette }) => ({
-                  svg: {
-                    fontSize: 40,
-                    mr: 2,
-                    color: palette.gray[70],
-                    verticalAlign: "middle",
-                  },
-                })}
-              >
-                {isViewAllPagesPage ? (
-                  <FilesLightIcon />
-                ) : (
-                  <AsteriskLightIcon />
-                )}
-              </Box>
-              {pageTitle}
-            </Typography>
+            <Stack direction="row" alignItems="center" gap={2} my={3}>
+              {isViewAllPagesPage ? (
+                <FilesLightIcon />
+              ) : (
+                <EntityOrTypeIcon
+                  entity={null}
+                  fill={({ palette }) => palette.gray[70]}
+                  fontSize={40}
+                  icon={entityType?.schema.icon}
+                  isLink={
+                    /**
+                     * @todo H-3363 use closed schema to take account of indirectly inherited link status
+                     */
+                    !!entityType?.schema.allOf?.some(
+                      (allOf) => allOf.$ref === linkEntityTypeUrl,
+                    )
+                  }
+                />
+              )}
+              <Typography variant="h1" fontWeight="bold" my={3}>
+                {pageTitle}
+              </Typography>
+            </Stack>
             {entityType && (
               <Button
                 href={generateLinkParameters(entityType.schema.$id).href}
@@ -335,9 +338,9 @@ const EntitiesPage: NextPageWithLayout = () => {
               >
                 {userPermissions?.edit ? "Edit" : "View"} Type
                 {userPermissions?.edit ? (
-                  <PenToSquareIconSolid sx={typeIconSx} />
+                  <PenToSquareSolidIcon sx={typeIconSx} />
                 ) : (
-                  <EyeIconSolid sx={typeIconSx} />
+                  <EyeSolidIcon sx={typeIconSx} />
                 )}
               </Button>
             )}
@@ -361,11 +364,10 @@ const EntitiesPage: NextPageWithLayout = () => {
           </Box>
         </Container>
       </Box>
-      <Container sx={{ maxWidth: { lg: contentMaxWidth }, py: 5 }}>
+      <Container sx={{ maxWidth, py: 5 }}>
         <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-          <EntitiesTable
-            hideEntityTypeVersionColumn={!!entityTypeId}
-            hidePropertiesColumns
+          <EntitiesVisualizer
+            hideColumns={entityTypeId ? ["entityTypes"] : []}
           />
         </EntityTypeEntitiesContext.Provider>
       </Container>

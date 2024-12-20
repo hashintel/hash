@@ -4,18 +4,19 @@ mod test;
 use alloc::sync::Arc;
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use bytes::Bytes;
-use futures::{stream::FusedStream, Sink, Stream, StreamExt};
+use futures::{Sink, Stream, StreamExt as _, stream::FusedStream};
+use harpc_codec::error::NetworkError;
+use harpc_types::{
+    procedure::ProcedureDescriptor, response_kind::ResponseKind, subsystem::SubsystemDescriptor,
+};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
-    request::{
-        begin::RequestBegin, flags::RequestFlag, id::RequestId, procedure::ProcedureDescriptor,
-        service::ServiceDescriptor, Request,
-    },
-    response::{kind::ResponseKind, Response},
+    flags::BitFlagsOp as _,
+    request::{Request, begin::RequestBegin, flags::RequestFlag, id::RequestId},
+    response::Response,
 };
 use libp2p::PeerId;
 use tokio::{select, sync::mpsc};
@@ -24,11 +25,8 @@ use tokio_util::{
     task::TaskTracker,
 };
 
-use super::{connection::collection::TransactionPermit, session_id::SessionId, SessionConfig};
-use crate::session::{
-    error::TransactionError,
-    writer::{ResponseContext, ResponseWriter, WriterOptions},
-};
+use super::{SessionConfig, connection::collection::TransactionPermit, session_id::SessionId};
+use crate::session::writer::{ResponseContext, ResponseWriter, WriterOptions};
 
 pub(crate) trait ServerTransactionPermit: Send + Sync + 'static {
     fn id(&self) -> RequestId;
@@ -39,9 +37,9 @@ struct TransactionSendDelegateTask<P> {
     config: SessionConfig,
 
     // TODO: consider switching to `tachyonix` crate for better performance (not yet tested)
-    // as well as more predictable buffering behavioud. `PollSender` is prone to just buffer
+    // as well as more predictable buffering behavior. `PollSender` is prone to just buffer
     // everything before sending, which might not be the best idea in this scenario.
-    rx: mpsc::Receiver<core::result::Result<Bytes, TransactionError>>,
+    rx: mpsc::Receiver<core::result::Result<Bytes, NetworkError>>,
     tx: mpsc::Sender<Response>,
 
     permit: Arc<P>,
@@ -107,7 +105,10 @@ where
                         break;
                     }
                 }
-                Err(TransactionError { code, bytes }) => {
+                Err(error) => {
+                    let code = error.code();
+                    let bytes = error.into_bytes();
+
                     writer = ResponseWriter::new(
                         WriterOptions {
                             no_delay: self.config.no_delay,
@@ -133,7 +134,7 @@ where
 pub(crate) struct TransactionTask<P> {
     config: SessionConfig,
 
-    response_rx: mpsc::Receiver<Result<Bytes, TransactionError>>,
+    response_rx: mpsc::Receiver<Result<Bytes, NetworkError>>,
     response_tx: mpsc::Sender<Response>,
 
     permit: Arc<P>,
@@ -169,14 +170,16 @@ pub(crate) struct TransactionParts<P> {
     pub permit: P,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TransactionContext {
     id: RequestId,
 
-    peer: PeerId,
+    // The PeerId is 80 bytes in size and completely balloons the size of the context, from `32` to
+    // `104` bytes.
+    peer: Box<PeerId>,
     session: SessionId,
 
-    service: ServiceDescriptor,
+    subsystem: SubsystemDescriptor,
     procedure: ProcedureDescriptor,
 }
 
@@ -187,8 +190,8 @@ impl TransactionContext {
     }
 
     #[must_use]
-    pub const fn peer(&self) -> PeerId {
-        self.peer
+    pub fn peer(&self) -> PeerId {
+        *self.peer
     }
 
     #[must_use]
@@ -197,8 +200,8 @@ impl TransactionContext {
     }
 
     #[must_use]
-    pub const fn service(&self) -> ServiceDescriptor {
-        self.service
+    pub const fn subsystem(&self) -> SubsystemDescriptor {
+        self.subsystem
     }
 
     #[must_use]
@@ -211,7 +214,7 @@ pub struct Transaction {
     context: TransactionContext,
 
     request: tachyonix::Receiver<Request>,
-    response: mpsc::Sender<Result<Bytes, TransactionError>>,
+    response: mpsc::Sender<Result<Bytes, NetworkError>>,
 
     permit: Arc<TransactionPermit>,
 }
@@ -243,9 +246,9 @@ impl Transaction {
         let transaction = Self {
             context: TransactionContext {
                 id: permit.id(),
-                peer,
+                peer: Box::new(peer),
                 session,
-                service: body.service,
+                subsystem: body.subsystem,
                 procedure: body.procedure,
             },
 
@@ -268,8 +271,8 @@ impl Transaction {
     }
 
     #[must_use]
-    pub const fn context(&self) -> TransactionContext {
-        self.context
+    pub const fn context(&self) -> &TransactionContext {
+        &self.context
     }
 
     pub fn into_parts(self) -> (TransactionContext, TransactionSink, TransactionStream) {
@@ -374,7 +377,7 @@ impl FusedStream for TransactionStream {
     }
 }
 
-type SinkItem = Result<Bytes, TransactionError>;
+type SinkItem = Result<Bytes, NetworkError>;
 
 pin_project_lite::pin_project! {
     #[must_use = "sinks do nothing unless polled"]

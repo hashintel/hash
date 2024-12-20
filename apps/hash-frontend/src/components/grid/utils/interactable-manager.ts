@@ -40,7 +40,7 @@ class InteractableManagerClass {
 
   /**
    * @param args Draw args of cell
-   * @param props Properties which will will be used to create the `Interactable`
+   * @param props Properties which will be used to create the `Interactable`
    * @returns The created `Interactable`
    */
   createCellInteractable(
@@ -59,14 +59,14 @@ class InteractableManagerClass {
     return {
       ...props,
       hovered,
-      cellRect: rect,
+      cellRect: { ...rect },
       path: drawArgsToCellPath(args),
     };
   }
 
   /**
    * @param args Draw args of cell
-   * @param props Properties which will will be used to create the `Interactable`
+   * @param props Properties which will be used to create the `Interactable`
    * @returns The created `Interactable`
    */
   createColumnHeaderInteractable(

@@ -1,10 +1,10 @@
 import { IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Stack, styled } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { EditBarScroller } from "../edit-bar-scroller";
-import { SidebarToggleIcon } from "../icons";
+import { ArrowRightToLineIcon } from "../icons";
 import { useIsReadonlyModeForApp } from "../readonly-mode";
 import { LayoutWithHeader } from "./layout-with-header";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
@@ -38,7 +38,11 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
   const isReadonlyMode = useIsReadonlyModeForApp();
-  const [main, setMain] = useState<HTMLElement | null>(null);
+  const [scrollingNode, setScrollingNode] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setScrollingNode(document.body);
+  }, []);
 
   return (
     <LayoutWithHeader>
@@ -97,7 +101,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                 })}
                 onClick={openSidebar}
               >
-                <SidebarToggleIcon />
+                <ArrowRightToLineIcon />
               </IconButton>
             </Stack>
           </Collapse>
@@ -120,10 +124,11 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                   maxWidth: 820,
                 }),
               })}
-              ref={setMain}
             >
               {/* Enables EditBar to make the page scroll as it animates in */}
-              <EditBarScroller scrollingNode={main}>{children}</EditBarScroller>
+              <EditBarScroller scrollingNode={scrollingNode}>
+                {children}
+              </EditBarScroller>
             </Main>
           </Box>
         </Stack>

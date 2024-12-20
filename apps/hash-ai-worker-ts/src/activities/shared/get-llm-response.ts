@@ -202,7 +202,9 @@ export const getLlmResponse = async <T extends LlmParams>(
                 properties: { value: {} },
                 provenance,
                 ownedById: webId,
-                entityTypeId: systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+                entityTypeIds: [
+                  systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+                ],
                 linkData: {
                   leftEntityId: usageRecordEntity.metadata.recordId.entityId,
                   rightEntityId: entityId,

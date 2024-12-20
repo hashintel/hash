@@ -1,4 +1,4 @@
-const stripHashFromUrl = (url: string) => {
+export const stripHashFromUrl = (url: string) => {
   try {
     const urlObject = new URL(url);
 

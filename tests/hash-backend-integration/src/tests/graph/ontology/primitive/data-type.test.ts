@@ -40,7 +40,13 @@ let testUser2: User;
 
 const dataTypeSchema: ConstructDataTypeParams = {
   title: "Text",
+  description: "A string of text.",
   type: "string",
+  allOf: [
+    {
+      $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+    },
+  ],
 };
 
 beforeAll(async () => {
@@ -100,6 +106,7 @@ describe("Data type CRU", () => {
       ownedById: testOrg.accountGroupId as OwnedById,
       schema: dataTypeSchema,
       relationships: [{ relation: "viewer", subject: { kind: "public" } }],
+      conversions: {},
     });
   });
 
@@ -130,6 +137,8 @@ describe("Data type CRU", () => {
       dataTypeId: createdDataType.schema.$id,
       schema: { ...dataTypeSchema, title: updatedTitle },
       relationships: [{ relation: "viewer", subject: { kind: "public" } }],
+      conversions: {},
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     }).catch((err) => Promise.reject(err.data));
 
     expect(

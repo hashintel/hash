@@ -3,7 +3,7 @@ import {
   Avatar,
   FontAwesomeIcon,
   IconButton,
-  RotateIconRegular,
+  RotateRegularIcon,
 } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -115,6 +115,8 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
   const handleAvatarImageFileUpload = useCallback<
     ChangeEventHandler<HTMLInputElement>
   >(
+    // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     async (event) => {
       const file = event.target.files?.[0];
 
@@ -132,6 +134,8 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
   const handleCoverImageFileUpload = useCallback<
     ChangeEventHandler<HTMLInputElement>
   >(
+    // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     async (event) => {
       const file = event.target.files?.[0];
 
@@ -263,7 +267,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
           <>
             <AvatarButton
               disabled={newCoverImageUploading}
-              startIcon={<RotateIconRegular />}
+              startIcon={<RotateRegularIcon />}
               sx={{ marginBottom: 1 }}
               onClick={handleChangeCoverImage}
             >

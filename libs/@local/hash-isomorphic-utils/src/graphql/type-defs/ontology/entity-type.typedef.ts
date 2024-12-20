@@ -1,11 +1,17 @@
 import { gql } from "apollo-server-express";
 
 export const entityTypeTypedef = gql`
+  scalar ClosedMultiEntityType
   scalar ConstructEntityTypeParams
   scalar EntityTypeWithMetadata
   scalar BaseUrl
   scalar Filter
   scalar UserPermissionsOnEntityType
+
+  type GetClosedMultiEntityTypeResponse {
+    closedMultiEntityType: ClosedMultiEntityType!
+    definitions: ClosedMultiEntityTypesDefinitions!
+  }
 
   extend type Query {
     """
@@ -35,6 +41,12 @@ export const entityTypeTypedef = gql`
       includeArchived: Boolean = false
     ): Subgraph!
 
+    getClosedMultiEntityType(
+      entityTypeIds: [VersionedUrl!]!
+      includeArchived: Boolean = false
+      includeDrafts: Boolean = false
+    ): GetClosedMultiEntityTypeResponse!
+
     """
     Check the requesting user's permissions on an entity type
     """
@@ -53,14 +65,6 @@ export const entityTypeTypedef = gql`
       """
       ownedById: OwnedById
       entityType: ConstructEntityTypeParams!
-      """
-      The property which should be used as the label for entities of this type.
-      """
-      labelProperty: BaseUrl
-      """
-      The icon to use for the entity type.
-      """
-      icon: String
     ): EntityTypeWithMetadata!
 
     """
@@ -75,14 +79,6 @@ export const entityTypeTypedef = gql`
       New entity type schema contents to be used.
       """
       updatedEntityType: ConstructEntityTypeParams!
-      """
-      The property which should be used as the label for entities of this type.
-      """
-      labelProperty: BaseUrl
-      """
-      The icon to use for the entity type.
-      """
-      icon: String
     ): EntityTypeWithMetadata!
 
     """

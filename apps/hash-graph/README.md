@@ -8,6 +8,8 @@ This directory contains the code pertaining to the HASH Graph Query Layer. To ru
 cargo install just
 ```
 
+This crate mainly creates a CLI interface to the graph crates defined in the [`libs/@local/graph`](../../libs/@local/graph) directory.
+
 ## Run the Graph
 
 1. In order to set up the database, first the database has to be started:

@@ -1,4 +1,11 @@
-import type { DataType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  ArrayItemsSchema,
+  ArraySchema,
+  DataType,
+  TupleConstraints,
+  ValueConstraints,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import {
   faList,
   faListCheck,
@@ -9,7 +16,6 @@ import {
   fa100,
   faAtRegular,
   faBracketsCurly,
-  faBracketsSquare,
   faCalendarClockRegular,
   faCalendarRegular,
   faClockRegular,
@@ -21,6 +27,8 @@ import {
   faRulerRegular,
   faSquareCheck,
   faText,
+  identifierTypeTitles,
+  measurementTypeTitles,
 } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
 import type { PropsWithChildren } from "react";
@@ -92,10 +100,6 @@ const expectedValuesDisplayMap = {
     icon: faBracketsCurly,
     colors: chipColors.blue,
   },
-  emptyList: {
-    icon: faBracketsSquare,
-    colors: chipColors.blue,
-  },
   null: {
     icon: faEmptySet,
     colors: chipColors.blue,
@@ -114,6 +118,10 @@ const expectedValuesDisplayMap = {
   },
   booleanArray: {
     icon: faListCheck.icon,
+    colors: chipColors.blue,
+  },
+  nullArray: {
+    icon: faEmptySet,
     colors: chipColors.blue,
   },
   numberArray: {
@@ -138,20 +146,6 @@ const expectedValuesDisplayMap = {
   },
 } as const satisfies Record<string, Omit<ExpectedValueDisplay, "title">>;
 
-const measurementTypeTitles = [
-  "Inches",
-  "Feet",
-  "Yards",
-  "Miles",
-  "Nanometers",
-  "Millimeters",
-  "Centimeters",
-  "Meters",
-  "Kilometers",
-];
-
-const identifierTypeTitles = ["URL", "URI"];
-
 export type CustomExpectedValueTypeId = VersionedUrl | "array" | "object";
 
 export type DataTypesByVersionedUrl = Record<VersionedUrl, DataType>;
@@ -165,32 +159,56 @@ export type DataTypesContextValue = {
 export const DataTypesOptionsContext =
   createContext<DataTypesContextValue | null>(null);
 
-const getArrayDataTypeDisplay = (
-  dataType: Pick<DataType, "$id"> & {
-    items?: DataType[];
-    prefixItems?: DataType[];
-  },
-): Omit<ExpectedValueDisplay, "title"> => {
-  const items = dataType.prefixItems ?? dataType.items;
+const isTupleConstraints = (schema: ArraySchema): schema is TupleConstraints =>
+  schema.items === false;
 
-  if (!items) {
-    return expectedValuesDisplayMap.array;
+const isArrayItemsSchema = (
+  schema: ValueConstraints,
+): schema is ArrayItemsSchema => "type" in schema && schema.type === "array";
+
+const getArrayDataTypeDisplay = (
+  dataType: ArraySchema,
+): Omit<ExpectedValueDisplay, "title"> => {
+  // `items` are either the elements of a tuple or the items of a mixed anyOf-array
+  let items: [ArrayItemsSchema, ...ArrayItemsSchema[]];
+
+  if (isTupleConstraints(dataType)) {
+    if (!dataType.prefixItems) {
+      throw new Error("TupleConstraints must have prefixItems");
+    }
+
+    items = dataType.prefixItems;
+  } else if (!dataType.items) {
+    return expectedValuesDisplayMap.mixedArray;
+  } else {
+    return expectedValuesDisplayMap[`${dataType.items.type}Array`];
   }
 
-  const itemTypes = items.map((item) => item.type);
+  const itemTypes = new Set<ArrayItemsSchema["type"]>();
 
-  if (new Set(itemTypes).size === 1) {
-    const itemDataType = items[0];
-    if (!itemDataType) {
-      throw new Error(
-        `Could not find itemDataType for array data type ${dataType.$id}`,
-      );
+  for (const item of items) {
+    if ("anyOf" in item) {
+      /**
+       * @todo H-3373 support data types which can have multiple different values in a position
+       */
+      return expectedValuesDisplayMap.mixedArray;
     }
+
+    itemTypes.add(item.type);
+  }
+
+  if (itemTypes.size === 1) {
+    /**
+     * @todo H-3373 support data types with a fixed number of single values
+     */
     return expectedValuesDisplayMap[
-      `${itemDataType.type}Array` as keyof typeof expectedValuesDisplayMap
+      `${itemTypes.values().next().value}Array` as keyof typeof expectedValuesDisplayMap
     ];
   }
 
+  /**
+   * @todo H-3373 support mixed data types with different types of values in each position
+   */
   return expectedValuesDisplayMap.mixedArray;
 };
 
@@ -222,15 +240,19 @@ export const DataTypesOptionsContextProvider = ({
           throw new Error(`Could not find dataType for ${expectedValue}`);
         }
 
-        if (dataType.type === "array") {
+        if ("type" in dataType && dataType.type === "array") {
           return {
             title: dataType.title,
             ...getArrayDataTypeDisplay(dataType),
           };
         }
 
-        let displayType =
-          dataType.type as keyof typeof expectedValuesDisplayMap;
+        let displayType: keyof typeof expectedValuesDisplayMap =
+          /**
+           * @todo H-3373 support data types which can have multiple different single values
+           */
+          "anyOf" in dataType ? dataType.anyOf[0].type : dataType.type;
+
         if (measurementTypeTitles.includes(dataType.title)) {
           displayType = "measurement";
         } else if (identifierTypeTitles.includes(dataType.title)) {
@@ -269,12 +291,11 @@ export const DataTypesOptionsContextProvider = ({
             };
           }
           const dataType = dataTypeOptions[type];
-          if (dataType) {
+          if (dataType && isArrayItemsSchema(dataType)) {
             return {
               title: `${dataType.title} Array`,
               ...getArrayDataTypeDisplay({
-                items: [dataType],
-                $id: dataType.$id,
+                items: dataType,
               }),
             };
           }

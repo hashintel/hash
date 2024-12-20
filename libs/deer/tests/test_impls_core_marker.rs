@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use deer_desert::{assert_tokens, Token};
+use deer_desert::{Token, assert_tokens};
 
 #[test]
 fn phantom_data_ok() {

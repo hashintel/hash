@@ -1,31 +1,31 @@
 #[cfg(test)]
 mod test;
 
-use bytes::{Buf, Bytes};
+use bytes::{Buf as _, Bytes};
 use bytes_utils::SegmentedBuf;
+use harpc_types::{
+    procedure::ProcedureDescriptor, response_kind::ResponseKind, subsystem::SubsystemDescriptor,
+};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
+        Request,
         begin::RequestBegin,
         body::RequestBody,
         flags::{RequestFlag, RequestFlags},
         frame::RequestFrame,
         header::RequestHeader,
         id::RequestId,
-        procedure::ProcedureDescriptor,
-        service::ServiceDescriptor,
-        Request,
     },
     response::{
+        Response,
         begin::ResponseBegin,
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
-        kind::ResponseKind,
-        Response,
     },
 };
 use tokio::sync::mpsc;
@@ -62,7 +62,7 @@ pub(crate) trait NetworkPacket {
 pub(crate) struct RequestContext {
     pub id: RequestId,
 
-    pub service: ServiceDescriptor,
+    pub subsystem: SubsystemDescriptor,
     pub procedure: ProcedureDescriptor,
 }
 
@@ -83,7 +83,7 @@ impl NetworkPacket for Request {
         Self {
             header: new_request_header(*context),
             body: RequestBody::Begin(RequestBegin {
-                service: context.service,
+                subsystem: context.subsystem,
                 procedure: context.procedure,
                 payload: Payload::new(bytes),
             }),
@@ -278,7 +278,7 @@ where
 
 pub(crate) type ResponseWriter<'a> = PacketWriter<'a, Response>;
 
-impl<'a> ResponseWriter<'a> {
+impl ResponseWriter<'_> {
     pub(crate) const fn is_error(&self) -> bool {
         matches!(self.context.kind, ResponseKind::Err(_))
     }

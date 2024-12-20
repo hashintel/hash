@@ -75,7 +75,7 @@ export const InferEntitiesAction = ({
         sourceWebPage,
         type: "infer-entities",
       });
-    } catch (err) {
+    } catch {
       // eslint-disable-next-line no-alert
       alert(
         "Could not access page content – you may need to reload the tab if you just installed the extension, or it may be a page which your browser does not allow extensions to access.",

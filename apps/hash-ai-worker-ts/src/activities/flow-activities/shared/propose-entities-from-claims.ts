@@ -10,15 +10,16 @@ import type { DereferencedEntityType } from "../../shared/dereference-entity-typ
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { stringify } from "../../shared/stringify.js";
-import type { ExistingEntitySummary } from "../research-entities-action/summarize-existing-entities.js";
-import type { LocalEntitySummary } from "./infer-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "./infer-claims-from-text/types.js";
+import type { ExistingEntitySummary } from "../research-entities-action/coordinating-agent/summarize-existing-entities.js";
+import type { Claim } from "./claims.js";
+import type { LocalEntitySummary } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import { proposeEntityFromClaimsAgent } from "./propose-entities-from-claims/propose-entity-from-claims-agent.js";
 
 export const proposeEntitiesFromClaims = async (params: {
   entitySummaries: LocalEntitySummary[];
   potentialLinkTargetEntitySummaries: LocalEntitySummary[];
   existingEntitySummaries?: ExistingEntitySummary[];
+  existingProposals: ProposedEntity[];
   claims: Claim[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
   workerIdentifiers: WorkerIdentifiers;
@@ -26,6 +27,7 @@ export const proposeEntitiesFromClaims = async (params: {
   const {
     entitySummaries,
     existingEntitySummaries,
+    existingProposals,
     dereferencedEntityTypes,
     claims,
     potentialLinkTargetEntitySummaries,
@@ -36,24 +38,19 @@ export const proposeEntitiesFromClaims = async (params: {
 
   const proposedEntities = await Promise.all(
     entitySummaries.map(async (entitySummary) => {
-      const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
-        dereferencedEntityTypes[entitySummary.entityTypeId] ?? {};
+      const entityTypes = entitySummary.entityTypeIds.map((entityTypeId) => {
+        const entityType = dereferencedEntityTypes[entityTypeId];
 
-      if (!dereferencedEntityType) {
-        throw new Error(
-          `Could not find dereferenced entity type for entity summary: ${JSON.stringify(
-            entitySummary,
-          )}`,
-        );
-      }
+        if (!entityType) {
+          throw new Error(
+            `Could not find entity type for entity summary: ${JSON.stringify(
+              entitySummary,
+            )}`,
+          );
+        }
 
-      if (!simplifiedPropertyTypeMappings) {
-        throw new Error(
-          `Could not find simplified property type mappings for entity summary: ${JSON.stringify(
-            entitySummary,
-          )}`,
-        );
-      }
+        return entityType;
+      });
 
       const claimsWithEntityAsSubject = claims.filter(
         (claim) => claim.subjectEntityLocalId === entitySummary.localId,
@@ -68,8 +65,8 @@ export const proposeEntitiesFromClaims = async (params: {
         simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
       }[] = Object.entries(dereferencedEntityTypes)
         .filter(([entityTypeId]) =>
-          Object.keys(dereferencedEntityType.links ?? {}).includes(
-            entityTypeId,
+          entityTypes.some((entityType) =>
+            Object.keys(entityType.schema.links ?? {}).includes(entityTypeId),
           ),
         )
         .map(
@@ -81,14 +78,6 @@ export const proposeEntitiesFromClaims = async (params: {
                 outgoingLinkEntityTypeSimplifiedPropertyTypeMappings,
             },
           ]) => {
-            if (!outgoingLinkEntityTypeSimplifiedPropertyTypeMappings) {
-              throw new Error(
-                `Could not find simplified property type mappings for entity summary: ${JSON.stringify(
-                  entitySummary,
-                )}`,
-              );
-            }
-
             return {
               schema,
               simplifiedPropertyTypeMappings:
@@ -110,21 +99,24 @@ export const proposeEntitiesFromClaims = async (params: {
                 potentialTargetEntitySummary.entityId,
           );
 
-        const entityIsValidTarget = Object.values(
-          dereferencedEntityType.links ??
-            ({} as NonNullable<DereferencedEntityType["links"]>),
-        ).find((linkSchema) => {
-          const destinationConstraints =
-            "oneOf" in linkSchema.items ? linkSchema.items.oneOf : null;
+        const entityIsValidTarget = entityTypes
+          .flatMap((entityType) => Object.values(entityType.schema.links ?? {}))
+          .find((linkSchema) => {
+            const destinationConstraints =
+              "oneOf" in linkSchema.items ? linkSchema.items.oneOf : null;
 
-          return (
-            !destinationConstraints ||
-            destinationConstraints.some(
-              (schema) =>
-                schema.$ref === potentialTargetEntitySummary.entityTypeId,
-            )
-          );
-        });
+            return (
+              !destinationConstraints ||
+              destinationConstraints.some((schema) =>
+                /**
+                 * @todo H-3363 account for parent types
+                 */
+                potentialTargetEntitySummary.entityTypeIds.includes(
+                  schema.$ref,
+                ),
+              )
+            );
+          });
 
         return someClaimIncludesTargetEntityAsObject && entityIsValidTarget;
       });
@@ -141,8 +133,16 @@ export const proposeEntitiesFromClaims = async (params: {
           isObjectOf: claimsWithEntityAsObject,
           isSubjectOf: claimsWithEntityAsSubject,
         },
-        dereferencedEntityType,
-        simplifiedPropertyTypeMappings,
+        dereferencedEntityTypes: entityTypes.map(
+          (entityType) => entityType.schema,
+        ),
+        simplifiedPropertyTypeMappings: entityTypes.reduce(
+          (prev, entityType) => ({
+            ...prev,
+            ...entityType.simplifiedPropertyTypeMappings,
+          }),
+          {},
+        ),
         /**
          * We only propose outgoing links if there is more than one possible
          * target for the link.
@@ -179,6 +179,9 @@ export const proposeEntitiesFromClaims = async (params: {
       proposedEntity: entity,
       stepId,
       recordedAt: now,
+      isUpdateToExistingProposal: existingProposals.some(
+        (proposal) => proposal.localEntityId === entity.localEntityId,
+      ),
       ...workerIdentifiers,
     })),
   );

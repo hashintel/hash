@@ -9,5 +9,8 @@
     "lint:clippy": "just clippy",
     "test:miri": "just miri",
     "test:unit": "just test-or-coverage"
+  },
+  "dependencies": {
+    "@rust/error-stack-macros": "0.0.0-reserved-private"
   }
 }

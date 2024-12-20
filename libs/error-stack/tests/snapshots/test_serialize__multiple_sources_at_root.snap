@@ -1,6 +1,6 @@
 ---
-source: tests/test_serialize.rs
-expression: a
+source: libs/error-stack/tests/test_serialize.rs
+expression: report_a
 ---
 [
   {

@@ -15,7 +15,7 @@ impl<'a, 'loc> LocationAttachment<'a, 'loc> {
 }
 
 impl fmt::Display for LocationAttachment<'_, '_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let location = self.location;
 
         let mut style = Style::new();
@@ -26,7 +26,7 @@ impl fmt::Display for LocationAttachment<'_, '_> {
             ColorMode::Emphasis => style.set_display(DisplayStyle::new().with_italic(true)),
         };
 
-        f.write_fmt(format_args!("at {}", style.apply(&location)))?;
+        fmt.write_fmt(format_args!("at {}", style.apply(&location)))?;
 
         Ok(())
     }

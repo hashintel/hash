@@ -1,10 +1,10 @@
 use core::marker::PhantomData;
 
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt as _};
 
 use crate::{
-    error::{DeserializeError, Location, VisitorError},
     Deserialize, Deserializer, Document, OptionalVisitor, Reflection, Schema,
+    error::{DeserializeError, Location, VisitorError},
 };
 
 struct OptionVisitor<T>(PhantomData<fn() -> *const T>);
@@ -16,15 +16,15 @@ impl<'de, T: Deserialize<'de>> OptionalVisitor<'de> for OptionVisitor<T> {
         Self::Value::reflection()
     }
 
-    fn visit_none(self) -> Result<Self::Value, VisitorError> {
+    fn visit_none(self) -> Result<Self::Value, Report<VisitorError>> {
         Ok(None)
     }
 
-    fn visit_null(self) -> Result<Self::Value, VisitorError> {
+    fn visit_null(self) -> Result<Self::Value, Report<VisitorError>> {
         Ok(None)
     }
 
-    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, VisitorError>
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, Report<VisitorError>>
     where
         D: Deserializer<'de>,
     {
@@ -50,7 +50,9 @@ impl<T: Reflection + ?Sized> Reflection for OptionReflection<T> {
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Option<T> {
     type Reflection = OptionReflection<T::Reflection>;
 
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+    fn deserialize<D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, Report<DeserializeError>> {
         deserializer
             .deserialize_optional(OptionVisitor(PhantomData))
             .change_context(DeserializeError)

@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { PenRegularIcon } from "@hashintel/design-system";
+import { CheckRegularIcon } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import {
@@ -24,7 +24,6 @@ import type {
   GetEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
-import { useDraftEntities } from "../shared/draft-entities-context";
 import { BarsSortRegularIcon } from "../shared/icons/bars-sort-regular-icon";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
@@ -32,8 +31,11 @@ import { MenuItem } from "../shared/ui";
 import type { SortOrder } from "./actions.page/draft-entities";
 import { DraftEntities } from "./actions.page/draft-entities";
 import { DraftEntitiesBulkActionsDropdown } from "./actions.page/draft-entities-bulk-actions-dropdown";
+import {
+  DraftEntitiesContextProvider,
+  useDraftEntities,
+} from "./actions.page/draft-entities-context";
 import { InlineSelect } from "./shared/inline-select";
-import { NotificationsWithLinksContextProvider } from "./shared/notifications-with-links-context";
 import { TopContextBar } from "./shared/top-context-bar";
 
 const sortOrderHumanReadable: Record<SortOrder, string> = {
@@ -41,7 +43,7 @@ const sortOrderHumanReadable: Record<SortOrder, string> = {
   "created-at-desc": "creation date/time (newest first)",
 };
 
-const ActionsPage: NextPageWithLayout = () => {
+const ActionsPage = () => {
   const [selectedDraftEntityIds, setSelectedDraftEntityIds] = useState<
     EntityId[]
   >([]);
@@ -117,15 +119,15 @@ const ActionsPage: NextPageWithLayout = () => {
   );
 
   return (
-    <NotificationsWithLinksContextProvider>
-      <NextSeo title="Drafts" />
+    <>
+      <NextSeo title="Actions" />
       <TopContextBar
         defaultCrumbIcon={null}
         crumbs={[
           {
-            title: "Drafts",
-            id: "drafts",
-            icon: <PenRegularIcon />,
+            title: "Actions",
+            id: "actions",
+            icon: <CheckRegularIcon />,
           },
         ]}
         sx={{
@@ -201,13 +203,21 @@ const ActionsPage: NextPageWithLayout = () => {
           draftEntitiesWithLinkedDataSubgraph
         }
       />
-    </NotificationsWithLinksContextProvider>
+    </>
   );
 };
 
-ActionsPage.getLayout = (page) =>
+const ActionsPageOuter: NextPageWithLayout = () => {
+  return (
+    <DraftEntitiesContextProvider>
+      <ActionsPage />
+    </DraftEntitiesContextProvider>
+  );
+};
+
+ActionsPageOuter.getLayout = (page) =>
   getLayoutWithSidebar(page, {
     fullWidth: true,
   });
 
-export default ActionsPage;
+export default ActionsPageOuter;
