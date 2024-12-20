@@ -62,6 +62,21 @@ export type ConnectionSourceNamePropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
 /**
+ * A reference to a particular date and time, formatted according to RFC 3339.
+ */
+export type DateTimeDataType = TextDataType;
+
+export type DateTimeDataTypeWithMetadata = {
+  value: DateTimeDataType;
+  metadata: DateTimeDataTypeMetadata;
+};
+export type DateTimeDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1";
+};
+
+/**
  * A human-friendly display name for something
  */
 export type DisplayNamePropertyValue = TextDataType;
@@ -69,18 +84,33 @@ export type DisplayNamePropertyValue = TextDataType;
 export type DisplayNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * An identifier for an email box to which messages are delivered.
+ */
+export type EmailDataType = TextDataType;
+
+export type EmailDataTypeWithMetadata = {
+  value: EmailDataType;
+  metadata: EmailDataTypeMetadata;
+};
+export type EmailDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1";
+};
+
+/**
  * An email address
  */
-export type EmailPropertyValue = TextDataType;
+export type EmailPropertyValue = EmailDataType;
 
-export type EmailPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type EmailPropertyValueWithMetadata = EmailDataTypeWithMetadata;
 
 /**
  * Stringified timestamp of when something expired.
  */
-export type ExpiredAtPropertyValue = TextDataType;
+export type ExpiredAtPropertyValue = DateTimeDataType;
 
-export type ExpiredAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type ExpiredAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * undefined
@@ -168,20 +198,13 @@ export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The user secret something uses.
  */
-export type UsesUserSecretProperties = UsesUserSecretProperties1 &
-  UsesUserSecretProperties2;
-export type UsesUserSecretProperties1 = LinkProperties;
-
-export type UsesUserSecretProperties2 = {};
+export type UsesUserSecretProperties = LinkProperties & {};
 
 export type UsesUserSecretPropertiesWithMetadata =
-  UsesUserSecretPropertiesWithMetadata1 & UsesUserSecretPropertiesWithMetadata2;
-export type UsesUserSecretPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type UsesUserSecretPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * The path to a secret in Hashicorp Vault.
