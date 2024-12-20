@@ -813,7 +813,7 @@ __metadata:
     "@types/lodash.debounce": "npm:4.0.9"
     "@types/react": "npm:19.0.1"
     "@types/react-dom": "npm:19.0.2"
-    "@types/webextension-polyfill": "patch:@types/webextension-polyfill@npm%3A0.10.4#~/.yarn/patches/@types-webextension-polyfill-npm-0.10.4-291152c615.patch"
+    "@types/webextension-polyfill": "npm:0.12.0"
     "@types/ws": "npm:8.5.13"
     babel-loader: "npm:9.2.1"
     babel-preset-react-app: "npm:10.0.1"
@@ -847,7 +847,7 @@ __metadata:
     type-fest: "npm:3.13.1"
     typescript: "npm:5.7.2"
     uuid: "npm:11.0.3"
-    webextension-polyfill: "npm:0.10.0"
+    webextension-polyfill: "npm:0.12.0"
     webpack: "npm:5.97.1"
     webpack-cli: "npm:4.10.0"
     webpack-dev-server: "npm:4.15.2"
@@ -18613,17 +18613,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/webextension-polyfill@npm:0.10.4":
-  version: 0.10.4
-  resolution: "@types/webextension-polyfill@npm:0.10.4"
-  checksum: 10c0/6ae62b0d0b61878c0c7f65ac484b436d8a07e3561ade441a12e363bdc7db7b2675db9f94e3d1e7efd5ad2c0a5ee0818ea5942f06246cc18384b14ec698371253
-  languageName: node
-  linkType: hard
-
-"@types/webextension-polyfill@patch:@types/webextension-polyfill@npm%3A0.10.4#~/.yarn/patches/@types-webextension-polyfill-npm-0.10.4-291152c615.patch":
-  version: 0.10.4
-  resolution: "@types/webextension-polyfill@patch:@types/webextension-polyfill@npm%3A0.10.4#~/.yarn/patches/@types-webextension-polyfill-npm-0.10.4-291152c615.patch::version=0.10.4&hash=ff32d6"
-  checksum: 10c0/86fb2c10a438117d9310f3924a5d64f1ce0100a7f539bd6208864af4b7f5a795d8bf27fd25587cb939ea35689ba9daacd15bd07aed4241ec711a7db5812065ad
+"@types/webextension-polyfill@npm:0.12.0":
+  version: 0.12.0
+  resolution: "@types/webextension-polyfill@npm:0.12.0"
+  checksum: 10c0/d8b69620e9af41802a144ddbefcaf1f627856ed1b1ccf42af0b4d546906a738fea01f45efcf4eb9c2e08761e1b3333105026eb7fd4b51cafb5b4e591079faa8c
   languageName: node
   linkType: hard
 
@@ -47734,10 +47727,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webextension-polyfill@npm:0.10.0":
-  version: 0.10.0
-  resolution: "webextension-polyfill@npm:0.10.0"
-  checksum: 10c0/6a45278f1fed8fbd5355f9b19a7b0b3fadc91fa3a6eef69125a1706bb3efa2181235eefbfb3f538443bb396cfcb97512361551888ce8465c08914431cb2d5b6d
+"webextension-polyfill@npm:0.12.0":
+  version: 0.12.0
+  resolution: "webextension-polyfill@npm:0.12.0"
+  checksum: 10c0/5ace2aaaf6a203515bdd2fb948622f186a5fbb50099b539ce9c0ad54896f9cc1fcc3c0e2a71d1f7071dd7236d7daebba1e0cbcf43bfdfe54361addf0333ee7d1
   languageName: node
   linkType: hard
 
