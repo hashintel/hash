@@ -182,7 +182,7 @@ export const ExpectedValueSelector = ({
     },
   });
 
-  const inputRef = useRef<HTMLInputElement | null>();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [inputValue, setInputValue] = useState("");
 

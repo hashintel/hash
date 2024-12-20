@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Data,
   Effect,
   Equal,
@@ -16,6 +16,7 @@ import * as Buffer from "../Buffer.js";
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/ProtocolVersion",
 );
+
 export type TypeId = typeof TypeId;
 
 export class InvalidProtocolVersionError extends Data.TaggedError(

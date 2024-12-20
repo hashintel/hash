@@ -42,7 +42,7 @@ export const TypeGraphVisualizer = ({
 }: {
   onTypeClick: (
     typeId: VersionedUrl,
-    screenContainerRef?: RefObject<HTMLDivElement>,
+    screenContainerRef?: RefObject<HTMLDivElement | null>,
   ) => void;
   types: (
     | DataTypeWithMetadata

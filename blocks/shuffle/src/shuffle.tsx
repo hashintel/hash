@@ -44,6 +44,7 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
   const items = rootEntity.properties[propertyIds.list];
 
   const blockRootRef = useRef<HTMLDivElement>(null);
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating, or this package updating to use graph in this repo */
   const { graphModule } = useGraphBlockModule(blockRootRef);
   const [draftItems, setDraftItems] = useState<ShuffleBlockItemPropertyValue[]>(
     items?.length ? items : initialItems,

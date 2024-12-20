@@ -18,6 +18,7 @@ export const Image: BlockComponent<BlockEntity> = (props) => {
 
   const blockRef = useRef<HTMLDivElement>(null);
 
+  /* @ts-expect-error -- @todo H-3839 hook package in BP repo needs updating for new ref type */
   const { hookModule } = useHookBlockModule(blockRef);
 
   useHook(

@@ -9,7 +9,13 @@ import {
   PropertyTypeIcon,
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
-import { Box, Checkbox, TableBody, TableCell, TableHead } from "@mui/material";
+import {
+  Checkbox,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+} from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import {
   useCallback,
@@ -409,7 +415,7 @@ export const PropertyListCard = () => {
         )}
       </TableBody>
       {isReadonly ? (
-        <Box sx={{ height: "var(--table-padding)" }} />
+        <TableFooter sx={{ height: "var(--table-padding)" }} />
       ) : (
         <EntityTypeTableFooter enableShadow={fields.length > 0}>
           {addingNewProperty ? (

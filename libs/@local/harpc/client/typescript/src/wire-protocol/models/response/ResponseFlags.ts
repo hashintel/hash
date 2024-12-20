@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Effect,
   Equal,
   Hash,
@@ -12,11 +12,13 @@ import {
 
 import { createProto, encodeDual } from "../../../utils.js";
 import * as Buffer from "../../Buffer.js";
+
 import type * as ResponseBody from "./ResponseBody.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/response/ResponseFlags",
 );
+
 export type TypeId = typeof TypeId;
 
 export type Flag =
@@ -78,10 +80,12 @@ export const applyBodyVariant = (
   variant: ResponseBody.ResponseBodyVariant,
 ) => {
   switch (variant) {
-    case "ResponseBegin":
+    case "ResponseBegin": {
       return HashSet.add(flags.flags, "beginOfResponse").pipe(make);
-    case "ResponseFrame":
+    }
+    case "ResponseFrame": {
       return HashSet.remove(flags.flags, "beginOfResponse").pipe(make);
+    }
   }
 };
 
@@ -89,13 +93,11 @@ export const repr = (flags: ResponseFlags) => {
   let value = 0x00;
 
   if (HashSet.has(flags.flags, "beginOfResponse")) {
-    // eslint-disable-next-line no-bitwise
-    value |= 0b1000_0000;
+    value = value | 0b1000_0000;
   }
 
   if (HashSet.has(flags.flags, "endOfResponse")) {
-    // eslint-disable-next-line no-bitwise
-    value |= 0b0000_0001;
+    value = value | 0b0000_0001;
   }
 
   return value;
@@ -120,12 +122,10 @@ export const decode = (buffer: Buffer.ReadBuffer) =>
 
     const flags = HashSet.empty<Flag>().pipe(HashSet.beginMutation);
 
-    // eslint-disable-next-line no-bitwise
     if ((value & 0b1000_0000) === 0b1000_0000) {
       HashSet.add(flags, "beginOfResponse");
     }
 
-    // eslint-disable-next-line no-bitwise
     if ((value & 0b0000_0001) === 0b0000_0001) {
       HashSet.add(flags, "endOfResponse");
     }

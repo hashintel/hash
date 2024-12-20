@@ -1,6 +1,7 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import * as Sentry from "@sentry/nextjs";
 import { useCallback } from "react";
 
 import { useOrgs } from "./use-orgs";
@@ -37,9 +38,15 @@ export const useGetOwnerForEntity = () => {
         orgs.find((org) => ownedById === org.accountGroupId);
 
       if (!owner) {
-        throw new Error(
-          `Owner with accountId ${ownedById} not found – possibly a caching issue if it has been created mid-session`,
+        Sentry.captureException(
+          new Error(
+            `Owner with accountId ${ownedById} not found in entities table – possibly a caching issue if it has been created mid-session`,
+          ),
         );
+        return {
+          ownedById,
+          shortname: "unknown",
+        };
       }
 
       return {
