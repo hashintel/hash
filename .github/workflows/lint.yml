@@ -111,7 +111,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@120c8997a0a81ef0701bb1f7166e7080143a96d5 # v2.46.12
+        uses: taiki-e/install-action@9023ed54c080c7ff1b3e4af335c729c3f9cb1dd7 # v2.46.16
         with:
           tool: just@1.34.0,cargo-hack@0.6.30,clippy-sarif@0.6.5,sarif-fmt@0.6.5
 

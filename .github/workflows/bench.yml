@@ -99,7 +99,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@120c8997a0a81ef0701bb1f7166e7080143a96d5 # v2.46.12
+        uses: taiki-e/install-action@9023ed54c080c7ff1b3e4af335c729c3f9cb1dd7 # v2.46.16
         with:
           tool: just@1.34.0,critcmp@0.1.8
 
@@ -201,7 +201,7 @@ jobs:
 
       - name: Upload benchmark summary
         if: steps.benches.outputs.create-baseline == 'true'
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
           path: /tmp/${{ env.TRIMMED_PACKAGE_NAME }}.md
@@ -251,7 +251,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@120c8997a0a81ef0701bb1f7166e7080143a96d5 # v2.46.12
+        uses: taiki-e/install-action@9023ed54c080c7ff1b3e4af335c729c3f9cb1dd7 # v2.46.16
         with:
           tool: just@1.34.0,critcmp@0.1.8
 
@@ -379,7 +379,7 @@ jobs:
 
       - name: Upload benchmark summary
         if: steps.benches.outputs.create-baseline == 'true'
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
           path: /tmp/${{ env.TRIMMED_PACKAGE_NAME }}.md

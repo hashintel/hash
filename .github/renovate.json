@@ -24,7 +24,7 @@
   "npm": {
     "minimumReleaseAge": "3 days"
   },
-  "postUpdateOptions": ["yarnDedupeFewer"],
+  "postUpdateOptions": ["yarnDedupeHighest"],
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
   "schedule": ["before 4am every weekday", "every weekend"],
@@ -75,8 +75,7 @@
         "/^vite-/",
         "/vitest$/",
         "/lint-staged/",
-        "/lockfile-lint/",
-        "/markdownlint-cli/",
+        "/markdownlint-cli2/",
         "/^prettier/",
         "/prettier$/",
         "/rimraf/",
