@@ -132,7 +132,7 @@ reqwest            = { version = "=0.12.9", default-features = false, features =
 semver             = { version = "=1.0.24", default-features = false }
 sentry-types       = { version = "=0.35.0", default-features = false }
 serde              = { version = "=1.0.216", default-features = false }
-serde_json         = { version = "=1.0.133" }
+serde_json         = { version = "=1.0.134" }
 text-size          = { version = "=1.1.1", default-features = false }
 time               = { version = "=0.3.37", default-features = false }
 tokio              = { version = "=1.42.0", default-features = false }
