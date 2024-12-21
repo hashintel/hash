@@ -166,7 +166,7 @@ criterion-macro          = { version = "=0.4.0", default-features = false }
 derive-where             = { version = "=1.2.7", default-features = false, features = ["nightly"] }
 derive_more              = { version = "=1.0.0", default-features = false }
 dotenv-flow              = { version = "=0.16.2", default-features = false }
-expect-test              = { version = "=1.5.0", default-features = false }
+expect-test              = { version = "=1.5.1", default-features = false }
 frunk_core               = { version = "0.4.3", default-features = false }
 futures                  = { version = "=0.3.31", default-features = false }
 hifijson                 = { version = "=0.2.2", default-features = false }
