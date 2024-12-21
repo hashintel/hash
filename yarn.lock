@@ -345,11 +345,11 @@ __metadata:
   resolution: "@apps/hash-api@workspace:apps/hash-api"
   dependencies:
     "@apps/hash-graph": "npm:0.0.0-private"
-    "@aws-sdk/client-s3": "npm:3.716.0"
+    "@aws-sdk/client-s3": "npm:3.717.0"
     "@aws-sdk/client-ses": "npm:3.716.0"
     "@aws-sdk/credential-provider-node": "npm:3.716.0"
-    "@aws-sdk/s3-presigned-post": "npm:3.716.0"
-    "@aws-sdk/s3-request-presigner": "npm:3.716.0"
+    "@aws-sdk/s3-presigned-post": "npm:3.717.0"
+    "@aws-sdk/s3-request-presigner": "npm:3.717.0"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
@@ -1268,9 +1268,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/client-s3@npm:3.716.0":
-  version: 3.716.0
-  resolution: "@aws-sdk/client-s3@npm:3.716.0"
+"@aws-sdk/client-s3@npm:3.717.0":
+  version: 3.717.0
+  resolution: "@aws-sdk/client-s3@npm:3.717.0"
   dependencies:
     "@aws-crypto/sha1-browser": "npm:5.2.0"
     "@aws-crypto/sha256-browser": "npm:5.2.0"
@@ -1281,7 +1281,7 @@ __metadata:
     "@aws-sdk/credential-provider-node": "npm:3.716.0"
     "@aws-sdk/middleware-bucket-endpoint": "npm:3.714.0"
     "@aws-sdk/middleware-expect-continue": "npm:3.714.0"
-    "@aws-sdk/middleware-flexible-checksums": "npm:3.716.0"
+    "@aws-sdk/middleware-flexible-checksums": "npm:3.717.0"
     "@aws-sdk/middleware-host-header": "npm:3.714.0"
     "@aws-sdk/middleware-location-constraint": "npm:3.714.0"
     "@aws-sdk/middleware-logger": "npm:3.714.0"
@@ -1330,7 +1330,7 @@ __metadata:
     "@smithy/util-utf8": "npm:^3.0.0"
     "@smithy/util-waiter": "npm:^3.2.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/94606f8f54c8aca44d0cf44f341199894ae8163b125a0fc7abf5a05d42047779d62cca9cc612ec7c62ff8fd4fa29bd2af0ce23b187bdbae52ad95148276fbf56
+  checksum: 10c0/f89525742aa38e0acd9c6395dabad3464dfb83c28d019b66ffca4268676ae93089be221e07f087d6d57856ab9c43ffd700c43f9ec392b995aefec29b24549ae0
   languageName: node
   linkType: hard
 
@@ -2061,9 +2061,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/middleware-flexible-checksums@npm:3.716.0":
-  version: 3.716.0
-  resolution: "@aws-sdk/middleware-flexible-checksums@npm:3.716.0"
+"@aws-sdk/middleware-flexible-checksums@npm:3.717.0":
+  version: 3.717.0
+  resolution: "@aws-sdk/middleware-flexible-checksums@npm:3.717.0"
   dependencies:
     "@aws-crypto/crc32": "npm:5.2.0"
     "@aws-crypto/crc32c": "npm:5.2.0"
@@ -2078,7 +2078,7 @@ __metadata:
     "@smithy/util-stream": "npm:^3.3.2"
     "@smithy/util-utf8": "npm:^3.0.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/846cbe0ff3c4448ccbbf80f49004a8d0ba25da6bfbf4a16cb22f132c57eebc3af67d316081e1215ebea54c688835214d062c2b3e7bff8f55c5ef526f59a6b5bd
+  checksum: 10c0/8034301a5a4d0296a5699b152b03f5db4369ddc433d232ffe6a92febae8a93c09f339218e64fe5eb46f0be4e517e739de67ba093fd7b49a068d13ce987e28cd0
   languageName: node
   linkType: hard
 
@@ -2264,11 +2264,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/s3-presigned-post@npm:3.716.0":
-  version: 3.716.0
-  resolution: "@aws-sdk/s3-presigned-post@npm:3.716.0"
+"@aws-sdk/s3-presigned-post@npm:3.717.0":
+  version: 3.717.0
+  resolution: "@aws-sdk/s3-presigned-post@npm:3.717.0"
   dependencies:
-    "@aws-sdk/client-s3": "npm:3.716.0"
+    "@aws-sdk/client-s3": "npm:3.717.0"
     "@aws-sdk/types": "npm:3.714.0"
     "@aws-sdk/util-format-url": "npm:3.714.0"
     "@smithy/middleware-endpoint": "npm:^3.2.6"
@@ -2277,13 +2277,13 @@ __metadata:
     "@smithy/util-hex-encoding": "npm:^3.0.0"
     "@smithy/util-utf8": "npm:^3.0.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/0fadb0e4d13be8361be79f19db9f549a070ef6689652a80893f8caf846d73e14d19ed4d074bd1962aedf22a9fadc4fcc680570076f8e0d4803615c0a3b4660ad
+  checksum: 10c0/c43515a426c4cb702e7d7d2d11d6b630b29f3a59d9233250ba95e3d9c48be71c805c13e452b7c2363967f6db8d9edf03ab6ef76bcc7b1ead96866a4457affb05
   languageName: node
   linkType: hard
 
-"@aws-sdk/s3-request-presigner@npm:3.716.0":
-  version: 3.716.0
-  resolution: "@aws-sdk/s3-request-presigner@npm:3.716.0"
+"@aws-sdk/s3-request-presigner@npm:3.717.0":
+  version: 3.717.0
+  resolution: "@aws-sdk/s3-request-presigner@npm:3.717.0"
   dependencies:
     "@aws-sdk/signature-v4-multi-region": "npm:3.716.0"
     "@aws-sdk/types": "npm:3.714.0"
@@ -2293,7 +2293,7 @@ __metadata:
     "@smithy/smithy-client": "npm:^3.5.1"
     "@smithy/types": "npm:^3.7.2"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/fc895528a38111be2fd24ac99c8a58b8023f73d3fbc0be6d58f40a0b6896c4973d46e153d2c5bac0977e741cb80c473a39bf826423393911c9e015071cbf1190
+  checksum: 10c0/8ecef5fc7c584ef34319a83c096d0b2701d6fa4f8195a71eaadcbfccbd8690b1102097d10ef047d662cf661531e199dd30d133765ae7a59310ae3153e6c44abf
   languageName: node
   linkType: hard
 
@@ -9355,8 +9355,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/hash-backend-utils@workspace:libs/@local/hash-backend-utils"
   dependencies:
-    "@aws-sdk/client-s3": "npm:3.716.0"
-    "@aws-sdk/s3-request-presigner": "npm:3.716.0"
+    "@aws-sdk/client-s3": "npm:3.717.0"
+    "@aws-sdk/s3-request-presigner": "npm:3.717.0"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
