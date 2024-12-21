@@ -4,7 +4,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { QuickNote } from "@local/hash-isomorphic-utils/system-types/quicknote";
+import type { Note } from "@local/hash-isomorphic-utils/system-types/note";
 import type {
   Block,
   HasData,
@@ -33,8 +33,8 @@ const createQuickNote = async (text: string) => {
     .filter((paragraph) => paragraph.length > 0);
 
   const [quickNoteEntity, ...blockEntities] = await Promise.all([
-    createEntity<QuickNote>({
-      entityTypeIds: [systemEntityTypes.quickNote.entityTypeId],
+    createEntity<Note>({
+      entityTypeIds: [systemEntityTypes.note.entityTypeId],
       properties: { value: {} },
     }),
     ...paragraphs.map(async (paragraph) => {

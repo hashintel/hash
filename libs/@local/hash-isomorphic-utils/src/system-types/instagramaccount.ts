@@ -14,6 +14,8 @@ import type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -26,6 +28,8 @@ export type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };
 
 /**
@@ -46,19 +50,10 @@ export type InstagramAccountOutgoingLinksByLinkEntityTypeId = {};
 /**
  * An Instagram account.
  */
-export type InstagramAccountProperties = InstagramAccountProperties1 &
-  InstagramAccountProperties2;
-export type InstagramAccountProperties1 = ServiceAccountProperties;
-
-export type InstagramAccountProperties2 = {};
+export type InstagramAccountProperties = ServiceAccountProperties & {};
 
 export type InstagramAccountPropertiesWithMetadata =
-  InstagramAccountPropertiesWithMetadata1 &
-    InstagramAccountPropertiesWithMetadata2;
-export type InstagramAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type InstagramAccountPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  ServiceAccountPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

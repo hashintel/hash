@@ -330,8 +330,7 @@ export const createUser: ImpureGraphFunction<
         value: emails.map((email) => ({
           value: email,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1",
           },
         })),
       },

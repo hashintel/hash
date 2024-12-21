@@ -14,6 +14,8 @@ import type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -26,6 +28,8 @@ export type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };
 
 /**
@@ -46,19 +50,10 @@ export type LinkedInAccountOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A LinkedIn account.
  */
-export type LinkedInAccountProperties = LinkedInAccountProperties1 &
-  LinkedInAccountProperties2;
-export type LinkedInAccountProperties1 = ServiceAccountProperties;
-
-export type LinkedInAccountProperties2 = {};
+export type LinkedInAccountProperties = ServiceAccountProperties & {};
 
 export type LinkedInAccountPropertiesWithMetadata =
-  LinkedInAccountPropertiesWithMetadata1 &
-    LinkedInAccountPropertiesWithMetadata2;
-export type LinkedInAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type LinkedInAccountPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  ServiceAccountPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

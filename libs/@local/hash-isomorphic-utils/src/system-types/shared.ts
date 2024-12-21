@@ -55,20 +55,13 @@ export type AffiliatedWithOutgoingLinksByLinkEntityTypeId = {};
 /**
  * Something that something is affiliated with.
  */
-export type AffiliatedWithProperties = AffiliatedWithProperties1 &
-  AffiliatedWithProperties2;
-export type AffiliatedWithProperties1 = LinkProperties;
-
-export type AffiliatedWithProperties2 = {};
+export type AffiliatedWithProperties = LinkProperties & {};
 
 export type AffiliatedWithPropertiesWithMetadata =
-  AffiliatedWithPropertiesWithMetadata1 & AffiliatedWithPropertiesWithMetadata2;
-export type AffiliatedWithPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type AffiliatedWithPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * A user or other entity's preferences for how an application should behave or appear
@@ -116,17 +109,9 @@ export type AuthoredByOutgoingLinksByLinkEntityTypeId = {};
 /**
  * What or whom something was authored by.
  */
-export type AuthoredByProperties = AuthoredByProperties1 &
-  AuthoredByProperties2;
-export type AuthoredByProperties1 = LinkProperties;
+export type AuthoredByProperties = LinkProperties & {};
 
-export type AuthoredByProperties2 = {};
-
-export type AuthoredByPropertiesWithMetadata =
-  AuthoredByPropertiesWithMetadata1 & AuthoredByPropertiesWithMetadata2;
-export type AuthoredByPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type AuthoredByPropertiesWithMetadata2 = {
+export type AuthoredByPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -319,10 +304,7 @@ export type ConnectionSourceNamePropertyValueWithMetadata =
 /**
  * A reference to a particular date and time, formatted according to RFC 3339.
  */
-export type DateTimeDataType = DateTimeDataType1;
-export type DateTimeDataType1 = TextDataType;
-
-export type DateTimeDataType2 = string;
+export type DateTimeDataType = TextDataType;
 
 export type DateTimeDataTypeWithMetadata = {
   value: DateTimeDataType;
@@ -337,9 +319,9 @@ export type DateTimeDataTypeMetadata = {
 /**
  * Stringified timestamp of when something was deleted.
  */
-export type DeletedAtPropertyValue = TextDataType;
+export type DeletedAtPropertyValue = DateTimeDataType;
 
-export type DeletedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type DeletedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -408,19 +390,11 @@ export type DocumentFileOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A document file.
  */
-export type DocumentFileProperties = DocumentFileProperties1 &
-  DocumentFileProperties2;
-export type DocumentFileProperties1 = FileProperties;
-
-export type DocumentFileProperties2 = {
+export type DocumentFileProperties = FileProperties & {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
 };
 
-export type DocumentFilePropertiesWithMetadata =
-  DocumentFilePropertiesWithMetadata1 & DocumentFilePropertiesWithMetadata2;
-export type DocumentFilePropertiesWithMetadata1 = FilePropertiesWithMetadata;
-
-export type DocumentFilePropertiesWithMetadata2 = {
+export type DocumentFilePropertiesWithMetadata = FilePropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
@@ -435,11 +409,26 @@ export type DraftNotePropertyValue = TextDataType;
 export type DraftNotePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * An identifier for an email box to which messages are delivered.
+ */
+export type EmailDataType = TextDataType;
+
+export type EmailDataTypeWithMetadata = {
+  value: EmailDataType;
+  metadata: EmailDataTypeMetadata;
+};
+export type EmailDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1";
+};
+
+/**
  * An email address
  */
-export type EmailPropertyValue = TextDataType;
+export type EmailPropertyValue = EmailDataType;
 
-export type EmailPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type EmailPropertyValueWithMetadata = EmailDataTypeWithMetadata;
 
 /**
  * A list of identifiers for a feature flags that are enabled.
@@ -461,9 +450,9 @@ export type EntityEditionIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * Stringified timestamp of when something expired.
  */
-export type ExpiredAtPropertyValue = TextDataType;
+export type ExpiredAtPropertyValue = DateTimeDataType;
 
-export type ExpiredAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type ExpiredAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The name of a feature
@@ -681,16 +670,9 @@ export type HasAvatarOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The avatar something has.
  */
-export type HasAvatarProperties = HasAvatarProperties1 & HasAvatarProperties2;
-export type HasAvatarProperties1 = LinkProperties;
+export type HasAvatarProperties = LinkProperties & {};
 
-export type HasAvatarProperties2 = {};
-
-export type HasAvatarPropertiesWithMetadata = HasAvatarPropertiesWithMetadata1 &
-  HasAvatarPropertiesWithMetadata2;
-export type HasAvatarPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasAvatarPropertiesWithMetadata2 = {
+export type HasAvatarPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -711,16 +693,9 @@ export type HasBioOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The biography something has.
  */
-export type HasBioProperties = HasBioProperties1 & HasBioProperties2;
-export type HasBioProperties1 = LinkProperties;
+export type HasBioProperties = LinkProperties & {};
 
-export type HasBioProperties2 = {};
-
-export type HasBioPropertiesWithMetadata = HasBioPropertiesWithMetadata1 &
-  HasBioPropertiesWithMetadata2;
-export type HasBioPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasBioPropertiesWithMetadata2 = {
+export type HasBioPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -743,17 +718,9 @@ export type HasCoverImageOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The cover image something has.
  */
-export type HasCoverImageProperties = HasCoverImageProperties1 &
-  HasCoverImageProperties2;
-export type HasCoverImageProperties1 = LinkProperties;
+export type HasCoverImageProperties = LinkProperties & {};
 
-export type HasCoverImageProperties2 = {};
-
-export type HasCoverImagePropertiesWithMetadata =
-  HasCoverImagePropertiesWithMetadata1 & HasCoverImagePropertiesWithMetadata2;
-export type HasCoverImagePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasCoverImagePropertiesWithMetadata2 = {
+export type HasCoverImagePropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -774,16 +741,9 @@ export type HasDataOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The data that something has.
  */
-export type HasDataProperties = HasDataProperties1 & HasDataProperties2;
-export type HasDataProperties1 = LinkProperties;
+export type HasDataProperties = LinkProperties & {};
 
-export type HasDataProperties2 = {};
-
-export type HasDataPropertiesWithMetadata = HasDataPropertiesWithMetadata1 &
-  HasDataPropertiesWithMetadata2;
-export type HasDataPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasDataPropertiesWithMetadata2 = {
+export type HasDataPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -806,26 +766,17 @@ export type HasIndexedContentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * Something contained at an index by something
  */
-export type HasIndexedContentProperties = HasIndexedContentProperties1 &
-  HasIndexedContentProperties2;
-export type HasIndexedContentProperties1 = LinkProperties;
-
-export type HasIndexedContentProperties2 = {
+export type HasIndexedContentProperties = LinkProperties & {
   "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValue;
 };
 
 export type HasIndexedContentPropertiesWithMetadata =
-  HasIndexedContentPropertiesWithMetadata1 &
-    HasIndexedContentPropertiesWithMetadata2;
-export type HasIndexedContentPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type HasIndexedContentPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValueWithMetadata;
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValueWithMetadata;
+    };
   };
-};
 
 export type HasOutgoingLinkAndTarget = never;
 
@@ -847,16 +798,9 @@ export type HasParentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The parent something has.
  */
-export type HasParentProperties = HasParentProperties1 & HasParentProperties2;
-export type HasParentProperties1 = LinkProperties;
+export type HasParentProperties = LinkProperties & {};
 
-export type HasParentProperties2 = {};
-
-export type HasParentPropertiesWithMetadata = HasParentPropertiesWithMetadata1 &
-  HasParentPropertiesWithMetadata2;
-export type HasParentPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasParentPropertiesWithMetadata2 = {
+export type HasParentPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -864,16 +808,9 @@ export type HasParentPropertiesWithMetadata2 = {
 /**
  * Something that something has
  */
-export type HasProperties = HasProperties1 & HasProperties2;
-export type HasProperties1 = LinkProperties;
+export type HasProperties = LinkProperties & {};
 
-export type HasProperties2 = {};
-
-export type HasPropertiesWithMetadata = HasPropertiesWithMetadata1 &
-  HasPropertiesWithMetadata2;
-export type HasPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasPropertiesWithMetadata2 = {
+export type HasPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -896,22 +833,13 @@ export type HasServiceAccountOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The service account something has.
  */
-export type HasServiceAccountProperties = HasServiceAccountProperties1 &
-  HasServiceAccountProperties2;
-export type HasServiceAccountProperties1 = LinkProperties;
-
-export type HasServiceAccountProperties2 = {};
+export type HasServiceAccountProperties = LinkProperties & {};
 
 export type HasServiceAccountPropertiesWithMetadata =
-  HasServiceAccountPropertiesWithMetadata1 &
-    HasServiceAccountPropertiesWithMetadata2;
-export type HasServiceAccountPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type HasServiceAccountPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * The text something has.
@@ -929,16 +857,9 @@ export type HasTextOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The text something has.
  */
-export type HasTextProperties = HasTextProperties1 & HasTextProperties2;
-export type HasTextProperties1 = LinkProperties;
+export type HasTextProperties = LinkProperties & {};
 
-export type HasTextProperties2 = {};
-
-export type HasTextPropertiesWithMetadata = HasTextPropertiesWithMetadata1 &
-  HasTextPropertiesWithMetadata2;
-export type HasTextPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasTextPropertiesWithMetadata2 = {
+export type HasTextPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -953,29 +874,22 @@ export type IconPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An image file hosted at a URL
  */
-export type Image = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/image/v/2"];
-  properties: ImageProperties;
-  propertiesWithMetadata: ImagePropertiesWithMetadata;
+export type ImageFile = {
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/image-file/v/2"];
+  properties: ImageFileProperties;
+  propertiesWithMetadata: ImageFilePropertiesWithMetadata;
 };
 
-export type ImageOutgoingLinkAndTarget = never;
+export type ImageFileOutgoingLinkAndTarget = never;
 
-export type ImageOutgoingLinksByLinkEntityTypeId = {};
+export type ImageFileOutgoingLinksByLinkEntityTypeId = {};
 
 /**
  * An image file hosted at a URL
  */
-export type ImageProperties = ImageProperties1 & ImageProperties2;
-export type ImageProperties1 = FileProperties;
+export type ImageFileProperties = FileProperties & {};
 
-export type ImageProperties2 = {};
-
-export type ImagePropertiesWithMetadata = ImagePropertiesWithMetadata1 &
-  ImagePropertiesWithMetadata2;
-export type ImagePropertiesWithMetadata1 = FilePropertiesWithMetadata;
-
-export type ImagePropertiesWithMetadata2 = {
+export type ImageFilePropertiesWithMetadata = FilePropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -1019,10 +933,7 @@ export type InstitutionPropertiesWithMetadata = {
 /**
  * The number zero (0), a positive natural number (e.g. 1, 2, 3), or the negation of a positive natural number (e.g. -1, -2, -3).
  */
-export type IntegerDataType = IntegerDataType1;
-export type IntegerDataType1 = NumberDataType;
-
-export type IntegerDataType2 = number;
+export type IntegerDataType = NumberDataType;
 
 export type IntegerDataTypeWithMetadata = {
   value: IntegerDataType;
@@ -1050,17 +961,9 @@ export type IsMemberOfOutgoingLinksByLinkEntityTypeId = {};
 /**
  * Something that someone or something is a member of.
  */
-export type IsMemberOfProperties = IsMemberOfProperties1 &
-  IsMemberOfProperties2;
-export type IsMemberOfProperties1 = LinkProperties;
+export type IsMemberOfProperties = LinkProperties & {};
 
-export type IsMemberOfProperties2 = {};
-
-export type IsMemberOfPropertiesWithMetadata =
-  IsMemberOfPropertiesWithMetadata1 & IsMemberOfPropertiesWithMetadata2;
-export type IsMemberOfPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type IsMemberOfPropertiesWithMetadata2 = {
+export type IsMemberOfPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -1210,21 +1113,13 @@ export type OccurredInBlockOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A block that something occurred in.
  */
-export type OccurredInBlockProperties = OccurredInBlockProperties1 &
-  OccurredInBlockProperties2;
-export type OccurredInBlockProperties1 = LinkProperties;
-
-export type OccurredInBlockProperties2 = {};
+export type OccurredInBlockProperties = LinkProperties & {};
 
 export type OccurredInBlockPropertiesWithMetadata =
-  OccurredInBlockPropertiesWithMetadata1 &
-    OccurredInBlockPropertiesWithMetadata2;
-export type OccurredInBlockPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type OccurredInBlockPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * An entity that something occurred in.
@@ -1244,26 +1139,17 @@ export type OccurredInEntityOutgoingLinksByLinkEntityTypeId = {};
 /**
  * An entity that something occurred in.
  */
-export type OccurredInEntityProperties = OccurredInEntityProperties1 &
-  OccurredInEntityProperties2;
-export type OccurredInEntityProperties1 = LinkProperties;
-
-export type OccurredInEntityProperties2 = {
+export type OccurredInEntityProperties = LinkProperties & {
   "https://hash.ai/@hash/types/property-type/entity-edition-id/"?: EntityEditionIdPropertyValue;
 };
 
 export type OccurredInEntityPropertiesWithMetadata =
-  OccurredInEntityPropertiesWithMetadata1 &
-    OccurredInEntityPropertiesWithMetadata2;
-export type OccurredInEntityPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type OccurredInEntityPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/entity-edition-id/"?: EntityEditionIdPropertyValueWithMetadata;
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@hash/types/property-type/entity-edition-id/"?: EntityEditionIdPropertyValueWithMetadata;
+    };
   };
-};
 
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
@@ -1276,7 +1162,7 @@ export type Organization = {
 
 export type OrganizationHasAvatarLink = {
   linkEntity: HasAvatar;
-  rightEntity: Image;
+  rightEntity: ImageFile;
 };
 
 export type OrganizationHasBioLink = {
@@ -1286,7 +1172,7 @@ export type OrganizationHasBioLink = {
 
 export type OrganizationHasCoverImageLink = {
   linkEntity: HasCoverImage;
-  rightEntity: Image;
+  rightEntity: ImageFile;
 };
 
 /**
@@ -1422,10 +1308,7 @@ export type PageOutgoingLinksByLinkEntityTypeId = {
 /**
  * A page for displaying and potentially interacting with data.
  */
-export type PageProperties = PageProperties1 & PageProperties2;
-export type PageProperties1 = BlockCollectionProperties;
-
-export type PageProperties2 = {
+export type PageProperties = BlockCollectionProperties & {
   "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
   "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValue;
   "https://hash.ai/@hash/types/property-type/icon/"?: IconPropertyValue;
@@ -1433,20 +1316,17 @@ export type PageProperties2 = {
   "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValue;
 };
 
-export type PagePropertiesWithMetadata = PagePropertiesWithMetadata1 &
-  PagePropertiesWithMetadata2;
-export type PagePropertiesWithMetadata1 = BlockCollectionPropertiesWithMetadata;
-
-export type PagePropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/icon/"?: IconPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/summary/"?: SummaryPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValueWithMetadata;
+export type PagePropertiesWithMetadata =
+  BlockCollectionPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
+      "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValueWithMetadata;
+      "https://hash.ai/@hash/types/property-type/icon/"?: IconPropertyValueWithMetadata;
+      "https://hash.ai/@hash/types/property-type/summary/"?: SummaryPropertyValueWithMetadata;
+      "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValueWithMetadata;
+    };
   };
-};
 
 /**
  * A human being
@@ -1492,10 +1372,10 @@ export type PersonPropertiesWithMetadata = {
 /**
  * The base URL of a pinned entity type.
  */
-export type PinnedEntityTypeBaseURLPropertyValue = TextDataType;
+export type PinnedEntityTypeBaseURLPropertyValue = URIDataType;
 
 export type PinnedEntityTypeBaseURLPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+  URIDataTypeWithMetadata;
 
 /**
  * Someone's preferred pronouns.
@@ -1523,26 +1403,17 @@ export type PresentationFileOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A presentation file.
  */
-export type PresentationFileProperties = PresentationFileProperties1 &
-  PresentationFileProperties2;
-export type PresentationFileProperties1 = FileProperties;
-
-export type PresentationFileProperties2 = {
+export type PresentationFileProperties = FileProperties & {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
 };
 
 export type PresentationFilePropertiesWithMetadata =
-  PresentationFilePropertiesWithMetadata1 &
-    PresentationFilePropertiesWithMetadata2;
-export type PresentationFilePropertiesWithMetadata1 =
-  FilePropertiesWithMetadata;
-
-export type PresentationFilePropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
+  FilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
+    };
   };
-};
 
 /**
  * A biography for display on someone or something's profile.
@@ -1567,28 +1438,20 @@ export type ProfileBioOutgoingLinksByLinkEntityTypeId = {
 /**
  * A biography for display on someone or something's profile.
  */
-export type ProfileBioProperties = ProfileBioProperties1 &
-  ProfileBioProperties2;
-export type ProfileBioProperties1 = BlockCollectionProperties;
-
-export type ProfileBioProperties2 = {};
+export type ProfileBioProperties = BlockCollectionProperties & {};
 
 export type ProfileBioPropertiesWithMetadata =
-  ProfileBioPropertiesWithMetadata1 & ProfileBioPropertiesWithMetadata2;
-export type ProfileBioPropertiesWithMetadata1 =
-  BlockCollectionPropertiesWithMetadata;
-
-export type ProfileBioPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  BlockCollectionPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * A URL to a profile
  */
-export type ProfileURLPropertyValue = TextDataType;
+export type ProfileURLPropertyValue = URIDataType;
 
-export type ProfileURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type ProfileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * The year in which something was first published.
@@ -1600,16 +1463,16 @@ export type PublicationYearPropertyValueWithMetadata = YearDataTypeWithMetadata;
 /**
  * The timestamp of when something was read.
  */
-export type ReadAtPropertyValue = TextDataType;
+export type ReadAtPropertyValue = DateTimeDataType;
 
-export type ReadAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type ReadAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * Stringified timestamp of when something was resolved.
  */
-export type ResolvedAtPropertyValue = TextDataType;
+export type ResolvedAtPropertyValue = DateTimeDataType;
 
-export type ResolvedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type ResolvedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * A service account.
@@ -1830,20 +1693,27 @@ export type TriggeredByUserOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A user that triggered something.
  */
-export type TriggeredByUserProperties = TriggeredByUserProperties1 &
-  TriggeredByUserProperties2;
-export type TriggeredByUserProperties1 = LinkProperties;
-
-export type TriggeredByUserProperties2 = {};
+export type TriggeredByUserProperties = LinkProperties & {};
 
 export type TriggeredByUserPropertiesWithMetadata =
-  TriggeredByUserPropertiesWithMetadata1 &
-    TriggeredByUserPropertiesWithMetadata2;
-export type TriggeredByUserPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
-export type TriggeredByUserPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
+/**
+ * A unique identifier for a resource (e.g. a URL, or URN).
+ */
+export type URIDataType = TextDataType;
+
+export type URIDataTypeWithMetadata = {
+  value: URIDataType;
+  metadata: URIDataTypeMetadata;
+};
+export type URIDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1";
 };
 
 /**
@@ -1863,7 +1733,10 @@ export type User = {
   propertiesWithMetadata: UserPropertiesWithMetadata;
 };
 
-export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
+export type UserHasAvatarLink = {
+  linkEntity: HasAvatar;
+  rightEntity: ImageFile;
+};
 
 export type UserHasBioLink = { linkEntity: HasBio; rightEntity: ProfileBio };
 
@@ -1900,10 +1773,7 @@ export type UserOutgoingLinksByLinkEntityTypeId = {
 /**
  * A user of the HASH application.
  */
-export type UserProperties = UserProperties1 & UserProperties2;
-export type UserProperties1 = ActorProperties;
-
-export type UserProperties2 = {
+export type UserProperties = ActorProperties & {
   "https://hash.ai/@hash/types/property-type/application-preferences/"?: ApplicationPreferencesPropertyValue;
   /**
    * @minItems 1
@@ -1948,11 +1818,7 @@ export type UserProperties2 = {
   "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValue;
 };
 
-export type UserPropertiesWithMetadata = UserPropertiesWithMetadata1 &
-  UserPropertiesWithMetadata2;
-export type UserPropertiesWithMetadata1 = ActorPropertiesWithMetadata;
-
-export type UserPropertiesWithMetadata2 = {
+export type UserPropertiesWithMetadata = ActorPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/application-preferences/"?: ApplicationPreferencesPropertyValueWithMetadata;
@@ -2014,17 +1880,14 @@ export type VaultPathPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A URL for a website
  */
-export type WebsiteURLPropertyValue = TextDataType;
+export type WebsiteURLPropertyValue = URIDataType;
 
-export type WebsiteURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type WebsiteURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * A year in the Gregorian calendar.
  */
-export type YearDataType = YearDataType1;
-export type YearDataType1 = IntegerDataType;
-
-export type YearDataType2 = number;
+export type YearDataType = IntegerDataType;
 
 export type YearDataTypeWithMetadata = {
   value: YearDataType;

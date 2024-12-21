@@ -139,16 +139,9 @@ export type DocumentOutgoingLinksByLinkEntityTypeId = {
 /**
  * A page in document format, with content arranged in columns.
  */
-export type DocumentProperties = DocumentProperties1 & DocumentProperties2;
-export type DocumentProperties1 = PageProperties;
+export type DocumentProperties = PageProperties & {};
 
-export type DocumentProperties2 = {};
-
-export type DocumentPropertiesWithMetadata = DocumentPropertiesWithMetadata1 &
-  DocumentPropertiesWithMetadata2;
-export type DocumentPropertiesWithMetadata1 = PagePropertiesWithMetadata;
-
-export type DocumentPropertiesWithMetadata2 = {
+export type DocumentPropertiesWithMetadata = PagePropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };

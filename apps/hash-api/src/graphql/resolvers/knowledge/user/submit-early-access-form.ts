@@ -50,8 +50,7 @@ export const submitEarlyAccessFormResolver: ResolverFn<
             value:
               properties["https://hash.ai/@hash/types/property-type/email/"],
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1",
             },
           },
           "https://hash.ai/@hash/types/property-type/intended-use/": {
@@ -78,8 +77,7 @@ export const submitEarlyAccessFormResolver: ResolverFn<
                 "https://hash.ai/@hash/types/property-type/website-url/"
               ],
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1",
             },
           },
           "https://hash.ai/@hash/types/property-type/willing-to-pay/": {

@@ -61,6 +61,8 @@ import type {
   DisplayNamePropertyValueWithMetadata,
   DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EnabledFeatureFlagsPropertyValue,
@@ -141,11 +143,11 @@ import type {
   HasTextPropertiesWithMetadata,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
-  ImagePropertiesWithMetadata,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
+  ImageFilePropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -248,6 +250,8 @@ import type {
   TriggeredByUserPropertiesWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
@@ -319,6 +323,8 @@ export type {
   DisplayNamePropertyValueWithMetadata,
   DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EnabledFeatureFlagsPropertyValue,
@@ -399,11 +405,11 @@ export type {
   HasTextPropertiesWithMetadata,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
-  ImagePropertiesWithMetadata,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
+  ImageFilePropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -506,6 +512,8 @@ export type {
   TriggeredByUserPropertiesWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
@@ -559,22 +567,13 @@ export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
 /**
  * A notification related to a comment.
  */
-export type CommentNotificationProperties = CommentNotificationProperties1 &
-  CommentNotificationProperties2;
-export type CommentNotificationProperties1 = NotificationProperties;
-
-export type CommentNotificationProperties2 = {};
+export type CommentNotificationProperties = NotificationProperties & {};
 
 export type CommentNotificationPropertiesWithMetadata =
-  CommentNotificationPropertiesWithMetadata1 &
-    CommentNotificationPropertiesWithMetadata2;
-export type CommentNotificationPropertiesWithMetadata1 =
-  NotificationPropertiesWithMetadata;
-
-export type CommentNotificationPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  NotificationPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 export type CommentNotificationRepliedToCommentLink = {
   linkEntity: RepliedToComment;
@@ -609,22 +608,13 @@ export type RepliedToCommentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The comment that something replied to.
  */
-export type RepliedToCommentProperties = RepliedToCommentProperties1 &
-  RepliedToCommentProperties2;
-export type RepliedToCommentProperties1 = LinkProperties;
-
-export type RepliedToCommentProperties2 = {};
+export type RepliedToCommentProperties = LinkProperties & {};
 
 export type RepliedToCommentPropertiesWithMetadata =
-  RepliedToCommentPropertiesWithMetadata1 &
-    RepliedToCommentPropertiesWithMetadata2;
-export type RepliedToCommentPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type RepliedToCommentPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * A comment that triggered something.
@@ -644,19 +634,10 @@ export type TriggeredByCommentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A comment that triggered something.
  */
-export type TriggeredByCommentProperties = TriggeredByCommentProperties1 &
-  TriggeredByCommentProperties2;
-export type TriggeredByCommentProperties1 = LinkProperties;
-
-export type TriggeredByCommentProperties2 = {};
+export type TriggeredByCommentProperties = LinkProperties & {};
 
 export type TriggeredByCommentPropertiesWithMetadata =
-  TriggeredByCommentPropertiesWithMetadata1 &
-    TriggeredByCommentPropertiesWithMetadata2;
-export type TriggeredByCommentPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type TriggeredByCommentPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

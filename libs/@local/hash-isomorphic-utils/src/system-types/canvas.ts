@@ -134,16 +134,9 @@ export type CanvasOutgoingLinksByLinkEntityTypeId = {
 /**
  * A page in canvas format, with content in a free-form arrangement.
  */
-export type CanvasProperties = CanvasProperties1 & CanvasProperties2;
-export type CanvasProperties1 = PageProperties;
+export type CanvasProperties = PageProperties & {};
 
-export type CanvasProperties2 = {};
-
-export type CanvasPropertiesWithMetadata = CanvasPropertiesWithMetadata1 &
-  CanvasPropertiesWithMetadata2;
-export type CanvasPropertiesWithMetadata1 = PagePropertiesWithMetadata;
-
-export type CanvasPropertiesWithMetadata2 = {
+export type CanvasPropertiesWithMetadata = PagePropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -166,12 +159,7 @@ export type HasSpatiallyPositionedContentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * Something contained at a spatial position by something
  */
-export type HasSpatiallyPositionedContentProperties =
-  HasSpatiallyPositionedContentProperties1 &
-    HasSpatiallyPositionedContentProperties2;
-export type HasSpatiallyPositionedContentProperties1 = LinkProperties;
-
-export type HasSpatiallyPositionedContentProperties2 = {
+export type HasSpatiallyPositionedContentProperties = LinkProperties & {
   "https://hash.ai/@hash/types/property-type/height-in-pixels/": HeightInPixelsPropertyValue;
   "https://hash.ai/@hash/types/property-type/rotation-in-rads/": RotationInRadsPropertyValue;
   "https://hash.ai/@hash/types/property-type/width-in-pixels/": WidthInPixelsPropertyValue;
@@ -180,21 +168,16 @@ export type HasSpatiallyPositionedContentProperties2 = {
 };
 
 export type HasSpatiallyPositionedContentPropertiesWithMetadata =
-  HasSpatiallyPositionedContentPropertiesWithMetadata1 &
-    HasSpatiallyPositionedContentPropertiesWithMetadata2;
-export type HasSpatiallyPositionedContentPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type HasSpatiallyPositionedContentPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/height-in-pixels/": HeightInPixelsPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/rotation-in-rads/": RotationInRadsPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/width-in-pixels/": WidthInPixelsPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/x-position/": XPositionPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/y-position/": YPositionPropertyValueWithMetadata;
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@hash/types/property-type/height-in-pixels/": HeightInPixelsPropertyValueWithMetadata;
+      "https://hash.ai/@hash/types/property-type/rotation-in-rads/": RotationInRadsPropertyValueWithMetadata;
+      "https://hash.ai/@hash/types/property-type/width-in-pixels/": WidthInPixelsPropertyValueWithMetadata;
+      "https://hash.ai/@hash/types/property-type/x-position/": XPositionPropertyValueWithMetadata;
+      "https://hash.ai/@hash/types/property-type/y-position/": YPositionPropertyValueWithMetadata;
+    };
   };
-};
 
 /**
  * The height of something in pixels.
