@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(coverage_attribute)]
 #![expect(
     missing_docs,
     reason = "conditionally including docs resulting in false positives. We want to globally \
