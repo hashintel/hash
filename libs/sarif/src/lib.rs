@@ -1,4 +1,9 @@
 #![no_std]
+#![expect(
+    missing_docs,
+    reason = "conditionally including docs resulting in false positives. We want to globally \
+              apply the lint as soon as possible."
+)]
 #![cfg_attr(
     doc,
     feature(doc_auto_cfg),
@@ -17,6 +22,7 @@ extern crate alloc;
 #[cfg(test)]
 extern crate std;
 
+#[warn(missing_docs)]
 pub mod schema;
 
 #[cfg(feature = "serde")]
