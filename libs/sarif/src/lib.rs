@@ -17,7 +17,6 @@ extern crate alloc;
 #[cfg(test)]
 extern crate std;
 
-#[warn(missing_docs)]
 pub mod schema;
 
 #[cfg(feature = "serde")]
