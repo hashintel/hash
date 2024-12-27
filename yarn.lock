@@ -746,7 +746,7 @@ __metadata:
     axios: "npm:1.7.9"
     babel-loader: "npm:9.2.1"
     calculation-block: "npm:0.2.2"
-    chalk: "npm:5.3.0"
+    chalk: "npm:5.4.1"
     clsx: "npm:1.2.1"
     d3: "npm:7.9.0"
     d3-dag: "npm:1.1.0"
@@ -9547,7 +9547,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/fs-extra": "npm:9.0.13"
     "@types/prettier": "npm:3.0.0"
-    chalk: "npm:4.1.2"
+    chalk: "npm:5.4.1"
     envalid: "npm:7.3.1"
     eslint: "npm:9.17.0"
     execa: "npm:5.1.1"
@@ -22246,10 +22246,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chalk@npm:5.3.0, chalk@npm:^5.2.0, chalk@npm:^5.3.0":
-  version: 5.3.0
-  resolution: "chalk@npm:5.3.0"
-  checksum: 10c0/8297d436b2c0f95801103ff2ef67268d362021b8210daf8ddbe349695333eb3610a71122172ff3b0272f1ef2cf7cc2c41fdaa4715f52e49ffe04c56340feed09
+"chalk@npm:5.4.1, chalk@npm:^5.2.0, chalk@npm:^5.3.0":
+  version: 5.4.1
+  resolution: "chalk@npm:5.4.1"
+  checksum: 10c0/b23e88132c702f4855ca6d25cb5538b1114343e41472d5263ee8a37cccfccd9c4216d111e1097c6a27830407a1dc81fecdf2a56f2c63033d4dbbd88c10b0dcef
   languageName: node
   linkType: hard
 
