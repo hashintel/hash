@@ -4791,7 +4791,7 @@ __metadata:
     "@types/react-dom": "npm:19.0.2"
     "@types/react-is": "npm:19.0.0"
     block-scripts: "npm:0.3.4"
-    echarts: "npm:5.5.1"
+    echarts: "npm:5.6.0"
     eslint: "npm:9.17.0"
     lodash.debounce: "npm:4.0.8"
     mock-block-dock: "npm:0.1.9"
@@ -7939,7 +7939,7 @@ __metadata:
     "@types/react": "npm:19.0.1"
     "@types/react-dom": "npm:19.0.2"
     clsx: "npm:1.2.1"
-    echarts: "npm:5.5.1"
+    echarts: "npm:5.6.0"
     eslint: "npm:9.17.0"
     eslint-plugin-storybook: "npm:0.11.1"
     react: "npm:19.0.0"
@@ -25501,13 +25501,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"echarts@npm:5.5.1, echarts@npm:^5.3.3":
-  version: 5.5.1
-  resolution: "echarts@npm:5.5.1"
+"echarts@npm:5.6.0, echarts@npm:^5.3.3":
+  version: 5.6.0
+  resolution: "echarts@npm:5.6.0"
   dependencies:
     tslib: "npm:2.3.0"
-    zrender: "npm:5.6.0"
-  checksum: 10c0/2f7e3037f17fda99d977092767943f4d9b0c8f886f86701ec88591707713b5e5fd683e56086b6ba5245b322f088184bdb06eac488234c20a1869b08cb6b4e523
+    zrender: "npm:5.6.1"
+  checksum: 10c0/6d6a2ee88534d1ff0433e935c542237b9896de1c94959f47ebc7e0e9da26f59bf11c91ed6fc135b62ad2786c779ee12bc536fa481e60532dad5b6a2f5167e9ea
   languageName: node
   linkType: hard
 
@@ -49010,12 +49010,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zrender@npm:5.6.0":
-  version: 5.6.0
-  resolution: "zrender@npm:5.6.0"
+"zrender@npm:5.6.1":
+  version: 5.6.1
+  resolution: "zrender@npm:5.6.1"
   dependencies:
     tslib: "npm:2.3.0"
-  checksum: 10c0/f7c5a1739dfec60b9bead0d0657c47868391b1009cc82a603f9dbf247fa625df28dcdb3e7b2e18404657e2c987f95e0e1bb5613519c2d823854f3dda44e2ee96
+  checksum: 10c0/dc1cc570054640cbd8fbb7b92e6252f225319522bfe3e8dc8bf02cc02d414e00a4c8d0a6f89bfc9d96e5e9511fdca94dd3d06bf53690df2b2f12b0fc560ac307
   languageName: node
   linkType: hard
 
