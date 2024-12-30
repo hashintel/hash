@@ -19,7 +19,7 @@ pre-commit:
     yarn:
       tags: [frontend, style]
       glob: "{*/package.json, package.json}"
-      run: yarn run sort-package-json --write {staged_files} && yarn fix:constraints && yarn fix:yarn-deduplicate
+      run: yarn run sort-package-json --write {staged_files} && yarn fix:constraints && yarn run biome format --write {staged_files} && yarn fix:yarn-deduplicate
       stage_fixed: true
     sqlfluff:
       tags: [backend, style]
