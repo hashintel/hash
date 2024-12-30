@@ -11,15 +11,9 @@
   "types": "./dist/main.d.ts",
   "typesVersions": {
     "*": {
-      ".": [
-        "./dist/main.d.ts"
-      ],
-      "stdlib": [
-        "./dist/stdlib.d.ts"
-      ],
-      "type-system-patch": [
-        "./dist/type-system-patch.d.ts"
-      ]
+      ".": ["./dist/main.d.ts"],
+      "stdlib": ["./dist/stdlib.d.ts"],
+      "type-system-patch": ["./dist/type-system-patch.d.ts"]
     }
   },
   "scripts": {
