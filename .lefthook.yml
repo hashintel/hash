@@ -19,7 +19,7 @@ pre-commit:
     yarn:
       tags: [frontend, style]
       glob: "{*/package.json, package.json}"
-      run: yarn fix:constraints && yarn fix:yarn-deduplicate
+      run: yarn fix:constraints && yarn fix:packagejson && yarn fix:yarn-deduplicate
       stage_fixed: true
     sqlfluff:
       tags: [backend, style]

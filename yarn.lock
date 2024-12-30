@@ -29542,8 +29542,7 @@ __metadata:
     lefthook: "npm:1.10.10"
     markdownlint-cli2: "npm:0.17.2"
     npm-run-all2: "npm:7.0.2"
-    prettier: "npm:3.4.2"
-    prettier-plugin-packagejson: "npm:2.5.6"
+    sort-package-json: "npm:2.12.0"
     turbo: "npm:2.3.3"
   languageName: unknown
   linkType: soft
@@ -39065,21 +39064,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier-plugin-packagejson@npm:2.5.6":
-  version: 2.5.6
-  resolution: "prettier-plugin-packagejson@npm:2.5.6"
-  dependencies:
-    sort-package-json: "npm:2.12.0"
-    synckit: "npm:0.9.2"
-  peerDependencies:
-    prettier: ">= 1.16.0"
-  peerDependenciesMeta:
-    prettier:
-      optional: true
-  checksum: 10c0/2606f33a5745c7a66795191bf70ef106df2a6f0aa05e86a5f65899e816818762d78b9f6679bd6473beb64984eaac879f31282d7102a6d3a937799f7f36fb7327
-  languageName: node
-  linkType: hard
-
 "prettier@npm:*, prettier@npm:3.4.2, prettier@npm:^3.2.5":
   version: 3.4.2
   resolution: "prettier@npm:3.4.2"
@@ -44070,7 +44054,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"synckit@npm:0.9.2, synckit@npm:^0.9.0, synckit@npm:^0.9.1":
+"synckit@npm:^0.9.0, synckit@npm:^0.9.1":
   version: 0.9.2
   resolution: "synckit@npm:0.9.2"
   dependencies:
