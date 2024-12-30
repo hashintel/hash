@@ -11,15 +11,15 @@ pre-commit:
       glob: "*.md"
       run: yarn run markdownlint-cli2 --fix --no-globs {staged_files} || true
       stage_fixed: true
-    prettier:
+    biome:
       tags: [frontend, style]
       glob: "*.{cjs,css,js,json,md,mdx,mjs,scss,ts,tsx,yml}"
-      run: yarn run prettier --write {staged_files} || true
+      run: yarn run biome format --write --staged || true
       stage_fixed: true
     yarn:
       tags: [frontend, style]
       glob: "{*/package.json, package.json}"
-      run: yarn fix:constraints && yarn fix:packagejson && yarn fix:yarn-deduplicate
+      run: yarn run sort-package-json --write {staged_files} && yarn fix:constraints && yarn fix:yarn-deduplicate
       stage_fixed: true
     sqlfluff:
       tags: [backend, style]

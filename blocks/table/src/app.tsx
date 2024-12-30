@@ -76,8 +76,9 @@ export const App: BlockComponent<BlockEntity> = ({
     );
   }, [blockEntity]);
 
-  const [isUsingLocalTable, setIsUsingLocalTable] =
-    useState(!isLocalTableEmpty);
+  const [isUsingLocalTable, setIsUsingLocalTable] = useState(
+    !isLocalTableEmpty,
+  );
 
   /**
    * The table block entity may have been populated with data elsewhere

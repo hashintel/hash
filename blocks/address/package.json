@@ -2,7 +2,6 @@
   "name": "@blocks/address",
   "version": "0.1.2",
   "private": true,
-  "type": "module",
   "description": "Search for an address using the Mapbox Address Autofill and Mapbox Static Images APIs",
   "keywords": [
     "blockprotocol",
@@ -16,6 +15,7 @@
   },
   "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
+  "type": "module",
   "scripts": {
     "build": "block-scripts build",
     "codegen": "block-scripts codegen && yarn format",

@@ -2,7 +2,6 @@
   "name": "@blocks/table",
   "version": "0.3.4",
   "private": true,
-  "type": "module",
   "description": "Display and manipulate tabular data with filter, sort, and search features",
   "keywords": [
     "blockprotocol",
@@ -16,6 +15,7 @@
   },
   "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
+  "type": "module",
   "scripts": {
     "build": "block-scripts build",
     "codegen": "block-scripts codegen && yarn format",
