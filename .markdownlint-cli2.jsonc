@@ -8,7 +8,7 @@
       "ol_multi": 1,
       "ol_single": 1,
       "ul_multi": 1,
-      "ul_single": 1,
+      "ul_single": 1
     },
     "no-alt-text": false,
     "no-bare-urls": false,
@@ -17,9 +17,9 @@
     "no-inline-html": false,
     "no-trailing-punctuation": false,
     "ol-prefix": { "style": "one" },
-    "single-title": false,
+    "single-title": false
   },
   "gitignore": true,
   "globs": ["*.md", "**/*.md"],
-  "ignores": ["**/LICENSE*.md"],
+  "ignores": ["**/LICENSE*.md"]
 }
