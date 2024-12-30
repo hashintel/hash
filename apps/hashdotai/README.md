@@ -22,7 +22,7 @@ Our resources are written in [MDX], a format which allows for using JSX tags in 
 
 This has the same syntax as Markdown documents, except for special tags we use to highlight certain elements, which you can see examples of in existing documents.
 
-There is currently an issue with code blocks inside of Custom MDX components, eg, `Tabs` or `Hint`. There needs to be a new line before any code block (ie, text preceded by backticks ```) so that the code inside isn't interpreted as JSX by the MDX parser. This issue should be fixed by improvements to the parser documented in the `mdx-js` repo (https://github.com/mdx-js/mdx/issues/1041) which were introduced in MDX v2. However, there are issues between MDX v2 and Prettier (https://github.com/prettier/prettier/issues/12209) preventing our adoption.
+There is currently an issue with code blocks inside of Custom MDX components, eg, `Tabs` or `Hint`. There needs to be a new line before any code block (ie, text preceded by backticks ```) so that the code inside isn't interpreted as JSX by the MDX parser. This issue should be fixed by improvements to the parser documented in the `mdx-js` repo (https://github.com/mdx-js/mdx/issues/1041) which were introduced in MDX v2.
 
 ## Future plans
 

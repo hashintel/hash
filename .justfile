@@ -135,7 +135,7 @@ lint:
 # Sync the package.json files to the `Cargo.toml` file
 [no-cd]
 sync-turborepo:
-  @cargo -Zscript run --manifest-path "{{repo}}/.github/scripts/rust/sync-turborepo.rs" "{{repo}}" | xargs just yarn prettier --write
+  @cargo -Zscript run --manifest-path "{{repo}}/.github/scripts/rust/sync-turborepo.rs" "{{repo}}" | xargs just yarn biome format --write
 
 # Format the code using `rustfmt`
 [no-cd]

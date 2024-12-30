@@ -1,5 +1,5 @@
+import execa from "execa";
 import fs from "fs-extra";
-import { format } from "prettier";
 
 export const updateJson = async (
   jsonFilePath: string,
@@ -13,12 +13,16 @@ export const updateJson = async (
 
   transform(json);
 
-  const newRawJson = await format(JSON.stringify(json), {
-    filepath: jsonFilePath,
-  });
+  const { stdout: output } = await execa(
+    "biome",
+    ["format", `--stdin-file-path=${jsonFilePath}`],
+    {
+      input: JSON.stringify(json, null, 2),
+    },
+  );
 
-  if (rawJson !== newRawJson) {
-    await fs.writeFile(jsonFilePath, newRawJson);
+  if (output !== rawJson) {
+    await fs.writeFile(jsonFilePath, output);
   }
   /* eslint-enable @typescript-eslint/no-unsafe-assignment */
 };

@@ -78,6 +78,7 @@
         "/markdownlint-cli2/",
         "/^prettier/",
         "/prettier$/",
+        "/^@biomejs/",
         "/rimraf/",
         "/turbo/",
         "/yarn-deduplicate/",
@@ -220,10 +221,10 @@
       "matchPackageNames": ["/^@playwright//", "/^playwright/", "/playwright$/"]
     },
     {
-      "groupName": "`prettier` npm packages",
+      "groupName": "`biome` npm packages",
       "matchManagers": ["npm"],
       "dependencyDashboardApproval": false,
-      "matchPackageNames": ["/^prettier/", "/prettier$/"]
+      "matchPackageNames": ["/^@biomejs/"]
     },
     {
       "groupName": "`prosemirror` npm packages",
