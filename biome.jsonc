@@ -20,7 +20,6 @@
     "attributePosition": "auto",
     "bracketSpacing": true,
     "ignore": [
-      "package.json",
       // Biome 1 doesn't support nested gitignores yet (Biome 2 will gain support)
       // see: https://github.com/biomejs/biome/issues/2312
       "@local/graph/api/openapi/**",
@@ -55,6 +54,8 @@
     }
   },
   "json": {
+    // Biome 2 will gain proper support for plugins and therefore also package.json sorting
+    // see: https://linear.app/hash/issue/H-3856/migrate-sort-package-json-to-biome
     "formatter": {
       "trailingCommas": "none"
     }
