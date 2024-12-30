@@ -394,7 +394,7 @@ __metadata:
     "@types/html-to-text": "npm:8.1.1"
     "@types/jsonpath": "npm:0.2.4"
     "@types/lodash": "npm:4.17.13"
-    "@types/mailchimp__mailchimp_marketing": "npm:3.0.20"
+    "@types/mailchimp__mailchimp_marketing": "npm:3.0.21"
     "@types/md5": "npm:2.3.5"
     "@types/mime-types": "npm:2.1.4"
     "@types/nodemailer": "npm:6.4.17"
@@ -18063,10 +18063,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/mailchimp__mailchimp_marketing@npm:3.0.20":
-  version: 3.0.20
-  resolution: "@types/mailchimp__mailchimp_marketing@npm:3.0.20"
-  checksum: 10c0/d0694a85239a0ce82698004fd0ee9bff598fdcfddb330800fc223d163713b2448900c800bf1f28dd6bdcf342d97ad15d92f7eb299bc795976c781a95381e627a
+"@types/mailchimp__mailchimp_marketing@npm:3.0.21":
+  version: 3.0.21
+  resolution: "@types/mailchimp__mailchimp_marketing@npm:3.0.21"
+  checksum: 10c0/2e03d820d54b4ef557edce487d65ca3f3c324b58a73cb3aa3b500886943e198d99e2f1924c07f7c30c0bbdcbbffdc746b566f786d19942ae3a9cfd4c09320ce1
   languageName: node
   linkType: hard
 
