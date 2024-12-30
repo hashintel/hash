@@ -8,6 +8,7 @@ const { defineConfig } = require(`@yarnpkg/types`);
 
 const enforcedDevDependencies = {
   prettier: { commands: ["prettier"], ident: "prettier" },
+  biome: { commands: ["biome"], ident: "@biomejs/biome" },
   waitOn: { commands: ["wait-on"], ident: "wait-on" },
   rimraf: { commands: ["rimraf"], ident: "rimraf" },
   eslint: { commands: ["eslint"], ident: "eslint" },
@@ -191,6 +192,7 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
 
     const dependsOn = {
       prettier: false,
+      biome: false,
       waitOn: false,
       rimraf: false,
       eslint: false,

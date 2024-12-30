@@ -11,7 +11,7 @@
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/index.ts",
     "fix:eslint": "eslint --fix .",
     "generate-hash-gpt-schema": "tsx ./src/ai/gpt/generate-hashgpt-schema.ts",
-    "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; yarn prettier --write ../../libs/@local/hash-isomorphic-utils/src/ontology-type-ids.ts",
+    "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; yarn biome format --write ../../libs/@local/hash-isomorphic-utils/src/ontology-type-ids.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
@@ -106,6 +106,7 @@
     "ws": "8.18.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.9.5-nightly.81fdedb",
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@graphql-codegen/cli": "^5.0.3",
     "@graphql-codegen/introspection": "2.2.3",
@@ -125,7 +126,6 @@
     "@types/nodemailer": "6.4.17",
     "@vitest/coverage-istanbul": "2.1.8",
     "eslint": "9.17.0",
-    "prettier": "3.4.2",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
     "vitest": "2.1.8",
