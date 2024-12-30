@@ -1,7 +1,14 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-  "files": { "ignoreUnknown": false, "ignore": [] },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "ignore": []
+  },
   "formatter": {
     "enabled": true,
     "useEditorconfig": true,
@@ -12,10 +19,28 @@
     "lineWidth": 80,
     "attributePosition": "auto",
     "bracketSpacing": true,
-    "ignore": ["package.json"],
+    "ignore": [
+      "package.json",
+      // Biome 1 doesn't support nested gitignores yet (Biome 2 will gain support)
+      // see: https://github.com/biomejs/biome/issues/2312
+      "@local/graph/api/openapi/**",
+      "@local/graph/client/typescript/*.ts"
+    ]
   },
-  "organizeImports": { "enabled": false },
-  "linter": { "enabled": false, "rules": { "recommended": true } },
+  "organizeImports": {
+    // Needs to wait for Biome 2 to support import groups
+    // see: https://github.com/biomejs/biome/issues/3177
+    // see: https://linear.app/hash/issue/H-3764/enable-biome-analyzer
+    "enabled": false
+  },
+  "linter": {
+    // To be enabled in the future
+    // see: https://linear.app/hash/issue/H-3765/augment-eslint-with-biome
+    "enabled": false,
+    "rules": {
+      "recommended": true
+    }
+  },
   "javascript": {
     "formatter": {
       "jsxQuoteStyle": "double",
@@ -26,7 +51,12 @@
       "bracketSameLine": false,
       "quoteStyle": "double",
       "attributePosition": "auto",
-      "bracketSpacing": true,
-    },
+      "bracketSpacing": true
+    }
   },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  }
 }
