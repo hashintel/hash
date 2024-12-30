@@ -4,11 +4,7 @@
   "private": true,
   "description": "HASH monorepo",
   "workspaces": {
-    "packages": [
-      "apps/**",
-      "libs/**",
-      "tests/**"
-    ]
+    "packages": ["apps/**", "libs/**", "tests/**"]
   },
   "scripts": {
     "codegen": "turbo codegen",
