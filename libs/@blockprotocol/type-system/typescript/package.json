@@ -26,12 +26,20 @@
   "types": "./dist/es/main.d.ts",
   "typesVersions": {
     "*": {
-      "*": ["./dist/es-slim/main.d.ts"],
-      "slim": ["./dist/es-slim/main-slim.d.ts"],
-      "wasm": ["./dist/wasm/type-system.wasm.d.ts"]
+      "*": [
+        "./dist/es-slim/main.d.ts"
+      ],
+      "slim": [
+        "./dist/es-slim/main-slim.d.ts"
+      ],
+      "wasm": [
+        "./dist/wasm/type-system.wasm.d.ts"
+      ]
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "yarn clean && rollup -c --bundleConfigAsCjs",
     "clean": "rimraf ./dist/",

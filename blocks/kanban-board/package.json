@@ -3,7 +3,11 @@
   "version": "0.0.2",
   "private": true,
   "description": "Capture information in cards, and drag cards flexibly between customizable columns",
-  "keywords": ["blockprotocol", "blocks", "block"],
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",

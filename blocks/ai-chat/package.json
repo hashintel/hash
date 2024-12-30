@@ -3,7 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "description": "Have a conversation with an AI",
-  "keywords": ["blockprotocol", "blocks", "block"],
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
@@ -60,7 +64,9 @@
     },
     "name": "@hash/ai-chat",
     "displayName": "AI Chat",
-    "examples": [{}],
+    "examples": [
+      {}
+    ],
     "icon": "public/ai-chat-icon.svg",
     "image": "public/ai-chat-preview.png",
     "protocol": "0.3",
