@@ -255,14 +255,26 @@ jobs:
             exit 1
           fi
 
-      - name: Run yarn lint:prettier
+      - name: Run yarn lint:biome
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:prettier; then
+          if ! yarn lint:biome; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:prettier` locally to apply autofixes.'
+            echo 'Try running `yarn fix:biome` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:packagejson
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:packagejson; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:packagejson` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -279,9 +291,6 @@ jobs:
             exit 1
           fi
 
-        ## TODO: Replace with `yarn fix:yarn-dedupe` after upgrading to Yarn v3+
-        ## https://yarnpkg.com/cli/dedupe
-        ## https://github.com/yarnpkg/berry/issues/2297
       - name: Run yarn lint:yarn-deduplicate
         if: ${{ success() || failure() }}
         run: |
