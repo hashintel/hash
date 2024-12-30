@@ -3,11 +3,7 @@
   "version": "0.1.2",
   "private": true,
   "description": "Generate any image you can put into words, in just a few seconds",
-  "keywords": [
-    "blockprotocol",
-    "blocks",
-    "block"
-  ],
+  "keywords": ["blockprotocol", "blocks", "block"],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
@@ -63,9 +59,7 @@
       "entryPoint": "react"
     },
     "displayName": "AI Image",
-    "examples": [
-      {}
-    ],
+    "examples": [{}],
     "icon": "public/ai-image.svg",
     "image": "public/block-preview.png",
     "name": "@hash/ai-image",

@@ -12,15 +12,9 @@
   },
   "typesVersions": {
     "*": {
-      ".": [
-        "./src/main.ts"
-      ],
-      "workflows": [
-        "./src/workflows.ts"
-      ],
-      "activities": [
-        "./src/activities.ts"
-      ]
+      ".": ["./src/main.ts"],
+      "workflows": ["./src/workflows.ts"],
+      "activities": ["./src/activities.ts"]
     }
   },
   "scripts": {

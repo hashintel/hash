@@ -3,10 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "description": "Play Minesweeper in your browser!",
-  "keywords": [
-    "blockprotocol",
-    "blocks"
-  ],
+  "keywords": ["blockprotocol", "blocks"],
   "license": "(MIT OR Apache-2.0)",
   "author": "HASH",
   "type": "module",

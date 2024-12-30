@@ -19,18 +19,10 @@
   "types": "./src/components.ts",
   "typesVersions": {
     "*": {
-      ".": [
-        "./src/components.ts"
-      ],
-      "constants": [
-        "./src/constants.ts"
-      ],
-      "palettes": [
-        "./src/palettes.ts"
-      ],
-      "theme": [
-        "./src/theme.ts"
-      ]
+      ".": ["./src/components.ts"],
+      "constants": ["./src/constants.ts"],
+      "palettes": ["./src/palettes.ts"],
+      "theme": ["./src/theme.ts"]
     }
   },
   "scripts": {

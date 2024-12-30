@@ -10,12 +10,8 @@
   },
   "typesVersions": {
     "*": {
-      "*": [
-        "./pkg/type-system.d.ts"
-      ],
-      "wasm": [
-        "./pkg/type-system_bg.wasm.d.ts"
-      ]
+      "*": ["./pkg/type-system.d.ts"],
+      "wasm": ["./pkg/type-system_bg.wasm.d.ts"]
     }
   },
   "scripts": {

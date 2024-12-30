@@ -3,11 +3,7 @@
   "version": "0.1.2",
   "private": true,
   "description": "Search for an address using the Mapbox Address Autofill and Mapbox Static Images APIs",
-  "keywords": [
-    "blockprotocol",
-    "blocks",
-    "block"
-  ],
+  "keywords": ["blockprotocol", "blocks", "block"],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
