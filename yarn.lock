@@ -400,7 +400,7 @@ __metadata:
     "@types/nodemailer": "npm:6.4.17"
     "@types/ws": "npm:8.5.13"
     "@vitest/coverage-istanbul": "npm:2.1.8"
-    agentkeepalive: "npm:4.5.0"
+    agentkeepalive: "npm:4.6.0"
     apollo-datasource: "npm:3.3.2"
     apollo-server-core: "npm:3.12.1"
     apollo-server-errors: "npm:3.3.1"
@@ -640,7 +640,7 @@ __metadata:
     "@temporalio/worker": "npm:1.11.5"
     "@temporalio/workflow": "npm:1.11.5"
     "@types/dotenv-flow": "npm:3.3.3"
-    agentkeepalive: "npm:4.5.0"
+    agentkeepalive: "npm:4.6.0"
     axios: "npm:1.7.9"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.17.0"
@@ -9381,7 +9381,7 @@ __metadata:
     "@types/node": "npm:22.10.2"
     "@types/wait-on": "npm:5.3.4"
     "@vitest/coverage-istanbul": "npm:2.1.8"
-    agentkeepalive: "npm:4.5.0"
+    agentkeepalive: "npm:4.6.0"
     apollo-datasource: "npm:3.3.2"
     axios: "npm:1.7.9"
     dotenv-flow: "npm:3.3.0"
@@ -19835,12 +19835,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"agentkeepalive@npm:4.5.0, agentkeepalive@npm:^4.1.0, agentkeepalive@npm:^4.2.1, agentkeepalive@npm:^4.5.0":
-  version: 4.5.0
-  resolution: "agentkeepalive@npm:4.5.0"
+"agentkeepalive@npm:4.6.0, agentkeepalive@npm:^4.1.0, agentkeepalive@npm:^4.2.1, agentkeepalive@npm:^4.5.0":
+  version: 4.6.0
+  resolution: "agentkeepalive@npm:4.6.0"
   dependencies:
     humanize-ms: "npm:^1.2.1"
-  checksum: 10c0/394ea19f9710f230722996e156607f48fdf3a345133b0b1823244b7989426c16019a428b56c82d3eabef616e938812981d9009f4792ecc66bd6a59e991c62612
+  checksum: 10c0/235c182432f75046835b05f239708107138a40103deee23b6a08caee5136873709155753b394ec212e49e60e94a378189562cb01347765515cff61b692c69187
   languageName: node
   linkType: hard
 
