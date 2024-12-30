@@ -17,6 +17,7 @@ const fix = async (packageJsonPath: string, { lint }: { lint: boolean }) => {
     ["format", `--stdin-file-path=${packageJsonPath}`],
     {
       input: sorted,
+      stripFinalNewline: false,
     },
   );
 
