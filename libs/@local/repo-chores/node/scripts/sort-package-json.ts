@@ -75,7 +75,7 @@ const main = async () => {
     );
 
     matches = await Array.fromAsync(
-      fs.glob("**/package.json", {
+      fs.glob(["package.json", "**/package.json"], {
         cwd: monorepoRootDirPath,
         exclude: (directoryOrFile) => {
           let pathname = path.relative(
