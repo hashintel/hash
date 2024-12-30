@@ -9304,7 +9304,7 @@ __metadata:
     eslint-config-airbnb: "npm:19.0.4"
     eslint-config-flat-gitignore: "npm:0.3.0"
     eslint-config-prettier: "npm:9.1.0"
-    eslint-config-sheriff: "npm:25.4.0"
+    eslint-config-sheriff: "npm:25.5.0"
     eslint-import-resolver-node: "npm:0.3.9"
     eslint-import-resolver-typescript: "npm:3.7.0"
     eslint-plugin-canonical: "npm:5.1.2"
@@ -26419,9 +26419,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-config-sheriff@npm:25.4.0":
-  version: 25.4.0
-  resolution: "eslint-config-sheriff@npm:25.4.0"
+"eslint-config-sheriff@npm:25.5.0":
+  version: 25.5.0
+  resolution: "eslint-config-sheriff@npm:25.5.0"
   dependencies:
     "@eslint-react/eslint-plugin": "npm:^1.10.1"
     "@eslint/compat": "npm:^1.2.4"
@@ -26457,7 +26457,7 @@ __metadata:
   peerDependencies:
     eslint: ">=9.0.0"
     typescript: ">=5.0.0"
-  checksum: 10c0/458ffbf413092cb0a94f2155c456646e8036f08c43a03b93531ab00eced2f6f403455c4382a5650672e50e25eb9eb4ff8b3e703137fce3da2c62140d43739fca
+  checksum: 10c0/f195ae46500c2f3a44d220cfabfcd95f912598bc80b3548fa955e88b629b6bc1bb8772f91745a0d5e99351b9dc8bf388ab46e25365a7986d2ba594ce248f1461
   languageName: node
   linkType: hard
 
