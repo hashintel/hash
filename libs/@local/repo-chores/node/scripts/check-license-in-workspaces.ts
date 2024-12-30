@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import chalk from "chalk";
-import globby from "globby";
+import { globby } from "globby";
 
 import { getWorkspaceInfoLookup, monorepoRootDirPath } from "./shared/monorepo";
 
