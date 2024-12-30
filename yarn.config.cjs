@@ -92,7 +92,7 @@ function enforceProtocols({ Yarn }) {
 
     if (workspaceDependency) {
       // turbo doesn't support the `workspace:` protocol when rewriting lockfiles, leading to inconsistent lockfiles
-      dependency.update(workspaceDependency.pkg.version);
+      dependency.update(workspaceDependency.manifest.version);
     }
 
     if (dependency.range.startsWith("file:")) {
