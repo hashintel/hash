@@ -64,8 +64,9 @@ export const oAuthLinear: RequestHandler<
   {
     ownedById?: EntityUuid;
   }
+  // @todo upgrade to Express 5, which handles errors from async request handlers automatically
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   if (!linearClientId) {
     res
       .status(501)
@@ -121,8 +122,9 @@ export const oAuthLinearCallback: RequestHandler<
   Entity | { error: string },
   never,
   { code: string; state?: string }
+  // @todo upgrade to Express 5, which handles errors from async request handlers automatically
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   const { code, state } = req.query;
 
   if (!req.context.vaultClient) {
