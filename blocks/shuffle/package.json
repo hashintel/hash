@@ -3,7 +3,11 @@
   "version": "0.1.2",
   "private": true,
   "description": "Create a list and (re-)arrange it in a random order",
-  "keywords": ["blockprotocol", "blocks", "block"],
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",

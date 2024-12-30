@@ -3,7 +3,11 @@
   "version": "0.1.2",
   "private": true,
   "description": "Break up content on a page with horizontal dividing lines",
-  "keywords": ["blockprotocol", "blocks", "block"],
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",

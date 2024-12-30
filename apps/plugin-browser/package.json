@@ -10,7 +10,9 @@
   "license": "AGPL-3.0",
   "type": "module",
   "workspaces": {
-    "nohoist": ["@sentry/webpack-plugin"]
+    "nohoist": [
+      "@sentry/webpack-plugin"
+    ]
   },
   "scripts": {
     "build": "yarn lint:tsc && NODE_ENV=production node utils/build.js",

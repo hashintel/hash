@@ -3,7 +3,11 @@
   "version": "0.2.1",
   "private": true,
   "description": "Write monospaced code with syntax highlighting in a range of programming and markup languages",
-  "keywords": ["blockprotocol", "blocks", "block"],
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",

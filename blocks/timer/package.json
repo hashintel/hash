@@ -3,7 +3,11 @@
   "version": "0.2.1",
   "private": true,
   "description": "Set a countdown timer to remind you when a certain amount of time has elapsed",
-  "keywords": ["blockprotocol", "blocks", "block"],
+  "keywords": [
+    "blockprotocol",
+    "blocks",
+    "block"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
