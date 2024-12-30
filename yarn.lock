@@ -9174,6 +9174,7 @@ __metadata:
     globby: "npm:11.1.0"
     prettier: "npm:3.4.2"
     regex-parser: "npm:2.3.0"
+    sort-package-json: "npm:2.12.0"
     tsx: "npm:4.19.2"
     typescript: "npm:5.7.3"
   languageName: unknown
@@ -29542,7 +29543,6 @@ __metadata:
     lefthook: "npm:1.10.10"
     markdownlint-cli2: "npm:0.17.2"
     npm-run-all2: "npm:7.0.2"
-    sort-package-json: "npm:2.12.0"
     turbo: "npm:2.3.3"
   languageName: unknown
   linkType: soft
