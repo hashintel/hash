@@ -29878,7 +29878,7 @@ __metadata:
     "@taplo/cli": "npm:0.7.0"
     "@yarnpkg/types": "npm:^4.0.0"
     lefthook: "npm:1.10.1"
-    markdownlint-cli2: "npm:0.17.0"
+    markdownlint-cli2: "npm:0.17.1"
     npm-run-all2: "npm:7.0.2"
     prettier: "npm:3.4.2"
     prettier-plugin-packagejson: "npm:2.5.6"
@@ -34437,35 +34437,36 @@ __metadata:
   languageName: node
   linkType: hard
 
-"markdownlint-cli2@npm:0.17.0":
-  version: 0.17.0
-  resolution: "markdownlint-cli2@npm:0.17.0"
+"markdownlint-cli2@npm:0.17.1":
+  version: 0.17.1
+  resolution: "markdownlint-cli2@npm:0.17.1"
   dependencies:
     globby: "npm:14.0.2"
     js-yaml: "npm:4.1.0"
     jsonc-parser: "npm:3.3.1"
-    markdownlint: "npm:0.37.2"
+    markdownlint: "npm:0.37.3"
     markdownlint-cli2-formatter-default: "npm:0.0.5"
     micromatch: "npm:4.0.8"
   bin:
     markdownlint-cli2: markdownlint-cli2-bin.mjs
-  checksum: 10c0/019cf1aaea77ee440d8ba6b86d0b59316dc9a9e6d4ccaebdcf5b7988830b9cfd8c215b08f6eeedfbd440ec2471fedd33a61731e914e9c1767c8aebc673764fa0
+  checksum: 10c0/e7add987daf4eb3f7eb81e78d2a6094185d9673e638b75d37c42a7a944b08811bf6c9cdbe83d9996ab5a25d321881037ae0ccabe8971c444b45f58bfd6d2a93c
   languageName: node
   linkType: hard
 
-"markdownlint@npm:0.37.2":
-  version: 0.37.2
-  resolution: "markdownlint@npm:0.37.2"
+"markdownlint@npm:0.37.3":
+  version: 0.37.3
+  resolution: "markdownlint@npm:0.37.3"
   dependencies:
     markdown-it: "npm:14.1.0"
     micromark: "npm:4.0.1"
+    micromark-core-commonmark: "npm:2.0.2"
     micromark-extension-directive: "npm:3.0.2"
     micromark-extension-gfm-autolink-literal: "npm:2.1.0"
     micromark-extension-gfm-footnote: "npm:2.1.0"
     micromark-extension-gfm-table: "npm:2.1.0"
     micromark-extension-math: "npm:3.1.0"
     micromark-util-types: "npm:2.0.1"
-  checksum: 10c0/f0ebaac0028dcf9b748d3b37e5dd2be90752cd559fd4cb3df15414a5231b46212120dba5fefafee9f4b1e5dd31dad356ae694081a9500b8b7cc9883b6132af0c
+  checksum: 10c0/55db705a9fe08d35876918cde4dc37efc15fc03a7abd4f5874b9cc2db699200c9ac7fde45d31ca846ae88c79ec264679f9f19fd8649d430a0a7cba488bec3dcc
   languageName: node
   linkType: hard
 
@@ -35174,6 +35175,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"micromark-core-commonmark@npm:2.0.2, micromark-core-commonmark@npm:^2.0.0":
+  version: 2.0.2
+  resolution: "micromark-core-commonmark@npm:2.0.2"
+  dependencies:
+    decode-named-character-reference: "npm:^1.0.0"
+    devlop: "npm:^1.0.0"
+    micromark-factory-destination: "npm:^2.0.0"
+    micromark-factory-label: "npm:^2.0.0"
+    micromark-factory-space: "npm:^2.0.0"
+    micromark-factory-title: "npm:^2.0.0"
+    micromark-factory-whitespace: "npm:^2.0.0"
+    micromark-util-character: "npm:^2.0.0"
+    micromark-util-chunked: "npm:^2.0.0"
+    micromark-util-classify-character: "npm:^2.0.0"
+    micromark-util-html-tag-name: "npm:^2.0.0"
+    micromark-util-normalize-identifier: "npm:^2.0.0"
+    micromark-util-resolve-all: "npm:^2.0.0"
+    micromark-util-subtokenize: "npm:^2.0.0"
+    micromark-util-symbol: "npm:^2.0.0"
+    micromark-util-types: "npm:^2.0.0"
+  checksum: 10c0/87c7a75cd339189eb6f1d6323037f7d108d1331d953b84fe839b37fd385ee2292b27222327c1ceffda46ba5d5d4dee703482475e5ee8744be40c9e308d8acb77
+  languageName: node
+  linkType: hard
+
 "micromark-core-commonmark@npm:^1.0.0, micromark-core-commonmark@npm:^1.0.1":
   version: 1.1.0
   resolution: "micromark-core-commonmark@npm:1.1.0"
@@ -35195,30 +35220,6 @@ __metadata:
     micromark-util-types: "npm:^1.0.1"
     uvu: "npm:^0.5.0"
   checksum: 10c0/b3bf7b7004ce7dbb3ae151dcca4db1d12546f1b943affb2418da4b90b9ce59357373c433ee2eea4c868aee0791dafa355aeed19f5ef2b0acaf271f32f1ecbe6a
-  languageName: node
-  linkType: hard
-
-"micromark-core-commonmark@npm:^2.0.0":
-  version: 2.0.2
-  resolution: "micromark-core-commonmark@npm:2.0.2"
-  dependencies:
-    decode-named-character-reference: "npm:^1.0.0"
-    devlop: "npm:^1.0.0"
-    micromark-factory-destination: "npm:^2.0.0"
-    micromark-factory-label: "npm:^2.0.0"
-    micromark-factory-space: "npm:^2.0.0"
-    micromark-factory-title: "npm:^2.0.0"
-    micromark-factory-whitespace: "npm:^2.0.0"
-    micromark-util-character: "npm:^2.0.0"
-    micromark-util-chunked: "npm:^2.0.0"
-    micromark-util-classify-character: "npm:^2.0.0"
-    micromark-util-html-tag-name: "npm:^2.0.0"
-    micromark-util-normalize-identifier: "npm:^2.0.0"
-    micromark-util-resolve-all: "npm:^2.0.0"
-    micromark-util-subtokenize: "npm:^2.0.0"
-    micromark-util-symbol: "npm:^2.0.0"
-    micromark-util-types: "npm:^2.0.0"
-  checksum: 10c0/87c7a75cd339189eb6f1d6323037f7d108d1331d953b84fe839b37fd385ee2292b27222327c1ceffda46ba5d5d4dee703482475e5ee8744be40c9e308d8acb77
   languageName: node
   linkType: hard
 
