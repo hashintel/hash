@@ -44,15 +44,21 @@ const script = async () => {
   // We need to override some options to generate a build that is ready for publishing.
   await execa(
     "tsc",
-    // prettier-ignore
+    // biome-ignore format: manual formatting for readability
     [
-      "--project", "tsconfig.json",
-      
-      "--declaration", "true",
-      "--jsx", "react-jsx",
-      "--noEmit", "false",
-      "--outDir", "dist",
-      "--target", "es2020",
+      "--project",
+      "tsconfig.json",
+
+      "--declaration",
+      "true",
+      "--jsx",
+      "react-jsx",
+      "--noEmit",
+      "false",
+      "--outDir",
+      "dist",
+      "--target",
+      "es2020",
     ],
     {
       cwd: packageInfo.path,

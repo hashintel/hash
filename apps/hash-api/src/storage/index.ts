@@ -138,7 +138,8 @@ const getFileEntity = async (
     );
 
     const previousLatestRevisionCreatedAt = new Date(
-      previousLatestRevision.metadata.temporalVersioning.decisionTime.start.limit,
+      previousLatestRevision.metadata.temporalVersioning.decisionTime.start
+        .limit,
     );
 
     return previousLatestRevisionCreatedAt < currentCreatedAt

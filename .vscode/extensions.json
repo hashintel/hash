@@ -3,12 +3,12 @@
     "Codecov.codecov",
     "davidanson.vscode-markdownlint",
     "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode",
     "GraphQL.vscode-graphql",
     "GraphQL.vscode-graphql-syntax",
     "hashicorp.terraform",
     "ms-playwright.playwright",
     "ms-vscode.vscode-typescript-next",
-    "vitest.explorer"
+    "vitest.explorer",
+    "biomejs.biome"
   ]
 }

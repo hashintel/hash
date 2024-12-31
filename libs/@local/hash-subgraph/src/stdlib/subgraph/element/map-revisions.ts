@@ -21,15 +21,18 @@ export const mapElementsIntoRevisions = <
 >(
   elements: GraphElementType[],
 ): BaseIdToRevisions<GraphElementType> =>
-  elements.reduce((revisionMap, element) => {
-    const baseId =
-      "entityId" in element.metadata.recordId
-        ? element.metadata.recordId.entityId
-        : element.metadata.recordId.baseUrl;
+  elements.reduce(
+    (revisionMap, element) => {
+      const baseId =
+        "entityId" in element.metadata.recordId
+          ? element.metadata.recordId.entityId
+          : element.metadata.recordId.baseUrl;
 
-    // eslint-disable-next-line no-param-reassign
-    revisionMap[baseId] ??= [];
-    revisionMap[baseId].push(element);
+      // eslint-disable-next-line no-param-reassign
+      revisionMap[baseId] ??= [];
+      revisionMap[baseId].push(element);
 
-    return revisionMap;
-  }, {} as BaseIdToRevisions<GraphElementType>);
+      return revisionMap;
+    },
+    {} as BaseIdToRevisions<GraphElementType>,
+  );
