@@ -522,7 +522,7 @@ __metadata:
     "@types/lodash": "npm:4.17.13"
     "@types/papaparse": "npm:5.3.15"
     "@types/prismjs": "npm:1.26.5"
-    "@types/react": "npm:19.0.1"
+    "@types/react": "npm:19.0.2"
     "@types/react-beautiful-dnd": "npm:13.1.8"
     "@types/react-dom": "npm:19.0.2"
     "@types/react-window": "npm:1.8.8"
@@ -702,7 +702,7 @@ __metadata:
     "@storybook/react": "npm:7.6.20"
     "@storybook/react-webpack5": "npm:7.6.20"
     "@storybook/testing-library": "npm:0.2.2"
-    "@types/react": "npm:19.0.1"
+    "@types/react": "npm:19.0.2"
     "@types/react-dom": "npm:19.0.2"
     storybook: "npm:7.6.20"
   peerDependencies:
@@ -739,7 +739,7 @@ __metadata:
     "@types/md5": "npm:2.3.5"
     "@types/node": "npm:22.10.3"
     "@types/prismjs": "npm:1.26.5"
-    "@types/react": "npm:19.0.1"
+    "@types/react": "npm:19.0.2"
     "@types/react-dom": "npm:19.0.2"
     "@types/react-html-parser": "npm:2.0.6"
     "@types/unist": "npm:3.0.3"
@@ -811,7 +811,7 @@ __metadata:
     "@sentry/browser": "npm:7.120.2"
     "@sentry/webpack-plugin": "npm:2.22.7"
     "@types/lodash.debounce": "npm:4.0.9"
-    "@types/react": "npm:19.0.1"
+    "@types/react": "npm:19.0.2"
     "@types/react-dom": "npm:19.0.2"
     "@types/webextension-polyfill": "npm:0.12.1"
     "@types/ws": "npm:8.5.13"
@@ -4537,7 +4537,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash.isequal": "npm:4.5.8"
     "@types/node": "npm:22.10.3"
-    "@types/react": "npm:19.0.1"
+    "@types/react": "npm:19.0.2"
     ajv: "npm:8.17.1"
     ajv-formats: "npm:3.0.1"
     eslint: "npm:9.17.0"
@@ -4626,7 +4626,7 @@ __metadata:
     "@rollup/plugin-typescript": "npm:12.1.2"
     "@rollup/plugin-wasm": "npm:6.2.2"
     "@types/node": "npm:22.10.3"
-    "@types/react": "npm:19.0.1"
+    "@types/react": "npm:19.0.2"
     "@vitest/coverage-istanbul": "npm:2.1.8"
     eslint: "npm:9.17.0"
     react: "npm:19.0.0"
@@ -7898,7 +7898,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.16.13"
     "@mui/system": "npm:5.16.13"
-    "@types/react": "npm:19.0.1"
+    "@types/react": "npm:19.0.2"
     "@types/react-dom": "npm:19.0.2"
     "@types/react-syntax-highlighter": "npm:15.5.13"
     eslint: "npm:9.17.0"
@@ -7936,7 +7936,7 @@ __metadata:
     "@mui/material": "npm:5.16.13"
     "@mui/system": "npm:5.16.13"
     "@storybook/react": "npm:7.6.20"
-    "@types/react": "npm:19.0.1"
+    "@types/react": "npm:19.0.2"
     "@types/react-dom": "npm:19.0.2"
     clsx: "npm:1.2.1"
     echarts: "npm:5.6.0"
@@ -18398,12 +18398,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:19.0.1":
-  version: 19.0.1
-  resolution: "@types/react@npm:19.0.1"
+"@types/react@npm:19.0.2":
+  version: 19.0.2
+  resolution: "@types/react@npm:19.0.2"
   dependencies:
     csstype: "npm:^3.0.2"
-  checksum: 10c0/25eb69114abb9a6d5fc4414ee584388275bbc9ac32976449cf58b95fe9880efe6b3f936c3842be9bed8c571546a9752e8d3e2095288381e9c809269f5f574f2e
+  checksum: 10c0/8992f39701fcf1bf893ef8f94a56196445667baf08fe4f6050a14e229a17aad3265ad3efc01595ff3b4d5d5c69da885f9aa4ff80f164a613018734efcff1eb8f
   languageName: node
   linkType: hard
 
