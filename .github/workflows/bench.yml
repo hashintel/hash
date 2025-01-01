@@ -136,7 +136,7 @@ jobs:
 
       - name: Cache Rust dependencies
         if: steps.benches.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@720f7e45ccee46c12a7b1d7bed2ab733be9be5a1 # v2.7.6
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
@@ -288,7 +288,7 @@ jobs:
 
       - name: Cache Rust dependencies
         if: steps.benches.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@720f7e45ccee46c12a7b1d7bed2ab733be9be5a1 # v2.7.6
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
