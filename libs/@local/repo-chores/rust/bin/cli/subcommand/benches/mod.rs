@@ -51,7 +51,7 @@ pub(crate) struct Args {
 
 pub(super) async fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
     match args.subcommand {
-        Subcommand::Analyze(args) => analyze::run(args).map_err(Into::into),
+        Subcommand::Analyze(args) => analyze::run(args),
         Subcommand::Upload(args) => upload::run(args).await,
     }
 }
