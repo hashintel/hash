@@ -380,9 +380,9 @@ __metadata:
     "@opentelemetry/resources": "npm:1.30.0"
     "@opentelemetry/sdk-trace-base": "npm:1.30.0"
     "@opentelemetry/sdk-trace-node": "npm:1.30.0"
-    "@ory/client": "npm:1.1.41"
+    "@ory/client": "npm:1.15.17"
     "@ory/hydra-client": "npm:2.2.1"
-    "@ory/kratos-client": "npm:1.0.0"
+    "@ory/kratos-client": "npm:1.2.1"
     "@rudderstack/rudder-sdk-node": "npm:2.1.1"
     "@sentry/node": "npm:7.120.2"
     "@snowplow/node-tracker": "npm:3.24.6"
@@ -498,8 +498,8 @@ __metadata:
     "@mui/material": "npm:5.16.13"
     "@mui/system": "npm:5.16.13"
     "@next/bundle-analyzer": "npm:15.1.3"
-    "@ory/client": "npm:1.1.41"
-    "@ory/integrations": "npm:1.1.4"
+    "@ory/client": "npm:1.15.17"
+    "@ory/integrations": "npm:1.2.1"
     "@popperjs/core": "npm:2.11.8"
     "@react-sigma/core": "npm:4.0.3"
     "@sentry/nextjs": "npm:7.120.2"
@@ -10955,12 +10955,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client@npm:1.1.41":
-  version: 1.1.41
-  resolution: "@ory/client@npm:1.1.41"
+"@ory/client@npm:1.15.17":
+  version: 1.15.17
+  resolution: "@ory/client@npm:1.15.17"
   dependencies:
-    axios: "npm:^0.21.4"
-  checksum: 10c0/82a7c43eb69ac177332de80079690279a35eedfc6d1261ce473ea8357c9b8ca82482c6676b0e495f4559a4873bd92292acbfe01b40fc313c786b501efdd7c96b
+    axios: "npm:^1.6.1"
+  checksum: 10c0/49cb2871f2b22548f641ab06a93e16731810672b6c484f74b1e6e2eeb79145dfeadcb1d760548fbd0c7d1fecf3f78cf94b18e0300c9ab7bdd4b90bdd281f965e
   languageName: node
   linkType: hard
 
@@ -10973,32 +10973,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/integrations@npm:1.1.4":
-  version: 1.1.4
-  resolution: "@ory/integrations@npm:1.1.4"
+"@ory/integrations@npm:1.2.1":
+  version: 1.2.1
+  resolution: "@ory/integrations@npm:1.2.1"
   dependencies:
-    "@types/tldjs": "npm:^2.3.1"
-    cookie: "npm:^0.4.1"
-    istextorbinary: "npm:^6.0.0"
+    "@types/tldjs": "npm:2.3.4"
+    cookie: "npm:0.6.0"
+    istextorbinary: "npm:9.5.0"
     next: "npm:>=12.0.10"
-    ory-prettier-styles: "npm:^1.3.0"
-    prettier: "npm:^2.3.2"
-    request: "npm:^2.88.2"
-    set-cookie-parser: "npm:^2.4.8"
-    tldjs: "npm:^2.3.1"
+    ory-prettier-styles: "npm:1.3.0"
+    prettier: "npm:3.2.5"
+    set-cookie-parser: "npm:2.6.0"
+    tldjs: "npm:2.3.1"
   peerDependencies:
     "@ory/client": ">1.1.38"
     next: ">=12.0.10"
-  checksum: 10c0/37e59013c0a982c47d44f9920217c0391c0f564f239b61596eba1a630c523f1dd1c1ae0bd913597109685ddb32af9251493b4d768c3360fdd31492ebdc52da89
+  checksum: 10c0/63a2f9f41a76848866aea9b428cf84a19498740d562d2566cbeae027561556ada80057b1a27a67571541adac675facd396f4a1362fa273f450e0c884fb283e98
   languageName: node
   linkType: hard
 
-"@ory/kratos-client@npm:1.0.0":
-  version: 1.0.0
-  resolution: "@ory/kratos-client@npm:1.0.0"
+"@ory/kratos-client@npm:1.2.1":
+  version: 1.2.1
+  resolution: "@ory/kratos-client@npm:1.2.1"
   dependencies:
-    axios: "npm:^0.21.4"
-  checksum: 10c0/8cc3e8e5864ca2e734ed294f5c38770e7f9061742c2cf6c627d9877a2016614b5ce28328612fcbc8dabf13da43237e7cd3888e2fd98085b91e0e0f4b56a3f9fa
+    axios: "npm:^1.6.1"
+  checksum: 10c0/cb5abe68b89aa70bce653c4cb7991764069018f0ec87d2d54a5f1742ee0c3957affe820cbfec532b942243f687624d90d469074d76f5cec10c5d20b8d60e3a2a
   languageName: node
   linkType: hard
 
@@ -16738,7 +16737,7 @@ __metadata:
     "@opentelemetry/sdk-node": "npm:0.57.0"
     "@opentelemetry/sdk-trace-node": "npm:1.30.0"
     "@opentelemetry/semantic-conventions": "npm:1.28.0"
-    "@ory/client": "npm:1.1.41"
+    "@ory/client": "npm:1.15.17"
     "@rollup/plugin-commonjs": "npm:28.0.2"
     "@rollup/plugin-node-resolve": "npm:16.0.0"
     "@rollup/plugin-typescript": "npm:12.1.2"
@@ -18565,7 +18564,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/tldjs@npm:^2.3.1":
+"@types/tldjs@npm:2.3.4":
   version: 2.3.4
   resolution: "@types/tldjs@npm:2.3.4"
   checksum: 10c0/1e58a6f80273bcb09f54b2b08de1a9f46e4ce53bc33e5f259dda79268c5d9769fac4e59373f82f1d7b0143f878ac3074a91780ac27d93126de3e9f047597f384
@@ -21035,15 +21034,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^0.21.4":
-  version: 0.21.4
-  resolution: "axios@npm:0.21.4"
-  dependencies:
-    follow-redirects: "npm:^1.14.0"
-  checksum: 10c0/fbcff55ec68f71f02d3773d467db2fcecdf04e749826c82c2427a232f9eba63242150a05f15af9ef15818352b814257541155de0281f8fb2b7e8a5b79f7f2142
-  languageName: node
-  linkType: hard
-
 "axios@npm:^0.26.1":
   version: 0.26.1
   resolution: "axios@npm:0.26.1"
@@ -21436,10 +21426,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"binaryextensions@npm:^4.18.0":
-  version: 4.19.0
-  resolution: "binaryextensions@npm:4.19.0"
-  checksum: 10c0/2906937e352569b29a80a1e0ad6bf03290a093b3ac65e1c3a8cb4363511d463a21d09844361ecc3a557d9ea997012a45c0826742e8a5eccfbe40180bc100a4fb
+"binaryextensions@npm:^6.11.0":
+  version: 6.11.0
+  resolution: "binaryextensions@npm:6.11.0"
+  dependencies:
+    editions: "npm:^6.21.0"
+  checksum: 10c0/7cd07215d2ba9722cc2c378de554e294e2577ee8b53e8e3715abf1f3e0f23db75851c9820dc34c117a3d44a778360cc28d4800e4802cdb9bc20774b71f3f5202
   languageName: node
   linkType: hard
 
@@ -23422,6 +23414,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"cookie@npm:0.6.0":
+  version: 0.6.0
+  resolution: "cookie@npm:0.6.0"
+  checksum: 10c0/f2318b31af7a31b4ddb4a678d024514df5e705f9be5909a192d7f116cfb6d45cbacf96a473fa733faa95050e7cff26e7832bb3ef94751592f1387b71c8956686
+  languageName: node
+  linkType: hard
+
 "cookie@npm:0.7.1":
   version: 0.7.1
   resolution: "cookie@npm:0.7.1"
@@ -23433,13 +23432,6 @@ __metadata:
   version: 0.7.2
   resolution: "cookie@npm:0.7.2"
   checksum: 10c0/9596e8ccdbf1a3a88ae02cf5ee80c1c50959423e1022e4e60b91dd87c622af1da309253d8abdb258fb5e3eacb4f08e579dc58b4897b8087574eee0fd35dfa5d2
-  languageName: node
-  linkType: hard
-
-"cookie@npm:^0.4.1":
-  version: 0.4.2
-  resolution: "cookie@npm:0.4.2"
-  checksum: 10c0/beab41fbd7c20175e3a2799ba948c1dcc71ef69f23fe14eeeff59fc09f50c517b0f77098db87dbb4c55da802f9d86ee86cdc1cd3efd87760341551838d53fca2
   languageName: node
   linkType: hard
 
@@ -25508,6 +25500,15 @@ __metadata:
     tslib: "npm:2.3.0"
     zrender: "npm:5.6.1"
   checksum: 10c0/6d6a2ee88534d1ff0433e935c542237b9896de1c94959f47ebc7e0e9da26f59bf11c91ed6fc135b62ad2786c779ee12bc536fa481e60532dad5b6a2f5167e9ea
+  languageName: node
+  linkType: hard
+
+"editions@npm:^6.21.0":
+  version: 6.21.0
+  resolution: "editions@npm:6.21.0"
+  dependencies:
+    version-range: "npm:^4.13.0"
+  checksum: 10c0/b5d3f44987b8a31ffd5cad12421de0d6fe5e57c6d85e5ea3601fbcfde4fc7d52bb76620c652fe74a303dfe54de8abc84733a230a2823512abb8006d78b0bfeba
   languageName: node
   linkType: hard
 
@@ -28287,7 +28288,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"follow-redirects@npm:^1.0.0, follow-redirects@npm:^1.14.0, follow-redirects@npm:^1.14.8, follow-redirects@npm:^1.14.9, follow-redirects@npm:^1.15.6":
+"follow-redirects@npm:^1.0.0, follow-redirects@npm:^1.14.8, follow-redirects@npm:^1.14.9, follow-redirects@npm:^1.15.6":
   version: 1.15.9
   resolution: "follow-redirects@npm:1.15.9"
   peerDependenciesMeta:
@@ -32111,13 +32112,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"istextorbinary@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "istextorbinary@npm:6.0.0"
+"istextorbinary@npm:9.5.0":
+  version: 9.5.0
+  resolution: "istextorbinary@npm:9.5.0"
   dependencies:
-    binaryextensions: "npm:^4.18.0"
-    textextensions: "npm:^5.14.0"
-  checksum: 10c0/b7761bd34f1154e3bbe2f0ada85f35f614e61ff3b8f51ab168a0b5ee2116bfe2973520743447ab12b6d09ff4d945b4c8ec13573ee6fb21ca4bd14dbce052f4a8
+    binaryextensions: "npm:^6.11.0"
+    editions: "npm:^6.21.0"
+    textextensions: "npm:^6.11.0"
+  checksum: 10c0/76ed0355b48ceb351301ade26824f136be9436a1a31432b37191e591e868a081d6953fb7b5faa964681a24cad0435863635618354c5d440c79b65b75a9d788c5
   languageName: node
   linkType: hard
 
@@ -38164,7 +38166,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ory-prettier-styles@npm:^1.3.0":
+"ory-prettier-styles@npm:1.3.0":
   version: 1.3.0
   resolution: "ory-prettier-styles@npm:1.3.0"
   checksum: 10c0/c98e7954c28a3e0d0c54d20855410accd45789358011694d5625d6862defe3537d8e8c57ad31bdfa8879dadf06426b3047e3ee6a8b80d69929a1aed8a571d665
@@ -39603,7 +39605,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:^2.3.2, prettier@npm:^2.6.2, prettier@npm:^2.7.1, prettier@npm:^2.8.0":
+"prettier@npm:3.2.5":
+  version: 3.2.5
+  resolution: "prettier@npm:3.2.5"
+  bin:
+    prettier: bin/prettier.cjs
+  checksum: 10c0/ea327f37a7d46f2324a34ad35292af2ad4c4c3c3355da07313339d7e554320f66f65f91e856add8530157a733c6c4a897dc41b577056be5c24c40f739f5ee8c6
+  languageName: node
+  linkType: hard
+
+"prettier@npm:^2.6.2, prettier@npm:^2.7.1, prettier@npm:^2.8.0":
   version: 2.8.8
   resolution: "prettier@npm:2.8.8"
   bin:
@@ -41987,7 +41998,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"request@npm:^2.55.0, request@npm:^2.88.2":
+"request@npm:^2.55.0":
   version: 2.88.2
   resolution: "request@npm:2.88.2"
   dependencies:
@@ -42997,10 +43008,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"set-cookie-parser@npm:^2.4.8":
-  version: 2.7.1
-  resolution: "set-cookie-parser@npm:2.7.1"
-  checksum: 10c0/060c198c4c92547ac15988256f445eae523f57f2ceefeccf52d30d75dedf6bff22b9c26f756bd44e8e560d44ff4ab2130b178bd2e52ef5571bf7be3bd7632d9a
+"set-cookie-parser@npm:2.6.0":
+  version: 2.6.0
+  resolution: "set-cookie-parser@npm:2.6.0"
+  checksum: 10c0/739da029f0e56806a103fcd5501d9c475e19e77bd8274192d7ae5c374ae714a82bba9a7ac00b0330a18227c5644b08df9e442240527be578f5a6030f9bb2bb80
   languageName: node
   linkType: hard
 
@@ -45192,10 +45203,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"textextensions@npm:^5.14.0":
-  version: 5.16.0
-  resolution: "textextensions@npm:5.16.0"
-  checksum: 10c0/bc90dc60272c3ffb76eeff86dc1decab9535ba8da6a00efe2a005763d0305cb445db9ac35970538c59b89bf41820c3d19394f46c6b7346d520b9ae16fe47be80
+"textextensions@npm:^6.11.0":
+  version: 6.11.0
+  resolution: "textextensions@npm:6.11.0"
+  dependencies:
+    editions: "npm:^6.21.0"
+  checksum: 10c0/6077ca91af65d8067007973635d9e22c712c08cc06004cf2fa91f221239f0a833ededa18bf977131b45649be4a34fe44a7d1cb7b3f6c6c49d5677a197a10b0e0
   languageName: node
   linkType: hard
 
@@ -45400,7 +45413,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldjs@npm:^2.3.1":
+"tldjs@npm:2.3.1":
   version: 2.3.1
   resolution: "tldjs@npm:2.3.1"
   dependencies:
@@ -47409,6 +47422,13 @@ __metadata:
     core-util-is: "npm:1.0.2"
     extsprintf: "npm:^1.2.0"
   checksum: 10c0/37ccdf8542b5863c525128908ac80f2b476eed36a32cb944de930ca1e2e78584cc435c4b9b4c68d0fc13a47b45ff364b4be43aa74f8804f9050140f660fb660d
+  languageName: node
+  linkType: hard
+
+"version-range@npm:^4.13.0":
+  version: 4.14.0
+  resolution: "version-range@npm:4.14.0"
+  checksum: 10c0/f9aab9c3b6e572dad1fb02df50cc8cf1a28be66ed2bc45e0d32d863d03d08d46cab154b6f9ed3eb7c404e12ae21a3b3231ba424798dbb339e9095a2d107ed50d
   languageName: node
   linkType: hard
 
