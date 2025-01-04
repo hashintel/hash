@@ -84,7 +84,7 @@
     "openai": "4.77.0",
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.4.1",
-    "pdf2json": "3.1.4",
+    "pdf2json": "3.1.5",
     "puppeteer": "22.15.0",
     "puppeteer-extra": "3.3.6",
     "puppeteer-extra-plugin-stealth": "2.11.2",
