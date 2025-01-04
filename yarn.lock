@@ -325,7 +325,7 @@ __metadata:
     openai: "npm:4.77.0"
     openai-chat-tokens: "npm:0.2.8"
     papaparse: "npm:5.4.1"
-    pdf2json: "npm:3.1.4"
+    pdf2json: "npm:3.1.5"
     puppeteer: "npm:22.15.0"
     puppeteer-extra: "npm:3.3.6"
     puppeteer-extra-plugin-stealth: "npm:2.11.2"
@@ -19688,10 +19688,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@xmldom/xmldom@npm:^0.9.5":
-  version: 0.9.5
-  resolution: "@xmldom/xmldom@npm:0.9.5"
-  checksum: 10c0/5ff2016050277bcee95f3fb958c442c9aa149214d0e7a72c3c0d3797e9e77a2636398f16b6a50b2bc6540e59150d1bc9c968d01a2bb4a18316ed09f8d22f8d29
+"@xmldom/xmldom@npm:^0.9.5, @xmldom/xmldom@npm:^0.9.6":
+  version: 0.9.6
+  resolution: "@xmldom/xmldom@npm:0.9.6"
+  checksum: 10c0/154f67a9b3ea0700d5ee88eb6fdf1380cb0eb448337e7e52d6f5f65f19fda362d1dac086f960445bac90475d5a208141619682c981f106c6b581841d05efccd0
   languageName: node
   linkType: hard
 
@@ -38936,14 +38936,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pdf2json@npm:3.1.4":
-  version: 3.1.4
-  resolution: "pdf2json@npm:3.1.4"
+"pdf2json@npm:3.1.5":
+  version: 3.1.5
+  resolution: "pdf2json@npm:3.1.5"
   dependencies:
-    "@xmldom/xmldom": "npm:^0.8.10"
+    "@xmldom/xmldom": "npm:^0.9.6"
   bin:
     pdf2json: bin/pdf2json.js
-  checksum: 10c0/23b0eed2ee9a2e3d0251c97d9f7c82bde2e2ccb3feb335f3539b2c506cdd0e0ccd9947fed0f4394355ffc41c74a15006d69fa8d2c9ebdf382e2bb97939074b6f
+  checksum: 10c0/598cddfae90b004de171040bb922740de8e6323db3c8c91dec12a496d303e536f58e4f0d4f8e229f2bde137b2ab9de956848b4914e65b34c4c9de8a04cdb41f6
   languageName: node
   linkType: hard
 
