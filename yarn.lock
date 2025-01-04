@@ -7902,7 +7902,7 @@ __metadata:
     "@types/react-dom": "npm:19.0.2"
     "@types/react-syntax-highlighter": "npm:15.5.13"
     eslint: "npm:9.17.0"
-    eslint-plugin-storybook: "npm:0.11.1"
+    eslint-plugin-storybook: "npm:0.11.2"
     lowlight: "npm:2.9.0"
     react: "npm:19.0.0"
     react-dom: "npm:19.0.0"
@@ -7941,7 +7941,7 @@ __metadata:
     clsx: "npm:1.2.1"
     echarts: "npm:5.6.0"
     eslint: "npm:9.17.0"
-    eslint-plugin-storybook: "npm:0.11.1"
+    eslint-plugin-storybook: "npm:0.11.2"
     react: "npm:19.0.0"
     react-dom: "npm:19.0.0"
     react-loading-skeleton: "npm:3.5.0"
@@ -7971,7 +7971,7 @@ __metadata:
     "@mui/system": "npm:5.16.13"
     clsx: "npm:1.2.1"
     eslint: "npm:9.17.0"
-    eslint-plugin-storybook: "npm:0.11.1"
+    eslint-plugin-storybook: "npm:0.11.2"
     react: "npm:19.0.0"
     react-dom: "npm:19.0.0"
     react-hook-form: "npm:7.54.2"
@@ -8003,7 +8003,7 @@ __metadata:
     "@types/lodash.uniqueid": "npm:4.0.9"
     clsx: "npm:1.2.1"
     eslint: "npm:9.17.0"
-    eslint-plugin-storybook: "npm:0.11.1"
+    eslint-plugin-storybook: "npm:0.11.2"
     lodash.memoize: "npm:4.1.2"
     lodash.uniqueid: "npm:4.0.1"
     material-ui-popup-state: "npm:4.1.0"
@@ -9310,7 +9310,7 @@ __metadata:
     eslint-plugin-canonical: "npm:5.1.2"
     eslint-plugin-import: "npm:2.31.0"
     eslint-plugin-react-hooks: "npm:5.1.0"
-    eslint-plugin-storybook: "npm:0.11.1"
+    eslint-plugin-storybook: "npm:0.11.2"
     eslint-unicorn: "npm:55.0.0"
     globals: "npm:15.14.0"
     rimraf: "npm:6.0.1"
@@ -27046,16 +27046,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-storybook@npm:0.11.1":
-  version: 0.11.1
-  resolution: "eslint-plugin-storybook@npm:0.11.1"
+"eslint-plugin-storybook@npm:0.11.2":
+  version: 0.11.2
+  resolution: "eslint-plugin-storybook@npm:0.11.2"
   dependencies:
     "@storybook/csf": "npm:^0.1.11"
     "@typescript-eslint/utils": "npm:^8.8.1"
     ts-dedent: "npm:^2.2.0"
   peerDependencies:
-    eslint: ">=6"
-  checksum: 10c0/0520018311c6da25fe2d0db24a59e99ecefe74c4cadd4eba42ce3b1b0ce2c3cc6f88d48680389374f99e10151a7ef3da52386853d9d5a4058c41ae72e2184549
+    eslint: ">=8"
+  checksum: 10c0/8ba697ec92282b747ba20d8759fd2999b9d35f7a0adb7a809fe36e7baaac142b0f2123f78a87c05b811868d7e62d828ded1855fac4913667c470540dfdf0b3dc
   languageName: node
   linkType: hard
 
