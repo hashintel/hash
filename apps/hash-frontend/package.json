@@ -150,7 +150,7 @@
     "eslint": "9.17.0",
     "graphology-types": "0.24.8",
     "rimraf": "6.0.1",
-    "sass": "1.83.0",
+    "sass": "1.83.1",
     "typescript": "5.7.2",
     "wait-on": "8.0.1",
     "webpack": "5.97.1"
