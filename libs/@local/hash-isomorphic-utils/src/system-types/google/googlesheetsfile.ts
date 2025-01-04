@@ -19,8 +19,12 @@ import type {
   AccountUsesUserSecretLink,
   ConnectionSourceNamePropertyValue,
   ConnectionSourceNamePropertyValueWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   DisplayNamePropertyValue,
   DisplayNamePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   ExpiredAtPropertyValue,
@@ -57,8 +61,12 @@ export type {
   AccountUsesUserSecretLink,
   ConnectionSourceNamePropertyValue,
   ConnectionSourceNamePropertyValueWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   DisplayNamePropertyValue,
   DisplayNamePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   ExpiredAtPropertyValue,
@@ -87,7 +95,7 @@ export type {
 /**
  * The type of thing that can, should or will act on something.
  */
-export type ActorTypeDataType = "human" | "machine";
+export type ActorTypeDataType = TextDataType & ("machine" | "human");
 
 export type ActorTypeDataTypeWithMetadata = {
   value: ActorTypeDataType;
@@ -117,22 +125,13 @@ export type AssociatedWithAccountOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The account that something is associated with.
  */
-export type AssociatedWithAccountProperties = AssociatedWithAccountProperties1 &
-  AssociatedWithAccountProperties2;
-export type AssociatedWithAccountProperties1 = LinkProperties;
-
-export type AssociatedWithAccountProperties2 = {};
+export type AssociatedWithAccountProperties = LinkProperties & {};
 
 export type AssociatedWithAccountPropertiesWithMetadata =
-  AssociatedWithAccountPropertiesWithMetadata1 &
-    AssociatedWithAccountPropertiesWithMetadata2;
-export type AssociatedWithAccountPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type AssociatedWithAccountPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * A True or False value
@@ -156,21 +155,6 @@ export type DataAudiencePropertyValue = ActorTypeDataType;
 
 export type DataAudiencePropertyValueWithMetadata =
   ActorTypeDataTypeWithMetadata;
-
-/**
- * A reference to a particular date and time, formatted according to RFC 3339.
- */
-export type DateTimeDataType = string;
-
-export type DateTimeDataTypeWithMetadata = {
-  value: DateTimeDataType;
-  metadata: DateTimeDataTypeMetadata;
-};
-export type DateTimeDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1";
-};
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -346,28 +330,19 @@ export type GoogleSheetsFileOutgoingLinksByLinkEntityTypeId = {
 /**
  * A Google Sheets file.
  */
-export type GoogleSheetsFileProperties = GoogleSheetsFileProperties1 &
-  GoogleSheetsFileProperties2;
-export type GoogleSheetsFileProperties1 = SpreadsheetFileProperties;
-
-export type GoogleSheetsFileProperties2 = {
+export type GoogleSheetsFileProperties = SpreadsheetFileProperties & {
   "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValue;
   "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValue;
 };
 
 export type GoogleSheetsFilePropertiesWithMetadata =
-  GoogleSheetsFilePropertiesWithMetadata1 &
-    GoogleSheetsFilePropertiesWithMetadata2;
-export type GoogleSheetsFilePropertiesWithMetadata1 =
-  SpreadsheetFilePropertiesWithMetadata;
-
-export type GoogleSheetsFilePropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
+  SpreadsheetFilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
+      "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
+    };
   };
-};
 
 /**
  * A MIME (Multipurpose Internet Mail Extensions) type.
@@ -433,21 +408,13 @@ export type SpreadsheetFileOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A spreadsheet file.
  */
-export type SpreadsheetFileProperties = SpreadsheetFileProperties1 &
-  SpreadsheetFileProperties2;
-export type SpreadsheetFileProperties1 = FileProperties;
-
-export type SpreadsheetFileProperties2 = {};
+export type SpreadsheetFileProperties = FileProperties & {};
 
 export type SpreadsheetFilePropertiesWithMetadata =
-  SpreadsheetFilePropertiesWithMetadata1 &
-    SpreadsheetFilePropertiesWithMetadata2;
-export type SpreadsheetFilePropertiesWithMetadata1 = FilePropertiesWithMetadata;
-
-export type SpreadsheetFilePropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  FilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * The timestamp when the upload of something has completed

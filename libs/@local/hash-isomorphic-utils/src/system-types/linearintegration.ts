@@ -46,6 +46,8 @@ import type {
   DisplayNamePropertyValueWithMetadata,
   DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EnabledFeatureFlagsPropertyValue,
@@ -114,11 +116,11 @@ import type {
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
   HasServiceAccountProperties,
   HasServiceAccountPropertiesWithMetadata,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
-  ImagePropertiesWithMetadata,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
+  ImageFilePropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -180,6 +182,8 @@ import type {
   TextDataTypeWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
@@ -243,6 +247,8 @@ export type {
   DisplayNamePropertyValueWithMetadata,
   DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EnabledFeatureFlagsPropertyValue,
@@ -311,11 +317,11 @@ export type {
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
   HasServiceAccountProperties,
   HasServiceAccountPropertiesWithMetadata,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
-  ImagePropertiesWithMetadata,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
+  ImageFilePropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -377,6 +383,8 @@ export type {
   TextDataTypeWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
@@ -474,29 +482,20 @@ export type SyncLinearDataWithOutgoingLinksByLinkEntityTypeId = {};
 /**
  * Something that syncs linear data with something.
  */
-export type SyncLinearDataWithProperties = SyncLinearDataWithProperties1 &
-  SyncLinearDataWithProperties2;
-export type SyncLinearDataWithProperties1 = LinkProperties;
-
-export type SyncLinearDataWithProperties2 = {
+export type SyncLinearDataWithProperties = LinkProperties & {
   "https://hash.ai/@hash/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
 };
 
 export type SyncLinearDataWithPropertiesWithMetadata =
-  SyncLinearDataWithPropertiesWithMetadata1 &
-    SyncLinearDataWithPropertiesWithMetadata2;
-export type SyncLinearDataWithPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type SyncLinearDataWithPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/linear-team-id/"?: {
-      value: LinearTeamIdPropertyValueWithMetadata[];
-      metadata?: ArrayMetadata;
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@hash/types/property-type/linear-team-id/"?: {
+        value: LinearTeamIdPropertyValueWithMetadata[];
+        metadata?: ArrayMetadata;
+      };
     };
   };
-};
 
 /**
  * The user secret something uses.
@@ -516,17 +515,10 @@ export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The user secret something uses.
  */
-export type UsesUserSecretProperties = UsesUserSecretProperties1 &
-  UsesUserSecretProperties2;
-export type UsesUserSecretProperties1 = LinkProperties;
-
-export type UsesUserSecretProperties2 = {};
+export type UsesUserSecretProperties = LinkProperties & {};
 
 export type UsesUserSecretPropertiesWithMetadata =
-  UsesUserSecretPropertiesWithMetadata1 & UsesUserSecretPropertiesWithMetadata2;
-export type UsesUserSecretPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type UsesUserSecretPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

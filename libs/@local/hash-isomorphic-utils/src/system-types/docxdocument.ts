@@ -138,18 +138,10 @@ export type DOCXDocumentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A Microsoft Word document.
  */
-export type DOCXDocumentProperties = DOCXDocumentProperties1 &
-  DOCXDocumentProperties2;
-export type DOCXDocumentProperties1 = DocumentFileProperties;
-
-export type DOCXDocumentProperties2 = {};
+export type DOCXDocumentProperties = DocumentFileProperties & {};
 
 export type DOCXDocumentPropertiesWithMetadata =
-  DOCXDocumentPropertiesWithMetadata1 & DOCXDocumentPropertiesWithMetadata2;
-export type DOCXDocumentPropertiesWithMetadata1 =
-  DocumentFilePropertiesWithMetadata;
-
-export type DOCXDocumentPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  DocumentFilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

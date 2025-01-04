@@ -122,18 +122,10 @@ export type SpreadsheetFileOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A spreadsheet file.
  */
-export type SpreadsheetFileProperties = SpreadsheetFileProperties1 &
-  SpreadsheetFileProperties2;
-export type SpreadsheetFileProperties1 = FileProperties;
-
-export type SpreadsheetFileProperties2 = {};
+export type SpreadsheetFileProperties = FileProperties & {};
 
 export type SpreadsheetFilePropertiesWithMetadata =
-  SpreadsheetFilePropertiesWithMetadata1 &
-    SpreadsheetFilePropertiesWithMetadata2;
-export type SpreadsheetFilePropertiesWithMetadata1 = FilePropertiesWithMetadata;
-
-export type SpreadsheetFilePropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  FilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

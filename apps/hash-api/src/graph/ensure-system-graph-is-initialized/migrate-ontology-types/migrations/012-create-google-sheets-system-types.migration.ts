@@ -62,6 +62,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Account",
+        titlePlural: "Accounts",
+        icon: "/icons/types/google.svg",
         description: "A Google user account.",
         properties: [
           {
@@ -100,6 +102,11 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Associated With Account",
+        titlePlural: "Associated With Accounts",
+        inverse: {
+          title: "Account For",
+          titlePlural: "Account Fors",
+        },
         description: "The account that something is associated with.",
         properties: [],
       },
@@ -166,6 +173,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [currentFileEntityTypeId],
         title: "Spreadsheet File",
+        titlePlural: "Spreadsheet Files",
+        icon: "/icons/types/file-spreadsheet.svg",
         description: "A spreadsheet file.",
       },
       webShortname: "hash",
@@ -181,6 +190,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [spreadsheetFileEntityType.schema.$id],
         title: "Google Sheets File",
+        titlePlural: "Google Sheets Files",
         description: "A Google Sheets file.",
         properties: [
           {

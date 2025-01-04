@@ -14,6 +14,8 @@ import type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -26,6 +28,8 @@ export type {
   ServiceAccountPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };
 
 /**
@@ -46,19 +50,10 @@ export type FacebookAccountOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A Facebook account.
  */
-export type FacebookAccountProperties = FacebookAccountProperties1 &
-  FacebookAccountProperties2;
-export type FacebookAccountProperties1 = ServiceAccountProperties;
-
-export type FacebookAccountProperties2 = {};
+export type FacebookAccountProperties = ServiceAccountProperties & {};
 
 export type FacebookAccountPropertiesWithMetadata =
-  FacebookAccountPropertiesWithMetadata1 &
-    FacebookAccountPropertiesWithMetadata2;
-export type FacebookAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type FacebookAccountPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  ServiceAccountPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

@@ -92,16 +92,9 @@ export type HasObjectOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The object something has
  */
-export type HasObjectProperties = HasObjectProperties1 & HasObjectProperties2;
-export type HasObjectProperties1 = LinkProperties;
+export type HasObjectProperties = LinkProperties & {};
 
-export type HasObjectProperties2 = {};
-
-export type HasObjectPropertiesWithMetadata = HasObjectPropertiesWithMetadata1 &
-  HasObjectPropertiesWithMetadata2;
-export type HasObjectPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasObjectPropertiesWithMetadata2 = {
+export type HasObjectPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -122,17 +115,9 @@ export type HasSubjectOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The subject something has
  */
-export type HasSubjectProperties = HasSubjectProperties1 &
-  HasSubjectProperties2;
-export type HasSubjectProperties1 = LinkProperties;
+export type HasSubjectProperties = LinkProperties & {};
 
-export type HasSubjectProperties2 = {};
-
-export type HasSubjectPropertiesWithMetadata =
-  HasSubjectPropertiesWithMetadata1 & HasSubjectPropertiesWithMetadata2;
-export type HasSubjectPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasSubjectPropertiesWithMetadata2 = {
+export type HasSubjectPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };

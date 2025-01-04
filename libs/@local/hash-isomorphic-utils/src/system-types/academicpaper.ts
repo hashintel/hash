@@ -27,6 +27,8 @@ import type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   Institution,
@@ -61,6 +63,8 @@ import type {
   TextDataTypeWithMetadata,
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   YearDataType,
   YearDataTypeWithMetadata,
 } from "./shared.js";
@@ -84,6 +88,8 @@ export type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   Institution,
@@ -118,6 +124,8 @@ export type {
   TextDataTypeWithMetadata,
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   YearDataType,
   YearDataTypeWithMetadata,
 };
@@ -138,11 +146,7 @@ export type AcademicPaperOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A paper describing academic research
  */
-export type AcademicPaperProperties = AcademicPaperProperties1 &
-  AcademicPaperProperties2;
-export type AcademicPaperProperties1 = DocProperties;
-
-export type AcademicPaperProperties2 = {
+export type AcademicPaperProperties = DocProperties & {
   "https://hash.ai/@hash/types/property-type/doi-link/"?: DOILinkPropertyValue;
   "https://hash.ai/@hash/types/property-type/doi/"?: DOIPropertyValue;
   "https://hash.ai/@hash/types/property-type/experimental-subject/"?: ExperimentalSubjectPropertyValue;
@@ -152,11 +156,7 @@ export type AcademicPaperProperties2 = {
   "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValue;
 };
 
-export type AcademicPaperPropertiesWithMetadata =
-  AcademicPaperPropertiesWithMetadata1 & AcademicPaperPropertiesWithMetadata2;
-export type AcademicPaperPropertiesWithMetadata1 = DocPropertiesWithMetadata;
-
-export type AcademicPaperPropertiesWithMetadata2 = {
+export type AcademicPaperPropertiesWithMetadata = DocPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/doi-link/"?: DOILinkPropertyValueWithMetadata;
@@ -172,10 +172,7 @@ export type AcademicPaperPropertiesWithMetadata2 = {
 /**
  * A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.
  */
-export type DOIDataType = DOIDataType1;
-export type DOIDataType1 = TextDataType;
-
-export type DOIDataType2 = string;
+export type DOIDataType = TextDataType;
 
 export type DOIDataTypeWithMetadata = {
   value: DOIDataType;
@@ -222,21 +219,3 @@ export type FindingPropertyValueWithMetadata = TextDataTypeWithMetadata;
 export type MethodologyPropertyValue = TextDataType;
 
 export type MethodologyPropertyValueWithMetadata = TextDataTypeWithMetadata;
-
-/**
- * A unique identifier for a resource (e.g. a URL, or URN).
- */
-export type URIDataType = URIDataType1;
-export type URIDataType1 = TextDataType;
-
-export type URIDataType2 = string;
-
-export type URIDataTypeWithMetadata = {
-  value: URIDataType;
-  metadata: URIDataTypeMetadata;
-};
-export type URIDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1";
-};

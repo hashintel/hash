@@ -121,7 +121,7 @@ export interface PresignedPutUpload {
 }
 
 const fileMimeTypeStartsWithToEntityTypeId: Record<string, VersionedUrl> = {
-  "image/": systemEntityTypes.image.entityTypeId,
+  "image/": systemEntityTypes.imageFile.entityTypeId,
   "application/pdf": systemEntityTypes.pdfDocument.entityTypeId,
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
     systemEntityTypes.docxDocument.entityTypeId,

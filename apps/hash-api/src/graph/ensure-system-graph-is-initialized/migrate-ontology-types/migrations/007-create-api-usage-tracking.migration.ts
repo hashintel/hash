@@ -151,6 +151,9 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Service Feature",
+        titlePlural: "Service Features",
+        icon: "/icons/types/plug-circle-check.svg",
+        labelProperty: serviceNamePropertyType.metadata.recordId.baseUrl,
         description: "A feature of a service",
         properties: [
           {
@@ -182,6 +185,11 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Records Usage Of",
+        titlePlural: "Records Usage Ofs",
+        inverse: {
+          title: "Usage Recorded By",
+          titlePlural: "Usage Recorded Bys",
+        },
         description: "The thing that something records usage of.",
       },
       webShortname: "hash",
@@ -197,6 +205,11 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Created",
+        titlePlural: "Createds",
+        inverse: {
+          title: "Created By",
+          titlePlural: "Created Bys",
+        },
         description: "The thing that something created.",
       },
       webShortname: "hash",
@@ -212,6 +225,11 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Updated",
+        titlePlural: "Updateds",
+        inverse: {
+          title: "Updated By",
+          titlePlural: "Updated Bys",
+        },
         description: "The thing that something created.",
       },
       webShortname: "hash",
@@ -251,6 +269,8 @@ const migrate: MigrationFunction = async ({
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
       title: "Usage Record",
+      titlePlural: "Usage Records",
+      icon: "/icons/types/gauge-max.svg",
       description: "A record of usage of a service",
       properties: [
         {

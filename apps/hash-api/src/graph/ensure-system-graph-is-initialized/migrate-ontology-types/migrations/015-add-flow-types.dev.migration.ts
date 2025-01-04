@@ -102,6 +102,9 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Flow Definition",
+        titlePlural: "Flow Definitions",
+        /** @todo icon */
+
         description: "The definition of a HASH flow.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
@@ -224,6 +227,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Flow Run",
+        titlePlural: "Flow Runs",
+        /** @todo icon */
         description: "An execution run of a flow.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
@@ -295,6 +300,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Subject",
+        titlePlural: "Has Subjects",
+        /** @todo icon */
+        inverse: {
+          title: "Subject Of",
+          titlePlural: "Subject Ofs",
+        },
         description: "The subject something has",
         properties: [],
       },
@@ -311,6 +322,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Object",
+        titlePlural: "Has Objects",
+        /** @todo icon */
+        inverse: {
+          title: "Object Of",
+          titlePlural: "Object Ofs",
+        },
         description: "The object something has",
         properties: [],
       },
@@ -326,6 +343,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Claim",
+        titlePlural: "Claims",
+        /** @todo icon */
         description: "A claim made about something.",
         properties: [
           {
@@ -367,6 +386,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Incurred In",
+        titlePlural: "Incurred Ins",
+        /** @todo icon */
+        inverse: {
+          title: "Incurred",
+          titlePlural: "Incurred",
+        },
         description: "Something that was incurred in something else.",
         properties: [],
       },

@@ -51,7 +51,9 @@ const migrate: MigrationFunction = async ({
         title: "Archived At",
         description:
           "The time at which the entity was archived. Null if the entity has not been archived.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -65,7 +67,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Created At",
         description: "The time at which the entity was created.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -89,7 +93,9 @@ const migrate: MigrationFunction = async ({
         title: "Deletion Requested At",
         description:
           "The time at which deletion of the organization was requested.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -155,7 +161,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Logo URL",
         description: "The organization's logo URL.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -182,7 +190,9 @@ const migrate: MigrationFunction = async ({
         title: "Period Upload Volume",
         description:
           "Rolling 30-day total upload volume for the organization, in megabytes.",
-        possibleValues: [{ primitiveDataType: "number" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/megabytes/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -263,7 +273,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Trial Ends At",
         description: "The time at which the trial of the plus plan will end.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -282,7 +294,9 @@ const migrate: MigrationFunction = async ({
           "for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys).",
           "This is the same as the creation time if the entity hasn't been updated after creation.",
         ].join(" "),
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -467,7 +481,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Avatar URL",
         description: "An URL to the user's avatar image.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -559,7 +575,9 @@ const migrate: MigrationFunction = async ({
         title: "Last Seen",
         description:
           "The last time the user was seen online. If null, the user is currently online.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -629,7 +647,9 @@ const migrate: MigrationFunction = async ({
         title: "Status Until At",
         description:
           "A date at which the user current status should be cleared.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -657,7 +677,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Profile URL",
         description: "User's profile URL.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -828,7 +850,9 @@ const migrate: MigrationFunction = async ({
         title: "Auto Archived At",
         description:
           "The time at which the issue was automatically archived by the auto pruning process.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -843,7 +867,9 @@ const migrate: MigrationFunction = async ({
         title: "Auto Closed At",
         description:
           "The time at which the issue was automatically closed by the auto pruning process.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -872,7 +898,9 @@ const migrate: MigrationFunction = async ({
         title: "Canceled At",
         description:
           "The time at which the issue was moved into canceled state.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -887,7 +915,9 @@ const migrate: MigrationFunction = async ({
         title: "Completed At",
         description:
           "The time at which the issue was moved into completed state.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -937,7 +967,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Due Date",
         description: "The date at which the issue is due.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/date/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -1079,7 +1111,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Snoozed Until At",
         description: "The time until an issue will be snoozed in Triage view.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -1109,7 +1143,9 @@ const migrate: MigrationFunction = async ({
         title: "Started At",
         description:
           "The time at which the issue was moved into started state.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -1123,7 +1159,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Started Triage At",
         description: "The time at which the issue entered triage.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -1210,7 +1248,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Triaged At",
         description: "The time at which the issue left triage.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -1224,7 +1264,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Issue URL",
         description: "The URL of the issue.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
@@ -1492,7 +1534,9 @@ const migrate: MigrationFunction = async ({
         title: "Attachment URL",
         description:
           "Location of the attachment which is also used as an identifier.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [
+          { dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1" },
+        ],
       },
       webShortname: "linear",
       migrationState,
