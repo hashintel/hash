@@ -113,7 +113,7 @@ futures-util       = { version = "=0.3.31", default-features = false }
 hashbrown          = { version = "=0.15.2", default-features = false, features = ["inline-more", "nightly"] }
 http               = { version = "=1.2.0", default-features = false }
 image              = { version = "0.25.0", default-features = false }
-inferno            = { version = "=0.12.0", default-features = false }
+inferno            = { version = "=0.12.1", default-features = false }
 iso8601-duration   = { version = "=0.2.0", default-features = false }
 json-number        = { version = "=0.4.9", default-features = false }
 jsonptr            = { version = "=0.6.3", default-features = false }
