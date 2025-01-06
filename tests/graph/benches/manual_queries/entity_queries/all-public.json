@@ -15,60 +15,7 @@
   },
   "request": {
     "filter": {
-      "all": [
-        {
-          "any": [
-            {
-              "all": [
-                {
-                  "equal": [
-                    {
-                      "path": ["type(inheritanceDepth = 0)", "baseUrl"]
-                    },
-                    {
-                      "parameter": "https://hash.ai/@hash/types/entity-type/canvas/"
-                    }
-                  ]
-                },
-                {
-                  "equal": [
-                    {
-                      "path": ["type(inheritanceDepth = 0)", "version"]
-                    },
-                    {
-                      "parameter": 1
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "all": [
-                {
-                  "equal": [
-                    {
-                      "path": ["type(inheritanceDepth = 0)", "baseUrl"]
-                    },
-                    {
-                      "parameter": "https://hash.ai/@hash/types/entity-type/document/"
-                    }
-                  ]
-                },
-                {
-                  "equal": [
-                    {
-                      "path": ["type(inheritanceDepth = 0)", "version"]
-                    },
-                    {
-                      "parameter": 1
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
+      "all": []
     },
     "temporalAxes": {
       "pinned": {
