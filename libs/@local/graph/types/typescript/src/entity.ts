@@ -108,6 +108,26 @@ export type PropertyObject = {
   [key: BaseUrl]: Property;
 };
 
+/**
+ * Takes a property object which has unbranded string keys, such as those found in the generated system types
+ * in @local/hash-isomorphic-utils/system-types/*, and returns an object where the keys are branded as BaseUrls.
+ *
+ * Useful when wanting to strongly type a property object and pass it to a function that expends an object with branded keys.
+ *
+ * @todo consider updating the system type TS generation code to brand the keys automatically
+ */
+export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
+  T & {
+    [K in keyof T as Brand<K & string, "BaseUrl">]: T[K];
+  };
+
+// Helper function to create branded objects
+export const brandPropertyObject = <T extends Record<string, PropertyValue>>(
+  obj: T,
+): BrandedPropertyObject<T> => {
+  return obj as BrandedPropertyObject<T>;
+};
+
 export type EntityProperties = {
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   properties: PropertyObject;

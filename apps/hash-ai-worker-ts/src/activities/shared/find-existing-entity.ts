@@ -16,7 +16,10 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import {
+  mapGraphApiEntityToEntity,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityTypeRootType } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
@@ -29,6 +32,8 @@ import type { DereferencedEntityType } from "./dereference-entity-type.js";
 import { dereferenceEntityType } from "./dereference-entity-type.js";
 import { createEntityEmbeddings } from "./embeddings.js";
 import { getEntityByFilter } from "./get-entity-by-filter.js";
+import type { PotentialMatch } from "./match-existing-entity.js";
+import { matchExistingEntity } from "./match-existing-entity.js";
 
 export const findExistingEntity = async ({
   actorId,
@@ -42,9 +47,12 @@ export const findExistingEntity = async ({
   dereferencedEntityTypes?: DereferencedEntityType[];
   graphApiClient: GraphApi;
   ownedById: OwnedById;
-  proposedEntity: Pick<ProposedEntity, "entityTypeIds" | "properties">;
+  proposedEntity: Pick<
+    ProposedEntity,
+    "entityTypeIds" | "properties" | "propertyMetadata"
+  >;
   includeDrafts: boolean;
-}): Promise<Entity | undefined> => {
+}): Promise<PotentialMatch | null> => {
   const entityTypes: DereferencedEntityType[] =
     dereferencedEntityTypes ??
     (await graphApiClient
@@ -194,25 +202,31 @@ export const findExistingEntity = async ({
       })
       .filter(<T>(filter: T): filter is NonNullable<T> => filter !== null);
 
-  let existingEntity: Entity | undefined;
+  let potentialMatches: Entity[] | undefined;
 
   if (semanticDistanceFilters.length > 0) {
-    existingEntity = await getEntityByFilter({
-      actorId,
-      graphApiClient,
-      filter: {
-        all: [
-          ...existingEntityBaseAllFilter,
-          {
-            any: semanticDistanceFilters,
-          },
-        ],
-      },
-      includeDrafts,
-    });
+    potentialMatches = await graphApiClient
+      .getEntities(actorId, {
+        filter: {
+          all: [
+            ...existingEntityBaseAllFilter,
+            {
+              any: semanticDistanceFilters,
+            },
+          ],
+        },
+        limit: 3,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
+      })
+      .then(({ data: response }) =>
+        response.entities.map((entity) =>
+          mapGraphApiEntityToEntity(entity, actorId),
+        ),
+      );
   }
 
-  if (!existingEntity) {
+  if (!potentialMatches?.length) {
     // If we didn't find a match on individual properties, try matching on the entire properties object
     const propertyObjectEmbedding = embeddings.find(
       (embedding) => !embedding.property,
@@ -221,29 +235,48 @@ export const findExistingEntity = async ({
     if (!propertyObjectEmbedding) {
       logger.error(`Could not find embedding for properties object – skipping`);
     } else {
-      existingEntity = await getEntityByFilter({
-        actorId,
-        graphApiClient,
-        filter: {
-          all: [
-            ...existingEntityBaseAllFilter,
-            {
-              cosineDistance: [
-                { path: ["embedding"] },
-                {
-                  parameter: propertyObjectEmbedding.embedding,
-                },
-                { parameter: maximumSemanticDistance },
-              ],
-            },
-          ],
-        },
-        includeDrafts,
-      });
+      potentialMatches = await graphApiClient
+        .getEntities(actorId, {
+          filter: {
+            all: [
+              ...existingEntityBaseAllFilter,
+              {
+                cosineDistance: [
+                  { path: ["embedding"] },
+                  {
+                    parameter: propertyObjectEmbedding.embedding,
+                  },
+                  { parameter: maximumSemanticDistance },
+                ],
+              },
+            ],
+          },
+          limit: 3,
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts,
+        })
+        .then(({ data: response }) =>
+          response.entities.map((entity) =>
+            mapGraphApiEntityToEntity(entity, actorId),
+          ),
+        );
     }
   }
 
-  return existingEntity;
+  if (!potentialMatches?.length) {
+    return null;
+  }
+
+  const { matchWithMergedChangedProperties } = await matchExistingEntity({
+    newEntity: proposedEntity,
+    potentialMatches: potentialMatches.map((entity) => ({
+      entityId: entity.entityId,
+      properties: entity.properties,
+      propertyMetadata: entity.propertiesMetadata,
+    })),
+  });
+
+  return matchWithMergedChangedProperties;
 };
 
 export const findExistingLinkEntity = async ({
@@ -259,6 +292,13 @@ export const findExistingLinkEntity = async ({
   ownedById: OwnedById;
   includeDrafts: boolean;
 }) => {
+  /**
+   * @todo check type schema – if there's only one link permitted of this type, we need to just overwrite it.
+   *
+   * otherwise, we need to check if any existing links looks like 'the same' as the new link.
+   * e.g. an employment relationship with the same job role, or start/end dates, would be the same link.
+   * use LLM to make the judgement.
+   */
   return await getEntityByFilter({
     actorId,
     graphApiClient,

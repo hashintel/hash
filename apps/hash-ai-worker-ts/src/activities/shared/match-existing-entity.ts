@@ -1,9 +1,12 @@
-import {
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import type {
   EntityId,
-  isValueMetadata,
   PropertyMetadataObject,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
+import { isValueMetadata } from "@local/hash-graph-types/entity";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import dedent from "dedent";
 
 import { logger } from "./activity-logger.js";
@@ -16,17 +19,12 @@ import type {
   LlmUsage,
 } from "./get-llm-response/types.js";
 import { graphApiClient } from "./graph-api-client.js";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
-import { DuplicateReport } from "../flow-activities/research-entities-action/shared/deduplicate-entities.js";
-import { simplifyEntity } from "./simplify-entity.js";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 
 /**
  * @todo
- * 1. @todo write a @todo list
+ * 1. Cover link entities
  */
-export const mergeEntitiesSystemPrompt = `
+export const matchExistingEntitySystemPrompt = `
   You are managing a database of entities, which may be any type of thing.
   
   You are processing a new report of an entity, and have to decide if it matches an entity that's already in the database.
@@ -37,7 +35,7 @@ export const mergeEntitiesSystemPrompt = `
   1. Decide which one, if any, of the existing entities match the new input
   2. If there is a match, provide:
      - the id of the existing entity that matches the new input
-     - merged versions of properties which are suitable for merging (e.g. descriptions which incorporate both the old and new description)
+     - merged values for properties which are suitable for merging (e.g. descriptions which incorporate both the old and new description)
      
   There may not be a match. Err on the side of caution when deciding if one entity is the same as another.
   
@@ -47,7 +45,7 @@ export const mergeEntitiesSystemPrompt = `
   2. Whereas Nintendo Co Ltd. is the same as Nintendo (they refer to the same entity)
   3. The Playstation 5 is not the same as the Playstation 4
   
-  If you are not certain there is a match among the existing entities, provide 'null' as the 'existingEntity'.
+  If you are not certain there is a match among the existing entities, provide 'null' as the 'matchedEntityId'.
 `;
 
 export type ExistingEntityReport = {
@@ -85,26 +83,26 @@ const generateMatchExistingEntityTool = (
   },
 });
 
-type PotentialMatch = {
+export type PotentialMatch = {
   entityId: EntityId;
-  metadata: PropertyMetadataObject;
   properties: PropertyObject;
+  propertyMetadata: PropertyMetadataObject;
 };
 
-type MatchExistingEntityParams = {
-  newEntity: PotentialMatch;
+export type MatchExistingEntityParams = {
+  newEntity: Omit<PotentialMatch, "entityId">;
   potentialMatches: PotentialMatch[];
 };
 
 const generateMatchExistingEntityUserMessage = ({
   newEntity,
   potentialMatches,
-}: MatchExistingEntityParams): string => {
+  previousError,
+}: MatchExistingEntityParams & { previousError: string | null }): string => {
   return `
 The new entity is:
 
 <NewEntity>
-<EntityId>${newEntity.entityId}</EntityId>
 <Properties>
 ${Object.entries(newEntity.properties)
   .map(
@@ -142,7 +140,7 @@ ${Object.entries(potentialMatch.properties)
 
 Do any of the potential matches match the new entity?
 If so, please provide the entityId of the match, and merged versions of properties which are suitable for merging.
-  `;
+${previousError ? `Your previous response had an error – please do not repeat it: ${previousError}` : ""}`;
 };
 
 const defaultModel: LlmParams["model"] = "gpt-4o-2024-08-06";
@@ -151,11 +149,34 @@ type MergedEntityWithAddedOrChangedProperties = PotentialMatch;
 
 /**
  * Given one or more entities which may be a match for a new entity, identify if any of them are a match.
+ *
+ * If a match is found, it will return the changed properties object and property object metadata.
+ * This may not represent ALL properties of the existing entity, only those which the new entity has changed (added or updated).
  */
 export const matchExistingEntity = async (
   params: MatchExistingEntityParams,
+  previousError: string | null = null,
+  /**
+   * Optional parameters for optimization purposes, allowing to overwrite the system prompt and model used.
+   */
+  testingParams?: {
+    model?: LlmParams["model"];
+    systemPrompt?: string;
+  },
 ): Promise<{
-  match: MergedEntityWithAddedOrChangedProperties | null;
+  /**
+   * If a match is found, this will contain:
+   * - the entityId of the matched entity
+   * - the properties which the new entity has changed (introduced or updated).
+   *     where appropriate, the value for a property may be a merged version of the old and new values,
+   *     e.g. for long text fields such as description (where both the new and old value may contain useful, relevant information)
+   * - the metadata for the changed properties
+   *     if a property value is the result of merging the old and new value, the sources will also be merged.
+   *     e.g. if the old value came from news.com, and the new value came from wikipedia.com, the merged metadata will list both sources.
+   *
+   * If no match is identified, this will be `null`.
+   */
+  matchWithMergedChangedProperties: MergedEntityWithAddedOrChangedProperties | null;
   usage: LlmUsage;
   totalRequestTime: number;
 }> => {
@@ -171,11 +192,13 @@ export const matchExistingEntity = async (
   const userMessage = generateMatchExistingEntityUserMessage({
     newEntity,
     potentialMatches,
+    previousError,
   });
 
   const llmResponse = await getLlmResponse(
     {
-      systemPrompt: mergeEntitiesSystemPrompt,
+      systemPrompt:
+        testingParams?.systemPrompt ?? matchExistingEntitySystemPrompt,
       tools: [tool],
       toolChoice: toolName,
       messages: [
@@ -189,7 +212,7 @@ export const matchExistingEntity = async (
           ],
         },
       ],
-      model: defaultModel,
+      model: testingParams?.model ?? defaultModel,
     },
     {
       customMetadata: {
@@ -206,7 +229,7 @@ export const matchExistingEntity = async (
   if (llmResponse.status !== "ok") {
     if (llmResponse.status === "aborted") {
       return {
-        match: null,
+        matchWithMergedChangedProperties: null,
         totalRequestTime: 0,
         usage: {
           totalTokens: 0,
@@ -249,7 +272,7 @@ export const matchExistingEntity = async (
     firstToolCall.input as ExistingEntityReport;
 
   if (!matchedEntityId) {
-    return { match: null, totalRequestTime, usage };
+    return { matchWithMergedChangedProperties: null, totalRequestTime, usage };
   }
 
   const match = potentialMatches.find(
@@ -257,17 +280,21 @@ export const matchExistingEntity = async (
   );
 
   if (!match) {
+    /**
+     * @todo this is an LLM mistake, resend to the LLM
+     */
     throw new Error(
       `Expected a match for entity id ${matchedEntityId}, but none was found`,
     );
   }
 
-  const newCombinedProperties = JSON.parse(
-    JSON.stringify(match.properties),
-  ) as typeof match.properties;
-  const newCombinedMetadata = JSON.parse(
-    JSON.stringify(match.metadata),
-  ) as typeof match.metadata;
+  const changedPropertiesWithMergedValues = JSON.parse(
+    JSON.stringify(newEntity.properties),
+  ) as typeof newEntity.properties;
+
+  const metadataForChangedProperties = JSON.parse(
+    JSON.stringify(newEntity.propertyMetadata),
+  ) as typeof newEntity.propertyMetadata;
 
   for (const [baseUrl, valueFromNewEntity] of typedEntries(
     newEntity.properties,
@@ -276,10 +303,15 @@ export const matchExistingEntity = async (
 
     const newValue = mergedValue ?? valueFromNewEntity;
 
-    newCombinedProperties[baseUrl] = newValue;
+    changedPropertiesWithMergedValues[baseUrl] = newValue;
 
-    const existingMetadataForProperty = newCombinedMetadata.value[baseUrl];
-    const newMetadataForProperty = newEntity.metadata.value[baseUrl];
+    const existingMetadataForProperty = match.propertyMetadata.value[baseUrl];
+
+    const newMetadataForProperty = newEntity.propertyMetadata.value[baseUrl];
+
+    if (!newMetadataForProperty) {
+      throw new Error(`No metadata provided for property at ${baseUrl}`);
+    }
 
     if (mergedValue) {
       const existingSources =
@@ -288,10 +320,9 @@ export const matchExistingEntity = async (
           ? (existingMetadataForProperty.metadata.provenance?.sources ?? [])
           : [];
 
-      const newSources =
-        newMetadataForProperty && isValueMetadata(newMetadataForProperty)
-          ? (newMetadataForProperty.metadata.provenance?.sources ?? [])
-          : [];
+      const newSources = isValueMetadata(newMetadataForProperty)
+        ? (newMetadataForProperty.metadata.provenance?.sources ?? [])
+        : [];
 
       const mergedSources = [...existingSources, ...newSources].filter(
         (source, index, sources) =>
@@ -301,18 +332,36 @@ export const matchExistingEntity = async (
           ) === index,
       );
 
-      newCombinedMetadata.value[baseUrl] = {
+      if (!isValueMetadata(newMetadataForProperty)) {
+        throw new Error(
+          `Expected metadata to be a value metadata for property at ${baseUrl}, received: ${JSON.stringify(
+            newMetadataForProperty,
+          )}`,
+        );
+      }
+
+      metadataForChangedProperties.value[baseUrl] = {
         metadata: {
-          ...newCombinedMetadata.value[baseUrl]?.metadata,
+          ...newMetadataForProperty.metadata,
           provenance: {
             sources: mergedSources,
           },
         },
       };
     } else {
-      newCombinedMetadata.value[baseUrl] = newMetadataForProperty;
+      metadataForChangedProperties.value[baseUrl] = newMetadataForProperty;
     }
   }
 
-  return { match, totalRequestTime, usage };
+  const matchWithChangedProperties = {
+    entityId: match.entityId,
+    properties: changedPropertiesWithMergedValues,
+    propertyMetadata: metadataForChangedProperties,
+  };
+
+  return {
+    matchWithMergedChangedProperties: matchWithChangedProperties,
+    totalRequestTime,
+    usage,
+  };
 };
