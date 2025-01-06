@@ -728,29 +728,29 @@ where
 )]
 pub struct GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(borrow)]
-    filter: Filter<'q, Entity>,
-    graph_resolve_depths: GraphResolveDepths,
-    temporal_axes: QueryTemporalAxesUnresolved,
-    include_drafts: bool,
-    limit: Option<usize>,
+    pub filter: Filter<'q, Entity>,
+    pub graph_resolve_depths: GraphResolveDepths,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
+    pub limit: Option<usize>,
     #[serde(borrow, default)]
-    conversions: Vec<QueryConversion<'p>>,
+    pub conversions: Vec<QueryConversion<'p>>,
     #[serde(borrow)]
-    sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
+    pub sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
     #[serde(borrow)]
-    cursor: Option<EntityQueryCursor<'s>>,
+    pub cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
-    include_count: bool,
+    pub include_count: bool,
     #[serde(default)]
-    include_entity_types: Option<IncludeEntityTypeOption>,
+    pub include_entity_types: Option<IncludeEntityTypeOption>,
     #[serde(default)]
-    include_web_ids: bool,
+    pub include_web_ids: bool,
     #[serde(default)]
-    include_created_by_ids: bool,
+    pub include_created_by_ids: bool,
     #[serde(default)]
-    include_edition_created_by_ids: bool,
+    pub include_edition_created_by_ids: bool,
     #[serde(default)]
-    include_type_ids: bool,
+    pub include_type_ids: bool,
 }
 
 impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySubgraphParams<'q> {

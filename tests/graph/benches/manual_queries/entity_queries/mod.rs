@@ -1,12 +1,5 @@
 use core::{fmt, iter, mem};
-use std::{
-    collections::{BTreeSet, HashMap},
-    env,
-    ffi::OsStr,
-    fs::File,
-    io,
-    path::Path,
-};
+use std::{collections::HashMap, env, ffi::OsStr, fs::File, io, path::Path};
 
 use criterion::{BatchSize, BenchmarkId, Criterion};
 use criterion_macro::criterion;
@@ -25,7 +18,7 @@ use hash_graph_store::{
     entity::EntityStore, pool::StorePool as _, subgraph::edges::GraphResolveDepths,
 };
 use hash_graph_types::account::AccountId;
-use itertools::{Itertools, iproduct};
+use itertools::{Itertools as _, iproduct};
 use serde::{Deserialize as _, Serialize as _};
 use serde_json::Value as JsonValue;
 use tokio::runtime::Runtime;
@@ -198,6 +191,10 @@ struct GetEntitySubgraphQueryParameters {
     #[serde(default)]
     actor_id: Vec<AccountId>,
     #[serde(default)]
+    limit: Vec<usize>,
+    #[serde(default)]
+    include_count: Vec<bool>,
+    #[serde(default)]
     graph_resolve_depths: Vec<GraphResolveDepths>,
 }
 
@@ -211,9 +208,85 @@ struct GetEntitySubgraphQuery<'q, 's, 'p> {
     settings: Settings<GetEntitySubgraphQueryParameters>,
 }
 
+fn format_graph_resolve_depths(depths: GraphResolveDepths) -> String {
+    format!(
+        "resolve_depths=inherit:{};values:{};properties:{};links:{};link_dests:{};type:{};left:{}/\
+         {};right:{}/{}",
+        depths.inherits_from.outgoing,
+        depths.constrains_values_on.outgoing,
+        depths.constrains_properties_on.outgoing,
+        depths.constrains_links_on.outgoing,
+        depths.constrains_link_destinations_on.outgoing,
+        depths.is_of_type.outgoing,
+        depths.has_left_entity.incoming,
+        depths.has_left_entity.outgoing,
+        depths.has_right_entity.incoming,
+        depths.has_right_entity.outgoing
+    )
+}
+
 impl GetEntitySubgraphQuery<'_, '_, '_> {
-    fn prepare_request(self) -> impl Iterator<Item = (Self, String)> {
-        iter::once((self, String::new()))
+    fn prepare_request(mut self) -> impl Iterator<Item = (Self, String)> {
+        let modifies_actor_id = !self.settings.parameters.actor_id.is_empty();
+        let modifies_limit = !self.settings.parameters.limit.is_empty();
+        let modifies_include_count = !self.settings.parameters.include_count.is_empty();
+        let modifies_graph_resolve_depths =
+            !self.settings.parameters.graph_resolve_depths.is_empty();
+
+        let actor_id = iter::once(self.actor_id)
+            .chain(mem::take(&mut self.settings.parameters.actor_id))
+            .sorted()
+            .dedup();
+        let limit = iter::once(self.request.limit)
+            .chain(
+                mem::take(&mut self.settings.parameters.limit)
+                    .into_iter()
+                    .map(Some),
+            )
+            .sorted()
+            .dedup();
+        let include_count = iter::once(self.request.include_count)
+            .chain(mem::take(&mut self.settings.parameters.include_count))
+            .sorted()
+            .dedup();
+        let graph_resolve_depths = iter::once(self.request.graph_resolve_depths)
+            .chain(mem::take(
+                &mut self.settings.parameters.graph_resolve_depths,
+            ))
+            .sorted()
+            .dedup();
+
+        iproduct!(actor_id, limit, include_count, graph_resolve_depths).map(
+            move |(actor_id, limit, include_count, graph_resolve_depths)| {
+                let mut parameters = Vec::new();
+                if modifies_actor_id {
+                    parameters.push(format!("actor_id={actor_id}"));
+                }
+                if modifies_limit {
+                    if let Some(limit) = limit {
+                        parameters.push(format!("limit={limit}"));
+                    }
+                }
+                if modifies_include_count {
+                    parameters.push(format!("include_count={include_count}"));
+                }
+                if modifies_graph_resolve_depths {
+                    parameters.push(format_graph_resolve_depths(graph_resolve_depths));
+                }
+                (
+                    Self {
+                        actor_id,
+                        request: GetEntitySubgraphRequest {
+                            limit,
+                            include_count,
+                            ..self.request.clone()
+                        },
+                        settings: self.settings.clone(),
+                    },
+                    parameters.join(","),
+                )
+            },
+        )
     }
 }
 

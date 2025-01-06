@@ -1,14 +1,10 @@
 {
   "type": "getEntities",
-  "actorId": "3660bed8-caae-4f20-a52c-a7e8ebca8bc4",
+  "actorId": "00000000-0000-0000-0000-000000000000",
   "settings": {
     "sampleSize": 10,
     "parameters": {
-      "actorId": [
-        "3660bed8-caae-4f20-a52c-a7e8ebca8bc4",
-        "90e041b9-4437-4a53-9832-1e04c2498aff",
-        "a0711135-214a-4a38-9e63-b01a1a14826f"
-      ],
+      "actorId": [],
       "limit": [10, 100, 500],
       "includeCount": [false]
     }
