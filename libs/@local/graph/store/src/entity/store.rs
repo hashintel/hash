@@ -223,7 +223,7 @@ pub struct GetEntitiesResponse<'r> {
     pub type_ids: Option<HashMap<VersionedUrl, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub type_titles: Option<HashMap<String, usize>>,
+    pub type_titles: Option<HashMap<VersionedUrl, String>>,
 }
 
 #[derive(Debug)]
@@ -256,7 +256,7 @@ pub struct GetEntitySubgraphResponse<'r> {
     pub created_by_ids: Option<HashMap<CreatedById, usize>>,
     pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
     pub type_ids: Option<HashMap<VersionedUrl, usize>>,
-    pub type_titles: Option<HashMap<String, usize>>,
+    pub type_titles: Option<HashMap<VersionedUrl, String>>,
 }
 
 #[derive(Debug, Deserialize)]

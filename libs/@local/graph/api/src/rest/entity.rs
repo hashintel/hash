@@ -812,7 +812,7 @@ struct GetEntitySubgraphResponse<'r> {
     type_ids: Option<HashMap<VersionedUrl, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    type_titles: Option<HashMap<String, usize>>,
+    type_titles: Option<HashMap<VersionedUrl, String>>,
 }
 
 #[utoipa::path(

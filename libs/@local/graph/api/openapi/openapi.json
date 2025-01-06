@@ -5791,8 +5791,7 @@
           "typeTitles": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
+              "type": "string"
             }
           },
           "webIds": {
@@ -5939,8 +5938,7 @@
           "typeTitles": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
+              "type": "string"
             }
           },
           "webIds": {
