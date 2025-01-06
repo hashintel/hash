@@ -2804,6 +2804,7 @@ version = "0.0.0"
 dependencies = [
  "criterion",
  "criterion-macro",
+ "either",
  "error-stack",
  "hash-graph-api",
  "hash-graph-authorization",
@@ -2813,6 +2814,7 @@ dependencies = [
  "hash-graph-test-data",
  "hash-graph-types",
  "hash-repo-chores",
+ "itertools 0.13.0",
  "rand",
  "serde",
  "serde_json",
