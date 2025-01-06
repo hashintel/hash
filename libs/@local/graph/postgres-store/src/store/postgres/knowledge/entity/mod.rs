@@ -542,7 +542,6 @@ where
                 .instrument(tracing::trace_span!("query"))
                 .await
                 .change_context(QueryError)?
-                .map(|row| row.change_context(QueryError))
                 .map_ok(move |row| {
                     (
                         EntityId {
@@ -554,7 +553,8 @@ where
                     )
                 })
                 .try_collect::<HashMap<_, _>>()
-                .await?;
+                .await
+                .change_context(QueryError)?;
 
             let (permissions, zookie) = self
                 .authorization_api
@@ -622,17 +622,22 @@ where
 
             #[expect(clippy::if_then_some_else_none)]
             let type_titles = if params.include_type_titles {
-                let type_uuids = type_ids
+                let (type_uuids, count_by_type) = type_ids
                     .as_ref()
                     .expect("type ids should be present")
-                    .keys()
-                    .map(EntityTypeUuid::from_url)
-                    .collect::<Vec<_>>();
+                    .iter()
+                    .map(|(url, count)| {
+                        let type_uuid = EntityTypeUuid::from_url(url);
+                        (type_uuid, (type_uuid, count))
+                    })
+                    .collect::<(Vec<_>, HashMap<_, _>)>();
 
                 let mut type_compiler = SelectCompiler::<EntityTypeWithMetadata>::new(
                     Some(temporal_axes),
                     params.include_drafts,
                 );
+                let ontology_id_idx =
+                    type_compiler.add_selection_path(&EntityTypeQueryPath::OntologyId);
                 let title_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Title);
 
                 let filter = Filter::In(
@@ -651,10 +656,23 @@ where
                         .instrument(tracing::trace_span!("query"))
                         .await
                         .change_context(QueryError)?
-                        .map(|row| row.change_context(QueryError))
-                        .map_ok(move |row| row.get(title_idx))
-                        .try_collect::<ResponseCountMap<String>>()
-                        .await?,
+                        .map_ok(|row| {
+                            let type_uuid: EntityTypeUuid = row.get(ontology_id_idx);
+                            let title: String = row.get(title_idx);
+                            let count = *count_by_type
+                                .get(&type_uuid)
+                                .expect("type id should exist as the query is built from it");
+                            (title, count)
+                        })
+                        .try_fold(
+                            HashMap::new(),
+                            |mut type_titles, (title, count)| async move {
+                                *type_titles.entry(title).or_insert(0) += *count;
+                                Ok(type_titles)
+                            },
+                        )
+                        .await
+                        .change_context(QueryError)?,
                 )
             } else {
                 None
@@ -671,7 +689,7 @@ where
                 } else {
                     None
                 },
-                type_titles.map(HashMap::from),
+                type_titles,
             )
         } else {
             (None, None, None, None, None, None, None)

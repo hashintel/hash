@@ -5705,6 +5705,9 @@
           "includeTypeIds": {
             "type": "boolean"
           },
+          "includeTypeTitles": {
+            "type": "boolean"
+          },
           "includeWebIds": {
             "type": "boolean"
           },
@@ -5785,6 +5788,13 @@
               "minimum": 0
             }
           },
+          "typeTitles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
           "webIds": {
             "type": "object",
             "additionalProperties": {
@@ -5844,6 +5854,9 @@
             "nullable": true
           },
           "includeTypeIds": {
+            "type": "boolean"
+          },
+          "includeTypeTitles": {
             "type": "boolean"
           },
           "includeWebIds": {
@@ -5917,6 +5930,13 @@
             "$ref": "#/components/schemas/Subgraph"
           },
           "typeIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "typeTitles": {
             "type": "object",
             "additionalProperties": {
               "type": "integer",
