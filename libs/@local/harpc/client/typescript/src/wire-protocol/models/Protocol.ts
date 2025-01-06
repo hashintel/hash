@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Data,
   Effect,
   Equal,
@@ -12,11 +12,13 @@ import {
 
 import { createProto, encodeDual } from "../../utils.js";
 import * as Buffer from "../Buffer.js";
+
 import * as ProtocolVersion from "./ProtocolVersion.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/Protocol",
 );
+
 export type TypeId = typeof TypeId;
 
 export class InvalidMagicError extends Data.TaggedError("InvalidMagicError")<{
@@ -24,6 +26,7 @@ export class InvalidMagicError extends Data.TaggedError("InvalidMagicError")<{
 }> {
   get message(): string {
     const receivedString = new TextDecoder().decode(this.received);
+
     return `Invalid magic received: ${receivedString}`;
   }
 }

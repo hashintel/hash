@@ -1,10 +1,10 @@
 #![no_std]
-#![feature(coverage_attribute)]
 #![expect(
     missing_docs,
     reason = "conditionally including docs resulting in false positives. We want to globally \
               apply the lint as soon as possible."
 )]
+#![feature(coverage_attribute)]
 #![cfg_attr(
     doc,
     feature(doc_auto_cfg),

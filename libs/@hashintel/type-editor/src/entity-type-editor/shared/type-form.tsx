@@ -200,6 +200,7 @@ type PolymorphicComponent<
 
 // @ts-expect-error -- fix this at some point, search 'PolymorphicComponent with forwardRef'
 export const TypeFormModal: PolymorphicComponent = forwardRef(
+  // @ts-expect-error -- fix this at some point, search 'PolymorphicComponent with forwardRef'
   <T extends ElementType>(
     props: TypeFormModalProps<T>,
     ref: Ref<HTMLElement>,

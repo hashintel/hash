@@ -13,11 +13,11 @@ runs:
   steps:
     - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
       with:
-        node-version: 20 ## aligned with Node version on Vercel
+        node-version: 22 ## aligned with Node version on Vercel
         # cache: yarn ## Currently disabled because of frequent timeouts
 
     - name: Install WASM tools
-      uses: taiki-e/install-action@8c39981484df4e7ba41af8e8e078ac546d5e1b11 # v2.46.8
+      uses: taiki-e/install-action@a86da1a3cb51967612c80d6dc98c5cac03a73025 # v2.47.7
       with:
         tool: wasm-pack@0.12.1
 

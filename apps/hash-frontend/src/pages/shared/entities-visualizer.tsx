@@ -116,7 +116,7 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const [selectedEntityType, setSelectedEntityType] = useState<{
     entityTypeId: VersionedUrl;
-    slideContainerRef?: RefObject<HTMLDivElement>;
+    slideContainerRef?: RefObject<HTMLDivElement | null>;
   } | null>(null);
 
   const {
@@ -266,14 +266,14 @@ export const EntitiesVisualizer: FunctionComponent<{
   const [selectedEntity, setSelectedEntity] = useState<{
     entityId: EntityId;
     options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">;
-    slideContainerRef?: RefObject<HTMLDivElement>;
+    slideContainerRef?: RefObject<HTMLDivElement | null>;
     subgraph: Subgraph<EntityRootType>;
   } | null>(null);
 
   const handleEntityClick = useCallback(
     (
       entityId: EntityId,
-      modalContainerRef?: RefObject<HTMLDivElement>,
+      modalContainerRef?: RefObject<HTMLDivElement | null>,
       options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">,
     ) => {
       if (subgraph) {

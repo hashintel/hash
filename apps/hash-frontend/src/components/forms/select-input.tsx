@@ -84,7 +84,6 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
             },
           }}
           onChange={_onChange}
-          // @ts-expect-error -- @type investigate ref type mismatch
           ref={ref}
           {...(value && { value })}
           {...(placeholder && { defaultValue: "" })}

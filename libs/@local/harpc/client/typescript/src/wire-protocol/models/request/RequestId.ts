@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Effect,
   Equal,
   Hash,
@@ -16,6 +16,7 @@ import * as Buffer from "../../Buffer.js";
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestId",
 );
+
 export type TypeId = typeof TypeId;
 
 export const MIN_VALUE = U32_MIN;
