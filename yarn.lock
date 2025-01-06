@@ -852,7 +852,7 @@ __metadata:
     webpack-cli: "npm:4.10.0"
     webpack-dev-server: "npm:4.15.2"
     ws: "npm:8.18.0"
-    zip-webpack-plugin: "npm:4.0.2"
+    zip-webpack-plugin: "npm:4.0.3"
   languageName: unknown
   linkType: soft
 
@@ -49053,15 +49053,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zip-webpack-plugin@npm:4.0.2":
-  version: 4.0.2
-  resolution: "zip-webpack-plugin@npm:4.0.2"
+"zip-webpack-plugin@npm:4.0.3":
+  version: 4.0.3
+  resolution: "zip-webpack-plugin@npm:4.0.3"
   dependencies:
     yazl: "npm:^2.5.1"
   peerDependencies:
     webpack: ^4.0.0 || ^5.0.0
     webpack-sources: "*"
-  checksum: 10c0/366f98a6949a0630862f5402cc7b27252535ec84912174ba5b951c697d380cf8ba7ff0d44164c3ab66e99ad95e02f28478e1f7a3e10ec497e8dfc764884379ae
+  checksum: 10c0/2acad2b354e73435a71bc6863b2f19ae906b498e17a843f329c0ca1d198436cdf3165b1ad60ba5f5f2e68f3eb9810a0d6db699f9dca456d827c8eaaf8f42458b
   languageName: node
   linkType: hard
 
