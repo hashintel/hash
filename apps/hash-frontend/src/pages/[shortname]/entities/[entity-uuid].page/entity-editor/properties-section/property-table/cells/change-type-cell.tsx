@@ -36,7 +36,7 @@ const changeText = "CHANGE";
 const changeTextFont = "700 11px Inter";
 
 export const createRenderChangeTypeCell = (
-  gridRef: RefObject<DataEditorRef>,
+  gridRef: RefObject<DataEditorRef | null>,
 ): CustomRenderer<ChangeTypeCell> => {
   return {
     kind: GridCellKind.Custom,

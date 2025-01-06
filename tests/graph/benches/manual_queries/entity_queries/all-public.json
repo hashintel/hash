@@ -1,6 +1,14 @@
 {
   "type": "getEntities",
   "actorId": "00000000-0000-0000-0000-000000000000",
+  "settings": {
+    "sampleSize": 10,
+    "parameters": {
+      "actorId": [],
+      "limit": [10, 100, 500],
+      "includeCount": [false]
+    }
+  },
   "request": {
     "filter": {
       "all": []

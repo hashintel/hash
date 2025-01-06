@@ -33,32 +33,31 @@
   "dependencies": {
     "@blockprotocol/graph": "0.3.4",
     "@blockprotocol/service": "0.1.4",
-    "@fortawesome/free-regular-svg-icons": "6.7.1",
-    "@fortawesome/free-solid-svg-icons": "6.7.1",
+    "@fortawesome/free-regular-svg-icons": "6.7.2",
+    "@fortawesome/free-solid-svg-icons": "6.7.2",
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
-    "@mui/material": "5.16.11",
+    "@mui/material": "5.16.13",
     "lodash.debounce": "4.0.8",
     "react-sizeme": "3.0.2",
     "rooks": "7.14.1",
-    "uuid": "9.0.1"
+    "uuid": "11.0.4"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@types/lodash.debounce": "4.0.9",
-    "@types/react-dom": "18.2.25",
-    "@types/uuid": "10.0.0",
+    "@types/react-dom": "19.0.2",
     "block-scripts": "0.3.4",
     "eslint": "9.17.0",
     "mock-block-dock": "0.1.9",
     "prettier": "3.4.2",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "typescript": "5.6.3"
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "typescript": "5.7.2"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "block-scripts": {
     "port": 63212

@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Effect,
   Equal,
   Hash,
@@ -11,11 +11,13 @@ import {
 
 import { createProto, encodeDual } from "../utils.js";
 import type * as Buffer from "../wire-protocol/Buffer.js";
+
 import * as ProcedureId from "./ProcedureId.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/ProcedureDescriptor",
 );
+
 export type TypeId = typeof TypeId;
 
 export interface ProcedureDescriptor

@@ -3,10 +3,10 @@
  * and RPC APIs.
  */
 
-import type { Status } from "../../type-defs/status.js";
+import type { Status } from "../type-defs/status.js";
 import { StatusCode } from "./status-code.js";
 
-export type { Status } from "../../type-defs/status.js";
+export type { Status } from "../type-defs/status.js";
 export {
   convertHttpCodeToStatusCode,
   convertStatusCodeToHttpCode,

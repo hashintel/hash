@@ -1,7 +1,6 @@
 #########################
 ## Keep in sync with
 ##  - .prettierignore
-##  - .markdownlintignore
 ##  - .dockerignore
 #########################
 
@@ -89,6 +88,7 @@ blocks/**/.env
 **/dist
 **/build
 **/target
+**/pkg
 
 # vscode config
 **/.vscode/settings.json

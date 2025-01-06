@@ -110,6 +110,12 @@ export const mapAnthropicMessageToLlmMessage = (params: {
             } else if (block.type === "tool_use") {
               throw new Error("Tool use content not supported");
             } else if (block.type === "tool_result") {
+              if (typeof block.content === "string") {
+                throw new Error(
+                  "Unexpected string content for tool result, expected object with type field",
+                );
+              }
+
               /**
                * Currently images are not supported in LLM messages,
                * so we filter them out from the content.

@@ -12,7 +12,7 @@ interface PageContextProps {
   pageEntityId: EntityId;
   editorContext: EditorContext | undefined;
   setEditorContext: (context: EditorContext) => void;
-  pageTitleRef: RefObject<HTMLTextAreaElement>;
+  pageTitleRef: RefObject<HTMLTextAreaElement | null>;
 }
 
 const PageContext = createContext<PageContextProps | null>(null);

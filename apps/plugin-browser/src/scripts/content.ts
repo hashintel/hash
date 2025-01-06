@@ -1,6 +1,12 @@
 import browser from "webextension-polyfill";
 
+import {
+  type GetTabContentReturn,
+  isWellFormattedMessage,
+} from "../shared/messages";
+
 /**
+ * @file
  * Content scripts operate in the context of the webpage itself, for reading and manipulating context.
  *
  * They have access to a limited set of browser APIs
@@ -10,11 +16,15 @@ import browser from "webextension-polyfill";
  *
  * You must update the extension if you amend this file, from the extensions manager page in the browser.
  */
-import type { GetTabContentReturn, Message } from "../shared/messages";
 
-// Promise based API (see: https://github.com/mozilla/webextension-polyfill/?tab=readme-ov-file#using-the-promise-based-apis)
+// Promise based API (see:
+// https://github.com/mozilla/webextension-polyfill/?tab=readme-ov-file#using-the-promise-based-apis)
 // eslint-disable-next-line @typescript-eslint/require-await
-browser.runtime.onMessage.addListener(async (message: Message, _sender) => {
+browser.runtime.onMessage.addListener(async (message) => {
+  if (!isWellFormattedMessage(message)) {
+    return `Unrecognised message format ${String(message)}`;
+  }
+
   if (message.type === "get-tab-content") {
     const docContent =
       document.querySelector("main") ?? document.querySelector("body");

@@ -33,7 +33,7 @@ export type Address = {
 };
 
 export const useMapbox = (
-  blockRootRef: RefObject<HTMLDivElement>,
+  blockRootRef: RefObject<HTMLDivElement | null>,
   zoomLevel: number,
   shouldFetchImage: boolean,
   onSelectAddress: (address: Address) => void,
@@ -41,6 +41,7 @@ export const useMapbox = (
   addressId?: string,
 ) => {
   const [selectedAddressLoading, setSelectedAddressLoading] = useState(false);
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating */
   const { serviceModule } = useServiceBlockModule(blockRootRef);
   const [sessionToken, setSessionToken] = useSessionstorageState<string | null>(
     "mapboxSessionToken",

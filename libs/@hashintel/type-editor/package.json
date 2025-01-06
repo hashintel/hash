@@ -22,8 +22,8 @@
   "dependencies": {
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@blockprotocol/type-system": "0.1.2-canary.0",
-    "@fortawesome/free-regular-svg-icons": "6.7.1",
-    "@fortawesome/free-solid-svg-icons": "6.7.1",
+    "@fortawesome/free-regular-svg-icons": "6.7.2",
+    "@fortawesome/free-solid-svg-icons": "6.7.2",
     "@hashintel/design-system": "0.0.8",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
@@ -36,22 +36,22 @@
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
-    "@mui/material": "5.16.11",
-    "@mui/system": "5.16.8",
+    "@mui/material": "5.16.13",
+    "@mui/system": "5.16.13",
     "@types/lodash.memoize": "4.1.9",
     "@types/lodash.uniqueid": "4.0.9",
     "eslint": "9.17.0",
-    "eslint-plugin-storybook": "0.11.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-hook-form": "7.54.1",
-    "typescript": "5.6.3"
+    "eslint-plugin-storybook": "0.11.2",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-hook-form": "7.54.2",
+    "typescript": "5.7.2"
   },
   "peerDependencies": {
     "@mui/material": "^5.14.0",
     "@mui/system": "^5.14.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "react-hook-form": "7.54.1"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "7.54.2"
   }
 }

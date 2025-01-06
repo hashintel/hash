@@ -12,7 +12,7 @@ export const TypeSlideOverStack: FunctionComponent<{
   /**
    * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
    */
-  slideContainerRef?: RefObject<HTMLDivElement>;
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
 }> = ({ rootTypeId, onClose, slideContainerRef }) => {
   const [animateOut, setAnimateOut] = useState(false);
   const [items, setItems] = useState<VersionedUrl[]>([rootTypeId]);

@@ -4,7 +4,7 @@
     "allowSyntheticDefaultImports": true,
     "incremental": true,
     "isolatedModules": true,
-    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "lib": ["DOM", "DOM.Iterable", "ES2024"],
     "paths": {},
     "sourceMap": true,
     "target": "ES2021",

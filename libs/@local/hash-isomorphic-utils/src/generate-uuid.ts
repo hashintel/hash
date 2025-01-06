@@ -1,4 +1,3 @@
-import id128 from "id128";
+import { v4 as uuidv4 } from "uuid";
 
-export const generateUuid = () =>
-  id128.Uuid4.generate().toCanonical().toLowerCase();
+export const generateUuid = () => uuidv4();
