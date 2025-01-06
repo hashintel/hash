@@ -45,7 +45,7 @@
     "@ory/client": "1.1.41",
     "artillery": "2.0.20",
     "dotenv-flow": "3.3.0",
-    "uuid": "11.0.3"
+    "uuid": "11.0.4"
   },
   "devDependencies": {
     "@apps/hash-api": "0.0.0-private",

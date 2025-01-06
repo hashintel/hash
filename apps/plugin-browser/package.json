@@ -44,7 +44,7 @@
     "lodash.debounce": "4.0.8",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "uuid": "11.0.3",
+    "uuid": "11.0.4",
     "webextension-polyfill": "0.12.0",
     "ws": "8.18.0"
   },

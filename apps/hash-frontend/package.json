@@ -123,7 +123,7 @@
     "signia-react": "0.1.5",
     "url-regex-safe": "4.0.0",
     "use-font-face-observer": "1.2.2",
-    "uuid": "11.0.3"
+    "uuid": "11.0.4"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.3",
