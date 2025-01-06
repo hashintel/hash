@@ -525,7 +525,7 @@ where
             let edition_provenance_idx = params
                 .include_edition_created_by_ids
                 .then(|| compiler.add_selection_path(&EntityQueryPath::EditionProvenance(None)));
-            let type_ids_idx = params.include_type_ids.then(|| {
+            let type_ids_idx = (params.include_type_ids || params.include_type_titles).then(|| {
                 (
                     compiler.add_selection_path(&EntityQueryPath::TypeBaseUrls),
                     compiler.add_selection_path(&EntityQueryPath::TypeVersions),
@@ -684,11 +684,7 @@ where
                 web_ids.map(HashMap::from),
                 created_by_ids.map(HashMap::from),
                 edition_created_by_ids.map(HashMap::from),
-                if params.include_type_ids {
-                    type_ids.map(HashMap::from)
-                } else {
-                    None
-                },
+                type_ids.filter(|_| params.include_type_ids),
                 type_titles,
             )
         } else {
