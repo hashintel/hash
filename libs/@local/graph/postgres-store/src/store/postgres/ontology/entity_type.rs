@@ -431,14 +431,14 @@ where
                 .inspect(|(_, row)| {
                     if let Some((web_ids, web_id_idx)) = web_ids.as_mut().zip(web_id_idx) {
                         let web_id: OwnedById = row.get(web_id_idx);
-                        web_ids.increment(web_id);
+                        web_ids.extend_one(web_id);
                     }
 
                     if let Some((edition_created_by_ids, edition_provenance_idx)) =
                         edition_created_by_ids.as_mut().zip(edition_provenance_idx)
                     {
                         let provenance: OntologyEditionProvenance = row.get(edition_provenance_idx);
-                        edition_created_by_ids.increment(provenance.created_by_id);
+                        edition_created_by_ids.extend_one(provenance.created_by_id);
                     }
                 })
                 .count();

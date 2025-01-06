@@ -225,6 +225,7 @@ async fn insert() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entity")
@@ -440,6 +441,7 @@ async fn get_entity_links() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entities")

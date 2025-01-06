@@ -101,12 +101,31 @@ impl<T> Default for ResponseCountMap<T> {
     }
 }
 
-impl<T> ResponseCountMap<T>
+impl<T> Extend<T> for ResponseCountMap<T>
 where
     T: Eq + Hash + Clone,
 {
-    pub fn increment(&mut self, key: T) {
-        *self.map.entry(key).or_insert(0) += 1;
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = T>,
+    {
+        for key in iter {
+            *self.map.entry(key).or_insert(0) += 1;
+        }
+    }
+}
+
+impl<T> FromIterator<T> for ResponseCountMap<T>
+where
+    T: Eq + Hash + Clone,
+{
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+    {
+        let mut this = Self::default();
+        this.extend(iter);
+        this
     }
 }
 

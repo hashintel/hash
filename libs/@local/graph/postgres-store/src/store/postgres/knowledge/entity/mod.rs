@@ -23,9 +23,9 @@ use hash_graph_store::{
         GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
         UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
-    entity_type::IncludeEntityTypeOption,
+    entity_type::{EntityTypeQueryPath, IncludeEntityTypeOption},
     error::{InsertionError, QueryError, UpdateError},
-    filter::{Filter, FilterExpression, Parameter},
+    filter::{Filter, FilterExpression, Parameter, ParameterList},
     query::{QueryResult as _, Read, ReadPaginated, Sorting as _},
     subgraph::{
         Subgraph, SubgraphRecord as _,
@@ -59,7 +59,7 @@ use hash_graph_types::{
             PropertyWithMetadataValue, visitor::EntityVisitor as _,
         },
     },
-    ontology::{DataTypeLookup, OntologyTypeProvider},
+    ontology::{DataTypeLookup, EntityTypeWithMetadata, OntologyTypeProvider},
     owned_by_id::OwnedById,
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
@@ -107,6 +107,7 @@ struct GetEntitiesImplParams<'a> {
     include_created_by_ids: bool,
     include_edition_created_by_ids: bool,
     include_type_ids: bool,
+    include_type_titles: bool,
 }
 
 impl<C, A> PostgresStore<C, A>
@@ -500,124 +501,181 @@ where
     ) -> Result<(GetEntitiesResponse<'static>, Zookie<'static>), Report<QueryError>> {
         let mut root_entities = Vec::new();
 
-        let (permissions, count, web_ids, created_by_ids, edition_created_by_ids, type_ids) =
-            if params.include_count
-                || params.include_web_ids
-                || params.include_created_by_ids
-                || params.include_edition_created_by_ids
-                || params.include_type_ids
-            {
-                let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
-                let web_id_idx = compiler.add_selection_path(&EntityQueryPath::OwnedById);
-                let entity_uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
-                let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
-                let provenance_idx = params
-                    .include_created_by_ids
-                    .then(|| compiler.add_selection_path(&EntityQueryPath::Provenance(None)));
-                let edition_provenance_idx = params.include_edition_created_by_ids.then(|| {
-                    compiler.add_selection_path(&EntityQueryPath::EditionProvenance(None))
-                });
-                let type_ids_idx = params.include_type_ids.then(|| {
-                    (
-                        compiler.add_selection_path(&EntityQueryPath::TypeBaseUrls),
-                        compiler.add_selection_path(&EntityQueryPath::TypeVersions),
-                    )
-                });
-
-                compiler.add_filter(&params.filter);
-
-                let (statement, parameters) = compiler.compile();
-
-                let entities = self
-                    .as_client()
-                    .query_raw(&statement, parameters.iter().copied())
-                    .instrument(tracing::trace_span!("query"))
-                    .await
-                    .change_context(QueryError)?
-                    .map(|row| row.change_context(QueryError))
-                    .map_ok(move |row| {
-                        (
-                            EntityId {
-                                owned_by_id: row.get(web_id_idx),
-                                entity_uuid: row.get(entity_uuid_idx),
-                                draft_id: row.get(draft_id_idx),
-                            },
-                            row,
-                        )
-                    })
-                    .try_collect::<HashMap<_, _>>()
-                    .await?;
-
-                let (permissions, zookie) = self
-                    .authorization_api
-                    .check_entities_permission(
-                        actor_id,
-                        EntityPermission::View,
-                        entities.keys().copied(),
-                        Consistency::FullyConsistent,
-                    )
-                    .await
-                    .change_context(QueryError)?;
-
-                let permitted_ids = permissions
-                    .into_iter()
-                    .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
-                    .collect::<HashSet<_>>();
-
-                let mut web_ids = params.include_web_ids.then(ResponseCountMap::default);
-                let mut created_by_ids = params
-                    .include_created_by_ids
-                    .then(ResponseCountMap::default);
-                let mut edition_created_by_ids = params
-                    .include_edition_created_by_ids
-                    .then(ResponseCountMap::default);
-                let mut include_type_ids = params.include_type_ids.then(ResponseCountMap::default);
-
-                let count = entities
-                    .into_iter()
-                    .filter(|(entity_id, _)| permitted_ids.contains(&entity_id.entity_uuid))
-                    .inspect(|(entity_id, row)| {
-                        if let Some(web_ids) = &mut web_ids {
-                            web_ids.increment(entity_id.owned_by_id);
-                        }
-
-                        if let Some((created_by_ids, provenance_idx)) =
-                            created_by_ids.as_mut().zip(provenance_idx)
-                        {
-                            let provenance: InferredEntityProvenance = row.get(provenance_idx);
-                            created_by_ids.increment(provenance.created_by_id);
-                        }
-
-                        if let Some((edition_created_by_ids, provenance_idx)) =
-                            edition_created_by_ids.as_mut().zip(edition_provenance_idx)
-                        {
-                            let provenance: EntityEditionProvenance = row.get(provenance_idx);
-                            edition_created_by_ids.increment(provenance.created_by_id);
-                        }
-
-                        if let Some((include_type_ids, (base_urls_idx, versions_idx))) =
-                            include_type_ids.as_mut().zip(type_ids_idx)
-                        {
-                            let base_urls: Vec<BaseUrl> = row.get(base_urls_idx);
-                            let versions: Vec<OntologyTypeVersion> = row.get(versions_idx);
-                            for (base_url, version) in base_urls.into_iter().zip(versions) {
-                                include_type_ids.increment(VersionedUrl { base_url, version });
-                            }
-                        }
-                    })
-                    .count();
-
+        let (
+            permissions,
+            count,
+            web_ids,
+            created_by_ids,
+            edition_created_by_ids,
+            type_ids,
+            type_titles,
+        ) = if params.include_count
+            || params.include_web_ids
+            || params.include_created_by_ids
+            || params.include_edition_created_by_ids
+            || params.include_type_ids
+        {
+            let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+            let web_id_idx = compiler.add_selection_path(&EntityQueryPath::OwnedById);
+            let entity_uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
+            let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
+            let provenance_idx = params
+                .include_created_by_ids
+                .then(|| compiler.add_selection_path(&EntityQueryPath::Provenance(None)));
+            let edition_provenance_idx = params
+                .include_edition_created_by_ids
+                .then(|| compiler.add_selection_path(&EntityQueryPath::EditionProvenance(None)));
+            let type_ids_idx = params.include_type_ids.then(|| {
                 (
-                    Some((permitted_ids, zookie)),
-                    params.include_count.then_some(count),
-                    web_ids.map(HashMap::from),
-                    created_by_ids.map(HashMap::from),
-                    edition_created_by_ids.map(HashMap::from),
-                    include_type_ids.map(HashMap::from),
+                    compiler.add_selection_path(&EntityQueryPath::TypeBaseUrls),
+                    compiler.add_selection_path(&EntityQueryPath::TypeVersions),
+                )
+            });
+
+            compiler.add_filter(&params.filter);
+
+            let (statement, parameters) = compiler.compile();
+
+            let entities = self
+                .as_client()
+                .query_raw(&statement, parameters.iter().copied())
+                .instrument(tracing::trace_span!("query"))
+                .await
+                .change_context(QueryError)?
+                .map(|row| row.change_context(QueryError))
+                .map_ok(move |row| {
+                    (
+                        EntityId {
+                            owned_by_id: row.get(web_id_idx),
+                            entity_uuid: row.get(entity_uuid_idx),
+                            draft_id: row.get(draft_id_idx),
+                        },
+                        row,
+                    )
+                })
+                .try_collect::<HashMap<_, _>>()
+                .await?;
+
+            let (permissions, zookie) = self
+                .authorization_api
+                .check_entities_permission(
+                    actor_id,
+                    EntityPermission::View,
+                    entities.keys().copied(),
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let permitted_ids = permissions
+                .into_iter()
+                .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
+                .collect::<HashSet<_>>();
+
+            let mut web_ids = params.include_web_ids.then(ResponseCountMap::default);
+            let mut created_by_ids = params
+                .include_created_by_ids
+                .then(ResponseCountMap::default);
+            let mut edition_created_by_ids = params
+                .include_edition_created_by_ids
+                .then(ResponseCountMap::default);
+            let mut type_ids = (params.include_type_ids || params.include_type_titles)
+                .then(ResponseCountMap::default);
+
+            let count = entities
+                .into_iter()
+                .filter(|(entity_id, _)| permitted_ids.contains(&entity_id.entity_uuid))
+                .inspect(|(entity_id, row)| {
+                    if let Some(web_ids) = &mut web_ids {
+                        web_ids.extend_one(entity_id.owned_by_id);
+                    }
+
+                    if let Some((created_by_ids, provenance_idx)) =
+                        created_by_ids.as_mut().zip(provenance_idx)
+                    {
+                        let provenance: InferredEntityProvenance = row.get(provenance_idx);
+                        created_by_ids.extend_one(provenance.created_by_id);
+                    }
+
+                    if let Some((edition_created_by_ids, provenance_idx)) =
+                        edition_created_by_ids.as_mut().zip(edition_provenance_idx)
+                    {
+                        let provenance: EntityEditionProvenance = row.get(provenance_idx);
+                        edition_created_by_ids.extend_one(provenance.created_by_id);
+                    }
+
+                    if let Some((type_ids, (base_urls_idx, versions_idx))) =
+                        type_ids.as_mut().zip(type_ids_idx)
+                    {
+                        let base_urls: Vec<BaseUrl> = row.get(base_urls_idx);
+                        let versions: Vec<OntologyTypeVersion> = row.get(versions_idx);
+                        type_ids.extend(
+                            base_urls
+                                .into_iter()
+                                .zip(versions)
+                                .map(|(base_url, version)| VersionedUrl { base_url, version }),
+                        );
+                    }
+                })
+                .count();
+            let type_ids = type_ids.map(HashMap::from);
+
+            #[expect(clippy::if_then_some_else_none)]
+            let type_titles = if params.include_type_titles {
+                let type_uuids = type_ids
+                    .as_ref()
+                    .expect("type ids should be present")
+                    .keys()
+                    .map(EntityTypeUuid::from_url)
+                    .collect::<Vec<_>>();
+
+                let mut type_compiler = SelectCompiler::<EntityTypeWithMetadata>::new(
+                    Some(temporal_axes),
+                    params.include_drafts,
+                );
+                let title_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Title);
+
+                let filter = Filter::In(
+                    FilterExpression::Path {
+                        path: EntityTypeQueryPath::OntologyId,
+                    },
+                    ParameterList::EntityTypeIds(&type_uuids),
+                );
+                type_compiler.add_filter(&filter);
+
+                let (statement, parameters) = type_compiler.compile();
+
+                Some(
+                    self.as_client()
+                        .query_raw(&statement, parameters.iter().copied())
+                        .instrument(tracing::trace_span!("query"))
+                        .await
+                        .change_context(QueryError)?
+                        .map(|row| row.change_context(QueryError))
+                        .map_ok(move |row| row.get(title_idx))
+                        .try_collect::<ResponseCountMap<String>>()
+                        .await?,
                 )
             } else {
-                (None, None, None, None, None, None)
+                None
             };
+
+            (
+                Some((permitted_ids, zookie)),
+                params.include_count.then_some(count),
+                web_ids.map(HashMap::from),
+                created_by_ids.map(HashMap::from),
+                edition_created_by_ids.map(HashMap::from),
+                if params.include_type_ids {
+                    type_ids.map(HashMap::from)
+                } else {
+                    None
+                },
+                type_titles.map(HashMap::from),
+            )
+        } else {
+            (None, None, None, None, None, None, None)
+        };
 
         let (latest_zookie, last) = loop {
             // We query one more than requested to determine if there are more entities to return.
@@ -764,6 +822,7 @@ where
                 created_by_ids,
                 edition_created_by_ids,
                 type_ids,
+                type_titles,
             },
             latest_zookie.into_owned(),
         ))
@@ -1308,6 +1367,7 @@ where
                     include_created_by_ids: params.include_created_by_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
                     include_type_ids: params.include_type_ids,
+                    include_type_titles: params.include_type_titles,
                 },
                 &temporal_axes,
             )
@@ -1362,6 +1422,7 @@ where
                 created_by_ids,
                 edition_created_by_ids,
                 type_ids,
+                type_titles,
             },
             zookie,
         ) = self
@@ -1378,6 +1439,7 @@ where
                     include_created_by_ids: params.include_created_by_ids,
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
                     include_type_ids: params.include_type_ids,
+                    include_type_titles: params.include_type_titles,
                 },
                 &temporal_axes,
             )
@@ -1492,6 +1554,7 @@ where
                 created_by_ids,
                 edition_created_by_ids,
                 type_ids,
+                type_titles,
             })
         }
         .instrument(tracing::trace_span!("construct_subgraph"))

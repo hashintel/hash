@@ -608,6 +608,8 @@ pub struct GetEntitiesRequest<'q, 's, 'p> {
     include_edition_created_by_ids: bool,
     #[serde(default)]
     include_type_ids: bool,
+    #[serde(default)]
+    pub include_type_titles: bool,
 }
 
 impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<'q> {
@@ -630,6 +632,7 @@ impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<
             include_created_by_ids: request.include_created_by_ids,
             include_edition_created_by_ids: request.include_edition_created_by_ids,
             include_type_ids: request.include_type_ids,
+            include_type_titles: request.include_type_titles,
         }
     }
 }
@@ -711,6 +714,7 @@ where
                 created_by_ids: response.created_by_ids,
                 edition_created_by_ids: response.edition_created_by_ids,
                 type_ids: response.type_ids,
+                type_titles: response.type_titles,
             })
         })
         .map_err(report_to_response);
@@ -751,6 +755,8 @@ pub struct GetEntitySubgraphRequest<'q, 's, 'p> {
     include_edition_created_by_ids: bool,
     #[serde(default)]
     include_type_ids: bool,
+    #[serde(default)]
+    pub include_type_titles: bool,
 }
 
 impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySubgraphParams<'q> {
@@ -774,6 +780,7 @@ impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySub
             include_created_by_ids: request.include_created_by_ids,
             include_edition_created_by_ids: request.include_edition_created_by_ids,
             include_type_ids: request.include_type_ids,
+            include_type_titles: request.include_type_titles,
         }
     }
 }
@@ -803,6 +810,9 @@ struct GetEntitySubgraphResponse<'r> {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     type_ids: Option<HashMap<VersionedUrl, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    type_titles: Option<HashMap<String, usize>>,
 }
 
 #[utoipa::path(
@@ -882,6 +892,7 @@ where
                 created_by_ids: response.created_by_ids,
                 edition_created_by_ids: response.edition_created_by_ids,
                 type_ids: response.type_ids,
+                type_titles: response.type_titles,
             })
         })
         .map_err(report_to_response);
