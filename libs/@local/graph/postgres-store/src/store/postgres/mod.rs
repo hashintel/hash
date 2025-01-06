@@ -105,13 +105,8 @@ impl<T> ResponseCountMap<T>
 where
     T: Eq + Hash + Clone,
 {
-    pub fn increment(&mut self, key: &T) {
-        *self
-            .map
-            .raw_entry_mut()
-            .from_key(key)
-            .or_insert(key.clone(), 0)
-            .1 += 1;
+    pub fn increment(&mut self, key: T) {
+        *self.map.entry(key).or_insert(0) += 1;
     }
 }
 
