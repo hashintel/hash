@@ -9370,7 +9370,7 @@ __metadata:
     "@local/internal-api-client": "npm:0.0.0-private"
     "@local/status": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@opensearch-project/opensearch": "npm:2.13.0"
+    "@opensearch-project/opensearch": "npm:3.0.0"
     "@sentry/node": "npm:7.120.2"
     "@temporalio/activity": "npm:1.11.5"
     "@temporalio/client": "npm:1.11.5"
@@ -10513,9 +10513,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@opensearch-project/opensearch@npm:2.13.0":
-  version: 2.13.0
-  resolution: "@opensearch-project/opensearch@npm:2.13.0"
+"@opensearch-project/opensearch@npm:3.0.0":
+  version: 3.0.0
+  resolution: "@opensearch-project/opensearch@npm:3.0.0"
   dependencies:
     aws4: "npm:^1.11.0"
     debug: "npm:^4.3.1"
@@ -10523,7 +10523,7 @@ __metadata:
     json11: "npm:^2.0.0"
     ms: "npm:^2.1.3"
     secure-json-parse: "npm:^2.4.0"
-  checksum: 10c0/c379d51fda6062fc1b857789583646ac9eecc0a255db1f7601220d7f8f84e50fcd08de81fb66ffdceb75b7752b2dd21d8aba0e397f0e8700f456332021d1db36
+  checksum: 10c0/abf4c6a7bd44e4ecddd91bd8f3aa98f495a911068c475735d6cd234b79d4c0a3ccb39a5a5d25aed4042888689bed743590ec9289321157f61ea09e17bf52d0ec
   languageName: node
   linkType: hard
 

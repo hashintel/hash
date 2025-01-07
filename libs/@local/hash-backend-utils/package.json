@@ -36,7 +36,7 @@
     "@local/hash-subgraph": "0.0.0-private",
     "@local/internal-api-client": "0.0.0-private",
     "@local/status": "0.0.0-private",
-    "@opensearch-project/opensearch": "2.13.0",
+    "@opensearch-project/opensearch": "3.0.0",
     "@sentry/node": "7.120.2",
     "@temporalio/activity": "1.11.5",
     "@temporalio/client": "1.11.5",
