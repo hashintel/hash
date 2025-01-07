@@ -165,7 +165,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     entity = updatedEntity;
   } else {
     existingEntity = await (linkData
-      ? findExistingLinkEntity({
+      ? /**
+         * @todo H-3883 ensure that the creation of a new link will not violate min/max links on an entity
+         */
+        findExistingLinkEntity({
           actorId,
           graphApiClient,
           ownedById,

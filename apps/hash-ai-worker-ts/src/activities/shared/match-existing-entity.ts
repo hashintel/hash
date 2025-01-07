@@ -1,10 +1,12 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { SourceProvenance } from "@local/hash-graph-client";
 import type {
   EntityId,
   PropertyMetadataObject,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
 import { isValueMetadata } from "@local/hash-graph-types/entity";
+import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import dedent from "dedent";
@@ -83,15 +85,16 @@ const generateMatchExistingEntityTool = (
   },
 });
 
-export type PotentialMatch = {
+export type EntityForMatching = {
   entityId: EntityId;
   properties: PropertyObject;
   propertyMetadata: PropertyMetadataObject;
+  editionSources: SourceProvenance[];
 };
 
 export type MatchExistingEntityParams = {
-  newEntity: Omit<PotentialMatch, "entityId">;
-  potentialMatches: PotentialMatch[];
+  newEntity: Omit<EntityForMatching, "entityId">;
+  potentialMatches: EntityForMatching[];
 };
 
 const generateMatchExistingEntityUserMessage = ({
@@ -145,7 +148,7 @@ ${previousError ? `Your previous response had an error – please do not repeat 
 
 const defaultModel: LlmParams["model"] = "gpt-4o-2024-08-06";
 
-type MergedEntityWithAddedOrChangedProperties = PotentialMatch;
+type MergedEntityWithAddedOrChangedProperties = EntityForMatching;
 
 /**
  * Given one or more entities which may be a match for a new entity, identify if any of them are a match.
@@ -177,8 +180,6 @@ export const matchExistingEntity = async (
    * If no match is identified, this will be `null`.
    */
   matchWithMergedChangedProperties: MergedEntityWithAddedOrChangedProperties | null;
-  usage: LlmUsage;
-  totalRequestTime: number;
 }> => {
   const { newEntity, potentialMatches } = params;
 
@@ -230,12 +231,6 @@ export const matchExistingEntity = async (
     if (llmResponse.status === "aborted") {
       return {
         matchWithMergedChangedProperties: null,
-        totalRequestTime: 0,
-        usage: {
-          totalTokens: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-        },
       };
     }
 
@@ -243,28 +238,24 @@ export const matchExistingEntity = async (
 
     await sleep(2_000);
 
-    return matchExistingEntity(params);
+    return matchExistingEntity(
+      params,
+      "message" in llmResponse ? llmResponse.message : undefined,
+      testingParams,
+    );
   }
 
-  const { message, usage, totalRequestTime } = llmResponse;
+  const { message } = llmResponse;
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
   const firstToolCall = toolCalls[0];
 
-  if (!firstToolCall) {
-    throw new Error(
-      `Expected tool calls in message: ${JSON.stringify(message, null, 2)}`,
-    );
-  }
-
-  if (toolCalls.length > 1) {
-    throw new Error(
-      `Expected only one tool call in message: ${JSON.stringify(
-        message,
-        null,
-        2,
-      )}`,
+  if (!firstToolCall || toolCalls.length > 1) {
+    return matchExistingEntity(
+      params,
+      "You must make exactly one tool call",
+      testingParams,
     );
   }
 
@@ -272,7 +263,7 @@ export const matchExistingEntity = async (
     firstToolCall.input as ExistingEntityReport;
 
   if (!matchedEntityId) {
-    return { matchWithMergedChangedProperties: null, totalRequestTime, usage };
+    return { matchWithMergedChangedProperties: null };
   }
 
   const match = potentialMatches.find(
@@ -280,11 +271,10 @@ export const matchExistingEntity = async (
   );
 
   if (!match) {
-    /**
-     * @todo this is an LLM mistake, resend to the LLM
-     */
-    throw new Error(
-      `Expected a match for entity id ${matchedEntityId}, but none was found`,
+    return matchExistingEntity(
+      params,
+      "You must make exactly one tool call",
+      testingParams,
     );
   }
 
@@ -324,13 +314,10 @@ export const matchExistingEntity = async (
         ? (newMetadataForProperty.metadata.provenance?.sources ?? [])
         : [];
 
-      const mergedSources = [...existingSources, ...newSources].filter(
-        (source, index, sources) =>
-          !source.location?.uri ||
-          sources.findIndex(
-            (src) => src.location?.uri === source.location?.uri,
-          ) === index,
-      );
+      const mergedSources = deduplicateSources([
+        ...existingSources,
+        ...newSources,
+      ]);
 
       if (!isValueMetadata(newMetadataForProperty)) {
         throw new Error(
@@ -353,15 +340,19 @@ export const matchExistingEntity = async (
     }
   }
 
+  const mergedEditionSources = deduplicateSources([
+    ...newEntity.editionSources,
+    ...match.editionSources,
+  ]);
+
   const matchWithChangedProperties = {
     entityId: match.entityId,
+    editionSources: mergedEditionSources,
     properties: changedPropertiesWithMergedValues,
     propertyMetadata: metadataForChangedProperties,
   };
 
   return {
     matchWithMergedChangedProperties: matchWithChangedProperties,
-    totalRequestTime,
-    usage,
   };
 };

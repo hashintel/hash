@@ -31,8 +31,7 @@ import { logger } from "./activity-logger.js";
 import type { DereferencedEntityType } from "./dereference-entity-type.js";
 import { dereferenceEntityType } from "./dereference-entity-type.js";
 import { createEntityEmbeddings } from "./embeddings.js";
-import { getEntityByFilter } from "./get-entity-by-filter.js";
-import type { PotentialMatch } from "./match-existing-entity.js";
+import type { EntityForMatching } from "./match-existing-entity.js";
 import { matchExistingEntity } from "./match-existing-entity.js";
 
 export const findExistingEntity = async ({
@@ -49,10 +48,10 @@ export const findExistingEntity = async ({
   ownedById: OwnedById;
   proposedEntity: Pick<
     ProposedEntity,
-    "entityTypeIds" | "properties" | "propertyMetadata"
+    "entityTypeIds" | "properties" | "propertyMetadata" | "provenance"
   >;
   includeDrafts: boolean;
-}): Promise<PotentialMatch | null> => {
+}): Promise<EntityForMatching | null> => {
   const entityTypes: DereferencedEntityType[] =
     dereferencedEntityTypes ??
     (await graphApiClient
@@ -268,11 +267,15 @@ export const findExistingEntity = async ({
   }
 
   const { matchWithMergedChangedProperties } = await matchExistingEntity({
-    newEntity: proposedEntity,
+    newEntity: {
+      ...proposedEntity,
+      editionSources: proposedEntity.provenance.sources ?? [],
+    },
     potentialMatches: potentialMatches.map((entity) => ({
       entityId: entity.entityId,
       properties: entity.properties,
       propertyMetadata: entity.propertiesMetadata,
+      editionSources: entity.metadata.provenance.edition.sources ?? [],
     })),
   });
 
@@ -292,69 +295,71 @@ export const findExistingLinkEntity = async ({
   ownedById: OwnedById;
   includeDrafts: boolean;
 }) => {
-  /**
-   * @todo check type schema – if there's only one link permitted of this type, we need to just overwrite it.
-   *
-   * otherwise, we need to check if any existing links looks like 'the same' as the new link.
-   * e.g. an employment relationship with the same job role, or start/end dates, would be the same link.
-   * use LLM to make the judgement.
-   */
-  return await getEntityByFilter({
-    actorId,
-    graphApiClient,
-    filter: {
-      all: [
-        { equal: [{ path: ["archived"] }, { parameter: false }] },
-        {
-          equal: [
-            { path: ["ownedById"] },
-            {
-              parameter: ownedById,
-            },
-          ],
-        },
-        {
-          equal: [
-            {
-              path: ["leftEntity", "ownedById"],
-            },
-            {
-              parameter: extractOwnedByIdFromEntityId(linkData.leftEntityId),
-            },
-          ],
-        },
-        {
-          equal: [
-            {
-              path: ["leftEntity", "uuid"],
-            },
-            {
-              parameter: extractEntityUuidFromEntityId(linkData.leftEntityId),
-            },
-          ],
-        },
-        {
-          equal: [
-            {
-              path: ["rightEntity", "ownedById"],
-            },
-            {
-              parameter: extractOwnedByIdFromEntityId(linkData.rightEntityId),
-            },
-          ],
-        },
-        {
-          equal: [
-            {
-              path: ["rightEntity", "uuid"],
-            },
-            {
-              parameter: extractEntityUuidFromEntityId(linkData.rightEntityId),
-            },
-          ],
-        },
-      ],
-    },
-    includeDrafts,
-  });
+  const linksOfSameType = await graphApiClient
+    .getEntities(actorId, {
+      filter: {
+        all: [
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+          {
+            equal: [
+              { path: ["ownedById"] },
+              {
+                parameter: ownedById,
+              },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: ["leftEntity", "ownedById"],
+              },
+              {
+                parameter: extractOwnedByIdFromEntityId(linkData.leftEntityId),
+              },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: ["leftEntity", "uuid"],
+              },
+              {
+                parameter: extractEntityUuidFromEntityId(linkData.leftEntityId),
+              },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: ["rightEntity", "ownedById"],
+              },
+              {
+                parameter: extractOwnedByIdFromEntityId(linkData.rightEntityId),
+              },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: ["rightEntity", "uuid"],
+              },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  linkData.rightEntityId,
+                ),
+              },
+            ],
+          },
+        ],
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
+    })
+    .then(({ data }) =>
+      data.entities.map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
+    );
+
+  if (!linksOfSameType.length) {
+    return null;
+  }
 };

@@ -83,11 +83,9 @@ export const getLatestEntityById = async (params: {
 
 export const getEntityUpdate = <T extends PropertyObjectWithMetadata>({
   existingEntity,
-  newMetadata,
   newProperties,
 }: {
   existingEntity: Entity;
-  newMetadata: PropertyMetadataObject;
   newProperties: T;
 }) => {
   const patchOperations: PropertyPatchOperation[] = [];
