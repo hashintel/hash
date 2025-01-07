@@ -166,6 +166,7 @@ async fn properties_add() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entity")
@@ -237,6 +238,7 @@ async fn properties_remove() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entity")
@@ -316,6 +318,7 @@ async fn properties_replace() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entity")
@@ -385,6 +388,7 @@ async fn type_ids() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entity")
@@ -432,6 +436,7 @@ async fn type_ids() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entity")
@@ -481,6 +486,7 @@ async fn type_ids() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entity")

@@ -94,6 +94,6 @@
     "webpack": "5.97.1",
     "webpack-cli": "4.10.0",
     "webpack-dev-server": "4.15.2",
-    "zip-webpack-plugin": "4.0.2"
+    "zip-webpack-plugin": "4.0.3"
   }
 }
