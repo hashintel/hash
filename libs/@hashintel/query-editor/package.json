@@ -29,8 +29,8 @@
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
-    "@mui/material": "5.16.13",
-    "@mui/system": "5.16.13",
+    "@mui/material": "5.16.14",
+    "@mui/system": "5.16.14",
     "eslint": "9.17.0",
     "eslint-plugin-storybook": "0.11.2",
     "react": "19.0.0",

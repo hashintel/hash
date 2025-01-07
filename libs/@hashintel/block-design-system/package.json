@@ -41,8 +41,8 @@
     "@emotion/styled": "11.14.0",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@mui/material": "5.16.13",
-    "@mui/system": "5.16.13",
+    "@mui/material": "5.16.14",
+    "@mui/system": "5.16.14",
     "@types/react": "19.0.1",
     "@types/react-dom": "19.0.2",
     "@types/react-syntax-highlighter": "15.5.13",
@@ -55,8 +55,8 @@
   "peerDependencies": {
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.0",
-    "@mui/material": "5.16.13",
-    "@mui/system": "5.16.13",
+    "@mui/material": "5.16.14",
+    "@mui/system": "5.16.14",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }
