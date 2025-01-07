@@ -211,7 +211,7 @@ test(
     const models: LlmParams["model"][] = [
       "claude-3-haiku-20240307",
       "claude-3-5-sonnet-20240620",
-      "gpt-4o-mini",
+      "gpt-4o-mini-2024-07-18",
     ];
 
     await optimizeSystemPrompt({
