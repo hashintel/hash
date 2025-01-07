@@ -1,8 +1,7 @@
 use core::error::Error;
 use std::{
     fs::File,
-    io,
-    io::{BufRead as _, BufReader},
+    io::{self, BufRead as _, BufReader},
     path::Path,
 };
 
@@ -10,7 +9,6 @@ use bytes::Bytes;
 use error_stack::Report;
 use inferno::flamegraph;
 
-use crate::benches::{generate_path, report::Measurement};
 #[derive(Debug)]
 pub struct FoldedStacks {
     data: Vec<String>,
@@ -23,36 +21,6 @@ impl From<FoldedStacks> for Bytes {
 }
 
 impl FoldedStacks {
-    /// Reads the folded stacks from the given measurement.
-    ///
-    /// The folded stacks are expected to be stored in a file named `tracing.folded` in the
-    /// directory of the measurement in the given `artifact_output` directory.
-    ///
-    /// Returns `None` if the file does not exist.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if reading from the file fails.
-    pub fn from_measurement(
-        artifact_output: impl AsRef<Path>,
-        measurement: &Measurement,
-    ) -> Result<Option<Self>, Report<io::Error>> {
-        let path = artifact_output
-            .as_ref()
-            .join(generate_path(
-                &measurement.info.group_id,
-                measurement.info.function_id.as_deref(),
-                measurement.info.value_str.as_deref(),
-            ))
-            .join("tracing.folded");
-
-        if path.exists() {
-            Ok(Some(Self::from_file(path)?))
-        } else {
-            Ok(None)
-        }
-    }
-
     /// Reads the folded stacks from the given file.
     ///
     /// # Errors
