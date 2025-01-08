@@ -91,11 +91,11 @@ type-system.path                    = "libs/@blockprotocol/type-system/rust"
 ahash              = { version = "=0.8.11", default-features = false }
 ariadne            = { version = "=0.5.0", default-features = false }
 aws-types          = { version = "=1.3.3", default-features = false }
-axum               = { version = "0.7.5" }
-axum-core          = { version = "0.5.0" }
+axum               = { version = "=0.7.5" }
+axum-core          = { version = "=0.5.0" }
 bumpalo            = { version = "=3.16.0", default-features = false }
-bytes              = { version = "1.9.0" }
-clap_builder       = { version = "=4.5.23", default-features = false, features = ["std"] }
+bytes              = { version = "=1.9.0" }
+clap_builder       = { version = "=4.5.24", default-features = false, features = ["std"] }
 criterion          = { version = "=0.5.1" }
 deadpool           = { version = "=0.12.1", default-features = false }
 deadpool-postgres  = { version = "=0.14.1", default-features = false }
@@ -104,7 +104,7 @@ email_address      = { version = "=0.2.9", default-features = false }
 enumflags2         = { version = "=0.7.10", default-features = false }
 erased-serde       = { version = "=0.4.5", default-features = false }
 foldhash           = { version = "=0.1.4", default-features = false }
-frunk              = { version = "0.4.3", default-features = false }
+frunk              = { version = "=0.4.3", default-features = false }
 futures-channel    = { version = "=0.3.31", default-features = false }
 futures-core       = { version = "=0.3.31", default-features = false }
 futures-io         = { version = "=0.3.31", default-features = false }
@@ -112,7 +112,7 @@ futures-sink       = { version = "=0.3.31", default-features = false }
 futures-util       = { version = "=0.3.31", default-features = false }
 hashbrown          = { version = "=0.15.2", default-features = false, features = ["inline-more", "nightly"] }
 http               = { version = "=1.2.0", default-features = false }
-image              = { version = "0.25.0", default-features = false }
+image              = { version = "=0.25.5", default-features = false }
 inferno            = { version = "=0.12.1", default-features = false }
 iso8601-duration   = { version = "=0.2.0", default-features = false }
 json-number        = { version = "=0.4.9", default-features = false }
@@ -124,13 +124,13 @@ libp2p-swarm       = { version = "=0.45.1", default-features = false }
 libp2p-yamux       = { version = "=0.46.0", default-features = false }
 multiaddr          = { version = "=0.18.2", default-features = false }
 multistream-select = { version = "=0.13.0", default-features = false }
-pdfium-render      = { version = "0.8.26" }
+pdfium-render      = { version = "=0.8.26" }
 postgres-types     = { version = "=0.2.8", default-features = false }
 prometheus-client  = { version = "=0.23.0", default-features = false }
 regex              = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 reqwest            = { version = "=0.12.12", default-features = false, features = ["rustls-tls"] }
 semver             = { version = "=1.0.24", default-features = false }
-sentry-types       = { version = "=0.35.0", default-features = false }
+sentry-types       = { version = "=0.36.0", default-features = false }
 serde              = { version = "=1.0.217", default-features = false }
 serde_json         = { version = "=1.0.135" }
 text-size          = { version = "=1.1.1", default-features = false }
@@ -159,8 +159,8 @@ aws-config               = { version = "=1.5.13" }
 aws-sdk-s3               = { version = "=1.68.0", default-features = false }
 bitvec                   = { version = "=1.0.1", default-features = false }
 bytes-utils              = { version = "=0.1.4", default-features = false }
-clap                     = { version = "=4.5.23", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
-clap_complete            = { version = "=4.5.40", default-features = false }
+clap                     = { version = "=4.5.24", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
+clap_complete            = { version = "=4.5.41", default-features = false }
 convert_case             = { version = "=0.6.0", default-features = false }
 criterion-macro          = { version = "=0.4.0", default-features = false }
 derive-where             = { version = "=1.2.7", default-features = false, features = ["nightly"] }
@@ -168,14 +168,14 @@ derive_more              = { version = "=1.0.0", default-features = false }
 dotenv-flow              = { version = "=0.16.2", default-features = false }
 either                   = { version = "=1.13.0", default-features = false }
 expect-test              = { version = "=1.5.1", default-features = false }
-frunk_core               = { version = "0.4.3", default-features = false }
+frunk_core               = { version = "=0.4.3", default-features = false }
 futures                  = { version = "=0.3.31", default-features = false }
 hifijson                 = { version = "=0.2.2", default-features = false }
 humansize                = { version = "=2.1.3", default-features = false }
 hyper                    = { version = "=1.5.2", default-features = false }
 include_dir              = { version = "=0.7.4", default-features = false }
 insta                    = { version = "=1.42.0", default-features = false }
-itertools                = { version = "0.14.0", default-features = false }
+itertools                = { version = "=0.14.0", default-features = false }
 jsonschema               = { version = "=0.28.1", default-features = false }
 justjson                 = { version = "=0.3.0", default-features = false }
 lexical                  = { version = "=7.0.4", default-features = false }
@@ -205,7 +205,7 @@ rand                     = { version = "=0.8.5", default-features = false }
 refinery                 = { version = "=0.8.14", default-features = false }
 rustc_version            = { version = "=0.4.1", default-features = false }
 scc                      = { version = "=2.3.0", default-features = false }
-sentry                   = { version = "=0.35.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
+sentry                   = { version = "=0.36.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
 seq-macro                = { version = "=0.3.5", default-features = false }
 serde_plain              = { version = "=1.0.2", default-features = false }
 serde_with               = { version = "=3.12.0", default-features = false }
