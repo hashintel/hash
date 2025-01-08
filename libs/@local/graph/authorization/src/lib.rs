@@ -11,9 +11,10 @@ use std::collections::HashMap;
 
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
 use crate::schema::{
-    AccountGroupRelationAndSubject, DataTypePermission, DataTypeRelationAndSubject,
-    EntityRelationAndSubject, EntityTypePermission, EntityTypeRelationAndSubject,
-    PropertyTypePermission, PropertyTypeRelationAndSubject, WebRelationAndSubject,
+    AccountGroupRelationAndSubject, AccountIdOrPublic, DataTypePermission,
+    DataTypeRelationAndSubject, EntityRelationAndSubject, EntityTypePermission,
+    EntityTypeRelationAndSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
+    WebRelationAndSubject,
 };
 
 mod api;
@@ -305,6 +306,24 @@ impl AuthorizationApi for NoAuthorization {
         _: DataTypeUuid,
         _: Consistency<'static>,
     ) -> Result<Vec<DataTypeRelationAndSubject>, Report<ReadError>> {
+        Ok(Vec::new())
+    }
+
+    async fn get_entities(
+        &self,
+        _: AccountId,
+        _: EntityPermission,
+        _: Consistency<'_>,
+    ) -> Result<Vec<EntityUuid>, Report<ReadError>> {
+        Ok(Vec::new())
+    }
+
+    async fn get_entity_accounts(
+        &self,
+        _: EntityUuid,
+        _: EntityPermission,
+        _: Consistency<'_>,
+    ) -> Result<Vec<AccountIdOrPublic>, Report<ReadError>> {
         Ok(Vec::new())
     }
 }
