@@ -1,5 +1,6 @@
 import type { SourceProvenance } from "@local/hash-graph-client";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+
+import { generateUuid } from "./generate-uuid.js";
 
 /**
  * Deduplicate a list of sources, merging values as appropriate (see inline comments).

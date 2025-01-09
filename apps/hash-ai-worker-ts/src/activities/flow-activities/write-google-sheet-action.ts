@@ -406,7 +406,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     const { existingEntityIsDraft, isExactMatch, patchOperations } =
       getEntityUpdate({
         existingEntity,
-        newProperties: fileProperties,
+        newPropertiesWithMetadata: fileProperties,
       });
 
     if (isExactMatch) {
