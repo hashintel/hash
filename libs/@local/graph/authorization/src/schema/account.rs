@@ -90,3 +90,48 @@ impl Subject for PublicAccess {
         Subject::into_parts(*self)
     }
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum AccountIdOrPublic {
+    AccountId(AccountId),
+    PublicAccess(PublicAccess),
+}
+
+impl Resource for AccountIdOrPublic {
+    type Id = Self;
+    type Kind = AccountNamespace;
+
+    #[expect(refining_impl_trait)]
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, !> {
+        match kind {
+            AccountNamespace::Account => Ok(id),
+        }
+    }
+
+    fn into_parts(self) -> (Self::Kind, Self::Id) {
+        (AccountNamespace::Account, self)
+    }
+
+    fn to_parts(&self) -> (Self::Kind, Self::Id) {
+        Resource::into_parts(*self)
+    }
+}
+
+impl Subject for AccountIdOrPublic {
+    type Relation = !;
+    type Resource = Self;
+
+    #[expect(refining_impl_trait)]
+    fn from_parts(resource: Self::Resource, _relation: Option<!>) -> Result<Self, !> {
+        Ok(resource)
+    }
+
+    fn into_parts(self) -> (Self::Resource, Option<Self::Relation>) {
+        (self, None)
+    }
+
+    fn to_parts(&self) -> (Self::Resource, Option<Self::Relation>) {
+        Subject::into_parts(*self)
+    }
+}

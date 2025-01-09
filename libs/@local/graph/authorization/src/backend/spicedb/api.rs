@@ -15,7 +15,7 @@ use crate::{
         DeleteRelationshipResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
         ImportSchemaResponse, ModifyRelationshipError, ModifyRelationshipOperation,
         ModifyRelationshipResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
-        spicedb::model::{self, Permissionship, RpcError},
+        spicedb::model::{self, LookupPermissionship, Permissionship, RpcError},
     },
     zanzibar::{
         Consistency, Permission,
@@ -599,5 +599,124 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             deleted_at: response.deleted_at.into(),
         })
         .change_context(DeleteRelationshipError)
+    }
+
+    async fn lookup_resources<O>(
+        &self,
+        subject: &(
+             impl Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize> + Sync
+         ),
+        permission: &(impl Serialize + Permission<O> + Sync),
+        resource_kind: &O::Kind,
+        consistency: Consistency<'_>,
+    ) -> Result<Vec<O::Id>, Report<ReadError>>
+    where
+        for<'de> O: Resource<Kind: Serialize + Sync, Id: Deserialize<'de> + Send> + Send,
+    {
+        #[derive(Serialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "
+                O: Serialize,
+                R: Serialize,
+                S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize>"
+        )]
+        struct LookupResourcesRequest<'a, O, R, S> {
+            consistency: model::Consistency<'a>,
+            resource_object_type: &'a O,
+            permission: &'a R,
+            #[serde(with = "super::serde::subject_ref")]
+            subject: &'a S,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct LookupResourcesResponse<O> {
+            resource_object_id: O,
+            #[serde(rename = "permissionship")]
+            _permissionship: LookupPermissionship,
+        }
+
+        self.stream::<LookupResourcesResponse<O::Id>, _>(
+            "/v1/permissions/resources",
+            &LookupResourcesRequest {
+                consistency: model::Consistency::from(consistency),
+                resource_object_type: resource_kind,
+                permission,
+                subject,
+            },
+        )
+        .await
+        .change_context(ReadError)?
+        .map_ok(|response| response.resource_object_id)
+        .map_err(|error| error.change_context(ReadError))
+        .try_collect()
+        .await
+    }
+
+    async fn lookup_subjects<S, O>(
+        &self,
+        subject_type: &<S::Resource as Resource>::Kind,
+        subject_relation: Option<&S::Relation>,
+        permission: &(impl Serialize + Permission<O> + Sync),
+        resource: &O,
+        consistency: Consistency<'_>,
+    ) -> Result<Vec<<S::Resource as Resource>::Id>, Report<ReadError>>
+    where
+        for<'de> S: Subject<
+                Resource: Resource<Kind: Serialize + Sync, Id: Deserialize<'de> + Send>,
+                Relation: Serialize + Sync,
+            > + Send,
+        O: Resource<Kind: Serialize, Id: Serialize> + Sync,
+    {
+        #[derive(Serialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "
+                    O: Resource<Kind: Serialize, Id: Serialize>,
+                    R: Serialize,
+                    S: Serialize,
+                    SR: Serialize"
+        )]
+        struct LookupSubjectsRequest<'a, O, R, S, SR> {
+            consistency: model::Consistency<'a>,
+            #[serde(with = "super::serde::resource_ref")]
+            resource: &'a O,
+            permission: &'a R,
+            subject_object_type: &'a S,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            optional_subject_relation: Option<&'a SR>,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct ResolvedObject<O> {
+            subject_object_id: O,
+            #[serde(rename = "permissionship")]
+            _permissionship: LookupPermissionship,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct LookupSubjectsResponse<O> {
+            subject: ResolvedObject<O>,
+        }
+
+        self.stream::<LookupSubjectsResponse<<S::Resource as Resource>::Id>, _>(
+            "/v1/permissions/subjects",
+            &LookupSubjectsRequest {
+                consistency: model::Consistency::from(consistency),
+                resource,
+                permission,
+                subject_object_type: subject_type,
+                optional_subject_relation: subject_relation,
+            },
+        )
+        .await
+        .change_context(ReadError)?
+        .map_ok(|response| response.subject.subject_object_id)
+        .map_err(|error| error.change_context(ReadError))
+        .try_collect()
+        .await
     }
 }

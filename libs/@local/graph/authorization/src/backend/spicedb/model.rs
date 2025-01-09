@@ -105,6 +105,12 @@ pub(crate) enum Permissionship {
     Conditional,
 }
 
+#[derive(Debug, Copy, Clone, Deserialize)]
+pub(crate) enum LookupPermissionship {
+    #[serde(rename = "LOOKUP_PERMISSIONSHIP_HAS_PERMISSION")]
+    HasPermission,
+}
+
 impl From<Permissionship> for bool {
     fn from(permissionship: Permissionship) -> Self {
         match permissionship {
