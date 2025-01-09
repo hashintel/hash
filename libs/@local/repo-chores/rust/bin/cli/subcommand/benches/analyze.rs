@@ -9,12 +9,14 @@ use std::{
     path::PathBuf,
 };
 
+use bytes::Bytes;
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_repo_chores::benches::{
     analyze::{AnalyzeError, BenchmarkAnalysis, criterion},
     report::Benchmark,
 };
+use inferno::flamegraph;
 
 use crate::subcommand::benches::{criterion_directory, current_commit, target_directory};
 
@@ -68,12 +70,25 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
                 BenchmarkAnalysis::from_benchmark(benchmark, &args.baseline, &artifacts_path)
                     .change_context(AnalyzeError::ReadInput)
                     .and_then(|analysis| {
-                        if args.enforce_flame_graph && analysis.folded_stacks.is_none() {
-                            Err(Report::new(AnalyzeError::FlameGraphMissing)
-                                .attach_printable(analysis.measurement.info.title))
-                        } else {
-                            Ok(analysis)
+                        if let Some(folded_stacks) = &analysis.folded_stacks {
+                            let flamegraph = folded_stacks
+                                .create_flame_graph(flamegraph::Options::default())
+                                .change_context(AnalyzeError::FlameGraphCreation)?;
+                            BufWriter::new(
+                                File::options()
+                                    .create(true)
+                                    .truncate(true)
+                                    .write(true)
+                                    .open(analysis.path.join("flamegraph.svg"))
+                                    .change_context(AnalyzeError::FlameGraphCreation)?,
+                            )
+                            .write_all(Bytes::from(flamegraph).as_ref())
+                            .change_context(AnalyzeError::FlameGraphCreation)?;
+                        } else if args.enforce_flame_graph {
+                            return Err(Report::new(AnalyzeError::FlameGraphMissing)
+                                .attach_printable(analysis.measurement.info.title));
                         }
+                        Ok(analysis)
                     })
             })
         })

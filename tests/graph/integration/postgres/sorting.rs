@@ -73,6 +73,7 @@ async fn test_root_sorting<A: AuthorizationApi>(
             created_by_ids: _,
             edition_created_by_ids: _,
             type_ids: _,
+            type_titles: _,
         } = api
             .get_entity_subgraph(api.account_id, GetEntitySubgraphParams {
                 filter: Filter::All(Vec::new()),
@@ -94,6 +95,7 @@ async fn test_root_sorting<A: AuthorizationApi>(
                 include_created_by_ids: false,
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
+                include_type_titles: false,
             })
             .await
             .expect("could not get entity");

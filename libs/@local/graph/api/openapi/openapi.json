@@ -5705,6 +5705,9 @@
           "includeTypeIds": {
             "type": "boolean"
           },
+          "includeTypeTitles": {
+            "type": "boolean"
+          },
           "includeWebIds": {
             "type": "boolean"
           },
@@ -5785,6 +5788,12 @@
               "minimum": 0
             }
           },
+          "typeTitles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
           "webIds": {
             "type": "object",
             "additionalProperties": {
@@ -5844,6 +5853,9 @@
             "nullable": true
           },
           "includeTypeIds": {
+            "type": "boolean"
+          },
+          "includeTypeTitles": {
             "type": "boolean"
           },
           "includeWebIds": {
@@ -5921,6 +5933,12 @@
             "additionalProperties": {
               "type": "integer",
               "minimum": 0
+            }
+          },
+          "typeTitles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
             }
           },
           "webIds": {

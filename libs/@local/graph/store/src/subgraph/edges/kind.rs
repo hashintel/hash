@@ -159,7 +159,7 @@ impl EdgeKind<EntityVertexId, EntityTypeVertexId> for SharedEdgeKind {
     }
 }
 
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(deny_unknown_fields)]
 pub struct EdgeResolveDepths {
@@ -176,15 +176,15 @@ impl EdgeResolveDepths {
 
 // TODO: Replace with `EdgeResolveDepths`
 //   see https://linear.app/hash/issue/H-3018
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(deny_unknown_fields)]
 pub struct OutgoingEdgeResolveDepth {
-    pub outgoing: u8,
     #[serde(default, skip)]
     #[doc(hidden)]
     /// This is not used yet, but will be used in the future to support incoming edges.
     pub incoming: u8,
+    pub outgoing: u8,
 }
 
 impl OutgoingEdgeResolveDepth {
@@ -196,7 +196,7 @@ impl OutgoingEdgeResolveDepth {
 
 // TODO: Add documentation for depths parameters
 //   see https://linear.app/hash/issue/H-3018 (sub-task noted in desc)
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GraphResolveDepths {
