@@ -1,3 +1,4 @@
+import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { LoadingSpinner } from "@hashintel/design-system";
@@ -6,6 +7,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -14,11 +16,18 @@ import { Box, Stack, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactElement, RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type {
+  CountEntitiesQuery,
+  CountEntitiesQueryVariables,
+} from "../../graphql/api-types.gen";
+import { countEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import { pollInterval } from "../../shared/poll-interval";
 import { tableContentSx } from "../../shared/table-content";
 import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
+import { generateUseEntityTypeEntitiesFilter } from "../../shared/use-entity-type-entities";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import type {
   CustomColumn,
@@ -177,6 +186,33 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const [view, setView] = useState<VisualizerView>(defaultView);
 
+  /**
+   * We want to show the count of entities in external webs, and need to query this count separately:
+   * 1. When the user is requesting entities in their web only, the count for the main query doesn't include external webs.
+   * 2. When the user is requesting all entities, the count for the main query includes BOTH internal and external entities.
+   *
+   * So we need the count of external entities in both cases.
+   */
+  const { data: externalWebsOnlyCountData } = useQuery<
+    CountEntitiesQuery,
+    CountEntitiesQueryVariables
+  >(countEntitiesQuery, {
+    pollInterval,
+    variables: {
+      request: {
+        filter: generateUseEntityTypeEntitiesFilter({
+          excludeOwnedByIds: internalWebIds,
+          entityTypeBaseUrl,
+          entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+          includeArchived: !!filterState.includeArchived,
+        }),
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+      },
+    },
+    fetchPolicy: "network-only",
+  });
+
   const {
     count: totalCount,
     createdByIds,
@@ -202,6 +238,13 @@ export const EntitiesVisualizer: FunctionComponent<{
     limit: view === "Graph" ? undefined : limit,
     ownedByIds: filterState.includeGlobal ? undefined : internalWebIds,
   });
+
+  const internalEntitiesCount =
+    externalWebsOnlyCountData?.countEntities == null || totalCount == null
+      ? undefined
+      : filterState.includeGlobal
+        ? totalCount - externalWebsOnlyCountData.countEntities
+        : totalCount;
 
   const loadingComponent = customLoadingComponent ?? (
     <LoadingSpinner size={42} color={theme.palette.blue[60]} />
@@ -335,15 +378,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     setCursor(nextCursor ?? undefined);
   }, [nextCursor]);
 
-  const numberOfUserWebItems = totalCount ?? undefined;
-
-  /**
-   * @todo request global count when filtered to user webs only
-   */
-  const numberOfExternalItems = filterState.includeGlobal
-    ? (totalCount ?? undefined)
-    : undefined;
-
   return (
     <>
       {selectedEntityType && (
@@ -401,8 +435,10 @@ export const EntitiesVisualizer: FunctionComponent<{
           title="Entities"
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          numberOfUserWebItems={numberOfUserWebItems}
-          numberOfExternalItems={numberOfExternalItems}
+          numberOfUserWebItems={internalEntitiesCount}
+          numberOfExternalItems={
+            externalWebsOnlyCountData?.countEntities ?? undefined
+          }
           hideExportToCsv={view !== "Table"}
           endAdornment={
             <TableHeaderToggle

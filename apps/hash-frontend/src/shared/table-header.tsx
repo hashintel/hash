@@ -17,10 +17,6 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import {
-  extractOwnedByIdFromEntityId,
-  isExternalOntologyElementMetadata,
-} from "@local/hash-subgraph";
 import type { SxProps, Theme, TooltipProps } from "@mui/material";
 import {
   Box,
@@ -39,7 +35,7 @@ import type {
   ReactNode,
   SetStateAction,
 } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { Row } from "../components/grid/utils/rows";
 import type { MinimalUser } from "../lib/user-and-org";
@@ -154,9 +150,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   filterState,
   hideExportToCsv,
   hideFilters,
-  internalWebIds,
   itemLabelPlural,
-  items,
   numberOfExternalItems,
   numberOfUserWebItems,
   onBulkActionCompleted,

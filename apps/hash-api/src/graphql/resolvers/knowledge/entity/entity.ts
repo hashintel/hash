@@ -224,7 +224,7 @@ export const countEntitiesResolver: ResolverFn<
   Record<string, never>,
   GraphQLContext,
   QueryCountEntitiesArgs
-> = async (_, { request }, graphQLContext, info) => {
+> = async (_, { request }, graphQLContext) => {
   const count = await countEntities(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,

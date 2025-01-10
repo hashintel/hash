@@ -40,6 +40,101 @@ type UseEntityTypeEntitiesQueryParams = {
   sort?: GetEntitySubgraphRequest["sortingPaths"];
 };
 
+export const generateUseEntityTypeEntitiesFilter = ({
+  excludeOwnedByIds,
+  ownedByIds,
+  entityTypeBaseUrl,
+  entityTypeIds,
+  includeArchived,
+}: Pick<
+  UseEntityTypeEntitiesQueryParams,
+  "entityTypeBaseUrl" | "entityTypeIds" | "includeArchived" | "ownedByIds"
+> & {
+  excludeOwnedByIds?: OwnedById[];
+}): GetEntitySubgraphRequest["filter"] => {
+  return {
+    // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+    //   @see https://linear.app/hash/issue/H-1207
+    all: [
+      ...(!includeArchived
+        ? [
+            {
+              notEqual: [{ path: ["archived"] }, { parameter: true }],
+            },
+            {
+              any: [
+                {
+                  equal: [
+                    {
+                      path: [
+                        "properties",
+                        systemPropertyTypes.archived.propertyTypeBaseUrl,
+                      ],
+                    },
+                    null,
+                  ],
+                },
+                {
+                  equal: [
+                    {
+                      path: [
+                        "properties",
+                        systemPropertyTypes.archived.propertyTypeBaseUrl,
+                      ],
+                    },
+                    { parameter: false },
+                  ],
+                },
+              ],
+            },
+          ]
+        : []),
+      ...(ownedByIds?.length
+        ? [
+            {
+              any: ownedByIds.map((ownedById) => ({
+                equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+              })),
+            },
+          ]
+        : []),
+      ...(excludeOwnedByIds?.length
+        ? [
+            {
+              all: excludeOwnedByIds.map((ownedById) => ({
+                notEqual: [{ path: ["ownedById"] }, { parameter: ownedById }],
+              })),
+            },
+          ]
+        : []),
+      ...(entityTypeBaseUrl
+        ? [
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: entityTypeBaseUrl },
+              ],
+            },
+          ]
+        : entityTypeIds?.length
+          ? [
+              {
+                any: entityTypeIds.map((entityTypeId) => ({
+                  equal: [
+                    { path: ["type", "versionedUrl"] },
+                    { parameter: entityTypeId },
+                  ],
+                })),
+              },
+            ]
+          : []),
+      ...(!entityTypeIds && !entityTypeBaseUrl
+        ? [ignoreNoisySystemTypesFilter]
+        : []),
+    ],
+  };
+};
+
 export const generateUseEntityTypeEntitiesQueryVariables = ({
   ownedByIds,
   entityTypeBaseUrl,
@@ -56,79 +151,12 @@ export const generateUseEntityTypeEntitiesQueryVariables = ({
       includeEditionCreatedByIds: true,
       includeTypeIds: true,
       includeWebIds: true,
-      filter: {
-        // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-        //   @see https://linear.app/hash/issue/H-1207
-        all: [
-          ...(!includeArchived
-            ? [
-                {
-                  notEqual: [{ path: ["archived"] }, { parameter: true }],
-                },
-                {
-                  any: [
-                    {
-                      equal: [
-                        {
-                          path: [
-                            "properties",
-                            systemPropertyTypes.archived.propertyTypeBaseUrl,
-                          ],
-                        },
-
-                        null,
-                      ],
-                    },
-                    {
-                      equal: [
-                        {
-                          path: [
-                            "properties",
-                            systemPropertyTypes.archived.propertyTypeBaseUrl,
-                          ],
-                        },
-                        { parameter: false },
-                      ],
-                    },
-                  ],
-                },
-              ]
-            : []),
-          ...(ownedByIds?.length
-            ? [
-                {
-                  any: ownedByIds.map((ownedById) => ({
-                    equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-                  })),
-                },
-              ]
-            : []),
-          ...(entityTypeBaseUrl
-            ? [
-                {
-                  equal: [
-                    { path: ["type", "baseUrl"] },
-                    { parameter: entityTypeBaseUrl },
-                  ],
-                },
-              ]
-            : entityTypeIds?.length
-              ? [
-                  {
-                    any: entityTypeIds.map((entityTypeId) => ({
-                      equal: [
-                        { path: ["type", "versionedUrl"] },
-                        { parameter: entityTypeId },
-                      ],
-                    })),
-                  },
-                ]
-              : []),
-          ...(!entityTypeIds && !entityTypeBaseUrl
-            ? [ignoreNoisySystemTypesFilter]
-            : []),
-        ],
-      },
+      filter: generateUseEntityTypeEntitiesFilter({
+        includeArchived,
+        ownedByIds,
+        entityTypeBaseUrl,
+        entityTypeIds,
+      }),
       graphResolveDepths: {
         ...zeroedGraphResolveDepths,
         ...graphResolveDepths,
@@ -140,7 +168,7 @@ export const generateUseEntityTypeEntitiesQueryVariables = ({
       temporalAxes: currentTimeInstantTemporalAxes,
     },
     includePermissions: false,
-  };
+  } satisfies GetEntitySubgraphQueryVariables;
 };
 
 export const useEntityTypeEntities = (

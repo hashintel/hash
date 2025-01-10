@@ -11,10 +11,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
-import {
-  extractOwnedByIdFromEntityId,
-  isExternalOntologyElementMetadata,
-} from "@local/hash-subgraph";
+import { isExternalOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";

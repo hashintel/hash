@@ -1,8 +1,5 @@
 import { useQuery } from "@apollo/client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 
