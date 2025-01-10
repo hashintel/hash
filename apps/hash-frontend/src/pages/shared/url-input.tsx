@@ -1,5 +1,5 @@
 import { Select, TextField } from "@hashintel/design-system";
-import { Stack } from "@mui/material";
+import { outlinedInputClasses, Stack } from "@mui/material";
 
 import { MenuItem } from "../../shared/ui/menu-item";
 
@@ -35,7 +35,7 @@ export const UrlInput = ({
   const { protocol, rest } = partsFromUrl(value);
 
   return (
-    <Stack direction="row" gap={2}>
+    <Stack direction="row">
       <Select
         value={protocol}
         onChange={(event) => {
@@ -43,6 +43,13 @@ export const UrlInput = ({
           onChange(`${newProtocol}://${rest}`);
         }}
         sx={{
+          [`& .${outlinedInputClasses.root}`]: {
+            borderTopRightRadius: 0,
+            borderBottomRightRadius: 0,
+          },
+          [`.${outlinedInputClasses.notchedOutline}`]: {
+            borderRight: "none",
+          },
           width: 110,
           "& svg": { color: ({ palette }) => palette.gray[30] },
         }}
@@ -64,7 +71,16 @@ export const UrlInput = ({
           onChange(`${protocol}://${newRest}`);
         }}
         placeholder={placeholder}
-        sx={{ width: "100%" }}
+        sx={{
+          width: "100%",
+          [`.${outlinedInputClasses.notchedOutline}`]: {
+            borderLeftColor: "transparent",
+          },
+          [`& .${outlinedInputClasses.root}`]: {
+            borderTopLeftRadius: 0,
+            borderBottomLeftRadius: 0,
+          },
+        }}
         type="text"
         value={rest}
       />
