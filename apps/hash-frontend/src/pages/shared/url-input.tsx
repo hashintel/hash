@@ -1,29 +1,24 @@
 import { Select, TextField } from "@hashintel/design-system";
 import { Stack } from "@mui/material";
-import debounce from "lodash/debounce";
-import { useEffect, useState } from "react";
 
 import { MenuItem } from "../../shared/ui/menu-item";
 
-const protocols = ["https://", "http://"] as const;
+const protocols = ["https", "http"] as const;
 
 type Protocol = (typeof protocols)[number];
 
-const protocolFromUrl = (url: string): Protocol => {
+const partsFromUrl = (url: string): { protocol: Protocol; rest: string } => {
   if (!url) {
-    return "https://";
+    return { protocol: "https", rest: "" };
   }
 
-  try {
-    const urlObject = new URL(url);
-    if (!protocols.includes(urlObject.protocol as Protocol)) {
-      return "https://";
-    }
+  const [protocol, rest] = url.split("://");
 
-    return urlObject.protocol as Protocol;
-  } catch {
-    return "https://";
+  if (!protocol) {
+    return { protocol: "https", rest: "" };
   }
+
+  return { protocol: protocol as Protocol, rest: rest ?? "" };
 };
 
 export const UrlInput = ({
@@ -37,19 +32,7 @@ export const UrlInput = ({
   placeholder: string;
   value: string;
 }) => {
-  const [protocol, setProtocol] = useState<Protocol>(() => {
-    return protocolFromUrl(value);
-  });
-  const [rest, setRest] = useState(() => value.split("://").at(-1));
-
-  useEffect(() => {
-    setProtocol(protocolFromUrl(value));
-    setRest(value.split("://").at(-1));
-  }, [value]);
-
-  const updateValue = debounce((fullUrl: string) => {
-    onChange(fullUrl);
-  }, 300);
+  const { protocol, rest } = partsFromUrl(value);
 
   return (
     <Stack direction="row" gap={2}>
@@ -57,27 +40,28 @@ export const UrlInput = ({
         value={protocol}
         onChange={(event) => {
           const newProtocol = event.target.value as Protocol;
-          setProtocol(newProtocol);
-          updateValue(newProtocol + rest);
+          onChange(`${newProtocol}://${rest}`);
         }}
-        sx={{ width: 100 }}
+        sx={{
+          width: 110,
+          "& svg": { color: ({ palette }) => palette.gray[30] },
+        }}
       >
         {protocols.map((option) => (
           <MenuItem key={option} value={option}>
-            {option}
+            {option}://
           </MenuItem>
         ))}
       </Select>
       <TextField
         autoFocus={autoFocus}
         inputProps={{
-          pattern: "\\S+\\.\\w+",
+          pattern: "\\S+\\.\\w+(\\/\\S*)?",
           title: "Please enter a valid domain",
         }}
         onChange={(event) => {
           const newRest = event.target.value;
-          setRest(newRest);
-          updateValue(protocol + newRest);
+          onChange(`${protocol}://${newRest}`);
         }}
         placeholder={placeholder}
         sx={{ width: "100%" }}
