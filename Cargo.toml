@@ -146,7 +146,7 @@ tracing-core       = { version = "=0.1.33", default-features = false }
 tracing-subscriber = { version = "=0.3.19", default-features = false }
 url                = { version = "=2.5.4", default-features = false }
 utoipa             = { version = "=4.2.3", default-features = false }
-uuid               = { version = "=1.11.0", default-features = false }
+uuid               = { version = "=1.11.1", default-features = false }
 
 # Shared third-party dependencies
 ansi-to-html             = { version = "=0.2.2", default-features = false }
