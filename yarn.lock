@@ -336,7 +336,7 @@ __metadata:
     typescript: "npm:5.7.2"
     vite-tsconfig-paths: "npm:5.1.4"
     vitest: "npm:2.1.8"
-    wait-on: "npm:8.0.1"
+    wait-on: "npm:8.0.2"
   languageName: unknown
   linkType: soft
 
@@ -446,7 +446,7 @@ __metadata:
     tsx: "npm:4.19.2"
     typescript: "npm:5.7.2"
     vitest: "npm:2.1.8"
-    wait-on: "npm:8.0.1"
+    wait-on: "npm:8.0.2"
     ws: "npm:8.18.0"
   languageName: unknown
   linkType: soft
@@ -593,7 +593,7 @@ __metadata:
     url-regex-safe: "npm:4.0.0"
     use-font-face-observer: "npm:1.2.2"
     uuid: "npm:11.0.4"
-    wait-on: "npm:8.0.1"
+    wait-on: "npm:8.0.2"
     webpack: "npm:5.97.1"
   languageName: unknown
   linkType: soft
@@ -647,7 +647,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     tsx: "npm:4.19.2"
     typescript: "npm:5.7.2"
-    wait-on: "npm:8.0.1"
+    wait-on: "npm:8.0.2"
   languageName: unknown
   linkType: soft
 
@@ -9394,7 +9394,7 @@ __metadata:
     slonik: "npm:24.2.0"
     typescript: "npm:5.7.2"
     vitest: "npm:2.1.8"
-    wait-on: "npm:8.0.1"
+    wait-on: "npm:8.0.2"
     winston: "npm:3.17.0"
   languageName: unknown
   linkType: soft
@@ -21624,7 +21624,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.7.9, axios@npm:^1.4.0, axios@npm:^1.6.0, axios@npm:^1.6.1, axios@npm:^1.7.7":
+"axios@npm:1.7.9, axios@npm:^1.4.0, axios@npm:^1.6.0, axios@npm:^1.6.1, axios@npm:^1.7.9":
   version: 1.7.9
   resolution: "axios@npm:1.7.9"
   dependencies:
@@ -48236,18 +48236,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"wait-on@npm:8.0.1":
-  version: 8.0.1
-  resolution: "wait-on@npm:8.0.1"
+"wait-on@npm:8.0.2":
+  version: 8.0.2
+  resolution: "wait-on@npm:8.0.2"
   dependencies:
-    axios: "npm:^1.7.7"
+    axios: "npm:^1.7.9"
     joi: "npm:^17.13.3"
     lodash: "npm:^4.17.21"
     minimist: "npm:^1.2.8"
     rxjs: "npm:^7.8.1"
   bin:
     wait-on: bin/wait-on
-  checksum: 10c0/e8fe78084465a5fa95b17095136dcb3942480c7d9e47a0cfb72363238e2411883630dc9ced02fb372f4cc7ec0ec2484c92c67060ea2f81d0e97e41ef21df8006
+  checksum: 10c0/7a2a2193f601eb30d3125595fbed1abeb3ce0c9e164146aed27d12469d9b665273dc8e508a3a869c997f37b92d93478c202b38253a95c5c29e6fc64d0a317f5b
   languageName: node
   linkType: hard
 
