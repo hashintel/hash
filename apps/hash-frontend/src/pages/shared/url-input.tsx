@@ -67,8 +67,15 @@ export const UrlInput = ({
           title: "Please enter a valid domain",
         }}
         onChange={(event) => {
-          const newRest = event.target.value;
-          onChange(`${protocol}://${newRest}`);
+          /**
+           * Account for users entering the protocol into the rest field, e.g. by pasting a full URL
+           */
+          const [_, maybeProtocol, maybeRest] =
+            event.target.value.match("^(https?)://(.*)$") ?? [];
+
+          onChange(
+            `${maybeProtocol ?? protocol}://${maybeRest?.replace(/\/$/, "") ?? event.target.value}`,
+          );
         }}
         placeholder={placeholder}
         sx={{
