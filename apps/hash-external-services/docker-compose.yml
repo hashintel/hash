@@ -4,6 +4,25 @@ volumes:
   logs:
 
 services:
+  opa:
+    image: openpolicyagent/opa:${HASH_OPA_VERSION}
+    command: |
+      run
+      --server
+      --watch
+      --log-level debug
+      --addr :8181
+      /policies
+    ports:
+      - "${HASH_OPA_PORT}:8181"
+    volumes:
+      - ../../libs/@local/graph/authorization/policies:/policies
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8181/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
   postgres:
     build:
       context: ./postgres

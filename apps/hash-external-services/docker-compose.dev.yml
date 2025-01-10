@@ -68,6 +68,20 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
 
+  opa:
+    depends_on:
+      telemetry-collector:
+        condition: service_healthy
+    command: |
+      run
+      --server
+      --watch
+      --log-level debug
+      --addr :8181
+      --set distributed_tracing.type=grpc
+      --set distributed_tracing.address=telemetry-collector:4317
+      /policies
+
   spicedb-migrate:
     image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
     depends_on:
