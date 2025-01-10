@@ -95,7 +95,7 @@ axum               = { version = "=0.7.5" }
 axum-core          = { version = "=0.5.0" }
 bumpalo            = { version = "=3.16.0", default-features = false }
 bytes              = { version = "=1.9.0" }
-clap_builder       = { version = "=4.5.24", default-features = false, features = ["std"] }
+clap_builder       = { version = "=4.5.26", default-features = false, features = ["std"] }
 criterion          = { version = "=0.5.1" }
 deadpool           = { version = "=0.12.1", default-features = false }
 deadpool-postgres  = { version = "=0.14.1", default-features = false }
@@ -159,8 +159,8 @@ aws-config               = { version = "=1.5.13" }
 aws-sdk-s3               = { version = "=1.68.0", default-features = false }
 bitvec                   = { version = "=1.0.1", default-features = false }
 bytes-utils              = { version = "=0.1.4", default-features = false }
-clap                     = { version = "=4.5.24", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
-clap_complete            = { version = "=4.5.41", default-features = false }
+clap                     = { version = "=4.5.26", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
+clap_complete            = { version = "=4.5.42", default-features = false }
 convert_case             = { version = "=0.6.0", default-features = false }
 criterion-macro          = { version = "=0.4.0", default-features = false }
 derive-where             = { version = "=1.2.7", default-features = false, features = ["nightly"] }
