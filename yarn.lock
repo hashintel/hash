@@ -592,7 +592,7 @@ __metadata:
     typescript: "npm:5.7.2"
     url-regex-safe: "npm:4.0.0"
     use-font-face-observer: "npm:1.2.2"
-    uuid: "npm:11.0.4"
+    uuid: "npm:11.0.5"
     wait-on: "npm:8.0.2"
     webpack: "npm:5.97.1"
   languageName: unknown
@@ -846,7 +846,7 @@ __metadata:
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
     type-fest: "npm:3.13.1"
     typescript: "npm:5.7.2"
-    uuid: "npm:11.0.4"
+    uuid: "npm:11.0.5"
     webextension-polyfill: "npm:0.12.0"
     webpack: "npm:5.97.1"
     webpack-cli: "npm:4.10.0"
@@ -4663,7 +4663,7 @@ __metadata:
     react-sizeme: "npm:3.0.2"
     rooks: "npm:7.14.1"
     typescript: "npm:5.7.2"
-    uuid: "npm:11.0.4"
+    uuid: "npm:11.0.5"
   peerDependencies:
     react: ^19.0.0
     react-dom: ^19.0.0
@@ -4693,7 +4693,7 @@ __metadata:
     react-transition-group: "npm:4.4.5"
     react-type-animation: "npm:3.2.0"
     typescript: "npm:5.7.2"
-    uuid: "npm:11.0.4"
+    uuid: "npm:11.0.5"
   peerDependencies:
     react: ^19.0.0
     react-dom: ^19.0.0
@@ -4720,7 +4720,7 @@ __metadata:
     react-dom: "npm:19.0.0"
     react-sizeme: "npm:3.0.2"
     typescript: "npm:5.7.2"
-    uuid: "npm:11.0.4"
+    uuid: "npm:11.0.5"
   peerDependencies:
     react: ^19.0.0
     react-dom: ^19.0.0
@@ -4916,7 +4916,7 @@ __metadata:
     react: "npm:19.0.0"
     react-dom: "npm:19.0.0"
     typescript: "npm:5.7.2"
-    uuid: "npm:11.0.4"
+    uuid: "npm:11.0.5"
   peerDependencies:
     react: ^19.0.0
     react-dom: ^19.0.0
@@ -4963,7 +4963,7 @@ __metadata:
     react-dom: "npm:19.0.0"
     react-sizeme: "npm:3.0.2"
     typescript: "npm:5.7.2"
-    uuid: "npm:11.0.4"
+    uuid: "npm:11.0.5"
   peerDependencies:
     react: ^19.0.0
     react-dom: ^19.0.0
@@ -5115,7 +5115,7 @@ __metadata:
     react: "npm:19.0.0"
     react-dom: "npm:19.0.0"
     typescript: "npm:5.7.2"
-    uuid: "npm:11.0.4"
+    uuid: "npm:11.0.5"
   peerDependencies:
     react: ^19.0.0
     react-dom: ^19.0.0
@@ -9500,7 +9500,7 @@ __metadata:
     serialize-error: "npm:12.0.0"
     tsx: "npm:4.19.2"
     typescript: "npm:5.7.2"
-    uuid: "npm:11.0.4"
+    uuid: "npm:11.0.5"
     vitest: "npm:2.1.8"
   languageName: unknown
   linkType: soft
@@ -9520,7 +9520,7 @@ __metadata:
     eslint: "npm:9.17.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.2"
-    uuid: "npm:11.0.4"
+    uuid: "npm:11.0.5"
     vitest: "npm:2.1.8"
   languageName: unknown
   linkType: soft
@@ -17349,7 +17349,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     rollup: "npm:4.30.1"
     typescript: "npm:5.7.2"
-    uuid: "npm:11.0.4"
+    uuid: "npm:11.0.5"
   languageName: unknown
   linkType: soft
 
@@ -47879,12 +47879,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:11.0.4, uuid@npm:^11.0.1":
-  version: 11.0.4
-  resolution: "uuid@npm:11.0.4"
+"uuid@npm:11.0.5, uuid@npm:^11.0.1":
+  version: 11.0.5
+  resolution: "uuid@npm:11.0.5"
   bin:
     uuid: dist/esm/bin/uuid
-  checksum: 10c0/3c13591c4dedaa3741f925e284df5974e3d6e0b1cb0f6f75f98c36f9c01d2a414350364fd067613ef600a21c6973dab0506530d4f499ff878f32a06f84569ead
+  checksum: 10c0/6f59f0c605e02c14515401084ca124b9cb462b4dcac866916a49862bcf831874508a308588c23a7718269226ad11a92da29b39d761ad2b86e736623e3a33b6e7
   languageName: node
   linkType: hard
 
