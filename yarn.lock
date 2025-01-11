@@ -9302,7 +9302,7 @@ __metadata:
     effect: "npm:3.12.1"
     eslint: "npm:9.17.0"
     eslint-config-airbnb: "npm:19.0.4"
-    eslint-config-flat-gitignore: "npm:0.3.0"
+    eslint-config-flat-gitignore: "npm:1.0.0"
     eslint-config-prettier: "npm:9.1.0"
     eslint-config-sheriff: "npm:25.5.0"
     eslint-import-resolver-node: "npm:0.3.9"
@@ -26996,7 +26996,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-config-flat-gitignore@npm:0.3.0, eslint-config-flat-gitignore@npm:^0.3.0":
+"eslint-config-flat-gitignore@npm:1.0.0":
+  version: 1.0.0
+  resolution: "eslint-config-flat-gitignore@npm:1.0.0"
+  dependencies:
+    "@eslint/compat": "npm:^1.2.4"
+    find-up-simple: "npm:^1.0.0"
+  peerDependencies:
+    eslint: ^9.5.0
+  checksum: 10c0/46798f10ef7149167485e5279cdfcfeaadbe3a811032e15e71b9dbc29071139e3f5229490c1ff0df247401ff029f42f191a10877d500fbcc5e31024560264ec0
+  languageName: node
+  linkType: hard
+
+"eslint-config-flat-gitignore@npm:^0.3.0":
   version: 0.3.0
   resolution: "eslint-config-flat-gitignore@npm:0.3.0"
   dependencies:
