@@ -314,7 +314,7 @@ __metadata:
     googleapis: "npm:133.0.0"
     is-docker: "npm:3.0.0"
     jsdom: "npm:24.1.3"
-    llamaindex: "npm:0.8.30"
+    llamaindex: "npm:0.8.31"
     lodash.debounce: "npm:4.0.8"
     lodash.isequal: "npm:4.5.0"
     lodash.ismatch: "npm:4.4.0"
@@ -2563,7 +2563,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@azure/core-http-compat@npm:^2.0.0":
+"@azure/core-http-compat@npm:^2.0.0, @azure/core-http-compat@npm:^2.0.1":
   version: 2.1.2
   resolution: "@azure/core-http-compat@npm:2.1.2"
   dependencies:
@@ -2620,7 +2620,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@azure/core-util@npm:^1.11.0, @azure/core-util@npm:^1.2.0, @azure/core-util@npm:^1.6.1, @azure/core-util@npm:^1.8.1":
+"@azure/core-util@npm:^1.0.0, @azure/core-util@npm:^1.11.0, @azure/core-util@npm:^1.2.0, @azure/core-util@npm:^1.6.1, @azure/core-util@npm:^1.8.1":
   version: 1.11.0
   resolution: "@azure/core-util@npm:1.11.0"
   dependencies:
@@ -2713,6 +2713,24 @@ __metadata:
     jsonwebtoken: "npm:^9.0.0"
     uuid: "npm:^8.3.0"
   checksum: 10c0/0513a12d42fc53f8ddf5d460087621a526000054f92d1874f054736007018de583318d240576e98b5f65a598b66f19b3165b9550dfded8bf07dbcb53a21bb08e
+  languageName: node
+  linkType: hard
+
+"@azure/search-documents@npm:^12.1.0":
+  version: 12.1.0
+  resolution: "@azure/search-documents@npm:12.1.0"
+  dependencies:
+    "@azure/core-auth": "npm:^1.3.0"
+    "@azure/core-client": "npm:^1.3.0"
+    "@azure/core-http-compat": "npm:^2.0.1"
+    "@azure/core-paging": "npm:^1.1.1"
+    "@azure/core-rest-pipeline": "npm:^1.3.0"
+    "@azure/core-tracing": "npm:^1.0.0"
+    "@azure/core-util": "npm:^1.0.0"
+    "@azure/logger": "npm:^1.0.0"
+    events: "npm:^3.0.0"
+    tslib: "npm:^2.2.0"
+  checksum: 10c0/6ac9ad926b0b7a3514d9cacba036715561da104a3057fa562b03e82c98e63a9df760ee9dd72d688a96f1dced9f1d03623a42dd67ffcfdf5ca322f4c255bff1af
   languageName: node
   linkType: hard
 
@@ -9073,63 +9091,63 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@llamaindex/anthropic@npm:0.0.28":
-  version: 0.0.28
-  resolution: "@llamaindex/anthropic@npm:0.0.28"
+"@llamaindex/anthropic@npm:0.0.29":
+  version: 0.0.29
+  resolution: "@llamaindex/anthropic@npm:0.0.29"
   dependencies:
     "@anthropic-ai/sdk": "npm:0.32.1"
-    "@llamaindex/core": "npm:0.4.19"
+    "@llamaindex/core": "npm:0.4.20"
     "@llamaindex/env": "npm:0.1.25"
     remeda: "npm:^2.17.3"
-  checksum: 10c0/733f01d8e4b0eb27448e97f2429117bfefce238f574da95321440c43bebe24d905edab98dd67b6349bc3281eb9956e3287ea3e42771bf7cb00d0f8d03aad7320
+  checksum: 10c0/40e9171638b4f13f2ed359a0972b2d97b5968beeca376cca21a25ceee6e4399c8983dd4f595c58db5aa0be928608a7acfe17f5d98976ada73198852192f46f4d
   languageName: node
   linkType: hard
 
-"@llamaindex/clip@npm:0.0.28":
-  version: 0.0.28
-  resolution: "@llamaindex/clip@npm:0.0.28"
+"@llamaindex/clip@npm:0.0.29":
+  version: 0.0.29
+  resolution: "@llamaindex/clip@npm:0.0.29"
   dependencies:
     "@huggingface/transformers": "npm:^3.0.2"
-    "@llamaindex/core": "npm:0.4.19"
+    "@llamaindex/core": "npm:0.4.20"
     "@llamaindex/env": "npm:0.1.25"
-    "@llamaindex/openai": "npm:0.1.44"
+    "@llamaindex/openai": "npm:0.1.45"
   peerDependencies:
     "@huggingface/transformers": ^3.0.2
-  checksum: 10c0/e5fcafb61813b7801534ffcca4467088740f7e251f1e0565e7f985e7b5afdb95f37f1b8a26766a5742f66df7376fc10c9e9dd124c8bfe1b59b9ea0616075bbe2
+  checksum: 10c0/516de746f2cd3a41e6f09975f3e6fbb2773dd9c169e05c2a1e9e9b2519f63c648885894ee4b5b8bd0b6b527903bc8efd7a497d8f026a8f8bdab6ef2360c51e85
   languageName: node
   linkType: hard
 
-"@llamaindex/cloud@npm:2.0.20":
-  version: 2.0.20
-  resolution: "@llamaindex/cloud@npm:2.0.20"
+"@llamaindex/cloud@npm:2.0.21":
+  version: 2.0.21
+  resolution: "@llamaindex/cloud@npm:2.0.21"
   peerDependencies:
-    "@llamaindex/core": 0.4.19
+    "@llamaindex/core": 0.4.20
     "@llamaindex/env": 0.1.25
-  checksum: 10c0/8288feba87f38cc13f2f35b410e2e8537868ebb90e46b332afa64d66d6433a3d56632d9ad256779ea6758238db986a2254e769acc2b8628f37890c92f5f33435
+  checksum: 10c0/9289bbb58ac23326208af6fb5ca6de30a4dd561a911091a7eed4da2387e442cb2edcd6189f56cf43c939c747767fe4fef691ec59744be6c62ea21cbaa4668baa
   languageName: node
   linkType: hard
 
-"@llamaindex/core@npm:0.4.19":
-  version: 0.4.19
-  resolution: "@llamaindex/core@npm:0.4.19"
+"@llamaindex/core@npm:0.4.20":
+  version: 0.4.20
+  resolution: "@llamaindex/core@npm:0.4.20"
   dependencies:
     "@llamaindex/env": "npm:0.1.25"
     "@types/node": "npm:^22.9.0"
     magic-bytes.js: "npm:^1.10.0"
     zod: "npm:^3.23.8"
     zod-to-json-schema: "npm:^3.23.3"
-  checksum: 10c0/f571a418111ccf5c6307c374ac9dc132afe62cf9135658bf1f62417a93a434967cf868b678715ae5739ead77a7652a4a002357e25a2d8f471b64ac84353b1eaf
+  checksum: 10c0/f59302af8b5a0c4983a395e286abbccb8f40461c100b9fbe72f85c62ec132534f76cb51c385c619cd3e460f091c856d96ed61746dd51e695e0e3b4b7f15506d8
   languageName: node
   linkType: hard
 
-"@llamaindex/deepinfra@npm:0.0.28":
-  version: 0.0.28
-  resolution: "@llamaindex/deepinfra@npm:0.0.28"
+"@llamaindex/deepinfra@npm:0.0.29":
+  version: 0.0.29
+  resolution: "@llamaindex/deepinfra@npm:0.0.29"
   dependencies:
-    "@llamaindex/core": "npm:0.4.19"
+    "@llamaindex/core": "npm:0.4.20"
     "@llamaindex/env": "npm:0.1.25"
-    "@llamaindex/openai": "npm:0.1.44"
-  checksum: 10c0/28e1becbfe26ff455ae0d1c33b19dec086d1ea1762d973bfa6e56dc2e84568d9c2580d44074b0a34e9cf8cdf4156deeecc636dbd2adc9e43e7dc57f67295e52a
+    "@llamaindex/openai": "npm:0.1.45"
+  checksum: 10c0/7485cb300011b83f625c8f0e75ce2c5c3c7752df26336b95296ea50242446ae4566763525dfc54c84e6f82de45820b3a67747a9c8d852fc1571688109ef58776
   languageName: node
   linkType: hard
 
@@ -9157,84 +9175,84 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@llamaindex/groq@npm:0.0.43":
-  version: 0.0.43
-  resolution: "@llamaindex/groq@npm:0.0.43"
+"@llamaindex/groq@npm:0.0.44":
+  version: 0.0.44
+  resolution: "@llamaindex/groq@npm:0.0.44"
   dependencies:
     "@llamaindex/env": "npm:0.1.25"
-    "@llamaindex/openai": "npm:0.1.44"
+    "@llamaindex/openai": "npm:0.1.45"
     groq-sdk: "npm:0.8.0"
-  checksum: 10c0/b3c58b69cecb02e8748c8f8cdf19684dcab3e6a9d96bb3762dd1a3cdd61163ddda05858a1d62635d42e9b98bcccad9d354aa7d8abd08dbc37f89b172e1c1f993
+  checksum: 10c0/32a305aad9c68747c220d23633a5e9b24f91f8be4bca85fe6e37a0599e6eef3fd8c7d203f0eba5b8bbbb569978d1858370c0aa73d0d25870850ae0913d698d2d
   languageName: node
   linkType: hard
 
-"@llamaindex/huggingface@npm:0.0.28":
-  version: 0.0.28
-  resolution: "@llamaindex/huggingface@npm:0.0.28"
+"@llamaindex/huggingface@npm:0.0.29":
+  version: 0.0.29
+  resolution: "@llamaindex/huggingface@npm:0.0.29"
   dependencies:
     "@huggingface/inference": "npm:^2.8.1"
     "@huggingface/transformers": "npm:^3.0.2"
-    "@llamaindex/core": "npm:0.4.19"
+    "@llamaindex/core": "npm:0.4.20"
     "@llamaindex/env": "npm:0.1.25"
-    "@llamaindex/openai": "npm:0.1.44"
+    "@llamaindex/openai": "npm:0.1.45"
   peerDependencies:
     "@huggingface/transformers": ^3.0.2
-  checksum: 10c0/5d9045764c1e84a6ddf707594806444fb4f112f9079baee8cc740e3c2682ad1900f8d765b10b806397f8432e25d29e1c647769e22384045454aa180c720b9425
+  checksum: 10c0/c423d5c5727b2ace38647f0ea5260662932351b5e12ace27dd68595ee55fe58203706fe1b481e5fe007e00d4c8dd155a04985cc33149727bd133a589cdf9acce
   languageName: node
   linkType: hard
 
-"@llamaindex/node-parser@npm:0.0.20":
-  version: 0.0.20
-  resolution: "@llamaindex/node-parser@npm:0.0.20"
+"@llamaindex/node-parser@npm:0.0.21":
+  version: 0.0.21
+  resolution: "@llamaindex/node-parser@npm:0.0.21"
   dependencies:
     html-to-text: "npm:^9.0.5"
   peerDependencies:
-    "@llamaindex/core": 0.4.19
+    "@llamaindex/core": 0.4.20
     "@llamaindex/env": 0.1.25
     tree-sitter: ^0.22.0
     web-tree-sitter: ^0.24.3
-  checksum: 10c0/fb7b52f198ff7cc7104a7876060a8a8a4a751bd16301f66bbb8048daee7a2be4302b91ecca1981578198b5766dcf35d3b8d8f5e7466bf501787667b5d10bd6fc
+  checksum: 10c0/2e904194b4fba5d9dad4cc1d6f7ac83d523b3679ed862aeacd23d0997e569a8eb71f46224148d36467c4c7b2913b724dfdb5c0172e4bb62498c1126372c08d8f
   languageName: node
   linkType: hard
 
-"@llamaindex/ollama@npm:0.0.35":
-  version: 0.0.35
-  resolution: "@llamaindex/ollama@npm:0.0.35"
+"@llamaindex/ollama@npm:0.0.36":
+  version: 0.0.36
+  resolution: "@llamaindex/ollama@npm:0.0.36"
   dependencies:
-    "@llamaindex/core": "npm:0.4.19"
+    "@llamaindex/core": "npm:0.4.20"
     "@llamaindex/env": "npm:0.1.25"
     ollama: "npm:^0.5.10"
     remeda: "npm:^2.17.3"
-  checksum: 10c0/b6a58b3c76941dddee97ce99e376fe5dd61fef272e397236da9b6519700c453b51608b9f2ef78641c5902e17d916910745e2ca34f207b14f01c113eff53a33f4
+  checksum: 10c0/68828957a5b685d2ad90fb23cddf76015eaab234504b96f41918cebd81b857a2667d680f7625b7e3c14307baad176932bf552d6a35f00b7c2dcd222828fec416
   languageName: node
   linkType: hard
 
-"@llamaindex/openai@npm:0.1.44":
-  version: 0.1.44
-  resolution: "@llamaindex/openai@npm:0.1.44"
+"@llamaindex/openai@npm:0.1.45":
+  version: 0.1.45
+  resolution: "@llamaindex/openai@npm:0.1.45"
   dependencies:
-    "@llamaindex/core": "npm:0.4.19"
+    "@llamaindex/core": "npm:0.4.20"
     "@llamaindex/env": "npm:0.1.25"
     openai: "npm:^4.73.1"
-  checksum: 10c0/bf2ccd9f018f0e80e80e113877dacbafbc4457693d111bbf815b313f7f9405e073d8539ac23cca0ea4fc966365910ce5d2e60ce8b2aa2c75adf35358d60385c1
+  checksum: 10c0/a5ea80736c105a5cf70e773d9f48999f53279932f6f3c851fea7e8115b9823247c993ee876cf4aade8d61b22334748fdf95b3bdacebbebffbd365e7509e7d94a
   languageName: node
   linkType: hard
 
-"@llamaindex/portkey-ai@npm:0.0.28":
-  version: 0.0.28
-  resolution: "@llamaindex/portkey-ai@npm:0.0.28"
+"@llamaindex/portkey-ai@npm:0.0.29":
+  version: 0.0.29
+  resolution: "@llamaindex/portkey-ai@npm:0.0.29"
   dependencies:
-    "@llamaindex/core": "npm:0.4.19"
+    "@llamaindex/core": "npm:0.4.20"
     "@llamaindex/env": "npm:0.1.25"
     portkey-ai: "npm:0.1.16"
     remeda: "npm:^2.17.3"
-  checksum: 10c0/a3e1c4173d977da3956b73bfbb29f4222baab5edc5c069f64e20cf59ab9e86c852071c4ce73188b3cbce97b3cfb648d6bcfd68ea62a137682fdcd81d9c84c530
+  checksum: 10c0/5eaad1c73b913337121ea2d4a38e6d42cfd800b97369310a4eb517b5178cd29a55f669ab3aeeede715d278add02a8e41e8c093aed1a26cfd91a8cf0841bce0fe
   languageName: node
   linkType: hard
 
-"@llamaindex/readers@npm:1.0.21":
-  version: 1.0.21
-  resolution: "@llamaindex/readers@npm:1.0.21"
+"@llamaindex/readers@npm:1.0.22":
+  version: 1.0.22
+  resolution: "@llamaindex/readers@npm:1.0.22"
   dependencies:
     "@azure/cosmos": "npm:^4.1.1"
     "@discordjs/rest": "npm:^2.3.0"
@@ -9248,29 +9266,29 @@ __metadata:
     papaparse: "npm:^5.4.1"
     unpdf: "npm:^0.12.1"
   peerDependencies:
-    "@llamaindex/core": 0.4.19
+    "@llamaindex/core": 0.4.20
     "@llamaindex/env": 0.1.25
-  checksum: 10c0/685ac24c29f909b5704a697b5586f32fb73ced566660c3767877df7aa1efca84e7ce022a5aa77337fd4f4e487239269f3fe05b5fa8efe194eb29bd035cd16b66
+  checksum: 10c0/d96e21189e1f366e735c0428e2d5107479fc064cf0bab7477df20b8caa37b2333c15e296a7ba3ca6ecd6537f15c2e50b495506169f78547d4a3d82310de10063
   languageName: node
   linkType: hard
 
-"@llamaindex/replicate@npm:0.0.28":
-  version: 0.0.28
-  resolution: "@llamaindex/replicate@npm:0.0.28"
+"@llamaindex/replicate@npm:0.0.29":
+  version: 0.0.29
+  resolution: "@llamaindex/replicate@npm:0.0.29"
   dependencies:
-    "@llamaindex/core": "npm:0.4.19"
+    "@llamaindex/core": "npm:0.4.20"
     "@llamaindex/env": "npm:0.1.25"
     replicate: "npm:^1.0.1"
-  checksum: 10c0/aa5fbffa14e925b45f5dc450d3aa237388c801785c024e79f1aba65e10c392583d3faad28b7a3b5f98add063c8dfdafb5038cfabe7c1b647cab00a080aeb6f06
+  checksum: 10c0/c929812b33360d4245f23b58f6e3efc70c31915a6e5ff819df33fe271b6a1c1a3fd38cc0a7590bf5a221e5d7a4d327da65403a682931853d9a0bc7cb25f74502
   languageName: node
   linkType: hard
 
-"@llamaindex/vllm@npm:0.0.14":
-  version: 0.0.14
-  resolution: "@llamaindex/vllm@npm:0.0.14"
+"@llamaindex/vllm@npm:0.0.15":
+  version: 0.0.15
+  resolution: "@llamaindex/vllm@npm:0.0.15"
   dependencies:
-    "@llamaindex/openai": "npm:0.1.44"
-  checksum: 10c0/06945cc1e848afee52d1d10224332e4346b2e8790de475aad0937d25630e0c0c06d8bce2003669a371cfd7f8f974c9da29e2e598229f5a4badef2731fbed0197
+    "@llamaindex/openai": "npm:0.1.45"
+  checksum: 10c0/7cafb5ef547e26279a5a4b8442fe628396271c9f415cd3ad9076a61883cc2fc51b120122b4486114cefe5375aa364c765cf10236098dcdba1be82e8948f7411b
   languageName: node
   linkType: hard
 
@@ -34135,35 +34153,36 @@ __metadata:
   languageName: node
   linkType: hard
 
-"llamaindex@npm:0.8.30":
-  version: 0.8.30
-  resolution: "llamaindex@npm:0.8.30"
+"llamaindex@npm:0.8.31":
+  version: 0.8.31
+  resolution: "llamaindex@npm:0.8.31"
   dependencies:
     "@anthropic-ai/sdk": "npm:0.32.1"
     "@aws-crypto/sha256-js": "npm:^5.2.0"
     "@aws-sdk/client-sso-oidc": "npm:^3.693.0"
     "@azure/cosmos": "npm:^4.1.1"
     "@azure/identity": "npm:^4.4.1"
+    "@azure/search-documents": "npm:^12.1.0"
     "@datastax/astra-db-ts": "npm:^1.4.1"
     "@discoveryjs/json-ext": "npm:^0.6.1"
     "@google-cloud/vertexai": "npm:1.9.0"
     "@google/generative-ai": "npm:0.21.0"
     "@grpc/grpc-js": "npm:^1.12.2"
-    "@llamaindex/anthropic": "npm:0.0.28"
-    "@llamaindex/clip": "npm:0.0.28"
-    "@llamaindex/cloud": "npm:2.0.20"
-    "@llamaindex/core": "npm:0.4.19"
-    "@llamaindex/deepinfra": "npm:0.0.28"
+    "@llamaindex/anthropic": "npm:0.0.29"
+    "@llamaindex/clip": "npm:0.0.29"
+    "@llamaindex/cloud": "npm:2.0.21"
+    "@llamaindex/core": "npm:0.4.20"
+    "@llamaindex/deepinfra": "npm:0.0.29"
     "@llamaindex/env": "npm:0.1.25"
-    "@llamaindex/groq": "npm:0.0.43"
-    "@llamaindex/huggingface": "npm:0.0.28"
-    "@llamaindex/node-parser": "npm:0.0.20"
-    "@llamaindex/ollama": "npm:0.0.35"
-    "@llamaindex/openai": "npm:0.1.44"
-    "@llamaindex/portkey-ai": "npm:0.0.28"
-    "@llamaindex/readers": "npm:1.0.21"
-    "@llamaindex/replicate": "npm:0.0.28"
-    "@llamaindex/vllm": "npm:0.0.14"
+    "@llamaindex/groq": "npm:0.0.44"
+    "@llamaindex/huggingface": "npm:0.0.29"
+    "@llamaindex/node-parser": "npm:0.0.21"
+    "@llamaindex/ollama": "npm:0.0.36"
+    "@llamaindex/openai": "npm:0.1.45"
+    "@llamaindex/portkey-ai": "npm:0.0.29"
+    "@llamaindex/readers": "npm:1.0.22"
+    "@llamaindex/replicate": "npm:0.0.29"
+    "@llamaindex/vllm": "npm:0.0.15"
     "@mistralai/mistralai": "npm:^1.3.4"
     "@mixedbread-ai/sdk": "npm:^2.2.11"
     "@pinecone-database/pinecone": "npm:^4.0.0"
@@ -34199,7 +34218,7 @@ __metadata:
       optional: true
     pgvector:
       optional: true
-  checksum: 10c0/d3a5f0dc8931c031ab5efe223a136a6e8803720ab3cc84c403897542b58c5a4851f12094feaad160a079bdb9254c60dca52385258680f052d9d8af53ca92b7d1
+  checksum: 10c0/d221cbddfed273772d8239e2fedef401b88e01570fb0ea80363fc974b1eb3f1bf7374a92bba2eefa50911513b4abf143ca0610a9cbb6628b75004692323a6d16
   languageName: node
   linkType: hard
 
