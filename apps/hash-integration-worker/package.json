@@ -29,7 +29,7 @@
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
-    "@sentry/node": "7.120.2",
+    "@sentry/node": "7.120.3",
     "@temporalio/activity": "1.11.5",
     "@temporalio/worker": "1.11.5",
     "@temporalio/workflow": "1.11.5",
