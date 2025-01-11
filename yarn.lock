@@ -270,7 +270,7 @@ __metadata:
     "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
-    "@google-cloud/storage": "npm:7.14.0"
+    "@google-cloud/storage": "npm:7.15.0"
     "@google-cloud/vertexai": "npm:1.9.2"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
@@ -6927,9 +6927,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@google-cloud/storage@npm:7.14.0":
-  version: 7.14.0
-  resolution: "@google-cloud/storage@npm:7.14.0"
+"@google-cloud/storage@npm:7.15.0":
+  version: 7.15.0
+  resolution: "@google-cloud/storage@npm:7.15.0"
   dependencies:
     "@google-cloud/paginator": "npm:^5.0.0"
     "@google-cloud/projectify": "npm:^4.0.0"
@@ -6946,7 +6946,7 @@ __metadata:
     retry-request: "npm:^7.0.0"
     teeny-request: "npm:^9.0.0"
     uuid: "npm:^8.0.0"
-  checksum: 10c0/549340cfd4825710dd82dd15bd59ef27d248bc8bad04982c5c97ee4c50f0c09acd24e1b5488530a35318c513a7d9f14d526fcbb050a744893e7e593135856884
+  checksum: 10c0/10a432d2302a6f47f2b4552b97c897d2472aedc314d054a91dac6f83e8a7710f176ecd5aee728357bec53ec722198f519d8dc662f7c4da6c80eac6abe5dedf67
   languageName: node
   linkType: hard
 
