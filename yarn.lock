@@ -13315,7 +13315,7 @@ __metadata:
   resolution: "@rust/hash-graph-http-tests@workspace:tests/graph/http"
   dependencies:
     "@apps/hash-graph": "npm:0.0.0-private"
-    httpyac: "npm:6.16.5"
+    httpyac: "npm:6.16.6"
   languageName: unknown
   linkType: soft
 
@@ -31163,9 +31163,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"httpyac@npm:6.16.5":
-  version: 6.16.5
-  resolution: "httpyac@npm:6.16.5"
+"httpyac@npm:6.16.6":
+  version: 6.16.6
+  resolution: "httpyac@npm:6.16.6"
   dependencies:
     "@cloudamqp/amqp-client": "npm:^2.1.1"
     "@grpc/grpc-js": "npm:^1.12.2"
@@ -31201,7 +31201,7 @@ __metadata:
     xpath: "npm:^0.0.34"
   bin:
     httpyac: bin/httpyac.js
-  checksum: 10c0/1fc7ef358078b7b25b2eec738152b9aa0c3b35a88a2f18a05fd8d00cf7eb254c5ad050c1b45bc7a085bd46de22fbec96646790cd33dd81dc0a1802129c75e59f
+  checksum: 10c0/e6fa9514c8e28e9f5725c07663eb5e81e5cfacf7bf78c1360160ec0cb14af634f6022fb8f20b2e0fac6914ce1450daf388fb13532060769794977f3135598986
   languageName: node
   linkType: hard
 
