@@ -1356,9 +1356,9 @@ checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
 name = "convert_case"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+checksum = "58edcceb030fad49b986afe5783b651123c0ee44a61e22802f91a9d5d1ae1900"
 dependencies = [
  "unicode-segmentation",
 ]
