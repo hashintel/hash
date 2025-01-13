@@ -95,7 +95,7 @@ export const EntitiesTable: FunctionComponent<
     hasSomeLinks: boolean;
     hidePropertiesColumns?: boolean;
     hideColumns?: (keyof EntitiesTableRow)[];
-    // limit: number;
+    limit: number;
     loading: boolean;
     loadingComponent: ReactElement;
     isViewingOnlyPages: boolean;
@@ -124,7 +124,7 @@ export const EntitiesTable: FunctionComponent<
   handleEntityClick,
   hideColumns,
   hidePropertiesColumns = false,
-  // limit,
+  limit: _limit,
   loading: entityDataLoading,
   loadingComponent,
   isViewingOnlyPages,
@@ -632,15 +632,6 @@ export const EntitiesTable: FunctionComponent<
       </Stack>
     );
   }
-
-  console.log(
-    JSON.stringify({
-      rows: rows.length,
-      tableData: !!tableData,
-      entityDataLoading,
-      tableDataCalculating,
-    }),
-  );
 
   return (
     <Stack gap={1}>
