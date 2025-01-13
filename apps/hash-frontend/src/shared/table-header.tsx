@@ -185,7 +185,7 @@ export const TableHeader = <R extends GridRow>({
 
           if (typeof value === "string") {
             return value;
-          } else if (key === "lastEditedBy") {
+          } else if (key === "lastEditedBy" || key === "createdBy") {
             const user = value as MinimalUser | undefined;
 
             return user?.displayName ?? "";
@@ -379,7 +379,7 @@ export const TableHeader = <R extends GridRow>({
           /**
            * @todo H-3909 full text search via API
            */
-          <Tooltip title="Search for text in visible rows">
+          <Tooltip title="Search for text in visible rows" placement="top">
             <IconButton onClick={toggleSearch}>
               <MagnifyingGlassRegularIcon />
             </IconButton>

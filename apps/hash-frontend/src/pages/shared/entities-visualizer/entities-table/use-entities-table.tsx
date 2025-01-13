@@ -293,8 +293,6 @@ export const useEntitiesTable = (
       if (isGenerateEntitiesTableDataResultMessage(data)) {
         const { done, requestId, result } = data;
 
-        setWaitingTableData(false);
-
         if (accumulatedDataRef.current.requestId !== requestId) {
           accumulatedDataRef.current = { requestId, rows: result.rows };
         } else {
@@ -313,6 +311,8 @@ export const useEntitiesTable = (
             },
             rows: accumulatedDataRef.current.rows,
           });
+          setWaitingTableData(false);
+
           accumulatedDataRef.current.rows = [];
         }
       }
@@ -326,6 +326,9 @@ export const useEntitiesTable = (
       if (!worker) {
         throw new Error("No worker available");
       }
+
+      setTableData(null);
+      setWaitingTableData(true);
 
       worker.postMessage({
         type: "generateEntitiesTableData",
@@ -366,6 +369,6 @@ export const useEntitiesTable = (
 
   return {
     tableData,
-    loading: waitingTableData,
+    loading: waitingTableData || actorsLoading,
   };
 };

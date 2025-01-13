@@ -7,12 +7,12 @@ import type {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import {
-  ArrowRightRegularIcon,
-  IconButton,
-  LoadingSpinner,
-  Select,
-} from "@hashintel/design-system";
+// import {
+//   ArrowRightRegularIcon,
+//   IconButton,
+//   LoadingSpinner,
+//   Select,
+// } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
@@ -38,7 +38,7 @@ import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icon
 import type { ColumnFilter } from "../../../components/grid/utils/filtering";
 import { tableContentSx } from "../../../shared/table-content";
 import type { FilterState } from "../../../shared/table-header";
-import { MenuItem } from "../../../shared/ui/menu-item";
+// import { MenuItem } from "../../../shared/ui/menu-item";
 import { isAiMachineActor } from "../../../shared/use-actors";
 import type { ChipCellProps } from "../chip-cell";
 import { createRenderChipCell } from "../chip-cell";
@@ -95,15 +95,15 @@ export const EntitiesTable: FunctionComponent<
     hasSomeLinks: boolean;
     hidePropertiesColumns?: boolean;
     hideColumns?: (keyof EntitiesTableRow)[];
-    limit: number;
+    // limit: number;
     loading: boolean;
     loadingComponent: ReactElement;
     isViewingOnlyPages: boolean;
     maxHeight: string | number;
-    goToNextPage?: () => void;
+    // goToNextPage?: () => void;
     readonly?: boolean;
     selectedRows: EntitiesTableRow[];
-    setLimit: (limit: number) => void;
+    // setLimit: (limit: number) => void;
     setSelectedRows: (rows: EntitiesTableRow[]) => void;
     setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
     setShowSearch: (showSearch: boolean) => void;
@@ -124,15 +124,15 @@ export const EntitiesTable: FunctionComponent<
   handleEntityClick,
   hideColumns,
   hidePropertiesColumns = false,
-  limit,
+  // limit,
   loading: entityDataLoading,
   loadingComponent,
   isViewingOnlyPages,
   maxHeight,
-  goToNextPage,
+  // goToNextPage,
   propertyTypes,
   readonly,
-  setLimit,
+  // setLimit,
   selectedRows,
   setSelectedRows,
   showSearch,
@@ -633,6 +633,15 @@ export const EntitiesTable: FunctionComponent<
     );
   }
 
+  console.log(
+    JSON.stringify({
+      rows: rows.length,
+      tableData: !!tableData,
+      entityDataLoading,
+      tableDataCalculating,
+    }),
+  );
+
   return (
     <Stack gap={1}>
       <Grid
@@ -645,7 +654,7 @@ export const EntitiesTable: FunctionComponent<
           createRenderUrlCell({ firstColumnLeftPadding }),
           createRenderChipCell({ firstColumnLeftPadding }),
         ]}
-        dataLoading={entityDataLoading}
+        dataLoading={entityDataLoading || tableDataCalculating}
         enableCheckboxSelection={!readonly}
         firstColumnLeftPadding={firstColumnLeftPadding}
         freezeColumns={1}
