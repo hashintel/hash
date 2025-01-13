@@ -1,4 +1,4 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ArrayItemNumberMismatch as ArrayItemNumberMismatchGraphApi,
@@ -27,6 +27,8 @@ import type {
   ValueValidationError as ValueValidationErrorGraphApi,
   ValueValidationReport as ValueValidationReportGraphApi,
 } from "@local/hash-graph-client";
+
+import type { BaseUrl } from "./ontology.js";
 
 export type EntityValidationReport = Omit<
   EntityValidationReportGraphApi,

@@ -48,6 +48,8 @@ CREATE TABLE entity_temporal_metadata (
 CREATE INDEX entity_temporal_metadata_temporal_idx
 ON entity_temporal_metadata
 USING gist (web_id, entity_uuid, transaction_time, decision_time);
+CREATE INDEX entity_temporal_metadata_edition_id_idx
+ON entity_temporal_metadata (entity_edition_id);
 
 CREATE TABLE entity_is_of_type (
     entity_edition_id UUID NOT NULL REFERENCES entity_editions,
@@ -78,6 +80,8 @@ CREATE TABLE entity_has_left_entity (
 );
 CREATE INDEX entity_has_left_entity_source_idx
 ON entity_has_left_entity (web_id, entity_uuid);
+CREATE INDEX entity_has_left_entity_target_idx
+ON entity_has_left_entity (left_web_id, left_entity_uuid);
 
 CREATE TABLE entity_has_right_entity (
     web_id UUID NOT NULL,
@@ -91,6 +95,8 @@ CREATE TABLE entity_has_right_entity (
 );
 CREATE INDEX entity_has_right_entity_source_idx
 ON entity_has_right_entity (web_id, entity_uuid);
+CREATE INDEX entity_has_right_entity_target_idx
+ON entity_has_right_entity (right_web_id, right_entity_uuid);
 
 CREATE TABLE entity_embeddings (
     web_id UUID NOT NULL,

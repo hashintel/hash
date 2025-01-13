@@ -7,6 +7,7 @@ export const entityTypedef = gql`
   scalar EntityMetadata
   scalar EntityRecordId
   scalar EntityRelationAndSubject
+  scalar EntityValidationReport
   scalar GetEntitySubgraphRequest
   scalar LinkData
   scalar PropertyObject
@@ -184,7 +185,7 @@ export const entityTypedef = gql`
       The proposed properties for the entity
       """
       properties: PropertyObjectWithMetadata!
-    ): Boolean!
+    ): EntityValidationReport
   }
 
   enum AuthorizationSubjectKind {

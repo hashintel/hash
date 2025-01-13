@@ -1,5 +1,6 @@
 import { Command, Path } from "@effect/platform";
 import { Effect } from "effect";
+import type * as vitest from "vitest";
 
 const packageDirectory = () =>
   Effect.gen(function* () {
@@ -43,9 +44,9 @@ export const callEncode = (
     return received;
   });
 
-export const callDecode = <T>(
+export const callDecode = (
   mode: "response-header" | "response-begin" | "response-frame" | "response",
-  payload: T,
+  payload: unknown,
 ) =>
   Effect.gen(function* () {
     const binary = yield* executablePath();
@@ -57,5 +58,15 @@ export const callDecode = <T>(
 
     // convert base64 to Uint8Array
     const buffer = Buffer.from(output, "base64");
+
     return Uint8Array.from(buffer);
   });
+
+export const expectArrayBuffer = (
+  cx: vitest.TaskContext<vitest.RunnerTestCase> & vitest.TestContext,
+  value: ArrayBufferLike,
+): ArrayBuffer => {
+  cx.expect(value).toBeInstanceOf(ArrayBuffer);
+
+  return value as ArrayBuffer;
+};

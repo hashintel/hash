@@ -24,6 +24,7 @@ const App = () => (
   <div style={{ padding: "1em" }}>
     <div style={{ margin: "0 auto", width: "100%" }}>
       <MockBlockDock
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
         blockDefinition={{ ReactComponent: Component }}
         blockEntity={{
           entityId: "person1",

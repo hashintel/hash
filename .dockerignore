@@ -108,6 +108,7 @@ gha-creds-*.json
 **/dist
 **/build
 **/target
+**/pkg
 
 # vscode config
 **/.vscode/settings.json

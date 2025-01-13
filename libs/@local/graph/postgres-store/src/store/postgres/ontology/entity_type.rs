@@ -43,6 +43,7 @@ use hash_graph_types::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },
+    owned_by_id::OwnedById,
 };
 use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
@@ -377,62 +378,76 @@ where
             || params.include_web_ids
             || params.include_edition_created_by_ids
         {
+            let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+            let ontology_id_idx = compiler.add_selection_path(&EntityTypeQueryPath::OntologyId);
+            let web_id_idx = params
+                .include_web_ids
+                .then(|| compiler.add_selection_path(&EntityTypeQueryPath::OwnedById));
+            let edition_provenance_idx = params.include_edition_created_by_ids.then(|| {
+                compiler.add_selection_path(&EntityTypeQueryPath::EditionProvenance(None))
+            });
+
+            compiler.add_filter(&params.filter);
+
+            let (statement, parameters) = compiler.compile();
+
+            let entity_types = self
+                .as_client()
+                .query_raw(&statement, parameters.iter().copied())
+                .instrument(tracing::trace_span!("query"))
+                .await
+                .change_context(QueryError)?
+                .map(|row| row.change_context(QueryError))
+                .map_ok(move |row| (row.get(ontology_id_idx), row))
+                .try_collect::<HashMap<EntityTypeUuid, _>>()
+                .await?;
+
+            let (permissions, _zookie) = self
+                .authorization_api
+                .check_entity_types_permission(
+                    actor_id,
+                    EntityTypePermission::View,
+                    entity_types.keys().copied(),
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let permitted_ids = permissions
+                .into_iter()
+                .filter_map(|(entity_type_id, has_permission)| {
+                    has_permission.then_some(entity_type_id)
+                })
+                .collect::<HashSet<_>>();
+
             let mut web_ids = params.include_web_ids.then(ResponseCountMap::default);
             let mut edition_created_by_ids = params
                 .include_edition_created_by_ids
                 .then(ResponseCountMap::default);
 
-            let entity_ids = Read::<EntityTypeWithMetadata>::read(
-                self,
-                &params.filter,
-                Some(temporal_axes),
-                params.include_drafts,
+            let count = entity_types
+                .into_iter()
+                .filter(|(entity_type_id, _)| permitted_ids.contains(entity_type_id))
+                .inspect(|(_, row)| {
+                    if let Some((web_ids, web_id_idx)) = web_ids.as_mut().zip(web_id_idx) {
+                        let web_id: OwnedById = row.get(web_id_idx);
+                        web_ids.extend_one(web_id);
+                    }
+
+                    if let Some((edition_created_by_ids, edition_provenance_idx)) =
+                        edition_created_by_ids.as_mut().zip(edition_provenance_idx)
+                    {
+                        let provenance: OntologyEditionProvenance = row.get(edition_provenance_idx);
+                        edition_created_by_ids.extend_one(provenance.created_by_id);
+                    }
+                })
+                .count();
+
+            (
+                params.include_count.then_some(count),
+                web_ids.map(HashMap::from),
+                edition_created_by_ids.map(HashMap::from),
             )
-            .await?
-            .map_ok(|entity_type| {
-                if let (Some(web_ids), OntologyTypeClassificationMetadata::Owned { owned_by_id }) =
-                    (&mut web_ids, &entity_type.metadata.classification)
-                {
-                    web_ids.increment(owned_by_id);
-                }
-                if let Some(edition_created_by_ids) = &mut edition_created_by_ids {
-                    edition_created_by_ids
-                        .increment(&entity_type.metadata.provenance.edition.created_by_id);
-                }
-                EntityTypeUuid::from_url(&entity_type.schema.id)
-            })
-            .try_collect::<Vec<_>>()
-            .await?;
-
-            async move {
-                let (permissions, _zookie) = self
-                    .authorization_api
-                    .check_entity_types_permission(
-                        actor_id,
-                        EntityTypePermission::View,
-                        entity_ids.iter().copied(),
-                        Consistency::FullyConsistent,
-                    )
-                    .await
-                    .change_context(QueryError)?;
-
-                let permitted_ids = permissions
-                    .into_iter()
-                    .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
-                    .collect::<HashSet<_>>();
-
-                let count = entity_ids
-                    .into_iter()
-                    .filter(|id| permitted_ids.contains(id))
-                    .count();
-                Ok::<_, Report<QueryError>>((
-                    Some(count),
-                    web_ids.map(HashMap::from),
-                    edition_created_by_ids.map(HashMap::from),
-                ))
-            }
-            .instrument(tracing::trace_span!("post_filter_entities"))
-            .await?
         } else {
             (None, None, None)
         };

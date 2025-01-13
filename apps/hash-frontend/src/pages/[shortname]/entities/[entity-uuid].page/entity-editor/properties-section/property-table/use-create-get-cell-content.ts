@@ -107,7 +107,11 @@ export const useCreateGetCellContent = (
                 data: {
                   kind: "summary-chip-cell",
                   primaryText: `${totalCount} properties`,
+                  propertyRow: row,
                   secondaryText: `(${valuesCount} with ${valueWord})`,
+                  showTooltip,
+                  hideTooltip,
+                  tooltips: getTooltipsOfPropertyRow(row),
                 },
               };
             }

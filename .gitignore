@@ -1,7 +1,6 @@
 #########################
 ## Keep in sync with
 ##  - .prettierignore
-##  - .markdownlintignore
 ##  - .dockerignore
 #########################
 
@@ -92,6 +91,7 @@ gha-creds-*.json
 **/dist
 **/build
 **/target
+**/pkg
 
 # vscode config
 **/.vscode/settings.json

@@ -27,11 +27,11 @@ impl SpiceDbOpenApi {
     ///
     /// # Panics
     ///
-    /// - Panics if `key` is not a valid value for the token
+    /// - if `key` is not a valid value for the token
     ///
     /// # Errors
     ///
-    /// - Errors if the client could not be built
+    /// - if the client could not be built
     pub fn new(
         base_path: impl Into<String>,
         key: Option<&str>,

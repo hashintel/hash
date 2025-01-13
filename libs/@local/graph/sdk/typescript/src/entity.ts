@@ -27,7 +27,6 @@ import type {
   Property,
   PropertyArrayWithMetadata,
   PropertyMetadata,
-  PropertyMetadataArray,
   PropertyMetadataObject,
   PropertyMetadataValue,
   PropertyObject,
@@ -258,6 +257,8 @@ export const isValueRemovedByPatches = <Properties extends PropertyObject>({
 /**
  * @hidden
  * @deprecated - For migration purposes only.
+ *
+ * Callers should instead specify property updates by specifying its metadata directly.
  */
 export const mergePropertiesAndMetadata = (
   property: Property,
@@ -405,8 +406,8 @@ export const mergePropertiesAndMetadata = (
 };
 
 /**
- * @hidden
- * @deprecated - For migration purposes only.
+ * Merge a property object with property metadata
+ * – this creates the format the Graph API requires for create and validate calls.
  */
 export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
   property: T["properties"],
@@ -684,6 +685,60 @@ export const getPropertyTypeForClosedEntityType = ({
   };
 };
 
+const setMetadataForPropertyPath = (
+  path: PropertyPath,
+  leafMetadata: PropertyMetadataValue | "delete",
+  currentMetadataUpToPath: PropertyMetadata | undefined,
+): PropertyMetadata | undefined => {
+  const nextKey = path[0];
+
+  if (typeof nextKey === "undefined") {
+    if (leafMetadata === "delete") {
+      return undefined;
+    } else {
+      return leafMetadata;
+    }
+  }
+
+  if (typeof nextKey === "number") {
+    const metadataUpToHere =
+      currentMetadataUpToPath && isArrayMetadata(currentMetadataUpToPath)
+        ? currentMetadataUpToPath
+        : { value: [] };
+
+    const innerMetadata = setMetadataForPropertyPath(
+      path.slice(1),
+      leafMetadata,
+      metadataUpToHere.value[nextKey],
+    );
+    if (!innerMetadata) {
+      metadataUpToHere.value.splice(nextKey, 1);
+    } else {
+      metadataUpToHere.value[nextKey] = innerMetadata;
+    }
+
+    return metadataUpToHere;
+  }
+
+  const metadataUpToHere =
+    currentMetadataUpToPath && isObjectMetadata(currentMetadataUpToPath)
+      ? currentMetadataUpToPath
+      : { value: {} };
+
+  const innerMetadata = setMetadataForPropertyPath(
+    path.slice(1),
+    leafMetadata,
+    metadataUpToHere.value[nextKey],
+  );
+
+  if (!innerMetadata) {
+    delete metadataUpToHere.value[nextKey];
+  } else {
+    metadataUpToHere.value[nextKey] = innerMetadata;
+  }
+  return metadataUpToHere;
+};
+
 /**
  * Generate a new property metadata object based on an existing one, with a value's metadata set or deleted.
  * This is a temporary solution to be replaced by the SDK accepting {@link PropertyPatchOperation}s directly,
@@ -701,7 +756,7 @@ export const generateChangedPropertyMetadataObject = (
     | PropertyMetadataObject
     | undefined;
 
-  if (!clonedMetadata) {
+  if (!clonedMetadata || !isObjectMetadata(clonedMetadata)) {
     throw new Error(
       `Expected metadata to be an object, but got metadata for property array: ${JSON.stringify(
         clonedMetadata,
@@ -721,175 +776,15 @@ export const generateChangedPropertyMetadataObject = (
     throw new Error(`Expected first key to be a string, but got ${firstKey}`);
   }
 
-  const propertyMetadata = clonedMetadata.value[firstKey];
-
-  const secondKey = path[1];
-
-  const remainingKeys = path.slice(2);
-
-  const thirdKey = remainingKeys[0];
-
-  if (typeof secondKey === "undefined") {
-    /**
-     * Set or delete metadata for a single value.
-     * This happens regardless of whether there's already metadata set at this baseUrl on the entity's properties,
-     * because we're just going to overwrite it or delete it regardless.
-     */
-    if (metadata === "delete") {
-      delete clonedMetadata.value[firstKey];
-    } else {
-      clonedMetadata.value[firstKey] = metadata;
-    }
-    return clonedMetadata;
-  }
-
-  if (!propertyMetadata) {
-    if (metadata === "delete") {
-      /**
-       * We've been asked to delete metadata at a path, but we don't have any metadata for it anyway.
-       */
-      return clonedMetadata;
-    }
-
-    if (typeof secondKey === "number") {
-      if (thirdKey) {
-        if (typeof thirdKey === "number") {
-          throw new Error(
-            `Multi-dimensional arrays as property values are not yet supported`,
-          );
-        } else {
-          throw new Error(`Arrays of property objects are not yet supported`);
-        }
-      }
-
-      if (secondKey !== 0) {
-        throw new Error(
-          `Expected array index to be 0 on new array, got ${secondKey}`,
-        );
-      }
-
-      /**
-       * Set metadata for a new array
-       */
-      clonedMetadata.value[firstKey] = {
-        value: [metadata],
-      } satisfies PropertyMetadataArray;
-      return clonedMetadata;
-    }
-
-    /**
-     * Set metadata for a new property object
-     */
-    if (typeof thirdKey !== "number") {
-      throw new Error("Nested property objects are not yet supported");
-    }
-
-    if (typeof thirdKey !== "undefined") {
-      if (thirdKey !== 0) {
-        throw new Error(
-          `Expected array index to be 0 on new array, got ${thirdKey}`,
-        );
-      }
-
-      /**
-       * This is a new property object with an array set one of its inner properties,
-       * i.e. metadata for entity properties that looks like this
-       * {
-       *   properties: {
-       *     [firstKey]: {
-       *       [secondKey]: [value that `metadata` identifies]
-       *     }
-       *   }
-       * }
-       */
-      clonedMetadata.value[firstKey] = {
-        value: {
-          [secondKey]: { value: [metadata] } satisfies PropertyMetadataArray,
-        },
-      } satisfies PropertyMetadataObject;
-    } else {
-      /**
-       * This is a new property object with a single value set for one of its properties
-       */
-      clonedMetadata.value[firstKey] = {
-        value: { [secondKey]: metadata },
-      } satisfies PropertyMetadataObject;
-    }
-
-    return clonedMetadata;
-  }
-
-  /**
-   * If we reached here, we already have metadata set at this baseUrl on the entity's properties,
-   * and it isn't a single value.
-   */
-  if (typeof secondKey === "number") {
-    if (!isArrayMetadata(propertyMetadata)) {
-      throw new Error(
-        `Expected property metadata to be an array at path ${JSON.stringify([firstKey, secondKey])}, but got ${JSON.stringify(
-          propertyMetadata,
-        )}`,
-      );
-    }
-
-    if (typeof thirdKey !== "undefined") {
-      if (typeof thirdKey === "number") {
-        throw new Error(
-          `Multi-dimensional arrays as property values are not yet supported`,
-        );
-      } else {
-        throw new Error(`Arrays of property objects are not yet supported`);
-      }
-    }
-
-    if (metadata === "delete") {
-      propertyMetadata.value.splice(secondKey, 1);
-    } else {
-      propertyMetadata.value[secondKey] = metadata;
-    }
-    return clonedMetadata;
-  }
-
-  /**
-   * This is an existing property object
-   */
-  if (!isObjectMetadata(propertyMetadata)) {
-    throw new Error(
-      `Expected property metadata to be an object at path ${firstKey}, but got ${JSON.stringify(
-        propertyMetadata,
-      )}`,
-    );
-  }
-
-  if (typeof thirdKey !== "undefined") {
-    if (typeof thirdKey !== "number") {
-      throw new Error("Nested property objects are not yet supported");
-    }
-
-    propertyMetadata.value[secondKey] ??= {
-      value: [],
-    };
-
-    if (!isArrayMetadata(propertyMetadata.value[secondKey])) {
-      throw new Error(
-        `Expected property metadata to be an array at path ${JSON.stringify([firstKey, secondKey])}, but got ${JSON.stringify(
-          propertyMetadata.value[secondKey],
-        )}`,
-      );
-    }
-
-    const propertyObjectArrayValueMetadata =
-      propertyMetadata.value[secondKey].value;
-
-    if (metadata === "delete") {
-      propertyObjectArrayValueMetadata.splice(thirdKey, 1);
-    } else {
-      propertyObjectArrayValueMetadata[thirdKey] = metadata;
-    }
-  } else if (metadata === "delete") {
-    delete propertyMetadata.value[secondKey];
+  const newMetadata = setMetadataForPropertyPath(
+    path.slice(1),
+    metadata,
+    clonedMetadata.value[firstKey],
+  );
+  if (!newMetadata) {
+    delete clonedMetadata.value[firstKey];
   } else {
-    propertyMetadata.value[secondKey] = metadata;
+    clonedMetadata.value[firstKey] = newMetadata;
   }
 
   return clonedMetadata;
@@ -1094,8 +989,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   }
 
   /**
-   * @hidden
-   * @deprecated - For migration purposes only.
+   * Get the merged object containing both property values and their metadata alongside them.
+   * For use when calling methods that require this format (create, validate)
    */
   public get propertiesWithMetadata(): PropertyMap["propertiesWithMetadata"] {
     return mergePropertyObjectAndMetadata<PropertyMap>(

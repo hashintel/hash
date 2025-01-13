@@ -43,6 +43,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       permittedDataTypesIncludingChildren,
       isArray,
       isSingleUrl,
+      validationError,
     } = cell.data.propertyRow;
 
     ctx.fillStyle = theme.textHeader;
@@ -183,6 +184,18 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
 
     const tooltipInteractables = drawInteractableTooltipIcons(args);
     InteractableManager.setInteractablesForCell(args, tooltipInteractables);
+
+    if (validationError) {
+      ctx.beginPath();
+      ctx.strokeStyle = customColors.red[50];
+      ctx.lineWidth = 1;
+      ctx.moveTo(rect.x + getCellHorizontalPadding(), rect.y + rect.height - 4);
+      ctx.lineTo(
+        rect.x + rect.width - getCellHorizontalPadding(),
+        rect.y + rect.height - 4,
+      );
+      ctx.stroke();
+    }
   },
   onClick: (args) => {
     if (args.cell.data.readonly && args.cell.data.propertyRow.isSingleUrl) {

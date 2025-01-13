@@ -154,7 +154,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 
   return (
     <Box
-      ref={(ref: HTMLDivElement) => setContainer(ref)}
+      ref={(ref: HTMLDivElement) => {
+        setContainer(ref);
+      }}
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -250,7 +252,6 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           </IconButton>
         </Tooltip>
       </Box>
-
       <Box p={0.5} pt={2} position="relative">
         <Box
           sx={({ palette, transitions }) => ({
@@ -323,7 +324,6 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           </Box>
         ) : null}
       </Box>
-
       {!editable && shouldCollapse && !collapsed ? (
         <ToggleTextExpandedButton
           label="Show Less"
@@ -331,7 +331,6 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           onClick={() => setCollapsed(true)}
         />
       ) : null}
-
       <CommentBlockMenu popupState={commentMenuPopupState}>
         {authenticatedUser.accountId === commentCreatedById ? (
           <CommentBlockMenuItem
@@ -370,7 +369,6 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           />
         ) : null}
       </CommentBlockMenu>
-
       <CommentBlockDeleteConfirmationDialog
         container={container}
         open={deleteConfirmationDialogOpen}

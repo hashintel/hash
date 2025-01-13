@@ -18,7 +18,7 @@ export const MdxPre = ({ children, ...rest }: HTMLAttributes<HTMLElement>) => {
     child.type === mdxComponents.code &&
     !otherChildren.length
   ) {
-    const childProps: { className: string; children: string } = child.props;
+    const childProps = child.props as { className: string; children: string };
     const isLanguageBlockFunction =
       childProps.className === "language-block-function";
 

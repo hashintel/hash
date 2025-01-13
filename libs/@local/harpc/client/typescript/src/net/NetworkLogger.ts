@@ -2,9 +2,11 @@ import type { ComponentLogger, Logger } from "@libp2p/interface";
 import { Effect, LogLevel, Runtime } from "effect";
 
 import { createProto } from "../utils.js";
+
 import * as internal from "./internal/networkLogger.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Logger");
+
 export type TypeId = typeof TypeId;
 
 export type Formatter = internal.Formatter;
@@ -20,10 +22,10 @@ interface NetworkLoggerImpl extends NetworkLogger {
 
   readonly runtime: Runtime.Runtime<never>;
 
-  logger(
+  logger: (
     name: string,
     level: LogLevel.LogLevel,
-  ): (formatter: unknown, ...args: ReadonlyArray<unknown>) => void;
+  ) => (formatter: unknown, ...args: readonly unknown[]) => void;
 }
 
 const NetworkLoggerProto: Omit<NetworkLoggerImpl, "formatters" | "runtime"> = {
@@ -32,7 +34,7 @@ const NetworkLoggerProto: Omit<NetworkLoggerImpl, "formatters" | "runtime"> = {
   logger(this: NetworkLoggerImpl, name: string, level: LogLevel.LogLevel) {
     const fork = Runtime.runFork(this.runtime);
 
-    return (formatter: unknown, ...args: ReadonlyArray<unknown>) => {
+    return (formatter: unknown, ...args: readonly unknown[]) => {
       const effect = internal
         .format(this.formatters, level, formatter, args)
         .pipe(Effect.withSpan(name));

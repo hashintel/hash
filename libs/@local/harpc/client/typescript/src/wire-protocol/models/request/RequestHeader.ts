@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Effect,
   Equal,
   Function,
@@ -13,6 +13,7 @@ import {
 import { createProto, encodeDual } from "../../../utils.js";
 import type * as Buffer from "../../Buffer.js";
 import * as Protocol from "../Protocol.js";
+
 import type * as RequestBody from "./RequestBody.js";
 import * as RequestFlags from "./RequestFlags.js";
 import * as RequestId from "./RequestId.js";

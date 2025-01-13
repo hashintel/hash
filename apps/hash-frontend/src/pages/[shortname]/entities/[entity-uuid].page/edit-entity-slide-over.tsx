@@ -5,6 +5,7 @@ import {
   Skeleton,
 } from "@hashintel/design-system";
 import {
+  type Entity,
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
   isClosedMultiEntityTypeForEntityTypeIds,
@@ -46,6 +47,9 @@ import {
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { Button, Link } from "../../../../shared/ui";
 import { SlideBackForwardCloseBar } from "../../../shared/shared/slide-back-forward-close-bar";
+import { ArchivedItemBanner } from "../../../shared/top-context-bar/archived-item-banner";
+import type { MinimalEntityValidationReport } from "../../../shared/use-validate-entity";
+import { useValidateEntity } from "../../../shared/use-validate-entity";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditor } from "./entity-editor";
 import { createDraftEntitySubgraph } from "./shared/create-draft-entity-subgraph";
@@ -78,7 +82,7 @@ export interface EditEntitySlideOverProps {
   onForward?: () => void;
   onEntityClick: (
     entityId: EntityId,
-    slideContainerRef?: RefObject<HTMLDivElement>,
+    slideContainerRef?: RefObject<HTMLDivElement | null>,
   ) => void;
   onSubmit: () => void;
   readonly?: boolean;
@@ -99,7 +103,7 @@ export interface EditEntitySlideOverProps {
   /**
    * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
    */
-  slideContainerRef?: RefObject<HTMLDivElement>;
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -261,7 +265,7 @@ const EditEntitySlideOver = memo(
      * we need to fetch it and set it in the local state (from where it will be updated if the user uses the editor
      * form).
      */
-    const { data: fetchedEntityData } = useQuery<
+    const { data: fetchedEntityData, refetch } = useQuery<
       GetEntitySubgraphQuery,
       GetEntitySubgraphQueryVariables
     >(getEntitySubgraphQuery, {
@@ -467,8 +471,26 @@ const EditEntitySlideOver = memo(
       updateEntity,
     ]);
 
+    const [validationReport, setValidationReport] =
+      useState<MinimalEntityValidationReport | null>(null);
+
+    const { validateEntity: validateFn } = useValidateEntity();
+
+    const validateEntity = useCallback(
+      async (entityToValidate: Entity) => {
+        const report = await validateFn({
+          properties: entityToValidate.propertiesWithMetadata,
+          entityTypeIds: entityToValidate.metadata.entityTypeIds,
+        });
+
+        setValidationReport(report);
+      },
+      [validateFn],
+    );
+
     const submitDisabled =
-      !isDirty && !draftLinksToCreate.length && !draftLinksToArchive.length;
+      !!validationReport ||
+      (!isDirty && !draftLinksToCreate.length && !draftLinksToArchive.length);
 
     const onEntityClick = useCallback(
       (entityId: EntityId) =>
@@ -525,25 +547,32 @@ const EditEntitySlideOver = memo(
               onForward={onForward}
               onClose={onClose}
             />
+            {entity.metadata.archived && (
+              <Box mb={1}>
+                <ArchivedItemBanner item={entity} onUnarchived={refetch} />
+              </Box>
+            )}
             <Stack gap={5} px={6} pb={5} pt={1}>
-              <Stack alignItems="center" direction="row">
-                <Box sx={{ minWidth: 40 }}>
-                  <EntityOrTypeIcon
-                    entity={entity}
-                    icon={icon}
-                    isLink={isLink}
-                    fill={({ palette }) => palette.gray[50]}
-                    fontSize={40}
-                  />
-                </Box>
-                <Typography
-                  variant="h2"
-                  color="gray.90"
-                  fontWeight="bold"
-                  ml={2}
-                >
-                  {entityLabel}
-                </Typography>
+              <Stack alignItems="flex-start" direction="row">
+                <Stack alignItems="center" direction="row">
+                  <Box sx={{ minWidth: 40 }}>
+                    <EntityOrTypeIcon
+                      entity={entity}
+                      icon={icon}
+                      isLink={isLink}
+                      fill={({ palette }) => palette.gray[50]}
+                      fontSize={40}
+                    />
+                  </Box>
+                  <Typography
+                    variant="h2"
+                    color="gray.90"
+                    fontWeight="bold"
+                    ml={2}
+                  >
+                    {entityLabel}
+                  </Typography>
+                </Stack>
                 {entityOwningShortname && !hideOpenInNew && (
                   <Link
                     href={generateEntityPath({
@@ -579,7 +608,7 @@ const EditEntitySlideOver = memo(
                 entityLabel={entityLabel}
                 entitySubgraph={localEntitySubgraph}
                 handleTypesChange={async (change) => {
-                  await handleTypeChanges(change);
+                  const newEntity = await handleTypeChanges(change);
 
                   const originalEntity = originalEntitySubgraph
                     ? getRoots(originalEntitySubgraph)[0]
@@ -591,8 +620,10 @@ const EditEntitySlideOver = memo(
                         originalEntity?.metadata.entityTypeIds.toSorted(),
                       ),
                   );
+
+                  await validateEntity(newEntity);
                 }}
-                setEntity={(changedEntity) => {
+                setEntity={async (changedEntity) => {
                   setLocalEntitySubgraph((prev) =>
                     createDraftEntitySubgraph({
                       entity: changedEntity,
@@ -601,6 +632,9 @@ const EditEntitySlideOver = memo(
                       omitProperties: [],
                     }),
                   );
+
+                  await validateEntity(changedEntity);
+
                   setIsDirty(true);
                 }}
                 isDirty={isDirty}
@@ -610,6 +644,7 @@ const EditEntitySlideOver = memo(
                 draftLinksToArchive={draftLinksToArchive}
                 setDraftLinksToArchive={setDraftLinksToArchive}
                 slideContainerRef={slideContainerRef}
+                validationReport={null}
               />
             </Stack>
           </Box>

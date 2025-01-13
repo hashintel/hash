@@ -1,20 +1,14 @@
-import type { LookupAddress } from "node:dns";
-import dns from "node:dns/promises";
-import { isIP, isIPv4, isIPv6 } from "node:net";
-
 import { noise } from "@chainsafe/libp2p-noise";
 import { yamux } from "@chainsafe/libp2p-yamux";
-import type { Identify } from "@libp2p/identify";
-import { identify } from "@libp2p/identify";
+import { type Identify, identify } from "@libp2p/identify";
 import { isPeerId, type PeerId } from "@libp2p/interface";
-import type { PingService } from "@libp2p/ping";
-import { ping } from "@libp2p/ping";
+import { type PingService, ping } from "@libp2p/ping";
 import { tcp } from "@libp2p/tcp";
 import { type DNS, dns as defaultDns } from "@multiformats/dns";
 import {
   multiaddr as makeMultiaddr,
   protocols as getProtocol,
-  resolvers,
+  resolvers as multiaddrResolvers,
 } from "@multiformats/multiaddr";
 import {
   Array,
@@ -31,13 +25,15 @@ import {
   pipe,
   Predicate,
   Stream,
+  Struct,
 } from "effect";
-import type { Libp2p } from "libp2p";
-import { createLibp2p } from "libp2p";
+import type { NonEmptyArray } from "effect/Array";
+import { type Libp2p, createLibp2p } from "libp2p";
 
 import * as NetworkLogger from "../NetworkLogger.js";
 import type { DNSConfig, Multiaddr, TransportConfig } from "../Transport.js";
-import { InitializationError } from "../Transport.js";
+
+import * as Dns from "./dns.js";
 import * as HashableMultiaddr from "./multiaddr.js";
 
 /** @internal */
@@ -68,11 +64,11 @@ export class TransportError extends Data.TaggedError("TransportError")<{
 }
 
 /** @internal */
-export class DnsError extends Data.TaggedError("DnsError")<{
-  cause: unknown;
-}> {
+export class InitializationError extends Data.TaggedError(
+  "InitializationError",
+)<{ cause: unknown }> {
   get message() {
-    return "Underlying DNS resolver experienced an error";
+    return "Failed to initialize client";
   }
 }
 
@@ -99,46 +95,30 @@ const resolveDnsMultiaddrSegment = (code: number, value?: string) =>
     }
 
     const hostname = value;
+    const types: Dns.RecordType[] = [];
 
-    let family: 0 | 4 | 6;
-    if (code === DNS4_PROTOCOL.code) {
-      family = 4;
-
-      if (isIPv4(hostname)) {
-        return [[IPV4_PROTOCOL.code, hostname] as const];
-      }
-    } else if (code === DNS6_PROTOCOL.code) {
-      family = 6;
-
-      if (isIPv6(hostname)) {
-        return [[IPV6_PROTOCOL.code, hostname] as const];
-      }
-    } else {
-      family = 0;
-
-      const hostnameFamily = isIP(hostname);
-      if (hostnameFamily === 4) {
-        return [[IPV4_PROTOCOL.code, hostname] as const];
-      } else if (hostnameFamily === 6) {
-        return [[IPV6_PROTOCOL.code, hostname] as const];
-      }
+    if (code === DNS_PROTOCOL.code || code === DNS4_PROTOCOL.code) {
+      types.push("A");
     }
 
-    const responses = yield* Effect.tryPromise({
-      try: () => dns.lookup(hostname, { all: true, family }),
-      catch: (cause) => new DnsError({ cause }),
+    if (code === DNS_PROTOCOL.code || code === DNS6_PROTOCOL.code) {
+      types.push("AAAA");
+    }
+
+    const records = yield* Dns.resolve(hostname, {
+      records: types as NonEmptyArray<Dns.RecordType>,
     }).pipe(Effect.mapError((cause) => new TransportError({ cause })));
 
     return pipe(
-      responses,
+      records,
       Array.filterMap(
-        Match.type<LookupAddress>().pipe(
+        Match.type<Dns.DnsRecord>().pipe(
           Match.when(
-            { family: 4 },
+            { type: "A" },
             ({ address }) => [IPV4_PROTOCOL.code, address] as const,
           ),
           Match.when(
-            { family: 6 },
+            { type: "AAAA" },
             ({ address }) => [IPV6_PROTOCOL.code, address] as const,
           ),
           Match.option,
@@ -148,7 +128,7 @@ const resolveDnsMultiaddrSegment = (code: number, value?: string) =>
   });
 
 /**
- * Resolve DNS addresses in a multiaddr (excluding DNSADDR)
+ * Resolve DNS addresses in a multiaddr (excluding DNSADDR).
  *
  * @internal
  */
@@ -158,19 +138,25 @@ const resolveDnsMultiaddr = (multiaddr: Multiaddr) => {
     Stream.mapEffect(Function.tupled(resolveDnsMultiaddrSegment), {
       concurrency: "unbounded",
     }),
-    Stream.runFold([] as (number | string | undefined)[][], (acc, segments) => {
-      // we basically have a fan out approach here, meaning that if our output is:
-      // ["ip4", "127.0.0.1"], [["ip4", "192.168.178.1"], ["ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"]] [["tcp", "4002"]]
-      // the result will be:
-      // ["ip4", "127.0.0.1", "ip4", "192.168.178.1", "tcp", "4002"]
-      // ["ip4", "127.0.0.1", "ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "tcp", "4002"]
-      // This is also known as a cartesian product
-      if (acc.length === 0) {
-        return Array.map(segments, (segment) => [...segment]);
-      }
+    Stream.runFold(
+      [] as (number | string | undefined)[][],
+      (accumulator, segments) => {
+        // we basically have a fan out approach here, meaning that if our output is:
+        // ["ip4", "127.0.0.1"], [["ip4", "192.168.178.1"], ["ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"]] [["tcp", "4002"]]
+        // the result will be:
+        // ["ip4", "127.0.0.1", "ip4", "192.168.178.1", "tcp", "4002"]
+        // ["ip4", "127.0.0.1", "ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "tcp", "4002"]
+        // This is also known as a cartesian product
+        if (accumulator.length === 0) {
+          return Array.map(segments, (segment) => [...segment]);
+        }
 
-      return Array.cartesianWith(acc, segments, (a, b) => [...a, ...b]);
-    }),
+        return Array.cartesianWith(accumulator, segments, (a, b) => [
+          ...a,
+          ...b,
+        ]);
+      },
+    ),
     Effect.map(
       Array.map(
         flow(
@@ -188,7 +174,7 @@ const resolveDnsMultiaddr = (multiaddr: Multiaddr) => {
       Effect.logDebug("resolved DNS multiaddr").pipe(
         Effect.annotateLogs({
           multiaddr: multiaddr.toString(),
-          resolved: resolved.map((address) => address.toString()),
+          resolved,
         }),
       ),
     ),
@@ -196,14 +182,14 @@ const resolveDnsMultiaddr = (multiaddr: Multiaddr) => {
 };
 
 /**
- * Recursively resolve DNSADDR multiaddrs
+ * Recursively resolve DNSADDR multiaddrs.
  *
- * Adapted from: https://github.com/libp2p/js-libp2p/blob/92f9acbc1d2aa7b1bb5a8e460e4e0b5770f4455c/packages/libp2p/src/connection-manager/utils.ts#L9
+ * Adapted from: https://github.com/libp2p/js-libp2p/blob/92f9acbc1d2aa7b1bb5a8e460e4e0b5770f4455c/packages/libp2p/src/connection-manager/utils.ts#L9.
  */
 const resolveDnsaddrMultiaddr = (multiaddr: Multiaddr, options: DNSConfig) =>
   Effect.gen(function* () {
     // check multiaddr resolvers
-    const resolvable = Iterable.some(resolvers.keys(), (key) =>
+    const resolvable = Iterable.some(multiaddrResolvers.keys(), (key) =>
       multiaddr.protoNames().includes(key),
     );
 
@@ -250,22 +236,42 @@ const lookupPeer = (transport: Transport, address: Multiaddr) =>
     );
 
     const peers = yield* Effect.tryPromise({
-      try: () =>
-        transport.peerStore.all({
-          filters: [
-            (peer) =>
-              peer.addresses.some((peerAddress) =>
-                resolved.some((resolvedAddress) =>
-                  resolvedAddress.equals(peerAddress.multiaddr),
-                ),
-              ),
-          ],
-          limit: 1,
-        }),
+      try: () => transport.peerStore.all(),
       catch: (cause) => new TransportError({ cause }),
     });
 
-    return Array.head(peers).pipe(Option.map((peer) => peer.id));
+    const addressesByPeer = pipe(
+      peers,
+      Array.map((peer) => ({
+        id: peer.id,
+        addresses: peer.addresses.map(Struct.get("multiaddr")),
+      })),
+    );
+
+    const matchingPeers = pipe(
+      addressesByPeer,
+      Array.filter(
+        flow(
+          Struct.get("addresses"),
+          Array.intersectionWith<Multiaddr>((a, b) => a.equals(b))(resolved),
+          Array.isNonEmptyArray,
+        ),
+      ),
+    );
+
+    yield* Effect.logTrace("discovered peers").pipe(
+      Effect.annotateLogs({
+        known: addressesByPeer,
+        match: matchingPeers,
+        resolved,
+      }),
+    );
+
+    return pipe(
+      matchingPeers, //
+      Array.map(Struct.get("id")),
+      Array.head,
+    );
   });
 
 const resolvePeer = (
@@ -283,17 +289,17 @@ const resolvePeer = (
 
     const key = HashableMultiaddr.make(address);
     const peerIdEither = yield* cache.getEither(key);
+
     if (Either.isLeft(peerIdEither)) {
-      yield* Effect.logTrace("resolved peerID from cache");
+      yield* Effect.logTrace("retrieved PeerID from cache");
     } else {
-      yield* Effect.logTrace("computed peerID");
+      yield* Effect.logTrace("resolved and matched multiaddr to PeerID");
     }
 
     const peerId = Either.merge(peerIdEither);
+
     if (Option.isNone(peerId)) {
-      yield* Effect.logDebug(
-        "unable to resolve peer to a known peer ID, invalidating cache to retry next time",
-      );
+      yield* Effect.logDebug("PeerID lookup failed, invalidating cache entry");
 
       yield* cache.invalidate(key);
     }
@@ -388,6 +394,7 @@ export const make = (config?: TransportConfig) =>
     const transport = yield* Effect.acquireRelease(acquire, (client) =>
       Effect.promise(() => {
         const result = client.stop();
+
         return Predicate.isPromise(result) ? result : Promise.resolve(result);
       }),
     );

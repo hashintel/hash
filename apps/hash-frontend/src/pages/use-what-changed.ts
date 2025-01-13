@@ -9,7 +9,7 @@ import { useEffect, useRef } from "react";
  * as this can cause issues if the dependencies are very large objects/arrays.
  */
 export const useWhatChanged = (dependencies: unknown[], labels: string[]) => {
-  const previousDepsRef = useRef<unknown[] | null>();
+  const previousDepsRef = useRef<unknown[] | null>(null);
 
   useEffect(() => {
     if (previousDepsRef.current) {

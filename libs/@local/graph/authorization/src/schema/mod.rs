@@ -9,7 +9,7 @@ mod settings;
 mod web;
 
 pub use self::{
-    account::{AccountNamespace, PublicAccess},
+    account::{AccountIdOrPublic, AccountNamespace, PublicAccess},
     account_group::{
         AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupNamespace,
         AccountGroupPermission, AccountGroupRelationAndSubject, AccountGroupSubject,

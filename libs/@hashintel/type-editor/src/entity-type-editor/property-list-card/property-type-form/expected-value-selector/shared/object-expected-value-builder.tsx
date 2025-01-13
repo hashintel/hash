@@ -197,6 +197,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
   const options = useMemo(() => {
     const propertyTypeBaseUrl = getValues(`propertyTypeBaseUrl`);
     return Object.values(propertyTypes)
+      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
       .map(({ schema }) => schema.$id)
       .filter(
         (versionedUrl) => extractBaseUrl(versionedUrl) !== propertyTypeBaseUrl,

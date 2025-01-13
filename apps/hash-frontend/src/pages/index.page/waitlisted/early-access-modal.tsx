@@ -9,6 +9,7 @@ import { Button } from "../../../shared/ui/button";
 import { MenuItem } from "../../../shared/ui/menu-item";
 import { Modal } from "../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
+import { UrlInput } from "../../shared/url-input";
 
 type FormFieldMetadata = {
   label: string;
@@ -93,7 +94,14 @@ const Input = ({
         *
       </Box>
       <Box>
-        {options ? (
+        {url ? (
+          <UrlInput
+            autoFocus
+            onChange={onChange}
+            placeholder={placeholder}
+            value={value}
+          />
+        ) : options ? (
           <Select
             value={value}
             onChange={(event) => onChange(event.target.value)}
@@ -107,12 +115,6 @@ const Input = ({
           </Select>
         ) : (
           <TextField
-            autoFocus={url}
-            inputProps={
-              url
-                ? { pattern: "\\S+\\.\\w+", title: "Please enter a valid URL" }
-                : undefined
-            }
             multiline={multiline}
             onChange={(event) => onChange(event.target.value)}
             placeholder={placeholder}

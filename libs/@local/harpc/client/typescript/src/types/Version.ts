@@ -1,5 +1,5 @@
-import type { FastCheck } from "effect";
 import {
+  type FastCheck,
   Effect,
   Equal,
   Function,
@@ -17,6 +17,7 @@ import * as Buffer from "../wire-protocol/Buffer.js";
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/Version",
 );
+
 export type TypeId = typeof TypeId;
 
 export interface Version

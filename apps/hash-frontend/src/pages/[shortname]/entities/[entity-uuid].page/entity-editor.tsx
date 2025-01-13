@@ -13,6 +13,7 @@ import { Box } from "@mui/material";
 import type { RefObject } from "react";
 import { useMemo } from "react";
 
+import type { MinimalEntityValidationReport } from "../../../shared/use-validate-entity";
 import { ClaimsSection } from "./entity-editor/claims-section";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { FilePreviewSection } from "./entity-editor/file-preview-section";
@@ -51,7 +52,8 @@ export interface EntityEditorProps extends DraftLinkState {
    * If the editor is loaded inside a slide which is contained in a container other than the body,
    * the ref to the container. Used to correctly position popups within the editor.
    */
-  slideContainerRef?: RefObject<HTMLDivElement>;
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
+  validationReport: MinimalEntityValidationReport | null;
 }
 
 export const EntityEditor = (props: EntityEditorProps) => {

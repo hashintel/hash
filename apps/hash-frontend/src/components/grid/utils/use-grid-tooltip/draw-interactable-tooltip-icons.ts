@@ -6,7 +6,7 @@ import { InteractableManager } from "../interactable-manager";
 import type { Interactable } from "../interactable-manager/types";
 import type { TooltipCell } from "./types";
 
-const iconSize = 20;
+const iconSize = 16;
 const iconGap = 10;
 const cellMargin = getCellHorizontalPadding();
 
@@ -55,7 +55,7 @@ export const drawInteractableTooltipIcons = (
       tooltipX,
       yCenter - iconSize / 2,
       iconSize,
-      theme,
+      { ...theme, fgIconHeader: tooltip.color ?? theme.fgIconHeader },
       1,
     );
 
