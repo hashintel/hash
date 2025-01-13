@@ -95,7 +95,6 @@ where
             match bytes {
                 Ok(_) if writer.is_error() => {
                     // we had an error previously, so just ignore the rest of the stream
-                    continue;
                 }
                 Ok(bytes) => {
                     writer.push(bytes);

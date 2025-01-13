@@ -20,6 +20,10 @@ use crate::{
 };
 
 /// Encode a request of an iterator of items.
+///
+/// # Errors
+///
+/// Returns a `Report<C>` if encoding the request fails.
 pub async fn encode_request_iter<P, E, C>(
     codec: E,
     procedure: P,
