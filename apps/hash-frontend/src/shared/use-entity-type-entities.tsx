@@ -1,6 +1,9 @@
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityQueryCursor } from "@local/hash-graph-client";
+import type {
+  EntityQueryCursor,
+  EntityQuerySortingRecord,
+} from "@local/hash-graph-client";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -37,7 +40,7 @@ type UseEntityTypeEntitiesQueryParams = {
   includeArchived?: boolean;
   ownedByIds?: OwnedById[];
   limit?: number;
-  sort?: GetEntitySubgraphRequest["sortingPaths"];
+  sort?: EntityQuerySortingRecord;
 };
 
 export const generateUseEntityTypeEntitiesFilter = ({
@@ -141,6 +144,7 @@ export const generateUseEntityTypeEntitiesQueryVariables = ({
   entityTypeIds,
   graphResolveDepths,
   includeArchived,
+  sort,
   ...rest
 }: UseEntityTypeEntitiesQueryParams): GetEntitySubgraphQueryVariables => {
   return {
@@ -162,6 +166,7 @@ export const generateUseEntityTypeEntitiesQueryVariables = ({
         ...graphResolveDepths,
       },
       includeDrafts: false,
+      sortingPaths: sort ? [sort] : undefined,
       /**
        * @todo H-2633 when we use entity archival via timestamp, this will need varying to include archived entities
        */

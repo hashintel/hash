@@ -4,8 +4,9 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityProperties } from "@local/hash-graph-types/entity";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 import { Paper, Stack } from "@mui/material";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
+import type { SortGridRows } from "../../../../../../components/grid/grid";
 import { Grid } from "../../../../../../components/grid/grid";
 import { createRenderChipCell } from "../../../../../shared/chip-cell";
 import { SectionWrapper } from "../../../../../shared/section-wrapper";
@@ -16,6 +17,11 @@ import { renderLinkCell } from "./outgoing-links-section/cells/link-cell";
 import { renderLinkedWithCell } from "./outgoing-links-section/cells/linked-with-cell";
 import { linkGridColumns } from "./outgoing-links-section/constants";
 import { OutgoingLinksTable } from "./outgoing-links-section/readonly-outgoing-links-table";
+import type {
+  LinkColumn,
+  LinkColumnKey,
+  LinkRow,
+} from "./outgoing-links-section/types";
 import { useCreateGetCellContent } from "./outgoing-links-section/use-create-get-cell-content";
 import { useRows } from "./outgoing-links-section/use-rows";
 
@@ -34,6 +40,32 @@ export const OutgoingLinksSection = ({
 
   const rows = useRows();
   const createGetCellContent = useCreateGetCellContent();
+
+  const sortRows = useCallback<
+    SortGridRows<LinkRow, LinkColumn, LinkColumnKey>
+  >((unsortedRows, sort) => {
+    const { columnKey, direction } = sort;
+
+    return unsortedRows.toSorted((a, b) => {
+      let firstString = "";
+      let secondString = "";
+
+      if (columnKey === "linkTitle") {
+        firstString = a.linkTitle;
+        secondString = b.linkTitle;
+      } else if (columnKey === "linkedWith") {
+        firstString = a.linkAndTargetEntities[0]?.rightEntityLabel ?? "";
+        secondString = b.linkAndTargetEntities[0]?.rightEntityLabel ?? "";
+      } else {
+        firstString = a.expectedEntityTypes[0]?.title ?? "";
+        secondString = b.expectedEntityTypes[0]?.title ?? "";
+      }
+
+      const comparison = firstString.localeCompare(secondString);
+
+      return direction === "asc" ? comparison : -comparison;
+    });
+  }, []);
 
   if (outgoingLinks.length === 0 && isLinkEntity) {
     /**
@@ -82,19 +114,20 @@ export const OutgoingLinksSection = ({
         <Paper sx={{ overflow: "hidden" }}>
           <Grid
             columns={linkGridColumns}
-            rows={rows}
             createGetCellContent={createGetCellContent}
-            dataLoading={false}
-            showSearch={showSearch}
-            onSearchClose={() => setShowSearch(false)}
-            // define max height if there are lots of rows
-            height={rows.length > 10 ? 500 : undefined}
             customRenderers={[
               renderLinkCell,
               renderLinkedWithCell,
               renderSummaryChipCell,
               createRenderChipCell(),
             ]}
+            dataLoading={false}
+            height={rows.length > 10 ? 500 : undefined}
+            rows={rows}
+            onSearchClose={() => setShowSearch(false)}
+            showSearch={showSearch}
+            sortableColumns={["linkTitle", "linkedWith", "expectedEntityTypes"]}
+            sortRows={sortRows}
           />
         </Paper>
       ) : outgoingLinksAndTargets?.length ? (

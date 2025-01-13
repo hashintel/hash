@@ -4,7 +4,7 @@ import type {
   DataEditorProps,
   DataEditorRef,
   GridCell,
-  GridColumn,
+  GridColumn as LibraryGridColumn,
   GridSelection,
   HeaderClickedEventArgs,
   Item,
@@ -35,15 +35,28 @@ import type {
   Interactable,
 } from "./utils/interactable-manager/types";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
-import type { Row } from "./utils/rows";
 import type { ColumnSort } from "./utils/sorting";
 import { defaultSortRows } from "./utils/sorting";
 import { useDrawHeader } from "./utils/use-draw-header";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 
-export type GridRow = Row & { rowId: string };
+export type ColumnKey<C extends SizedGridColumn> = C["id"];
 
-export type GridProps<T extends GridRow> = Omit<
+export type GridSort<S extends string> = ColumnSort<S>;
+
+export type GridRow = { rowId: string };
+
+export type SortGridRows<
+  Row extends GridRow,
+  Column extends SizedGridColumn,
+  Sortable extends Column["id"],
+> = (rows: Row[], sort: GridSort<Sortable>) => Row[];
+
+export type GridProps<
+  Row extends GridRow,
+  Column extends SizedGridColumn,
+  Sortable extends Column["id"],
+> = Omit<
   DataEditorProps,
   | "onColumnResize"
   | "onColumnResizeEnd"
@@ -53,28 +66,39 @@ export type GridProps<T extends GridRow> = Omit<
   | "rows"
   | "onCellEdited"
 > & {
-  columnFilters?: ColumnFilter<string, T>[];
-  columns: SizedGridColumn[];
-  createGetCellContent: (rows: T[]) => (cell: Item) => GridCell;
-  createOnCellEdited?: (rows: T[]) => DataEditorProps["onCellEdited"];
-  currentlyDisplayedRowsRef?: MutableRefObject<T[] | null>;
+  columnFilters?: ColumnFilter<ColumnKey<Column>, Row>[];
+  columns: Column[];
+  createGetCellContent: (rows: Row[]) => (cell: Item) => GridCell;
+  createOnCellEdited?: (rows: Row[]) => DataEditorProps["onCellEdited"];
+  currentlyDisplayedRowsRef?: MutableRefObject<Row[] | null>;
   dataLoading: boolean;
   enableCheckboxSelection?: boolean;
   externallyManagedFiltering?: boolean;
-  externallyManagedSorting?: boolean;
   firstColumnLeftPadding?: number;
   gridRef?: Ref<DataEditorRef>;
-  initialSortedColumnKey?: string;
-  onSelectedRowsChange?: (selectedRows: T[]) => void;
+  /**
+   * Provide to set an initial sort if sorting state is NOT managed by the parent component.
+   */
+  initialSort?: GridSort<Sortable>;
+  onSelectedRowsChange?: (selectedRows: Row[]) => void;
   resizable?: boolean;
-  rows?: T[];
-  selectedRows?: T[];
-  sortRows?: (
-    rows: T[],
-    sort: ColumnSort<Extract<keyof T, string>>,
-    previousSort?: ColumnSort<Extract<keyof T, string>>,
-  ) => T[];
-  sortable?: boolean;
+  rows?: Row[];
+  selectedRows?: Row[];
+  sortableColumns?: Sortable[];
+  /**
+   * Provided if sorting state is managed by the parent component.
+   */
+  sort?: GridSort<Sortable>;
+  /**
+   * Provided if sorting state is managed by the parent component.
+   */
+  setSort?: (sort: GridSort<Sortable>) => void;
+  /**
+   * If sorts are not externally managed (i.e. sorts and setSorts are not provided), this function can be provided to
+   * sort the rows. If it is not provided, a default sorting function will be used, which does a simple comparison
+   * assuming column[sortKey] will return a value sortable as a number or string.
+   */
+  sortRows?: SortGridRows<Row, Column, Sortable>;
 };
 
 const gridHeaderHeight = 42;
@@ -85,7 +109,11 @@ export const gridHeaderBaseFont = "600 14px Inter";
 
 export const gridHorizontalScrollbarHeight = 17;
 
-export const Grid = <T extends GridRow>({
+export const Grid = <
+  Row extends GridRow,
+  Column extends SizedGridColumn,
+  Sortable extends Column["id"],
+>({
   createGetCellContent,
   createOnCellEdited,
   columnFilters,
@@ -96,19 +124,20 @@ export const Grid = <T extends GridRow>({
   drawHeader,
   enableCheckboxSelection = false,
   externallyManagedFiltering,
-  externallyManagedSorting,
   firstColumnLeftPadding,
   gridRef,
-  initialSortedColumnKey,
+  initialSort,
   onSelectedRowsChange,
   onVisibleRegionChanged,
   resizable = true,
   rows,
   selectedRows,
-  sortable = true,
+  sortableColumns,
+  sort: externalSort,
+  setSort: externalSetSort,
   sortRows,
   ...rest
-}: GridProps<T>) => {
+}: GridProps<Row, Column, Sortable>) => {
   useRenderGridPortal();
 
   const tableIdRef = useRef(uniqueId("grid"));
@@ -128,89 +157,92 @@ export const Grid = <T extends GridRow>({
     return () => InteractableManager.deleteInteractables(tableId);
   }, []);
 
-  const [sorts, setSorts] = useState<ColumnSort<Extract<keyof T, string>>[]>(
-    () =>
-      columns.map((column) => ({
-        columnKey: column.id as Extract<keyof T, string>,
-        direction: "asc",
-      })),
+  const [localSort, setLocalSort] = useState<GridSort<Sortable> | undefined>(
+    () => {
+      const firstSortableColumn = columns.find((column) =>
+        sortableColumns?.includes(column.id as Sortable),
+      );
+
+      if (firstSortableColumn) {
+        return {
+          columnKey: firstSortableColumn.id as Sortable,
+          direction: "asc",
+        };
+      }
+    },
   );
 
-  const [previousSortedColumnKey, setPreviousSortedColumnKey] = useState<
-    string | undefined
-  >();
-  const [currentSortedColumnKey, setCurrentSortedColumnKey] = useState<
-    string | undefined
-  >(initialSortedColumnKey ?? columns[0]?.id);
+  const sort = externalSort ?? localSort;
+  const setSort = externalSetSort ?? setLocalSort;
+
+  if (initialSort && externalSort) {
+    throw new Error(
+      "initialSort should not be provided when sort is externally managed",
+    );
+  }
+
+  if (
+    (externalSort && !externalSetSort) ||
+    (!externalSort && externalSetSort)
+  ) {
+    throw new Error(
+      "Either both or neither of sort and setSort should be provided",
+    );
+  }
 
   useEffect(() => {
-    const currentSortColumns = new Set(sorts.map((sort) => sort.columnKey));
-    const newSortColumns = new Set(columns.map((column) => column.id));
-
-    if (
-      initialSortedColumnKey &&
-      (!currentSortedColumnKey || !newSortColumns.has(initialSortedColumnKey))
-    ) {
-      setCurrentSortedColumnKey(initialSortedColumnKey);
-    }
-
-    if (
-      currentSortColumns.size === newSortColumns.size &&
-      currentSortColumns.isSubsetOf(newSortColumns)
-    ) {
-      return;
-    }
-
-    setSorts(
-      columns.map((column) => ({
-        columnKey: column.id as Extract<keyof T, string>,
-        direction: "asc",
-      })),
+    const firstSortableColumn = columns.find((column) =>
+      sortableColumns?.includes(column.id as Sortable),
     );
-  }, [columns, currentSortedColumnKey, initialSortedColumnKey, sorts]);
+
+    if (
+      initialSort &&
+      initialSort.columnKey !== localSort?.columnKey &&
+      initialSort.direction !== localSort?.direction
+    ) {
+      setLocalSort(initialSort);
+    } else if (firstSortableColumn && !localSort) {
+      setLocalSort({
+        columnKey: firstSortableColumn.id as Sortable,
+        direction: "asc",
+      });
+    }
+  }, [columns, initialSort, localSort, sortableColumns]);
 
   const [openFilterColumnKey, setOpenFilterColumnKey] = useState<string>();
 
   const handleSortClick = useCallback(
-    (columnKey: string) => {
-      if (currentSortedColumnKey === columnKey) {
-        // Toggle the direction of the sort if it's already the currently sorted column
-        setSorts((prevSorts) => {
-          const previousSortIndex = prevSorts.findIndex(
-            (sort) => sort.columnKey === columnKey,
-          );
-
-          const previousSort = prevSorts[previousSortIndex]!;
-
-          return [
-            ...prevSorts.slice(0, previousSortIndex),
-            {
-              ...previousSort,
-              direction: previousSort.direction === "asc" ? "desc" : "asc",
-            },
-            ...prevSorts.slice(previousSortIndex + 1),
-          ];
-        });
+    (columnKey: Sortable) => {
+      if (!sort) {
+        throw new Error(
+          `Sort button was clicked, but there is no active sort. Likely there are no sortable columns. This is an implementation error in the Grid component.`,
+        );
       }
 
-      setPreviousSortedColumnKey(currentSortedColumnKey);
-      setCurrentSortedColumnKey(columnKey);
+      if (sort.columnKey === columnKey) {
+        setSort({
+          columnKey,
+          direction: sort.direction === "asc" ? "desc" : "asc",
+        });
+      } else {
+        setSort({ columnKey, direction: "asc" });
+      }
     },
-    [currentSortedColumnKey],
+    [sort, setSort],
   );
 
-  const handleFilterClick = useCallback((columnKey: string) => {
+  const handleFilterClick = useCallback((columnKey: ColumnKey<Column>) => {
     setOpenFilterColumnKey(columnKey);
   }, []);
 
   const defaultDrawHeader = useDrawHeader({
-    activeSortColumnKey: currentSortedColumnKey,
     columns,
     filters: columnFilters,
     firstColumnLeftPadding,
     onFilterClick: handleFilterClick,
     onSortClick: handleSortClick,
-    sorts,
+    sort,
+    sortableColumns: sortableColumns ?? [],
     tableId: tableIdRef.current,
   });
 
@@ -230,7 +262,7 @@ export const Grid = <T extends GridRow>({
     [],
   );
 
-  const filteredRows = useMemo<T[] | undefined>(() => {
+  const filteredRows = useMemo<Row[] | undefined>(() => {
     if (externallyManagedFiltering) {
       return rows;
     }
@@ -251,41 +283,21 @@ export const Grid = <T extends GridRow>({
     }
   }, [externallyManagedFiltering, rows, columnFilters]);
 
-  const sortedAndFilteredRows = useMemo<T[] | undefined>(() => {
-    if (externallyManagedSorting) {
+  const sortedAndFilteredRows = useMemo<Row[] | undefined>(() => {
+    if (externalSort) {
       return filteredRows;
     }
 
     if (filteredRows) {
-      if (!sortable) {
-        return filteredRows;
-      }
-
-      const sortedColumn = currentSortedColumnKey
-        ? sorts.find((sort) => sort.columnKey === currentSortedColumnKey)
-        : undefined;
-
-      const previousSortedColumn = previousSortedColumnKey
-        ? sorts.find((sort) => sort.columnKey === previousSortedColumnKey)
-        : undefined;
-
-      if (!sortedColumn) {
+      if (!localSort) {
         return filteredRows;
       }
 
       const sortRowFn = sortRows ?? defaultSortRows;
 
-      return sortRowFn(filteredRows, sortedColumn, previousSortedColumn);
+      return sortRowFn(filteredRows, localSort);
     }
-  }, [
-    currentSortedColumnKey,
-    externallyManagedSorting,
-    filteredRows,
-    previousSortedColumnKey,
-    sortRows,
-    sortable,
-    sorts,
-  ]);
+  }, [externalSort, filteredRows, localSort, sortRows]);
 
   const gridSelection = useMemo(() => {
     if (sortedAndFilteredRows && selectedRows) {
@@ -368,7 +380,7 @@ export const Grid = <T extends GridRow>({
   );
 
   const handleColumnResize = useCallback(
-    (column: GridColumn, newSize: number) => {
+    (column: LibraryGridColumn, newSize: number) => {
       setColumnSizes((prevColumnSizes) => {
         return {
           ...prevColumnSizes,
@@ -379,7 +391,9 @@ export const Grid = <T extends GridRow>({
     [],
   );
 
-  const resizedColumns = useMemo<(GridColumn & { width: number })[]>(() => {
+  const resizedColumns = useMemo<
+    (SizedGridColumn & { width: number })[]
+  >(() => {
     return columns.map((col) => {
       return { ...col, width: columnSizes[col.id] ?? col.width };
     });
@@ -537,41 +551,53 @@ export const Grid = <T extends GridRow>({
         placement="bottom-start"
       />
       <DataEditor
-        ref={gridRef}
-        theme={gridTheme}
-        getRowThemeOverride={getRowThemeOverride}
-        gridSelection={gridSelection}
-        width="100%"
-        headerHeight={gridHeaderHeight}
-        rowHeight={gridRowHeight}
-        drawFocusRing={false}
-        rangeSelect="cell"
-        columnSelect="none"
         cellActivationBehavior="single-click"
-        smoothScrollX
-        smoothScrollY
-        getCellsForSelection
-        onItemHovered={({ location: [_colIndex, rowIndex], kind }) => {
-          setHoveredRow(kind === "cell" ? rowIndex : undefined);
-        }}
-        customRenderers={overriddenCustomRenderers}
-        onVisibleRegionChanged={handleVisibleRegionChanged}
-        onColumnResize={resizable ? handleColumnResize : undefined}
+        columnSelect="none"
         columns={resizedColumns}
+        customRenderers={overriddenCustomRenderers}
+        drawFocusRing={false}
         drawHeader={drawHeader ?? defaultDrawHeader}
-        onHeaderClicked={handleHeaderClicked}
         getCellContent={
           sortedAndFilteredRows?.length
             ? createGetCellContent(sortedAndFilteredRows)
             : getSkeletonCellContent
         }
+        getCellsForSelection
+        getRowThemeOverride={getRowThemeOverride}
+        gridSelection={gridSelection}
+        headerHeight={gridHeaderHeight}
+        headerIcons={customGridIcons}
+        maxColumnWidth={1000}
         onCellEdited={
           sortedAndFilteredRows
             ? createOnCellEdited?.(sortedAndFilteredRows)
             : undefined
         }
+        onColumnResize={resizable ? handleColumnResize : undefined}
+        onGridSelectionChange={(newSelection) => {
+          setSelection(newSelection);
+
+          if (onSelectedRowsChange && sortedAndFilteredRows) {
+            newSelection.rows.toArray();
+            const updatedSelectedRows = sortedAndFilteredRows.filter(
+              (_, rowIndex) => newSelection.rows.hasIndex(rowIndex),
+            );
+
+            onSelectedRowsChange(updatedSelectedRows);
+          }
+        }}
+        onHeaderClicked={handleHeaderClicked}
+        onItemHovered={({ location: [_colIndex, rowIndex], kind }) => {
+          setHoveredRow(kind === "cell" ? rowIndex : undefined);
+        }}
+        onVisibleRegionChanged={handleVisibleRegionChanged}
+        rangeSelect="cell"
+        ref={gridRef}
+        rowHeight={gridRowHeight}
         rows={sortedAndFilteredRows?.length ? sortedAndFilteredRows.length : 1}
-        maxColumnWidth={1000}
+        smoothScrollX
+        smoothScrollY
+        theme={gridTheme}
         verticalBorder={
           typeof rest.verticalBorder === "undefined"
             ? (columnNumber) =>
@@ -587,18 +613,6 @@ export const Grid = <T extends GridRow>({
                   : defaultValue;
               }
         }
-        onGridSelectionChange={(newSelection) => {
-          setSelection(newSelection);
-
-          if (onSelectedRowsChange && sortedAndFilteredRows) {
-            newSelection.rows.toArray();
-            const updatedSelectedRows = sortedAndFilteredRows.filter(
-              (_, rowIndex) => newSelection.rows.hasIndex(rowIndex),
-            );
-
-            onSelectedRowsChange(updatedSelectedRows);
-          }
-        }}
         {...(enableCheckboxSelection
           ? {
               rowMarkers: "checkbox",
@@ -611,7 +625,7 @@ export const Grid = <T extends GridRow>({
          * glide's `spriteManager.drawSprite`,
          * which will be used to draw svg icons inside custom cells
          */
-        headerIcons={customGridIcons}
+        width="100%"
       />
     </Box>
   );

@@ -1,5 +1,4 @@
 import { extractVersion } from "@blockprotocol/type-system";
-import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -26,20 +25,18 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { format } from "date-fns";
 
 import type {
+  EntitiesTableColumn,
+  EntitiesTableColumnKey,
+  EntitiesTableRow,
   GenerateEntitiesTableDataParams,
   GenerateEntitiesTableDataResultMessage,
-  TypeEntitiesRow,
   WorkerDataReturn,
-} from "./types";
-import { isGenerateEntitiesTableDataRequestMessage } from "./types";
+} from "../types";
+import { isGenerateEntitiesTableDataRequestMessage } from "../types";
 
-const columnDefinitionsByKey: Record<
-  keyof TypeEntitiesRow,
-  {
-    title: string;
-    id: string;
-    width: number;
-  }
+const staticColumnDefinitionsByKey: Record<
+  Exclude<EntitiesTableColumnKey, "entityLabel">,
+  EntitiesTableColumn
 > = {
   entityTypes: {
     title: "Entity Type",
@@ -137,7 +134,7 @@ const generateTableData = async (
     };
   } = {};
 
-  const propertyColumnsMap = new Map<string, SizedGridColumn>();
+  const propertyColumnsMap = new Map<string, EntitiesTableColumn>();
 
   for (const { propertyType, width } of Object.values(
     usedPropertyTypesByEntityTypeId,
@@ -154,7 +151,7 @@ const generateTableData = async (
   }
   const propertyColumns = Array.from(propertyColumnsMap.values());
 
-  const columns: SizedGridColumn[] = [
+  const columns: EntitiesTableColumn[] = [
     {
       title: entitiesHaveSameType
         ? (entityTypes.find(
@@ -174,7 +171,9 @@ const generateTableData = async (
     columnsToHide.push("archived");
   }
 
-  for (const [columnKey, definition] of typedEntries(columnDefinitionsByKey)) {
+  for (const [columnKey, definition] of typedEntries(
+    staticColumnDefinitionsByKey,
+  )) {
     if (!columnsToHide.includes(columnKey)) {
       columns.push(definition);
     }
@@ -186,7 +185,7 @@ const generateTableData = async (
     );
   }
 
-  const rows: TypeEntitiesRow[] = [];
+  const rows: EntitiesTableRow[] = [];
   for (const serializedEntity of entities) {
     if (await isCancelled(requestId)) {
       return "cancelled";
@@ -237,8 +236,8 @@ const generateTableData = async (
       ),
     );
 
-    let sourceEntity: TypeEntitiesRow["sourceEntity"];
-    let targetEntity: TypeEntitiesRow["targetEntity"];
+    let sourceEntity: EntitiesTableRow["sourceEntity"];
+    let targetEntity: EntitiesTableRow["targetEntity"];
     if (entity.linkData) {
       const source = getEntityRevision(subgraph, entity.linkData.leftEntityId);
       const target = getEntityRevision(subgraph, entity.linkData.rightEntityId);
@@ -385,7 +384,7 @@ self.onmessage = async ({ data }) => {
        * Split the rows into chunks to avoid the message being too large.
        */
       const chunkSize = 20_000;
-      const chunkedRows: TypeEntitiesRow[][] = [];
+      const chunkedRows: EntitiesTableRow[][] = [];
       for (let i = 0; i < result.rows.length; i += chunkSize) {
         chunkedRows.push(result.rows.slice(i, i + chunkSize));
       }

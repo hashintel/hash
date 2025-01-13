@@ -6,7 +6,7 @@ import type {
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyValue } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   PropertyTypeWithMetadata,
@@ -14,10 +14,10 @@ import type {
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { SerializedSubgraph } from "@local/hash-subgraph";
 
-import type { MinimalActor } from "../../../../../shared/use-actors";
+import type { MinimalActor } from "../../../../shared/use-actors";
 
-export interface TypeEntitiesRow {
-  rowId: string;
+export interface EntitiesTableRow {
+  rowId: EntityId;
   entityId: EntityId;
   entityIcon?: string;
   entityLabel: string;
@@ -45,14 +45,30 @@ export interface TypeEntitiesRow {
     isLink: boolean;
   };
   web: string;
-  properties?: {
-    [k: string]: string;
-  };
   applicableProperties: BaseUrl[];
 
-  /** @todo: get rid of this by typing `columnId` */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  [key: BaseUrl]: PropertyValue;
+}
+
+export type EntitiesTableColumnKey =
+  | Exclude<
+      keyof EntitiesTableRow,
+      "rowId" | "entityId" | "entityIcon" | "applicableProperties"
+    >
+  | BaseUrl;
+
+export type SortableEntitiesTableColumnKey =
+  | Exclude<
+      EntitiesTableColumnKey,
+      /**
+       * @todo H-3908 allow sorting by these fields
+       */
+      "createdBy" | "lastEditedBy" | "sourceEntity" | "targetEntity" | "web"
+    >
+  | BaseUrl;
+
+export interface EntitiesTableColumn extends SizedGridColumn {
+  id: EntitiesTableColumnKey;
 }
 
 export type SourceOrTargetFilterData = {
@@ -77,7 +93,7 @@ export type GenerateEntitiesTableDataParams = {
   propertyTypes?: PropertyType[];
   subgraph: SerializedSubgraph;
   hasSomeLinks?: boolean;
-  hideColumns?: (keyof TypeEntitiesRow)[];
+  hideColumns?: (keyof EntitiesTableRow)[];
   hideArchivedColumn?: boolean;
   hidePropertiesColumns: boolean;
   usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
@@ -105,7 +121,7 @@ export type WebTableFilterData = {
 export type EntitiesTableFilterData = {
   createdByActors: ActorTableFilterData[];
   lastEditedByActors: ActorTableFilterData[];
-  entityTypeTitles: EntityTypeTableFilterData[];
+  entityTypeFilters: EntityTypeTableFilterData[];
   noSourceCount: number;
   noTargetCount: number;
   sources: SourceOrTargetFilterData[];
@@ -114,9 +130,9 @@ export type EntitiesTableFilterData = {
 };
 
 export type EntitiesTableData = {
-  columns: SizedGridColumn[];
+  columns: EntitiesTableColumn[];
   filterData: EntitiesTableFilterData;
-  rows: TypeEntitiesRow[];
+  rows: EntitiesTableRow[];
 };
 
 export type GenerateEntitiesTableDataRequestMessage = {
@@ -135,7 +151,7 @@ export const isGenerateEntitiesTableDataRequestMessage = (
 export type WorkerDataReturn = Pick<EntitiesTableData, "rows" | "columns"> & {
   filterData: Omit<
     EntitiesTableFilterData,
-    "createdByActors" | "entityTypeTitles" | "lastEditedByActors" | "webs"
+    "createdByActors" | "entityTypeFilters" | "lastEditedByActors" | "webs"
   >;
 };
 

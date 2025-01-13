@@ -4,7 +4,10 @@ import type {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { EntityQueryCursor } from "@local/hash-graph-client";
+import type {
+  EntityQueryCursor,
+  EntityQuerySortingRecord,
+} from "@local/hash-graph-client";
 import type {
   CreatedByIdsMap,
   Entity,
@@ -52,6 +55,7 @@ export const useEntitiesVisualizerData = (params: {
   includeArchived: boolean;
   limit?: number;
   ownedByIds?: OwnedById[];
+  sort?: EntityQuerySortingRecord;
 }): EntitiesVisualizerData => {
   const {
     cursor,
@@ -60,6 +64,7 @@ export const useEntitiesVisualizerData = (params: {
     includeArchived,
     limit,
     ownedByIds,
+    sort,
   } = params;
 
   const {
@@ -91,6 +96,7 @@ export const useEntitiesVisualizerData = (params: {
       hasLeftEntity: { outgoing: 1, incoming: 1 },
       hasRightEntity: { outgoing: 1, incoming: 1 },
     },
+    sort,
   });
 
   const [entityTypes, propertyTypes] = useMemo(() => {

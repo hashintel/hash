@@ -51,7 +51,7 @@ import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
 import type { VisualizerView } from "../../shared/visualizer-views";
 import { visualizerViewIcons } from "../../shared/visualizer-views";
 
-type LinkColumnId =
+export type TypesTableColumnId =
   | "title"
   | "kind"
   | "webShortname"
@@ -60,7 +60,7 @@ type LinkColumnId =
   | "lastEditedBy";
 
 type TypesTableColumn = {
-  id: LinkColumnId;
+  id: TypesTableColumnId;
 } & SizedGridColumn;
 
 export type TypesTableRow = {
@@ -287,8 +287,10 @@ export const TypesTable: FunctionComponent<{
   );
 
   const sortRows = useCallback<
-    NonNullable<GridProps<TypesTableRow>["sortRows"]>
-  >((unsortedRows, sort, previousSort) => {
+    NonNullable<
+      GridProps<TypesTableRow, TypesTableColumn, TypesTableColumnId>["sortRows"]
+    >
+  >((unsortedRows, sort) => {
     return unsortedRows.toSorted((a, b) => {
       const isActorSort = (key: string): key is "lastEditedBy" | "createdBy" =>
         ["lastEditedBy", "createdBy"].includes(key);
@@ -301,24 +303,7 @@ export const TypesTable: FunctionComponent<{
         ? (b[sort.columnKey]?.displayName ?? "")
         : String(b[sort.columnKey]);
 
-      const previousValue1: string | undefined = previousSort
-        ? isActorSort(previousSort.columnKey)
-          ? (a[previousSort.columnKey]?.displayName ?? "")
-          : String(a[previousSort.columnKey])
-        : undefined;
-
-      const previousValue2: string | undefined = previousSort?.columnKey
-        ? isActorSort(previousSort.columnKey)
-          ? (b[previousSort.columnKey]?.displayName ?? "")
-          : String(b[previousSort.columnKey])
-        : undefined;
-
       let comparison = value1.localeCompare(value2);
-
-      if (comparison === 0 && previousValue1 && previousValue2) {
-        // if the two keys are equal, we sort by the previous sort
-        comparison = previousValue1.localeCompare(previousValue2);
-      }
 
       if (sort.direction === "desc") {
         // reverse if descending
@@ -530,9 +515,7 @@ export const TypesTable: FunctionComponent<{
               }))}
             />
           }
-          internalWebIds={internalWebIds}
           itemLabelPlural="types"
-          items={types}
           title={typesTablesToTitle[kind]}
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
@@ -548,38 +531,43 @@ export const TypesTable: FunctionComponent<{
         {view === "Table" ? (
           <Box sx={tableContentSx}>
             <Grid
-              showSearch={showSearch}
-              onSearchClose={() => setShowSearch(false)}
               columns={typesTableColumns}
-              dataLoading={!types}
-              rows={filteredRows}
-              enableCheckboxSelection
-              selectedRows={selectedRows}
-              currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-              onSelectedRowsChange={(updatedSelectedRows) =>
-                setSelectedRows(updatedSelectedRows)
-              }
-              sortable
-              sortRows={sortRows}
-              firstColumnLeftPadding={firstColumnLeftPadding}
               createGetCellContent={createGetCellContent}
-              // define max height if there are lots of rows
-              height={`
-          min(
-            ${maxTableHeight},
-            calc(
-              ${gridHeaderHeightWithBorder}px +
-              (${
-                filteredRows?.length ? filteredRows.length : 1
-              } * ${gridRowHeight}px) +
-              ${gridHorizontalScrollbarHeight}px
-            )
-          )`}
+              currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
               customRenderers={[
                 createRenderTextIconCell({ firstColumnLeftPadding }),
                 createRenderChipCell({ firstColumnLeftPadding }),
               ]}
+              dataLoading={!types}
+              enableCheckboxSelection
+              firstColumnLeftPadding={firstColumnLeftPadding}
               freezeColumns={1}
+              height={`min(
+                ${maxTableHeight},
+                calc(
+                  ${gridHeaderHeightWithBorder}px +
+                  (${
+                    filteredRows?.length ? filteredRows.length : 1
+                  } * ${gridRowHeight}px) +
+                  ${gridHorizontalScrollbarHeight}px
+                )
+              )`}
+              onSearchClose={() => setShowSearch(false)}
+              onSelectedRowsChange={(updatedSelectedRows) =>
+                setSelectedRows(updatedSelectedRows)
+              }
+              rows={filteredRows}
+              selectedRows={selectedRows}
+              showSearch={showSearch}
+              sortableColumns={[
+                "title",
+                "kind",
+                "webShortname",
+                "archived",
+                "lastEdited",
+                "lastEditedBy",
+              ]}
+              sortRows={sortRows}
             />
           </Box>
         ) : (

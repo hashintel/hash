@@ -14,9 +14,12 @@ import {
   Select,
 } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 import { Box, Stack, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import type {
@@ -27,7 +30,7 @@ import type {
 } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { GridProps } from "../../../components/grid/grid";
+import type { GridSort } from "../../../components/grid/grid";
 import { Grid } from "../../../components/grid/grid";
 import type { BlankCell } from "../../../components/grid/utils";
 import { blankCell } from "../../../components/grid/utils";
@@ -43,11 +46,13 @@ import type { UrlCellProps } from "../url-cell";
 import { createRenderUrlCell } from "../url-cell";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
-import { useEntitiesTable } from "./entities-table/use-entities-table";
 import type {
+  EntitiesTableColumnKey,
   EntitiesTableData,
-  TypeEntitiesRow,
-} from "./entities-table/use-entities-table/types";
+  EntitiesTableRow,
+  SortableEntitiesTableColumnKey,
+} from "./entities-table/types";
+import { useEntitiesTable } from "./entities-table/use-entities-table";
 import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 
 const firstColumnLeftPadding = 16;
@@ -58,7 +63,7 @@ const emptyTableData: EntitiesTableData = {
   filterData: {
     createdByActors: [],
     lastEditedByActors: [],
-    entityTypeTitles: [],
+    entityTypeFilters: [],
     noSourceCount: 0,
     noTargetCount: 0,
     sources: [],
@@ -80,7 +85,7 @@ export const EntitiesTable: FunctionComponent<
     | "webIds"
   > & {
     currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
-    currentlyDisplayedRowsRef: RefObject<TypeEntitiesRow[] | null>;
+    currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
     disableTypeClick?: boolean;
     filterState: FilterState;
     handleEntityClick: (
@@ -89,7 +94,7 @@ export const EntitiesTable: FunctionComponent<
     ) => void;
     hasSomeLinks: boolean;
     hidePropertiesColumns?: boolean;
-    hideColumns?: (keyof TypeEntitiesRow)[];
+    hideColumns?: (keyof EntitiesTableRow)[];
     limit: number;
     loading: boolean;
     loadingComponent: ReactElement;
@@ -97,12 +102,14 @@ export const EntitiesTable: FunctionComponent<
     maxHeight: string | number;
     goToNextPage?: () => void;
     readonly?: boolean;
-    selectedRows: TypeEntitiesRow[];
+    selectedRows: EntitiesTableRow[];
     setLimit: (limit: number) => void;
-    setSelectedRows: (rows: TypeEntitiesRow[]) => void;
+    setSelectedRows: (rows: EntitiesTableRow[]) => void;
     setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
     setShowSearch: (showSearch: boolean) => void;
     showSearch: boolean;
+    sort: GridSort<SortableEntitiesTableColumnKey>;
+    setSort: (sort: GridSort<SortableEntitiesTableColumnKey>) => void;
   }
 > = ({
   createdByIds,
@@ -131,6 +138,8 @@ export const EntitiesTable: FunctionComponent<
   showSearch,
   setShowSearch,
   setSelectedEntityType,
+  setSort,
+  sort,
   subgraph,
   typeIds,
   webIds,
@@ -155,7 +164,12 @@ export const EntitiesTable: FunctionComponent<
   const {
     columns,
     rows,
-    filterData: { createdByActors, lastEditedByActors, entityTypeTitles, webs },
+    filterData: {
+      createdByActors,
+      lastEditedByActors,
+      entityTypeFilters,
+      webs,
+    },
   } = tableData ?? emptyTableData;
 
   // eslint-disable-next-line no-param-reassign
@@ -164,14 +178,15 @@ export const EntitiesTable: FunctionComponent<
   const theme = useTheme();
 
   const createGetCellContent = useCallback(
-    (entityRows: TypeEntitiesRow[]) =>
+    (entityRows: EntitiesTableRow[]) =>
       ([colIndex, rowIndex]: Item):
         | TextIconCell
         | TextCell
         | NumberCell
         | BlankCell
         | CustomCell => {
-        const columnId = columns[colIndex]?.id;
+        const columnId = columns[colIndex]?.id as EntitiesTableColumnKey;
+
         if (columnId) {
           const row = entityRows[rowIndex];
 
@@ -187,6 +202,77 @@ export const EntitiesTable: FunctionComponent<
               readonly: true,
               displayData: String("Not Found"),
               data: "Not Found",
+            };
+          }
+
+          if (isBaseUrl(columnId)) {
+            const propertyCellValue = columnId && row[columnId];
+
+            if (propertyCellValue) {
+              let isUrl = false;
+              try {
+                const url = new URL(propertyCellValue as string);
+                if (url.protocol === "http:" || url.protocol === "https:") {
+                  isUrl = true;
+                }
+              } catch {
+                // not a URL
+              }
+
+              if (isUrl) {
+                return {
+                  kind: GridCellKind.Custom,
+                  data: {
+                    kind: "url-cell",
+                    url: propertyCellValue as string,
+                  } satisfies UrlCellProps,
+                  copyData: stringifyPropertyValue(propertyCellValue),
+                  allowOverlay: false,
+                  readonly: true,
+                };
+              }
+
+              const isNumber = typeof propertyCellValue === "number";
+
+              if (isNumber) {
+                return {
+                  kind: GridCellKind.Number,
+                  allowOverlay: true,
+                  readonly: true,
+                  displayData: propertyCellValue.toString(),
+                  data: propertyCellValue,
+                };
+              }
+
+              const stringValue = stringifyPropertyValue(propertyCellValue);
+
+              return {
+                kind: GridCellKind.Text,
+                allowOverlay: true,
+                readonly: true,
+                displayData: stringValue,
+                data: stringValue,
+              };
+            }
+
+            const appliesToEntity = row.applicableProperties.includes(columnId);
+
+            const data = appliesToEntity ? "–" : "Does not apply";
+
+            return {
+              kind: GridCellKind.Text,
+              allowOverlay: true,
+              readonly: true,
+              displayData: data,
+              data,
+              themeOverride: appliesToEntity
+                ? {
+                    textDark: theme.palette.gray[50],
+                  }
+                : {
+                    bgCell: theme.palette.gray[5],
+                    textDark: theme.palette.gray[50],
+                  },
             };
           }
 
@@ -254,7 +340,7 @@ export const EntitiesTable: FunctionComponent<
                 variant: "outlined",
               } satisfies ChipCellProps,
             };
-          } else if (columnId === "webId") {
+          } else if (columnId === "web") {
             const shortname = row[columnId];
 
             return {
@@ -276,7 +362,7 @@ export const EntitiesTable: FunctionComponent<
             columnId === "sourceEntity" ||
             columnId === "targetEntity"
           ) {
-            const entity = row[columnId] as TypeEntitiesRow["sourceEntity"];
+            const entity = row[columnId] as EntitiesTableRow["sourceEntity"];
             if (!entity) {
               const data = "Does not apply";
               return {
@@ -344,7 +430,7 @@ export const EntitiesTable: FunctionComponent<
               displayData: String(row.created),
               data: row.lastEdited,
             };
-          } else if (columnId === "lastEditedBy" || columnId === "createdBy") {
+          } else {
             const actor =
               columnId === "lastEditedBy" ? row.lastEditedBy : row.createdBy;
 
@@ -390,77 +476,6 @@ export const EntitiesTable: FunctionComponent<
               } satisfies ChipCellProps,
             };
           }
-
-          const propertyCellValue = columnId && row[columnId];
-
-          if (propertyCellValue) {
-            let isUrl = false;
-            try {
-              const url = new URL(propertyCellValue as string);
-              if (url.protocol === "http:" || url.protocol === "https:") {
-                isUrl = true;
-              }
-            } catch {
-              // not a URL
-            }
-
-            if (isUrl) {
-              return {
-                kind: GridCellKind.Custom,
-                data: {
-                  kind: "url-cell",
-                  url: propertyCellValue as string,
-                } satisfies UrlCellProps,
-                copyData: String(propertyCellValue),
-                allowOverlay: false,
-                readonly: true,
-              };
-            }
-
-            const isNumber = typeof propertyCellValue === "number";
-
-            if (isNumber) {
-              return {
-                kind: GridCellKind.Number,
-                allowOverlay: true,
-                readonly: true,
-                displayData: propertyCellValue.toString(),
-                data: propertyCellValue,
-              };
-            }
-
-            const stringValue = stringifyPropertyValue(propertyCellValue);
-
-            return {
-              kind: GridCellKind.Text,
-              allowOverlay: true,
-              readonly: true,
-              displayData: stringValue,
-              data: stringValue,
-            };
-          }
-
-          const appliesToEntity = row.applicableProperties.includes(
-            columnId as BaseUrl,
-          );
-
-          const data = appliesToEntity ? "–" : "Does not apply";
-
-          return {
-            kind: GridCellKind.Text,
-            allowOverlay: true,
-            readonly: true,
-            displayData: data,
-            data,
-            themeOverride: appliesToEntity
-              ? {
-                  textDark: theme.palette.gray[50],
-                }
-              : {
-                  bgCell: theme.palette.gray[5],
-                  textDark: theme.palette.gray[50],
-                },
-          };
         }
 
         return blankCell;
@@ -476,95 +491,15 @@ export const EntitiesTable: FunctionComponent<
     ],
   );
 
-  const sortRows = useCallback<
-    NonNullable<GridProps<TypeEntitiesRow>["sortRows"]>
-  >((unsortedRows, sort, previousSort) => {
-    return unsortedRows.toSorted((a, b) => {
-      const value1 = a[sort.columnKey];
-      const value2 = b[sort.columnKey];
-
-      if (typeof value1 === "number" && typeof value2 === "number") {
-        const difference =
-          (value1 - value2) * (sort.direction === "asc" ? 1 : -1);
-        return difference;
-      }
-
-      if (sort.columnKey === "entityTypes") {
-        const entityType1 = a.entityTypes
-          .map(({ title }) => title)
-          .sort()
-          .join(", ");
-        const entityType2 = b.entityTypes
-          .map(({ title }) => title)
-          .sort()
-          .join(", ");
-        return (
-          entityType1.localeCompare(entityType2) *
-          (sort.direction === "asc" ? 1 : -1)
-        );
-      }
-
-      const isActorSort = ["lastEditedBy", "createdBy"].includes(
-        sort.columnKey,
-      );
-
-      const isEntitySort = ["sourceEntity", "targetEntity"].includes(
-        sort.columnKey,
-      );
-
-      const stringValue1: string = isActorSort
-        ? a[sort.columnKey].displayName
-        : isEntitySort
-          ? (a[sort.columnKey]?.label ?? "")
-          : String(a[sort.columnKey]);
-
-      const stringValue2: string = isActorSort
-        ? b[sort.columnKey].displayName
-        : isEntitySort
-          ? (b[sort.columnKey]?.label ?? "")
-          : String(b[sort.columnKey]);
-
-      let comparison = stringValue1.localeCompare(stringValue2);
-
-      if (comparison === 0) {
-        const previousSortWasActorSort =
-          previousSort &&
-          ["lastEditedBy", "createdBy"].includes(previousSort.columnKey);
-
-        const previousValue1: string = previousSort?.columnKey
-          ? previousSortWasActorSort
-            ? a[previousSort.columnKey].displayName
-            : String(a[previousSort.columnKey])
-          : undefined;
-
-        const previousValue2: string = previousSort?.columnKey
-          ? previousSortWasActorSort
-            ? b[previousSort.columnKey].displayName
-            : String(b[previousSort.columnKey])
-          : undefined;
-
-        if (previousValue1 && previousValue2) {
-          // if the two keys are equal, we sort by the previous sort
-          comparison = previousValue1.localeCompare(previousValue2);
-        }
-      }
-
-      if (sort.direction === "desc") {
-        // reverse if descending
-        comparison = -comparison;
-      }
-
-      return comparison;
-    });
-  }, []);
-
-  const [selectedEntityTypeTitles, setSelectedEntityTypeTitles] = useState<
+  const [selectedEntityTypeIds, setSelectedEntityTypeIds] = useState<
     Set<string>
-  >(new Set(Object.keys(entityTypeTitles)));
+  >(new Set(entityTypeFilters.map(({ entityTypeId }) => entityTypeId)));
 
   useEffect(() => {
-    setSelectedEntityTypeTitles(new Set(Object.keys(entityTypeTitles)));
-  }, [entityTypeTitles]);
+    setSelectedEntityTypeIds(
+      new Set(entityTypeFilters.map(({ entityTypeId }) => entityTypeId)),
+    );
+  }, [entityTypeFilters]);
 
   const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
     useState<Set<string>>(
@@ -589,14 +524,16 @@ export const EntitiesTable: FunctionComponent<
   }, [createdByActors]);
 
   const [selectedWebs, setSelectedWebs] = useState<Set<string>>(
-    new Set(Object.keys(webs)),
+    new Set(webs.map(({ webId }) => webId)),
   );
 
   useEffect(() => {
-    setSelectedWebs(new Set(Object.keys(webs)));
+    setSelectedWebs(new Set(webs.map(({ webId }) => webId)));
   }, [webs]);
 
-  const columnFilters = useMemo<ColumnFilter<string, TypeEntitiesRow>[]>(
+  const columnFilters = useMemo<
+    ColumnFilter<EntitiesTableColumnKey, EntitiesTableRow>[]
+  >(
     () => [
       {
         columnKey: "web",
@@ -607,18 +544,25 @@ export const EntitiesTable: FunctionComponent<
         })),
         selectedFilterItemIds: selectedWebs,
         setSelectedFilterItemIds: setSelectedWebs,
-        isRowFiltered: () => false,
+        isRowFiltered: (row) =>
+          !selectedWebs.has(extractOwnedByIdFromEntityId(row.entityId)),
       },
       {
         columnKey: "entityTypes",
-        filterItems: entityTypeTitles.map(({ entityTypeId, count, title }) => ({
-          id: entityTypeId,
-          label: title,
-          count,
-        })),
-        selectedFilterItemIds: selectedEntityTypeTitles,
-        setSelectedFilterItemIds: setSelectedEntityTypeTitles,
-        isRowFiltered: () => false,
+        filterItems: entityTypeFilters.map(
+          ({ entityTypeId, count, title }) => ({
+            id: entityTypeId,
+            label: title,
+            count,
+          }),
+        ),
+        selectedFilterItemIds: selectedEntityTypeIds,
+        setSelectedFilterItemIds: setSelectedEntityTypeIds,
+        isRowFiltered: (row) => {
+          return !row.entityTypes.some(({ entityTypeId }) =>
+            selectedEntityTypeIds.has(entityTypeId),
+          );
+        },
       },
       {
         columnKey: "lastEditedBy",
@@ -628,7 +572,10 @@ export const EntitiesTable: FunctionComponent<
         })),
         selectedFilterItemIds: selectedLastEditedByAccountIds,
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
-        isRowFiltered: () => false,
+        isRowFiltered: (row) =>
+          row.lastEditedBy && row.lastEditedBy !== "loading"
+            ? !selectedLastEditedByAccountIds.has(row.lastEditedBy.accountId)
+            : false,
       },
       {
         columnKey: "createdBy",
@@ -638,20 +585,35 @@ export const EntitiesTable: FunctionComponent<
         })),
         selectedFilterItemIds: selectedCreatedByAccountIds,
         setSelectedFilterItemIds: setSelectedCreatedByAccountIds,
-        isRowFiltered: () => false,
+        isRowFiltered: (row) =>
+          row.createdBy && row.createdBy !== "loading"
+            ? !selectedCreatedByAccountIds.has(row.createdBy.accountId)
+            : false,
       },
     ],
     [
       createdByActors,
-      webs,
-      selectedWebs,
-      entityTypeTitles,
-      selectedEntityTypeTitles,
+      entityTypeFilters,
       lastEditedByActors,
+      selectedEntityTypeIds,
       selectedCreatedByAccountIds,
       selectedLastEditedByAccountIds,
+      selectedWebs,
+      webs,
     ],
   );
+
+  const sortableColumns: SortableEntitiesTableColumnKey[] = useMemo(() => {
+    return [
+      "archived",
+      "created",
+      "entityLabel",
+      "entityTypes",
+      "entityLabel",
+      "lastEdited",
+      ...columns.map((column) => column.id).filter((key) => isBaseUrl(key)),
+    ];
+  }, [columns]);
 
   if (!entities && (entityDataLoading || tableDataCalculating)) {
     return (
@@ -674,29 +636,34 @@ export const EntitiesTable: FunctionComponent<
   return (
     <Stack gap={1}>
       <Grid
-        showSearch={showSearch}
-        onSearchClose={() => setShowSearch(false)}
-        columns={columns}
         columnFilters={columnFilters}
-        dataLoading={false}
-        rows={rows}
-        enableCheckboxSelection={!readonly}
-        selectedRows={selectedRows}
-        onSelectedRowsChange={(updatedSelectedRows) =>
-          setSelectedRows(updatedSelectedRows)
-        }
-        sortRows={sortRows}
-        firstColumnLeftPadding={firstColumnLeftPadding}
-        height={`min(${maxHeight}, 600px)`}
+        columns={columns}
         createGetCellContent={createGetCellContent}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
         customRenderers={[
           createRenderTextIconCell({ firstColumnLeftPadding }),
           createRenderUrlCell({ firstColumnLeftPadding }),
           createRenderChipCell({ firstColumnLeftPadding }),
         ]}
+        dataLoading={entityDataLoading}
+        enableCheckboxSelection={!readonly}
+        firstColumnLeftPadding={firstColumnLeftPadding}
         freezeColumns={1}
-        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+        height={`min(${maxHeight}, 600px)`}
+        onSearchClose={() => setShowSearch(false)}
+        onSelectedRowsChange={(updatedSelectedRows) =>
+          setSelectedRows(updatedSelectedRows)
+        }
+        rows={rows}
+        selectedRows={selectedRows}
+        showSearch={showSearch}
+        sortableColumns={sortableColumns}
+        sort={sort}
+        setSort={setSort}
       />
+      {/* @todo H-3255 Enable pagination when performance improvements are implemented */}
+
+      {/*
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Stack
           direction="row"
@@ -722,6 +689,7 @@ export const EntitiesTable: FunctionComponent<
           <ArrowRightRegularIcon />
         </IconButton>
       </Stack>
+      */}
     </Stack>
   );
 };

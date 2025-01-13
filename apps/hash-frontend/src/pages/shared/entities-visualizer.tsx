@@ -2,10 +2,18 @@ import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { LoadingSpinner } from "@hashintel/design-system";
-import type { EntityQueryCursor } from "@local/hash-graph-client";
+import type {
+  EntityQueryCursor,
+  EntityQuerySortingPath,
+  EntityQuerySortingRecord,
+  EntityQuerySortingToken,
+  NullOrdering,
+  Ordering,
+} from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -16,6 +24,7 @@ import { Box, Stack, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactElement, RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { ColumnSort } from "../../components/grid/utils/sorting";
 import type {
   CountEntitiesQuery,
   CountEntitiesQueryVariables,
@@ -36,7 +45,10 @@ import type {
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
-import type { TypeEntitiesRow } from "./entities-visualizer/entities-table/use-entities-table/types";
+import type {
+  EntitiesTableRow,
+  SortableEntitiesTableColumnKey,
+} from "./entities-visualizer/entities-table/types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
@@ -73,6 +85,48 @@ const allFileEntityTypeIds = allFileEntityTypeOntologyIds.map(
 const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
   ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
 );
+
+const generateGraphSort = (
+  columnKey: SortableEntitiesTableColumnKey,
+  direction: "asc" | "desc",
+): EntityQuerySortingRecord => {
+  const nulls: NullOrdering = direction === "asc" ? "last" : "first";
+  const ordering: Ordering = direction === "asc" ? "ascending" : "descending";
+
+  let path: EntityQuerySortingPath;
+
+  switch (columnKey) {
+    case "entityLabel":
+      path = ["label" satisfies EntityQuerySortingToken];
+      break;
+    case "lastEdited":
+      path = [
+        "recordCreatedAtTransactionTime" satisfies EntityQuerySortingToken,
+      ];
+      break;
+    case "created":
+      path = ["createdAtTransactionTime" satisfies EntityQuerySortingToken];
+      break;
+    case "entityTypes":
+      path = ["typeTitle" satisfies EntityQuerySortingToken];
+      break;
+    case "archived":
+      path = ["archived" satisfies EntityQuerySortingToken];
+      break;
+    default: {
+      if (!isBaseUrl(columnKey)) {
+        throw new Error(`Unexpected sorting column key: ${columnKey}`);
+      }
+      path = ["properties", columnKey];
+    }
+  }
+
+  return {
+    path,
+    nulls,
+    ordering,
+  };
+};
 
 export const EntitiesVisualizer: FunctionComponent<{
   /**
@@ -123,7 +177,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   /**
    * Hide specific columns from the table
    */
-  hideColumns?: (keyof TypeEntitiesRow)[];
+  hideColumns?: (keyof EntitiesTableRow)[];
   /**
    * A custom component to display while loading data
    */
@@ -213,6 +267,16 @@ export const EntitiesVisualizer: FunctionComponent<{
     fetchPolicy: "network-only",
   });
 
+  const [sort, setSort] = useState<ColumnSort<SortableEntitiesTableColumnKey>>({
+    columnKey: "entityLabel",
+    direction: "asc",
+  });
+
+  const graphSort = useMemo(
+    () => generateGraphSort(sort.columnKey, sort.direction),
+    [sort],
+  );
+
   const {
     count: totalCount,
     createdByIds,
@@ -235,8 +299,10 @@ export const EntitiesVisualizer: FunctionComponent<{
      * Translate into archived filter in query
      */
     includeArchived: !!filterState.includeArchived,
-    limit: view === "Graph" ? undefined : limit,
+    /** @todo H-3255 enable pagination when performance improvements in place */
+    // limit: view === "Graph" ? undefined : limit,
     ownedByIds: filterState.includeGlobal ? undefined : internalWebIds,
+    sort: graphSort,
   });
 
   const internalEntitiesCount =
@@ -348,7 +414,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   );
 
   const currentlyDisplayedColumnsRef = useRef<SizedGridColumn[] | null>(null);
-  const currentlyDisplayedRowsRef = useRef<TypeEntitiesRow[] | null>(null);
+  const currentlyDisplayedRowsRef = useRef<EntitiesTableRow[] | null>(null);
 
   const tableHeight =
     maxHeight ??
@@ -370,9 +436,9 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const [showTableSearch, setShowTableSearch] = useState(false);
 
-  const [selectedTableRows, setSelectedTableRows] = useState<TypeEntitiesRow[]>(
-    [],
-  );
+  const [selectedTableRows, setSelectedTableRows] = useState<
+    EntitiesTableRow[]
+  >([]);
 
   const nextPage = useCallback(() => {
     setCursor(nextCursor ?? undefined);
@@ -420,26 +486,8 @@ export const EntitiesVisualizer: FunctionComponent<{
       ) : null}
       <Box>
         <TableHeader
-          hideFilters={hideFilters}
-          internalWebIds={internalWebIds}
-          itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
-          items={entities}
-          selectedItems={
-            entities?.filter((entity) =>
-              selectedTableRows.some(
-                ({ entityId }) =>
-                  entity.metadata.recordId.entityId === entityId,
-              ),
-            ) ?? []
-          }
-          title="Entities"
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          numberOfUserWebItems={internalEntitiesCount}
-          numberOfExternalItems={
-            externalWebsOnlyCountData?.countEntities ?? undefined
-          }
-          hideExportToCsv={view !== "Table"}
           endAdornment={
             <TableHeaderToggle
               value={view}
@@ -458,13 +506,31 @@ export const EntitiesVisualizer: FunctionComponent<{
             />
           }
           filterState={filterState}
-          setFilterState={setFilterState}
-          toggleSearch={
-            view === "Table" ? () => setShowTableSearch(true) : undefined
-          }
+          hideExportToCsv={view !== "Table"}
+          hideFilters={hideFilters}
+          itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
           onBulkActionCompleted={() => {
             void refetchWithoutLinks();
           }}
+          numberOfExternalItems={
+            externalWebsOnlyCountData?.countEntities ?? undefined
+          }
+          numberOfUserWebItems={internalEntitiesCount}
+          selectedItems={
+            entities?.filter((entity) =>
+              selectedTableRows.some(
+                ({ entityId }) =>
+                  entity.metadata.recordId.entityId === entityId,
+              ),
+            ) ?? []
+          }
+          setFilterState={setFilterState}
+          title="Entities"
+          toggleSearch={
+            view === "Table"
+              ? () => setShowTableSearch(!showTableSearch)
+              : undefined
+          }
         />
         {!subgraph ? (
           <Stack
@@ -521,6 +587,8 @@ export const EntitiesVisualizer: FunctionComponent<{
             setLimit={setLimit}
             showSearch={showTableSearch}
             setShowSearch={setShowTableSearch}
+            sort={sort}
+            setSort={setSort}
             subgraph={subgraph}
             typeIds={typeIds}
             webIds={webIds}

@@ -19,10 +19,10 @@ import type { EntitiesVisualizerData } from "../use-entities-visualizer-data";
 import type {
   EntitiesTableData,
   EntitiesTableFilterData,
+  EntitiesTableRow,
   GenerateEntitiesTableDataRequestMessage,
-  TypeEntitiesRow,
-} from "./use-entities-table/types";
-import { isGenerateEntitiesTableDataResultMessage } from "./use-entities-table/types";
+} from "./types";
+import { isGenerateEntitiesTableDataResultMessage } from "./types";
 
 let canvas: HTMLCanvasElement | undefined = undefined;
 
@@ -57,7 +57,7 @@ export const useEntitiesTable = (
     | "webIds"
   > & {
     hasSomeLinks?: boolean;
-    hideColumns?: (keyof TypeEntitiesRow)[];
+    hideColumns?: (keyof EntitiesTableRow)[];
     hideArchivedColumn?: boolean;
     hidePropertiesColumns: boolean;
   },
@@ -208,14 +208,14 @@ export const useEntitiesTable = (
 
   const accumulatedDataRef = useRef<{
     requestId: string;
-    rows: TypeEntitiesRow[];
+    rows: EntitiesTableRow[];
   }>({ requestId: "none", rows: [] });
 
-  const { createdByActors, entityTypeTitles, lastEditedByActors, webs } =
+  const { createdByActors, entityTypeFilters, lastEditedByActors, webs } =
     useMemo<
       Pick<
         EntitiesTableFilterData,
-        "createdByActors" | "entityTypeTitles" | "lastEditedByActors" | "webs"
+        "createdByActors" | "entityTypeFilters" | "lastEditedByActors" | "webs"
       >
     >(() => {
       const createdBy: EntitiesTableFilterData["createdByActors"] = [];
@@ -240,7 +240,7 @@ export const useEntitiesTable = (
         });
       }
 
-      const typeTitles: EntitiesTableFilterData["entityTypeTitles"] = [];
+      const typeTitles: EntitiesTableFilterData["entityTypeFilters"] = [];
       for (const [entityTypeId, count] of typedEntries(typeIds ?? {})) {
         const title = entityTypeId
           .split("/")
@@ -271,7 +271,7 @@ export const useEntitiesTable = (
 
       return {
         createdByActors: createdBy,
-        entityTypeTitles: typeTitles,
+        entityTypeFilters: typeTitles,
         lastEditedByActors: editedBy,
         webs: webCounts,
       };
@@ -307,7 +307,7 @@ export const useEntitiesTable = (
             filterData: {
               ...result.filterData,
               createdByActors,
-              entityTypeTitles,
+              entityTypeFilters,
               lastEditedByActors,
               webs,
             },
@@ -317,7 +317,7 @@ export const useEntitiesTable = (
         }
       }
     };
-  }, [createdByActors, entityTypeTitles, lastEditedByActors, webs, worker]);
+  }, [createdByActors, entityTypeFilters, lastEditedByActors, webs, worker]);
 
   useEffect(() => {
     if (entities && entityTypes && subgraph && !actorsLoading) {
