@@ -758,7 +758,7 @@ __metadata:
     gray-matter: "npm:4.0.3"
     html-to-text: "npm:9.0.5"
     image-size: "npm:1.2.0"
-    katex: "npm:0.16.19"
+    katex: "npm:0.16.20"
     md5: "npm:2.3.0"
     mock-block-dock: "npm:0.0.21"
     next: "npm:15.1.4"
@@ -33729,14 +33729,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"katex@npm:0.16.19, katex@npm:^0.16.0":
-  version: 0.16.19
-  resolution: "katex@npm:0.16.19"
+"katex@npm:0.16.20, katex@npm:^0.16.0":
+  version: 0.16.20
+  resolution: "katex@npm:0.16.20"
   dependencies:
     commander: "npm:^8.3.0"
   bin:
     katex: cli.js
-  checksum: 10c0/41d53eded6984b6edf5e53ee92e1c5cf1e7a964d225191b5a5565f6fe5f78e9ac79eb873fc546975adf585cb99fdd744fc9b31afd3070bb0905598d1384c7559
+  checksum: 10c0/390a3b8364c087078dcd1c17babfec867f1b5f44eabf6f2e8b9841b88496330b1bf8dc95f477172a0ddab6d12c11a8da6ed6269720d3d8cef2c505f5c2652255
   languageName: node
   linkType: hard
 
