@@ -1185,11 +1185,19 @@ dependencies = [
 name = "chonky"
 version = "0.0.0"
 dependencies = [
+ "base64 0.22.1",
+ "clap",
  "error-stack",
+ "futures",
  "image",
  "insta",
+ "num-traits",
  "pdfium-render",
+ "reqwest",
+ "serde",
+ "serde_json",
  "thiserror 2.0.11",
+ "tokio",
 ]
 
 [[package]]
