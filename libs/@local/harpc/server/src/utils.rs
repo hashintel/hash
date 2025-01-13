@@ -39,6 +39,12 @@ where
 }
 
 /// Delegates a call to a closure with a single input and output.
+///
+/// # Errors
+///
+/// This function returns a `Report<DelegationError>` in the following cases:
+/// - If decoding the request fails
+/// - If the request does not contain exactly one item
 pub async fn delegate_call_discrete<B, I, O, C, Fut>(
     request: Request<B>,
     codec: C,
