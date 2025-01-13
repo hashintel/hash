@@ -49,7 +49,7 @@ fn extract_bounding_boxes(json_payload: &str) -> Result<Vec<TablePrediction>, Re
 ///
 /// [`ChonkyError::HuggingFaceAPI`] when there are HTTP request errors
 pub async fn make_table_recognition_request(
-    image_path: impl AsRef<Path> + core::marker::Send + core::marker::Sync,
+    image_path: impl AsRef<Path> + Send + Sync,
     retry: bool,
 ) -> Result<Vec<TablePrediction>, Report<ChonkyError>> {
     let url = "https://api-inference.huggingface.co/models/microsoft/table-transformer-detection";
