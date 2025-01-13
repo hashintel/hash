@@ -23,7 +23,8 @@ mod property_metadata;
 mod property_type;
 mod sorting;
 
-use std::{borrow::Cow, collections::HashMap};
+use alloc::borrow::Cow;
+use std::collections::HashMap;
 
 use error_stack::Report;
 use hash_graph_authorization::{
