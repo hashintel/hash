@@ -382,7 +382,6 @@ export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndS
 
 export const notificationTypesToIgnore = [
   systemEntityTypes.notification.entityTypeId,
-  systemEntityTypes.graphChangeNotification.entityTypeId,
 ];
 
 export const usageRecordTypesToIgnore = [
@@ -393,25 +392,20 @@ export const usageRecordTypesToIgnore = [
   systemLinkEntityTypes.incurredIn.linkEntityTypeId,
 ];
 
-const pageNotificationTypesToIgnore = [
-  systemEntityTypes.mentionNotification.entityTypeId,
-  systemEntityTypes.commentNotification.entityTypeId,
+const pageTypesToIgnore = [
   systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
 ];
 
 export const noisySystemTypeIds = [
   ...notificationTypesToIgnore,
   ...usageRecordTypesToIgnore,
-  ...pageNotificationTypesToIgnore,
+  ...pageTypesToIgnore,
 ] as const;
 
 export type NoisySystemTypeId = (typeof noisySystemTypeIds)[number];
 
 export const ignoreNoisySystemTypesFilter: Filter = {
   all: noisySystemTypeIds.map((versionedUrl) => ({
-    notEqual: [
-      { path: ["type(inheritanceDepth = 0)", "versionedUrl"] },
-      { parameter: versionedUrl },
-    ],
+    notEqual: [{ path: ["type", "versionedUrl"] }, { parameter: versionedUrl }],
   })),
 };

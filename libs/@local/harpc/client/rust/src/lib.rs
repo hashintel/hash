@@ -100,6 +100,11 @@ impl<C> Client<C> {
         ))
     }
 
+    /// Connects to a target address with a custom layer.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ClientError::Connect` if unable to establish a connection to the server.
     pub async fn connect_with<L>(
         &self,
         layer: L,

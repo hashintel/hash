@@ -5,9 +5,9 @@ import { customColors } from "@hashintel/design-system/theme";
 import {
   getCellHorizontalPadding,
   getYCenter,
-} from "../../../components/grid/utils";
-import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
-import { drawTextWithIcon } from "../../../components/grid/utils/draw-text-with-icon";
+} from "../../../../components/grid/utils";
+import type { CustomIcon } from "../../../../components/grid/utils/custom-grid-icons";
+import { drawTextWithIcon } from "../../../../components/grid/utils/draw-text-with-icon";
 
 export interface TextIconCellProps {
   readonly kind: "text-icon-cell";

@@ -75,7 +75,7 @@ export const AccountEntitiesList: FunctionComponent<
   } = useLatestEntityTypesOptional();
 
   const { entities: userEntities, loading: entityTypeEntitiesLoading } =
-    useEntityTypeEntities({ ownedById });
+    useEntityTypeEntities({ ownedByIds: [ownedById] });
 
   const loading = entityTypesLoading || entityTypeEntitiesLoading;
 

@@ -95,7 +95,7 @@ axum               = { version = "=0.7.5" }
 axum-core          = { version = "=0.5.0" }
 bumpalo            = { version = "=3.16.0", default-features = false }
 bytes              = { version = "=1.9.0" }
-clap_builder       = { version = "=4.5.24", default-features = false, features = ["std"] }
+clap_builder       = { version = "=4.5.26", default-features = false, features = ["std"] }
 criterion          = { version = "=0.5.1" }
 deadpool           = { version = "=0.12.1", default-features = false }
 deadpool-postgres  = { version = "=0.14.1", default-features = false }
@@ -146,7 +146,7 @@ tracing-core       = { version = "=0.1.33", default-features = false }
 tracing-subscriber = { version = "=0.3.19", default-features = false }
 url                = { version = "=2.5.4", default-features = false }
 utoipa             = { version = "=4.2.3", default-features = false }
-uuid               = { version = "=1.11.0", default-features = false }
+uuid               = { version = "=1.11.1", default-features = false }
 
 # Shared third-party dependencies
 ansi-to-html             = { version = "=0.2.2", default-features = false }
@@ -159,9 +159,9 @@ aws-config               = { version = "=1.5.13" }
 aws-sdk-s3               = { version = "=1.68.0", default-features = false }
 bitvec                   = { version = "=1.0.1", default-features = false }
 bytes-utils              = { version = "=0.1.4", default-features = false }
-clap                     = { version = "=4.5.24", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
-clap_complete            = { version = "=4.5.41", default-features = false }
-convert_case             = { version = "=0.6.0", default-features = false }
+clap                     = { version = "=4.5.26", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
+clap_complete            = { version = "=4.5.42", default-features = false }
+convert_case             = { version = "=0.7.1", default-features = false }
 criterion-macro          = { version = "=0.4.0", default-features = false }
 derive-where             = { version = "=1.2.7", default-features = false, features = ["nightly"] }
 derive_more              = { version = "=1.0.0", default-features = false }
@@ -198,7 +198,7 @@ pin-project-lite         = { version = "=0.2.16", default-features = false }
 postgres-protocol        = { version = "=0.6.7", default-features = false }
 pretty_assertions        = { version = "=1.4.1", default-features = false, features = ["alloc"] }
 proc-macro-error2        = { version = "=2.0.1", default-features = false }
-proc-macro2              = { version = "=1.0.92", default-features = false }
+proc-macro2              = { version = "=1.0.93", default-features = false }
 proptest                 = { version = "=1.6.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
 quote                    = { version = "=1.0.38", default-features = false }
 rand                     = { version = "=0.8.5", default-features = false }
@@ -213,7 +213,7 @@ sha2                     = { version = "=0.10.8", default-features = false }
 similar-asserts          = { version = "=1.6.0", default-features = false }
 supports-color           = { version = "=3.0.2", default-features = false }
 supports-unicode         = { version = "=3.0.0", default-features = false }
-syn                      = { version = "=2.0.95", default-features = false }
+syn                      = { version = "=2.0.96", default-features = false }
 tachyonix                = { version = "=0.3.1", default-features = false }
 tarpc                    = { version = "=0.35.0", default-features = false }
 temporal-client          = { git = "https://github.com/temporalio/sdk-core", rev = "4a2368d" }
@@ -221,7 +221,7 @@ temporal-sdk-core-protos = { git = "https://github.com/temporalio/sdk-core", rev
 test-fuzz                = { version = "=7.0.1", default-features = false }
 test-log                 = { version = "=0.2.16", default-features = false }
 test-strategy            = { version = "=0.4.0", default-features = false }
-thiserror                = { version = "=2.0.10", default-features = false }
+thiserror                = { version = "=2.0.11", default-features = false }
 tokio-stream             = { version = "=0.1.17", default-features = false }
 tokio-test               = { version = "=0.4.4", default-features = false }
 tower                    = { version = "=0.5.2", default-features = false }

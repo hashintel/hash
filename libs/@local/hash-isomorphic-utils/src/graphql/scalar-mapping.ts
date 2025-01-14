@@ -39,6 +39,7 @@ export const scalars = {
   EntityRelationAndSubject: "@local/hash-subgraph#EntityRelationAndSubject",
   EntityValidationReport:
     "@local/hash-graph-types/validation#EntityValidationReport",
+  CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",
   GetEntitySubgraphRequest:
     "@local/hash-isomorphic-utils/types#GetEntitySubgraphRequest",
   EntityTemporalVersioningMetadata:
@@ -52,6 +53,10 @@ export const scalars = {
   DiffEntityResult: "@local/hash-graph-client#DiffEntityResult",
   ValidateEntityParamsComponents:
     "@local/hash-graph-client#ValidateEntityParamsComponents",
+  EntityQueryCursor: "@local/hash-graph-client#EntityQueryCursor",
+  CreatedByIdsMap: "@local/hash-graph-sdk/entity#CreatedByIdsMap",
+  TypeIdsMap: "@local/hash-graph-sdk/entity#TypeIdsMap",
+  WebIdsMap: "@local/hash-graph-sdk/entity#WebIdsMap",
 
   Filter: "@local/hash-graph-client#Filter",
 

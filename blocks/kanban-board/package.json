@@ -42,7 +42,7 @@
     "lodash.clonedeep": "4.5.0",
     "lodash.debounce": "4.0.8",
     "lodash.isequal": "4.5.0",
-    "react-textarea-autosize": "8.5.6"
+    "react-textarea-autosize": "8.5.7"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
@@ -57,7 +57,7 @@
     "prettier": "3.4.2",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "typescript": "5.7.2"
+    "typescript": "5.7.3"
   },
   "peerDependencies": {
     "react": "^19.0.0",

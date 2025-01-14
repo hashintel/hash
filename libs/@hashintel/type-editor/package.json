@@ -45,7 +45,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-hook-form": "7.54.2",
-    "typescript": "5.7.2"
+    "typescript": "5.7.3"
   },
   "peerDependencies": {
     "@mui/material": "^5.14.0",
