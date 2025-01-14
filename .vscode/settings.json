@@ -4,5 +4,6 @@
     "javascriptreact",
     "typescript",
     "typescriptreact"
-  ]
+  ],
+  "vitest.disableWorkspaceWarning": true
 }

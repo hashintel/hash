@@ -44,6 +44,7 @@ const generateEntityId = () =>
 
 type MatchExistingEntityTest = {
   testName: string;
+  isLink: boolean;
   inputData: MatchExistingEntityParams;
   expectedMatchEntityId: EntityId | null;
 };
@@ -58,8 +59,9 @@ const ceoStarted2022Uuid = generateEntityId();
 
 const matchTestData: MatchExistingEntityTest[] = [
   {
-    testName: "Match Person – Match expected",
+    testName: "Person – Match expected",
     expectedMatchEntityId: billGatesUuid,
+    isLink: false,
     inputData: {
       potentialMatches: [
         {
@@ -140,8 +142,9 @@ const matchTestData: MatchExistingEntityTest[] = [
     },
   },
   {
-    testName: "Match Person – No match expected",
+    testName: "Person – No match expected",
     expectedMatchEntityId: null,
+    isLink: false,
     inputData: {
       potentialMatches: [
         {
@@ -222,7 +225,8 @@ const matchTestData: MatchExistingEntityTest[] = [
     },
   },
   {
-    testName: "Match Worked At – Match expected",
+    testName: "Worked At – Match expected",
+    isLink: true,
     expectedMatchEntityId: ceoStarted2020Uuid,
     inputData: {
       potentialMatches: [
@@ -278,8 +282,9 @@ const matchTestData: MatchExistingEntityTest[] = [
     },
   },
   {
-    testName: "Match Worked At – No match expected",
+    testName: "Worked At – No match expected",
     expectedMatchEntityId: null,
+    isLink: true,
     inputData: {
       potentialMatches: [
         {
@@ -417,15 +422,16 @@ test(
       "claude-3-haiku-20240307",
       "claude-3-5-sonnet-20240620",
       "gpt-4o-mini-2024-07-18",
+      "gpt-4o-2024-08-06",
     ];
 
     await optimizeSystemPrompt({
-      attemptsPerPrompt: 2,
+      attemptsPerPrompt: 10,
       models,
       initialSystemPrompt: matchExistingEntitySystemPrompt,
       directoryPath: baseDirectoryPath,
       metrics,
-      promptIterations: 2,
+      promptIterations: 1,
     });
   },
   {

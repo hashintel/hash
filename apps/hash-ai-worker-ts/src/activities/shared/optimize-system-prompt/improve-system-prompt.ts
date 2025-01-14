@@ -31,6 +31,9 @@ const improveSystemPromptSystemPrompt = dedent(`
   Carefully examine all the metric results.
   Your task is to propose a new system prompt that will improve the performance of the LLM model across all metrics.
   Be creative, you can propose a completely new prompt or a slight modification of the previous prompt.
+
+  If the original prompt includes examples, try iterations which also include the examples, or different examples.
+  Prompts with full, clear examples are generally better than prompts without examples.
 `);
 
 const proposeSystemPromptToolDefinition: LlmToolDefinition<"proposeSystemPrompt"> =

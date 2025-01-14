@@ -53,14 +53,242 @@ If you are not certain there is a match among the existing entities, provide 'nu
 Where a property is present on both the new and the old entity, and it is a text field suitable for merging (e.g. a description),
 you should provide a new value that combines both the old and new.
 
-If a property is NOT present on both the new and old entity, or is not suitable for combining (e.g. short values),
+If a property is NOT present on both the new and old entity, or is not suitable for combining (e.g. short values. numbers),
 do not return them. Only return mergedProperties where you have written a new value based on the old and new.
-If in doubt, don't rewrite properties.
+If in doubt, don't rewrite properties. The intention between merging them is to preserve useful information from the old value,
+which is only likely to apply to longer, descriptive text fields.
+<Examples>
+  <Example>
+    <NewEntity>
+      <Types>
+        "https://hash.ai/@hash/types/entity-type/business-location/v/1"
+      </Types>
+      <Properties>
+        "https://blockprotocol.org/@blockprotocol/types/property-type/address/": "123 Main St, Seattle, WA"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/business-name/": "Joe's Coffee"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/opening-date/": "2022-01-15"
+      </Properties>
+    </NewEntity>
+    <PotentialMatches>
+      <PotentialMatch>
+        <EntityId>location123</EntityId>
+        <Types>"https://hash.ai/@hash/types/entity-type/business-location/v/1"</Types>
+        <Properties>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/address/"</Key>
+            <Value>123 Main Street, Seattle, Washington</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/business-name/"</Key>
+            <Value>Joe's Coffee Shop</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/opening-date/"</Key>
+            <Value>2022-01-15</Value>
+          </Property>
+        </Properties>
+      </PotentialMatch>
+      <PotentialMatch>
+        <EntityId>location456</EntityId>
+        <Types>"https://hash.ai/@hash/types/entity-type/business-location/v/1"</Types>
+        <Properties>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/address/"</Key>
+            <Value>123 Main St, Seattle, WA</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/business-name/"</Key>
+            <Value>Joe's Coffee</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/opening-date/"</Key>
+            <Value>2020-03-01</Value>
+          </Property>
+        </Properties>
+      </PotentialMatch>
+      <PotentialMatch>
+        <EntityId>location789</EntityId>
+        <Types>"https://hash.ai/@hash/types/entity-type/business-location/v/1"</Types>
+        <Properties>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/address/"</Key>
+            <Value>123 Main St, Portland, OR</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/business-name/"</Key>
+            <Value>Joe's Coffee</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/opening-date/"</Key>
+            <Value>2022-01-15</Value>
+          </Property>
+        </Properties>
+      </PotentialMatch>
+    </PotentialMatches>
+    <Explanation>
+      This is a match with location123 despite multiple similar entries. 
+      location456 has the same address but a different opening date, suggesting it's a previous business at the same location. 
+      location789 is a different branch in Portland. 
+      location123 matches both the address and opening date, and the slight variation in business name format is mergeable.
+    </Explanation>
+  </Example>
+
+  <Example>
+    <NewEntity>
+      <Types>
+        "https://hash.ai/@hash/types/entity-type/investment/v/1"
+      </Types>
+      <Properties>
+        "https://blockprotocol.org/@blockprotocol/types/property-type/amount/": "1000000"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/date/": "2024-03-15"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/investor/": "Acme Ventures"
+      </Properties>
+    </NewEntity>
+    <PotentialMatches>
+      <PotentialMatch>
+        <EntityId>investment456</EntityId>
+        <Types>"https://hash.ai/@hash/types/entity-type/investment/v/1"</Types>
+        <Properties>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/amount/"</Key>
+            <Value>1000000</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/date/"</Key>
+            <Value>2024-03-15</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/investor/"</Key>
+            <Value>Beta Capital</Value>
+          </Property>
+        </Properties>
+      </PotentialMatch>
+      <PotentialMatch>
+        <EntityId>investment789</EntityId>
+        <Types>"https://hash.ai/@hash/types/entity-type/investment/v/1"</Types>
+        <Properties>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/amount/"</Key>
+            <Value>1000000</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/investor/"</Key>
+            <Value>Acme Ventures</Value>
+          </Property>
+        </Properties>
+      </PotentialMatch>
+      <PotentialMatch>
+        <EntityId>investment101</EntityId>
+        <Types>"https://hash.ai/@hash/types/entity-type/investment/v/1"</Types>
+        <Properties>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/amount/"</Key>
+            <Value>1000000</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/date/"</Key>
+            <Value>2024-03-15</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/investor/"</Key>
+            <Value>Acme Venture Partners</Value>
+          </Property>
+        </Properties>
+      </PotentialMatch>
+    </PotentialMatches>
+    <Explanation>
+      This is a match with investment101 because it matches the amount, date, and investor (Acme Venture Partners is the same as Acme Ventures). 
+      investment456 has a different investor, and investment789 is missing the date field which is crucial for identifying a specific investment.
+    </Explanation>
+  </Example>
+
+  <Example>
+    <NewEntity>
+      <Types>
+        "https://hash.ai/@hash/types/entity-type/software-release/v/1"
+      </Types>
+      <Properties>
+        "https://blockprotocol.org/@blockprotocol/types/property-type/version/": "2.0.0"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/release-notes/": "Major update including performance improvements and bug fixes"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/release-date/": "2024-06-15"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/platform/": "Linux"
+      </Properties>
+    </NewEntity>
+    <PotentialMatches>
+      <PotentialMatch>
+        <EntityId>release789</EntityId>
+        <Types>"https://hash.ai/@hash/types/entity-type/software-release/v/1"</Types>
+        <Properties>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/version/"</Key>
+            <Value>2.0.0</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/release-notes/"</Key>
+            <Value>Performance improvements and critical bug fixes</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/release-date/"</Key>
+            <Value>2024-06-15</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/platform/"</Key>
+            <Value>Windows</Value>
+          </Property>
+        </Properties>
+      </PotentialMatch>
+      <PotentialMatch>
+        <EntityId>release790</EntityId>
+        <Types>"https://hash.ai/@hash/types/entity-type/software-release/v/1"</Types>
+        <Properties>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/version/"</Key>
+            <Value>2.0.0</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/release-notes/"</Key>
+            <Value>This release focuses on performance optimizations and fixes several critical bugs</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/release-date/"</Key>
+            <Value>2024-06-15</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/platform/"</Key>
+            <Value>MacOS</Value>
+          </Property>
+        </Properties>
+      </PotentialMatch>
+      <PotentialMatch>
+        <EntityId>release791</EntityId>
+        <Types>"https://hash.ai/@hash/types/entity-type/software-release/v/1"</Types>
+        <Properties>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/release-date/"</Key>
+            <Value>2024-06-15</Value>
+          </Property>
+          <Property>
+            <Key>"https://blockprotocol.org/@blockprotocol/types/property-type/platform/"</Key>
+            <Value>Linux</Value>
+          </Property>
+        </Properties>
+      </PotentialMatch>
+    </PotentialMatches>
+    <Explanation>
+      This is not a match with any existing entity.
+      release789 is for Windows, despite having the same release date and version number.
+      release790 is for MacOS, despite having the same release date and version number.
+      release791 is for Linux and shares the release date, but there is no version number. A patch release could have been released on the same date.
+      The presence of the 'platform' and 'version' properties in these entities indicate that they are important for distinguishing between them.
+    </Explanation>
+  </Example>
+</Examples>
 `;
 
 export type ExistingEntityReport = {
   matchedEntityId: EntityId | null;
-  mergedProperties: Record<string, string>;
+  mergedProperties?: Record<string, string>;
 };
 
 const toolName = "reportExistingEntityFinding";
@@ -137,17 +365,17 @@ The properties shown for the new link and the potential matches are the attribut
   }
 
 <NewEntity>
-<Types>${newEntity.entityTypeIds.join("\n")}</Types>
-<Properties>
-${Object.entries(newEntity.properties)
-  .map(
-    ([baseUrl, value]) => `<Property>
-<Key>${baseUrl}</Key>
-<Value>${stringifyPropertyValue(value)}</Value>
-</Property>`,
-  )
-  .join("\n")}
-</Properties>
+  <Types>${newEntity.entityTypeIds.join("\n")}</Types>
+  <Properties>
+  ${Object.entries(newEntity.properties)
+    .map(
+      ([baseUrl, value]) => `   <Property>
+      <Key>${baseUrl}</Key>
+      <Value>${stringifyPropertyValue(value)}</Value>
+    </Property>`,
+    )
+    .join("\n")}
+  </Properties>
 </NewEntity>
 
 The potential matches are:
@@ -155,20 +383,20 @@ ${potentialMatches
   .map(
     (potentialMatch) => `
 <PotentialMatch>
-<EntityId>${potentialMatch.entityId}</EntityId>
-<Types>${newEntity.entityTypeIds.join("\n")}</Types>
-<Properties>
-${Object.entries(potentialMatch.properties)
-  .map(
-    ([baseUrl, value]) =>
-      `<Property>
-<Key>${baseUrl}</Key>
-<Value>${stringifyPropertyValue(value)}</Value>
-<Mergeable>${typeof value === "string" ? "yes" : "no"}</Mergeable>
-</Property>`,
-  )
-  .join("\n")}
-</Properties>
+  <EntityId>${potentialMatch.entityId}</EntityId>
+  <Types>${newEntity.entityTypeIds.join("\n")}</Types>
+  <Properties>
+  ${typedEntries(potentialMatch.properties)
+    .map(
+      ([baseUrl, value]) =>
+        ` <Property>
+      <Key>${baseUrl}</Key>
+      <Value>${stringifyPropertyValue(value)}</Value>
+      <Mergeable>${typeof newEntity.properties[baseUrl] === "string" ? "Maybe" : "No"}</Mergeable>
+    </Property>`,
+    )
+    .join("\n")}
+  </Properties>
 </PotentialMatch>
 `,
   )
@@ -347,7 +575,7 @@ export const matchExistingEntity = async <T extends ExistingEntityForMatching>({
   for (const [baseUrl, valueFromNewEntity] of typedEntries(
     newEntity.properties,
   )) {
-    const mergedValue = mergedProperties[baseUrl];
+    const mergedValue = mergedProperties?.[baseUrl];
 
     const newValue = mergedValue ?? valueFromNewEntity;
 
