@@ -100,10 +100,10 @@ export const EntitiesTable: FunctionComponent<
     loadingComponent: ReactElement;
     isViewingOnlyPages: boolean;
     maxHeight: string | number;
-    // goToNextPage?: () => void;
+    goToNextPage?: () => void;
     readonly?: boolean;
     selectedRows: EntitiesTableRow[];
-    // setLimit: (limit: number) => void;
+    setLimit: (limit: number) => void;
     setSelectedRows: (rows: EntitiesTableRow[]) => void;
     setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
     setShowSearch: (showSearch: boolean) => void;
@@ -129,10 +129,10 @@ export const EntitiesTable: FunctionComponent<
   loadingComponent,
   isViewingOnlyPages,
   maxHeight,
-  // goToNextPage,
+  goToNextPage: _goToNextPage,
   propertyTypes,
   readonly,
-  // setLimit,
+  setLimit: _setLimit,
   selectedRows,
   setSelectedRows,
   showSearch,
