@@ -586,28 +586,30 @@ fn generate_sorting_paths(
 )]
 pub struct GetEntitiesRequest<'q, 's, 'p> {
     #[serde(borrow)]
-    filter: Filter<'q, Entity>,
-    temporal_axes: QueryTemporalAxesUnresolved,
-    include_drafts: bool,
-    limit: Option<usize>,
+    pub filter: Filter<'q, Entity>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
+    pub limit: Option<usize>,
     #[serde(borrow, default)]
-    conversions: Vec<QueryConversion<'p>>,
+    pub conversions: Vec<QueryConversion<'p>>,
     #[serde(borrow)]
-    sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
+    pub sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
     #[serde(borrow)]
-    cursor: Option<EntityQueryCursor<'s>>,
+    pub cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
-    include_count: bool,
+    pub include_count: bool,
     #[serde(default)]
-    include_entity_types: Option<IncludeEntityTypeOption>,
+    pub include_entity_types: Option<IncludeEntityTypeOption>,
     #[serde(default)]
-    include_web_ids: bool,
+    pub include_web_ids: bool,
     #[serde(default)]
-    include_created_by_ids: bool,
+    pub include_created_by_ids: bool,
     #[serde(default)]
-    include_edition_created_by_ids: bool,
+    pub include_edition_created_by_ids: bool,
     #[serde(default)]
-    include_type_ids: bool,
+    pub include_type_ids: bool,
+    #[serde(default)]
+    pub include_type_titles: bool,
 }
 
 impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<'q> {
@@ -630,6 +632,7 @@ impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<
             include_created_by_ids: request.include_created_by_ids,
             include_edition_created_by_ids: request.include_edition_created_by_ids,
             include_type_ids: request.include_type_ids,
+            include_type_titles: request.include_type_titles,
         }
     }
 }
@@ -711,6 +714,7 @@ where
                 created_by_ids: response.created_by_ids,
                 edition_created_by_ids: response.edition_created_by_ids,
                 type_ids: response.type_ids,
+                type_titles: response.type_titles,
             })
         })
         .map_err(report_to_response);
@@ -728,29 +732,31 @@ where
 )]
 pub struct GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(borrow)]
-    filter: Filter<'q, Entity>,
-    graph_resolve_depths: GraphResolveDepths,
-    temporal_axes: QueryTemporalAxesUnresolved,
-    include_drafts: bool,
-    limit: Option<usize>,
+    pub filter: Filter<'q, Entity>,
+    pub graph_resolve_depths: GraphResolveDepths,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
+    pub limit: Option<usize>,
     #[serde(borrow, default)]
-    conversions: Vec<QueryConversion<'p>>,
+    pub conversions: Vec<QueryConversion<'p>>,
     #[serde(borrow)]
-    sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
+    pub sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
     #[serde(borrow)]
-    cursor: Option<EntityQueryCursor<'s>>,
+    pub cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
-    include_count: bool,
+    pub include_count: bool,
     #[serde(default)]
-    include_entity_types: Option<IncludeEntityTypeOption>,
+    pub include_entity_types: Option<IncludeEntityTypeOption>,
     #[serde(default)]
-    include_web_ids: bool,
+    pub include_web_ids: bool,
     #[serde(default)]
-    include_created_by_ids: bool,
+    pub include_created_by_ids: bool,
     #[serde(default)]
-    include_edition_created_by_ids: bool,
+    pub include_edition_created_by_ids: bool,
     #[serde(default)]
-    include_type_ids: bool,
+    pub include_type_ids: bool,
+    #[serde(default)]
+    pub include_type_titles: bool,
 }
 
 impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySubgraphParams<'q> {
@@ -774,6 +780,7 @@ impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySub
             include_created_by_ids: request.include_created_by_ids,
             include_edition_created_by_ids: request.include_edition_created_by_ids,
             include_type_ids: request.include_type_ids,
+            include_type_titles: request.include_type_titles,
         }
     }
 }
@@ -803,6 +810,9 @@ struct GetEntitySubgraphResponse<'r> {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     type_ids: Option<HashMap<VersionedUrl, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    type_titles: Option<HashMap<VersionedUrl, String>>,
 }
 
 #[utoipa::path(
@@ -882,6 +892,7 @@ where
                 created_by_ids: response.created_by_ids,
                 edition_created_by_ids: response.edition_created_by_ids,
                 type_ids: response.type_ids,
+                type_titles: response.type_titles,
             })
         })
         .map_err(report_to_response);

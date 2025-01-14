@@ -238,6 +238,33 @@ pub trait ZanzibarBackend {
             impl Serialize + Send + Sync,
         >,
     ) -> impl Future<Output = Result<DeleteRelationshipResponse, Report<DeleteRelationshipError>>> + Send;
+
+    fn lookup_resources<O>(
+        &self,
+        subject: &(
+             impl Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize> + Sync
+         ),
+        permission: &(impl Serialize + Permission<O> + Sync),
+        resource_kind: &O::Kind,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<Vec<O::Id>, Report<ReadError>>> + Send
+    where
+        for<'de> O: Resource<Kind: Serialize + Sync, Id: Deserialize<'de> + Send> + Send;
+
+    fn lookup_subjects<S, O>(
+        &self,
+        subject_type: &<S::Resource as Resource>::Kind,
+        subject_relation: Option<&S::Relation>,
+        permission: &(impl Serialize + Permission<O> + Sync),
+        resource: &O,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<Vec<<S::Resource as Resource>::Id>, Report<ReadError>>> + Send
+    where
+        for<'de> S: Subject<
+                Resource: Resource<Kind: Serialize + Sync, Id: Deserialize<'de> + Send>,
+                Relation: Serialize + Sync,
+            > + Send,
+        O: Resource<Kind: Serialize, Id: Serialize> + Sync;
 }
 
 impl<Z: ZanzibarBackend + Send + Sync> ZanzibarBackend for &mut Z {
@@ -344,6 +371,48 @@ impl<Z: ZanzibarBackend + Send + Sync> ZanzibarBackend for &mut Z {
     ) -> Result<DeleteRelationshipResponse, Report<DeleteRelationshipError>> {
         ZanzibarBackend::delete_relations(&mut **self, filter).await
     }
+
+    async fn lookup_resources<O>(
+        &self,
+        subject: &(
+             impl Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize> + Sync
+         ),
+        permission: &(impl Serialize + Permission<O> + Sync),
+        resource_kind: &O::Kind,
+        consistency: Consistency<'_>,
+    ) -> Result<Vec<O::Id>, Report<ReadError>>
+    where
+        for<'de> O: Resource<Kind: Serialize + Sync, Id: Deserialize<'de> + Send> + Send,
+    {
+        ZanzibarBackend::lookup_resources(&**self, subject, permission, resource_kind, consistency)
+            .await
+    }
+
+    async fn lookup_subjects<S, O>(
+        &self,
+        subject_type: &<S::Resource as Resource>::Kind,
+        subject_relation: Option<&S::Relation>,
+        permission: &(impl Serialize + Permission<O> + Sync),
+        resource: &O,
+        consistency: Consistency<'_>,
+    ) -> Result<Vec<<S::Resource as Resource>::Id>, Report<ReadError>>
+    where
+        for<'de> S: Subject<
+                Resource: Resource<Kind: Serialize + Sync, Id: Deserialize<'de> + Send>,
+                Relation: Serialize + Sync,
+            > + Send,
+        O: Resource<Kind: Serialize, Id: Serialize> + Sync,
+    {
+        ZanzibarBackend::lookup_subjects::<S, O>(
+            &**self,
+            subject_type,
+            subject_relation,
+            permission,
+            resource,
+            consistency,
+        )
+        .await
+    }
 }
 
 impl ZanzibarBackend for NoAuthorization {
@@ -438,6 +507,39 @@ impl ZanzibarBackend for NoAuthorization {
         Ok(DeleteRelationshipResponse {
             deleted_at: Zookie::empty(),
         })
+    }
+
+    async fn lookup_resources<O>(
+        &self,
+        _: &(
+             impl Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize> + Sync
+         ),
+        _: &(impl Serialize + Permission<O> + Sync),
+        _: &O::Kind,
+        _: Consistency<'_>,
+    ) -> Result<Vec<O::Id>, Report<ReadError>>
+    where
+        for<'de> O: Resource<Kind: Serialize + Sync, Id: Deserialize<'de> + Send> + Send,
+    {
+        Ok(Vec::new())
+    }
+
+    async fn lookup_subjects<S, O>(
+        &self,
+        _: &<S::Resource as Resource>::Kind,
+        _: Option<&S::Relation>,
+        _: &(impl Serialize + Permission<O> + Sync),
+        _: &O,
+        _: Consistency<'_>,
+    ) -> Result<Vec<<S::Resource as Resource>::Id>, Report<ReadError>>
+    where
+        for<'de> S: Subject<
+                Resource: Resource<Kind: Serialize + Sync, Id: Deserialize<'de> + Send>,
+                Relation: Serialize + Sync,
+            > + Send,
+        O: Resource<Kind: Serialize, Id: Serialize> + Sync,
+    {
+        Ok(Vec::new())
     }
 }
 

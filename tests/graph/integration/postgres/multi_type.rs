@@ -24,7 +24,7 @@ use hash_graph_types::{
 use pretty_assertions::assert_eq;
 use type_system::url::VersionedUrl;
 
-use crate::{DatabaseApi, DatabaseTestWrapper};
+use crate::{DatabaseApi, DatabaseTestWrapper, assert_equal_entities};
 
 async fn seed<A: AuthorizationApi>(
     database: &mut DatabaseTestWrapper<A>,
@@ -148,6 +148,7 @@ async fn initial_person() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entities")
@@ -202,6 +203,7 @@ async fn initial_person() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entities")
@@ -227,6 +229,7 @@ async fn initial_person() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entities")
@@ -296,6 +299,7 @@ async fn create_multi() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entities")
@@ -321,13 +325,14 @@ async fn create_multi() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entities")
         .entities;
 
     assert_eq!(person_entities, org_entities);
-    assert_eq!(person_entities[0], entity);
+    assert_equal_entities(&person_entities[0], &entity);
 
     let updated_entity = api
         .patch_entity(api.account_id, PatchEntityParams {
@@ -370,6 +375,7 @@ async fn create_multi() {
             include_created_by_ids: false,
             include_edition_created_by_ids: false,
             include_type_ids: false,
+            include_type_titles: false,
         })
         .await
         .expect("could not get entities")

@@ -174,6 +174,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
                     include_created_by_ids: false,
                     include_edition_created_by_ids: false,
                     include_type_ids: false,
+                    include_type_titles: false,
                 })
                 .await
                 .expect("failed to read entity from store");

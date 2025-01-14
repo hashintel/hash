@@ -124,7 +124,7 @@ export const TypesTable: FunctionComponent<{
 
   const [selectedEntityType, setSelectedEntityType] = useState<{
     entityTypeId: VersionedUrl;
-    slideContainerRef?: RefObject<HTMLDivElement>;
+    slideContainerRef?: RefObject<HTMLDivElement | null>;
   } | null>(null);
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
@@ -480,7 +480,10 @@ export const TypesTable: FunctionComponent<{
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
   const onTypeClick = useCallback(
-    (typeId: VersionedUrl, slideContainerRef?: RefObject<HTMLDivElement>) =>
+    (
+      typeId: VersionedUrl,
+      slideContainerRef?: RefObject<HTMLDivElement | null>,
+    ) =>
       setSelectedEntityType({
         entityTypeId: typeId,
         slideContainerRef,

@@ -85,8 +85,7 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
       },
 
       [`&.${menuItemClasses.focusVisible}, &:focus`]: {
-        boxShadow: `0px 0px 0px 2px ${theme.palette.white}, 0px 0px 0px 4px ${theme.palette.blue[70]}`,
-        backgroundColor: "transparent",
+        backgroundColor: theme.palette.blue[20],
       },
 
       [`&.${menuItemClasses.selected}, &.${menuItemClasses.selected}:hover, &:active`]:

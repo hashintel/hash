@@ -80,7 +80,7 @@ export const SourcesPopover = ({
   sources,
 }: {
   buttonId: string;
-  cellRef: RefObject<HTMLElement>;
+  cellRef: RefObject<HTMLElement | null>;
   open: boolean;
   onClose: () => void;
   sources: SourceProvenance[];

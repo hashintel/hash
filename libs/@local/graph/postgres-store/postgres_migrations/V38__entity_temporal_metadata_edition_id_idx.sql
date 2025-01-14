@@ -1,0 +1,2 @@
+CREATE INDEX entity_temporal_metadata_edition_id_idx
+ON entity_temporal_metadata (entity_edition_id);

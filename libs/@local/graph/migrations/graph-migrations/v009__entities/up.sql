@@ -48,6 +48,8 @@ CREATE TABLE entity_temporal_metadata (
 CREATE INDEX entity_temporal_metadata_temporal_idx
 ON entity_temporal_metadata
 USING gist (web_id, entity_uuid, transaction_time, decision_time);
+CREATE INDEX entity_temporal_metadata_edition_id_idx
+ON entity_temporal_metadata (entity_edition_id);
 
 CREATE TABLE entity_is_of_type (
     entity_edition_id UUID NOT NULL REFERENCES entity_editions,

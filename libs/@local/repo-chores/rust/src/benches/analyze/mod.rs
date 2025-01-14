@@ -1,9 +1,10 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use error_stack::{Report, ResultExt as _};
 
 use crate::benches::{
     analyze::tracing::FoldedStacks,
+    generate_path,
     report::{Benchmark, ChangeEstimates, Measurement},
 };
 
@@ -12,6 +13,7 @@ pub mod tracing;
 
 #[derive(Debug)]
 pub struct BenchmarkAnalysis {
+    pub path: PathBuf,
     pub measurement: Measurement,
     pub change: Option<ChangeEstimates>,
     pub folded_stacks: Option<FoldedStacks>,
@@ -30,15 +32,28 @@ impl BenchmarkAnalysis {
     pub fn from_benchmark(
         mut benchmark: Benchmark,
         baseline: &str,
-        artifact_output: impl AsRef<Path>,
+        artifact_path: impl Into<PathBuf>,
     ) -> Result<Self, Report<AnalyzeError>> {
+        let artifact_path = artifact_path.into();
         let measurement = benchmark
             .measurements
             .remove(baseline)
             .ok_or(AnalyzeError::BaselineMissing)?;
-        let folded_stacks = FoldedStacks::from_measurement(artifact_output, &measurement)
-            .change_context(AnalyzeError::ReadInput)?;
+
+        let path = artifact_path.join(generate_path(
+            &measurement.info.group_id,
+            measurement.info.function_id.as_deref(),
+            measurement.info.value_str.as_deref(),
+        ));
+        let tracing_file = path.join("tracing.folded");
+
+        let folded_stacks = tracing_file
+            .exists()
+            .then(|| FoldedStacks::from_file(tracing_file).change_context(AnalyzeError::ReadInput))
+            .transpose()?;
+
         Ok(Self {
+            path,
             measurement,
             change: benchmark.change,
             folded_stacks,
@@ -56,4 +71,6 @@ pub enum AnalyzeError {
     BaselineMissing,
     #[error("Flame graph is missing.")]
     FlameGraphMissing,
+    #[error("Flame graph creation failed.")]
+    FlameGraphCreation,
 }

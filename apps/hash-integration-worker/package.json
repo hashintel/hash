@@ -29,15 +29,15 @@
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
-    "@sentry/node": "7.120.2",
-    "@temporalio/activity": "1.11.5",
-    "@temporalio/worker": "1.11.5",
-    "@temporalio/workflow": "1.11.5",
-    "agentkeepalive": "4.5.0",
+    "@sentry/node": "7.120.3",
+    "@temporalio/activity": "1.11.6",
+    "@temporalio/worker": "1.11.6",
+    "@temporalio/workflow": "1.11.6",
+    "agentkeepalive": "4.6.0",
     "axios": "1.7.9",
     "dotenv-flow": "3.3.0",
     "tsx": "4.19.2",
-    "typescript": "5.7.2"
+    "typescript": "5.7.3"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
@@ -46,7 +46,7 @@
     "@types/dotenv-flow": "3.3.3",
     "eslint": "9.17.0",
     "rimraf": "6.0.1",
-    "typescript": "5.7.2",
-    "wait-on": "8.0.1"
+    "typescript": "5.7.3",
+    "wait-on": "8.0.2"
   }
 }

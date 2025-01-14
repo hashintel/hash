@@ -18,6 +18,7 @@ import { useMemo, useState } from "react";
 import { isItemArchived } from "../../shared/is-archived";
 import { isEntityPageEntity } from "../../shared/is-of-type";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
+import type { MenuItemProps } from "../../shared/ui/menu-item";
 import type { BreadcrumbsProps } from "./breadcrumbs";
 import { Breadcrumbs } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
@@ -102,7 +103,7 @@ const PageRestoredMessageWrapper: FunctionComponent<{
 export const TOP_CONTEXT_BAR_HEIGHT = 50;
 
 type TopContextBarProps = {
-  actionMenuItems?: ReactElement[];
+  actionMenuItems?: ReactElement<MenuItemProps>[];
   crumbs: BreadcrumbsProps["crumbs"];
   item?: Entity | EntityTypeWithMetadata;
   defaultCrumbIcon?: ReactNode;

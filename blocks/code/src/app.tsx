@@ -30,7 +30,8 @@ export const App: BlockComponent<BlockEntity> = ({
     },
   } = blockEntity;
 
-  const blockRef = useRef<HTMLDivElement>(null);
+  const blockRef = useRef<HTMLDivElement | null>(null);
+  /* @ts-expect-error –– @todo H-3839 packages in BP repo needs updating, or this package updating to use graph in this repo */
   const { graphModule } = useGraphBlockModule(blockRef);
 
   const [localData, setLocalData] = useState(() => ({

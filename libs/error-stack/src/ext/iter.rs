@@ -35,7 +35,6 @@ where
                 (Ok(_), Some(_)) => {
                     // we're now just consuming the iterator to return all related errors
                     // so we can just ignore the output
-                    continue;
                 }
                 (Err(error), None) => {
                     *self.report = Some(error);

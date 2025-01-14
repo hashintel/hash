@@ -1,3 +1,4 @@
+import type { SxProps, Theme } from "@mui/material";
 import { Box } from "@mui/material";
 import type { FunctionComponent, ReactElement, ReactNode } from "react";
 import { Children, cloneElement, isValidElement } from "react";
@@ -23,7 +24,9 @@ export const InfoCardWrapper: FunctionComponent<InfoCardWrapperProps> = ({
       `Expected InfoCardWrapper to contain exactly one InfoCard, got ${infoCardElements.length}`,
     );
   }
-  const infoCardElement = infoCardElements[0] as ReactElement;
+  const infoCardElement = infoCardElements[0] as ReactElement<{
+    sx: SxProps<Theme>;
+  }>;
 
   const childrenWithoutInfoCard = childrenAsArray.filter(
     (child) => child !== infoCardElement,

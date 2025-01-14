@@ -14,8 +14,8 @@ use crate::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
     schema::{
-        AccountGroupPermission, AccountGroupRelationAndSubject, DataTypePermission,
-        DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject,
+        AccountGroupPermission, AccountGroupRelationAndSubject, AccountIdOrPublic,
+        DataTypePermission, DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject,
         EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypePermission,
         PropertyTypeRelationAndSubject, WebPermission, WebRelationAndSubject,
     },
@@ -115,6 +115,20 @@ pub trait AuthorizationApi: Send + Sync {
         entity: EntityId,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
+
+    fn get_entities(
+        &self,
+        actor: AccountId,
+        permission: EntityPermission,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<Vec<EntityUuid>, Report<ReadError>>> + Send;
+
+    fn get_entity_accounts(
+        &self,
+        entity: EntityUuid,
+        permission: EntityPermission,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<Vec<AccountIdOrPublic>, Report<ReadError>>> + Send;
 
     fn modify_entity_relations(
         &mut self,
@@ -514,6 +528,26 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
     ) -> Result<Vec<DataTypeRelationAndSubject>, Report<ReadError>> {
         (**self)
             .get_data_type_relations(data_type, consistency)
+            .await
+    }
+
+    async fn get_entities(
+        &self,
+        actor: AccountId,
+        permission: EntityPermission,
+        consistency: Consistency<'_>,
+    ) -> Result<Vec<EntityUuid>, Report<ReadError>> {
+        (**self).get_entities(actor, permission, consistency).await
+    }
+
+    async fn get_entity_accounts(
+        &self,
+        entity: EntityUuid,
+        permission: EntityPermission,
+        consistency: Consistency<'_>,
+    ) -> Result<Vec<AccountIdOrPublic>, Report<ReadError>> {
+        (**self)
+            .get_entity_accounts(entity, permission, consistency)
             .await
     }
 }
