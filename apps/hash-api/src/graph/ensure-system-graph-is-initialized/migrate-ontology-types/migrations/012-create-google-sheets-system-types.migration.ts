@@ -102,10 +102,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Associated With Account",
-        titlePlural: "Associated With Accounts",
         inverse: {
           title: "Account For",
-          titlePlural: "Account Fors",
         },
         description: "The account that something is associated with.",
         properties: [],

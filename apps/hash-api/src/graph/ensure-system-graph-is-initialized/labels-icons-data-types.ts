@@ -329,211 +329,153 @@ const _linkEntityTypeChanges: Record<
   {
     icon?: `/icons/types/${string}.svg`;
     labelProperty?: `${string}/`;
-  } & Required<Pick<EntityType, "titlePlural" | "inverse">>
+  } & Required<Pick<EntityType, "inverse">>
 > = {
   "https://hash.ai/@hash/types/entity-type/has-object/v/1": {
-    titlePlural: "Has Objects",
     inverse: {
       title: "Object Of",
-      titlePlural: "Object Ofs",
     },
   },
   "https://hash.ai/@hash/types/entity-type/has-subject/v/1": {
-    titlePlural: "Has Subjects",
     inverse: {
       title: "Subject Of",
-      titlePlural: "Subject Ofs",
     },
   },
   "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1": {
-    titlePlural: "Sync Linear Data Withs",
     inverse: {
       title: "Linear Data Synced From",
-      titlePlural: "Linear Data Synced Froms",
     },
   },
   "https://hash.ai/@hash/types/entity-type/incurred-in/v/1": {
-    titlePlural: "Incurred Ins",
     inverse: {
       title: "Incurred",
-      titlePlural: "Incurred",
     },
   },
   "https://hash.ai/@hash/types/entity-type/has-data/v/1": {
-    titlePlural: "Has Datas",
     inverse: {
       title: "Data For",
-      titlePlural: "Data Fors",
     },
   },
   "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": {
-    titlePlural: "Has Indexed Contents",
     inverse: {
       title: "Indexed Content For",
-      titlePlural: "Indexed Content Fors",
     },
   },
   "https://hash.ai/@hash/types/entity-type/has-spatially-positioned-content/v/1":
     {
-      titlePlural: "Has Spatially Positioned Contents",
       inverse: {
         title: "Spatially Positioned Content For",
-        titlePlural: "Spatially Positioned Content Fors",
       },
     },
   "https://hash.ai/@hash/types/entity-type/has-avatar/v/1": {
-    titlePlural: "Has Avatars",
     inverse: {
       title: "Avatar For",
-      titlePlural: "Avatar Fors",
     },
   },
   "https://hash.ai/@hash/types/entity-type/has-cover-image/v/1": {
-    titlePlural: "Has Cover Images",
     inverse: {
       title: "Cover Image For",
-      titlePlural: "Cover Image Fors",
     },
   },
   "https://hash.ai/@hash/types/entity-type/has-bio/v/1": {
-    titlePlural: "Has Bios",
     inverse: {
       title: "Bio For",
-      titlePlural: "Bio Fors",
     },
   },
   "https://hash.ai/@hash/types/entity-type/is-member-of/v/1": {
-    titlePlural: "Is Member Ofs",
     inverse: {
       title: "Has Member",
-      titlePlural: "Has Members",
     },
   },
   "https://hash.ai/@hash/types/entity-type/has-service-account/v/1": {
-    titlePlural: "Has Service Accounts",
     inverse: {
       title: "Service Account For",
-      titlePlural: "Service Account Fors",
     },
   },
   "https://hash.ai/@hash/types/entity-type/has-parent/v/1": {
-    titlePlural: "Has Parents",
     inverse: {
       title: "Parent Of",
-      titlePlural: "Parent Ofs",
     },
   },
   "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1": {
-    titlePlural: "Uses User Secrets",
     inverse: {
       title: "Used By",
-      titlePlural: "Used Bys",
     },
   },
   "https://hash.ai/@hash/types/entity-type/has-text/v/1": {
-    titlePlural: "Has Texts",
     inverse: {
       title: "Text For",
-      titlePlural: "Text Fors",
     },
   },
   "https://hash.ai/@hash/types/entity-type/authored-by/v/1": {
-    titlePlural: "Authored By",
     icon: "/icons/types/pen.svg",
     inverse: {
       title: "Author Of",
-      titlePlural: "Author Ofs",
     },
   },
   "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": {
-    titlePlural: "Occurred In Entitys",
     inverse: {
       title: "Location Of",
-      titlePlural: "Location Ofs",
     },
   },
   "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": {
-    titlePlural: "Occurred In Blocks",
     inverse: {
       title: "Location Of",
-      titlePlural: "Location Ofs",
     },
   },
   "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1": {
-    titlePlural: "Occurred In Comments",
     inverse: {
       title: "Location Of",
-      titlePlural: "Location Ofs",
     },
   },
   "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1": {
-    titlePlural: "Occurred In Texts",
     inverse: {
       title: "Location Of",
-      titlePlural: "Location Ofs",
     },
   },
   "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": {
-    titlePlural: "Triggered By Users",
     inverse: {
       title: "Triggered",
-      titlePlural: "Triggereds",
     },
   },
   "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1": {
-    titlePlural: "Triggered By Comments",
     inverse: {
       title: "Triggered",
-      titlePlural: "Triggereds",
     },
   },
   "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1": {
-    titlePlural: "Replied To Comments",
     inverse: {
       title: "Replied To By",
-      titlePlural: "Replied To Bys",
     },
   },
   "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1": {
-    titlePlural: "Records Usage Ofs",
     inverse: {
       title: "Usage Recorded By",
-      titlePlural: "Usage Recorded Bys",
     },
   },
   "https://hash.ai/@hash/types/entity-type/created/v/1": {
-    titlePlural: "Createds",
     inverse: {
       title: "Created By",
-      titlePlural: "Created Bys",
     },
   },
   "https://hash.ai/@hash/types/entity-type/updated/v/1": {
-    titlePlural: "Updateds",
     inverse: {
       title: "Updated By",
-      titlePlural: "Updated Bys",
     },
   },
   "https://hash.ai/@hash/types/entity-type/has/v/1": {
-    titlePlural: "Hases",
     inverse: {
       title: "Belongs To",
-      titlePlural: "Belongs Tos",
     },
   },
   "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1": {
-    titlePlural: "Associated With Accounts",
     inverse: {
       title: "Account For",
-      titlePlural: "Account Fors",
     },
   },
   "https://hash.ai/@hash/types/entity-type/affiliated-with/v/1": {
-    titlePlural: "Affiliated Withs",
     inverse: {
       title: "Affiliate With",
-      titlePlural: "Affiliate Withs",
     },
   },
 };

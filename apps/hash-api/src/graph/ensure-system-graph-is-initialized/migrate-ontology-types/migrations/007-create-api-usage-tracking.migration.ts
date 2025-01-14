@@ -185,10 +185,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Records Usage Of",
-        titlePlural: "Records Usage Ofs",
         inverse: {
           title: "Usage Recorded By",
-          titlePlural: "Usage Recorded Bys",
         },
         description: "The thing that something records usage of.",
       },
@@ -205,10 +203,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Created",
-        titlePlural: "Createds",
         inverse: {
           title: "Created By",
-          titlePlural: "Created Bys",
         },
         description: "The thing that something created.",
       },
@@ -225,10 +221,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Updated",
-        titlePlural: "Updateds",
         inverse: {
           title: "Updated By",
-          titlePlural: "Updated Bys",
         },
         description: "The thing that something created.",
       },

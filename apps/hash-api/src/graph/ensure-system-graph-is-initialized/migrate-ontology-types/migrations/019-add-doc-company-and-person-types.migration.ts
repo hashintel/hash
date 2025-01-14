@@ -211,7 +211,6 @@ const migrate: MigrationFunction = async ({
   //     entityTypeDefinition: {
   //       allOf: [linkEntityTypeUrl],
   //       title: "Published By",
-  //       titlePlural: "Published Bys",
   //       inverse: {
   //         title: "Published",
   //       },
@@ -231,7 +230,6 @@ const migrate: MigrationFunction = async ({
   //     entityTypeDefinition: {
   //       allOf: [linkEntityTypeUrl],
   //       title: "Published In",
-  //       titlePlural: "Published Ins",
   //       inverse: {
   //         title: "Published",
   //       },
@@ -250,7 +248,6 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Affiliated With",
-        titlePlural: "Affiliated Withs",
         inverse: {
           title: "Affiliated With",
         },

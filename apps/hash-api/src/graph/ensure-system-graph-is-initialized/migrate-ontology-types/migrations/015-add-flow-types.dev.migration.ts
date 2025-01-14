@@ -300,11 +300,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Subject",
-        titlePlural: "Has Subjects",
         /** @todo icon */
         inverse: {
           title: "Subject Of",
-          titlePlural: "Subject Ofs",
         },
         description: "The subject something has",
         properties: [],
@@ -322,11 +320,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Object",
-        titlePlural: "Has Objects",
         /** @todo icon */
         inverse: {
           title: "Object Of",
-          titlePlural: "Object Ofs",
         },
         description: "The object something has",
         properties: [],
@@ -386,11 +382,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Incurred In",
-        titlePlural: "Incurred Ins",
         /** @todo icon */
         inverse: {
           title: "Incurred",
-          titlePlural: "Incurred",
         },
         description: "Something that was incurred in something else.",
         properties: [],

@@ -299,10 +299,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Data",
-        titlePlural: "Has Datas",
         inverse: {
           title: "Data For",
-          titlePlural: "Data Fors",
         },
         description: "The data that something has.",
       },
@@ -382,10 +380,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Indexed Content",
-        titlePlural: "Has Indexed Contents",
         inverse: {
           title: "Indexed Content For",
-          titlePlural: "Indexed Content Fors",
         },
         description: "Something contained at an index by something",
         properties: [
@@ -501,10 +497,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Avatar",
-        titlePlural: "Has Avatars",
         inverse: {
           title: "Avatar For",
-          titlePlural: "Avatar Fors",
         },
         description: "The avatar something has.",
       },
@@ -521,10 +515,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Cover Image",
-        titlePlural: "Has Cover Images",
         inverse: {
           title: "Cover Image For",
-          titlePlural: "Cover Image Fors",
         },
         description: "The cover image something has.",
       },
@@ -541,10 +533,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Bio",
-        titlePlural: "Has Bios",
         inverse: {
           title: "Bio For",
-          titlePlural: "Bio Fors",
         },
         description: "The biography something has.",
       },
@@ -809,10 +799,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Is Member Of",
-        titlePlural: "Is Member Ofs",
         inverse: {
           title: "Has Member",
-          titlePlural: "Has Members",
         },
         description: "Something that someone or something is a member of.",
       },
@@ -827,10 +815,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Service Account",
-        titlePlural: "Has Service Accounts",
         inverse: {
           title: "Service Account For",
-          titlePlural: "Service Account Fors",
         },
         description: "The service account something has.",
       },
@@ -998,10 +984,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Parent",
-        titlePlural: "Has Parents",
         inverse: {
           title: "Parent Of",
-          titlePlural: "Parent Ofs",
         },
         description: "The parent something has.",
       },
@@ -1159,10 +1143,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Spatially Positioned Content",
-        titlePlural: "Has Spatially Positioned Contents",
         inverse: {
           title: "Spatially Positioned Content For",
-          titlePlural: "Spatially Positioned Content Fors",
         },
         description: "Something contained at a spatial position by something",
         properties: [
@@ -1325,10 +1307,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Uses User Secret",
-        titlePlural: "Uses User Secrets",
         inverse: {
           title: "Used By",
-          titlePlural: "Used Bys",
         },
         description: "The user secret something uses.",
       },
@@ -1455,10 +1435,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Text",
-        titlePlural: "Has Texts",
         inverse: {
           title: "Text For",
-          titlePlural: "Text Fors",
         },
         description: "The text something has.",
       },
@@ -1475,11 +1453,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Authored By",
-        titlePlural: "Authored By",
         icon: "/icons/types/pen.svg",
         inverse: {
           title: "Author Of",
-          titlePlural: "Author Ofs",
         },
         description: "What or whom something was authored by.",
       },
@@ -1582,10 +1558,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Occurred In Entity",
-        titlePlural: "Occurred In Entitys",
         inverse: {
           title: "Location Of",
-          titlePlural: "Location Ofs",
         },
         description: "An entity that something occurred in.",
       },
@@ -1601,10 +1575,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Occurred In Block",
-        titlePlural: "Occurred In Blocks",
         inverse: {
           title: "Location Of",
-          titlePlural: "Location Ofs",
         },
         description: "A block that something occurred in.",
       },
@@ -1619,10 +1591,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Occurred In Comment",
-        titlePlural: "Occurred In Comments",
         inverse: {
           title: "Location Of",
-          titlePlural: "Location Ofs",
         },
         description: "A comment that something occurred in.",
       },
@@ -1638,10 +1608,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Occurred In Text",
-        titlePlural: "Occurred In Texts",
         inverse: {
           title: "Location Of",
-          titlePlural: "Location Ofs",
         },
         description: "Text that something occurred in.",
       },
@@ -1658,10 +1626,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Triggered By User",
-        titlePlural: "Triggered By Users",
         inverse: {
           title: "Triggered",
-          titlePlural: "Triggereds",
         },
         description: "A user that triggered something.",
       },
@@ -1723,10 +1689,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Triggered By Comment",
-        titlePlural: "Triggered By Comment",
         inverse: {
           title: "Triggered",
-          titlePlural: "Triggereds",
         },
         description: "A comment that triggered something.",
       },
@@ -1740,10 +1704,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Replied To Comment",
-        titlePlural: "Replied To Comments",
         inverse: {
           title: "Replied To By",
-          titlePlural: "Replied To Bys",
         },
         description: "The comment that something replied to.",
       },
