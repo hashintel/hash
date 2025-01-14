@@ -35,7 +35,7 @@ export const owningWebs: Record<
     websiteUrl: string;
   }
 > = {
-  hash: {
+  h: {
     enabled: true,
     name: "HASH",
     websiteUrl: "https://hash.ai",
@@ -101,7 +101,7 @@ export const getOrCreateOwningAccountGroupId = async (
   }
 
   const machineActorIdForWeb =
-    webShortname === "hash"
+    webShortname === "h"
       ? systemAccountId
       : await createAccount(context, { actorId: systemAccountId }, {});
 
@@ -171,7 +171,7 @@ export const ensureSystemWebEntitiesExist = async ({
     let displayName;
 
     switch (webShortname) {
-      case "hash":
+      case "h":
         displayName = "HASH";
         break;
       case "google":
@@ -280,7 +280,7 @@ export const ensureSystemEntitiesExist = async (params: {
         {},
       );
 
-      const hashAccountGroupId = owningWebs.hash.accountGroupId;
+      const hashAccountGroupId = owningWebs.h.accountGroupId;
       if (!hashAccountGroupId) {
         throw new Error(
           `Somehow reached the point of creating the HASH AI machine actor without a hash accountGroupId`,

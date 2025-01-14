@@ -53,7 +53,7 @@ export const createHashInstance: ImpureGraphFunction<
   );
 
   const hashOrg = await getOrgByShortname(ctx, authentication, {
-    shortname: "hash",
+    shortname: "h",
     permitOlderVersions: true,
   });
 

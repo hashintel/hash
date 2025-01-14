@@ -20,7 +20,7 @@ const migrate: MigrationFunction = async ({
       type: "string",
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -34,7 +34,7 @@ const migrate: MigrationFunction = async ({
       type: "string",
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -50,7 +50,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -68,7 +68,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -86,7 +86,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -104,7 +104,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -121,7 +121,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -142,7 +142,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["/", "self", { const: 1000, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -163,7 +163,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["/", "self", { const: 100, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -184,7 +184,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1000, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -210,7 +210,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1609.344, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -236,7 +236,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 0.9144, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -262,7 +262,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 0.3048, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -288,7 +288,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 0.0254, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -302,7 +302,7 @@ const migrate: MigrationFunction = async ({
       format: "date",
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -316,7 +316,7 @@ const migrate: MigrationFunction = async ({
       format: "date-time",
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -330,7 +330,7 @@ const migrate: MigrationFunction = async ({
       format: "time",
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -347,7 +347,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -367,7 +367,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -389,7 +389,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1e3, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -410,7 +410,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1e6, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -431,7 +431,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1e9, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -447,7 +447,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -466,7 +466,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -487,7 +487,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["/", "self", { const: 8, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -507,7 +507,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1e3, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -527,7 +527,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1e6, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -547,7 +547,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1e9, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -567,7 +567,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1e12, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -584,7 +584,7 @@ const migrate: MigrationFunction = async ({
         type: "number",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -601,7 +601,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {},
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -622,7 +622,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1e3, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -643,7 +643,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1e6, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 
@@ -664,7 +664,7 @@ const migrate: MigrationFunction = async ({
         to: { expression: ["*", "self", { const: 1e9, type: "number" }] },
       },
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
   });
 

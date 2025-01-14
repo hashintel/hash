@@ -40,7 +40,7 @@ const migrate: MigrationFunction = async ({
         description: "The name of someone or something's role.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -55,7 +55,7 @@ const migrate: MigrationFunction = async ({
           "The name or description of someone's intended use of something",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -70,7 +70,7 @@ const migrate: MigrationFunction = async ({
           "The name or description of the current approach to something",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -84,7 +84,7 @@ const migrate: MigrationFunction = async ({
         description: "The amount that someone is willing to pay for something",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -125,7 +125,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });

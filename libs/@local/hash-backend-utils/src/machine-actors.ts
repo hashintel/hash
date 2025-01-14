@@ -250,7 +250,7 @@ export const createWebMachineActor = async (
   ]);
 
   const systemAccountId = await getMachineActorId(context, authentication, {
-    identifier: "hash",
+    identifier: "h",
   });
 
   await createMachineActorEntity(context, {

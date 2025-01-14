@@ -30,7 +30,7 @@ const migrate: MigrationFunction = async ({
           "A list of identifiers for a feature flags that are enabled.",
         possibleValues: [{ primitiveDataType: "text", array: true }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 

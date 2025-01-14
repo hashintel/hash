@@ -24,10 +24,11 @@ type SystemDataTypeId =
 /**
  * A map of propertyTypeIds to the oneOf value that should be set on them
  */
-const _propertyTypeOneOfChanges: Record<
-  SystemPropertyTypeId | SystemLinearPropertyTypeId,
-  [{ $ref: SystemDataTypeId }]
-> = {
+const _propertyTypeOneOfChanges: {
+  [key in SystemPropertyTypeId | SystemLinearPropertyTypeId]?: [
+    { $ref: SystemDataTypeId },
+  ];
+} = {
   "https://hash.ai/@hash/types/property-type/website-url/v/1": [
     { $ref: "https://hash.ai/@hash/types/data-type/uri/v/1" },
   ],
@@ -136,6 +137,7 @@ const _entityTypeChanges: Record<
       "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
     titlePlural: "Files",
   },
+  // @ts-expect-error system types have been regenerated, so the codebase thinks this has already been renamed
   "https://hash.ai/@hash/types/entity-type/image/v/2": {
     icon: "/icons/types/file-image.svg",
     titlePlural: "Image Files",
@@ -537,6 +539,7 @@ const _linkEntityTypeChanges: Record<
 };
 
 const _typeRenames: Record<SystemEntityTypeId, string> = {
+  // @ts-expect-error system types have been regenerated, so the codebase thinks this has already been renamed
   "https://hash.ai/@hash/types/entity-type/image/v/2": "Image File",
   "https://hash.ai/@hash/types/entity-type/quick-note/v/1": "Note",
 };

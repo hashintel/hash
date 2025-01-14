@@ -5,7 +5,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   descriptionPropertyTypeUrl,
-  fileNamePropertyTypeUrl,
   fileUrlPropertyTypeUrl,
   linkEntityTypeUrl,
   mimeTypePropertyTypeUrl,
@@ -36,7 +35,7 @@ const migrate: MigrationFunction = async ({
           "Whether or not user functionality related to pages is enabled.",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -49,7 +48,7 @@ const migrate: MigrationFunction = async ({
           "Whether or not user self registration (sign-up) is enabled.",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -61,7 +60,7 @@ const migrate: MigrationFunction = async ({
           "Whether or not a user can self-register an org (note this does not apply to instance admins).",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -73,7 +72,7 @@ const migrate: MigrationFunction = async ({
           "Whether or not a user is able to register another user by inviting them to an org.",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -101,7 +100,7 @@ const migrate: MigrationFunction = async ({
       ],
       outgoingLinks: [],
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: {
       kind: "account",
@@ -118,7 +117,7 @@ const migrate: MigrationFunction = async ({
         description: "The bucket in which a file is stored.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -130,7 +129,7 @@ const migrate: MigrationFunction = async ({
           "The endpoint for making requests to a file storage provider.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -142,7 +141,7 @@ const migrate: MigrationFunction = async ({
           "Whether to force path style for requests to a file storage provider (vs virtual host style).",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -155,7 +154,7 @@ const migrate: MigrationFunction = async ({
         description: "The key identifying a file in storage.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -167,7 +166,7 @@ const migrate: MigrationFunction = async ({
         description: "The provider of a file storage service.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -178,7 +177,7 @@ const migrate: MigrationFunction = async ({
         description: "The region in which a file is stored.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -252,7 +251,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -271,7 +270,7 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/file-image.svg",
         description: "An image file hosted at a URL",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -288,7 +287,7 @@ const migrate: MigrationFunction = async ({
         description: "An identifier for a component.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -307,7 +306,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The data that something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -337,7 +336,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -355,7 +354,7 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/cubes.svg",
         description: "A collection of blocks.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -373,7 +372,7 @@ const migrate: MigrationFunction = async ({
           "The fractional index indicating the current position of something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -396,7 +395,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -420,7 +419,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -437,7 +436,7 @@ const migrate: MigrationFunction = async ({
         description: "A unique identifier for something, in the form of a slug",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -451,7 +450,7 @@ const migrate: MigrationFunction = async ({
         description: "The name of an organization.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -465,7 +464,7 @@ const migrate: MigrationFunction = async ({
         description: "A location for something, expressed as a single string",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -479,7 +478,7 @@ const migrate: MigrationFunction = async ({
         description: "A URL for a website",
         possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -491,7 +490,7 @@ const migrate: MigrationFunction = async ({
         description: "The base URL of a pinned entity type.",
         possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -509,7 +508,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The avatar something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -529,7 +528,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The cover image something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -549,7 +548,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The biography something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -613,7 +612,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -630,7 +629,7 @@ const migrate: MigrationFunction = async ({
         description: "A URL to a profile",
         possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -655,7 +654,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -671,7 +670,7 @@ const migrate: MigrationFunction = async ({
       icon: "/icons/types/linkedin.svg",
       description: "A LinkedIn account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -686,7 +685,7 @@ const migrate: MigrationFunction = async ({
       icon: "/icons/types/x-twitter.svg",
       description: "A Twitter account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -701,7 +700,7 @@ const migrate: MigrationFunction = async ({
       icon: "/icons/types/tiktok.svg",
       description: "A TikTok account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -716,7 +715,7 @@ const migrate: MigrationFunction = async ({
       icon: "/icons/types/facebook.svg",
       description: "A Facebook account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -731,7 +730,7 @@ const migrate: MigrationFunction = async ({
       icon: "/icons/types/instagram.svg",
       description: "An Instagram account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -746,7 +745,7 @@ const migrate: MigrationFunction = async ({
       icon: "/icons/types/github.svg",
       description: "A GitHub account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -762,7 +761,7 @@ const migrate: MigrationFunction = async ({
         description: "An email address",
         possibleValues: [{ dataTypeId: systemDataTypes.email.dataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -774,7 +773,7 @@ const migrate: MigrationFunction = async ({
         description: "An identifier for a record in Ory Kratos.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -787,7 +786,7 @@ const migrate: MigrationFunction = async ({
         description: "The preferred name of someone or something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -799,7 +798,7 @@ const migrate: MigrationFunction = async ({
         description: "Someone's preferred pronouns.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -817,7 +816,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "Something that someone or something is a member of.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -835,7 +834,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The service account something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -903,7 +902,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -928,7 +927,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -945,7 +944,7 @@ const migrate: MigrationFunction = async ({
         title: "Archived",
         description: "Whether or not something has been archived.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -959,7 +958,7 @@ const migrate: MigrationFunction = async ({
         description: "The summary of the something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -973,7 +972,7 @@ const migrate: MigrationFunction = async ({
         description: "The title of something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -987,7 +986,7 @@ const migrate: MigrationFunction = async ({
         description: "An emoji icon.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1006,7 +1005,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The parent something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1051,7 +1050,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1077,7 +1076,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1094,7 +1093,7 @@ const migrate: MigrationFunction = async ({
         description: "The position of something on the x axis.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1108,7 +1107,7 @@ const migrate: MigrationFunction = async ({
         description: "The position of something on the y axis.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1122,7 +1121,7 @@ const migrate: MigrationFunction = async ({
         description: "The height of something in pixels.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1136,7 +1135,7 @@ const migrate: MigrationFunction = async ({
         description: "The width of something in pixels.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1150,7 +1149,7 @@ const migrate: MigrationFunction = async ({
         description: "The rotation of something in radians.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1189,7 +1188,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1213,7 +1212,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1240,7 +1239,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1257,7 +1256,7 @@ const migrate: MigrationFunction = async ({
           { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1269,7 +1268,7 @@ const migrate: MigrationFunction = async ({
         description: "The name of the connection source.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -1282,7 +1281,7 @@ const migrate: MigrationFunction = async ({
         description: "The path to a secret in Hashicorp Vault.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1296,7 +1295,7 @@ const migrate: MigrationFunction = async ({
         description: "The unique identifier for a team in Linear.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1314,7 +1313,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1333,7 +1332,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The user secret something uses.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1363,7 +1362,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1378,7 +1377,7 @@ const migrate: MigrationFunction = async ({
         description: "The unique identifier for an org in Linear.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1409,7 +1408,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1428,7 +1427,7 @@ const migrate: MigrationFunction = async ({
           { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1444,7 +1443,7 @@ const migrate: MigrationFunction = async ({
           { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1463,7 +1462,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The text something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1484,7 +1483,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "What or whom something was authored by.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1528,7 +1527,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1547,7 +1546,7 @@ const migrate: MigrationFunction = async ({
           { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1570,7 +1569,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1590,7 +1589,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "An entity that something occurred in.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1609,7 +1608,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "A block that something occurred in.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1627,7 +1626,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "A comment that something occurred in.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1646,7 +1645,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "Text that something occurred in.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1666,7 +1665,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "A user that triggered something.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1712,7 +1711,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1731,7 +1730,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "A comment that triggered something.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1748,7 +1747,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The comment that something replied to.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1793,7 +1792,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });

@@ -83,6 +83,7 @@ const _defaultEntityProvenance: Record<
     machineModified,
   "https://hash.ai/@hash/types/entity-type/hash-instance/v/1":
     migrationModified,
+  // @ts-expect-error system types have been regenerated, so the codebase thinks this has already been renamed
   "https://hash.ai/@hash/types/entity-type/image/v/2": userModified,
   "https://hash.ai/@hash/types/entity-type/instagram-account/v/1": userModified,
   "https://hash.ai/@hash/types/entity-type/institution/v/1": aiModified,

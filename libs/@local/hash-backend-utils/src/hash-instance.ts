@@ -146,7 +146,7 @@ export const getHashInstanceAdminAccountGroupId = async (
   const systemAccountId = await getMachineActorId(
     { graphApi: ctx.graphApi },
     authentication,
-    { identifier: "hash" },
+    { identifier: "h" },
   );
 
   const entityPermissions = await ctx.graphApi

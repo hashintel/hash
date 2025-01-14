@@ -32,7 +32,7 @@ const migrate: MigrationFunction = async ({
         description: "The ID of the trigger definition.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -48,7 +48,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -73,7 +73,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -91,7 +91,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -131,7 +131,7 @@ const migrate: MigrationFunction = async ({
         ],
       },
 
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -156,7 +156,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -184,7 +184,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -197,7 +197,7 @@ const migrate: MigrationFunction = async ({
           "The ID of the flow definition (the `entityId` of the flow definition entity).",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -216,7 +216,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -253,7 +253,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -274,7 +274,7 @@ const migrate: MigrationFunction = async ({
         description: "What something is directed towards.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -288,7 +288,7 @@ const migrate: MigrationFunction = async ({
         description: "A thing or theme that something is about.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -309,7 +309,7 @@ const migrate: MigrationFunction = async ({
         description: "The subject something has",
         properties: [],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -331,7 +331,7 @@ const migrate: MigrationFunction = async ({
         description: "The object something has",
         properties: [],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -369,7 +369,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -395,7 +395,7 @@ const migrate: MigrationFunction = async ({
         description: "Something that was incurred in something else.",
         properties: [],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -429,7 +429,7 @@ const migrate: MigrationFunction = async ({
         description: "Additional information about something.",
         possibleValues: [{ primitiveDataType: "object" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );

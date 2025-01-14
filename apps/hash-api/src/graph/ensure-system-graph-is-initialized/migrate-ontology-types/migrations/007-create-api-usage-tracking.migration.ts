@@ -31,7 +31,7 @@ const migrate: MigrationFunction = async ({
         description: "The name of a service",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -45,7 +45,7 @@ const migrate: MigrationFunction = async ({
         description: "The name of a feature",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -59,7 +59,7 @@ const migrate: MigrationFunction = async ({
         description: "The cost of an input unit",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -73,7 +73,7 @@ const migrate: MigrationFunction = async ({
         description: "The cost of an output unit",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -92,7 +92,7 @@ const migrate: MigrationFunction = async ({
         description: "The point in time at which something begins to apply",
         possibleValues: [{ dataTypeId: datetimeDataTypeVersionedUrl }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -106,7 +106,7 @@ const migrate: MigrationFunction = async ({
         description: "The point at which something ceases to apply",
         possibleValues: [{ dataTypeId: datetimeDataTypeVersionedUrl }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -140,7 +140,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -170,7 +170,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -192,7 +192,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The thing that something records usage of.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -212,7 +212,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The thing that something created.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -232,7 +232,7 @@ const migrate: MigrationFunction = async ({
         },
         description: "The thing that something created.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -247,7 +247,7 @@ const migrate: MigrationFunction = async ({
         description: "How many input units were or will be used",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -261,7 +261,7 @@ const migrate: MigrationFunction = async ({
         description: "How many output units were or will be used",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -295,7 +295,7 @@ const migrate: MigrationFunction = async ({
         },
       ],
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -399,7 +399,7 @@ const migrate: MigrationFunction = async ({
   ];
 
   const hashOrg = await getOrgByShortname(context, authentication, {
-    shortname: "hash",
+    shortname: "h",
     permitOlderVersions: true,
   });
   if (!hashOrg) {

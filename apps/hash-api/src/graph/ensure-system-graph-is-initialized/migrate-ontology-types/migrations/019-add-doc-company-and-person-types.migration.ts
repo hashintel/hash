@@ -13,7 +13,6 @@ import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashLinkEntityTypeId,
-  getCurrentHashSystemEntityTypeId,
 } from "../util";
 
 const migrate: MigrationFunction = async ({
@@ -35,7 +34,7 @@ const migrate: MigrationFunction = async ({
       },
       conversions: {},
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -49,7 +48,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ dataTypeId: doiDataType.schema.$id }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -64,7 +63,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -82,7 +81,7 @@ const migrate: MigrationFunction = async ({
       },
       conversions: {},
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -96,7 +95,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ dataTypeId: isbnDataType.schema.$id }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -110,7 +109,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ primitiveDataType: "text" }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -128,7 +127,7 @@ const migrate: MigrationFunction = async ({
       },
       conversions: {},
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -144,7 +143,7 @@ const migrate: MigrationFunction = async ({
       },
       conversions: {},
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -158,7 +157,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ dataTypeId: yearDataType.schema.$id }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -173,7 +172,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ primitiveDataType: "text" }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -186,7 +185,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ primitiveDataType: "text" }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     });
 
   const findingPropertyType = await createSystemPropertyTypeIfNotExists(
@@ -200,7 +199,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ primitiveDataType: "text" }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -220,7 +219,7 @@ const migrate: MigrationFunction = async ({
   //     },
   //     migrationState,
   //     instantiator: anyUserInstantiator,
-  //     webShortname: "hash",
+  //     webShortname: "h",
   //   },
   // );
 
@@ -240,7 +239,7 @@ const migrate: MigrationFunction = async ({
   //     },
   //     migrationState,
   //     instantiator: anyUserInstantiator,
-  //     webShortname: "hash",
+  //     webShortname: "h",
   //   },
   // );
 
@@ -259,7 +258,7 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       instantiator: anyUserInstantiator,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -286,7 +285,7 @@ const migrate: MigrationFunction = async ({
       },
       instantiator: anyUserInstantiator,
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -310,7 +309,7 @@ const migrate: MigrationFunction = async ({
   //     },
   //     instantiator: anyUserInstantiator,
   //     migrationState,
-  //     webShortname: "hash",
+  //     webShortname: "h",
   //   },
   // );
 
@@ -335,7 +334,7 @@ const migrate: MigrationFunction = async ({
   //     },
   //     instantiator: anyUserInstantiator,
   //     migrationState,
-  //     webShortname: "hash",
+  //     webShortname: "h",
   //   },
   // );
 
@@ -352,7 +351,7 @@ const migrate: MigrationFunction = async ({
   //     },
   //     instantiator: anyUserInstantiator,
   //     migrationState,
-  //     webShortname: "hash",
+  //     webShortname: "h",
   //   },
   // );
 
@@ -391,7 +390,7 @@ const migrate: MigrationFunction = async ({
       },
       instantiator: anyUserInstantiator,
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -405,7 +404,7 @@ const migrate: MigrationFunction = async ({
         possibleValues: [{ primitiveDataType: "number" }],
       },
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -448,7 +447,7 @@ const migrate: MigrationFunction = async ({
       },
       instantiator: anyUserInstantiator,
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -471,7 +470,7 @@ const migrate: MigrationFunction = async ({
       },
       instantiator: anyUserInstantiator,
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 
@@ -528,7 +527,7 @@ const migrate: MigrationFunction = async ({
       },
       instantiator: anyUserInstantiator,
       migrationState,
-      webShortname: "hash",
+      webShortname: "h",
     },
   );
 

@@ -110,7 +110,7 @@ const migrate: MigrationFunction = async ({
         description: "The account that something is associated with.",
         properties: [],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -124,7 +124,7 @@ const migrate: MigrationFunction = async ({
         description: "A system identifier for a file.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -142,7 +142,7 @@ const migrate: MigrationFunction = async ({
         type: "string",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -156,7 +156,7 @@ const migrate: MigrationFunction = async ({
         description: "The expected audience for some data.",
         possibleValues: [{ dataTypeId: actorTypeDataType.schema.$id }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -177,7 +177,7 @@ const migrate: MigrationFunction = async ({
         icon: "/icons/types/file-spreadsheet.svg",
         description: "A spreadsheet file.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },

@@ -32,7 +32,7 @@ const migrate: MigrationFunction = async ({
         description:
           "Someone or something that can perform actions in the system",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: null,
     },
@@ -48,7 +48,7 @@ const migrate: MigrationFunction = async ({
         description: "A unique identifier for a machine",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -71,7 +71,7 @@ const migrate: MigrationFunction = async ({
       ],
       allOf: [actorEntityType.schema.$id],
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: {
       kind: "account",
@@ -116,7 +116,7 @@ const migrate: MigrationFunction = async ({
         description: "An identifier for an edition of an entity",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -168,7 +168,7 @@ const migrate: MigrationFunction = async ({
           "The type of change that occurred (e.g. create, update, archive)",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -193,7 +193,7 @@ const migrate: MigrationFunction = async ({
         },
       ],
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });

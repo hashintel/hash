@@ -33,7 +33,7 @@ const migrate: MigrationFunction = async ({
         description: "The timestamp when the upload of something has completed",
         possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
