@@ -64,6 +64,7 @@ const formFields: FormFields = {
 };
 
 const Input = ({
+  error,
   label,
   multiline,
   onChange,
@@ -73,10 +74,11 @@ const Input = ({
   url,
   value,
 }: {
+  error?: string;
   onChange: (value: string) => void;
   value: string;
 } & FormFieldMetadata) => (
-  <Box mb={2.5}>
+  <Box pb={2.5} sx={{ position: "relative" }}>
     <Typography
       component="label"
       variant="smallTextLabels"
@@ -125,6 +127,19 @@ const Input = ({
         )}
       </Box>
     </Typography>
+    {error && (
+      <Typography
+        sx={{
+          position: "absolute",
+          bottom: 0,
+          right: 0,
+          color: ({ palette }) => palette.red[70],
+          fontSize: 12,
+        }}
+      >
+        {error}
+      </Typography>
+    )}
   </Box>
 );
 
@@ -140,6 +155,8 @@ export const EarlyAccessFormModal = ({
   onSubmit,
 }: EarlyAccessFormModalProps) => {
   const { authenticatedUser } = useAuthenticatedUser();
+
+  const [urlError, setUrlError] = useState("");
 
   const [formState, setFormState] = useState<Record<keyof FormFields, string>>(
     () =>
@@ -160,6 +177,15 @@ export const EarlyAccessFormModal = ({
 
   const submitValues = async (event: FormEvent) => {
     event.preventDefault();
+
+    try {
+      void new URL(
+        formState["https://hash.ai/@h/types/property-type/website-url/"],
+      );
+    } catch {
+      setUrlError("Please enter a valid URL.");
+      return;
+    }
 
     setPending(true);
 
@@ -182,6 +208,11 @@ export const EarlyAccessFormModal = ({
           return (
             <Input
               key={key}
+              error={
+                key === "https://hash.ai/@h/types/property-type/website-url/"
+                  ? urlError
+                  : undefined
+              }
               {...metadata}
               onChange={(value) =>
                 setFormState((currentState) => ({
