@@ -81,7 +81,7 @@ const generateCommonParameters = async (
 
     if (specifiedEntityTypeId) {
       const isHashEntityType = specifiedEntityTypeId.startsWith(
-        "https://hash.ai/@hash/",
+        "https://hash.ai/@h/",
       );
 
       if (isHashEntityType) {
