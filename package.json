@@ -106,7 +106,7 @@
     "@sentry/cli": "^2.39.1",
     "@taplo/cli": "0.7.0",
     "@yarnpkg/types": "^4.0.0",
-    "lefthook": "1.10.3",
+    "lefthook": "1.10.4",
     "markdownlint-cli2": "0.17.1",
     "npm-run-all2": "7.0.2",
     "prettier": "3.4.2",
