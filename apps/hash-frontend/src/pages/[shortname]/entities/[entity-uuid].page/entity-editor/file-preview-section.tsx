@@ -78,7 +78,9 @@ const ReplaceFile = ({
   );
   const progress = upload ? uploadsProgress[upload.requestId] : 0;
 
-  const onFileProvided = async (file: File) => {
+  const onFilesProvided = async (files: [File, ...File[]]) => {
+    const file = files[0];
+
     setFileBeingUploaded(file);
     try {
       const response = await uploadFile({
@@ -144,7 +146,11 @@ const ReplaceFile = ({
 
   return (
     <>
-      <FileUploadDropzone image={isImage} onFileProvided={onFileProvided} />
+      <FileUploadDropzone
+        image={isImage}
+        multiple={false}
+        onFilesProvided={onFilesProvided}
+      />
       <ActionButtonsContainer>
         <Tooltip title="Cancel">
           <Box>

@@ -1,3 +1,4 @@
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import { ImageSolidIcon } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
 import { useCallback } from "react";
@@ -10,25 +11,26 @@ type FileUploadDropzoneProps = {
   /** @see https://react-dropzone.js.org/#section-accepting-specific-file-types */
   accept?: Accept;
   image?: boolean;
-  onFileProvided: (file: File) => void;
+  multiple?: boolean;
+  onFilesProvided: (files: [File, ...File[]]) => void;
   showUploadingMessage?: boolean;
 };
 
 export const FileUploadDropzone = ({
   accept,
   image,
-  onFileProvided,
+  multiple,
+  onFilesProvided,
   showUploadingMessage,
 }: FileUploadDropzoneProps) => {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      const providedFile = acceptedFiles[0];
-      if (!providedFile) {
+      if (!acceptedFiles[0]) {
         throw new Error("No file provided");
       }
-      onFileProvided(providedFile);
+      onFilesProvided(mustHaveAtLeastOne(acceptedFiles));
     },
-    [onFileProvided],
+    [onFilesProvided],
   );
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -40,8 +42,7 @@ export const FileUploadDropzone = ({
             "image/*": [],
           }
         : undefined),
-    maxFiles: 1,
-    multiple: false,
+    multiple,
   });
 
   return (
@@ -51,7 +52,7 @@ export const FileUploadDropzone = ({
         alignItems: "center",
         border: `1px dashed ${palette.gray[40]}`,
         borderRadius: 1,
-        cursor: "pointer",
+        cursor: showUploadingMessage ? "not-allowed" : "pointer",
         display: "flex",
         flexDirection: "column",
         flexWrap: "wrap",
@@ -86,13 +87,21 @@ export const FileUploadDropzone = ({
           fontWeight: 600,
         }}
       >
-        {showUploadingMessage ? <>&nbsp;</> : "or drag and drop a file"}
+        {showUploadingMessage ? (
+          <>please wait for completion...</>
+        ) : (
+          `or drag and drop ${multiple ? "files" : "a file"}`
+        )}
       </Typography>
       <Typography
         variant="microText"
         sx={{ color: "gray.50", display: "block", mt: 1, fontWeight: 500 }}
       >
-        {image ? "Any image file accepted" : "All file types accepted"}
+        {image
+          ? "Any image file accepted"
+          : accept
+            ? `Accepts ${Object.values(accept).flat().join(", ")} files`
+            : "All file types accepted"}
       </Typography>
     </Box>
   );
