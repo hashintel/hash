@@ -32,15 +32,15 @@
     "@libp2p/tcp": "10.0.15",
     "@multiformats/dns": "1.0.6",
     "@multiformats/multiaddr": "12.3.4",
-    "effect": "3.12.2",
+    "effect": "3.12.3",
     "it-stream-types": "2.0.2",
     "libp2p": "2.5.0",
     "multiformats": "13.3.1",
     "uint8arraylist": "2.4.8"
   },
   "devDependencies": {
-    "@effect/platform": "0.72.2",
-    "@effect/platform-node": "0.68.2",
+    "@effect/platform": "0.73.0",
+    "@effect/platform-node": "0.69.0",
     "@effect/vitest": "0.16.3",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
