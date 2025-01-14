@@ -6,7 +6,7 @@ import type {
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyValue } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   PropertyTypeWithMetadata,
@@ -16,8 +16,8 @@ import type { SerializedSubgraph } from "@local/hash-subgraph";
 
 import type { MinimalActor } from "../../../../shared/use-actors";
 
-export interface TypeEntitiesRow {
-  rowId: string;
+export interface EntitiesTableRow {
+  rowId: EntityId;
   entityId: EntityId;
   entityIcon?: string;
   entityLabel: string;
@@ -45,14 +45,30 @@ export interface TypeEntitiesRow {
     isLink: boolean;
   };
   web: string;
-  properties?: {
-    [k: string]: string;
-  };
   applicableProperties: BaseUrl[];
 
-  /** @todo: get rid of this by typing `columnId` */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  [key: BaseUrl]: PropertyValue;
+}
+
+export type EntitiesTableColumnKey =
+  | Exclude<
+      keyof EntitiesTableRow,
+      "rowId" | "entityId" | "entityIcon" | "applicableProperties"
+    >
+  | BaseUrl;
+
+export type SortableEntitiesTableColumnKey =
+  | Exclude<
+      EntitiesTableColumnKey,
+      /**
+       * @todo H-3908 allow sorting by these fields
+       */
+      "createdBy" | "lastEditedBy" | "sourceEntity" | "targetEntity" | "web"
+    >
+  | BaseUrl;
+
+export interface EntitiesTableColumn extends SizedGridColumn {
+  id: EntitiesTableColumnKey;
 }
 
 export type SourceOrTargetFilterData = {
@@ -77,28 +93,46 @@ export type GenerateEntitiesTableDataParams = {
   propertyTypes?: PropertyType[];
   subgraph: SerializedSubgraph;
   hasSomeLinks?: boolean;
-  hideColumns?: (keyof TypeEntitiesRow)[];
+  hideColumns?: (keyof EntitiesTableRow)[];
   hideArchivedColumn?: boolean;
   hidePropertiesColumns: boolean;
   usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
   webNameByOwnedById: Record<OwnedById, string>;
 };
 
-export type ActorTableData = { accountId: AccountId; displayName?: string };
+export type ActorTableFilterData = {
+  accountId: AccountId;
+  displayName?: string;
+  count: number;
+};
+
+export type EntityTypeTableFilterData = {
+  entityTypeId: VersionedUrl;
+  title: string;
+  count: number;
+};
+
+export type WebTableFilterData = {
+  webId: OwnedById;
+  count: number;
+  shortname: string;
+};
+
+export type EntitiesTableFilterData = {
+  createdByActors: ActorTableFilterData[];
+  lastEditedByActors: ActorTableFilterData[];
+  entityTypeFilters: EntityTypeTableFilterData[];
+  noSourceCount: number;
+  noTargetCount: number;
+  sources: SourceOrTargetFilterData[];
+  targets: SourceOrTargetFilterData[];
+  webs: WebTableFilterData[];
+};
 
 export type EntitiesTableData = {
-  columns: SizedGridColumn[];
-  filterData: {
-    createdByActors: ActorTableData[];
-    lastEditedByActors: ActorTableData[];
-    entityTypeTitles: { [entityTypeTitle: string]: number | undefined };
-    noSourceCount: number;
-    noTargetCount: number;
-    sources: SourceOrTargetFilterData[];
-    targets: SourceOrTargetFilterData[];
-    webs: { [web: string]: number | undefined };
-  };
-  rows: TypeEntitiesRow[];
+  columns: EntitiesTableColumn[];
+  filterData: EntitiesTableFilterData;
+  rows: EntitiesTableRow[];
 };
 
 export type GenerateEntitiesTableDataRequestMessage = {
@@ -114,11 +148,18 @@ export const isGenerateEntitiesTableDataRequestMessage = (
   (message as Record<string, unknown>).type ===
     ("generateEntitiesTableData" satisfies GenerateEntitiesTableDataRequestMessage["type"]);
 
+export type WorkerDataReturn = Pick<EntitiesTableData, "rows" | "columns"> & {
+  filterData: Omit<
+    EntitiesTableFilterData,
+    "createdByActors" | "entityTypeFilters" | "lastEditedByActors" | "webs"
+  >;
+};
+
 export type GenerateEntitiesTableDataResultMessage = {
   done: boolean;
   type: "generateEntitiesTableDataResult";
   requestId: string;
-  result: EntitiesTableData;
+  result: WorkerDataReturn;
 };
 
 export const isGenerateEntitiesTableDataResultMessage = (
