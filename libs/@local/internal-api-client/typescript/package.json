@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "2.15.3",
-    "@types/node": "22.10.5",
+    "@types/node": "22.10.6",
     "prettier": "3.4.2",
     "rimraf": "6.0.1",
     "typescript": "5.7.3"
