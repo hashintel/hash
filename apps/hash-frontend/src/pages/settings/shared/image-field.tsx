@@ -28,7 +28,9 @@ export const ImageField = ({
     }
   }, [imageUrlFromProps]);
 
-  const setNewImage = async (file: File) => {
+  const setNewImage = async (files: [File, ...File[]]) => {
+    const file = files[0];
+
     setNewImageUploading(true);
     try {
       setEditingImage(false);
@@ -70,7 +72,11 @@ export const ImageField = ({
             </Box>
           ) : null}
           {!readonly && (
-            <FileUploadDropzone image onFileProvided={setNewImage} />
+            <FileUploadDropzone
+              image
+              multiple={false}
+              onFilesProvided={setNewImage}
+            />
           )}
         </>
       ) : (
