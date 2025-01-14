@@ -537,7 +537,7 @@ __metadata:
     emoji-mart: "npm:5.6.0"
     eslint: "npm:9.17.0"
     fractional-indexing: "npm:2.1.0"
-    framer-motion: "npm:11.17.0"
+    framer-motion: "npm:11.18.0"
     graphology: "npm:0.25.4"
     graphology-layout: "npm:0.6.1"
     graphology-layout-forceatlas2: "npm:0.10.1"
@@ -29144,9 +29144,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"framer-motion@npm:11.17.0":
-  version: 11.17.0
-  resolution: "framer-motion@npm:11.17.0"
+"framer-motion@npm:11.18.0":
+  version: 11.18.0
+  resolution: "framer-motion@npm:11.18.0"
   dependencies:
     motion-dom: "npm:^11.16.4"
     motion-utils: "npm:^11.16.0"
@@ -29162,7 +29162,7 @@ __metadata:
       optional: true
     react-dom:
       optional: true
-  checksum: 10c0/2d56715afe85a2e922a2b174de4f29a0d2b9f973dd9b3cc7b6cc93d45bf1b8ea744f187e2c47ca468f8619c2c8c462db0c2879f3b16f452487a67f381f19e1c0
+  checksum: 10c0/7f3c1e420bca2d920b7f48dfb54b072938771f9237feed02d576884398f4a68ccb2d1ae36b28cf2410dbfe2db6edb4c03429a1d896e789d08a972360c6ad82b1
   languageName: node
   linkType: hard
 
