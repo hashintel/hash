@@ -533,7 +533,7 @@ export type {
  */
 export type CommentNotification = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/comment-notification/v/6",
+    "https://hash.ai/@h/types/entity-type/comment-notification/v/6",
   ];
   properties: CommentNotificationProperties;
   propertiesWithMetadata: CommentNotificationPropertiesWithMetadata;
@@ -557,11 +557,11 @@ export type CommentNotificationOutgoingLinkAndTarget =
   | CommentNotificationTriggeredByUserLink;
 
 export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": CommentNotificationOccurredInBlockLink;
-  "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": CommentNotificationOccurredInEntityLink;
-  "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
-  "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1": CommentNotificationTriggeredByCommentLink;
-  "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-block/v/1": CommentNotificationOccurredInBlockLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-entity/v/2": CommentNotificationOccurredInEntityLink;
+  "https://hash.ai/@h/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
+  "https://hash.ai/@h/types/entity-type/triggered-by-comment/v/1": CommentNotificationTriggeredByCommentLink;
+  "https://hash.ai/@h/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
 };
 
 /**
@@ -595,7 +595,7 @@ export type CommentNotificationTriggeredByUserLink = {
  */
 export type RepliedToComment = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1",
+    "https://hash.ai/@h/types/entity-type/replied-to-comment/v/1",
   ];
   properties: RepliedToCommentProperties;
   propertiesWithMetadata: RepliedToCommentPropertiesWithMetadata;
@@ -621,7 +621,7 @@ export type RepliedToCommentPropertiesWithMetadata =
  */
 export type TriggeredByComment = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1",
+    "https://hash.ai/@h/types/entity-type/triggered-by-comment/v/1",
   ];
   properties: TriggeredByCommentProperties;
   propertiesWithMetadata: TriggeredByCommentPropertiesWithMetadata;

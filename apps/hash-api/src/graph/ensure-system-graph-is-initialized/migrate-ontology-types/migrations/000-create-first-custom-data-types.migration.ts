@@ -109,21 +109,25 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: metricLengthDataType.schema.$id }],
-      title: "Meters",
-      description:
-        "The base unit of length in the International System of Units (SI).",
-      label: {
-        right: "m",
+  const meterDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: metricLengthDataType.schema.$id }],
+        title: "Meters",
+        description:
+          "The base unit of length in the International System of Units (SI).",
+        label: {
+          right: "m",
+        },
+        type: "number",
       },
-      type: "number",
+      conversions: {},
+      webShortname: "h",
+      migrationState,
     },
-    conversions: {},
-    webShortname: "h",
-    migrationState,
-  });
+  );
 
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
@@ -137,7 +141,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {
-      [systemDataTypes.meters.dataTypeBaseUrl]: {
+      [meterDataType.metadata.recordId.baseUrl]: {
         from: { expression: ["*", "self", { const: 1000, type: "number" }] },
         to: { expression: ["/", "self", { const: 1000, type: "number" }] },
       },
@@ -158,7 +162,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {
-      [systemDataTypes.meters.dataTypeBaseUrl]: {
+      [meterDataType.metadata.recordId.baseUrl]: {
         from: { expression: ["*", "self", { const: 100, type: "number" }] },
         to: { expression: ["/", "self", { const: 100, type: "number" }] },
       },
@@ -179,7 +183,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {
-      [systemDataTypes.meters.dataTypeBaseUrl]: {
+      [meterDataType.metadata.recordId.baseUrl]: {
         from: { expression: ["/", "self", { const: 1000, type: "number" }] },
         to: { expression: ["*", "self", { const: 1000, type: "number" }] },
       },
@@ -203,7 +207,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {
-      [systemDataTypes.meters.dataTypeBaseUrl]: {
+      [meterDataType.metadata.recordId.baseUrl]: {
         from: {
           expression: ["/", "self", { const: 1609.344, type: "number" }],
         },
@@ -229,7 +233,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {
-      [systemDataTypes.meters.dataTypeBaseUrl]: {
+      [meterDataType.metadata.recordId.baseUrl]: {
         from: {
           expression: ["/", "self", { const: 0.9144, type: "number" }],
         },
@@ -255,7 +259,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {
-      [systemDataTypes.meters.dataTypeBaseUrl]: {
+      [meterDataType.metadata.recordId.baseUrl]: {
         from: {
           expression: ["/", "self", { const: 0.3048, type: "number" }],
         },
@@ -281,7 +285,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {
-      [systemDataTypes.meters.dataTypeBaseUrl]: {
+      [meterDataType.metadata.recordId.baseUrl]: {
         from: {
           expression: ["/", "self", { const: 0.0254, type: "number" }],
         },
@@ -589,21 +593,25 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      allOf: [{ $ref: powerDataType.schema.$id }],
-      title: "Watts",
-      description:
-        "The unit of power or radiant flux in the International System of Units (SI) – the rate at which work is done or energy is transferred. Equal to one joule per second.",
-      label: {
-        right: "W",
+  const wattsDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: powerDataType.schema.$id }],
+        title: "Watts",
+        description:
+          "The unit of power or radiant flux in the International System of Units (SI) – the rate at which work is done or energy is transferred. Equal to one joule per second.",
+        label: {
+          right: "W",
+        },
+        type: "number",
       },
-      type: "number",
+      conversions: {},
+      webShortname: "h",
+      migrationState,
     },
-    conversions: {},
-    webShortname: "h",
-    migrationState,
-  });
+  );
 
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
@@ -617,7 +625,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {
-      [systemDataTypes.watts.dataTypeBaseUrl]: {
+      [wattsDataType.metadata.recordId.baseUrl]: {
         from: { expression: ["/", "self", { const: 1e3, type: "number" }] },
         to: { expression: ["*", "self", { const: 1e3, type: "number" }] },
       },
@@ -638,7 +646,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {
-      [systemDataTypes.watts.dataTypeBaseUrl]: {
+      [wattsDataType.metadata.recordId.baseUrl]: {
         from: { expression: ["/", "self", { const: 1e6, type: "number" }] },
         to: { expression: ["*", "self", { const: 1e6, type: "number" }] },
       },
@@ -659,7 +667,7 @@ const migrate: MigrationFunction = async ({
       type: "number",
     },
     conversions: {
-      [systemDataTypes.watts.dataTypeBaseUrl]: {
+      [wattsDataType.metadata.recordId.baseUrl]: {
         from: { expression: ["/", "self", { const: 1e9, type: "number" }] },
         to: { expression: ["*", "self", { const: 1e9, type: "number" }] },
       },

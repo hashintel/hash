@@ -23,33 +23,33 @@ type FormFieldMetadata = {
 type FormFields = Record<keyof ProspectiveUserProperties, FormFieldMetadata>;
 
 const formFields: FormFields = {
-  "https://hash.ai/@hash/types/property-type/website-url/": {
+  "https://hash.ai/@h/types/property-type/website-url/": {
     label: "Your company website",
     placeholder: "e.g. starbucks.com",
     url: true,
   },
-  "https://hash.ai/@hash/types/property-type/role/": {
+  "https://hash.ai/@h/types/property-type/role/": {
     label: "Your role/title",
     placeholder: "e.g. CEO",
   },
-  "https://hash.ai/@hash/types/property-type/email/": {
+  "https://hash.ai/@h/types/property-type/email/": {
     label: "Your work email address",
     placeholder: "e.g. howard@starbucks.com",
     type: "email",
   },
-  "https://hash.ai/@hash/types/property-type/intended-use/": {
+  "https://hash.ai/@h/types/property-type/intended-use/": {
     label: "What do you plan on using HASH for?",
     placeholder:
       "Provide as much detail as possible to increase your likelihood of being invited as an earlier user of HASH.",
     multiline: true,
   },
-  "https://hash.ai/@hash/types/property-type/current-approach/": {
+  "https://hash.ai/@h/types/property-type/current-approach/": {
     label: "How do you currently do your work?",
     placeholder:
       "Let us know how you currently complete the above described workflow, what tools you use, etc.",
     multiline: true,
   },
-  "https://hash.ai/@hash/types/property-type/willing-to-pay/": {
+  "https://hash.ai/@h/types/property-type/willing-to-pay/": {
     label: "How much are you willing to pay for a fully automated solution?",
     placeholder: "",
     options: [
@@ -145,7 +145,7 @@ export const EarlyAccessFormModal = ({
     () =>
       typedKeys(formFields).reduce(
         (acc, key) => {
-          if (key === "https://hash.ai/@hash/types/property-type/email/") {
+          if (key === "https://hash.ai/@h/types/property-type/email/") {
             acc[key] = authenticatedUser.emails[0]!.address;
           } else {
             acc[key] = "";

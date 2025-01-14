@@ -159,7 +159,7 @@ export const createUsageRecord = async (
     value: {
       ...(inputUnitCount !== undefined
         ? {
-            "https://hash.ai/@hash/types/property-type/input-unit-count/": {
+            "https://hash.ai/@h/types/property-type/input-unit-count/": {
               value: inputUnitCount,
               metadata: {
                 dataTypeId:
@@ -170,7 +170,7 @@ export const createUsageRecord = async (
         : {}),
       ...(outputUnitCount !== undefined
         ? {
-            "https://hash.ai/@hash/types/property-type/output-unit-count/": {
+            "https://hash.ai/@h/types/property-type/output-unit-count/": {
               value: outputUnitCount,
               metadata: {
                 dataTypeId:
@@ -181,7 +181,7 @@ export const createUsageRecord = async (
         : {}),
       ...(customMetadata !== undefined && customMetadata !== null
         ? {
-            "https://hash.ai/@hash/types/property-type/custom-metadata/": {
+            "https://hash.ai/@h/types/property-type/custom-metadata/": {
               value: customMetadata,
               metadata: {
                 dataTypeId:

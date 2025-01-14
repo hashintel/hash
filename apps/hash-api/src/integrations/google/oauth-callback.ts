@@ -94,10 +94,10 @@ export const googleOAuthCallback: RequestHandler<
     if (!existingGoogleAccountEntity) {
       const googleAccountProperties: GoogleAccount["propertiesWithMetadata"] = {
         value: {
-          "https://hash.ai/@hash/types/property-type/email/": {
+          "https://hash.ai/@h/types/property-type/email/": {
             value: googleUser.data.email,
             metadata: {
-              dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1",
+              dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1",
             },
           },
           "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":

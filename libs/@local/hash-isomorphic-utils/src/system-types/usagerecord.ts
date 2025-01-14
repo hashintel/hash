@@ -113,7 +113,7 @@ export type {
  * The thing that something created.
  */
 export type Created = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/created/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/created/v/1"];
   properties: CreatedProperties;
   propertiesWithMetadata: CreatedPropertiesWithMetadata;
 };
@@ -144,7 +144,7 @@ export type CustomMetadataPropertyValueWithMetadata =
  * Something that was incurred in something else.
  */
 export type IncurredIn = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/incurred-in/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/incurred-in/v/1"];
   properties: IncurredInProperties;
   propertiesWithMetadata: IncurredInPropertiesWithMetadata;
 };
@@ -183,9 +183,7 @@ export type OutputUnitCountPropertyValueWithMetadata =
  * The thing that something records usage of.
  */
 export type RecordsUsageOf = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/records-usage-of/v/1"];
   properties: RecordsUsageOfProperties;
   propertiesWithMetadata: RecordsUsageOfPropertiesWithMetadata;
 };
@@ -209,7 +207,7 @@ export type RecordsUsageOfPropertiesWithMetadata =
  * The thing that something created.
  */
 export type Updated = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/updated/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/updated/v/1"];
   properties: UpdatedProperties;
   propertiesWithMetadata: UpdatedPropertiesWithMetadata;
 };
@@ -232,7 +230,7 @@ export type UpdatedPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * A record of usage of a service
  */
 export type UsageRecord = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/usage-record/v/2"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/usage-record/v/2"];
   properties: UsageRecordProperties;
   propertiesWithMetadata: UsageRecordPropertiesWithMetadata;
 };
@@ -254,27 +252,27 @@ export type UsageRecordOutgoingLinkAndTarget =
   | UsageRecordUpdatedLink;
 
 export type UsageRecordOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/created/v/1": UsageRecordCreatedLink;
-  "https://hash.ai/@hash/types/entity-type/incurred-in/v/1": UsageRecordIncurredInLink;
-  "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1": UsageRecordRecordsUsageOfLink;
-  "https://hash.ai/@hash/types/entity-type/updated/v/1": UsageRecordUpdatedLink;
+  "https://hash.ai/@h/types/entity-type/created/v/1": UsageRecordCreatedLink;
+  "https://hash.ai/@h/types/entity-type/incurred-in/v/1": UsageRecordIncurredInLink;
+  "https://hash.ai/@h/types/entity-type/records-usage-of/v/1": UsageRecordRecordsUsageOfLink;
+  "https://hash.ai/@h/types/entity-type/updated/v/1": UsageRecordUpdatedLink;
 };
 
 /**
  * A record of usage of a service
  */
 export type UsageRecordProperties = {
-  "https://hash.ai/@hash/types/property-type/custom-metadata/"?: CustomMetadataPropertyValue;
-  "https://hash.ai/@hash/types/property-type/input-unit-count/"?: InputUnitCountPropertyValue;
-  "https://hash.ai/@hash/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValue;
+  "https://hash.ai/@h/types/property-type/custom-metadata/"?: CustomMetadataPropertyValue;
+  "https://hash.ai/@h/types/property-type/input-unit-count/"?: InputUnitCountPropertyValue;
+  "https://hash.ai/@h/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValue;
 };
 
 export type UsageRecordPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@hash/types/property-type/custom-metadata/"?: CustomMetadataPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/input-unit-count/"?: InputUnitCountPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/custom-metadata/"?: CustomMetadataPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/input-unit-count/"?: InputUnitCountPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValueWithMetadata;
   };
 };
 

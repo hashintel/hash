@@ -665,9 +665,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
           {
             draft: createEntitiesAsDraft,
             entityUuid: claimUuid,
-            entityTypeIds: [
-              "https://hash.ai/@hash/types/entity-type/claim/v/1",
-            ],
+            entityTypeIds: ["https://hash.ai/@h/types/entity-type/claim/v/1"],
             ownedById: webId,
             provenance,
             relationships: createDefaultAuthorizationRelationships({
@@ -690,7 +688,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
                         : ""
                     }`,
                   },
-                "https://hash.ai/@hash/types/property-type/subject/": {
+                "https://hash.ai/@h/types/property-type/subject/": {
                   metadata: {
                     dataTypeId:
                       "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -702,7 +700,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
                 },
                 ...(objectEntity
                   ? {
-                      "https://hash.ai/@hash/types/property-type/object/": {
+                      "https://hash.ai/@h/types/property-type/object/": {
                         metadata: {
                           dataTypeId:
                             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",

@@ -444,7 +444,7 @@ export type AttachmentOutgoingLinksByLinkEntityTypeId = {
  * Issue attachment (e.g. support ticket, pull request).
  */
 export type AttachmentProperties = {
-  "https://hash.ai/@hash/types/property-type/title/"?: Title0PropertyValue;
+  "https://hash.ai/@h/types/property-type/title/"?: Title0PropertyValue;
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/attachment-url/": AttachmentURLPropertyValue;
   "https://hash.ai/@linear/types/property-type/created-at/"?: CreatedAtPropertyValue;
@@ -460,7 +460,7 @@ export type AttachmentProperties = {
 export type AttachmentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@hash/types/property-type/title/"?: TitlePropertyValueWithMetadata0;
+    "https://hash.ai/@h/types/property-type/title/"?: TitlePropertyValueWithMetadata0;
     "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/attachment-url/": AttachmentURLPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/created-at/"?: CreatedAtPropertyValueWithMetadata;

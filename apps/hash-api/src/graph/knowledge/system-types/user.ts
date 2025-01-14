@@ -326,15 +326,15 @@ export const createUser: ImpureGraphFunction<
 
   const properties: UserEntity["propertiesWithMetadata"] = {
     value: {
-      "https://hash.ai/@hash/types/property-type/email/": {
+      "https://hash.ai/@h/types/property-type/email/": {
         value: emails.map((email) => ({
           value: email,
           metadata: {
-            dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1",
           },
         })),
       },
-      "https://hash.ai/@hash/types/property-type/kratos-identity-id/": {
+      "https://hash.ai/@h/types/property-type/kratos-identity-id/": {
         value: kratosIdentityId,
         metadata: {
           dataTypeId:
@@ -343,7 +343,7 @@ export const createUser: ImpureGraphFunction<
       },
       ...(shortname !== undefined
         ? {
-            "https://hash.ai/@hash/types/property-type/shortname/": {
+            "https://hash.ai/@h/types/property-type/shortname/": {
               value: shortname,
               metadata: {
                 dataTypeId:
@@ -366,16 +366,15 @@ export const createUser: ImpureGraphFunction<
         : {}),
       ...(enabledFeatureFlags !== undefined
         ? {
-            "https://hash.ai/@hash/types/property-type/enabled-feature-flags/":
-              {
-                value: enabledFeatureFlags.map((flag) => ({
-                  value: flag,
-                  metadata: {
-                    dataTypeId:
-                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                  },
-                })),
-              },
+            "https://hash.ai/@h/types/property-type/enabled-feature-flags/": {
+              value: enabledFeatureFlags.map((flag) => ({
+                value: flag,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              })),
+            },
           }
         : {}),
     },

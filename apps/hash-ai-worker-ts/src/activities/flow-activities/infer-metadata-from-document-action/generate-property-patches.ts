@@ -48,7 +48,7 @@ export const generateDocumentPropertyPatches = (
   } = documentMetadata;
 
   const numPagesKey =
-    "https://hash.ai/@hash/types/property-type/number-of-pages/" satisfies keyof DocProperties;
+    "https://hash.ai/@h/types/property-type/number-of-pages/" satisfies keyof DocProperties;
 
   propertyPatches.push({
     op: "add",
@@ -64,7 +64,7 @@ export const generateDocumentPropertyPatches = (
   });
 
   const summaryKey =
-    "https://hash.ai/@hash/types/property-type/summary/" satisfies keyof DocProperties;
+    "https://hash.ai/@h/types/property-type/summary/" satisfies keyof DocProperties;
 
   propertyPatches.push({
     op: "add",
@@ -81,7 +81,7 @@ export const generateDocumentPropertyPatches = (
 
   if (title) {
     const key =
-      "https://hash.ai/@hash/types/property-type/title/" satisfies keyof DocProperties;
+      "https://hash.ai/@h/types/property-type/title/" satisfies keyof DocProperties;
 
     propertyPatches.push({
       op: "add",
@@ -99,7 +99,7 @@ export const generateDocumentPropertyPatches = (
 
   if (publishedInYear) {
     const key =
-      "https://hash.ai/@hash/types/property-type/publication-year/" satisfies keyof DocProperties;
+      "https://hash.ai/@h/types/property-type/publication-year/" satisfies keyof DocProperties;
 
     propertyPatches.push({
       op: "add",
@@ -107,7 +107,7 @@ export const generateDocumentPropertyPatches = (
       property: {
         value: publishedInYear,
         metadata: {
-          dataTypeId: "https://hash.ai/@hash/types/data-type/year/v/1",
+          dataTypeId: "https://hash.ai/@h/types/data-type/year/v/1",
           provenance,
         },
       } satisfies PublicationYearPropertyValueWithMetadata,
@@ -121,7 +121,7 @@ export const generateDocumentPropertyPatches = (
       );
     } else {
       const key =
-        "https://hash.ai/@hash/types/property-type/doi/" satisfies keyof AcademicPaperProperties;
+        "https://hash.ai/@h/types/property-type/doi/" satisfies keyof AcademicPaperProperties;
 
       propertyPatches.push({
         op: "add",
@@ -129,7 +129,7 @@ export const generateDocumentPropertyPatches = (
         property: {
           value: doi,
           metadata: {
-            dataTypeId: "https://hash.ai/@hash/types/data-type/doi/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/doi/v/1",
             provenance,
           },
         } satisfies DOIPropertyValueWithMetadata,
@@ -144,7 +144,7 @@ export const generateDocumentPropertyPatches = (
       );
     } else {
       const key =
-        "https://hash.ai/@hash/types/property-type/doi-link/" satisfies keyof AcademicPaperProperties;
+        "https://hash.ai/@h/types/property-type/doi-link/" satisfies keyof AcademicPaperProperties;
 
       propertyPatches.push({
         op: "add",
@@ -152,7 +152,7 @@ export const generateDocumentPropertyPatches = (
         property: {
           value: doiLink,
           metadata: {
-            dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
             provenance,
           },
         } satisfies DOILinkPropertyValueWithMetadata,
@@ -167,7 +167,7 @@ export const generateDocumentPropertyPatches = (
       );
     } else {
       const key =
-        "https://hash.ai/@hash/types/property-type/isbn/" satisfies keyof BookProperties;
+        "https://hash.ai/@h/types/property-type/isbn/" satisfies keyof BookProperties;
 
       propertyPatches.push({
         op: "add",
@@ -175,7 +175,7 @@ export const generateDocumentPropertyPatches = (
         property: {
           value: isbn,
           metadata: {
-            dataTypeId: "https://hash.ai/@hash/types/data-type/isbn/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/isbn/v/1",
             provenance,
           },
         } satisfies ISBNPropertyValueWithMetadata,

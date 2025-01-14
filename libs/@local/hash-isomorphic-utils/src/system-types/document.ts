@@ -120,7 +120,7 @@ export type {
  * A page in document format, with content arranged in columns.
  */
 export type Document = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/document/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/document/v/1"];
   properties: DocumentProperties;
   propertiesWithMetadata: DocumentPropertiesWithMetadata;
 };
@@ -133,7 +133,7 @@ export type DocumentHasIndexedContentLink = {
 export type DocumentOutgoingLinkAndTarget = DocumentHasIndexedContentLink;
 
 export type DocumentOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": DocumentHasIndexedContentLink;
+  "https://hash.ai/@h/types/entity-type/has-indexed-content/v/1": DocumentHasIndexedContentLink;
 };
 
 /**

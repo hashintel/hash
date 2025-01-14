@@ -533,7 +533,7 @@ export type {
  */
 export type MentionNotification = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/mention-notification/v/6",
+    "https://hash.ai/@h/types/entity-type/mention-notification/v/6",
   ];
   properties: MentionNotificationProperties;
   propertiesWithMetadata: MentionNotificationPropertiesWithMetadata;
@@ -567,11 +567,11 @@ export type MentionNotificationOutgoingLinkAndTarget =
   | MentionNotificationTriggeredByUserLink;
 
 export type MentionNotificationOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": MentionNotificationOccurredInBlockLink;
-  "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
-  "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": MentionNotificationOccurredInEntityLink;
-  "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
-  "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-block/v/1": MentionNotificationOccurredInBlockLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-entity/v/2": MentionNotificationOccurredInEntityLink;
+  "https://hash.ai/@h/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
+  "https://hash.ai/@h/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
 };
 
 /**
@@ -595,7 +595,7 @@ export type MentionNotificationTriggeredByUserLink = {
  */
 export type OccurredInComment = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1",
+    "https://hash.ai/@h/types/entity-type/occurred-in-comment/v/1",
   ];
   properties: OccurredInCommentProperties;
   propertiesWithMetadata: OccurredInCommentPropertiesWithMetadata;
@@ -620,9 +620,7 @@ export type OccurredInCommentPropertiesWithMetadata =
  * Text that something occurred in.
  */
 export type OccurredInText = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/occurred-in-text/v/1"];
   properties: OccurredInTextProperties;
   propertiesWithMetadata: OccurredInTextPropertiesWithMetadata;
 };

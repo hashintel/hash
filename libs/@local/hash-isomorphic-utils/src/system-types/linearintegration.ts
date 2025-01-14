@@ -411,7 +411,7 @@ export type {
  */
 export type LinearIntegration = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/linear-integration/v/7",
+    "https://hash.ai/@h/types/entity-type/linear-integration/v/7",
   ];
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
@@ -422,21 +422,21 @@ export type LinearIntegrationOutgoingLinkAndTarget =
   | LinearIntegrationUsesUserSecretLink;
 
 export type LinearIntegrationOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1": LinearIntegrationSyncLinearDataWithLink;
-  "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1": LinearIntegrationUsesUserSecretLink;
+  "https://hash.ai/@h/types/entity-type/sync-linear-data-with/v/1": LinearIntegrationSyncLinearDataWithLink;
+  "https://hash.ai/@h/types/entity-type/uses-user-secret/v/1": LinearIntegrationUsesUserSecretLink;
 };
 
 /**
  * An instance of an integration with Linear.
  */
 export type LinearIntegrationProperties = {
-  "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValue;
+  "https://hash.ai/@h/types/property-type/linear-org-id/": LinearOrgIdPropertyValue;
 };
 
 export type LinearIntegrationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
   };
 };
 
@@ -469,7 +469,7 @@ export type LinearTeamIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
  */
 export type SyncLinearDataWith = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1",
+    "https://hash.ai/@h/types/entity-type/sync-linear-data-with/v/1",
   ];
   properties: SyncLinearDataWithProperties;
   propertiesWithMetadata: SyncLinearDataWithPropertiesWithMetadata;
@@ -483,14 +483,14 @@ export type SyncLinearDataWithOutgoingLinksByLinkEntityTypeId = {};
  * Something that syncs linear data with something.
  */
 export type SyncLinearDataWithProperties = LinkProperties & {
-  "https://hash.ai/@hash/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
+  "https://hash.ai/@h/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
 };
 
 export type SyncLinearDataWithPropertiesWithMetadata =
   LinkPropertiesWithMetadata & {
     metadata?: ObjectMetadata;
     value: {
-      "https://hash.ai/@hash/types/property-type/linear-team-id/"?: {
+      "https://hash.ai/@h/types/property-type/linear-team-id/"?: {
         value: LinearTeamIdPropertyValueWithMetadata[];
         metadata?: ArrayMetadata;
       };
@@ -501,9 +501,7 @@ export type SyncLinearDataWithPropertiesWithMetadata =
  * The user secret something uses.
  */
 export type UsesUserSecret = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/uses-user-secret/v/1"];
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
 };

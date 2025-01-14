@@ -83,13 +83,11 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
     shape: BlockShape,
   ): HasSpatiallyPositionedContentProperties => {
     return {
-      "https://hash.ai/@hash/types/property-type/x-position/": shape.x,
-      "https://hash.ai/@hash/types/property-type/y-position/": shape.y,
-      "https://hash.ai/@hash/types/property-type/width-in-pixels/":
-        shape.props.w,
-      "https://hash.ai/@hash/types/property-type/height-in-pixels/":
-        shape.props.h,
-      "https://hash.ai/@hash/types/property-type/rotation-in-rads/":
+      "https://hash.ai/@h/types/property-type/x-position/": shape.x,
+      "https://hash.ai/@h/types/property-type/y-position/": shape.y,
+      "https://hash.ai/@h/types/property-type/width-in-pixels/": shape.props.w,
+      "https://hash.ai/@h/types/property-type/height-in-pixels/": shape.props.h,
+      "https://hash.ai/@h/types/property-type/rotation-in-rads/":
         shape.rotation,
     };
   };

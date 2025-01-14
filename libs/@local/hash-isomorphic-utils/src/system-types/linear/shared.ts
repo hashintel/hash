@@ -966,7 +966,7 @@ export type UserOutgoingLinksByLinkEntityTypeId = {
  */
 export type UserProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
-  "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValue;
+  "https://hash.ai/@h/types/property-type/email/": EmailPropertyValue;
   "https://hash.ai/@linear/types/property-type/active/": ActivePropertyValue;
   "https://hash.ai/@linear/types/property-type/admin/": AdminPropertyValue;
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
@@ -993,7 +993,7 @@ export type UserPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/email/": EmailPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/active/": ActivePropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/admin/": AdminPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValueWithMetadata;

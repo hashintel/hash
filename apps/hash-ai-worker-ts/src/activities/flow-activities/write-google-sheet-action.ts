@@ -338,7 +338,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
-      "https://hash.ai/@hash/types/property-type/file-id/": {
+      "https://hash.ai/@h/types/property-type/file-id/": {
         value: spreadsheet.spreadsheetId,
         metadata: {
           dataTypeId:
@@ -353,10 +353,10 @@ export const writeGoogleSheetAction: FlowActionActivity<{
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
-      "https://hash.ai/@hash/types/property-type/data-audience/": {
+      "https://hash.ai/@h/types/property-type/data-audience/": {
         value: audience,
         metadata: {
-          dataTypeId: "https://hash.ai/@hash/types/data-type/actor-type/v/1",
+          dataTypeId: "https://hash.ai/@h/types/data-type/actor-type/v/1",
         },
       },
     },

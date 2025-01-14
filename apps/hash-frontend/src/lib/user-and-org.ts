@@ -488,7 +488,7 @@ export const constructUser = (params: {
     joinedAt,
     memberOf,
     preferences: userEntity.properties[
-      "https://hash.ai/@hash/types/property-type/application-preferences/"
+      "https://hash.ai/@h/types/property-type/application-preferences/"
     ] as UserPreferences | undefined,
     emails: [
       {

@@ -126,9 +126,7 @@ export type {
  * A Microsoft PowerPoint presentation.
  */
 export type PPTXPresentation = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/pptx-presentation/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/pptx-presentation/v/1"];
   properties: PPTXPresentationProperties;
   propertiesWithMetadata: PPTXPresentationPropertiesWithMetadata;
 };

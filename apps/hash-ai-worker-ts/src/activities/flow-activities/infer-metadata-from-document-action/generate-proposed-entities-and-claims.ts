@@ -60,7 +60,7 @@ const createClaim = async ({
     {
       draft,
       entityUuid: generateUuid() as EntityUuid,
-      entityTypeIds: ["https://hash.ai/@hash/types/entity-type/claim/v/1"],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/claim/v/1"],
       ownedById,
       provenance,
       relationships: createDefaultAuthorizationRelationships({
@@ -77,7 +77,7 @@ const createClaim = async ({
               },
               value: claimText,
             },
-          "https://hash.ai/@hash/types/property-type/subject/": {
+          "https://hash.ai/@h/types/property-type/subject/": {
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -86,7 +86,7 @@ const createClaim = async ({
             value: subjectText,
           },
 
-          "https://hash.ai/@hash/types/property-type/object/": {
+          "https://hash.ai/@h/types/property-type/object/": {
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",

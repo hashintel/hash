@@ -76,13 +76,9 @@ export const getCommentFromEntity: PureGraphFunction<
 
   return {
     resolvedAt:
-      entity.properties[
-        "https://hash.ai/@hash/types/property-type/resolved-at/"
-      ],
+      entity.properties["https://hash.ai/@h/types/property-type/resolved-at/"],
     deletedAt:
-      entity.properties[
-        "https://hash.ai/@hash/types/property-type/deleted-at/"
-      ],
+      entity.properties["https://hash.ai/@h/types/property-type/deleted-at/"],
     entity,
   };
 };
@@ -313,9 +309,9 @@ export const deleteComment: ImpureGraphFunction<
         property: {
           value: new Date().toISOString(),
           metadata: {
-            dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
           },
-        } satisfies CommentPropertiesWithMetadata["value"]["https://hash.ai/@hash/types/property-type/deleted-at/"],
+        } satisfies CommentPropertiesWithMetadata["value"]["https://hash.ai/@h/types/property-type/deleted-at/"],
       },
     ],
   });
@@ -443,9 +439,9 @@ export const resolveComment: ImpureGraphFunction<
         property: {
           value: new Date().toISOString(),
           metadata: {
-            dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
           },
-        } satisfies CommentPropertiesWithMetadata["value"]["https://hash.ai/@hash/types/property-type/resolved-at/"],
+        } satisfies CommentPropertiesWithMetadata["value"]["https://hash.ai/@h/types/property-type/resolved-at/"],
       },
     ],
   });

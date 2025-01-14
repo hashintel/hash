@@ -134,7 +134,7 @@ export type {
  * A paper describing academic research
  */
 export type AcademicPaper = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/academic-paper/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/academic-paper/v/1"];
   properties: AcademicPaperProperties;
   propertiesWithMetadata: AcademicPaperPropertiesWithMetadata;
 };
@@ -147,25 +147,25 @@ export type AcademicPaperOutgoingLinksByLinkEntityTypeId = {};
  * A paper describing academic research
  */
 export type AcademicPaperProperties = DocProperties & {
-  "https://hash.ai/@hash/types/property-type/doi-link/"?: DOILinkPropertyValue;
-  "https://hash.ai/@hash/types/property-type/doi/"?: DOIPropertyValue;
-  "https://hash.ai/@hash/types/property-type/experimental-subject/"?: ExperimentalSubjectPropertyValue;
-  "https://hash.ai/@hash/types/property-type/finding/"?: FindingPropertyValue;
-  "https://hash.ai/@hash/types/property-type/methodology/"?: MethodologyPropertyValue;
-  "https://hash.ai/@hash/types/property-type/summary/": SummaryPropertyValue;
-  "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValue;
+  "https://hash.ai/@h/types/property-type/doi-link/"?: DOILinkPropertyValue;
+  "https://hash.ai/@h/types/property-type/doi/"?: DOIPropertyValue;
+  "https://hash.ai/@h/types/property-type/experimental-subject/"?: ExperimentalSubjectPropertyValue;
+  "https://hash.ai/@h/types/property-type/finding/"?: FindingPropertyValue;
+  "https://hash.ai/@h/types/property-type/methodology/"?: MethodologyPropertyValue;
+  "https://hash.ai/@h/types/property-type/summary/": SummaryPropertyValue;
+  "https://hash.ai/@h/types/property-type/title/": TitlePropertyValue;
 };
 
 export type AcademicPaperPropertiesWithMetadata = DocPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@hash/types/property-type/doi-link/"?: DOILinkPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/doi/"?: DOIPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/experimental-subject/"?: ExperimentalSubjectPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/finding/"?: FindingPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/methodology/"?: MethodologyPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/summary/": SummaryPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/doi-link/"?: DOILinkPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/doi/"?: DOIPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/experimental-subject/"?: ExperimentalSubjectPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/finding/"?: FindingPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/methodology/"?: MethodologyPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/summary/": SummaryPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/title/": TitlePropertyValueWithMetadata;
   };
 };
 
@@ -181,7 +181,7 @@ export type DOIDataTypeWithMetadata = {
 export type DOIDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@hash/types/data-type/doi/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/doi/v/1";
 };
 
 /**

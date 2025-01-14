@@ -86,7 +86,7 @@ export type {
  * A (usually) quick or short note.
  */
 export type Note = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/note/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/note/v/1"];
   properties: NoteProperties;
   propertiesWithMetadata: NotePropertiesWithMetadata;
 };
@@ -99,20 +99,20 @@ export type NoteHasIndexedContentLink = {
 export type NoteOutgoingLinkAndTarget = NoteHasIndexedContentLink;
 
 export type NoteOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": NoteHasIndexedContentLink;
+  "https://hash.ai/@h/types/entity-type/has-indexed-content/v/1": NoteHasIndexedContentLink;
 };
 
 /**
  * A (usually) quick or short note.
  */
 export type NoteProperties = BlockCollectionProperties & {
-  "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
+  "https://hash.ai/@h/types/property-type/archived/"?: ArchivedPropertyValue;
 };
 
 export type NotePropertiesWithMetadata =
   BlockCollectionPropertiesWithMetadata & {
     metadata?: ObjectMetadata;
     value: {
-      "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
+      "https://hash.ai/@h/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
     };
   };

@@ -118,7 +118,7 @@ export const createGraphChangeNotification = async (
       ownedById: notifiedUserAccountId as OwnedById,
       properties: {
         value: {
-          "https://hash.ai/@hash/types/property-type/graph-change-type/": {
+          "https://hash.ai/@h/types/property-type/graph-change-type/": {
             value: operation,
             metadata: {
               dataTypeId:
@@ -152,7 +152,7 @@ export const createGraphChangeNotification = async (
       },
       properties: {
         value: {
-          "https://hash.ai/@hash/types/property-type/entity-edition-id/": {
+          "https://hash.ai/@h/types/property-type/entity-edition-id/": {
             value: changedEntityEditionId,
             metadata: {
               dataTypeId:

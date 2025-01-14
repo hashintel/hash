@@ -88,20 +88,20 @@ export const createUserSecret = async <
 
   const secretMetadata: UserSecret["propertiesWithMetadata"] = {
     value: {
-      "https://hash.ai/@hash/types/property-type/connection-source-name/": {
+      "https://hash.ai/@h/types/property-type/connection-source-name/": {
         value: service,
         metadata: {
           dataTypeId:
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
-      "https://hash.ai/@hash/types/property-type/expired-at/": {
+      "https://hash.ai/@h/types/property-type/expired-at/": {
         value: expiresAt,
         metadata: {
-          dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1",
+          dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
         },
       },
-      "https://hash.ai/@hash/types/property-type/vault-path/": {
+      "https://hash.ai/@h/types/property-type/vault-path/": {
         value: vaultPath,
         metadata: {
           dataTypeId:

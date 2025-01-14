@@ -308,7 +308,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     });
 
     const entityTypeId =
-      `https://hash.ai/@hash/types/entity-type/${linkType}/v/1` as const;
+      `https://hash.ai/@h/types/entity-type/${linkType}/v/1` as const;
 
     return LinkEntity.create<T extends "has-subject" ? HasSubject : HasObject>(
       graphApiClient,

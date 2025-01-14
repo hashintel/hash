@@ -1,6 +1,5 @@
 import {
   blockProtocolPropertyTypes,
-  systemDataTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
@@ -16,6 +15,7 @@ import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashDataTypeId,
 } from "../util";
 
 const migrate: MigrationFunction = async ({
@@ -465,6 +465,11 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  const uriDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "uri",
+    migrationState,
+  });
+
   const websiteUrlPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -472,7 +477,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Website URL",
         description: "A URL for a website",
-        possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
+        possibleValues: [{ dataTypeId: uriDataTypeId }],
       },
       webShortname: "h",
       migrationState,
@@ -484,7 +489,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Pinned Entity Type Base URL",
         description: "The base URL of a pinned entity type.",
-        possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
+        possibleValues: [{ dataTypeId: uriDataTypeId }],
       },
       webShortname: "h",
       migrationState,
@@ -617,7 +622,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Profile URL",
         description: "A URL to a profile",
-        possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
+        possibleValues: [{ dataTypeId: uriDataTypeId }],
       },
       webShortname: "h",
       migrationState,
@@ -742,6 +747,11 @@ const migrate: MigrationFunction = async ({
 
   /** User entity type */
 
+  const emailDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "email",
+    migrationState,
+  });
+
   const emailPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -749,7 +759,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Email",
         description: "An email address",
-        possibleValues: [{ dataTypeId: systemDataTypes.email.dataTypeId }],
+        possibleValues: [{ dataTypeId: emailDataTypeId }],
       },
       webShortname: "h",
       migrationState,
@@ -1227,6 +1237,11 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  const dateTimeDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "datetime",
+    migrationState,
+  });
+
   const expiredAtPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -1234,9 +1249,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Expired At",
         description: "Stringified timestamp of when something expired.",
-        possibleValues: [
-          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
-        ],
+        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
       webShortname: "h",
       migrationState,
@@ -1403,9 +1416,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Resolved At",
         description: "Stringified timestamp of when something was resolved.",
-        possibleValues: [
-          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
-        ],
+        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
       webShortname: "h",
       migrationState,
@@ -1419,9 +1430,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Deleted At",
         description: "Stringified timestamp of when something was deleted.",
-        possibleValues: [
-          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
-        ],
+        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
       webShortname: "h",
       migrationState,
@@ -1518,9 +1527,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Read At",
         description: "The timestamp of when something was read.",
-        possibleValues: [
-          { dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1" },
-        ],
+        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
       webShortname: "h",
       migrationState,

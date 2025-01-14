@@ -164,7 +164,7 @@ export const createMachineActorEntity = async (
                   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               },
             },
-          "https://hash.ai/@hash/types/property-type/machine-identifier/": {
+          "https://hash.ai/@h/types/property-type/machine-identifier/": {
             value: identifier,
             metadata: {
               dataTypeId:

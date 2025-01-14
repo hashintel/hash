@@ -376,7 +376,7 @@ export const useNotificationsWithLinksContextValue =
               occurredInEntityLink
                 .linkEntity[0] as Entity<OccurredInEntityProperties>
             ).properties[
-              "https://hash.ai/@hash/types/property-type/entity-edition-id/"
+              "https://hash.ai/@h/types/property-type/entity-edition-id/"
             ];
 
             if (!occurredInEntityEditionTimestamp) {
@@ -457,7 +457,7 @@ export const useNotificationsWithLinksContextValue =
               occurredInEntity,
               operation:
                 graphChangeEntity.properties[
-                  "https://hash.ai/@hash/types/property-type/graph-change-type/"
+                  "https://hash.ai/@h/types/property-type/graph-change-type/"
                 ],
             } satisfies GraphChangeNotification;
           }

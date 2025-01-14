@@ -36,9 +36,7 @@ export type {
  * An Instagram account.
  */
 export type InstagramAccount = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/instagram-account/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/instagram-account/v/1"];
   properties: InstagramAccountProperties;
   propertiesWithMetadata: InstagramAccountPropertiesWithMetadata;
 };

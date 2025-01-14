@@ -105,7 +105,7 @@ export type ActorTypeDataTypeWithMetadata = {
 export type ActorTypeDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@hash/types/data-type/actor-type/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/actor-type/v/1";
 };
 
 /**
@@ -113,7 +113,7 @@ export type ActorTypeDataTypeMetadata = {
  */
 export type AssociatedWithAccount = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1",
+    "https://hash.ai/@h/types/entity-type/associated-with-account/v/1",
   ];
   properties: AssociatedWithAccountProperties;
   propertiesWithMetadata: AssociatedWithAccountPropertiesWithMetadata;
@@ -168,7 +168,7 @@ export type DescriptionPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A file hosted at a URL
  */
 export type File = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/file/v/2"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/file/v/2"];
   properties: FileProperties;
   propertiesWithMetadata: FilePropertiesWithMetadata;
 };
@@ -212,13 +212,13 @@ export type FileProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
-  "https://hash.ai/@hash/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
+  "https://hash.ai/@h/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
+  "https://hash.ai/@h/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValue;
 };
 
 export type FilePropertiesWithMetadata = {
@@ -234,13 +234,13 @@ export type FilePropertiesWithMetadata = {
     "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValueWithMetadata;
   };
 };
 
@@ -325,23 +325,23 @@ export type GoogleSheetsFileOutgoingLinkAndTarget =
   GoogleSheetsFileAssociatedWithAccountLink;
 
 export type GoogleSheetsFileOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1": GoogleSheetsFileAssociatedWithAccountLink;
+  "https://hash.ai/@h/types/entity-type/associated-with-account/v/1": GoogleSheetsFileAssociatedWithAccountLink;
 };
 
 /**
  * A Google Sheets file.
  */
 export type GoogleSheetsFileProperties = SpreadsheetFileProperties & {
-  "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValue;
+  "https://hash.ai/@h/types/property-type/data-audience/": DataAudiencePropertyValue;
+  "https://hash.ai/@h/types/property-type/file-id/": FileIdPropertyValue;
 };
 
 export type GoogleSheetsFilePropertiesWithMetadata =
   SpreadsheetFilePropertiesWithMetadata & {
     metadata?: ObjectMetadata;
     value: {
-      "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
-      "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
+      "https://hash.ai/@h/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
+      "https://hash.ai/@h/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
     };
   };
 
@@ -395,9 +395,7 @@ export type OriginalURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A spreadsheet file.
  */
 export type SpreadsheetFile = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/spreadsheet-file/v/1"];
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
 };

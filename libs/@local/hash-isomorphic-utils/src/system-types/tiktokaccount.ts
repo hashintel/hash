@@ -36,7 +36,7 @@ export type {
  * A TikTok account.
  */
 export type TikTokAccount = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/tiktok-account/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/tiktok-account/v/1"];
   properties: TikTokAccountProperties;
   propertiesWithMetadata: TikTokAccountPropertiesWithMetadata;
 };

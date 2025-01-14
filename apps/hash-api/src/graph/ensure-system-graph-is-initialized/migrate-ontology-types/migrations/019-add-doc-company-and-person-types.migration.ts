@@ -12,6 +12,7 @@ import {
   createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashDataTypeId,
   getCurrentHashLinkEntityTypeId,
 } from "../util";
 
@@ -52,6 +53,11 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  const uriDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "uri",
+    migrationState,
+  });
+
   const doiLinkPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -60,7 +66,7 @@ const migrate: MigrationFunction = async ({
         title: "DOI Link",
         description:
           "A permanent link for a digital object, using its Digital Object Identifier (DOI), which resolves to a webpage describing it",
-        possibleValues: [{ dataTypeId: systemDataTypes.uri.dataTypeId }],
+        possibleValues: [{ dataTypeId: uriDataTypeId }],
       },
       migrationState,
       webShortname: "h",

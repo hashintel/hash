@@ -153,7 +153,7 @@ export const UserProfileInfoForm: FunctionComponent<{
                 property: {
                   value: profileUrl,
                   metadata: {
-                    dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1",
+                    dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
                   },
                 } satisfies ProfileURLPropertyValueWithMetadata,
               },

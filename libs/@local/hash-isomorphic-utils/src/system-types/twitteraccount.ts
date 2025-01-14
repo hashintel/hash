@@ -36,9 +36,7 @@ export type {
  * A Twitter account.
  */
 export type TwitterAccount = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/twitter-account/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/twitter-account/v/1"];
   properties: TwitterAccountProperties;
   propertiesWithMetadata: TwitterAccountPropertiesWithMetadata;
 };

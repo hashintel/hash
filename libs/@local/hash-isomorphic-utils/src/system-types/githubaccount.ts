@@ -36,7 +36,7 @@ export type {
  * A GitHub account.
  */
 export type GitHubAccount = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/github-account/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/github-account/v/1"];
   properties: GitHubAccountProperties;
   propertiesWithMetadata: GitHubAccountPropertiesWithMetadata;
 };

@@ -32,8 +32,8 @@ export const generateMetadataSchemaIdentifiers = ({
     /(\/types\/(?:entity-type|property-type|data-type)\/)/,
     /**
      * Insert the path segment /with-metadata/ into the VersionedUrl
-     * @example "https://app.hash.ai/@hash/types/property-type/user/v/1" =>
-     *   "https://app.hash.ai/@hash/types/property-type/with-metadata/user/v/1"
+     * @example "https://app.hash.ai/@h/types/property-type/user/v/1" =>
+     *   "https://app.hash.ai/@h/types/property-type/with-metadata/user/v/1"
      */
     "$1with-metadata/",
   ) as VersionedUrl,

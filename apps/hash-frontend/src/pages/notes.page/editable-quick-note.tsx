@@ -212,7 +212,7 @@ export const EditableQuickNote: FunctionComponent<{
             {
               op: "add",
               path: [
-                "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof NoteProperties as BaseUrl,
+                "https://hash.ai/@h/types/property-type/archived/" satisfies keyof NoteProperties as BaseUrl,
               ],
               property: {
                 value: true,

@@ -215,6 +215,7 @@ export const ensureSystemWebEntitiesExist = async ({
 
     if (!foundOrg) {
       await createOrg(context, authentication, {
+        bypassShortnameValidation: true,
         orgAccountGroupId: accountGroupId,
         shortname: webShortname,
         name,

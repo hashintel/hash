@@ -32,7 +32,7 @@ export type {
  * A machine that can perform actions in the system
  */
 export type Machine = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/machine/v/2"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/machine/v/2"];
   properties: MachineProperties;
   propertiesWithMetadata: MachinePropertiesWithMetadata;
 };
@@ -54,13 +54,13 @@ export type MachineOutgoingLinksByLinkEntityTypeId = {};
  */
 export type MachineProperties = ActorProperties & {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValue;
-  "https://hash.ai/@hash/types/property-type/machine-identifier/": MachineIdentifierPropertyValue;
+  "https://hash.ai/@h/types/property-type/machine-identifier/": MachineIdentifierPropertyValue;
 };
 
 export type MachinePropertiesWithMetadata = ActorPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/machine-identifier/": MachineIdentifierPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/machine-identifier/": MachineIdentifierPropertyValueWithMetadata;
   };
 };

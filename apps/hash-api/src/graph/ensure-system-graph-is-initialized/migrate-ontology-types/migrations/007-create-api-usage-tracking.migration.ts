@@ -448,45 +448,43 @@ const migrate: MigrationFunction = async ({
       ] as ServiceFeature["entityTypeIds"],
       properties: {
         value: {
-          "https://hash.ai/@hash/types/property-type/service-name/": {
+          "https://hash.ai/@h/types/property-type/service-name/": {
             value: serviceName,
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-          "https://hash.ai/@hash/types/property-type/feature-name/": {
+          "https://hash.ai/@h/types/property-type/feature-name/": {
             value: featureName,
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-          "https://hash.ai/@hash/types/property-type/service-unit-cost/": {
+          "https://hash.ai/@h/types/property-type/service-unit-cost/": {
             value: [
               {
                 value: {
-                  "https://hash.ai/@hash/types/property-type/input-unit-cost/":
-                    {
-                      value: inputUnitCost,
-                      metadata: {
-                        dataTypeId:
-                          "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-                      },
+                  "https://hash.ai/@h/types/property-type/input-unit-cost/": {
+                    value: inputUnitCost,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                     },
-                  "https://hash.ai/@hash/types/property-type/output-unit-cost/":
-                    {
-                      value: outputUnitCost,
-                      metadata: {
-                        dataTypeId:
-                          "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-                      },
+                  },
+                  "https://hash.ai/@h/types/property-type/output-unit-cost/": {
+                    value: outputUnitCost,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                     },
-                  "https://hash.ai/@hash/types/property-type/applies-from/": {
+                  },
+                  "https://hash.ai/@h/types/property-type/applies-from/": {
                     value: new Date("2023-12-20").toISOString(),
                     metadata: {
                       dataTypeId:
-                        "https://hash.ai/@hash/types/data-type/datetime/v/1",
+                        "https://hash.ai/@h/types/data-type/datetime/v/1",
                     },
                   },
                 },

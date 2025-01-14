@@ -27,7 +27,7 @@ export type AccountIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
 export type AccountOutgoingLinkAndTarget = AccountUsesUserSecretLink;
 
 export type AccountOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1": AccountUsesUserSecretLink;
+  "https://hash.ai/@h/types/entity-type/uses-user-secret/v/1": AccountUsesUserSecretLink;
 };
 
 /**
@@ -36,7 +36,7 @@ export type AccountOutgoingLinksByLinkEntityTypeId = {
 export type AccountProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValue;
   "https://hash.ai/@google/types/property-type/account-id/": AccountIdPropertyValue;
-  "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValue;
+  "https://hash.ai/@h/types/property-type/email/": EmailPropertyValue;
 };
 
 export type AccountPropertiesWithMetadata = {
@@ -44,7 +44,7 @@ export type AccountPropertiesWithMetadata = {
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValueWithMetadata;
     "https://hash.ai/@google/types/property-type/account-id/": AccountIdPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/email/": EmailPropertyValueWithMetadata;
   };
 };
 
@@ -73,7 +73,7 @@ export type DateTimeDataTypeWithMetadata = {
 export type DateTimeDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1";
 };
 
 /**
@@ -95,7 +95,7 @@ export type EmailDataTypeWithMetadata = {
 export type EmailDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1";
 };
 
 /**
@@ -153,7 +153,7 @@ export type TextDataTypeMetadata = {
  * A secret or credential belonging to a user.
  */
 export type UserSecret = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/user-secret/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/user-secret/v/1"];
   properties: UserSecretProperties;
   propertiesWithMetadata: UserSecretPropertiesWithMetadata;
 };
@@ -166,17 +166,17 @@ export type UserSecretOutgoingLinksByLinkEntityTypeId = {};
  * A secret or credential belonging to a user.
  */
 export type UserSecretProperties = {
-  "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValue;
-  "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValue;
-  "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
+  "https://hash.ai/@h/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValue;
+  "https://hash.ai/@h/types/property-type/expired-at/": ExpiredAtPropertyValue;
+  "https://hash.ai/@h/types/property-type/vault-path/": VaultPathPropertyValue;
 };
 
 export type UserSecretPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/expired-at/": ExpiredAtPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/vault-path/": VaultPathPropertyValueWithMetadata;
   };
 };
 
@@ -184,9 +184,7 @@ export type UserSecretPropertiesWithMetadata = {
  * The user secret something uses.
  */
 export type UsesUserSecret = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/uses-user-secret/v/1"];
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
 };

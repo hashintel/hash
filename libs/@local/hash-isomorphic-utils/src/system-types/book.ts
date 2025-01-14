@@ -130,7 +130,7 @@ export type {
  * A written work, typically longer than an article, often published in print form.
  */
 export type Book = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/book/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/book/v/1"];
   properties: BookProperties;
   propertiesWithMetadata: BookPropertiesWithMetadata;
 };
@@ -143,13 +143,13 @@ export type BookOutgoingLinksByLinkEntityTypeId = {};
  * A written work, typically longer than an article, often published in print form.
  */
 export type BookProperties = DocProperties & {
-  "https://hash.ai/@hash/types/property-type/isbn/"?: ISBNPropertyValue;
+  "https://hash.ai/@h/types/property-type/isbn/"?: ISBNPropertyValue;
 };
 
 export type BookPropertiesWithMetadata = DocPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@hash/types/property-type/isbn/"?: ISBNPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/isbn/"?: ISBNPropertyValueWithMetadata;
   };
 };
 
@@ -165,7 +165,7 @@ export type ISBNDataTypeWithMetadata = {
 export type ISBNDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@hash/types/data-type/isbn/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/isbn/v/1";
 };
 
 /**

@@ -398,12 +398,10 @@ export const ClaimsTable = memo(
         }
 
         const objectText =
-          claim.properties["https://hash.ai/@hash/types/property-type/object/"];
+          claim.properties["https://hash.ai/@h/types/property-type/object/"];
 
         const subjectText =
-          claim.properties[
-            "https://hash.ai/@hash/types/property-type/subject/"
-          ];
+          claim.properties["https://hash.ai/@h/types/property-type/subject/"];
 
         const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
           claimsSubgraph,

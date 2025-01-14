@@ -221,7 +221,7 @@ export const oAuthLinearCallback: RequestHandler<
       const linearIntegrationProperties: LinearIntegrationPropertiesWithMetadata =
         {
           value: {
-            "https://hash.ai/@hash/types/property-type/linear-org-id/": {
+            "https://hash.ai/@h/types/property-type/linear-org-id/": {
               value: linearOrgId,
               metadata: {
                 dataTypeId:

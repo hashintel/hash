@@ -67,14 +67,14 @@ export const createHashInstance: ImpureGraphFunction<
     ownedById: hashOrg.accountGroupId as OwnedById,
     properties: {
       value: {
-        "https://hash.ai/@hash/types/property-type/pages-are-enabled/": {
+        "https://hash.ai/@h/types/property-type/pages-are-enabled/": {
           value: params.pagesAreEnabled ?? true,
           metadata: {
             dataTypeId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
           },
         },
-        "https://hash.ai/@hash/types/property-type/user-self-registration-is-enabled/":
+        "https://hash.ai/@h/types/property-type/user-self-registration-is-enabled/":
           {
             value: params.userSelfRegistrationIsEnabled ?? true,
             metadata: {
@@ -82,7 +82,7 @@ export const createHashInstance: ImpureGraphFunction<
                 "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
             },
           },
-        "https://hash.ai/@hash/types/property-type/user-registration-by-invitation-is-enabled/":
+        "https://hash.ai/@h/types/property-type/user-registration-by-invitation-is-enabled/":
           {
             value: params.userRegistrationByInviteIsEnabled ?? true,
             metadata: {
@@ -90,7 +90,7 @@ export const createHashInstance: ImpureGraphFunction<
                 "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
             },
           },
-        "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/":
+        "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/":
           {
             value: params.orgSelfRegistrationIsEnabled ?? true,
             metadata: {
