@@ -1,7 +1,6 @@
 import {
   blockProtocolDataTypes,
   blockProtocolPropertyTypes,
-  systemDataTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";

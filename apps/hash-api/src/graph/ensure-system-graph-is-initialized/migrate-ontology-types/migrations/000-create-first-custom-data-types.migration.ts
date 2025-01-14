@@ -1,7 +1,4 @@
-import {
-  blockProtocolDataTypes,
-  systemDataTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type { MigrationFunction } from "../types";
 import { createSystemDataTypeIfNotExists } from "../util";
