@@ -532,7 +532,9 @@ where
                 )
             });
 
-            compiler.add_filter(&params.filter);
+            compiler
+                .add_filter(&params.filter)
+                .change_context(QueryError)?;
 
             let (statement, parameters) = compiler.compile();
 
@@ -643,7 +645,9 @@ where
                     },
                     ParameterList::EntityTypeIds(&type_uuids),
                 );
-                type_compiler.add_filter(&filter);
+                type_compiler
+                    .add_filter(&filter)
+                    .change_context(QueryError)?;
 
                 let (statement, parameters) = type_compiler.compile();
 
