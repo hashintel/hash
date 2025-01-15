@@ -52,8 +52,8 @@
     "@ory/integrations": "1.1.4",
     "@popperjs/core": "2.11.8",
     "@react-sigma/core": "4.0.3",
-    "@sentry/nextjs": "7.120.2",
-    "@sentry/react": "7.120.2",
+    "@sentry/nextjs": "7.120.3",
+    "@sentry/react": "7.120.3",
     "@sentry/webpack-plugin": "1.21.0",
     "@sigma/edge-curve": "patch:@sigma/edge-curve@npm%3A3.0.0-beta.16#~/.yarn/patches/@sigma-edge-curve-npm-3.0.0-beta.16-3d8b985284.patch",
     "@sigma/node-border": "3.0.0",
@@ -72,7 +72,7 @@
     "elkjs": "0.9.3",
     "emoji-mart": "5.6.0",
     "fractional-indexing": "2.1.0",
-    "framer-motion": "11.16.0",
+    "framer-motion": "11.18.0",
     "graphology": "0.25.4",
     "graphology-layout": "0.6.1",
     "graphology-layout-forceatlas2": "0.10.1",
@@ -90,7 +90,7 @@
     "next-seo": "6.6.0",
     "nextjs-progressbar": "0.0.16",
     "notistack": "2.0.8",
-    "papaparse": "5.4.1",
+    "papaparse": "5.5.1",
     "prismjs": "1.29.0",
     "prosemirror-collab": "1.3.0",
     "prosemirror-commands": "1.3.1",
@@ -123,7 +123,7 @@
     "signia-react": "0.1.5",
     "url-regex-safe": "4.0.0",
     "use-font-face-observer": "1.2.2",
-    "uuid": "11.0.4"
+    "uuid": "11.0.5"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.3",
@@ -150,9 +150,9 @@
     "eslint": "9.17.0",
     "graphology-types": "0.24.8",
     "rimraf": "6.0.1",
-    "sass": "1.83.1",
-    "typescript": "5.7.2",
-    "wait-on": "8.0.1",
+    "sass": "1.83.4",
+    "typescript": "5.7.3",
+    "wait-on": "8.0.2",
     "webpack": "5.97.1"
   }
 }

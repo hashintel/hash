@@ -294,7 +294,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
     let mut zanzibar_client = ZanzibarClient::new(spicedb_client);
     zanzibar_client.seed().await.change_context(GraphError)?;
 
-    let temporal_client_fn = async |host: Option<String>, port: u16| {
+    let temporal_client_fn = |host: Option<String>, port: u16| async move {
         if let Some(host) = host {
             TemporalClientConfig::new(
                 Url::from_str(&format!("{host}:{port}")).change_context(GraphError)?,

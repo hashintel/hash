@@ -76,7 +76,7 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         let closed_schema_index =
             compiler.add_selection_path(&EntityTypeQueryPath::ClosedSchema(None));
 
-        compiler.add_filter(filter);
+        compiler.add_filter(filter).change_context(QueryError)?;
         let (statement, parameters) = compiler.compile();
 
         Ok(self

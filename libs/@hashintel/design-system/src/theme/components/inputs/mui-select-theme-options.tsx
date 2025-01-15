@@ -70,7 +70,7 @@ export const MuiSelectThemeOptions: Components<Theme>["MuiSelect"] = {
         },
 
       [`&:focus ~ .${outlinedInputClasses.notchedOutline}`]: {
-        border: `1px solid ${theme.palette.blue[60]}`,
+        border: `2px solid ${theme.palette.blue[60]}`,
       },
     }),
     icon: ({ theme }) => ({

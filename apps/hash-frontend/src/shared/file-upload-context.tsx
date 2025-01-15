@@ -82,6 +82,11 @@ type FileUploadRequestData = {
   requestId?: string;
   // A function which will be called when the upload is complete
   onComplete?: (upload: FileUploadComplete) => unknown;
+  /**
+   * If true, return the file upload as soon as it is created, rather than waiting for upload to be complete.
+   * This allows accessing the requestId immediately for use in monitoring progress via useFileUploadProgress
+   */
+  returnBeforeCompletion?: boolean;
 };
 
 type FileUploadEntities = {
@@ -98,7 +103,7 @@ type FileUploadStatus =
   | "complete";
 
 type FileUploadVariant<T extends { status: FileUploadStatus }> =
-  FileUploadRequestData & { requestId: string } & T;
+  FileUploadRequestData & { createdAt: string; requestId: string } & T;
 
 type FileCreatingFileEntity = FileUploadVariant<{
   status: "creating-file-entity";
@@ -142,6 +147,11 @@ export type FileUpload =
   | FileUploadComplete;
 
 export type FileUploadsContextValue = {
+  /**
+   * Provides all registered file uploads.
+   * Does NOT rerender as file upload progresses
+   * – if you need to subscribe to file upload status, use useFileUploadsProgress
+   */
   uploads: FileUpload[];
   uploadFile: (args: FileUploadRequestData) => Promise<FileUpload>;
 };
@@ -209,47 +219,23 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
     [],
   );
 
-  const uploadFile: FileUploadsContextValue["uploadFile"] = useCallback(
+  const processFileUpload = useCallback(
     async ({
+      existingUpload,
       fileData,
       linkedEntityData,
       makePublic,
-      onComplete,
       ownedById,
       requestId,
-    }) => {
-      const existingUpload = requestId
-        ? uploads.find((upload) => upload.requestId === requestId)
-        : null;
-
-      if (requestId && !existingUpload) {
-        throw new Error(
-          `Could not find existing upload with requestId ${requestId}`,
-        );
-      }
-
+      upload,
+    }: Omit<FileUploadRequestData, "onComplete" | "returnBeforeCompletion"> & {
+      upload: FileUpload;
+      existingUpload?: FileUpload | null;
+    }): Promise<FileUpload> => {
       if (existingUpload && existingUpload.status !== "error") {
         throw new Error(
           `File upload request ${requestId} is not in error status, cannot retry. Current status: ${existingUpload.status}`,
         );
-      }
-
-      const newRequestId = requestId ? undefined : uuid();
-
-      let upload: FileUpload =
-        existingUpload ??
-        ({
-          fileData,
-          linkedEntityData,
-          makePublic,
-          onComplete,
-          ownedById,
-          requestId: newRequestId!,
-          status: "creating-file-entity",
-        } satisfies FileUpload);
-
-      if (!existingUpload) {
-        setUploads((prevUploads) => [...prevUploads, upload]);
       }
 
       const { description, name } = fileData;
@@ -359,6 +345,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
 
             presignedPut = data.requestFileUpload.presignedPut;
 
+            // eslint-disable-next-line no-param-reassign
             upload = {
               ...upload,
               createdEntities: { fileEntity },
@@ -464,6 +451,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         linkEntityIdToDelete &&
         existingUpload?.failedStep !== "creating-link-entity"
       ) {
+        // eslint-disable-next-line no-param-reassign
         upload = {
           ...upload,
           createdEntities: {
@@ -502,6 +490,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         }
       }
 
+      // eslint-disable-next-line no-param-reassign
       upload = {
         ...upload,
         createdEntities: {
@@ -578,8 +567,73 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       requestFileUploadFn,
       updateUpload,
       updateEntity,
-      uploads,
     ],
+  );
+
+  const uploadFile: FileUploadsContextValue["uploadFile"] = useCallback(
+    async ({
+      fileData,
+      linkedEntityData,
+      makePublic,
+      onComplete,
+      ownedById,
+      requestId,
+      returnBeforeCompletion,
+    }) => {
+      const existingUpload = requestId
+        ? uploads.find((upload) => upload.requestId === requestId)
+        : null;
+
+      if (requestId && !existingUpload) {
+        throw new Error(
+          `Could not find existing upload with requestId ${requestId}`,
+        );
+      }
+
+      const newRequestId = requestId ? undefined : uuid();
+
+      const upload: FileUpload =
+        existingUpload ??
+        ({
+          createdAt: new Date().toISOString(),
+          fileData,
+          linkedEntityData,
+          makePublic,
+          onComplete,
+          ownedById,
+          requestId: newRequestId!,
+          returnBeforeCompletion,
+          status: "creating-file-entity",
+        } satisfies FileUpload);
+
+      if (!existingUpload) {
+        setUploads((prevUploads) => [...prevUploads, upload]);
+      }
+
+      if (returnBeforeCompletion) {
+        void processFileUpload({
+          existingUpload,
+          fileData,
+          linkedEntityData,
+          makePublic,
+          ownedById,
+          requestId,
+          upload,
+        });
+        return upload;
+      }
+
+      return await processFileUpload({
+        existingUpload,
+        fileData,
+        linkedEntityData,
+        makePublic,
+        ownedById,
+        requestId,
+        upload,
+      });
+    },
+    [processFileUpload, uploads],
   );
 
   const mainContextValue: FileUploadsContextValue = useMemo(

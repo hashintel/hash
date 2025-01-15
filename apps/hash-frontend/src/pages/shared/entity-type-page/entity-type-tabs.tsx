@@ -3,7 +3,6 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
 
-import { useEntityTypeEntitiesContext } from "../../../shared/entity-type-entities-context";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { TabLink } from "../../../shared/ui/tab-link";
 import { Tabs } from "../../../shared/ui/tabs";
@@ -24,8 +23,6 @@ export const EntityTypeTabs = ({
   const router = useRouter();
 
   const entityType = useEntityType();
-
-  const { entities, loading } = useEntityTypeEntitiesContext();
 
   const currentTab = useCurrentTab();
 
@@ -56,8 +53,6 @@ export const EntityTypeTabs = ({
                 value={getTabValue("entities")}
                 href={getTabUrl("entities")}
                 label="Entities"
-                loading={loading}
-                count={entities?.length ?? 0}
                 active={currentTab === "entities"}
               />,
               isLinkEntityType ? (

@@ -1,16 +1,13 @@
 import { useQuery } from "@apollo/client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  CountEntitiesQuery,
+  CountEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { countEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { pollInterval } from "./poll-interval";
 
@@ -42,8 +39,8 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
     data: draftEntitiesData,
     refetch,
     loading,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
+  } = useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(
+    countEntitiesQuery,
     {
       variables: {
         request: {
@@ -60,12 +57,8 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
             ],
           },
           temporalAxes: currentTimeInstantTemporalAxes,
-          graphResolveDepths: zeroedGraphResolveDepths,
-          includeCount: true,
           includeDrafts: true,
-          limit: 0,
         },
-        includePermissions: false,
       },
       pollInterval,
       fetchPolicy: "network-only",
@@ -75,7 +68,7 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
 
   const value = useMemo<DraftEntitiesCountContextValue>(
     () => ({
-      count: draftEntitiesData?.getEntitySubgraph.count ?? undefined,
+      count: draftEntitiesData?.countEntities ?? undefined,
       loading,
       refetch: async () => {
         await refetch();

@@ -661,7 +661,7 @@ impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<
 #[tracing::instrument(
     level = "info",
     skip_all,
-    fields(actor=%actor_id, %request)
+    fields(actor=%actor_id)
 )]
 async fn get_entities<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,

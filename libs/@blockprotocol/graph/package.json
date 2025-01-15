@@ -69,21 +69,21 @@
     "@blockprotocol/type-system": "0.1.2-canary.0",
     "ajv": "8.17.1",
     "ajv-formats": "3.0.1",
-    "json-schema-to-typescript": "15.0.3",
+    "json-schema-to-typescript": "15.0.4",
     "lit": "2.8.0",
     "lodash.isequal": "4.5.0",
-    "typescript": "5.7.2"
+    "typescript": "5.7.3"
   },
   "devDependencies": {
     "@apidevtools/json-schema-ref-parser": "11.7.3",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.isequal": "4.5.8",
-    "@types/node": "22.10.5",
+    "@types/node": "22.10.6",
     "@types/react": "19.0.1",
     "eslint": "9.17.0",
     "rimraf": "6.0.1",
-    "typescript": "5.7.2"
+    "typescript": "5.7.3"
   },
   "peerDependencies": {
     "react": "^19.0.0"
