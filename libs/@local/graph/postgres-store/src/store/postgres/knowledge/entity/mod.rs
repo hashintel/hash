@@ -622,7 +622,6 @@ where
                 .count();
             let type_ids = type_ids.map(HashMap::from);
 
-            #[expect(clippy::if_then_some_else_none)]
             let type_titles = if params.include_type_titles {
                 let type_uuids = type_ids
                     .as_ref()

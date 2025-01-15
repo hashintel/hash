@@ -180,17 +180,19 @@ mod tests {
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
-        compiler.add_filter(&Filter::Equal(
-            Some(FilterExpression::Path {
-                path: DataTypeQueryPath::VersionedUrl,
-            }),
-            Some(FilterExpression::Parameter {
-                parameter: Parameter::Text(Cow::Borrowed(
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                )),
-                convert: None,
-            }),
-        ));
+        compiler
+            .add_filter(&Filter::Equal(
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::VersionedUrl,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    )),
+                    convert: None,
+                }),
+            ))
+            .expect("Failed to add filter");
         test_compilation(
             &compiler,
             r#"
@@ -221,7 +223,7 @@ mod tests {
                 convert: None,
             }),
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
         test_compilation(
             &compiler,
             r#"
@@ -252,7 +254,7 @@ mod tests {
                 convert: None,
             }),
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
         test_compilation(
             &compiler,
             r#"
@@ -294,7 +296,7 @@ mod tests {
                 }),
             ),
         ]);
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -321,15 +323,17 @@ mod tests {
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
-        compiler.add_filter(&Filter::Equal(
-            Some(FilterExpression::Path {
-                path: DataTypeQueryPath::Version,
-            }),
-            Some(FilterExpression::Parameter {
-                parameter: Parameter::Text(Cow::Borrowed("latest")),
-                convert: None,
-            }),
-        ));
+        compiler
+            .add_filter(&Filter::Equal(
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Version,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("latest")),
+                    convert: None,
+                }),
+            ))
+            .expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -353,15 +357,17 @@ mod tests {
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
-        compiler.add_filter(&Filter::NotEqual(
-            Some(FilterExpression::Path {
-                path: DataTypeQueryPath::Version,
-            }),
-            Some(FilterExpression::Parameter {
-                parameter: Parameter::Text(Cow::Borrowed("latest")),
-                convert: None,
-            }),
-        ));
+        compiler
+            .add_filter(&Filter::NotEqual(
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Version,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("latest")),
+                    convert: None,
+                }),
+            ))
+            .expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -385,18 +391,20 @@ mod tests {
         let mut compiler =
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
-        compiler.add_filter(&Filter::Equal(
-            Some(FilterExpression::Path {
-                path: PropertyTypeQueryPath::DataTypeEdge {
-                    edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
-                    path: DataTypeQueryPath::Title,
-                },
-            }),
-            Some(FilterExpression::Parameter {
-                parameter: Parameter::Text(Cow::Borrowed("Text")),
-                convert: None,
-            }),
-        ));
+        compiler
+            .add_filter(&Filter::Equal(
+                Some(FilterExpression::Path {
+                    path: PropertyTypeQueryPath::DataTypeEdge {
+                        edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
+                        path: DataTypeQueryPath::Title,
+                    },
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("Text")),
+                    convert: None,
+                }),
+            ))
+            .expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -444,7 +452,7 @@ mod tests {
                 }),
             ),
         ]);
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -498,7 +506,7 @@ mod tests {
                 convert: None,
             }),
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -539,7 +547,7 @@ mod tests {
                 convert: None,
             }),
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -587,7 +595,7 @@ mod tests {
                 convert: None,
             }),
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -639,7 +647,7 @@ mod tests {
                 convert: None,
             }),
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -679,7 +687,7 @@ mod tests {
                 convert: None,
             }),
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -725,7 +733,7 @@ mod tests {
                 convert: None,
             }),
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -770,7 +778,7 @@ mod tests {
                 convert: None,
             }),
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -808,7 +816,7 @@ mod tests {
             }),
             None,
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -853,7 +861,7 @@ mod tests {
                 convert: None,
             }),
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -914,7 +922,7 @@ mod tests {
                 convert: None,
             }),
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -1012,7 +1020,7 @@ mod tests {
                 }),
             ),
         ]);
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -1090,7 +1098,7 @@ mod tests {
                 }),
             ),
         ]);
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -1163,7 +1171,7 @@ mod tests {
                 convert: None,
             },
         );
-        compiler.add_filter(&filter);
+        compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
             &compiler,
@@ -1215,7 +1223,7 @@ mod tests {
                 SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
             let filter = Filter::for_versioned_url(&url);
-            compiler.add_filter(&filter);
+            compiler.add_filter(&filter).expect("Failed to add filter");
 
             test_compilation(
                 &compiler,
@@ -1244,7 +1252,7 @@ mod tests {
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
             let filter = Filter::for_entity_by_entity_id(entity_id);
-            compiler.add_filter(&filter);
+            compiler.add_filter(&filter).expect("Failed to add filter");
 
             test_compilation(
                 &compiler,
