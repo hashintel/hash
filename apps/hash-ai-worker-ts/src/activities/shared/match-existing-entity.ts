@@ -404,6 +404,11 @@ ${potentialMatches
 
 Do any of the potential matches match the new entity?
 If so, please provide the entityId of the match, and merged versions of properties which are suitable for merging.
+
+Remember to pay close attention to each property you are provided with.
+Differences in some properties between the new entity and the potential matches will make it clear that the entities do NOT match, e.g. because they refer to different dates, versions, roles, values, actors involved, etc.
+Check differences in property values to see if they are significant.
+
 ${previousError ? `Your previous response had an error – please do not repeat it: ${previousError}` : ""}`;
 };
 

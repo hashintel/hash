@@ -288,7 +288,7 @@ const matchTestData: MatchExistingEntityTest[] = [
     inputData: {
       potentialMatches: [
         {
-          entityId: ceoStarted2020Uuid,
+          entityId: generateEntityId(),
           metadata: {
             entityTypeIds: [
               "https://hash.ai/@hash/types/entity-type/worked-at/v/1",
@@ -310,7 +310,7 @@ const matchTestData: MatchExistingEntityTest[] = [
           },
           properties: {
             [systemPropertyTypes.role.propertyTypeBaseUrl]: "CEO",
-            [systemPropertyTypes.appliesFrom.propertyTypeBaseUrl]: "2022-04-22",
+            [systemPropertyTypes.appliesFrom.propertyTypeBaseUrl]: "2011-04-22",
           },
           propertiesMetadata: emptyMetadataObject,
         },
@@ -420,13 +420,11 @@ test(
   async () => {
     const models: LlmParams["model"][] = [
       "claude-3-haiku-20240307",
-      "claude-3-5-sonnet-20240620",
-      "gpt-4o-mini-2024-07-18",
       "gpt-4o-2024-08-06",
     ];
 
     await optimizeSystemPrompt({
-      attemptsPerPrompt: 10,
+      attemptsPerPrompt: 8,
       models,
       initialSystemPrompt: matchExistingEntitySystemPrompt,
       directoryPath: baseDirectoryPath,
