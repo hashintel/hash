@@ -606,7 +606,7 @@ export const matchExistingEntity = async <T extends ExistingEntityForMatching>({
       );
     }
 
-    if (mergedValue) {
+    if (mergedValue || newValue === match.properties[baseUrl]) {
       const existingSources =
         existingMetadataForProperty &&
         isValueMetadata(existingMetadataForProperty)
