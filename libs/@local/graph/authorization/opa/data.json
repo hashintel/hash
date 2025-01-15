@@ -1,0 +1,66 @@
+{
+  "organizations": {
+    "hash": {
+      "members": ["tim", "ciaran", "david"],
+      "roles": {
+        "admin": ["member"],
+        "member": []
+      },
+      "policies": {
+        "member": [
+          {
+            "action": "entity:view",
+            "effect": { "type": "allow", "level": 10 },
+            "resource": { "value": "cond3" }
+          },
+          {
+            "action": "entity:view",
+            "effect": { "type": "deny", "level": 5 },
+            "resource": { "value": "cond4" }
+          }
+        ]
+      }
+    },
+    "mpi": {
+      "members": ["bilal"],
+      "roles": {
+        "admin": ["member"],
+        "member": []
+      }
+    }
+  },
+  "users": {
+    "tim": {
+      "policies": [
+        {
+          "action": "entity:view",
+          "effect": { "type": "deny", "level": 0 },
+          "resource": { "type": "cond2" }
+        }
+      ],
+      "organizations": [
+        {
+          "name": "hash",
+          "roles": ["admin"]
+        }
+      ]
+    },
+    "*": {
+      "policies": [
+        {
+          "action": "entity:view",
+          "effect": { "type": "allow", "level": 0 },
+          "resource": { "owner": "cond1" }
+        }
+      ]
+    }
+  },
+  "entities": {
+    "entity-a": {
+      "owner": "tim",
+      "id": "person",
+      "value": "yes-tim",
+      "type": "tim-type"
+    }
+  }
+}

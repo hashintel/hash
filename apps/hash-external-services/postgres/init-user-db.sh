@@ -20,6 +20,15 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
 
   GRANT CONNECT ON DATABASE $HASH_KRATOS_PG_DATABASE TO $HASH_KRATOS_PG_USER;
 
+  -- Create Cerbos database and user
+  CREATE USER $HASH_CERBOS_PG_USER WITH PASSWORD '$HASH_CERBOS_PG_PASSWORD';
+
+  CREATE DATABASE $HASH_CERBOS_PG_DATABASE;
+
+  REVOKE ALL ON DATABASE $HASH_CERBOS_PG_DATABASE FROM $HASH_CERBOS_PG_USER;
+
+  GRANT CONNECT ON DATABASE $HASH_CERBOS_PG_DATABASE TO $HASH_CERBOS_PG_USER;
+
   -- Create Graph database and user
   CREATE USER $HASH_GRAPH_PG_USER WITH PASSWORD '$HASH_GRAPH_PG_PASSWORD';
 
@@ -33,7 +42,6 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
   CREATE USER $HASH_GRAPH_REALTIME_PG_USER WITH PASSWORD '$HASH_GRAPH_REALTIME_PG_PASSWORD';
 
   ALTER ROLE $HASH_GRAPH_REALTIME_PG_USER REPLICATION;
-
 EOSQL
 
 if [[ -n $HASH_SPICEDB_PG_USER && \
@@ -52,7 +60,6 @@ if [[ -n $HASH_SPICEDB_PG_USER && \
 EOSQL
 
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_SPICEDB_PG_DATABASE" <<-EOSQL
-
     REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 
     ALTER DEFAULT PRIVILEGES
@@ -66,7 +73,6 @@ else
 fi
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_HYDRA_PG_DATABASE" <<-EOSQL
-
   REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 
   ALTER DEFAULT PRIVILEGES
@@ -74,11 +80,9 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_HYDRA_PG_DAT
 
   ALTER DEFAULT PRIVILEGES
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO $HASH_HYDRA_PG_USER;
-
 EOSQL
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_KRATOS_PG_DATABASE" <<-EOSQL
-
   REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 
   ALTER DEFAULT PRIVILEGES
@@ -86,13 +90,12 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_KRATOS_PG_DA
 
   ALTER DEFAULT PRIVILEGES
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO $HASH_KRATOS_PG_USER;
-
 EOSQL
 
 if [[ -n $HASH_TEMPORAL_PG_DATABASE && \
       -n $HASH_TEMPORAL_PG_USER && \
       -n $HASH_TEMPORAL_PG_PASSWORD && \
-      -n $HASH_TEMPORAL_VISIBILITY_PG_DATABASE 
+      -n $HASH_TEMPORAL_VISIBILITY_PG_DATABASE
     ]]; then
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
     -- Create Temporal databases and user
@@ -120,9 +123,7 @@ EOSQL
 
     ALTER DEFAULT PRIVILEGES
     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO $HASH_TEMPORAL_PG_USER;
-
 EOSQL
-
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_TEMPORAL_VISIBILITY_PG_DATABASE" <<-EOSQL
 
     REVOKE CREATE ON SCHEMA public FROM PUBLIC;
@@ -132,13 +133,83 @@ EOSQL
 
     ALTER DEFAULT PRIVILEGES
     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO $HASH_TEMPORAL_PG_USER;
-
 EOSQL
 else
   echo "Notice: Temporal database credentials aren't set. Skipping creation."
 fi
 
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_CERBOS_PG_DATABASE" <<-EOSQL
+    CREATE TABLE IF NOT EXISTS policy (
+        id bigint NOT NULL PRIMARY KEY,
+        kind VARCHAR(128) NOT NULL,
+        name VARCHAR(1024) NOT NULL,
+        version VARCHAR(128) NOT NULL,
+        scope VARCHAR(512),
+        description TEXT,
+        disabled BOOLEAN default false,
+        definition BYTEA
+    );
 
+    CREATE TABLE IF NOT EXISTS policy_dependency (
+        policy_id BIGINT,
+        dependency_id BIGINT,
+        PRIMARY KEY (policy_id, dependency_id),
+        FOREIGN KEY (policy_id) REFERENCES policy(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS policy_ancestor (
+        policy_id BIGINT,
+        ancestor_id BIGINT,
+        PRIMARY KEY (policy_id, ancestor_id),
+        FOREIGN KEY (policy_id) REFERENCES policy(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS policy_revision (
+        revision_id SERIAL PRIMARY KEY,
+        action VARCHAR(64),
+        id BIGINT,
+        kind VARCHAR(128),
+        name VARCHAR(1024),
+        version VARCHAR(128),
+        scope VARCHAR(512),
+        description TEXT,
+        disabled BOOLEAN,
+        definition BYTEA,
+        update_timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS attr_schema_defs (
+        id VARCHAR(255) PRIMARY KEY,
+        definition JSON
+    );
+
+    CREATE OR REPLACE FUNCTION process_policy_audit() RETURNS TRIGGER AS \$policy_audit\$
+        BEGIN
+            IF (TG_OP = 'DELETE') THEN
+                INSERT INTO policy_revision(action, id, kind, name, version, scope, description, disabled, definition)
+                VALUES('DELETE', OLD.id, OLD.kind, OLD.name, OLD.version, OLD.scope, OLD.description, OLD.disabled, OLD.definition);
+            ELSIF (TG_OP = 'UPDATE') THEN
+                INSERT INTO policy_revision(action, id, kind, name, version, scope, description, disabled, definition)
+                VALUES('UPDATE', NEW.id, NEW.kind, NEW.name, NEW.version, NEW.scope, NEW.description, NEW.disabled, NEW.definition);
+            ELSIF (TG_OP = 'INSERT') THEN
+                INSERT INTO policy_revision(action, id, kind, name, version, scope, description, disabled, definition)
+                VALUES('INSERT', NEW.id, NEW.kind, NEW.name, NEW.version, NEW.scope, NEW.description, NEW.disabled, NEW.definition);
+            END IF;
+            RETURN NULL;
+        END;
+    \$policy_audit\$ LANGUAGE plpgsql;
+
+    CREATE TRIGGER policy_audit
+    AFTER INSERT OR UPDATE OR DELETE ON policy
+    FOR EACH ROW EXECUTE PROCEDURE process_policy_audit();
+
+    ALTER DEFAULT PRIVILEGES
+    GRANT USAGE ON SCHEMAS TO $HASH_CERBOS_PG_USER;
+
+    GRANT SELECT,INSERT,UPDATE,DELETE ON policy, policy_dependency, policy_ancestor, attr_schema_defs TO $HASH_CERBOS_PG_USER;
+    GRANT SELECT,INSERT ON policy_revision TO $HASH_CERBOS_PG_USER;
+    GRANT USAGE,SELECT ON policy_revision_revision_id_seq TO $HASH_CERBOS_PG_USER;
+EOSQL
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_GRAPH_PG_DATABASE" <<-EOSQL
   -- Graph DB
@@ -162,5 +233,4 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_GRAPH_PG_DAT
   );
 
   GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE realtime.ownership TO $HASH_GRAPH_REALTIME_PG_USER;
-
 EOSQL

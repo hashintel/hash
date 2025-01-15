@@ -82,6 +82,13 @@ services:
       --set distributed_tracing.address=telemetry-collector:4317
       /policies
 
+  cerbos:
+    depends_on:
+      telemetry-collector:
+        condition: service_healthy
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "telemetry-collector:4317"
+
   spicedb-migrate:
     image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
     depends_on:
