@@ -36,7 +36,7 @@
     "d3-dag": "1.1.0",
     "date-fns": "4.1.0",
     "feed": "4.2.2",
-    "fs-extra": "11.2.0",
+    "fs-extra": "11.3.0",
     "gray-matter": "4.0.3",
     "html-to-text": "9.0.5",
     "image-size": "1.2.0",
