@@ -1,7 +1,7 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import dedent from "dedent";
 
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { logger } from "../../../shared/activity-logger.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
