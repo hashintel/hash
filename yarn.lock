@@ -517,7 +517,7 @@ __metadata:
     "@types/gapi": "npm:0.0.47"
     "@types/google.accounts": "npm:0.0.15"
     "@types/google.picker": "npm:0.0.47"
-    "@types/iframe-resizer": "npm:3.5.13"
+    "@types/iframe-resizer": "npm:4.0.0"
     "@types/jsonpath": "npm:0.2.4"
     "@types/lodash": "npm:4.17.14"
     "@types/papaparse": "npm:5.3.15"
@@ -18483,10 +18483,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/iframe-resizer@npm:3.5.13":
-  version: 3.5.13
-  resolution: "@types/iframe-resizer@npm:3.5.13"
-  checksum: 10c0/265a22c9ca7a1ceb386c8a6dae34aba3d799c324e1c60c36ef2892c549ad8e5cb858b28bb191eb6857fc45a4a76f3c64c4d950233f40d28fbb5490a8ac916c53
+"@types/iframe-resizer@npm:4.0.0":
+  version: 4.0.0
+  resolution: "@types/iframe-resizer@npm:4.0.0"
+  checksum: 10c0/eacbaf85f88be06903a707374b5cf8cbbd250b819349638165f5499ecfc535bf538a3a8f96855c656aa35bff9322fb2b49efb4c892e87b2c5898adae2b307ccf
   languageName: node
   linkType: hard
 

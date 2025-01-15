@@ -137,7 +137,7 @@
     "@types/gapi": "0.0.47",
     "@types/google.accounts": "0.0.15",
     "@types/google.picker": "0.0.47",
-    "@types/iframe-resizer": "3.5.13",
+    "@types/iframe-resizer": "4.0.0",
     "@types/jsonpath": "0.2.4",
     "@types/lodash": "4.17.14",
     "@types/papaparse": "5.3.15",
