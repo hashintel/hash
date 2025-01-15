@@ -38,6 +38,7 @@
     "start:healthcheck": "wait-on --timeout 120000 http-get://localhost:4100/health",
     "start:test": "NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 node ./dist/main.js",
     "start:test:healthcheck": "wait-on --timeout 120000 http-get://localhost:4100/health",
+    "temporal:clean": "temporal workflow terminate --query \"TaskQueue='ai'\" --reason=\"Batch terminate from CLI\"",
     "test:unit": "vitest --run  --exclude \"**/*.ai.test.ts\""
   },
   "dependencies": {

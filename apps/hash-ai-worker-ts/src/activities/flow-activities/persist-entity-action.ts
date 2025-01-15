@@ -185,21 +185,26 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         });
 
         /**
-         * In practice we don't reassign existingEntity anywhere below it doesn't harm to make sure it will always
+         * In practice we don't reassign matchedEntityUpdate anywhere below it doesn't harm to make sure it will always
          * be the same thing in the backOff function.
          */
-        const stableReferenceToExistingEntity =
-          matchedEntityUpdate.existingEntity;
+        const stableReferenceToMatchedEntity = matchedEntityUpdate;
 
         entity = await backOff(
           () =>
-            stableReferenceToExistingEntity.patch(
+            stableReferenceToMatchedEntity.existingEntity.patch(
               graphApiClient,
               { actorId: webBotActorId },
               {
-                ...entityValues,
+                entityTypeIds:
+                  stableReferenceToMatchedEntity.newValues.entityTypeIds,
                 draft: existingEntityIsDraft ? true : createEditionAsDraft,
                 propertyPatches: patchOperations,
+                provenance: {
+                  ...entityValues.provenance,
+                  sources:
+                    stableReferenceToMatchedEntity.newValues.editionSources,
+                },
               },
             ),
           {

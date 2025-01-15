@@ -217,14 +217,13 @@ export const findExistingEntity = async ({
             },
           ],
         },
-        limit: 3,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts,
       })
       .then(({ data: response }) =>
-        response.entities.map((entity) =>
-          mapGraphApiEntityToEntity(entity, actorId),
-        ),
+        response.entities
+          .slice(0, 3)
+          .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
       );
   }
 
@@ -253,14 +252,13 @@ export const findExistingEntity = async ({
               },
             ],
           },
-          limit: 3,
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts,
         })
         .then(({ data: response }) =>
-          response.entities.map((entity) =>
-            mapGraphApiEntityToEntity(entity, actorId),
-          ),
+          response.entities
+            .slice(0, 3)
+            .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
         );
     }
   }
@@ -309,7 +307,10 @@ export const findExistingLinkEntity = async ({
           { equal: [{ path: ["archived"] }, { parameter: false }] },
           {
             any: proposedEntity.entityTypeIds.map((entityTypeId) => ({
-              equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+              equal: [
+                { path: ["type", "versionedUrl"] },
+                { parameter: entityTypeId },
+              ],
             })),
           },
           {

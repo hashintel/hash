@@ -191,7 +191,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     if (!output) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
         proposedEntity: unresolvedEntity,
-        message: `No outputs returned when attempting to persist entity`,
+        message:
+          persistedEntityOutputs.message ??
+          `No outputs returned when attempting to persist entity`,
       };
       continue;
     }
