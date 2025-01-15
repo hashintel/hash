@@ -93,8 +93,8 @@ const saveSummaryToCSV = (params: {
     "Iteration",
     "System Prompt",
     "Overall Score",
-    ...models.map((model) => `"Average Score for ${model}"`),
-    ...metrics.map((metric) => `"Average Score for ${metric.name}"`),
+    ...models.map((model) => model),
+    ...metrics.map((metric) => metric.name),
   ];
 
   const rows = results.map(
@@ -132,9 +132,9 @@ const saveSummaryToCSV = (params: {
       return [
         iteration.toString(),
         escapeCSV(systemPrompt),
-        overallScore.toString(),
-        ...modelAverageScores.map((score) => score.toString()),
-        ...metricAverageScores.map((score) => score.toString()),
+        overallScore.toFixed(2),
+        ...modelAverageScores.map((score) => score.toFixed(2)),
+        ...metricAverageScores.map((score) => score.toFixed(2)),
       ];
     },
   );

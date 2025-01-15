@@ -16,7 +16,11 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
+import {
+  mapGraphApiEntityToEntity,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityTypeRootType } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
@@ -28,7 +32,10 @@ import { logger } from "./activity-logger.js";
 import type { DereferencedEntityType } from "./dereference-entity-type.js";
 import { dereferenceEntityType } from "./dereference-entity-type.js";
 import { createEntityEmbeddings } from "./embeddings.js";
-import { getEntityByFilter } from "./get-entity-by-filter.js";
+import {
+  type MatchedEntityUpdate,
+  matchExistingEntity,
+} from "./match-existing-entity.js";
 
 export const findExistingEntity = async ({
   actorId,
@@ -42,9 +49,12 @@ export const findExistingEntity = async ({
   dereferencedEntityTypes?: DereferencedEntityType[];
   graphApiClient: GraphApi;
   ownedById: OwnedById;
-  proposedEntity: Pick<ProposedEntity, "entityTypeIds" | "properties">;
+  proposedEntity: Pick<
+    ProposedEntity,
+    "entityTypeIds" | "properties" | "propertyMetadata" | "provenance"
+  >;
   includeDrafts: boolean;
-}): Promise<Entity | undefined> => {
+}): Promise<MatchedEntityUpdate<Entity> | null> => {
   const entityTypes: DereferencedEntityType[] =
     dereferencedEntityTypes ??
     (await graphApiClient
@@ -194,25 +204,30 @@ export const findExistingEntity = async ({
       })
       .filter(<T>(filter: T): filter is NonNullable<T> => filter !== null);
 
-  let existingEntity: Entity | undefined;
+  let potentialMatches: Entity[] | undefined;
 
   if (semanticDistanceFilters.length > 0) {
-    existingEntity = await getEntityByFilter({
-      actorId,
-      graphApiClient,
-      filter: {
-        all: [
-          ...existingEntityBaseAllFilter,
-          {
-            any: semanticDistanceFilters,
-          },
-        ],
-      },
-      includeDrafts,
-    });
+    potentialMatches = await graphApiClient
+      .getEntities(actorId, {
+        filter: {
+          all: [
+            ...existingEntityBaseAllFilter,
+            {
+              any: semanticDistanceFilters,
+            },
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
+      })
+      .then(({ data: response }) =>
+        response.entities
+          .slice(0, 3)
+          .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
+      );
   }
 
-  if (!existingEntity) {
+  if (!potentialMatches?.length) {
     // If we didn't find a match on individual properties, try matching on the entire properties object
     const propertyObjectEmbedding = embeddings.find(
       (embedding) => !embedding.property,
@@ -221,100 +236,221 @@ export const findExistingEntity = async ({
     if (!propertyObjectEmbedding) {
       logger.error(`Could not find embedding for properties object – skipping`);
     } else {
-      existingEntity = await getEntityByFilter({
-        actorId,
-        graphApiClient,
-        filter: {
-          all: [
-            ...existingEntityBaseAllFilter,
-            {
-              cosineDistance: [
-                { path: ["embedding"] },
-                {
-                  parameter: propertyObjectEmbedding.embedding,
-                },
-                { parameter: maximumSemanticDistance },
-              ],
-            },
-          ],
-        },
-        includeDrafts,
-      });
+      potentialMatches = await graphApiClient
+        .getEntities(actorId, {
+          filter: {
+            all: [
+              ...existingEntityBaseAllFilter,
+              {
+                cosineDistance: [
+                  { path: ["embedding"] },
+                  {
+                    parameter: propertyObjectEmbedding.embedding,
+                  },
+                  { parameter: maximumSemanticDistance },
+                ],
+              },
+            ],
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts,
+        })
+        .then(({ data: response }) =>
+          response.entities
+            .slice(0, 3)
+            .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
+        );
     }
   }
 
-  return existingEntity;
+  if (!potentialMatches?.length) {
+    return null;
+  }
+
+  const match = await matchExistingEntity({
+    isLink: false,
+    entities: {
+      newEntity: {
+        ...proposedEntity,
+        propertiesMetadata: proposedEntity.propertyMetadata,
+        editionSources: proposedEntity.provenance.sources ?? [],
+      },
+      potentialMatches,
+    },
+  });
+
+  return match;
 };
 
 export const findExistingLinkEntity = async ({
   actorId,
   graphApiClient,
+  includeDrafts,
   linkData,
   ownedById,
-  includeDrafts,
+  proposedEntity,
 }: {
   actorId: AccountId;
   graphApiClient: GraphApi;
+  includeDrafts: boolean;
   linkData: LinkData;
   ownedById: OwnedById;
-  includeDrafts: boolean;
-}) => {
-  return await getEntityByFilter({
-    actorId,
-    graphApiClient,
-    filter: {
-      all: [
-        { equal: [{ path: ["archived"] }, { parameter: false }] },
-        {
-          equal: [
-            { path: ["ownedById"] },
-            {
-              parameter: ownedById,
-            },
-          ],
+  proposedEntity: Pick<
+    ProposedEntity,
+    "entityTypeIds" | "properties" | "propertyMetadata" | "provenance"
+  >;
+}): Promise<MatchedEntityUpdate<Entity> | null> => {
+  const linksWithOverlappingTypes = await graphApiClient
+    .getEntities(actorId, {
+      filter: {
+        all: [
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+          {
+            any: proposedEntity.entityTypeIds.map((entityTypeId) => ({
+              equal: [
+                { path: ["type", "versionedUrl"] },
+                { parameter: entityTypeId },
+              ],
+            })),
+          },
+          {
+            equal: [
+              { path: ["ownedById"] },
+              {
+                parameter: ownedById,
+              },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: ["leftEntity", "ownedById"],
+              },
+              {
+                parameter: extractOwnedByIdFromEntityId(linkData.leftEntityId),
+              },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: ["leftEntity", "uuid"],
+              },
+              {
+                parameter: extractEntityUuidFromEntityId(linkData.leftEntityId),
+              },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: ["rightEntity", "ownedById"],
+              },
+              {
+                parameter: extractOwnedByIdFromEntityId(linkData.rightEntityId),
+              },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: ["rightEntity", "uuid"],
+              },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  linkData.rightEntityId,
+                ),
+              },
+            ],
+          },
+        ],
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
+    })
+    .then(({ data }) =>
+      data.entities.map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
+    );
+
+  if (!linksWithOverlappingTypes.length) {
+    return null;
+  }
+
+  const newInputHasNoProperties =
+    Object.keys(proposedEntity.properties).length === 0;
+
+  if (newInputHasNoProperties) {
+    const newInputTypeSet = new Set(proposedEntity.entityTypeIds);
+
+    /**
+     * If the new input has no properties, we look for an existing link with the same type(s) which also has no properties.
+     * If we find it, we will take it as a match, on the basis that the only meaningful information present (types) matches.
+     * We'll merge the sources listed for the edition to capture the fact that we inferred this link from multiple sources.
+     */
+    const potentialMatchWithNoProperties = linksWithOverlappingTypes.find(
+      (entity) => {
+        if (Object.keys(entity.properties).length !== 0) {
+          return false;
+        }
+
+        const potentialMatchTypeSet = new Set(entity.metadata.entityTypeIds);
+
+        return (
+          newInputTypeSet.size === potentialMatchTypeSet.size &&
+          newInputTypeSet.isSupersetOf(potentialMatchTypeSet)
+        );
+      },
+    );
+
+    if (potentialMatchWithNoProperties) {
+      return {
+        existingEntity: potentialMatchWithNoProperties,
+        newValues: {
+          entityTypeIds: proposedEntity.entityTypeIds,
+          propertyMetadata: proposedEntity.propertyMetadata,
+          editionSources: deduplicateSources([
+            ...(proposedEntity.provenance.sources ?? []),
+            ...(potentialMatchWithNoProperties.metadata.provenance.edition
+              .sources ?? []),
+          ]),
+          properties: {},
         },
-        {
-          equal: [
-            {
-              path: ["leftEntity", "ownedById"],
-            },
-            {
-              parameter: extractOwnedByIdFromEntityId(linkData.leftEntityId),
-            },
-          ],
-        },
-        {
-          equal: [
-            {
-              path: ["leftEntity", "uuid"],
-            },
-            {
-              parameter: extractEntityUuidFromEntityId(linkData.leftEntityId),
-            },
-          ],
-        },
-        {
-          equal: [
-            {
-              path: ["rightEntity", "ownedById"],
-            },
-            {
-              parameter: extractOwnedByIdFromEntityId(linkData.rightEntityId),
-            },
-          ],
-        },
-        {
-          equal: [
-            {
-              path: ["rightEntity", "uuid"],
-            },
-            {
-              parameter: extractEntityUuidFromEntityId(linkData.rightEntityId),
-            },
-          ],
-        },
-      ],
+      };
+    } else {
+      /**
+       * If all the existing links either have some properties or don't have the exact same set of types,
+       * we'll err on the safe side and not pick one to apply the new input as an update to.
+       */
+      return null;
+    }
+  }
+
+  /**
+   * If we've reached here, the input has some properties
+   */
+  const potentialMatchesWithProperties = linksWithOverlappingTypes.filter(
+    (entity) => Object.keys(entity.properties).length > 0,
+  );
+
+  if (!potentialMatchesWithProperties.length) {
+    /**
+     * If none of the existing links have property values,
+     * we'll err on the safe side and not pick one to apply the new input as an update to.
+     */
+    return null;
+  }
+
+  const match = await matchExistingEntity({
+    isLink: false,
+    entities: {
+      newEntity: {
+        ...proposedEntity,
+        propertiesMetadata: proposedEntity.propertyMetadata,
+        editionSources: proposedEntity.provenance.sources ?? [],
+      },
+      potentialMatches: potentialMatchesWithProperties,
     },
-    includeDrafts,
   });
+
+  return match;
 };

@@ -25,6 +25,7 @@ The service uses the following environment variables:
 
 ### Run the worker
 
+- To use actions which require Google Cloud Platform, you must run `gcloud auth application-default login` before starting the worker.
 - Ensure the environment variables above are set, either in `.env.local` or in your shell.
 - Install dependencies:
   - `yarn`
