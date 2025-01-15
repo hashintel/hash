@@ -387,7 +387,9 @@ where
                 compiler.add_selection_path(&EntityTypeQueryPath::EditionProvenance(None))
             });
 
-            compiler.add_filter(&params.filter);
+            compiler
+                .add_filter(&params.filter)
+                .change_context(QueryError)?;
 
             let (statement, parameters) = compiler.compile();
 

@@ -2,6 +2,7 @@ use alloc::borrow::Cow;
 use core::{iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
+use error_stack::{Report, bail, ensure};
 use hash_graph_store::{
     filter::{
         Filter, FilterExpression, Parameter, ParameterList, ParameterType, PathToken, QueryRecord,
@@ -47,7 +48,7 @@ pub struct CompilerArtifacts<'p> {
     condition_index: usize,
     required_tables: HashSet<AliasedTable>,
     table_info: TableInfo,
-    uses_cursor: bool,
+    cursor_disallowed_reason: Option<&'static str>,
 }
 
 struct PathSelection {
@@ -64,6 +65,22 @@ pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     include_drafts: bool,
     table_hooks: HashMap<Table, fn(&mut Self, Alias)>,
     selections: HashMap<&'p T::QueryPath<'q>, PathSelection>,
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum SelectCompilerError {
+    #[display("Cannot convert parameter for distance function")]
+    ConvertDistanceParameter,
+    #[display("Only a single embedding for the same path is allowed")]
+    MultipleEmbeddings,
+    #[display("Only embeddings are supported for cosine distance")]
+    UnsupportedEmbeddingPath,
+    #[display(
+        "Cosine distance is only supported with exactly one `path` and one `parameter` expression."
+    )]
+    UnsupportedDistanceExpression,
+    #[display("Cannot add a cursor: {reason}")]
+    CursorDisallowed { reason: &'static str },
 }
 
 impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
@@ -109,7 +126,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     pinned_timestamp_index: None,
                     variable_interval_index: None,
                 },
-                uses_cursor: false,
+                cursor_disallowed_reason: None,
             },
             temporal_axes,
             table_hooks,
@@ -343,30 +360,36 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         rhs: Option<Expression>,
         ordering: Ordering,
         null_ordering: Option<NullOrdering>,
-    ) -> usize
+    ) -> Result<usize, Report<SelectCompilerError>>
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
+        if let Some(reason) = self.artifacts.cursor_disallowed_reason {
+            bail!(SelectCompilerError::CursorDisallowed { reason });
+        }
         let column = self.compile_path_column(path);
         self.statement
             .where_expression
             .add_cursor(lhs(column), rhs, ordering, null_ordering);
-        self.artifacts.uses_cursor = true;
-        self.add_distinct_selection_with_ordering(
+        Ok(self.add_distinct_selection_with_ordering(
             path,
             Distinctness::Distinct,
             Some((ordering, null_ordering)),
-        )
+        ))
     }
 
     /// Adds a new filter to the selection.
-    pub fn add_filter(&mut self, filter: &'p Filter<'q, R>)
+    pub fn add_filter(
+        &mut self,
+        filter: &'p Filter<'q, R>,
+    ) -> Result<(), Report<SelectCompilerError>>
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
-        let condition = self.compile_filter(filter);
+        let condition = self.compile_filter(filter)?;
         self.artifacts.condition_index += 1;
         self.statement.where_expression.add_condition(condition);
+        Ok(())
     }
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
@@ -380,28 +403,31 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
     /// Compiles a [`Filter`] to a `Condition`.
     #[expect(clippy::too_many_lines)]
-    pub fn compile_filter(&mut self, filter: &'p Filter<'q, R>) -> Condition
+    pub fn compile_filter(
+        &mut self,
+        filter: &'p Filter<'q, R>,
+    ) -> Result<Condition, Report<SelectCompilerError>>
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
         if let Some(condition) = self.compile_special_filter(filter) {
-            return condition;
+            return Ok(condition);
         }
 
-        match filter {
+        Ok(match filter {
             Filter::All(filters) => Condition::All(
                 filters
                     .iter()
                     .map(|filter| self.compile_filter(filter))
-                    .collect(),
+                    .collect::<Result<_, _>>()?,
             ),
             Filter::Any(filters) => Condition::Any(
                 filters
                     .iter()
                     .map(|filter| self.compile_filter(filter))
-                    .collect(),
+                    .collect::<Result<_, _>>()?,
             ),
-            Filter::Not(filter) => Condition::Not(Box::new(self.compile_filter(filter))),
+            Filter::Not(filter) => Condition::Not(Box::new(self.compile_filter(filter)?)),
             Filter::Equal(lhs, rhs) => Condition::Equal(
                 lhs.as_ref()
                     .map(|expression| self.compile_filter_expression(expression).0),
@@ -442,16 +468,15 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     // We don't support custom sorting yet and limit/cursor implicitly set an order.
                     // We special case the distance function to allow sorting by distance, so we
                     // need to make sure that we don't have a limit or cursor.
-                    assert!(
-                        self.statement.limit.is_none() && !self.artifacts.uses_cursor,
-                        "Cannot use distance function with limit or cursor",
-                    );
+
+                    self.artifacts.cursor_disallowed_reason =
+                        Some("Cannot use distance function with cursor");
 
                     // `convert` should be `None` as we don't support parameter conversion at this
                     // stage, yet.
-                    assert!(
+                    ensure!(
                         convert.is_none(),
-                        "Cannot convert parameter for distance function"
+                        SelectCompilerError::ConvertDistanceParameter
                     );
 
                     let path_alias = self.add_join_statements(path);
@@ -459,7 +484,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     let maximum_expression = self.compile_filter_expression(max).0;
 
                     let (embeddings_column, None) = path.terminating_column() else {
-                        panic!("Only embeddings are supported for cosine distance");
+                        bail!(SelectCompilerError::UnsupportedEmbeddingPath);
                     };
                     let embeddings_table = embeddings_column.table();
                     let embeddings_alias = Alias {
@@ -481,13 +506,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             Table::EntityEmbeddings => {
                                 Column::EntityEmbeddings(EntityEmbeddings::Distance)
                             }
-                            _ => panic!("Only embeddings are supported for cosine distance"),
+                            _ => bail!(SelectCompilerError::UnsupportedEmbeddingPath),
                         },
                         table_alias: Some(path_alias),
                     };
 
                     if let Some(last_join) = self.statement.joins.last_mut() {
-                        assert!(
+                        ensure!(
                             matches!(
                                 last_join.table.table,
                                 Table::DataTypeEmbeddings
@@ -495,13 +520,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                     | Table::EntityTypeEmbeddings
                                     | Table::EntityEmbeddings
                             ) || last_join.statement.is_some(),
-                            "Only a single embedding for the same path is allowed"
+                            SelectCompilerError::MultipleEmbeddings
                         );
 
-                        let select_columns = match embeddings_table {
+                        let select_columns: &[_] = match embeddings_table {
                             Table::DataTypeEmbeddings => {
                                 &[Column::DataTypeEmbeddings(DataTypeEmbeddings::OntologyId)]
-                                    as &[_]
                             }
                             Table::PropertyTypeEmbeddings => &[Column::PropertyTypeEmbeddings(
                                 PropertyTypeEmbeddings::OntologyId,
@@ -574,10 +598,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     self.statement.distinct.push(distance_expression.clone());
                     Condition::LessOrEqual(distance_expression, maximum_expression)
                 }
-                _ => panic!(
-                    "Cosine distance is only supported with exactly one `path` and one \
-                     `parameter` expression."
-                ),
+                _ => bail!(SelectCompilerError::UnsupportedDistanceExpression),
             },
             Filter::In(lhs, rhs) => Condition::In(
                 self.compile_filter_expression(lhs).0,
@@ -634,14 +655,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                 Condition::ContainsSegment(left_filter, right_filter)
             }
-        }
+        })
     }
 
     /// Compiles the `path` to a condition, which is searching for the latest version.
-    ///
-    ///  # Panics
-    ///
-    /// This function will panic if the statement has a limit or uses a cursor.
     // Warning: This adds a CTE to the statement, which is overwriting the `ontology_ids` table.
     //          When more CTEs are needed, a test should be added to cover both CTEs in one
     //          statement to ensure compatibility
@@ -655,10 +672,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
-        assert!(
-            self.statement.limit.is_none() && !self.artifacts.uses_cursor,
-            "Cannot use latest version filter with limit or cursor",
-        );
+        self.artifacts.cursor_disallowed_reason =
+            Some("Cannot use latest version filter with cursor");
 
         let version_column = Column::OntologyIds(OntologyIds::Version);
         let alias = Alias {

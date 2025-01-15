@@ -35,7 +35,7 @@ use crate::store::{
     postgres::{
         AsClient as _, PostgresStore,
         crud::QueryRecordDecode,
-        query::{Distinctness, PostgresSorting, SelectCompiler},
+        query::{Distinctness, PostgresSorting, SelectCompiler, SelectCompilerError},
     },
 };
 
@@ -153,29 +153,29 @@ macro_rules! impl_ontology_cursor {
                 compiler: &mut SelectCompiler<'p, 'q, $ty>,
                 parameters: Option<&'p Self::CompilationParameters>,
                 _: &QueryTemporalAxes,
-            ) -> Self::Indices {
+            ) -> Result<Self::Indices, Report<SelectCompilerError>> {
                 if let Some(parameters) = parameters {
                     let base_url_expression = compiler.compile_parameter(&parameters.base_url).0;
                     let version_expression = compiler.compile_parameter(&parameters.version).0;
 
-                    VersionedUrlIndices {
+                    Ok(VersionedUrlIndices {
                         base_url: compiler.add_cursor_selection(
                             &<$query_path>::BaseUrl,
                             identity,
                             Some(base_url_expression),
                             Ordering::Ascending,
                             None,
-                        ),
+                        )?,
                         version: compiler.add_cursor_selection(
                             &<$query_path>::Version,
                             identity,
                             Some(version_expression),
                             Ordering::Descending,
                             None,
-                        ),
-                    }
+                        )?,
+                    })
                 } else {
-                    VersionedUrlIndices {
+                    Ok(VersionedUrlIndices {
                         base_url: compiler.add_distinct_selection_with_ordering(
                             &<$query_path>::BaseUrl,
                             Distinctness::Distinct,
@@ -186,7 +186,7 @@ macro_rules! impl_ontology_cursor {
                             Distinctness::Distinct,
                             Some((Ordering::Descending, None)),
                         ),
-                    }
+                    })
                 }
             }
         }
