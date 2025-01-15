@@ -412,23 +412,21 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
+  const docEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "doc",
+    migrationState,
+  });
+
   const _clinicalTrialRecordEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
+        allOf: [docEntityTypeId],
         title: "Study Record",
         titlePlural: "Study Records",
         description:
           "A record of a study, including intervention studies (clinical trials), observational studies, and others.",
         icon: "🔬",
         properties: [
-          {
-            propertyType: systemPropertyTypes.title.propertyTypeId,
-            required: true,
-          },
-          {
-            propertyType: systemPropertyTypes.summary.propertyTypeId,
-            required: true,
-          },
           {
             propertyType: systemPropertyTypes.methodology.propertyTypeId,
             required: true,
