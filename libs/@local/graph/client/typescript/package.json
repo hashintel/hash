@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@local/tsconfig": "0.0.0-private",
-    "@redocly/cli": "1.27.1",
+    "@redocly/cli": "1.27.2",
     "@rust/hash-graph-api": "0.0.0-private",
     "@types/node": "22.10.6",
     "fix-esm-import-path": "1.10.1",

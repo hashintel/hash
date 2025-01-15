@@ -164,7 +164,9 @@ mod tests {
         parameters: &[&'p dyn ToSql],
     ) {
         let mut compiler = SelectCompiler::new(None, false);
-        let condition = compiler.compile_filter(filter);
+        let condition = compiler
+            .compile_filter(filter)
+            .expect("failed to compile filter");
 
         assert_eq!(condition.transpile_to_string(), rendered);
 

@@ -150,7 +150,11 @@ mod tests {
                 convert: None,
             }),
         );
-        where_clause.add_condition(compiler.compile_filter(&filter_a));
+        where_clause.add_condition(
+            compiler
+                .compile_filter(&filter_a)
+                .expect("Failed to compile filter"),
+        );
 
         assert_eq!(
             where_clause.transpile_to_string(),
@@ -179,7 +183,11 @@ mod tests {
                 }),
             ),
         ]);
-        where_clause.add_condition(compiler.compile_filter(&filter_b));
+        where_clause.add_condition(
+            compiler
+                .compile_filter(&filter_b)
+                .expect("Failed to compile filter"),
+        );
 
         assert_eq!(
             trim_whitespace(&where_clause.transpile_to_string()),
@@ -196,7 +204,11 @@ mod tests {
             }),
             None,
         );
-        where_clause.add_condition(compiler.compile_filter(&filter_c));
+        where_clause.add_condition(
+            compiler
+                .compile_filter(&filter_c)
+                .expect("Failed to compile filter"),
+        );
 
         assert_eq!(
             trim_whitespace(&where_clause.transpile_to_string()),
@@ -228,7 +240,11 @@ mod tests {
                 }),
             ),
         ]);
-        where_clause.add_condition(compiler.compile_filter(&filter_d));
+        where_clause.add_condition(
+            compiler
+                .compile_filter(&filter_d)
+                .expect("Failed to compile filter"),
+        );
 
         assert_eq!(
             trim_whitespace(&where_clause.transpile_to_string()),
