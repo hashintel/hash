@@ -14,6 +14,7 @@ export * from "./fontawesome-icon";
 export * from "./form-inline";
 export * from "./icon-angle-right-regular";
 export * from "./icon-arrow-down-left-and-arrow-up-right-to-center";
+export * from "./icon-arrows-rotate";
 export * from "./icon-arrow-down-regular";
 export * from "./icon-arrow-left";
 export * from "./icon-arrow-right-regular";
