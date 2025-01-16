@@ -126,7 +126,7 @@ multiaddr          = { version = "=0.18.2", default-features = false }
 multistream-select = { version = "=0.13.0", default-features = false }
 pdfium-render      = { version = "=0.8.26" }
 postgres-types     = { version = "=0.2.8", default-features = false }
-prometheus-client  = { version = "=0.23.0", default-features = false }
+prometheus-client  = { version = "=0.23.1", default-features = false }
 regex              = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 reqwest            = { version = "=0.12.12", default-features = false, features = ["rustls-tls"] }
 semver             = { version = "=1.0.24", default-features = false }
