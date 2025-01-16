@@ -7319,9 +7319,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz"
-version = "7.0.1"
+version = "7.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69877114381c224a0ea4ed43ccf104a8c3c894dac44aa92aa8a72dbf3622b70b"
+checksum = "05bbd25ff0dc83e6388300f12fb5a82f6183b689d52cf5899da7ae70d75dec69"
 dependencies = [
  "serde",
  "test-fuzz-internal",
@@ -7331,9 +7331,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-internal"
-version = "7.0.1"
+version = "7.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14cd4e8db0ea4ee31f9838f01a92a538f8b31b763027c5d1934065f038900d28"
+checksum = "5ed9da48c18ee185cf7d7961de0b6138199e25e95f556bdb90bfb87217f8ee7e"
 dependencies = [
  "bincode",
  "cargo_metadata",
@@ -7342,13 +7342,13 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-macro"
-version = "7.0.1"
+version = "7.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d547323725fa9910b0b3146eeaedd471c000dd75eb107c350aa8e1aebef2d7a"
+checksum = "85f01568271699270f63da1fa5be9e96c5ef902d0f5c062d9d2ef48a7437efc1"
 dependencies = [
  "darling",
  "heck 0.5.0",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "once_cell",
  "prettyplease",
  "proc-macro2",
@@ -7358,9 +7358,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-runtime"
-version = "7.0.1"
+version = "7.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1027b57dd894dc742b251532ef5f529a9010f9e6e27ea0170373438f502b3ea"
+checksum = "c819230994d2f7e2b5f68ef96e4f178cff28e97a86b2c1428a33677899e5cce6"
 dependencies = [
  "hex",
  "num-traits",
