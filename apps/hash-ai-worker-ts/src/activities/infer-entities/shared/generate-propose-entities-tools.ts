@@ -53,7 +53,8 @@ export const generateProposeEntitiesTools = (params: {
   const { entityTypes } = params;
 
   let simplifiedEntityTypeIdMappings: Record<string, VersionedUrl> = {};
-
+  const reverseSimplifiedEntityTypeIdMappings: Record<VersionedUrl, string> =
+    {};
   const tools: LlmToolDefinition<ProposeEntitiesToolName>[] = [
     {
       name: "create_entities",
@@ -72,6 +73,8 @@ export const generateProposeEntitiesTools = (params: {
               title: schema.title,
               typeIdOrBaseUrl: entityTypeId,
               existingTypeMappings: simplifiedEntityTypeIdMappings,
+              existingReverseTypeMappings:
+                reverseSimplifiedEntityTypeIdMappings,
             });
 
             simplifiedEntityTypeIdMappings = updatedTypeMappings;

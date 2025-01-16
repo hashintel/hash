@@ -1,12 +1,24 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { Storage } from "@google-cloud/storage";
-import type {
-  GenerativeModel,
-  Part,
-  ResponseSchema,
-} from "@google-cloud/vertexai";
+import type { Part, ResponseSchema } from "@google-cloud/vertexai";
 import { SchemaType, VertexAI } from "@google-cloud/vertexai";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { EntityTypeRootType } from "@local/hash-subgraph";
+import { getEntityTypes } from "@local/hash-subgraph/stdlib";
+import dedent from "dedent";
 
 import { logger } from "../../shared/activity-logger.js";
+import {
+  type DereferencedEntityType,
+  dereferenceEntityType,
+} from "../../shared/dereference-entity-type.js";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
 
 /**
  * Ideally we'd use something like Zod and zod-to-json-schema to define the schema, to have the type automatically
@@ -87,7 +99,83 @@ const documentMetadataSchema: ResponseSchema = {
   required: ["summary", "title"],
 };
 
-export type DocumentMetadata = {
+const generateOutputSchema = (
+  dereferencedDocEntityTypes: DereferencedEntityType[],
+): ResponseSchema => {
+  const rawSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+      documentMetadata: {
+        type: SchemaType.OBJECT,
+        anyOf: dereferencedDocEntityTypes.map(
+          ({
+            labelProperty: _,
+            links: __,
+            title,
+            $id,
+            properties,
+            required,
+          }) => {
+            return {
+              type: SchemaType.OBJECT,
+              title,
+              properties: {
+                entityTypeId: { type: SchemaType.STRING, enum: [$id] },
+                ...properties,
+              },
+              required: [...(required ?? []), "entityTypeId"],
+            };
+          },
+        ),
+      },
+    },
+  };
+
+  const transformSchemaForGoogle = (schema: unknown): unknown => {
+    if (typeof schema !== "object" || schema === null) {
+      return schema;
+    }
+
+    if (Array.isArray(schema)) {
+      return schema.map(transformSchemaForGoogle);
+    }
+
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(schema)) {
+      if (key === "type" && typeof value === "string") {
+        // Google wants the type to be uppercase for some reason
+        result[key] = value.toUpperCase();
+      } else if (typeof value === "object") {
+        result[key] = transformSchemaForGoogle(value);
+      } else if (
+        key === "$id" ||
+        (key === "abstract" && typeof value === "boolean")
+      ) {
+        /**
+         * These fields will be rejected.
+         *
+         * abstract: boolean appears on data types.
+         */
+        continue;
+      } else if (key === "oneOf") {
+        result.anyOf = value;
+      } else {
+        result[key] = value;
+      }
+    }
+    return result;
+  };
+
+  return transformSchemaForGoogle(rawSchema) as ResponseSchema;
+};
+
+type DocumentMetadata = {
+  documentMetadata: {
+    entityTypeId: VersionedUrl;
+  } & Record<string, unknown>;
+};
+
+type _DocumentMetadata = {
   authors?: { name: string; affiliatedWith?: string[] }[];
   doi?: string;
   doiLink?: string;
@@ -106,17 +194,17 @@ export type DocumentMetadata = {
 
 const googleCloudProjectId = process.env.GOOGLE_CLOUD_HASH_PROJECT_ID;
 
-let _generativeModel: GenerativeModel | undefined;
+let _vertexAi: VertexAI | undefined;
 
-const getGeminiModel = () => {
+const getVertexAi = () => {
   if (!googleCloudProjectId) {
     throw new Error(
       "GOOGLE_CLOUD_HASH_PROJECT_ID environment variable is not set",
     );
   }
 
-  if (_generativeModel) {
-    return _generativeModel;
+  if (_vertexAi) {
+    return _vertexAi;
   }
 
   const vertexAI = new VertexAI({
@@ -124,17 +212,9 @@ const getGeminiModel = () => {
     location: "us-east4",
   });
 
-  const generativeModel = vertexAI.getGenerativeModel({
-    model: "gemini-1.5-pro",
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: documentMetadataSchema,
-    },
-  });
+  _vertexAi = vertexAI;
 
-  _generativeModel = generativeModel;
-
-  return generativeModel;
+  return vertexAI;
 };
 
 let _googleCloudStorage: Storage | undefined;
@@ -165,7 +245,68 @@ export const getLlmAnalysisOfDoc = async ({
     );
   }
 
-  const gemini = getGeminiModel();
+  const { userAuthentication } = await getFlowContext();
+
+  const docsEntityTypeSubgraph = await graphApiClient
+    .getEntityTypeSubgraph(userAuthentication.actorId, {
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["versionedUrl"] },
+              { parameter: systemEntityTypes.doc.entityTypeId },
+            ],
+          },
+        ],
+      },
+      includeDrafts: false,
+
+      temporalAxes: currentTimeInstantTemporalAxes,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsLinkDestinationsOn: { outgoing: 255 },
+        constrainsLinksOn: { outgoing: 255 },
+        constrainsValuesOn: { outgoing: 255 },
+        constrainsPropertiesOn: { outgoing: 255 },
+        inheritsFrom: { outgoing: 255 },
+      },
+    })
+    .then(({ data: response }) =>
+      mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
+        response.subgraph,
+        userAuthentication.actorId,
+      ),
+    );
+
+  // const docEntityTypes
+  const dereferencedDocEntityTypes = getEntityTypes(docsEntityTypeSubgraph)
+    .map((entityType) =>
+      dereferenceEntityType({
+        entityTypeId: entityType.schema.$id,
+        subgraph: docsEntityTypeSubgraph,
+        simplifyPropertyKeys: true,
+      }),
+    )
+    .filter(
+      (type) =>
+        type.schema.$id === systemEntityTypes.doc.entityTypeId ||
+        type.parentIds.includes(systemEntityTypes.doc.entityTypeId),
+    )
+    .map((type) => type.schema);
+
+  const schema = generateOutputSchema(dereferencedDocEntityTypes);
+
+  console.log(JSON.stringify(schema, null, 2));
+
+  const vertexAi = getVertexAi();
+
+  const gemini = vertexAi.getGenerativeModel({
+    model: "gemini-1.5-pro",
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: schema,
+    },
+  });
 
   const storage = getGoogleCloudStorage();
 
@@ -198,17 +339,33 @@ export const getLlmAnalysisOfDoc = async ({
   };
 
   const textPart = {
-    text: `Please provide a summary of this document, and any of the requested metadata you can infer from it.
-    If you're not confident about any of the metadata fields, omit them.`,
+    text: dedent(`Please provide metadata about this document, using only the information visible in the document.
+    
+    You are given multiple options of what type of document this might be, and must choose from them.
+
+    The options are:
+    
+    ${dereferencedDocEntityTypes.map((type) => `- ${type.title}`).join("\n")}
+
+    'Doc' is the most generic type. Use this if no other more specific type is appropriate.
+    
+    If you're not confident about any of the metadata fields, omit them.`),
   };
 
   const request = {
     contents: [{ role: "user", parts: [filePart, textPart] }],
   };
 
+  /**
+   * @todo H-3922 add usage tracking for Gemini models
+   *
+   * Documents count as 258 tokens per page.
+   */
   const resp = await gemini.generateContent(request);
 
   const contentResponse = resp.response.candidates?.[0]?.content.parts[0]?.text;
+
+  console.log(JSON.stringify(resp, null, 2));
 
   if (!contentResponse) {
     throw new Error("No content response from LLM analysis");
