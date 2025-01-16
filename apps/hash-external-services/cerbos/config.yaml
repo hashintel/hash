@@ -6,7 +6,11 @@ server:
       username: cerbos
       passwordHash: JDJ5JDEwJDlQYlM1dGRqZU5tS3pLT2RESkVxZk8vckpoQm0uS2FyUXcxRUNCSVpNZ0NEWXV3L2tTYlhxCgo= # cerbos
 storage:
-  driver: "postgres"
+  driver: "disk"
+  # driver: "postgres"
+  disk:
+    directory: "/policies"
+    watchForChanges: true
   postgres:
     url: "postgres://${HASH_CERBOS_PG_USER}:${HASH_CERBOS_PG_PASSWORD}@postgres:5432/${HASH_CERBOS_PG_DATABASE}?sslmode=disable"
     connPool:

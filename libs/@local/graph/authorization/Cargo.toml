@@ -20,6 +20,8 @@ hash-codec  = { workspace = true }
 type-system = { workspace = true }
 
 # Private third-party dependencies
+cedar-policy = { version = "*", features = ["partial-eval"] }
+cerbos       = { version = "*" }
 derive-where = { workspace = true }
 futures      = { workspace = true }
 serde        = { workspace = true, features = ["derive", "unstable"] }

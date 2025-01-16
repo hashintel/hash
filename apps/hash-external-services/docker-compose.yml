@@ -68,9 +68,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: server  --config /cerbos.yaml
+    command: server --config /cerbos.yaml
     ports:
       - "3592:3592"
+      - "3593:3593"
     volumes:
       - ./cerbos/config.yaml:/cerbos.yaml:ro
       - ../../libs/@local/graph/authorization/cerbos/policies:/policies
