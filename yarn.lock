@@ -30682,7 +30682,7 @@ __metadata:
     "@taplo/cli": "npm:0.7.0"
     "@yarnpkg/types": "npm:^4.0.0"
     lefthook: "npm:1.10.8"
-    markdownlint-cli2: "npm:0.17.1"
+    markdownlint-cli2: "npm:0.17.2"
     npm-run-all2: "npm:7.0.2"
     prettier: "npm:3.4.2"
     prettier-plugin-packagejson: "npm:2.5.6"
@@ -35256,25 +35256,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"markdownlint-cli2@npm:0.17.1":
-  version: 0.17.1
-  resolution: "markdownlint-cli2@npm:0.17.1"
+"markdownlint-cli2@npm:0.17.2":
+  version: 0.17.2
+  resolution: "markdownlint-cli2@npm:0.17.2"
   dependencies:
     globby: "npm:14.0.2"
     js-yaml: "npm:4.1.0"
     jsonc-parser: "npm:3.3.1"
-    markdownlint: "npm:0.37.3"
+    markdownlint: "npm:0.37.4"
     markdownlint-cli2-formatter-default: "npm:0.0.5"
     micromatch: "npm:4.0.8"
   bin:
     markdownlint-cli2: markdownlint-cli2-bin.mjs
-  checksum: 10c0/e7add987daf4eb3f7eb81e78d2a6094185d9673e638b75d37c42a7a944b08811bf6c9cdbe83d9996ab5a25d321881037ae0ccabe8971c444b45f58bfd6d2a93c
+  checksum: 10c0/dda9710adfa09c32f10b621e3d5fa691a7ff58d0aceeca5b751021953f56051f649e52132e55e076f1876683c8cdeb2448cad107d82ed95f8c127ce94b0b89eb
   languageName: node
   linkType: hard
 
-"markdownlint@npm:0.37.3":
-  version: 0.37.3
-  resolution: "markdownlint@npm:0.37.3"
+"markdownlint@npm:0.37.4":
+  version: 0.37.4
+  resolution: "markdownlint@npm:0.37.4"
   dependencies:
     markdown-it: "npm:14.1.0"
     micromark: "npm:4.0.1"
@@ -35285,7 +35285,7 @@ __metadata:
     micromark-extension-gfm-table: "npm:2.1.0"
     micromark-extension-math: "npm:3.1.0"
     micromark-util-types: "npm:2.0.1"
-  checksum: 10c0/55db705a9fe08d35876918cde4dc37efc15fc03a7abd4f5874b9cc2db699200c9ac7fde45d31ca846ae88c79ec264679f9f19fd8649d430a0a7cba488bec3dcc
+  checksum: 10c0/831c2aefac6b2386254eed371296d15944a9ca50abe057b46124727acee386f79bbb407d73447982269ec82b367f2d492ceb89dbc550eecf0f9e7c59a41efbc8
   languageName: node
   linkType: hard
 
