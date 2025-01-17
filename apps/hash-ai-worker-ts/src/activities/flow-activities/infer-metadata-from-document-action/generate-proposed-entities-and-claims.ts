@@ -121,8 +121,6 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   const {
     authors,
     /** @todo H-3619: Infer info on publisher and venue, and link to docs */
-    publicationVenue: _publicationVenue,
-    publishedBy: _publishedBy,
   } = documentMetadata;
 
   const { createEntitiesAsDraft, webId, userAuthentication } =

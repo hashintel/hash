@@ -10,6 +10,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Subgraph } from "@local/hash-subgraph";
@@ -26,7 +27,10 @@ import {
 
 import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 
-type MinimalDataType = Omit<DataType, "$id" | "$schema" | "kind" | "allOf">;
+type MinimalDataType = DistributiveOmit<
+  DataType,
+  "$id" | "$schema" | "kind" | "allOf"
+>;
 
 type MinimalPropertyObject = PropertyValueObject<
   ValueOrArray<DereferencedPropertyType>
@@ -83,7 +87,7 @@ const dereferencePropertyTypeValue = (params: {
 
   let simplifiedPropertyTypeMappings =
     params.existingSimplifiedPropertyTypeMappings;
-  const reverseSimplifiedPropertyTypeMappings =
+  let reverseSimplifiedPropertyTypeMappings =
     params.existingReverseSimplifiedPropertyTypeMappings;
 
   const isArray = "items" in valueReference;
@@ -93,19 +97,25 @@ const dereferencePropertyTypeValue = (params: {
       propertyValue: {
         items: {
           oneOf: valueReference.items.oneOf.map((arrayValueReference) => {
-            const { propertyValue, updatedSimplifiedPropertyTypeMappings } =
-              dereferencePropertyTypeValue({
-                valueReference: arrayValueReference,
-                subgraph,
-                existingSimplifiedPropertyTypeMappings:
-                  simplifiedPropertyTypeMappings,
-                existingReverseSimplifiedPropertyTypeMappings:
-                  reverseSimplifiedPropertyTypeMappings,
-                simplifyPropertyKeys,
-              });
+            const {
+              propertyValue,
+              updatedSimplifiedPropertyTypeMappings,
+              updatedReverseSimplifiedPropertyTypeMappings,
+            } = dereferencePropertyTypeValue({
+              valueReference: arrayValueReference,
+              subgraph,
+              existingSimplifiedPropertyTypeMappings:
+                simplifiedPropertyTypeMappings,
+              existingReverseSimplifiedPropertyTypeMappings:
+                reverseSimplifiedPropertyTypeMappings,
+              simplifyPropertyKeys,
+            });
 
             simplifiedPropertyTypeMappings =
               updatedSimplifiedPropertyTypeMappings;
+
+            reverseSimplifiedPropertyTypeMappings =
+              updatedReverseSimplifiedPropertyTypeMappings;
 
             return propertyValue;
           }) as [MinimalPropertyTypeValue, ...MinimalPropertyTypeValue[]],
@@ -162,18 +172,22 @@ const dereferencePropertyTypeValue = (params: {
           let propertyKey: string | BaseUrl = propertyTypeBaseUrl;
 
           if (simplifyPropertyKeys) {
-            const { simplifiedTypeId, updatedTypeMappings } =
-              generateSimplifiedTypeId({
-                title: propertyType.schema.title,
-                typeIdOrBaseUrl: propertyTypeBaseUrl,
-                existingTypeMappings: simplifiedPropertyTypeMappings,
-                existingReverseTypeMappings:
-                  reverseSimplifiedPropertyTypeMappings,
-              });
+            const {
+              simplifiedTypeId,
+              updatedTypeMappings,
+              updatedReverseTypeMappings,
+            } = generateSimplifiedTypeId({
+              title: propertyType.schema.title,
+              typeIdOrBaseUrl: propertyTypeBaseUrl,
+              existingTypeMappings: simplifiedPropertyTypeMappings,
+              existingReverseTypeMappings:
+                reverseSimplifiedPropertyTypeMappings,
+            });
 
             propertyKey = simplifiedTypeId;
 
             simplifiedPropertyTypeMappings = updatedTypeMappings;
+            reverseSimplifiedPropertyTypeMappings = updatedReverseTypeMappings;
           }
 
           accumulator[propertyKey] = isInnerArray
@@ -318,11 +332,13 @@ export const dereferenceEntityType = <
     SimplifyPropertyKeys extends true ? string : BaseUrl
   >;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+  reverseSimplifiedPropertyTypeMappings: Record<BaseUrl, string>;
 } => {
   const { entityTypeId, subgraph, simplifyPropertyKeys = false } = params;
 
   let simplifiedPropertyTypeMappings: Record<string, BaseUrl> = {};
-  const reverseSimplifiedPropertyTypeMappings: Record<BaseUrl, string> = {};
+  let reverseSimplifiedPropertyTypeMappings: Record<BaseUrl, string> = {};
+
   const entityTypeWithAncestors = getEntityTypeAndParentsById(
     subgraph,
     entityTypeId,
@@ -392,16 +408,19 @@ export const dereferenceEntityType = <
             );
           }
 
-          const { simplifiedTypeId, updatedTypeMappings } =
-            generateSimplifiedTypeId({
-              title: propertyType.schema.title,
-              typeIdOrBaseUrl: baseUrl,
-              existingTypeMappings: simplifiedPropertyTypeMappings,
-              existingReverseTypeMappings:
-                reverseSimplifiedPropertyTypeMappings,
-            });
+          const {
+            simplifiedTypeId,
+            updatedTypeMappings,
+            updatedReverseTypeMappings,
+          } = generateSimplifiedTypeId({
+            title: propertyType.schema.title,
+            typeIdOrBaseUrl: baseUrl,
+            existingTypeMappings: simplifiedPropertyTypeMappings,
+            existingReverseTypeMappings: reverseSimplifiedPropertyTypeMappings,
+          });
 
           simplifiedPropertyTypeMappings = updatedTypeMappings;
+          reverseSimplifiedPropertyTypeMappings = updatedReverseTypeMappings;
 
           propertyKey = simplifiedTypeId;
         }
@@ -409,6 +428,7 @@ export const dereferenceEntityType = <
         const {
           dereferencedPropertyType,
           updatedSimplifiedPropertyTypeMappings,
+          updatedReverseSimplifiedPropertyTypeMappings,
         } = dereferencePropertyType({
           propertyTypeId,
           subgraph,
@@ -420,6 +440,8 @@ export const dereferenceEntityType = <
         });
 
         simplifiedPropertyTypeMappings = updatedSimplifiedPropertyTypeMappings;
+        reverseSimplifiedPropertyTypeMappings =
+          updatedReverseSimplifiedPropertyTypeMappings;
 
         mergedProperties[propertyKey] = isArray
           ? { ...propertyRefSchema, items: dereferencedPropertyType }
@@ -457,10 +479,12 @@ export const dereferenceEntityType = <
     required: atLeastOne(
       simplifyPropertyKeys
         ? [...requiredProperties].map((baseUrl) => {
-            const simpleTitle = reverseSimplifiedPropertyTypeMappings[baseUrl]!;
+            const simpleTitle = reverseSimplifiedPropertyTypeMappings[baseUrl];
+
             if (!simpleTitle) {
               throw new Error(`Could not find simplified title for ${baseUrl}`);
             }
+
             return simpleTitle;
           })
         : [...requiredProperties],
@@ -472,5 +496,6 @@ export const dereferenceEntityType = <
     parentIds: entityTypeWithAncestors.map((ancestor) => ancestor.schema.$id),
     schema: mergedSchema,
     simplifiedPropertyTypeMappings,
+    reverseSimplifiedPropertyTypeMappings,
   };
 };

@@ -1,6 +1,7 @@
 import { createWriteStream } from "node:fs";
 import { mkdir, unlink } from "node:fs/promises";
 import path from "node:path";
+import { title } from "node:process";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
@@ -25,7 +26,6 @@ import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolPropertyTypes,
-  systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -220,26 +220,11 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
 
   const {
     authors,
-    doi,
-    doiLink,
-    isbn,
-    publishedBy,
-    publishedInYear,
-    publicationVenue,
-    summary,
-    title,
-    type,
+    documentMetadata: { entityTypeId, ...properties },
   } = documentMetadata;
 
   const entityTypeIds = new Set(documentEntity.metadata.entityTypeIds);
-
-  if (type === "AcademicPaper") {
-    entityTypeIds.add(systemEntityTypes.academicPaper.entityTypeId);
-  } else if (type === "Book") {
-    entityTypeIds.add(systemEntityTypes.book.entityTypeId);
-  } else {
-    entityTypeIds.add(systemEntityTypes.doc.entityTypeId);
-  }
+  entityTypeIds.add(entityTypeId);
 
   const sourceProvenance: SourceProvenance = {
     type: "document",
@@ -262,19 +247,11 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     sources: [sourceProvenance],
   };
 
-  const propertyPatches = generateDocumentPropertyPatches(
-    {
-      doi,
-      doiLink,
-      isbn,
-      numberOfPages,
-      publishedInYear,
-      summary,
-      title,
-      type,
-    },
-    propertyProvenance,
-  );
+  const propertyPatches = generateDocumentPropertyPatches({
+    numberOfPages,
+    properties,
+    provenance: propertyProvenance,
+  });
 
   const existingEntity = documentEntity.toJSON();
 
@@ -314,7 +291,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     await generateDocumentProposedEntitiesAndCreateClaims({
       aiAssistantAccountId,
       documentEntityId,
-      documentMetadata: { authors, publishedBy, publicationVenue },
+      documentMetadata: { authors },
       documentTitle: title,
       provenance,
       propertyProvenance,

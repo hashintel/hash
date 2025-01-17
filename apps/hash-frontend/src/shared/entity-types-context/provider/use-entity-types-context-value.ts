@@ -47,7 +47,7 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     });
 
     if (controller.signal.aborted) {
-      return;
+      throw new Error("Request was aborted");
     }
 
     const subgraph = res.data;

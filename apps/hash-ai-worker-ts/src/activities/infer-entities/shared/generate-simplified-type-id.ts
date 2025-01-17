@@ -37,6 +37,14 @@ export const generateSimplifiedTypeId = <
   } = params;
   let counter = 1;
 
+  if (existingReverseTypeMappings[typeIdOrBaseUrl]) {
+    return {
+      simplifiedTypeId: existingReverseTypeMappings[typeIdOrBaseUrl],
+      updatedTypeMappings: existingTypeMappings,
+      updatedReverseTypeMappings: existingReverseTypeMappings,
+    };
+  }
+
   let simplifiedTypeId = generateSimplifiedTypeIdFromTitle({ title });
 
   while (existingTypeMappings[simplifiedTypeId]) {
