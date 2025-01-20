@@ -24,7 +24,7 @@ export * from "./icon-arrow-up-right-and-arrow-down-left-from-center";
 export * from "./icon-arrow-up-right-from-square-regular";
 export * from "./icon-arrow-up-right-regular";
 export * from "./icon-arrow-up-wide-short-light";
-export * from "./icon-arrows-rotate";
+export * from "./icon-arrows-rotate-regular";
 export * from "./icon-asterisk-regular";
 export * from "./icon-at-regular";
 export * from "./icon-barcode";

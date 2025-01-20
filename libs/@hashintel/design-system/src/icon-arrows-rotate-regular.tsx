@@ -2,7 +2,7 @@ import type { SvgIconProps } from "@mui/material";
 import { SvgIcon } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const ArrowsRotateIconRegular: FunctionComponent<SvgIconProps> = (
+export const ArrowsRotateRegularIcon: FunctionComponent<SvgIconProps> = (
   props,
 ) => {
   return (

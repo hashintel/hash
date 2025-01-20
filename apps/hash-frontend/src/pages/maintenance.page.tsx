@@ -1,5 +1,5 @@
 import {
-  ArrowsRotateIconRegular,
+  ArrowsRotateRegularIcon,
   // eslint-disable-next-line no-restricted-imports -- we don't want the in-project Button's link handling
   Button,
   UserPlusRegularIcon,
@@ -28,7 +28,7 @@ const ReloadButton = ({ color }: { color: "blue" | "white" }) => {
       variant={color === "white" ? "tertiary_quiet" : "primary"}
     >
       Reload page
-      <ArrowsRotateIconRegular
+      <ArrowsRotateRegularIcon
         sx={{
           fill: ({ palette }) =>
             color === "white" ? palette.blue[70] : palette.blue[40],
