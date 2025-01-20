@@ -1,7 +1,6 @@
 import { createWriteStream } from "node:fs";
 import { mkdir, unlink } from "node:fs/promises";
 import path from "node:path";
-import { title } from "node:process";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
@@ -28,7 +27,10 @@ import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  File,
+  TitlePropertyValue,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -214,13 +216,15 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
   const documentMetadata = await getLlmAnalysisOfDoc({
     fileSystemPath: filePath,
     hashFileStorageKey: storageKey,
+    entityId: documentEntityId,
+    fileUrl,
   });
 
   await unlink(filePath);
 
   const {
     authors,
-    documentMetadata: { entityTypeId, ...properties },
+    documentMetadata: { entityTypeId, properties },
   } = documentMetadata;
 
   const entityTypeIds = new Set(documentEntity.metadata.entityTypeIds);
@@ -286,6 +290,10 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
       type: "PersistedEntity",
     },
   ]);
+
+  const title = documentEntity.properties[
+    systemPropertyTypes.title.propertyTypeBaseUrl
+  ] as TitlePropertyValue;
 
   const proposedEntities =
     await generateDocumentProposedEntitiesAndCreateClaims({

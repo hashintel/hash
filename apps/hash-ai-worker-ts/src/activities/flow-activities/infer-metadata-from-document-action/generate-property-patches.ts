@@ -1,6 +1,6 @@
 import type { PropertyProvenance } from "@local/hash-graph-client/dist/api.d";
 import type {
-  PropertyObject,
+  PropertyObjectWithMetadata,
   PropertyPatchOperation,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -13,7 +13,7 @@ export const generateDocumentPropertyPatches = ({
   provenance,
 }: {
   numberOfPages: number;
-  properties: PropertyObject;
+  properties: PropertyObjectWithMetadata;
   provenance: PropertyProvenance;
 }): PropertyPatchOperation[] => {
   const propertyPatches: PropertyPatchOperation[] = [];
@@ -34,18 +34,11 @@ export const generateDocumentPropertyPatches = ({
     } satisfies NumberOfPagesPropertyValueWithMetadata,
   });
 
-  for (const [key, value] of Object.entries(properties)) {
+  for (const [key, propertyWithMetadata] of Object.entries(properties.value)) {
     propertyPatches.push({
       op: "add",
       path: [key as BaseUrl],
-      property: {
-        value,
-        metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-          provenance,
-        },
-      },
+      property: propertyWithMetadata,
     });
   }
 

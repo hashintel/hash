@@ -5,13 +5,19 @@ import {
 import { Storage } from "@google-cloud/storage";
 import type { Part, ResponseSchema } from "@google-cloud/vertexai";
 import { SchemaType, VertexAI } from "@google-cloud/vertexai";
-import type { PropertyObject } from "@local/hash-graph-types/entity";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
+import type { PropertyProvenance } from "@local/hash-graph-client/dist/api.d";
+import type {
+  EntityId,
+  PropertyObjectWithMetadata,
+  PropertyValue,
+  PropertyWithMetadata,
+} from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityTypeRootType } from "@local/hash-subgraph";
 import { getEntityTypes } from "@local/hash-subgraph/stdlib";
@@ -20,6 +26,7 @@ import dedent from "dedent";
 import { logger } from "../../shared/activity-logger.js";
 import {
   type DereferencedEntityType,
+  type DereferencedEntityTypeWithSimplifiedKeys,
   type DereferencedPropertyType,
   dereferenceEntityType,
 } from "../../shared/dereference-entity-type.js";
@@ -223,13 +230,27 @@ const generateOutputSchema = (
   return transformSchemaForGoogle(rawSchema);
 };
 
-const isDocumentData = (input: unknown): input is DocumentData => {
-  if (typeof input !== "object" || input === null) {
-    return false;
-  }
+type DocumentMetadataWithSimplifiedProperties = {
+  entityTypeId: VersionedUrl;
+} & Record<string, PropertyValue>;
 
-  if (!("entityTypeId" in input) || typeof input.entityTypeId !== "string") {
-    return false;
+type LlmResponseDocumentData = {
+  authors?: { name: string; affiliatedWith?: string[] }[];
+  documentMetadata: DocumentMetadataWithSimplifiedProperties;
+};
+
+export type DocumentData = Omit<LlmResponseDocumentData, "documentMetadata"> & {
+  documentMetadata: {
+    entityTypeId: VersionedUrl;
+    properties: PropertyObjectWithMetadata;
+  };
+};
+
+const assertIsLlmResponseDocumentData: (
+  input: unknown,
+) => asserts input is LlmResponseDocumentData = (input) => {
+  if (typeof input !== "object" || input === null) {
+    throw new Error("Input is not an object");
   }
 
   if (
@@ -237,21 +258,232 @@ const isDocumentData = (input: unknown): input is DocumentData => {
     typeof input.documentMetadata !== "object" ||
     input.documentMetadata === null
   ) {
-    return false;
+    throw new Error("input.documentMetadata is not an object");
   }
 
-  if (!Object.keys(input.documentMetadata).every((key) => isBaseUrl(key))) {
-    return false;
-  }
+  const { entityTypeId } =
+    input.documentMetadata as DocumentData["documentMetadata"];
 
-  return true;
+  if (typeof entityTypeId !== "string") {
+    throw new Error("input.documentMetadata.entityTypeId is not a string");
+  }
 };
 
-type DocumentData = {
-  authors?: { name: string; affiliatedWith?: string[] }[];
-  documentMetadata: {
-    entityTypeId: VersionedUrl;
-  } & PropertyObject;
+const addMetadataToPropertyValue = (
+  key: string,
+  value: PropertyValue,
+  docEntityType: DereferencedEntityTypeWithSimplifiedKeys,
+  provenance: PropertyProvenance,
+): PropertyWithMetadata => {
+  const propertyTypeBaseUrl = docEntityType.simplifiedPropertyTypeMappings[key];
+
+  if (!propertyTypeBaseUrl) {
+    throw new Error(
+      `Simplified property type mapping for key ${key} not found`,
+    );
+  }
+
+  const propertyType = docEntityType.schema.properties[key];
+
+  if (!propertyType) {
+    throw new Error(
+      `Property type for key ${key} not found in dereferenced entity type`,
+    );
+  }
+
+  const isArray = "items" in propertyType;
+
+  const propertyTypeOneOf = isArray
+    ? propertyType.items.oneOf
+    : propertyType.oneOf;
+
+  if (propertyTypeOneOf.length !== 1) {
+    throw new Error(
+      `Property type for key ${key} has ${propertyTypeOneOf.length} oneOf options, expected 1.`,
+    );
+  }
+
+  const propertyTypeSchema = propertyTypeOneOf[0];
+
+  if (isArray) {
+    if (!Array.isArray(value)) {
+      throw new Error(
+        `Property type for key ${key} is array, but value '${stringifyPropertyValue(value)}' is not an array`,
+      );
+    }
+
+    if ("properties" in propertyTypeSchema) {
+      return {
+        value: value.map((objectInArray, index) => {
+          if (
+            typeof objectInArray !== "object" ||
+            objectInArray === null ||
+            Array.isArray(objectInArray)
+          ) {
+            throw new Error(
+              `Property type for key ${key} is array of objects, but value at index ${index} '${stringifyPropertyValue(objectInArray)}' is not an object`,
+            );
+          }
+
+          return {
+            value: Object.fromEntries(
+              Object.entries(objectInArray).map(([nestedKey, nestedValue]) => {
+                return [
+                  nestedKey,
+                  addMetadataToPropertyValue(
+                    nestedKey,
+                    nestedValue,
+                    docEntityType,
+                    provenance,
+                  ),
+                ];
+              }),
+            ),
+          };
+        }),
+      };
+    }
+
+    if ("$id" in propertyTypeSchema) {
+      return {
+        value: value.map((item) => ({
+          value: item,
+          metadata: { dataTypeId: propertyTypeSchema.$id },
+        })),
+      };
+    }
+
+    const expectedDataType = propertyTypeSchema.items.oneOf[0];
+
+    if (!("$id" in expectedDataType)) {
+      throw new Error(
+        `Property type for key ${key} has unsupported schema: ${JSON.stringify(propertyTypeSchema)}`,
+      );
+    }
+
+    return {
+      value: {
+        value: value.map((item) => ({
+          value: item,
+          metadata: { dataTypeId: expectedDataType.$id },
+        })),
+      },
+    };
+  }
+
+  if ("properties" in propertyTypeSchema) {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      throw new Error(
+        `Property type for key ${key} is object, but value ${stringifyPropertyValue(value)} is not an object`,
+      );
+    }
+
+    return {
+      value: Object.fromEntries(
+        Object.entries(value).map(([nestedKey, nestedValue]) => {
+          return [
+            nestedKey,
+            addMetadataToPropertyValue(
+              nestedKey,
+              nestedValue,
+              docEntityType,
+              provenance,
+            ),
+          ];
+        }),
+      ),
+    };
+  }
+
+  if ("$id" in propertyTypeSchema) {
+    return {
+      value,
+      metadata: { dataTypeId: propertyTypeSchema.$id },
+    };
+  }
+
+  const expectedDataType = propertyTypeSchema.items.oneOf[0];
+
+  if (!("$id" in expectedDataType)) {
+    throw new Error(
+      `Property type for key ${key} has unsupported schema: ${JSON.stringify(propertyTypeSchema)}`,
+    );
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error(
+      `Property type for key ${key} is array, but value ${stringifyPropertyValue(value)} is not an array`,
+    );
+  }
+
+  return {
+    value: value.map((item) => ({
+      value: item,
+      metadata: { dataTypeId: expectedDataType.$id },
+    })),
+  };
+};
+
+const unsimplifyDocumentMetadata = (
+  input: unknown,
+  docEntityTypes: DereferencedEntityTypeWithSimplifiedKeys[],
+  provenance: {
+    entityId: EntityId;
+    fileUrl: string;
+  },
+): DocumentData => {
+  assertIsLlmResponseDocumentData(input);
+
+  const { documentMetadata, ...rest } = input;
+
+  const { entityTypeId, ...properties } = documentMetadata;
+
+  const docEntityType = docEntityTypes.find(
+    (type) => type.schema.$id === entityTypeId,
+  );
+
+  if (!docEntityType) {
+    throw new Error(
+      `Dereferenced entity type for entityTypeId ${entityTypeId} not found`,
+    );
+  }
+
+  const propertyProvenance: PropertyProvenance = {
+    sources: [
+      {
+        authors: rest.authors?.map((author) => author.name),
+        type: "document",
+        entityId: provenance.entityId,
+        location: { uri: provenance.fileUrl },
+      },
+    ],
+  };
+
+  const fullPropertiesWithDataTypeIds: PropertyObjectWithMetadata = {
+    value: {},
+  };
+
+  for (const [key, value] of Object.entries(properties)) {
+    const propertyTypeBaseUrl =
+      docEntityType.simplifiedPropertyTypeMappings[key];
+
+    if (!propertyTypeBaseUrl) {
+      throw new Error(
+        `Simplified property type mapping for key ${key} not found`,
+      );
+    }
+
+    fullPropertiesWithDataTypeIds.value[propertyTypeBaseUrl] =
+      addMetadataToPropertyValue(key, value, docEntityType, propertyProvenance);
+  }
+
+  return {
+    ...rest,
+    documentMetadata: {
+      entityTypeId: documentMetadata.entityTypeId,
+      properties: fullPropertiesWithDataTypeIds,
+    },
+  };
 };
 
 const googleCloudProjectId = process.env.GOOGLE_CLOUD_HASH_PROJECT_ID;
@@ -297,9 +529,13 @@ const getGoogleCloudStorage = () => {
 export const getLlmAnalysisOfDoc = async ({
   hashFileStorageKey,
   fileSystemPath,
+  entityId,
+  fileUrl,
 }: {
   hashFileStorageKey: string;
   fileSystemPath: string;
+  entityId: EntityId;
+  fileUrl: string;
 }): Promise<DocumentData> => {
   if (!storageBucket) {
     throw new Error(
@@ -358,12 +594,11 @@ export const getLlmAnalysisOfDoc = async ({
         type.schema.$id === systemEntityTypes.doc.entityTypeId ||
         type.parentIds.includes(systemEntityTypes.doc.entityTypeId)
       );
-    })
-    .map((type) => type.schema);
+    });
 
-  const schema = generateOutputSchema(dereferencedDocEntityTypes);
-
-  console.log(JSON.stringify(schema, null, 2));
+  const schema = generateOutputSchema(
+    dereferencedDocEntityTypes.map((type) => type.schema),
+  );
 
   const vertexAi = getVertexAi();
 
@@ -412,7 +647,7 @@ export const getLlmAnalysisOfDoc = async ({
 
     The options are:
     
-    ${dereferencedDocEntityTypes.map((type) => `- ${type.title}`).join("\n")}
+    ${dereferencedDocEntityTypes.map((type) => `- ${type.schema.title}`).join("\n")}
 
     'Doc' is the most generic type. Use this if no other more specific type is appropriate.
     
@@ -440,15 +675,12 @@ export const getLlmAnalysisOfDoc = async ({
 
   const parsedResponse: unknown = JSON.parse(contentResponse);
 
-  if (!isDocumentData(parsedResponse)) {
-    throw new Error(
-      `Invalid response from LLM analysis: ${JSON.stringify(
-        parsedResponse,
-        null,
-        2,
-      )}`,
-    );
-  }
-
-  return parsedResponse;
+  return unsimplifyDocumentMetadata(
+    parsedResponse,
+    dereferencedDocEntityTypes,
+    {
+      entityId,
+      fileUrl,
+    },
+  );
 };

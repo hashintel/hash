@@ -27,10 +27,7 @@ import {
 
 import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 
-type MinimalDataType = DistributiveOmit<
-  DataType,
-  "$id" | "$schema" | "kind" | "allOf"
->;
+type MinimalDataType = DistributiveOmit<DataType, "$schema" | "kind" | "allOf">;
 
 type MinimalPropertyObject = PropertyValueObject<
   ValueOrArray<DereferencedPropertyType>
@@ -68,8 +65,10 @@ export type DereferencedEntityType<
 
 export type DereferencedEntityTypeWithSimplifiedKeys = {
   isLink: boolean;
+  parentIds: VersionedUrl[];
   schema: DereferencedEntityType<string>;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+  reverseSimplifiedPropertyTypeMappings: Record<BaseUrl, string>;
 };
 
 const dereferencePropertyTypeValue = (params: {
@@ -234,7 +233,6 @@ const dereferencePropertyTypeValue = (params: {
   }
 
   const {
-    $id: _$id,
     $schema: _$schema,
     kind: _kind,
     allOf: _allOf,
@@ -307,6 +305,18 @@ const dereferencePropertyType = (params: {
   };
 };
 
+type DererencedEntityTypeWithMappings<
+  SimplifyPropertyKeys extends boolean | undefined = undefined,
+> = {
+  isLink: boolean;
+  parentIds: VersionedUrl[];
+  schema: DereferencedEntityType<
+    SimplifyPropertyKeys extends true ? string : BaseUrl
+  >;
+  simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+  reverseSimplifiedPropertyTypeMappings: Record<BaseUrl, string>;
+};
+
 /**
  * For a given entityTypeId and a subgraph containing all its dependencies, return a single JSON schema with the following resolved:
  * 1. its parent types
@@ -325,15 +335,7 @@ export const dereferenceEntityType = <
   entityTypeId: VersionedUrl;
   subgraph: Subgraph;
   simplifyPropertyKeys?: SimplifyPropertyKeys;
-}): {
-  isLink: boolean;
-  parentIds: VersionedUrl[];
-  schema: DereferencedEntityType<
-    SimplifyPropertyKeys extends true ? string : BaseUrl
-  >;
-  simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
-  reverseSimplifiedPropertyTypeMappings: Record<BaseUrl, string>;
-} => {
+}): DererencedEntityTypeWithMappings<SimplifyPropertyKeys> => {
   const { entityTypeId, subgraph, simplifyPropertyKeys = false } = params;
 
   let simplifiedPropertyTypeMappings: Record<string, BaseUrl> = {};
