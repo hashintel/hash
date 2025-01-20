@@ -176,6 +176,7 @@ impl TransportLayer {
     }
 
     #[must_use]
+    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub fn registry(&self) -> &metrics::Registry {
         &self.registry
     }
