@@ -527,6 +527,7 @@ __metadata:
     "@types/react-dom": "npm:19.0.2"
     "@types/react-window": "npm:1.8.8"
     "@types/url-regex-safe": "npm:1.0.2"
+    "@vercel/edge-config": "npm:0.1.1"
     "@welldone-software/why-did-you-render": "npm:8.0.3"
     axios: "npm:1.7.9"
     buffer: "npm:6.0.3"
@@ -19977,6 +19978,13 @@ __metadata:
   peerDependencies:
     react: ">= 16.8.0"
   checksum: 10c0/978da66e4e7c424866ad52eba8fdf0ce93a4c8fc44f8837c7043e68c6a6107cd67e817fffb27f7db2ae871ef2f6addb0c8ddf1586f24c67b7e6aef1646c668cf
+  languageName: node
+  linkType: hard
+
+"@vercel/edge-config@npm:0.1.1":
+  version: 0.1.1
+  resolution: "@vercel/edge-config@npm:0.1.1"
+  checksum: 10c0/f0ca2b288630ebf4404a34a867a0961bf0d88c859c7c213aab2b77549b665ceed87c1ba0485517ad02f1782438ef8675c03cfbdc1873110de6924371307fdd16
   languageName: node
   linkType: hard
 

@@ -114,16 +114,19 @@ export const PageHeader: FunctionComponent = () => {
           </Box>
         ) : (
           <Box>
-            <Button
-              variant="tertiary_quiet"
-              sx={{ mr: 1 }}
-              size="xs"
-              // navigating to the sign in route instead of showing the sign in modal for now
-              // since there's some z-index issues between the sidebar and the modal
-              href="/signin"
-            >
-              Sign In
-            </Button>
+            {/* If there's no hashInstance, we can't reach the server – possibly in maintenance mode */}
+            {hashInstance ? (
+              <Button
+                variant="tertiary_quiet"
+                sx={{ mr: 1 }}
+                size="xs"
+                // navigating to the sign in route instead of showing the sign in modal for now
+                // since there's some z-index issues between the sidebar and the modal
+                href="/signin"
+              >
+                Sign In
+              </Button>
+            ) : null}
             {hashInstance?.properties.userSelfRegistrationIsEnabled ? (
               <Button href="/signup" size={isMobile ? "xs" : "small"}>
                 Sign Up

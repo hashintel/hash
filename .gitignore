@@ -149,3 +149,6 @@ seed-users.json
 # Turborepo
 .turbo/
 out/
+
+# Vercel CLI
+.vercel/
