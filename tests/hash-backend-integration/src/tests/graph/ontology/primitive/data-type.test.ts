@@ -6,6 +6,7 @@ import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
+  getDataTypeConversionTargets,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/ontology/primitive/util";
@@ -15,6 +16,8 @@ import type {
   DataTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
+import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
+import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -145,5 +148,56 @@ describe("Data type CRU", () => {
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
         updatedDataType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
+  });
+
+  it("can convert data types", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    const centimeterConversion = await getDataTypeConversionTargets(
+      graphContext,
+      authentication,
+      {
+        dataTypeId: systemDataTypes.centimeters.dataTypeId,
+      },
+    ).then((conversions) =>
+      Object.fromEntries(
+        Object.entries(conversions).map(([dataTypeId, conversion]) => [
+          dataTypeId,
+          createConversionFunction(conversion),
+        ]),
+      ),
+    );
+
+    expect(
+      centimeterConversion[systemDataTypes.millimeters.dataTypeId]!(100),
+    ).toBe(1000);
+    expect(centimeterConversion[systemDataTypes.meters.dataTypeId]!(1000)).toBe(
+      10,
+    );
+    expect(
+      centimeterConversion[systemDataTypes.kilometers.dataTypeId]!(100000),
+    ).toBe(1);
+
+    const meterConversion = await getDataTypeConversionTargets(
+      graphContext,
+      authentication,
+      {
+        dataTypeId: systemDataTypes.meters.dataTypeId,
+      },
+    ).then((conversions) =>
+      Object.fromEntries(
+        Object.entries(conversions).map(([dataTypeId, conversion]) => [
+          dataTypeId,
+          createConversionFunction(conversion),
+        ]),
+      ),
+    );
+
+    expect(meterConversion[systemDataTypes.millimeters.dataTypeId]!(1)).toBe(
+      1000,
+    );
+    expect(meterConversion[systemDataTypes.kilometers.dataTypeId]!(1000)).toBe(
+      1,
+    );
   });
 });

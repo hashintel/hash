@@ -15,7 +15,7 @@ use hash_graph_types::{
 };
 use serde::{Deserialize, Serialize};
 use type_system::{
-    schema::{Conversions, DataType},
+    schema::{ConversionDefinition, Conversions, DataType},
     url::{BaseUrl, VersionedUrl},
 };
 
@@ -144,6 +144,21 @@ pub struct UpdateDataTypeEmbeddingParams<'a> {
     pub reset: bool,
 }
 
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetDataTypeConversionTargetsParams<'a> {
+    #[serde(borrow)]
+    pub data_type_id: Cow<'a, VersionedUrl>,
+}
+
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct GetDataTypeConversionTargetsResponse {
+    pub conversions: HashMap<VersionedUrl, Vec<ConversionDefinition>>,
+}
+
 /// Describes the API of a store implementation for [`DataType`]s.
 pub trait DataTypeStore {
     /// Creates a new [`DataType`].
@@ -254,16 +269,20 @@ pub trait DataTypeStore {
     fn unarchive_data_type(
         &mut self,
         actor_id: AccountId,
-
         params: UnarchiveDataTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     fn update_data_type_embeddings(
         &mut self,
         actor_id: AccountId,
-
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
+
+    fn get_data_type_conversion_targets(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypeConversionTargetsParams<'_>,
+    ) -> impl Future<Output = Result<GetDataTypeConversionTargetsResponse, Report<QueryError>>> + Send;
 
     /// Re-indexes the cache for data types.
     ///

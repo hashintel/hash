@@ -1,6 +1,9 @@
 import type { JsonValue } from "@blockprotocol/core";
 import type {
   ClosedDataType,
+  ConversionDefinition,
+  ConversionExpression,
+  ConversionValue,
   DataType,
   NumberConstraints,
   SingleValueConstraints,
@@ -139,6 +142,66 @@ export const formatDataValue = (
   }
 
   return createFormattedParts({ inner: String(value), schema });
+};
+
+type Context = {
+  self: number;
+};
+
+const evaluateConversionValue = (
+  value: ConversionValue,
+  context: Context,
+): number => {
+  if (Array.isArray(value)) {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    return evaluateExpression(value, context);
+  } else if (value === "self") {
+    return context.self;
+  } else {
+    return value.const;
+  }
+};
+
+const evaluateExpression = (
+  expression: ConversionExpression,
+  context: Context,
+): number => {
+  switch (expression[0]) {
+    case "+":
+      return (
+        evaluateConversionValue(expression[1], context) +
+        evaluateConversionValue(expression[2], context)
+      );
+    case "-":
+      return (
+        evaluateConversionValue(expression[1], context) -
+        evaluateConversionValue(expression[2], context)
+      );
+    case "*":
+      return (
+        evaluateConversionValue(expression[1], context) *
+        evaluateConversionValue(expression[2], context)
+      );
+    case "/":
+      return (
+        evaluateConversionValue(expression[1], context) /
+        evaluateConversionValue(expression[2], context)
+      );
+  }
+};
+
+export const createConversionFunction = (
+  conversions: ConversionDefinition[],
+): ((value: number) => number) => {
+  return (value: number) => {
+    let evaluatedValue = value;
+    for (const conversion of conversions) {
+      evaluatedValue = evaluateExpression(conversion.expression, {
+        self: evaluatedValue,
+      });
+    }
+    return evaluatedValue;
+  };
 };
 
 const transformConstraint = (

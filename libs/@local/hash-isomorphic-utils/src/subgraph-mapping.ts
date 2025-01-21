@@ -1,7 +1,12 @@
+import type {
+  ConversionDefinition,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   ClosedEntityType as GraphApiClosedEntityType,
   ClosedMultiEntityType as GraphApiClosedMultiEntityType,
+  ConversionDefinition as GraphApiConversionDefinition,
   DataTypeWithMetadata as GraphApiDataTypeWithMetadata,
   Entity as GraphApiEntity,
   EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
@@ -239,3 +244,11 @@ export const mapGraphApiPropertyTypesToPropertyTypes = (
 export const mapGraphApiDataTypesToDataTypes = (
   entityTypes: GraphApiDataTypeWithMetadata[],
 ) => entityTypes as DataTypeWithMetadata[];
+
+export const mapGraphApiDataTypeConversions = (
+  conversions: Record<string, GraphApiConversionDefinition[]>,
+) =>
+  conversions as Record<
+    VersionedUrl,
+    [ConversionDefinition] | [ConversionDefinition, ConversionDefinition]
+  >;

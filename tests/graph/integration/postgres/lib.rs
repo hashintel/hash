@@ -49,6 +49,7 @@ use hash_graph_store::{
     account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
+        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
         GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
         GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
@@ -412,6 +413,16 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
     ) -> Result<(), Report<UpdateError>> {
         self.store
             .update_data_type_embeddings(actor_id, params)
+            .await
+    }
+
+    async fn get_data_type_conversion_targets(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypeConversionTargetsParams<'_>,
+    ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
+        self.store
+            .get_data_type_conversion_targets(actor_id, params)
             .await
     }
 

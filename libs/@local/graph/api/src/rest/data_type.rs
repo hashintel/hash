@@ -26,6 +26,7 @@ use hash_graph_postgres_store::{
 use hash_graph_store::{
     data_type::{
         ArchiveDataTypeParams, CreateDataTypeParams, DataTypeQueryToken, DataTypeStore as _,
+        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
         GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
@@ -74,6 +75,7 @@ use crate::rest::{
         load_external_data_type,
         get_data_types,
         get_data_type_subgraph,
+        get_data_type_conversion_targets,
         update_data_type,
         update_data_type_embeddings,
         archive_data_type,
@@ -98,6 +100,8 @@ use crate::rest::{
             GetDataTypesResponse,
             GetDataTypeSubgraphParams,
             GetDataTypeSubgraphResponse,
+            GetDataTypeConversionTargetsParams,
+            GetDataTypeConversionTargetsResponse,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
             ClosedDataTypeDefinition,
@@ -153,7 +157,11 @@ impl RoutedResource for DataTypeResource {
                     "/query",
                     Router::new()
                         .route("/", post(get_data_types::<S, A>))
-                        .route("/subgraph", post(get_data_type_subgraph::<S, A>)),
+                        .route("/subgraph", post(get_data_type_subgraph::<S, A>))
+                        .route(
+                            "/conversions",
+                            post(get_data_type_conversion_targets::<S, A>),
+                        ),
                 )
                 .route("/load", post(load_external_data_type::<S, A>))
                 .route("/archive", put(archive_data_type::<S, A>))
@@ -521,6 +529,62 @@ where
         query_logger.send().await.map_err(report_to_response)?;
     }
     response
+}
+
+#[utoipa::path(
+    post,
+    path = "/data-types/query/conversions",
+    request_body = GetDataTypeConversionTargetsParams,
+    tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = GetDataTypeConversionTargetsResponse,
+        ),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn get_data_type_conversion_targets<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<GetDataTypeConversionTargetsResponse>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .get_data_type_conversion_targets(
+            actor_id,
+            // Manually deserialize the query from a JSON value to allow borrowed deserialization
+            // and better error reporting.
+            GetDataTypeConversionTargetsParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
+        )
+        .await
+        .map_err(report_to_response)
+        .map(Json)
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
