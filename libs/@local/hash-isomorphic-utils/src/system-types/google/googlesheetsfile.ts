@@ -95,8 +95,7 @@ export type {
 /**
  * The type of thing that can, should or will act on something.
  */
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents -- @todo H-3848 stop codegen adding inherited type here
-export type ActorTypeDataType = TextDataType & ("machine" | "human");
+export type ActorTypeDataType = TextDataType & ("human" | "machine");
 
 export type ActorTypeDataTypeWithMetadata = {
   value: ActorTypeDataType;
@@ -147,6 +146,21 @@ export type BooleanDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
+};
+
+/**
+ * A unit of information equal to eight bits.
+ */
+export type BytesDataType = InformationDataType;
+
+export type BytesDataTypeWithMetadata = {
+  value: BytesDataType;
+  metadata: BytesDataTypeMetadata;
+};
+export type BytesDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1";
 };
 
 /**
@@ -247,9 +261,9 @@ export type FilePropertiesWithMetadata = {
 /**
  * The size of a file
  */
-export type FileSizePropertyValue = NumberDataType;
+export type FileSizePropertyValue = BytesDataType;
 
-export type FileSizePropertyValueWithMetadata = NumberDataTypeWithMetadata;
+export type FileSizePropertyValueWithMetadata = BytesDataTypeWithMetadata;
 
 /**
  * The bucket in which a file is stored.
@@ -301,9 +315,9 @@ export type FileStorageRegionPropertyValueWithMetadata =
 /**
  * A URL that serves a file.
  */
-export type FileURLPropertyValue = TextDataType;
+export type FileURLPropertyValue = URIDataType;
 
-export type FileURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type FileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * A Google Sheets file.
@@ -344,6 +358,21 @@ export type GoogleSheetsFilePropertiesWithMetadata =
       "https://hash.ai/@h/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
     };
   };
+
+/**
+ * A measure of information content.
+ */
+export type InformationDataType = NumberDataType;
+
+export type InformationDataTypeWithMetadata = {
+  value: InformationDataType;
+  metadata: InformationDataTypeMetadata;
+};
+export type InformationDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/information/v/1";
+};
 
 /**
  * A MIME (Multipurpose Internet Mail Extensions) type.
@@ -387,9 +416,9 @@ export type OriginalSourcePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The original URL something was hosted at
  */
-export type OriginalURLPropertyValue = TextDataType;
+export type OriginalURLPropertyValue = URIDataType;
 
-export type OriginalURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type OriginalURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * A spreadsheet file.
@@ -414,6 +443,21 @@ export type SpreadsheetFilePropertiesWithMetadata =
     metadata?: ObjectMetadata;
     value: {};
   };
+
+/**
+ * A unique identifier for a resource (e.g. a URL, or URN).
+ */
+export type URIDataType = TextDataType;
+
+export type URIDataTypeWithMetadata = {
+  value: URIDataType;
+  metadata: URIDataTypeMetadata;
+};
+export type URIDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1";
+};
 
 /**
  * The timestamp when the upload of something has completed
