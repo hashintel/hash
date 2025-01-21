@@ -1692,9 +1692,9 @@ export const blockProtocolEntityTypes = {
       "https://blockprotocol.org/@blockprotocol/types/entity-type/link/" as BaseUrl,
   },
   query: {
-    entityTypeId: "https://blockprotocol.org/@h/types/entity-type/query/v/1",
+    entityTypeId: "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
     entityTypeBaseUrl:
-      "https://blockprotocol.org/@h/types/entity-type/query/" as BaseUrl,
+      "https://blockprotocol.org/@hash/types/entity-type/query/" as BaseUrl,
   },
   thing: {
     entityTypeId:

@@ -3,7 +3,12 @@ import { codegen } from "@blockprotocol/graph/codegen";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
-import { googleEntityTypes } from "./ontology-type-ids.js";
+import {
+  blockProtocolEntityTypes,
+  googleEntityTypes,
+  linearEntityTypes,
+  systemEntityTypes,
+} from "./ontology-type-ids.js";
 import { slugify } from "./slugify.js";
 
 const generateTypes = async (
@@ -71,14 +76,14 @@ const generateTypes = async (
  *   need to hunt down where the interaction or shared state is between them.
  */
 const generateSystemTypeTypes = async () => {
-  // await generateTypes(systemEntityTypes, "system");
-  // await generateTypes(linearEntityTypes, "linear", "linear");
+  await generateTypes(systemEntityTypes, "system");
+  await generateTypes(linearEntityTypes, "linear", "linear");
   await generateTypes(googleEntityTypes, "google", "google");
-  // await generateTypes(
-  //   blockProtocolEntityTypes,
-  //   "Block Protocol",
-  //   "blockprotocol",
-  // );
+  await generateTypes(
+    blockProtocolEntityTypes,
+    "Block Protocol",
+    "blockprotocol",
+  );
 };
 
 void generateSystemTypeTypes();
