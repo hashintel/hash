@@ -1,9 +1,7 @@
 {
-  "principal": {
-    "type": "user",
-    "id": "tim"
-  },
   "action": "entity:view",
-  // "resource": "entity-a",
-  "origin": "playground"
+  "principal": {
+    "id": "tim",
+    "type": "user"
+  }
 }

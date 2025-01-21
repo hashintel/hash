@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "ciarans bottle of coke": {
+      "owner": "ciaran",
+      "property": "coke",
+      "type": "bottle"
+    },
+    "ciarans bottle of fanta": {
+      "owner": "ciaran",
+      "property": "fanta",
+      "type": "bottle"
+    },
+    "ciarans glass of coke": {
+      "owner": "ciaran",
+      "property": "coke",
+      "type": "glass"
+    },
+    "ciarans glass of fanta": {
+      "owner": "ciaran",
+      "property": "fanta",
+      "type": "glass"
+    },
+    "tims bottle of coke": {
+      "owner": "tim",
+      "property": "coke",
+      "type": "bottle"
+    },
+    "tims bottle of fanta": {
+      "owner": "tim",
+      "property": "fanta",
+      "type": "bottle"
+    },
+    "tims glass of coke": {
+      "owner": "tim",
+      "property": "coke",
+      "type": "glass"
+    },
+    "tims glass of fanta": {
+      "owner": "tim",
+      "property": "fanta",
+      "type": "glass"
+    }
+  },
+  "organizations": {
+    "hash": {
+      "policies": {
+        "member": [
+          {
+            "action": "entity:view",
+            "effect": {
+              "level": 0,
+              "type": "allow"
+            },
+            "resource": {
+              "type": "glass"
+            }
+          }
+        ]
+      },
+      "roles": {
+        "admin": ["member"],
+        "member": []
+      }
+    },
+    "mpi": {
+      "members": ["bilal"],
+      "roles": {
+        "admin": ["member"],
+        "member": []
+      }
+    }
+  },
+  "users": {
+    "*": {
+      "policies": [
+        {
+          "action": "entity:view",
+          "effect": {
+            "level": 0,
+            "type": "allow"
+          },
+          "resource": {
+            "type": "bottle"
+          }
+        },
+        {
+          "action": "entity:view",
+          "effect": {
+            "level": 0,
+            "type": "deny"
+          },
+          "resource": {
+            "owner": "tim"
+          }
+        }
+      ]
+    },
+    "tim": {
+      "organizations": [
+        {
+          "name": "hash",
+          "roles": ["admin"]
+        }
+      ],
+      "policies": [
+        {
+          "action": "entity:view",
+          "effect": {
+            "level": 0,
+            "type": "deny"
+          },
+          "resource": {
+            "property": "coke"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "principal": {
+    "type": "user",
+    "id": "tim"
+  },
+  "action": "entity:view",
+  "origin": "playground"
+}
