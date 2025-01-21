@@ -361,7 +361,7 @@ const addMetadataToPropertyValue = (
       return {
         value: value.map((item) => ({
           value: item,
-          metadata: { dataTypeId: propertyTypeSchema.$id },
+          metadata: { dataTypeId: propertyTypeSchema.$id, provenance },
         })),
       };
     }
@@ -375,12 +375,10 @@ const addMetadataToPropertyValue = (
     }
 
     return {
-      value: {
-        value: value.map((item) => ({
-          value: item,
-          metadata: { dataTypeId: expectedDataType.$id },
-        })),
-      },
+      value: value.map((item) => ({
+        value: item,
+        metadata: { dataTypeId: expectedDataType.$id, provenance },
+      })),
     };
   }
 
@@ -420,7 +418,7 @@ const addMetadataToPropertyValue = (
   if ("$id" in propertyTypeSchema) {
     return {
       value,
-      metadata: { dataTypeId: propertyTypeSchema.$id },
+      metadata: { dataTypeId: propertyTypeSchema.$id, provenance },
     };
   }
 
@@ -441,7 +439,7 @@ const addMetadataToPropertyValue = (
   return {
     value: value.map((item) => ({
       value: item,
-      metadata: { dataTypeId: expectedDataType.$id },
+      metadata: { dataTypeId: expectedDataType.$id, provenance },
     })),
   };
 };

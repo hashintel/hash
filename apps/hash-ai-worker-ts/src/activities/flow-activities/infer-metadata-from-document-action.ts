@@ -291,7 +291,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     },
   ]);
 
-  const title = documentEntity.properties[
+  const title = updatedEntity.properties[
     systemPropertyTypes.title.propertyTypeBaseUrl
   ] as TitlePropertyValue;
 
