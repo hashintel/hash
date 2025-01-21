@@ -29,6 +29,7 @@ import {
   type DereferencedEntityTypeWithSimplifiedKeys,
   type DereferencedPropertyType,
   dereferenceEntityType,
+  type MinimalPropertyObject,
 } from "../../shared/dereference-entity-type.js";
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
@@ -272,10 +273,13 @@ const assertIsLlmResponseDocumentData: (
 const addMetadataToPropertyValue = (
   key: string,
   value: PropertyValue,
-  docEntityType: DereferencedEntityTypeWithSimplifiedKeys,
+  propertyMappings: DereferencedEntityTypeWithSimplifiedKeys["simplifiedPropertyTypeMappings"],
+  propertyObjectSchema:
+    | DereferencedEntityTypeWithSimplifiedKeys["schema"]["properties"]
+    | MinimalPropertyObject["properties"],
   provenance: PropertyProvenance,
 ): PropertyWithMetadata => {
-  const propertyTypeBaseUrl = docEntityType.simplifiedPropertyTypeMappings[key];
+  const propertyTypeBaseUrl = propertyMappings[key];
 
   if (!propertyTypeBaseUrl) {
     throw new Error(
@@ -283,7 +287,7 @@ const addMetadataToPropertyValue = (
     );
   }
 
-  const propertyType = docEntityType.schema.properties[key];
+  const propertyType = propertyObjectSchema[key];
 
   if (!propertyType) {
     throw new Error(
@@ -328,12 +332,21 @@ const addMetadataToPropertyValue = (
           return {
             value: Object.fromEntries(
               Object.entries(objectInArray).map(([nestedKey, nestedValue]) => {
+                const nestedBaseUrl = propertyMappings[nestedKey];
+
+                if (!nestedBaseUrl) {
+                  throw new Error(
+                    `Simplified property type mapping for key ${nestedKey} not found`,
+                  );
+                }
+
                 return [
-                  nestedKey,
+                  nestedBaseUrl,
                   addMetadataToPropertyValue(
                     nestedKey,
                     nestedValue,
-                    docEntityType,
+                    propertyMappings,
+                    propertyTypeSchema.properties,
                     provenance,
                   ),
                 ];
@@ -381,12 +394,21 @@ const addMetadataToPropertyValue = (
     return {
       value: Object.fromEntries(
         Object.entries(value).map(([nestedKey, nestedValue]) => {
+          const nestedBaseUrl = propertyMappings[nestedKey];
+
+          if (!nestedBaseUrl) {
+            throw new Error(
+              `Simplified property type mapping for key ${nestedKey} not found`,
+            );
+          }
+
           return [
-            nestedKey,
+            nestedBaseUrl,
             addMetadataToPropertyValue(
               nestedKey,
               nestedValue,
-              docEntityType,
+              propertyMappings,
+              propertyTypeSchema.properties,
               provenance,
             ),
           ];
@@ -474,7 +496,13 @@ const unsimplifyDocumentMetadata = (
     }
 
     fullPropertiesWithDataTypeIds.value[propertyTypeBaseUrl] =
-      addMetadataToPropertyValue(key, value, docEntityType, propertyProvenance);
+      addMetadataToPropertyValue(
+        key,
+        value,
+        docEntityType.simplifiedPropertyTypeMappings,
+        docEntityType.schema.properties,
+        propertyProvenance,
+      );
   }
 
   return {
@@ -666,8 +694,6 @@ export const getLlmAnalysisOfDoc = async ({
   const resp = await gemini.generateContent(request);
 
   const contentResponse = resp.response.candidates?.[0]?.content.parts[0]?.text;
-
-  console.log(JSON.stringify(resp, null, 2));
 
   if (!contentResponse) {
     throw new Error("No content response from LLM analysis");

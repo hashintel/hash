@@ -29,7 +29,7 @@ import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simp
 
 type MinimalDataType = DistributiveOmit<DataType, "$schema" | "kind" | "allOf">;
 
-type MinimalPropertyObject = PropertyValueObject<
+export type MinimalPropertyObject = PropertyValueObject<
   ValueOrArray<DereferencedPropertyType>
 > & { additionalProperties: false };
 
