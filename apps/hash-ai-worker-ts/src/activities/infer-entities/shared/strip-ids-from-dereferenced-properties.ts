@@ -19,8 +19,10 @@ export const stripIdsFromDereferencedProperties = (params: {
 } => {
   const { properties } = params;
 
+  // @ts-expect-error - we need to update exclusiveMinimum and exclusiveMaximum to be numbers rather than booleans
   return Object.entries(properties).reduce<{
     [key: string]: JSONSchemaDefinition;
+    // @ts-expect-error - we need to update exclusiveMinimum and exclusiveMaximum to be numbers rather than booleans
   }>((acc, [propertyKey, value]) => {
     if ("items" in value) {
       const { $id: _id, ...itemsWithoutId } = value.items;
@@ -55,6 +57,7 @@ export const stripIdsFromDereferencedProperties = (params: {
 
     acc[propertyKey] = {
       ...valueWithoutId,
+      // @ts-expect-error - we need to update exclusiveMinimum and exclusiveMaximum to be numbers rather than booleans
       oneOf: valueWithoutId.oneOf.map((oneOfValue) => {
         if (typeof oneOfValue === "object" && "properties" in oneOfValue) {
           return {

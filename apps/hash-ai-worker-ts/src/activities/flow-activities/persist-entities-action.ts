@@ -241,7 +241,18 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
 
   return {
     /** @todo H-2604 have some kind of 'partially completed' status when reworking flow return codes */
-    code: persistedEntities.length > 0 ? StatusCode.Ok : StatusCode.Internal,
+    code:
+      persistedEntities.length > 0
+        ? StatusCode.Ok
+        : proposedEntities.length > 0
+          ? StatusCode.Internal
+          : StatusCode.Ok,
+    message:
+      persistedEntities.length > 0
+        ? `Persisted ${persistedEntities.length} entities`
+        : proposedEntities.length > 0
+          ? `Failed to persist ${failedEntityProposals.length} entities`
+          : `No entities to persist`,
     contents: [
       {
         outputs: [

@@ -25,10 +25,12 @@ import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolPropertyTypes,
-  systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  File,
+  TitlePropertyValue,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -214,32 +216,19 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
   const documentMetadata = await getLlmAnalysisOfDoc({
     fileSystemPath: filePath,
     hashFileStorageKey: storageKey,
+    entityId: documentEntityId,
+    fileUrl,
   });
 
   await unlink(filePath);
 
   const {
     authors,
-    doi,
-    doiLink,
-    isbn,
-    publishedBy,
-    publishedInYear,
-    publicationVenue,
-    summary,
-    title,
-    type,
+    documentMetadata: { entityTypeId, properties },
   } = documentMetadata;
 
   const entityTypeIds = new Set(documentEntity.metadata.entityTypeIds);
-
-  if (type === "AcademicPaper") {
-    entityTypeIds.add(systemEntityTypes.academicPaper.entityTypeId);
-  } else if (type === "Book") {
-    entityTypeIds.add(systemEntityTypes.book.entityTypeId);
-  } else {
-    entityTypeIds.add(systemEntityTypes.doc.entityTypeId);
-  }
+  entityTypeIds.add(entityTypeId);
 
   const sourceProvenance: SourceProvenance = {
     type: "document",
@@ -262,19 +251,11 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     sources: [sourceProvenance],
   };
 
-  const propertyPatches = generateDocumentPropertyPatches(
-    {
-      doi,
-      doiLink,
-      isbn,
-      numberOfPages,
-      publishedInYear,
-      summary,
-      title,
-      type,
-    },
-    propertyProvenance,
-  );
+  const propertyPatches = generateDocumentPropertyPatches({
+    numberOfPages,
+    properties,
+    provenance: propertyProvenance,
+  });
 
   const existingEntity = documentEntity.toJSON();
 
@@ -310,11 +291,15 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     },
   ]);
 
+  const title = updatedEntity.properties[
+    systemPropertyTypes.title.propertyTypeBaseUrl
+  ] as TitlePropertyValue;
+
   const proposedEntities =
     await generateDocumentProposedEntitiesAndCreateClaims({
       aiAssistantAccountId,
       documentEntityId,
-      documentMetadata: { authors, publishedBy, publicationVenue },
+      documentMetadata: { authors },
       documentTitle: title,
       provenance,
       propertyProvenance,

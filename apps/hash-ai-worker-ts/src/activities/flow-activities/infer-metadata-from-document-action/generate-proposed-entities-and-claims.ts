@@ -1,6 +1,6 @@
 import type { PropertyProvenance } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
@@ -16,12 +16,10 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  Claim as ClaimEntity,
-  HasObject,
-} from "@local/hash-isomorphic-utils/system-types/claim";
+import type { Claim as ClaimEntity } from "@local/hash-isomorphic-utils/system-types/claim";
 import type {
   InstitutionProperties,
+  NamePropertyValueWithMetadata,
   PersonProperties,
   TextDataTypeMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -31,7 +29,7 @@ import { Context } from "@temporalio/activity";
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import { logProgress } from "../../shared/log-progress.js";
-import type { DocumentMetadata } from "./get-llm-analysis-of-doc.js";
+import type { DocumentData } from "./get-llm-analysis-of-doc.js";
 
 const createClaim = async ({
   claimText,
@@ -109,10 +107,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   propertyProvenance,
 }: {
   aiAssistantAccountId: AccountId;
-  documentMetadata: Pick<
-    DocumentMetadata,
-    "authors" | "publicationVenue" | "publishedBy"
-  >;
+  documentMetadata: Pick<DocumentData, "authors">;
   documentEntityId: EntityId;
   documentTitle: string;
   provenance: EnforcedEntityEditionProvenance;
@@ -121,8 +116,6 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   const {
     authors,
     /** @todo H-3619: Infer info on publisher and venue, and link to docs */
-    publicationVenue: _publicationVenue,
-    publishedBy: _publishedBy,
   } = documentMetadata;
 
   const { createEntitiesAsDraft, webId, userAuthentication } =
@@ -137,7 +130,8 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   const nameOnlyPropertyMetadata: PropertyMetadataObject = {
     value: {
       [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: {
-        metadata: textDataTypeMetadata,
+        metadata:
+          textDataTypeMetadata satisfies NamePropertyValueWithMetadata["metadata"],
       },
     },
   };
@@ -172,30 +166,6 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       subjectText: authorName,
       userActorId: userAuthentication.actorId,
     });
-
-    /**
-     * Link the authorship claim to the document entity
-     *
-     * @todo H-3152 update persist-entity to handle updates to existing entities, and let claim link creation happen there
-     */
-    await LinkEntity.create<HasObject>(
-      graphApiClient,
-      { actorId: aiAssistantAccountId },
-      {
-        draft: createEntitiesAsDraft,
-        entityTypeIds: [systemLinkEntityTypes.hasObject.linkEntityTypeId],
-        ownedById: webId,
-        provenance,
-        linkData: {
-          leftEntityId: authorToDocClaim.entityId,
-          rightEntityId: documentEntityId,
-        },
-        relationships: createDefaultAuthorizationRelationships({
-          actorId: userAuthentication.actorId,
-        }),
-        properties: { value: {} },
-      },
-    );
 
     const authorClaims: ProposedEntity["claims"] = {
       isObjectOf: [],
