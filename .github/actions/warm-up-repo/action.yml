@@ -17,7 +17,7 @@ runs:
         # cache: yarn ## Currently disabled because of frequent timeouts
 
     - name: Install WASM tools
-      uses: taiki-e/install-action@c87777c3160ce0cfd8fc286df47224d2449cb76b # v2.47.11
+      uses: taiki-e/install-action@5c7ec4ff6e0124b55f6ea8d81dad544a9862ba99 # v2.47.20
       with:
         tool: wasm-pack@0.12.1
 

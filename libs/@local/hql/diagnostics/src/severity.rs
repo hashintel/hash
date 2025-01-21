@@ -83,11 +83,13 @@ impl Severity<'static> {
 
 impl Severity<'_> {
     #[must_use]
+    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub fn id(&self) -> &str {
         &self.id
     }
 
     #[must_use]
+    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub fn name(&self) -> &str {
         &self.name
     }
