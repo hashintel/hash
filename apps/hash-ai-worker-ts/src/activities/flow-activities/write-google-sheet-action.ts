@@ -326,8 +326,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         {
           value: spreadsheet.spreadsheetUrl,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
           },
         },
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":

@@ -292,8 +292,7 @@ export const createFileEntityFromUrl = async (params: {
         {
           value: formatFileUrl(key),
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
           },
         },
     },

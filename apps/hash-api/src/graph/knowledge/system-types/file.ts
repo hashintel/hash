@@ -171,8 +171,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         {
           value: "https://placehold.co/600x400?text=PLACEHOLDER",
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
           },
         },
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
@@ -219,8 +218,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         {
           value: size,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+            dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1",
           },
         },
     },
@@ -263,8 +261,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
           {
             value: formatFileUrl(key),
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
             },
           },
       },
@@ -341,8 +338,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           {
             value: url,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
             },
           },
         "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
@@ -373,8 +369,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           {
             value: url,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
             },
           },
       },
