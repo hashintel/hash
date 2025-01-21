@@ -5,7 +5,7 @@ import {
 import { Storage } from "@google-cloud/storage";
 import type { Part, ResponseSchema } from "@google-cloud/vertexai";
 import { SchemaType, VertexAI } from "@google-cloud/vertexai";
-import type { PropertyProvenance } from "@local/hash-graph-client/dist/api.d";
+import type { PropertyProvenance } from "@local/hash-graph-client";
 import type {
   EntityId,
   PropertyObjectWithMetadata,

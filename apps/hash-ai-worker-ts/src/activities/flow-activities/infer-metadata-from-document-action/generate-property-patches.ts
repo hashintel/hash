@@ -1,4 +1,4 @@
-import type { PropertyProvenance } from "@local/hash-graph-client/dist/api.d";
+import type { PropertyProvenance } from "@local/hash-graph-client";
 import type {
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
