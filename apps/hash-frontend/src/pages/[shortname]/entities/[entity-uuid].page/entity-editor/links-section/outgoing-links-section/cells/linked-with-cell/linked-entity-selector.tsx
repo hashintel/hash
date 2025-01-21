@@ -37,18 +37,22 @@ const FileCreationContext = createContext<
   | {
       close: () => void;
       isImage: boolean;
-      onFileProvided: (file: File) => void;
+      onFilesProvided: (files: [File, ...File[]]) => void;
     }
   | undefined
 >(undefined);
 
 const FileCreationPane = (props: PaperProps) => {
-  const { close, isImage, onFileProvided } = useContext(FileCreationContext)!;
+  const { close, isImage, onFilesProvided } = useContext(FileCreationContext)!;
 
   return (
     <AutocompleteDropdown {...props} className={GRID_CLICK_IGNORE_CLASS}>
       <Stack spacing={2}>
-        <FileUploadDropzone image={isImage} onFileProvided={onFileProvided} />
+        <FileUploadDropzone
+          image={isImage}
+          multiple={false}
+          onFilesProvided={onFilesProvided}
+        />
         <Button onClick={close} sx={{ width: "100%" }} variant="tertiary">
           <ArrowLeftIcon sx={{ fontSize: 14, color: "gray.50", mr: 0.6 }} />
           <Typography variant="smallTextLabels" color="gray.50">
@@ -107,14 +111,16 @@ export const LinkedEntitySelector = ({
   const { uploadFile } = useFileUploads();
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
-  const onFileProvided = useCallback(
-    async (file: File) => {
+  const onFilesProvided = useCallback(
+    async (files: [File, ...File[]]) => {
       if (!activeWorkspaceOwnedById) {
         throw new Error("Cannot upload file without active workspace");
       }
 
       // Close the dropdown immediately as we want the file upload to happen in the background
       onFinishedEditing();
+
+      const file = files[0];
 
       await uploadFile({
         fileData: {
@@ -167,9 +173,9 @@ export const LinkedEntitySelector = ({
     () => ({
       close: () => setShowUploadFileMenu(false),
       isImage,
-      onFileProvided,
+      onFilesProvided,
     }),
-    [isImage, onFileProvided],
+    [isImage, onFilesProvided],
   );
 
   const highlightedRef = useRef<null | Entity>(null);

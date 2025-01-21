@@ -125,6 +125,7 @@ impl DatabaseConnectionInfo {
     }
 
     #[must_use]
+    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub fn user(&self) -> &str {
         &self.user
     }
@@ -133,11 +134,13 @@ impl DatabaseConnectionInfo {
     ///
     /// Note, that this will reveal the password, so the returned output should not be printed.
     #[must_use]
+    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub fn password(&self) -> &str {
         &self.password
     }
 
     #[must_use]
+    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub fn host(&self) -> &str {
         &self.host
     }
@@ -148,6 +151,7 @@ impl DatabaseConnectionInfo {
     }
 
     #[must_use]
+    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub fn database(&self) -> &str {
         &self.database
     }

@@ -94,13 +94,15 @@ where
             compiler.set_limit(limit);
         }
 
-        compiler.add_filter(filter);
+        compiler.add_filter(filter).change_context(QueryError)?;
 
-        let cursor_indices = sorting.compile(
-            &mut compiler,
-            cursor_parameters.as_ref(),
-            temporal_axes.expect("To use a cursor, temporal axes has to be specified"),
-        );
+        let cursor_indices = sorting
+            .compile(
+                &mut compiler,
+                cursor_parameters.as_ref(),
+                temporal_axes.expect("To use a cursor, temporal axes has to be specified"),
+            )
+            .change_context(QueryError)?;
 
         let record_artifacts = R::parameters();
         let record_indices = R::compile(&mut compiler, &record_artifacts);
@@ -145,7 +147,7 @@ where
         let record_artifacts = R::parameters();
         let record_indices = R::compile(&mut compiler, &record_artifacts);
 
-        compiler.add_filter(filter);
+        compiler.add_filter(filter).change_context(QueryError)?;
         let (statement, parameters) = compiler.compile();
 
         Ok(self
@@ -170,7 +172,7 @@ where
         let record_artifacts = R::parameters();
         let record_indices = R::compile(&mut compiler, &record_artifacts);
 
-        compiler.add_filter(filter);
+        compiler.add_filter(filter).change_context(QueryError)?;
         let (statement, parameters) = compiler.compile();
 
         let rows = self

@@ -38,6 +38,7 @@
     "start:healthcheck": "wait-on --timeout 120000 http-get://localhost:4100/health",
     "start:test": "NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 node ./dist/main.js",
     "start:test:healthcheck": "wait-on --timeout 120000 http-get://localhost:4100/health",
+    "temporal:clean": "temporal workflow terminate --query \"TaskQueue='ai'\" --reason=\"Batch terminate from CLI\"",
     "test:unit": "vitest --run  --exclude \"**/*.ai.test.ts\""
   },
   "dependencies": {
@@ -81,7 +82,7 @@
     "md5": "2.3.0",
     "mime-types": "2.1.35",
     "officeparser": "4.2.0",
-    "openai": "4.78.1",
+    "openai": "4.79.1",
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.5.1",
     "pdf2json": "3.1.5",
@@ -106,7 +107,7 @@
     "@types/lodash.pickby": "4.6.9",
     "@types/md5": "2.3.5",
     "@types/mime-types": "2.1.4",
-    "@types/node": "22.10.5",
+    "@types/node": "22.10.7",
     "@types/papaparse": "5.3.15",
     "@types/sanitize-html": "2.13.0",
     "@vitest/coverage-istanbul": "2.1.8",

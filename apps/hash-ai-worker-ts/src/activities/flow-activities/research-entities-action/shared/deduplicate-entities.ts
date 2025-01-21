@@ -1,4 +1,5 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import dedent from "dedent";
 
 import { logger } from "../../../shared/activity-logger.js";
@@ -194,6 +195,9 @@ export const deduplicateEntities = async (params: {
     }
 
     logger.error(`Error deduplicating entities: ${llmResponse.status}`);
+
+    await sleep(2_000);
+
     return deduplicateEntities(params);
   }
 

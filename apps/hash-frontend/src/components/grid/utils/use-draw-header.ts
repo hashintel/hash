@@ -1,10 +1,11 @@
 import type {
   DrawHeaderCallback,
-  GridColumn,
+  SizedGridColumn,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 
+import type { ColumnKey } from "../grid";
 import { getCellHorizontalPadding, getYCenter } from "../utils";
 import type { ColumnFilter } from "./filtering";
 import { InteractableManager } from "./interactable-manager";
@@ -14,28 +15,31 @@ import type {
 } from "./interactable-manager/types";
 import type { ColumnSort } from "./sorting";
 
-export const useDrawHeader = <T extends string>(props: {
-  activeSortColumnKey?: T;
-  columns: GridColumn[];
+export const useDrawHeader = <
+  C extends SizedGridColumn,
+  S extends C["id"],
+>(props: {
+  columns: C[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  filters?: ColumnFilter<T, any>[];
+  filters?: ColumnFilter<ColumnKey<C>, any>[];
   firstColumnLeftPadding?: number;
   onFilterClick?: (
-    columnKey: T,
+    columnKey: ColumnKey<C>,
     interactablePosition: InteractablePosition,
   ) => void;
-  onSortClick?: (columnKey: T) => void;
-  sorts?: ColumnSort<T>[];
+  onSortClick?: (columnKey: S) => void;
+  sort?: ColumnSort<S>;
+  sortableColumns: S[];
   tableId: string;
 }): DrawHeaderCallback => {
   const {
-    activeSortColumnKey,
     columns,
     filters,
     firstColumnLeftPadding,
     onFilterClick,
     onSortClick,
-    sorts,
+    sort,
+    sortableColumns,
     tableId,
   } = props;
 
@@ -61,7 +65,7 @@ export const useDrawHeader = <T extends string>(props: {
       ctx.font = theme.headerFontStyle;
       ctx.fillText(column.title, columnHeaderStartX + paddingLeft, centerY);
 
-      const columnKey = columns[columnIndex]?.id as T;
+      const columnKey = columns[columnIndex]?.id as ColumnKey<C>;
 
       if (columnIndex < 0) {
         return true;
@@ -73,16 +77,12 @@ export const useDrawHeader = <T extends string>(props: {
 
       const iconSpacing = 10;
 
-      const sort = sorts?.find(
-        ({ columnKey: sortColumnKey }) => sortColumnKey === columnKey,
-      );
-
-      if (sort) {
+      if (sort && sortableColumns.includes(column.id as S)) {
         const sortIconStartX =
           columnHeaderStartX +
           (columnHeaderWidth - sortIconSize - paddingRight);
 
-        const isSortActive = sort.columnKey === activeSortColumnKey;
+        const isSortActive = sort.columnKey === columnKey;
 
         args.spriteManager.drawSprite(
           /**
@@ -114,7 +114,7 @@ export const useDrawHeader = <T extends string>(props: {
                 top: centerY - sortIconSize / 2,
                 bottom: centerY + sortIconSize / 2,
               },
-              onClick: () => onSortClick?.(columnKey),
+              onClick: () => onSortClick?.(columnKey as S),
             },
           ),
         );
@@ -182,15 +182,16 @@ export const useDrawHeader = <T extends string>(props: {
       return true;
     },
     [
-      muiTheme,
-      sorts,
-      filters,
       columns,
-      activeSortColumnKey,
-      tableId,
+      filters,
       firstColumnLeftPadding,
-      onSortClick,
+      muiTheme.palette.blue,
+      muiTheme.palette.gray,
       onFilterClick,
+      onSortClick,
+      sort,
+      sortableColumns,
+      tableId,
     ],
   );
 

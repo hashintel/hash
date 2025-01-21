@@ -27,13 +27,14 @@ import { backOff } from "exponential-backoff";
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification.js";
-// import {
-//   findExistingEntity,
-//   findExistingLinkEntity,
-// } from "../shared/find-existing-entity";
+import {
+  findExistingEntity,
+  findExistingLinkEntity,
+} from "../shared/find-existing-entity.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
+import type { MatchedEntityUpdate } from "../shared/match-existing-entity.js";
 import { createFileEntityFromUrl } from "./shared/create-file-entity-from-url.js";
 import {
   getEntityUpdate,
@@ -125,7 +126,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     : undefined;
 
   let entity: Entity;
-  let existingEntity: Entity | undefined;
+  let matchedEntityUpdate: MatchedEntityUpdate<Entity> | null = null;
   let operation: "create" | "update";
 
   if (isFileEntity && fileUrl) {
@@ -143,20 +144,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       return {
         code: StatusCode.Internal,
         message: createFileEntityFromUrlStatus.message,
-        contents: [
-          {
-            outputs: [
-              {
-                outputName:
-                  "persistedEntity" as OutputNameForAction<"persistEntity">,
-                payload: {
-                  kind: "PersistedEntity",
-                  value: { operation },
-                },
-              },
-            ],
-          },
-        ],
+        contents: [],
       };
     }
 
@@ -164,74 +152,59 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
     entity = updatedEntity;
   } else {
-    /**
-     * @todo: improve the logic for finding existing entities, to
-     * reduce the number of false positives.
-     */
-    // existingEntity = await (linkData
-    //   ? findExistingLinkEntity({
-    //       actorId,
-    //       graphApiClient,
-    //       ownedById,
-    //       linkData,
-    //       includeDrafts: createEditionAsDraft,
-    //     })
-    //   : findExistingEntity({
-    //       actorId,
-    //       graphApiClient,
-    //       ownedById,
-    //       proposedEntity: proposedEntityWithResolvedLinks,
-    //       includeDrafts: createEditionAsDraft,
-    //     }));
+    matchedEntityUpdate = await (linkData
+      ? /**
+         * @todo H-3883 ensure that the creation of a new link will not violate min/max links on an entity
+         */
+        findExistingLinkEntity({
+          actorId,
+          graphApiClient,
+          ownedById,
+          linkData,
+          proposedEntity: proposedEntityWithResolvedLinks,
+          includeDrafts: createEditionAsDraft,
+        })
+      : findExistingEntity({
+          actorId,
+          graphApiClient,
+          ownedById,
+          proposedEntity: proposedEntityWithResolvedLinks,
+          includeDrafts: createEditionAsDraft,
+        }));
 
-    operation = existingEntity ? "update" : "create";
+    operation = matchedEntityUpdate ? "update" : "create";
 
     try {
-      if (existingEntity) {
-        const { existingEntityIsDraft, isExactMatch, patchOperations } =
-          getEntityUpdate({
-            existingEntity,
-            newProperties: mergePropertyObjectAndMetadata(
-              properties,
-              undefined,
-            ),
-          });
+      if (matchedEntityUpdate) {
+        const { existingEntityIsDraft, patchOperations } = getEntityUpdate({
+          existingEntity: matchedEntityUpdate.existingEntity,
+          newPropertiesWithMetadata: mergePropertyObjectAndMetadata(
+            matchedEntityUpdate.newValues.properties,
+            matchedEntityUpdate.newValues.propertyMetadata,
+          ),
+        });
 
-        const serializedEntity = existingEntity.toJSON();
-
-        if (isExactMatch) {
-          return {
-            code: StatusCode.Ok,
-            contents: [
-              {
-                outputs: [
-                  {
-                    outputName:
-                      "persistedEntity" as OutputNameForAction<"persistEntity">,
-                    payload: {
-                      kind: "PersistedEntity",
-                      value: {
-                        entity: serializedEntity,
-                        existingEntity: serializedEntity,
-                        operation: "already-exists-as-proposed",
-                      },
-                    },
-                  },
-                ],
-              },
-            ],
-          };
-        }
+        /**
+         * In practice we don't reassign matchedEntityUpdate anywhere below it doesn't harm to make sure it will always
+         * be the same thing in the backOff function.
+         */
+        const stableReferenceToMatchedEntity = matchedEntityUpdate;
 
         entity = await backOff(
           () =>
-            existingEntity.patch(
+            stableReferenceToMatchedEntity.existingEntity.patch(
               graphApiClient,
               { actorId: webBotActorId },
               {
-                ...entityValues,
+                entityTypeIds:
+                  stableReferenceToMatchedEntity.newValues.entityTypeIds,
                 draft: existingEntityIsDraft ? true : createEditionAsDraft,
                 propertyPatches: patchOperations,
+                provenance: {
+                  ...entityValues.provenance,
+                  sources:
+                    stableReferenceToMatchedEntity.newValues.editionSources,
+                },
               },
             ),
           {
@@ -267,30 +240,14 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       return {
         code: StatusCode.Internal,
         message: `Could not persist entity: ${extractErrorMessage(err)}`,
-        contents: [
-          {
-            outputs: [
-              {
-                outputName:
-                  "persistedEntity" as OutputNameForAction<"persistEntity">,
-                payload: {
-                  kind: "PersistedEntity",
-                  value: {
-                    existingEntity: existingEntity?.toJSON(),
-                    operation,
-                  },
-                },
-              },
-            ],
-          },
-        ],
+        contents: [],
       };
     }
   }
 
   const persistedEntity = {
     entity: entity.toJSON(),
-    existingEntity: existingEntity?.toJSON(),
+    existingEntity: matchedEntityUpdate?.existingEntity.toJSON(),
     operation,
   } satisfies PersistedEntity;
 

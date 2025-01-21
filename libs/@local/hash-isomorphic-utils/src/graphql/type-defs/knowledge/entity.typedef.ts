@@ -3,8 +3,11 @@ import { gql } from "apollo-server-express";
 export const entityTypedef = gql`
   scalar ClosedMultiEntityTypesRootMap
   scalar ClosedMultiEntityTypesDefinitions
+  scalar CountEntitiesParams
+  scalar CreatedByIdsMap
   scalar EntityId
   scalar EntityMetadata
+  scalar EntityQueryCursor
   scalar EntityRecordId
   scalar EntityRelationAndSubject
   scalar EntityValidationReport
@@ -15,9 +18,11 @@ export const entityTypedef = gql`
   scalar PropertyPatchOperation
   scalar QueryOperationInput
   scalar SerializedEntity
+  scalar TypeIdsMap
   scalar UserPermissions
   scalar UserPermissionsOnEntities
   scalar ValidateEntityParamsComponents
+  scalar WebIdsMap
 
   type SubgraphAndPermissions {
     userPermissionsOnEntities: UserPermissionsOnEntities!
@@ -26,10 +31,15 @@ export const entityTypedef = gql`
 
   type GetEntitySubgraphResponse {
     count: Int
+    createdByIds: CreatedByIdsMap
+    editionCreatedByIds: CreatedByIdsMap
+    cursor: EntityQueryCursor
     closedMultiEntityTypes: ClosedMultiEntityTypesRootMap
     definitions: ClosedMultiEntityTypesDefinitions
     userPermissionsOnEntities: UserPermissionsOnEntities!
     subgraph: Subgraph!
+    typeIds: TypeIdsMap
+    webIds: WebIdsMap
   }
 
   input LinkedEntityDefinition {
@@ -123,6 +133,8 @@ export const entityTypedef = gql`
       hasRightEntity: EdgeResolveDepthsInput!
       includeDrafts: Boolean
     ): SubgraphAndPermissions!
+
+    countEntities(request: CountEntitiesParams!): Int!
 
     getEntitySubgraph(
       request: GetEntitySubgraphRequest!

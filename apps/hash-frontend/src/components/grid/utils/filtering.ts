@@ -1,9 +1,6 @@
-import type { Row } from "./rows";
+import type { GridRow } from "../grid";
 
-export type ColumnFilter<
-  ColumnKey extends string,
-  RowType extends Row & { rowId: string } = Row & { rowId: string },
-> = {
+export type ColumnFilter<ColumnKey extends string, Row extends GridRow> = {
   columnKey: ColumnKey;
   filterItems: {
     id: string;
@@ -13,5 +10,5 @@ export type ColumnFilter<
   }[];
   selectedFilterItemIds: Set<string>;
   setSelectedFilterItemIds: (selectedFilterItemIds: Set<string>) => void;
-  isRowFiltered: (row: RowType) => boolean;
+  isRowFiltered: (row: Row) => boolean;
 };

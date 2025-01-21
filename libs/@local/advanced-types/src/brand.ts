@@ -6,6 +6,7 @@ type BrandedBase<Base, Kind extends Record<string, unknown>> = Base & {
   /** The unique name for the branded type */
   readonly "#kind": Kind;
 };
+
 /**
  * The type-branding type to support nominal (name based) types
  */

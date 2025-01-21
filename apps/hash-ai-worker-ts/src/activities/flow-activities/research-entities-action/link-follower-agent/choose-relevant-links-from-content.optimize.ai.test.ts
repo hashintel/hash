@@ -277,11 +277,7 @@ const baseDirectoryPath = path.join(
 test(
   "Extract links form text system prompt test",
   async () => {
-    const models: LlmParams["model"][] = [
-      // "claude-3-5-sonnet-20240620",
-      "claude-3-haiku-20240307",
-      // "gpt-4o",
-    ];
+    const models: LlmParams["model"][] = ["claude-3-haiku-20240307"];
 
     await optimizeSystemPrompt({
       models,

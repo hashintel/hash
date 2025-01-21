@@ -532,7 +532,9 @@ where
                 )
             });
 
-            compiler.add_filter(&params.filter);
+            compiler
+                .add_filter(&params.filter)
+                .change_context(QueryError)?;
 
             let (statement, parameters) = compiler.compile();
 
@@ -620,7 +622,6 @@ where
                 .count();
             let type_ids = type_ids.map(HashMap::from);
 
-            #[expect(clippy::if_then_some_else_none)]
             let type_titles = if params.include_type_titles {
                 let type_uuids = type_ids
                     .as_ref()
@@ -643,7 +644,9 @@ where
                     },
                     ParameterList::EntityTypeIds(&type_uuids),
                 );
-                type_compiler.add_filter(&filter);
+                type_compiler
+                    .add_filter(&filter)
+                    .change_context(QueryError)?;
 
                 let (statement, parameters) = type_compiler.compile();
 

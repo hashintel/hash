@@ -18,11 +18,12 @@ import {
   Popper,
   Typography,
 } from "@mui/material";
-import type { CSSProperties, FunctionComponent } from "react";
+import type { CSSProperties } from "react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { FixedSizeList } from "react-window";
 
 import { MenuItem } from "../../../shared/ui";
+import type { GridRow } from "../grid";
 import type { ColumnFilter } from "./filtering";
 
 const blueFilterButtonSx: SxProps<Theme> = ({ palette, transitions }) => ({
@@ -160,13 +161,15 @@ const FilterItem = memo(
   },
 );
 
-export const ColumnFilterMenu: FunctionComponent<
-  {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    columnFilter?: ColumnFilter<string, any>;
-    onClose: () => void;
-  } & PopperProps
-> = ({ columnFilter, onClose, open, ...popoverProps }) => {
+export const ColumnFilterMenu = <R extends GridRow>({
+  columnFilter,
+  onClose,
+  open,
+  ...popoverProps
+}: {
+  columnFilter?: ColumnFilter<string, R>;
+  onClose: () => void;
+} & PopperProps) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -186,7 +189,7 @@ export const ColumnFilterMenu: FunctionComponent<
   }, [wrapperRef]);
 
   const [previousColumnFilter, setPreviousColumnFilter] =
-    useState<ColumnFilter<string>>();
+    useState<ColumnFilter<string, R>>();
 
   if (
     columnFilter &&

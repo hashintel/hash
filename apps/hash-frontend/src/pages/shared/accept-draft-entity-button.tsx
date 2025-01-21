@@ -68,6 +68,9 @@ const getRightOrLeftEntitySx = (params: {
         background: ({ palette }) => palette.blue[20],
       };
 
+/**
+ * @todo H-3883 ensure that the un-drafting of a link will not violate min/max links on an entity
+ */
 export const AcceptDraftEntityButton: FunctionComponent<
   {
     draftEntity: Entity;

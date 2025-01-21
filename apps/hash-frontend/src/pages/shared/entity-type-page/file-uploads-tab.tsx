@@ -51,17 +51,19 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
 
   const [showUploadForm, setShowUploadForm] = useState(!uploads.length);
 
-  const onFileProvided = (file: File) => {
-    void uploadFile({
-      fileData: {
-        fileEntityCreationInput: {
-          entityTypeId: entityType.$id,
+  const onFilesProvided = (files: File[]) => {
+    for (const file of files) {
+      void uploadFile({
+        fileData: {
+          fileEntityCreationInput: {
+            entityTypeId: entityType.$id,
+          },
+          file,
         },
-        file,
-      },
-      makePublic: false,
-      ownedById: activeWorkspaceOwnedById!,
-    });
+        makePublic: false,
+        ownedById: activeWorkspaceOwnedById!,
+      });
+    }
     setShowUploadForm(false);
   };
 
@@ -81,7 +83,11 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
             mb: 2,
           })}
         >
-          <FileUploadDropzone image={isImage} onFileProvided={onFileProvided} />
+          <FileUploadDropzone
+            image={isImage}
+            multiple
+            onFilesProvided={onFilesProvided}
+          />
         </Box>
       )}
       {uploads.length ? (
@@ -121,91 +127,93 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {uploads.map((upload) => {
-              const progressPercent = uploadsProgress[upload.requestId] ?? 0;
+            {uploads
+              .sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1))
+              .map((upload) => {
+                const progressPercent = uploadsProgress[upload.requestId] ?? 0;
 
-              const progressIndicatorProps = {
-                color: upload.status === "error" ? "error" : "primary",
-                variant: "determinate",
-                value: progressPercent,
-              } satisfies LinearProgressProps | CircularProgressProps;
+                const progressIndicatorProps = {
+                  color: upload.status === "error" ? "error" : "primary",
+                  variant: "determinate",
+                  value: progressPercent,
+                } satisfies LinearProgressProps | CircularProgressProps;
 
-              return (
-                <TableRow key={upload.requestId}>
-                  <TableCell sx={{ maxWidth: 600 }}>
-                    <Typography
-                      variant="smallTextLabels"
-                      sx={{
-                        display: "block",
-                        whiteSpace: "nowrap",
-                        textOverflow: "ellipsis",
-                        overflow: "hidden",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {"file" in upload.fileData
-                        ? upload.fileData.file.name
-                        : upload.fileData.url.split("/").pop()}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ width: "60%", minWidth: 300 }}>
-                    <Stack direction="row" alignItems="center">
-                      <Stack
-                        direction="row"
+                return (
+                  <TableRow key={upload.requestId}>
+                    <TableCell sx={{ maxWidth: 600 }}>
+                      <Typography
+                        variant="smallTextLabels"
                         sx={{
-                          alignItems: "center",
-                          borderRadius: 4,
-                          border: ({ palette }) =>
-                            `1px solid ${palette.gray[30]}`,
-                          px: 1.2,
-                          py: 0.8,
-                          minWidth: 76,
+                          display: "block",
+                          whiteSpace: "nowrap",
+                          textOverflow: "ellipsis",
+                          overflow: "hidden",
+                          fontWeight: 500,
                         }}
                       >
-                        {upload.status === "complete" ? (
-                          <CheckIcon
-                            sx={{ color: "blue.70", fontSize: 14, mr: 0.3 }}
-                          />
-                        ) : upload.status === "error" ? (
-                          <CloseIcon
-                            sx={{
-                              fill: ({ palette }) => palette.pink[80],
-                              fontSize: 11,
-                              mr: 0.5,
-                            }}
-                          />
-                        ) : (
-                          <CircularProgress
-                            {...progressIndicatorProps}
-                            size={14}
-                          />
-                        )}
-                        <Typography
-                          variant="microText"
-                          fontWeight={600}
-                          lineHeight={1}
-                          ml={0.5}
+                        {"file" in upload.fileData
+                          ? upload.fileData.file.name
+                          : upload.fileData.url.split("/").pop()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ width: "60%", minWidth: 300 }}>
+                      <Stack direction="row" alignItems="center">
+                        <Stack
+                          direction="row"
+                          sx={{
+                            alignItems: "center",
+                            borderRadius: 4,
+                            border: ({ palette }) =>
+                              `1px solid ${palette.gray[30]}`,
+                            px: 1.2,
+                            py: 0.8,
+                            minWidth: 76,
+                          }}
                         >
-                          {upload.status === "error"
-                            ? "Error"
-                            : `${progressPercent.toFixed(0)}%`}
-                        </Typography>
+                          {upload.status === "complete" ? (
+                            <CheckIcon
+                              sx={{ color: "blue.70", fontSize: 14, mr: 0.3 }}
+                            />
+                          ) : upload.status === "error" ? (
+                            <CloseIcon
+                              sx={{
+                                fill: ({ palette }) => palette.pink[80],
+                                fontSize: 11,
+                                mr: 0.5,
+                              }}
+                            />
+                          ) : (
+                            <CircularProgress
+                              {...progressIndicatorProps}
+                              size={14}
+                            />
+                          )}
+                          <Typography
+                            variant="microText"
+                            fontWeight={600}
+                            lineHeight={1}
+                            ml={0.5}
+                          >
+                            {upload.status === "error"
+                              ? "Error"
+                              : `${progressPercent.toFixed(0)}%`}
+                          </Typography>
+                        </Stack>
+                        <LinearProgress
+                          {...progressIndicatorProps}
+                          sx={{ ml: 1.5, width: "100%" }}
+                        />
                       </Stack>
-                      <LinearProgress
-                        {...progressIndicatorProps}
-                        sx={{ ml: 1.5, width: "100%" }}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: "center", width: 85 }}>
+                      <Action
+                        onRetry={() => uploadFile(upload)}
+                        upload={upload}
                       />
-                    </Stack>
-                  </TableCell>
-                  <TableCell sx={{ textAlign: "center", width: 85 }}>
-                    <Action
-                      onRetry={() => uploadFile(upload)}
-                      upload={upload}
-                    />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
           </TableBody>
           <TableFooter>
             <TableRow>

@@ -887,6 +887,12 @@ const migrate: MigrationFunction = async ({
             minItems: 0,
           },
           {
+            linkEntityType: hasCoverImageLinkEntityType,
+            destinationEntityTypes: [imageFileEntityType],
+            maxItems: 1,
+            minItems: 0,
+          },
+          {
             linkEntityType: hasServiceAccountLinkEntityType,
             destinationEntityTypes: [serviceAccountEntityType],
           },
