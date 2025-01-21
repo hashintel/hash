@@ -25,10 +25,11 @@ use hash_graph_postgres_store::{
 };
 use hash_graph_store::{
     data_type::{
-        ArchiveDataTypeParams, CreateDataTypeParams, DataTypeQueryToken, DataTypeStore as _,
-        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
-        GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
-        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+        ArchiveDataTypeParams, CreateDataTypeParams, DataTypeConversionTargets, DataTypeQueryToken,
+        DataTypeStore as _, GetDataTypeConversionTargetsParams,
+        GetDataTypeConversionTargetsResponse, GetDataTypeSubgraphParams, GetDataTypesParams,
+        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        UpdateDataTypesParams,
     },
     entity_type::ClosedDataTypeDefinition,
     pool::StorePool,
@@ -102,6 +103,7 @@ use crate::rest::{
             GetDataTypeSubgraphResponse,
             GetDataTypeConversionTargetsParams,
             GetDataTypeConversionTargetsResponse,
+            DataTypeConversionTargets,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
             ClosedDataTypeDefinition,

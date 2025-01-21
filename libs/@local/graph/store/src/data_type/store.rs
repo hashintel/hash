@@ -154,8 +154,16 @@ pub struct GetDataTypeConversionTargetsParams {
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
+pub struct DataTypeConversionTargets {
+    pub title: String,
+    pub conversions: Vec<ConversionDefinition>,
+}
+
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
 pub struct GetDataTypeConversionTargetsResponse {
-    pub conversions: HashMap<VersionedUrl, HashMap<VersionedUrl, Vec<ConversionDefinition>>>,
+    pub conversions: HashMap<VersionedUrl, HashMap<VersionedUrl, DataTypeConversionTargets>>,
 }
 
 /// Describes the API of a store implementation for [`DataType`]s.

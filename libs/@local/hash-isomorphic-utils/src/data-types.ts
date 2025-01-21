@@ -13,6 +13,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type { DataTypeConversionTargets as GraphApiDataTypeConversionTargets } from "@local/hash-graph-client";
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 
 type MergedNumberSchema = {
@@ -202,6 +203,13 @@ export const createConversionFunction = (
     }
     return evaluatedValue;
   };
+};
+
+export type DataTypeConversionTargets = Omit<
+  GraphApiDataTypeConversionTargets,
+  "conversions"
+> & {
+  conversions: ConversionDefinition[];
 };
 
 const transformConstraint = (

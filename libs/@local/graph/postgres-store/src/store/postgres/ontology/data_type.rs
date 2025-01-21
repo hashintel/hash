@@ -12,8 +12,9 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::{
     data_type::{
-        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeQueryPath,
-        DataTypeStore, GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
+        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,
+        DataTypeConversionTargets, DataTypeQueryPath, DataTypeStore,
+        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
         GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
         GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
@@ -1117,48 +1118,49 @@ where
 
             // Get the conversions between non-canonical data types to other non-canonical data
             // types
-            conversions.extend(self.as_client()
-            .query(
-                r#"
-                    SELECT target_ids.base_url, target_ids.version, conversion_a."into", conversion_b."from"
-                    FROM data_type_conversions AS conversion_a
-                    JOIN data_type_conversions AS conversion_b ON conversion_a.target_data_type_base_url = conversion_b.target_data_type_base_url AND conversion_a.source_data_type_ontology_id != conversion_b.source_data_type_ontology_id
-                    JOIN ontology_ids AS target_ids ON target_ids.ontology_id = conversion_b.source_data_type_ontology_id
-                    WHERE conversion_a.source_data_type_ontology_id = $1;
-                "#,
-                &[&data_type_uuid],
-            )
-            .await
-            .change_context(QueryError)?.into_iter().map(|row| {
-                (VersionedUrl {
-                    base_url: row.get(0),
-                    version: row.get(1),
-                }, vec![row.get(2), row.get(3)])
-            }));
+            conversions.extend(
+                self.as_client()
+                    .query(
+                        r#"
+                            SELECT schema->>'$id', schema->>'title', conversion_a."into", conversion_b."from"
+                            FROM data_type_conversions AS conversion_a
+                            JOIN data_type_conversions AS conversion_b ON conversion_a.target_data_type_base_url = conversion_b.target_data_type_base_url AND conversion_a.source_data_type_ontology_id != conversion_b.source_data_type_ontology_id
+                            JOIN data_types ON data_types.ontology_id = conversion_b.source_data_type_ontology_id
+                            WHERE conversion_a.source_data_type_ontology_id = $1;
+                        "#,
+                        &[&data_type_uuid])
+                    .await
+                    .change_context(QueryError)?
+                    .into_iter()
+                    .map(|row| {
+                        (row.get::<_, VersionedUrl>(0), DataTypeConversionTargets {
+                            title: row.get(1),
+                            conversions: vec![row.get(2), row.get(3)],
+                        })
+                    }),
+            );
 
             // Get the conversions between non-canonical data types to canonical data types
             conversions.extend(
                 self.as_client()
                     .query(
                         r#"
-                        SELECT base_url, version, "into"
-                        FROM data_type_conversions
-                        JOIN ontology_ids ON ontology_ids.base_url = target_data_type_base_url
-                        WHERE source_data_type_ontology_id = $1;
-                    "#,
+                            SELECT schema->>'$id', schema->>'title', "into"
+                            FROM data_type_conversions
+                            JOIN ontology_ids ON ontology_ids.base_url = target_data_type_base_url
+                            JOIN data_types ON data_types.ontology_id = ontology_ids.ontology_id
+                            WHERE source_data_type_ontology_id = $1;
+                        "#,
                         &[&data_type_uuid],
                     )
                     .await
                     .change_context(QueryError)?
                     .into_iter()
                     .map(|row| {
-                        (
-                            VersionedUrl {
-                                base_url: row.get(0),
-                                version: row.get(1),
-                            },
-                            vec![row.get(2)],
-                        )
+                        (row.get::<_, VersionedUrl>(0), DataTypeConversionTargets {
+                            title: row.get(1),
+                            conversions: vec![row.get(2)],
+                        })
                     }),
             );
 
@@ -1167,24 +1169,21 @@ where
                 self.as_client()
                     .query(
                         r#"
-                        SELECT base_url, version, "from"
-                        FROM data_type_conversions
-                        JOIN ontology_ids ON ontology_id = source_data_type_ontology_id
-                        WHERE target_data_type_base_url = $1;
-                    "#,
+                            SELECT schema->>'$id', schema->>'title', "from"
+                            FROM data_type_conversions
+                            JOIN data_types ON ontology_id = source_data_type_ontology_id
+                            WHERE target_data_type_base_url = $1;
+                        "#,
                         &[&data_type_id.base_url],
                     )
                     .await
                     .change_context(QueryError)?
                     .into_iter()
                     .map(|row| {
-                        (
-                            VersionedUrl {
-                                base_url: row.get(0),
-                                version: row.get(1),
-                            },
-                            vec![row.get(2)],
-                        )
+                        (row.get::<_, VersionedUrl>(0), DataTypeConversionTargets {
+                            title: row.get(1),
+                            conversions: vec![row.get(2)],
+                        })
                     }),
             );
 
