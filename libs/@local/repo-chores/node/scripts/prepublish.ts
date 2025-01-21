@@ -46,19 +46,13 @@ const script = async () => {
     "tsc",
     // biome-ignore format: manual formatting for readability
     [
-      "--project",
-      "tsconfig.json",
+      "--project", "tsconfig.json",
 
-      "--declaration",
-      "true",
-      "--jsx",
-      "react-jsx",
-      "--noEmit",
-      "false",
-      "--outDir",
-      "dist",
-      "--target",
-      "es2020",
+      "--declaration", "true",
+      "--jsx", "react-jsx",
+      "--noEmit", "false",
+      "--outDir", "dist",
+      "--target", "es2020",
     ],
     {
       cwd: packageInfo.path,

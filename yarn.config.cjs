@@ -218,6 +218,11 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
 
     for (const [key, value] of Object.entries(dependsOn)) {
       if (!value) {
+        if (!dependencies[key]) {
+          // dependency does not exist, so doesn't need to be enforced, as it doesn't exist
+          continue;
+        }
+
         workspace.unset(`devDependencies.${dependencies[key].ident}`);
         continue;
       }
