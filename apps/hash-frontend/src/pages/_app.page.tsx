@@ -52,6 +52,7 @@ import type { AppPage } from "./shared/_app.util";
 import { redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { DataTypesContextProvider } from "./shared/data-types-context";
+import { maintenanceRoute } from "./shared/maintenance";
 import { setSentryUser } from "./shared/sentry";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
 
@@ -208,6 +209,10 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   const {
     ctx: { req, pathname, asPath },
   } = appContext;
+
+  if (pathname === maintenanceRoute) {
+    return {};
+  }
 
   const { cookie } = req?.headers ?? {};
 

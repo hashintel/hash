@@ -59,6 +59,7 @@ impl Schema {
         }
     }
 
+    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub(crate) fn ty(&self) -> &str {
         &self.ty
     }
