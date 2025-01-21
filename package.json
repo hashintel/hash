@@ -6,7 +6,6 @@
   "workspaces": {
     "packages": [
       "apps/**",
-      "blocks/*",
       "libs/**",
       "tests/**"
     ]
