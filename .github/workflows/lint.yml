@@ -255,10 +255,10 @@ jobs:
             exit 1
           fi
 
-      - name: Run yarn lint:biome
+      - name: Run yarn lint:format
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:biome; then
+          if ! yarn lint:format; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
