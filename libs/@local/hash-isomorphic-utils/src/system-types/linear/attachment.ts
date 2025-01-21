@@ -44,6 +44,10 @@ import type {
   CreatedIssueCountPropertyValueWithMetadata,
   CustomerTicketCountPropertyValue,
   CustomerTicketCountPropertyValueWithMetadata,
+  DateDataType,
+  DateDataTypeWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   DeletionRequestedAtPropertyValue,
   DeletionRequestedAtPropertyValueWithMetadata,
   DescriptionPropertyValue,
@@ -54,6 +58,8 @@ import type {
   DisplayNamePropertyValueWithMetadata,
   DueDatePropertyValue,
   DueDatePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EstimatePropertyValue,
@@ -87,6 +93,8 @@ import type {
   IdentifierPropertyValueWithMetadata,
   IDPropertyValue,
   IDPropertyValueWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   IntegrationSourceTypePropertyValue,
   IntegrationSourceTypePropertyValueWithMetadata,
   InviteHashPropertyValue,
@@ -119,6 +127,8 @@ import type {
   LogoURLPropertyValueWithMetadata,
   MarkdownDescriptionPropertyValue,
   MarkdownDescriptionPropertyValueWithMetadata,
+  MegabytesDataType,
+  MegabytesDataTypeWithMetadata,
   NamePropertyValue,
   NamePropertyValueWithMetadata,
   NumberDataType,
@@ -183,8 +193,8 @@ import type {
   TextDataTypeWithMetadata,
   TimezonePropertyValue,
   TimezonePropertyValueWithMetadata,
-  Title1PropertyValue,
-  TitlePropertyValueWithMetadata1,
+  TitlePropertyValue,
+  TitlePropertyValueWithMetadata,
   TrashedPropertyValue,
   TrashedPropertyValueWithMetadata,
   TriagedAtPropertyValue,
@@ -193,6 +203,8 @@ import type {
   TrialEndsAtPropertyValueWithMetadata,
   UpdatedAtPropertyValue,
   UpdatedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   URLKeyPropertyValue,
   URLKeyPropertyValueWithMetadata,
   User,
@@ -246,6 +258,10 @@ export type {
   CreatedIssueCountPropertyValueWithMetadata,
   CustomerTicketCountPropertyValue,
   CustomerTicketCountPropertyValueWithMetadata,
+  DateDataType,
+  DateDataTypeWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   DeletionRequestedAtPropertyValue,
   DeletionRequestedAtPropertyValueWithMetadata,
   DescriptionPropertyValue,
@@ -256,6 +272,8 @@ export type {
   DisplayNamePropertyValueWithMetadata,
   DueDatePropertyValue,
   DueDatePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EstimatePropertyValue,
@@ -289,6 +307,8 @@ export type {
   IdentifierPropertyValueWithMetadata,
   IDPropertyValue,
   IDPropertyValueWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   IntegrationSourceTypePropertyValue,
   IntegrationSourceTypePropertyValueWithMetadata,
   InviteHashPropertyValue,
@@ -321,6 +341,8 @@ export type {
   LogoURLPropertyValueWithMetadata,
   MarkdownDescriptionPropertyValue,
   MarkdownDescriptionPropertyValueWithMetadata,
+  MegabytesDataType,
+  MegabytesDataTypeWithMetadata,
   NamePropertyValue,
   NamePropertyValueWithMetadata,
   NumberDataType,
@@ -385,8 +407,8 @@ export type {
   TextDataTypeWithMetadata,
   TimezonePropertyValue,
   TimezonePropertyValueWithMetadata,
-  Title1PropertyValue,
-  TitlePropertyValueWithMetadata1,
+  TitlePropertyValue,
+  TitlePropertyValueWithMetadata,
   TrashedPropertyValue,
   TrashedPropertyValueWithMetadata,
   TriagedAtPropertyValue,
@@ -395,6 +417,8 @@ export type {
   TrialEndsAtPropertyValueWithMetadata,
   UpdatedAtPropertyValue,
   UpdatedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   URLKeyPropertyValue,
   URLKeyPropertyValueWithMetadata,
   User,
@@ -444,7 +468,6 @@ export type AttachmentOutgoingLinksByLinkEntityTypeId = {
  * Issue attachment (e.g. support ticket, pull request).
  */
 export type AttachmentProperties = {
-  "https://hash.ai/@h/types/property-type/title/"?: Title0PropertyValue;
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/attachment-url/": AttachmentURLPropertyValue;
   "https://hash.ai/@linear/types/property-type/created-at/"?: CreatedAtPropertyValue;
@@ -454,13 +477,13 @@ export type AttachmentProperties = {
   "https://hash.ai/@linear/types/property-type/source-type/"?: SourceTypePropertyValue;
   "https://hash.ai/@linear/types/property-type/source/"?: SourcePropertyValue;
   "https://hash.ai/@linear/types/property-type/subtitle/"?: SubtitlePropertyValue;
+  "https://hash.ai/@linear/types/property-type/title/"?: TitlePropertyValue;
   "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
 };
 
 export type AttachmentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@h/types/property-type/title/"?: TitlePropertyValueWithMetadata0;
     "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/attachment-url/": AttachmentURLPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/created-at/"?: CreatedAtPropertyValueWithMetadata;
@@ -470,6 +493,7 @@ export type AttachmentPropertiesWithMetadata = {
     "https://hash.ai/@linear/types/property-type/source-type/"?: SourceTypePropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/source/"?: SourcePropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/subtitle/"?: SubtitlePropertyValueWithMetadata;
+    "https://hash.ai/@linear/types/property-type/title/"?: TitlePropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValueWithMetadata;
   };
 };
@@ -477,9 +501,9 @@ export type AttachmentPropertiesWithMetadata = {
 /**
  * Location of the attachment which is also used as an identifier.
  */
-export type AttachmentURLPropertyValue = TextDataType;
+export type AttachmentURLPropertyValue = URIDataType;
 
-export type AttachmentURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type AttachmentURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * The issue this attachment belongs to.
@@ -499,20 +523,13 @@ export type BelongsToIssueOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The issue this attachment belongs to.
  */
-export type BelongsToIssueProperties = BelongsToIssueProperties1 &
-  BelongsToIssueProperties2;
-export type BelongsToIssueProperties1 = LinkProperties;
-
-export type BelongsToIssueProperties2 = {};
+export type BelongsToIssueProperties = LinkProperties & {};
 
 export type BelongsToIssuePropertiesWithMetadata =
-  BelongsToIssuePropertiesWithMetadata1 & BelongsToIssuePropertiesWithMetadata2;
-export type BelongsToIssuePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type BelongsToIssuePropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * Indicates if attachments for the same source application should be grouped in the Linear UI.
@@ -564,10 +581,3 @@ export type SourceTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
 export type SubtitlePropertyValue = TextDataType;
 
 export type SubtitlePropertyValueWithMetadata = TextDataTypeWithMetadata;
-
-/**
- * The title of something.
- */
-export type Title0PropertyValue = TextDataType;
-
-export type TitlePropertyValueWithMetadata0 = TextDataTypeWithMetadata;
