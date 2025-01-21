@@ -6,7 +6,7 @@
   "description": "The original URL something was hosted at",
   "oneOf": [
     {
-      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+      "$ref": "https://hash.ai/@h/types/data-type/uri/v/1"
     }
   ]
 }
