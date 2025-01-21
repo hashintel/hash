@@ -235,6 +235,21 @@ export type BrowserPluginTabPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
 /**
+ * A unit of information equal to eight bits.
+ */
+export type BytesDataType = InformationDataType;
+
+export type BytesDataTypeWithMetadata = {
+  value: BytesDataType;
+  metadata: BytesDataTypeMetadata;
+};
+export type BytesDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1";
+};
+
+/**
  * Comment associated with the issue.
  */
 export type Comment = {
@@ -533,9 +548,9 @@ export type FilePropertiesWithMetadata = {
 /**
  * The size of a file
  */
-export type FileSizePropertyValue = NumberDataType;
+export type FileSizePropertyValue = BytesDataType;
 
-export type FileSizePropertyValueWithMetadata = NumberDataTypeWithMetadata;
+export type FileSizePropertyValueWithMetadata = BytesDataTypeWithMetadata;
 
 /**
  * The bucket in which a file is stored.
@@ -587,9 +602,9 @@ export type FileStorageRegionPropertyValueWithMetadata =
 /**
  * A URL that serves a file.
  */
-export type FileURLPropertyValue = TextDataType;
+export type FileURLPropertyValue = URIDataType;
 
-export type FileURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type FileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * The ID of the flow definition (the `entityId` of the flow definition entity).
@@ -886,6 +901,21 @@ export type ImageFileProperties = FileProperties & {};
 export type ImageFilePropertiesWithMetadata = FilePropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
+};
+
+/**
+ * A measure of information content.
+ */
+export type InformationDataType = NumberDataType;
+
+export type InformationDataTypeWithMetadata = {
+  value: InformationDataType;
+  metadata: InformationDataTypeMetadata;
+};
+export type InformationDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/information/v/1";
 };
 
 /**
@@ -1258,9 +1288,9 @@ export type OriginalSourcePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The original URL something was hosted at
  */
-export type OriginalURLPropertyValue = TextDataType;
+export type OriginalURLPropertyValue = URIDataType;
 
-export type OriginalURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type OriginalURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * The cost of an output unit
@@ -1724,6 +1754,11 @@ export type UserHasAvatarLink = {
 
 export type UserHasBioLink = { linkEntity: HasBio; rightEntity: ProfileBio };
 
+export type UserHasCoverImageLink = {
+  linkEntity: HasCoverImage;
+  rightEntity: ImageFile;
+};
+
 export type UserHasLink = {
   linkEntity: Has;
   rightEntity: BrowserPluginSettings;
@@ -1742,6 +1777,7 @@ export type UserIsMemberOfLink = {
 export type UserOutgoingLinkAndTarget =
   | UserHasAvatarLink
   | UserHasBioLink
+  | UserHasCoverImageLink
   | UserHasServiceAccountLink
   | UserHasLink
   | UserIsMemberOfLink;
@@ -1749,6 +1785,7 @@ export type UserOutgoingLinkAndTarget =
 export type UserOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@h/types/entity-type/has-avatar/v/1": UserHasAvatarLink;
   "https://hash.ai/@h/types/entity-type/has-bio/v/1": UserHasBioLink;
+  "https://hash.ai/@h/types/entity-type/has-cover-image/v/1": UserHasCoverImageLink;
   "https://hash.ai/@h/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
   "https://hash.ai/@h/types/entity-type/has/v/1": UserHasLink;
   "https://hash.ai/@h/types/entity-type/is-member-of/v/1": UserIsMemberOfLink;
