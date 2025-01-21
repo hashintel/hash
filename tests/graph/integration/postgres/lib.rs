@@ -419,7 +419,7 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
     async fn get_data_type_conversion_targets(
         &self,
         actor_id: AccountId,
-        params: GetDataTypeConversionTargetsParams<'_>,
+        params: GetDataTypeConversionTargetsParams,
     ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
         self.store
             .get_data_type_conversion_targets(actor_id, params)

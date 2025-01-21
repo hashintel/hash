@@ -153,51 +153,58 @@ describe("Data type CRU", () => {
   it("can convert data types", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const centimeterConversion = await getDataTypeConversionTargets(
+    const conversionMap = await getDataTypeConversionTargets(
       graphContext,
       authentication,
       {
-        dataTypeId: systemDataTypes.centimeters.dataTypeId,
+        dataTypeIds: [
+          systemDataTypes.centimeters.dataTypeId,
+          systemDataTypes.meters.dataTypeId,
+        ],
       },
-    ).then((conversions) =>
+    ).then((conversion_map) =>
       Object.fromEntries(
-        Object.entries(conversions).map(([dataTypeId, conversion]) => [
-          dataTypeId,
-          createConversionFunction(conversion),
-        ]),
+        Object.entries(conversion_map).map(
+          ([sourceDataTypeId, conversions]) => [
+            sourceDataTypeId,
+            Object.fromEntries(
+              Object.entries(conversions).map(
+                ([targetDataTypeId, conversion]) => [
+                  targetDataTypeId,
+                  createConversionFunction(conversion),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
 
     expect(
-      centimeterConversion[systemDataTypes.millimeters.dataTypeId]!(100),
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.millimeters.dataTypeId
+      ]!(100),
     ).toBe(1000);
-    expect(centimeterConversion[systemDataTypes.meters.dataTypeId]!(1000)).toBe(
-      10,
-    );
     expect(
-      centimeterConversion[systemDataTypes.kilometers.dataTypeId]!(100000),
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.meters.dataTypeId
+      ]!(1000),
+    ).toBe(10);
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.kilometers.dataTypeId
+      ]!(100000),
     ).toBe(1);
 
-    const meterConversion = await getDataTypeConversionTargets(
-      graphContext,
-      authentication,
-      {
-        dataTypeId: systemDataTypes.meters.dataTypeId,
-      },
-    ).then((conversions) =>
-      Object.fromEntries(
-        Object.entries(conversions).map(([dataTypeId, conversion]) => [
-          dataTypeId,
-          createConversionFunction(conversion),
-        ]),
-      ),
-    );
-
-    expect(meterConversion[systemDataTypes.millimeters.dataTypeId]!(1)).toBe(
-      1000,
-    );
-    expect(meterConversion[systemDataTypes.kilometers.dataTypeId]!(1000)).toBe(
-      1,
-    );
+    expect(
+      conversionMap[systemDataTypes.meters.dataTypeId]![
+        systemDataTypes.millimeters.dataTypeId
+      ]!(1),
+    ).toBe(1000);
+    expect(
+      conversionMap[systemDataTypes.meters.dataTypeId]![
+        systemDataTypes.kilometers.dataTypeId
+      ]!(1000),
+    ).toBe(1);
   });
 });

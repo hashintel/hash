@@ -5583,11 +5583,14 @@
       "GetDataTypeConversionTargetsParams": {
         "type": "object",
         "required": [
-          "dataTypeId"
+          "dataTypeIds"
         ],
         "properties": {
-          "dataTypeId": {
-            "$ref": "#/components/schemas/VersionedUrl"
+          "dataTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
           }
         },
         "additionalProperties": false
@@ -5601,9 +5604,12 @@
           "conversions": {
             "type": "object",
             "additionalProperties": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/ConversionDefinition"
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ConversionDefinition"
+                }
               }
             }
           }

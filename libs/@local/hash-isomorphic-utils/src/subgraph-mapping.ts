@@ -246,9 +246,9 @@ export const mapGraphApiDataTypesToDataTypes = (
 ) => entityTypes as DataTypeWithMetadata[];
 
 export const mapGraphApiDataTypeConversions = (
-  conversions: Record<string, GraphApiConversionDefinition[]>,
+  conversions: Record<string, Record<string, GraphApiConversionDefinition[]>>,
 ) =>
   conversions as Record<
     VersionedUrl,
-    [ConversionDefinition] | [ConversionDefinition, ConversionDefinition]
+    Record<VersionedUrl, ConversionDefinition[]>
   >;

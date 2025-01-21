@@ -557,31 +557,23 @@ async fn get_data_type_conversion_targets<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    Json(request): Json<serde_json::Value>,
+    Json(request): Json<GetDataTypeConversionTargetsParams>,
 ) -> Result<Json<GetDataTypeConversionTargetsResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let authorization_api = authorization_api_pool
-        .acquire()
-        .await
-        .map_err(report_to_response)?;
-
-    let store = store_pool
-        .acquire(authorization_api, temporal_client.0)
-        .await
-        .map_err(report_to_response)?;
-
-    store
-        .get_data_type_conversion_targets(
-            actor_id,
-            // Manually deserialize the query from a JSON value to allow borrowed deserialization
-            // and better error reporting.
-            GetDataTypeConversionTargetsParams::deserialize(&request)
-                .map_err(Report::from)
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
                 .map_err(report_to_response)?,
+            temporal_client.0,
         )
+        .await
+        .map_err(report_to_response)?
+        .get_data_type_conversion_targets(actor_id, request)
         .await
         .map_err(report_to_response)
         .map(Json)

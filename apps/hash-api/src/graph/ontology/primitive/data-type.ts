@@ -283,13 +283,8 @@ export const unarchiveDataType: ImpureGraphFunction<
 };
 
 export const getDataTypeConversionTargets: ImpureGraphFunction<
-  { dataTypeId: VersionedUrl },
-  Promise<
-    Record<
-      VersionedUrl,
-      [ConversionDefinition] | [ConversionDefinition, ConversionDefinition]
-    >
-  >
+  { dataTypeIds: VersionedUrl[] },
+  Promise<Record<VersionedUrl, Record<VersionedUrl, ConversionDefinition[]>>>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
     .getDataTypeConversionTargets(actorId, params)

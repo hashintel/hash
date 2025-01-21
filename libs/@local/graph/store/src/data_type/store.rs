@@ -147,16 +147,15 @@ pub struct UpdateDataTypeEmbeddingParams<'a> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetDataTypeConversionTargetsParams<'a> {
-    #[serde(borrow)]
-    pub data_type_id: Cow<'a, VersionedUrl>,
+pub struct GetDataTypeConversionTargetsParams {
+    pub data_type_ids: Vec<VersionedUrl>,
 }
 
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct GetDataTypeConversionTargetsResponse {
-    pub conversions: HashMap<VersionedUrl, Vec<ConversionDefinition>>,
+    pub conversions: HashMap<VersionedUrl, HashMap<VersionedUrl, Vec<ConversionDefinition>>>,
 }
 
 /// Describes the API of a store implementation for [`DataType`]s.
@@ -281,7 +280,7 @@ pub trait DataTypeStore {
     fn get_data_type_conversion_targets(
         &self,
         actor_id: AccountId,
-        params: GetDataTypeConversionTargetsParams<'_>,
+        params: GetDataTypeConversionTargetsParams,
     ) -> impl Future<Output = Result<GetDataTypeConversionTargetsResponse, Report<QueryError>>> + Send;
 
     /// Re-indexes the cache for data types.

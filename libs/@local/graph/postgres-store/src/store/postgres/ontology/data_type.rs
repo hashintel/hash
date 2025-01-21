@@ -1093,28 +1093,31 @@ where
     async fn get_data_type_conversion_targets(
         &self,
         actor_id: AccountId,
-        params: GetDataTypeConversionTargetsParams<'_>,
+        params: GetDataTypeConversionTargetsParams,
     ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
         let mut response = GetDataTypeConversionTargetsResponse {
-            conversions: HashMap::new(),
+            conversions: HashMap::with_capacity(params.data_type_ids.len()),
         };
 
-        let data_type_uuid = DataTypeUuid::from_url(&params.data_type_id);
+        for data_type_id in params.data_type_ids {
+            let mut conversions = HashMap::new();
+            let data_type_uuid = DataTypeUuid::from_url(&data_type_id);
 
-        self.authorization_api
-            .check_data_type_permission(
-                actor_id,
-                DataTypePermission::View,
-                data_type_uuid,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(QueryError)?
-            .assert_permission()
-            .change_context(QueryError)?;
+            self.authorization_api
+                .check_data_type_permission(
+                    actor_id,
+                    DataTypePermission::View,
+                    data_type_uuid,
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(QueryError)?
+                .assert_permission()
+                .change_context(QueryError)?;
 
-        // Get the conversions between non-canonical data types to other non-canonical data types
-        response.conversions.extend(self.as_client()
+            // Get the conversions between non-canonical data types to other non-canonical data
+            // types
+            conversions.extend(self.as_client()
             .query(
                 r#"
                     SELECT target_ids.base_url, target_ids.version, conversion_a."into", conversion_b."from"
@@ -1133,57 +1136,60 @@ where
                 }, vec![row.get(2), row.get(3)])
             }));
 
-        // Get the conversions between non-canonical data types to canonical data types
-        response.conversions.extend(
-            self.as_client()
-                .query(
-                    r#"
+            // Get the conversions between non-canonical data types to canonical data types
+            conversions.extend(
+                self.as_client()
+                    .query(
+                        r#"
                         SELECT base_url, version, "into"
                         FROM data_type_conversions
                         JOIN ontology_ids ON ontology_ids.base_url = target_data_type_base_url
                         WHERE source_data_type_ontology_id = $1;
                     "#,
-                    &[&data_type_uuid],
-                )
-                .await
-                .change_context(QueryError)?
-                .into_iter()
-                .map(|row| {
-                    (
-                        VersionedUrl {
-                            base_url: row.get(0),
-                            version: row.get(1),
-                        },
-                        vec![row.get(2)],
+                        &[&data_type_uuid],
                     )
-                }),
-        );
+                    .await
+                    .change_context(QueryError)?
+                    .into_iter()
+                    .map(|row| {
+                        (
+                            VersionedUrl {
+                                base_url: row.get(0),
+                                version: row.get(1),
+                            },
+                            vec![row.get(2)],
+                        )
+                    }),
+            );
 
-        // Get the conversions between canonical data types to non-canonical data types
-        response.conversions.extend(
-            self.as_client()
-                .query(
-                    r#"
+            // Get the conversions between canonical data types to non-canonical data types
+            conversions.extend(
+                self.as_client()
+                    .query(
+                        r#"
                         SELECT base_url, version, "from"
                         FROM data_type_conversions
                         JOIN ontology_ids ON ontology_id = source_data_type_ontology_id
                         WHERE target_data_type_base_url = $1;
                     "#,
-                    &[&params.data_type_id.base_url],
-                )
-                .await
-                .change_context(QueryError)?
-                .into_iter()
-                .map(|row| {
-                    (
-                        VersionedUrl {
-                            base_url: row.get(0),
-                            version: row.get(1),
-                        },
-                        vec![row.get(2)],
+                        &[&data_type_id.base_url],
                     )
-                }),
-        );
+                    .await
+                    .change_context(QueryError)?
+                    .into_iter()
+                    .map(|row| {
+                        (
+                            VersionedUrl {
+                                base_url: row.get(0),
+                                version: row.get(1),
+                            },
+                            vec![row.get(2)],
+                        )
+                    }),
+            );
+
+            response.conversions.insert(data_type_id, conversions);
+        }
 
         Ok(response)
     }
