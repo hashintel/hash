@@ -104,6 +104,7 @@ export const EntitiesTable: FunctionComponent<
     readonly?: boolean;
     selectedRows: EntitiesTableRow[];
     setLimit: (limit: number) => void;
+    setLoading: (loading: boolean) => void;
     setSelectedRows: (rows: EntitiesTableRow[]) => void;
     setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
     setShowSearch: (showSearch: boolean) => void;
@@ -134,6 +135,7 @@ export const EntitiesTable: FunctionComponent<
   readonly,
   setLimit: _setLimit,
   selectedRows,
+  setLoading,
   setSelectedRows,
   showSearch,
   setShowSearch,
@@ -160,6 +162,10 @@ export const EntitiesTable: FunctionComponent<
     typeIds,
     webIds,
   });
+
+  useEffect(() => {
+    setLoading(tableDataCalculating);
+  }, [tableDataCalculating, setLoading]);
 
   const {
     columns,
@@ -615,7 +621,7 @@ export const EntitiesTable: FunctionComponent<
     ];
   }, [columns]);
 
-  if (!entities && (entityDataLoading || tableDataCalculating)) {
+  if (!tableData && (entityDataLoading || tableDataCalculating)) {
     return (
       <Stack
         alignItems="center"
@@ -645,7 +651,7 @@ export const EntitiesTable: FunctionComponent<
           createRenderUrlCell({ firstColumnLeftPadding }),
           createRenderChipCell({ firstColumnLeftPadding }),
         ]}
-        dataLoading={entityDataLoading || tableDataCalculating}
+        dataLoading={false}
         enableCheckboxSelection={!readonly}
         firstColumnLeftPadding={firstColumnLeftPadding}
         freezeColumns={1}

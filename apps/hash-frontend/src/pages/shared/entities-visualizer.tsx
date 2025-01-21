@@ -277,21 +277,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     [sort],
   );
 
-  const {
-    count: totalCount,
-    createdByIds,
-    cursor: nextCursor,
-    editionCreatedByIds,
-    entities: lastLoadedEntities,
-    entityTypes,
-    hadCachedContent,
-    loading,
-    propertyTypes,
-    refetch: refetchWithoutLinks,
-    subgraph,
-    typeIds,
-    webIds,
-  } = useEntitiesVisualizerData({
+  const entitiesData = useEntitiesVisualizerData({
     cursor,
     entityTypeBaseUrl,
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
@@ -304,6 +290,40 @@ export const EntitiesVisualizer: FunctionComponent<{
     ownedByIds: filterState.includeGlobal ? undefined : internalWebIds,
     sort: graphSort,
   });
+
+  const [dataLoading, setDataLoading] = useState(entitiesData.loading);
+  const [visualizerData, setVisualizerData] = useState(entitiesData);
+
+  const {
+    count: totalCount,
+    createdByIds,
+    cursor: nextCursor,
+    editionCreatedByIds,
+    entities,
+    entityTypes,
+    propertyTypes,
+    refetch: refetchWithoutLinks,
+    subgraph,
+    typeIds,
+    webIds,
+  } = visualizerData;
+
+  /**
+   * We don't want to clear the old table data when a new request is triggered,
+   * so we hold the visualizerData here rather than relying on the useEntitiesVisualizerData hook directly,
+   * as it will clear the data when a new request is triggered.
+   *
+   * An alternative would be to have an onComplete callback in the hook.
+   */
+  useEffect(() => {
+    setDataLoading(entitiesData.loading);
+
+    if (!entitiesData.loading) {
+      setVisualizerData(entitiesData);
+    }
+  }, [entitiesData]);
+
+  const [childDoingWork, setChildDoingWork] = useState(false);
 
   const internalEntitiesCount =
     externalWebsOnlyCountData?.countEntities == null || totalCount == null
@@ -352,15 +372,6 @@ export const EntitiesVisualizer: FunctionComponent<{
       setView(defaultView);
     }
   }, [defaultView, isDisplayingFilesOnly]);
-
-  const entities = useMemo(
-    /**
-     * If a network request is in process and there is no cached content for the request, return undefined.
-     * There may be stale data in the context related to an earlier request with different variables.
-     */
-    () => (loading && !hadCachedContent ? undefined : lastLoadedEntities),
-    [hadCachedContent, loading, lastLoadedEntities],
-  );
 
   const { isViewingOnlyPages, hasSomeLinks } = useMemo(() => {
     let isViewingPages = true;
@@ -509,6 +520,7 @@ export const EntitiesVisualizer: FunctionComponent<{
           hideExportToCsv={view !== "Table"}
           hideFilters={hideFilters}
           itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
+          loading={dataLoading || childDoingWork}
           onBulkActionCompleted={() => {
             void refetchWithoutLinks();
           }}
@@ -567,20 +579,21 @@ export const EntitiesVisualizer: FunctionComponent<{
             currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
             currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
             editionCreatedByIds={editionCreatedByIds}
-            entities={entities ?? []}
+            entities={entities}
             entityTypes={entityTypes ?? []}
             filterState={filterState}
             handleEntityClick={handleEntityClick}
             hasSomeLinks={hasSomeLinks}
             hideColumns={hideColumns}
             limit={limit}
-            loading={loading}
+            loading={dataLoading}
             loadingComponent={loadingComponent}
             isViewingOnlyPages={isViewingOnlyPages}
             maxHeight={tableHeight}
             goToNextPage={nextCursor ? nextPage : undefined}
             propertyTypes={propertyTypes ?? []}
             readonly={readonly}
+            setLoading={setChildDoingWork}
             setSelectedEntityType={setSelectedEntityType}
             setSelectedRows={setSelectedTableRows}
             selectedRows={selectedTableRows}
