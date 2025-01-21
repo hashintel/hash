@@ -296,7 +296,7 @@ mod test {
     use hql_span::storage::SpanStorage;
     use insta::assert_snapshot;
     use winnow::{
-        Located, Parser as _, Stateful,
+        LocatingSlice, Parser as _, Stateful,
         error::{ContextError, ErrMode, ParseError},
     };
 
@@ -311,12 +311,12 @@ mod test {
     ) -> Result<
         Signature<'arena>,
         ParseError<
-            Stateful<Located<&'input str>, ParseState<'arena, 'spans>>,
+            Stateful<LocatingSlice<&'input str>, ParseState<'arena, 'spans>>,
             ErrMode<ContextError>,
         >,
     > {
         let state = Stateful {
-            input: Located::new(input),
+            input: LocatingSlice::new(input),
             state,
         };
 
