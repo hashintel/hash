@@ -95,7 +95,8 @@ export type {
 /**
  * The type of thing that can, should or will act on something.
  */
-export type ActorTypeDataType = TextDataType & ("human" | "machine");
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents -- @todo H-3848 stop codegen adding inherited type here
+export type ActorTypeDataType = TextDataType & ("machine" | "human");
 
 export type ActorTypeDataTypeWithMetadata = {
   value: ActorTypeDataType;
