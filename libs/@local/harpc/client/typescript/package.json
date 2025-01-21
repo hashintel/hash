@@ -23,7 +23,7 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@chainsafe/libp2p-noise": "16.0.0",
+    "@chainsafe/libp2p-noise": "16.0.1",
     "@chainsafe/libp2p-yamux": "7.0.1",
     "@libp2p/crypto": "5.0.9",
     "@libp2p/identify": "3.0.15",
