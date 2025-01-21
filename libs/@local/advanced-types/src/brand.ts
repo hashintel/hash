@@ -10,7 +10,9 @@ type BrandedBase<Base, Kind extends Record<string, unknown>> = Base & {
 /**
  * The type-branding type to support nominal (name based) types
  */
-export type Brand<Base, Kind extends string> =
-  Base extends BrandedBase<infer NestedBase, infer NestedKind>
-    ? BrandedBase<NestedBase, NestedKind & { [_ in Kind]: true }>
-    : BrandedBase<Base, { [_ in Kind]: true }>;
+export type Brand<Base, Kind extends string> = Base extends BrandedBase<
+  infer NestedBase,
+  infer NestedKind
+>
+  ? BrandedBase<NestedBase, NestedKind & { [_ in Kind]: true }>
+  : BrandedBase<Base, { [_ in Kind]: true }>;

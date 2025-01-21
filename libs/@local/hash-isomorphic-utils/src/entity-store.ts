@@ -195,9 +195,8 @@ export const createEntityStore = (
            */
           if (
             new Date(
-              draftData[
-                draftId
-              ].metadata.temporalVersioning.decisionTime.start.limit,
+              draftData[draftId].metadata.temporalVersioning.decisionTime.start
+                .limit,
             ).getTime() >
             new Date(
               draftEntity.metadata.temporalVersioning.decisionTime.start.limit,

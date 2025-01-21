@@ -110,7 +110,8 @@ export const getFirstEntityRevision = (
       );
 
       const previousEarliestRevisionCreatedAt = new Date(
-        previousEarliestRevision.metadata.temporalVersioning.decisionTime.start.limit,
+        previousEarliestRevision.metadata.temporalVersioning.decisionTime.start
+          .limit,
       );
 
       return previousEarliestRevisionCreatedAt < currentCreatedAt

@@ -170,7 +170,9 @@ export const resolve = (
 
       return yield* Effect.failCause(
         // reduce without default is save here, because we guarantee non empty satisfying array
-        excluded.map(Cause.fail).reduce(Cause.parallel),
+        excluded
+          .map(Cause.fail)
+          .reduce(Cause.parallel),
       );
     }
 

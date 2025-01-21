@@ -213,7 +213,7 @@ jobs:
       - name: Validate package.json generated from Cargo.toml
         if: ${{ success() || failure() }}
         run: |
-          cargo -Zscript run --manifest-path ".github/scripts/rust/sync-turborepo.rs" . | xargs yarn prettier --write >/dev/null
+          cargo -Zscript run --manifest-path ".github/scripts/rust/sync-turborepo.rs" . | xargs yarn fix:package-json
           git --no-pager diff --exit-code --color '**/package.json'
 
       - name: Run yarn lint:constraints
@@ -255,14 +255,26 @@ jobs:
             exit 1
           fi
 
-      - name: Run yarn lint:prettier
+      - name: Run yarn lint:format
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:prettier; then
+          if ! yarn lint:format; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:prettier` locally to apply autofixes.'
+            echo 'Try running `yarn fix:biome` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:package-json
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:package-json; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:package-json` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -279,9 +291,6 @@ jobs:
             exit 1
           fi
 
-        ## TODO: Replace with `yarn fix:yarn-dedupe` after upgrading to Yarn v3+
-        ## https://yarnpkg.com/cli/dedupe
-        ## https://github.com/yarnpkg/berry/issues/2297
       - name: Run yarn lint:yarn-deduplicate
         if: ${{ success() || failure() }}
         run: |

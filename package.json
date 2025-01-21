@@ -39,7 +39,8 @@
     "fix:eslint": "turbo --continue fix:eslint --",
     "fix:taplo": "taplo fmt",
     "fix:markdownlint": "markdownlint-cli2 --fix",
-    "fix:prettier": "prettier --write  --ignore-unknown .",
+    "fix:format": "biome format --write",
+    "fix:package-json": "yarn workspace @local/repo-chores exe scripts/sort-package-json.ts fix",
     "fix:yarn-deduplicate": "yarn dedupe --strategy highest",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "@TODO.2": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.1)",
@@ -47,9 +48,10 @@
     "lint:eslint": "turbo --continue lint:eslint --",
     "lint:license-in-workspaces": "yarn workspace @local/repo-chores exe scripts/check-license-in-workspaces.ts",
     "lint:markdownlint": "markdownlint-cli2",
-    "lint:prettier": "prettier --check --ignore-unknown .",
+    "lint:format": "biome format",
     "lint:taplo": "taplo fmt --check",
     "lint:tsc": "turbo --continue lint:tsc --",
+    "lint:package-json": "yarn workspace @local/repo-chores exe scripts/sort-package-json.ts lint",
     "lint:yarn-deduplicate": "yarn dedupe --strategy highest --check",
     "postinstall": "turbo run postinstall",
     "seed-data:opensearch": "yarn workspace @apps/hash-search-loader clear-opensearch",
@@ -63,12 +65,6 @@
     "bench:unit": "turbo run bench:unit --env-mode=loose --",
     "bench:integration": "turbo run bench:integration --env-mode=loose --",
     "prune-node-modules": "find . -type d -name \"node_modules\" -exec rm -rf {} +"
-  },
-  "prettier": {
-    "plugins": [
-      "prettier-plugin-packagejson"
-    ],
-    "trailingComma": "all"
   },
   "resolutions": {
     "@artilleryio/int-commons@npm:2.11.0": "patch:@artilleryio/int-commons@npm%3A2.11.0#~/.yarn/patches/@artilleryio-int-commons-npm-2.11.0-5b69c05121.patch",
@@ -100,6 +96,7 @@
     "react-dom": "19.0.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.9.5-nightly.81fdedb",
     "@changesets/changelog-github": "0.5.0",
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch",
     "@sentry/cli": "^2.39.1",
@@ -108,8 +105,6 @@
     "lefthook": "1.10.10",
     "markdownlint-cli2": "0.17.2",
     "npm-run-all2": "7.0.2",
-    "prettier": "3.4.2",
-    "prettier-plugin-packagejson": "2.5.6",
     "turbo": "2.3.3"
   },
   "packageManager": "yarn@4.6.0+sha512.5383cc12567a95f1d668fbe762dfe0075c595b4bfff433be478dbbe24e05251a8e8c3eb992a986667c1d53b6c3a9c85b8398c35a960587fbd9fa3a0915406728",
