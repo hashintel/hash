@@ -1,0 +1,87 @@
+{
+    "HASH": {
+        "actions": {
+            "Update": {
+                "appliesTo": {
+                    "principalTypes": ["User"],
+                    "resourceTypes": ["Entity"]
+                }
+            },
+            "View": {
+                "appliesTo": {
+                    "principalTypes": ["User"],
+                    "resourceTypes": ["Entity"]
+                }
+            }
+        },
+        "entityTypes": {
+            "Web": {
+                "memberOfTypes": [ "User", "Organization" ]
+            },
+            "User": {
+                "memberOfTypes": [ "OrganizationRole", "TeamRole" ],
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "web": {
+                            "type": "Entity",
+                            "name": "Web",
+                            "required": true
+                        }
+                    }
+                }
+            },
+            "Organization": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "web": {
+                            "type": "Entity",
+                            "name": "Web",
+                            "required": true
+                        }
+                    }
+                }
+            },
+            "OrganizationRole": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "organization": {
+                            "type": "Entity",
+                            "name": "Organization",
+                            "required": true
+                        }
+                    }
+                }
+            },
+            "Team": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "organization": {
+                            "type": "Entity",
+                            "name": "Organization",
+                            "required": true
+                        }
+                    }
+                }
+            },
+            "TeamRole": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "team": {
+                            "type": "Entity",
+                            "name": "Team",
+                            "required": true
+                        }
+                    }
+                }
+            },
+            "Entity": {
+                "memberOfTypes": [ "Web" ]
+            }
+        }
+    }
+}

@@ -5,22 +5,20 @@
 // );
 
 permit (
-  principal == HASH::User::"tim",
-  action    == HASH::Action::"View",
-  resource  == HASH::Entity::"photo"
-);
-
-permit (
   principal in HASH::OrganizationRole::"HASH::member",
   action    == HASH::Action::"View",
   resource  is HASH::Entity in HASH::Organization::"HASH"
-);
+) unless {
+    resource.type == "billing"
+};
 
 permit (
-  principal in HASH::OrganizationRole::"HASH::member",
+  principal in HASH::TeamRole::"HASH::finance::member",
   action    == HASH::Action::"View",
   resource  is HASH::Entity in HASH::Organization::"HASH"
-);
+) when {
+    resource.type == "billing"
+};
 
 // permit (
 //   principal in Org::"HASH::member",

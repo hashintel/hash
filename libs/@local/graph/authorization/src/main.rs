@@ -8,21 +8,24 @@
 use core::iter::empty;
 use std::{
     collections::{HashMap, HashSet},
-    fs,
+    fs::{self, File},
+    io::BufReader,
     sync::{Arc, LazyLock, OnceLock},
 };
 
 use cedar_policy_core::{
     ast::{
         self, Annotations, Effect, Eid, Entity, EntityType, EntityUID, EntityUIDEntry, Expr, Name,
-        PolicyID, Request,
+        PolicyID, Request, RestrictedExpr,
     },
     authorizer::Authorizer,
     entities::{Entities, TCComputation},
     extensions::Extensions,
     parser::parse_policyset,
 };
-use cedar_policy_validator::{CoreSchema, ValidationMode, Validator, ValidatorSchema};
+use cedar_policy_validator::{
+    CoreSchema, ValidationMode, Validator, ValidatorSchema, cedar_schema::parser::parse_schema,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use smol_str::SmolStr;
@@ -115,7 +118,7 @@ pub struct Policy {
     pub conditions: Vec<()>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Web {
     pub id: String,
@@ -128,7 +131,7 @@ impl Web {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct User {
     pub web: Web,
@@ -141,7 +144,7 @@ impl User {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Organization {
     pub web: Web,
@@ -154,7 +157,7 @@ impl Organization {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OrganizationRole {
     pub organization: Organization,
@@ -173,7 +176,7 @@ impl OrganizationRole {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Team {
     pub organization: Organization,
@@ -191,7 +194,7 @@ impl Team {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TeamRole {
     pub team: Team,
@@ -234,78 +237,27 @@ fn main() -> miette::Result<()> {
     let policy_set = parse_policyset(
         &fs::read_to_string("cedar/policy.cedar").expect("Policy file should exist"),
     )?;
+    let validator_schema = ValidatorSchema::from_json_file(
+        BufReader::new(File::open("cedar/schema.json").expect("Schema file should exist")),
+        Extensions::all_available(),
+    )?;
 
     for policy in policy_set.policies() {
         println!("{policy}");
     }
 
-    // let template_id = PolicyID::from_string("policy0");
-    // let template = policy_set
-    //     .get_template(&PolicyID::from_string("policy0"))
-    //     .clone()
-    //     .unwrap();
-
-    // println!("{template}, {:?}", template.slots().collect::<Vec<_>>());
-
-    // for i in 0..0 {
-    //     let string = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
-
-    //     policy_set.link(
-    //         template_id.clone(),
-    //         PolicyID::from_string(format!("template-instance-{i}")),
-    //         HashMap::from([(SlotId::principal(), Principal::user(&string).into())]),
-    //     );
-    // }
-
     let start = std::time::Instant::now();
 
-    let validator_schema = ValidatorSchema::from_json_value(
-        json!({
-            "HASH": {
-                "actions": {
-                    "Update": {
-                        "appliesTo": {
-                            "principalTypes": ["User"],
-                            "resourceTypes": ["Entity"],
-                        }
-                    },
-                    "View": {
-                        "appliesTo": {
-                            "principalTypes": ["User"],
-                            "resourceTypes": ["Entity"],
-                        }
-                    },
-                },
-                "entityTypes": {
-                    "Web": {
-                    },
-                    "OrganizationRole": {
-                        "memberOfTypes": [ "Organization" ],
-                    },
-                    "Organization": {
-                        "memberOfTypes": [ "Web" ],
-                    },
-                    "User": {
-                        "memberOfTypes": [ "OrganizationRole", "Web" ],
-                    },
-                    "Entity": {
-                        "memberOfTypes": [ "Organization", "Web" ],
-                    }
-                }
-            }
-        }),
-        Extensions::all_available(),
-    )?;
     let schema = CoreSchema::new(&validator_schema);
     let validator = Validator::new(validator_schema.clone());
     let (errors, warnings) = validator
         .validate(&policy_set, ValidationMode::Strict)
         .into_errors_and_warnings();
     for error in errors {
-        eprintln!("ERROR: {:#?}", miette::Result::from(Err::<(), _>(error)));
+        eprintln!("ERROR: {}", error);
     }
     for warning in warnings {
-        eprintln!("WARN: {:#?}", miette::Result::from(Err::<(), _>(warning)));
+        eprintln!("WARN: {}", warning);
     }
 
     #[expect(clippy::items_after_statements)]
@@ -319,14 +271,25 @@ fn main() -> miette::Result<()> {
             },
         };
         let tim_euid = tim.to_entity_uid();
+        let hash = Organization {
+            web: Web {
+                id: "HASH".to_owned(),
+            },
+        };
 
         let hash_member = OrganizationRole {
+            organization: hash.clone(),
             name: "member".to_owned(),
-            organization: Organization {
-                web: Web {
-                    id: "HASH".to_owned(),
-                },
-            },
+        };
+
+        let hash_finance = Team {
+            organization: hash.clone(),
+            name: "finance".to_owned(),
+        };
+
+        let hash_finance_member = TeamRole {
+            team: hash_finance.clone(),
+            name: "member".to_owned(),
         };
 
         let view = EntityUID::from(Action::View);
@@ -350,13 +313,48 @@ fn main() -> miette::Result<()> {
         )?;
 
         let entities = Entities::new().add_entities(
-            [Arc::new(Entity::new(
-                tim_euid,
-                HashMap::from([]),
-                HashSet::from([hash_member.to_entity_uid()]),
-                empty(),
-                Extensions::all_available(),
-            )?)],
+            [
+                Arc::new(Entity::new(
+                    tim_euid,
+                    HashMap::from([("web".into(), RestrictedExpr::val(hash.web.to_entity_uid()))]),
+                    HashSet::from([
+                        hash_member.to_entity_uid(),
+                        hash_finance_member.to_entity_uid(),
+                    ]),
+                    empty(),
+                    Extensions::all_available(),
+                )?),
+                Arc::new(Entity::new(
+                    hash_member.to_entity_uid(),
+                    HashMap::from([(
+                        "organization".into(),
+                        RestrictedExpr::val(hash.to_entity_uid()),
+                    )]),
+                    HashSet::from([]),
+                    empty(),
+                    Extensions::all_available(),
+                )?),
+                Arc::new(Entity::new(
+                    hash_finance.to_entity_uid(),
+                    HashMap::from([(
+                        "organization".into(),
+                        RestrictedExpr::val(hash.to_entity_uid()),
+                    )]),
+                    HashSet::from([]),
+                    empty(),
+                    Extensions::all_available(),
+                )?),
+                Arc::new(Entity::new(
+                    hash_finance_member.to_entity_uid(),
+                    HashMap::from([(
+                        "team".into(),
+                        RestrictedExpr::val(hash_finance.to_entity_uid()),
+                    )]),
+                    HashSet::from([]),
+                    empty(),
+                    Extensions::all_available(),
+                )?),
+            ],
             Some(&schema),
             TCComputation::ComputeNow,
             Extensions::all_available(),
