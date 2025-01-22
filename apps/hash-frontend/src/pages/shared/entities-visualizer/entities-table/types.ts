@@ -68,6 +68,16 @@ export type SortableEntitiesTableColumnKey =
     >
   | BaseUrl;
 
+export const filterableEntitiesTableColumnKeys: EntitiesTableColumnKey[] = [
+  "entityTypes",
+  "web",
+  "createdBy",
+  "lastEditedBy",
+] as const;
+
+export type FilterableEntitiesColumnKey =
+  (typeof filterableEntitiesTableColumnKeys)[number];
+
 export interface EntitiesTableColumn extends SizedGridColumn {
   id: EntitiesTableColumnKey;
 }

@@ -15,6 +15,7 @@ import type {
   ClosedEntityType as ClosedEntityTypeBp,
   ClosedEntityTypeMetadata as ClosedEntityTypeMetadataBp,
   ClosedMultiEntityType as ClosedMultiEntityTypeBp,
+  ConversionDefinition,
   DataType,
   EntityType,
   EntityTypeDisplayMetadata as EntityTypeDisplayMetadataBp,
@@ -93,7 +94,7 @@ export type ExternalOntologyElementMetadata = {
   };
 };
 
-type OntologyElementMetadata = Subtype<
+export type OntologyElementMetadata = Subtype<
   OntologyElementMetadataBp,
   OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
 >;

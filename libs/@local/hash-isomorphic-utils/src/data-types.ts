@@ -16,6 +16,8 @@ import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type { DataTypeConversionTargets as GraphApiDataTypeConversionTargets } from "@local/hash-graph-client";
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
 
+import { add, divide, multiply, subtract } from "./numbers.js";
+
 type MergedNumberSchema = {
   type: "number";
   const?: number;
@@ -169,24 +171,24 @@ const evaluateExpression = (
 ): number => {
   switch (expression[0]) {
     case "+":
-      return (
-        evaluateConversionValue(expression[1], context) +
-        evaluateConversionValue(expression[2], context)
+      return add(
+        evaluateConversionValue(expression[1], context),
+        evaluateConversionValue(expression[2], context),
       );
     case "-":
-      return (
-        evaluateConversionValue(expression[1], context) -
-        evaluateConversionValue(expression[2], context)
+      return subtract(
+        evaluateConversionValue(expression[1], context),
+        evaluateConversionValue(expression[2], context),
       );
     case "*":
-      return (
-        evaluateConversionValue(expression[1], context) *
-        evaluateConversionValue(expression[2], context)
+      return multiply(
+        evaluateConversionValue(expression[1], context),
+        evaluateConversionValue(expression[2], context),
       );
     case "/":
-      return (
-        evaluateConversionValue(expression[1], context) /
-        evaluateConversionValue(expression[2], context)
+      return divide(
+        evaluateConversionValue(expression[1], context),
+        evaluateConversionValue(expression[2], context),
       );
   }
 };
@@ -201,6 +203,7 @@ export const createConversionFunction = (
         self: evaluatedValue,
       });
     }
+
     return evaluatedValue;
   };
 };
@@ -211,6 +214,16 @@ export type DataTypeConversionTargets = Omit<
 > & {
   conversions: ConversionDefinition[];
 };
+
+/**
+ * A map from a dataTypeId, to a map of target dataTypeIds, to conversion definitions.
+ *
+ * Each conversion definition contains (1) the target data type `title`, and (2) the `conversions`: steps required to convert to the target dataTypeId.
+ */
+export type DataTypeConversionsMap = Record<
+  VersionedUrl,
+  Record<VersionedUrl, DataTypeConversionTargets>
+>;
 
 const transformConstraint = (
   constraint: SingleValueConstraints & {

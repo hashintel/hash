@@ -5,7 +5,7 @@ import type {
 import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 
-import type { ColumnKey } from "../grid";
+import type { ColumnKey, ConversionTargetsByColumnKey } from "../grid";
 import { getCellHorizontalPadding, getYCenter } from "../utils";
 import type { ColumnFilter } from "./filtering";
 import { InteractableManager } from "./interactable-manager";
@@ -20,9 +20,14 @@ export const useDrawHeader = <
   S extends C["id"],
 >(props: {
   columns: C[];
+  conversionTargetsByColumnKey?: ConversionTargetsByColumnKey;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filters?: ColumnFilter<ColumnKey<C>, any>[];
   firstColumnLeftPadding?: number;
+  onConvertClicked?: (
+    columnKey: ColumnKey<C>,
+    interactablePosition: InteractablePosition,
+  ) => void;
   onFilterClick?: (
     columnKey: ColumnKey<C>,
     interactablePosition: InteractablePosition,
@@ -34,8 +39,10 @@ export const useDrawHeader = <
 }): DrawHeaderCallback => {
   const {
     columns,
+    conversionTargetsByColumnKey,
     filters,
     firstColumnLeftPadding,
+    onConvertClicked,
     onFilterClick,
     onSortClick,
     sort,
@@ -77,7 +84,9 @@ export const useDrawHeader = <
 
       const iconSpacing = 10;
 
-      if (sort && sortableColumns.includes(column.id as S)) {
+      const isSortable = sort && sortableColumns.includes(column.id as S);
+
+      if (isSortable) {
         const sortIconStartX =
           columnHeaderStartX +
           (columnHeaderWidth - sortIconSize - paddingRight);
@@ -124,14 +133,14 @@ export const useDrawHeader = <
         (filter) => filter.columnKey === columnKey,
       );
 
-      if (columnFilter) {
-        const filterIconSize = 15;
+      const filterIconSize = 15;
 
+      if (columnFilter) {
         const columnFilterX =
           columnHeaderStartX +
           (columnHeaderWidth -
             paddingRight -
-            (sort ? sortIconSize + iconSpacing : 0) -
+            (isSortable ? sortIconSize + iconSpacing : 0) -
             filterIconSize);
 
         const isFilterModified =
@@ -172,6 +181,48 @@ export const useDrawHeader = <
         );
       }
 
+      if (
+        Object.keys(conversionTargetsByColumnKey?.[columnKey] ?? {}).length > 0
+      ) {
+        const calculatorIconSize = 15;
+
+        const calculatorIconStartX =
+          columnHeaderStartX +
+          (columnHeaderWidth -
+            paddingRight -
+            (isSortable ? sortIconSize + iconSpacing : 0) -
+            (columnFilter ? filterIconSize + iconSpacing : 0) -
+            calculatorIconSize);
+
+        args.spriteManager.drawSprite(
+          "calculatorSimpleLight",
+          "normal",
+          ctx,
+          calculatorIconStartX,
+          centerY - calculatorIconSize / 2,
+          calculatorIconSize,
+          theme,
+          1,
+        );
+
+        interactables.push(
+          InteractableManager.createColumnHeaderInteractable(
+            { ...args, tableId },
+            {
+              id: `column-convert-${columnKey}`,
+              pos: {
+                left: calculatorIconStartX,
+                right: calculatorIconStartX + calculatorIconSize,
+                top: centerY - calculatorIconSize / 2,
+                bottom: centerY + calculatorIconSize / 2,
+              },
+              onClick: (interactable) =>
+                onConvertClicked?.(columnKey, interactable.pos),
+            },
+          ),
+        );
+      }
+
       if (interactables.length > 0) {
         InteractableManager.setInteractablesForColumnHeader(
           { ...args, tableId },
@@ -183,10 +234,12 @@ export const useDrawHeader = <
     },
     [
       columns,
+      conversionTargetsByColumnKey,
       filters,
       firstColumnLeftPadding,
       muiTheme.palette.blue,
       muiTheme.palette.gray,
+      onConvertClicked,
       onFilterClick,
       onSortClick,
       sort,

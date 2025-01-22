@@ -5,6 +5,8 @@ export const dataTypeTypedef = gql`
   # scalar ConstructDataTypeParams
   # scalar DataTypeWithMetadata
 
+  scalar DataTypeConversionsMap
+
   extend type Query {
     """
     Get a subgraph rooted at all data types that match a given filter.
@@ -22,6 +24,10 @@ export const dataTypeTypedef = gql`
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
     ): Subgraph!
+
+    getDataTypeConversionTargets(
+      dataTypeIds: [VersionedUrl!]!
+    ): DataTypeConversionsMap!
   }
 
   # The following mutations should not be exposed until user defined data types

@@ -2,7 +2,10 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system/slim";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import {
@@ -63,7 +66,11 @@ export const useEntitiesTable = (
     hideArchivedColumn?: boolean;
     hidePropertiesColumns: boolean;
   },
-): { loading: boolean; tableData: EntitiesTableData | null } => {
+): {
+  visibleDataTypeIdsByPropertyBaseUrl: Record<BaseUrl, VersionedUrl[]>;
+  loading: boolean;
+  tableData: EntitiesTableData | null;
+} => {
   const {
     createdByIds,
     editionCreatedByIds,
@@ -98,8 +105,10 @@ export const useEntitiesTable = (
   const {
     entitiesHaveSameType,
     entityTypesWithMultipleVersionsPresent,
+    visibleDataTypeIdsByPropertyBaseUrl,
     usedPropertyTypesByEntityTypeId,
   } = useMemo<{
+    visibleDataTypeIdsByPropertyBaseUrl: Record<BaseUrl, Set<VersionedUrl>>;
     entitiesHaveSameType: boolean;
     entityTypesWithMultipleVersionsPresent: VersionedUrl[];
     usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
@@ -108,16 +117,30 @@ export const useEntitiesTable = (
       return {
         entitiesHaveSameType: false,
         entityTypesWithMultipleVersionsPresent: [],
+        visibleDataTypeIdsByPropertyBaseUrl: {},
         usedPropertyTypesByEntityTypeId: {},
       };
     }
 
     const propertyMap: PropertiesByEntityTypeId = {};
 
+    const dataTypesByProperty: {
+      [propertyBaseUrl: BaseUrl]: Set<VersionedUrl>;
+    } = {};
+
     const typesWithMultipleVersions: VersionedUrl[] = [];
     const firstSeenTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
 
     for (const entity of entities) {
+      for (const [baseUrl, { metadata }] of typedEntries(
+        entity.propertiesMetadata.value,
+      )) {
+        if (metadata && "dataTypeId" in metadata && metadata.dataTypeId) {
+          dataTypesByProperty[baseUrl] ??= new Set();
+          dataTypesByProperty[baseUrl].add(metadata.dataTypeId);
+        }
+      }
+
       for (const entityTypeId of entity.metadata.entityTypeIds) {
         if (propertyMap[entityTypeId]) {
           continue;
@@ -157,6 +180,7 @@ export const useEntitiesTable = (
     }
 
     return {
+      visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
       entitiesHaveSameType: Object.keys(firstSeenTypeByBaseUrl).length === 1,
       entityTypesWithMultipleVersionsPresent: typesWithMultipleVersions,
       usedPropertyTypesByEntityTypeId: propertyMap,
@@ -373,6 +397,11 @@ export const useEntitiesTable = (
   ]);
 
   return {
+    visibleDataTypeIdsByPropertyBaseUrl: Object.fromEntries(
+      Object.entries(visibleDataTypeIdsByPropertyBaseUrl).map(
+        ([baseUrl, dataTypeIds]) => [baseUrl, Array.from(dataTypeIds)],
+      ),
+    ),
     tableData,
     loading: waitingTableData || actorsLoading,
   };

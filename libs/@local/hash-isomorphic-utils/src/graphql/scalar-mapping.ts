@@ -17,6 +17,8 @@ export const scalars = {
   DataTypeWithMetadata: "@local/hash-graph-types/ontology#DataTypeWithMetadata",
   ConstructDataTypeParams:
     "@local/hash-isomorphic-utils/data-types#ConstructDataTypeParams",
+  DataTypeConversionsMap:
+    "@local/hash-isomorphic-utils/data-types#DataTypeConversionsMap",
 
   ClosedMultiEntityType:
     "@local/hash-graph-types/ontology#ClosedMultiEntityType",

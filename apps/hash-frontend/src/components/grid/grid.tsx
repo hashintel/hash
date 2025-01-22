@@ -1,5 +1,6 @@
 import "@glideapps/glide-data-grid/dist/index.css";
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   DataEditorProps,
   DataEditorRef,
@@ -27,6 +28,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getCellHorizontalPadding } from "./utils";
 import { ColumnFilterMenu } from "./utils/column-filter-menu";
+import {
+  ConversionMenu,
+  type ConversionTargetsByColumnKey,
+} from "./utils/conversion-menu";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import type { ColumnFilter } from "./utils/filtering";
 import { InteractableManager } from "./utils/interactable-manager";
@@ -39,6 +44,8 @@ import type { ColumnSort } from "./utils/sorting";
 import { defaultSortRows } from "./utils/sorting";
 import { useDrawHeader } from "./utils/use-draw-header";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
+
+export type { ConversionTargetsByColumnKey };
 
 export type ColumnKey<C extends SizedGridColumn> = C["id"];
 
@@ -68,6 +75,7 @@ export type GridProps<
 > & {
   columnFilters?: ColumnFilter<ColumnKey<Column>, Row>[];
   columns: Column[];
+  conversionTargetsByColumnKey?: ConversionTargetsByColumnKey;
   createGetCellContent: (rows: Row[]) => (cell: Item) => GridCell;
   createOnCellEdited?: (rows: Row[]) => DataEditorProps["onCellEdited"];
   currentlyDisplayedRowsRef?: MutableRefObject<Row[] | null>;
@@ -80,6 +88,13 @@ export type GridProps<
    * Provide to set an initial sort if sorting state is NOT managed by the parent component.
    */
   initialSort?: GridSort<Sortable>;
+  onConversionTargetSelected?: ({
+    columnKey,
+    dataTypeId,
+  }: {
+    columnKey: ColumnKey<Column>;
+    dataTypeId: VersionedUrl;
+  }) => void;
   onSelectedRowsChange?: (selectedRows: Row[]) => void;
   resizable?: boolean;
   rows?: Row[];
@@ -118,6 +133,7 @@ export const Grid = <
   createOnCellEdited,
   columnFilters,
   columns,
+  conversionTargetsByColumnKey,
   currentlyDisplayedRowsRef,
   customRenderers,
   dataLoading,
@@ -127,6 +143,7 @@ export const Grid = <
   firstColumnLeftPadding,
   gridRef,
   initialSort,
+  onConversionTargetSelected,
   onSelectedRowsChange,
   onVisibleRegionChanged,
   resizable = true,
@@ -211,6 +228,8 @@ export const Grid = <
 
   const [openFilterColumnKey, setOpenFilterColumnKey] = useState<string>();
 
+  const [openConvertColumnKey, setOpenConvertColumnKey] = useState<string>();
+
   const handleSortClick = useCallback(
     (columnKey: Sortable) => {
       if (!sort) {
@@ -235,10 +254,17 @@ export const Grid = <
     setOpenFilterColumnKey(columnKey);
   }, []);
 
+  const handleConvertClick = useCallback((columnKey: ColumnKey<Column>) => {
+    console.log("Convert clicked", columnKey);
+    setOpenConvertColumnKey(columnKey);
+  }, []);
+
   const defaultDrawHeader = useDrawHeader({
     columns,
+    conversionTargetsByColumnKey,
     filters: columnFilters,
     firstColumnLeftPadding,
+    onConvertClicked: handleConvertClick,
     onFilterClick: handleFilterClick,
     onSortClick: handleSortClick,
     sort,
@@ -550,6 +576,27 @@ export const Grid = <
         transition
         placement="bottom-start"
       />
+      {conversionTargetsByColumnKey && onConversionTargetSelected && (
+        <ConversionMenu
+          columnKey={openConvertColumnKey}
+          conversionTargetsByColumnKey={conversionTargetsByColumnKey}
+          key={openConvertColumnKey}
+          onClose={() => setOpenConvertColumnKey(undefined)}
+          open={!!openConvertColumnKey}
+          onSelectConversionTarget={(dataTypeId) => {
+            if (!openConvertColumnKey) {
+              return;
+            }
+
+            onConversionTargetSelected({
+              columnKey: openConvertColumnKey,
+              dataTypeId,
+            });
+            setOpenConvertColumnKey(undefined);
+          }}
+        />
+      )}
+
       <DataEditor
         cellActivationBehavior="single-click"
         columnSelect="none"

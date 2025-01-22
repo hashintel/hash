@@ -485,7 +485,6 @@ const DataTypeTreeView = (props: {
 export type DataTypeSelectorProps = {
   allowSelectingAbstractTypes?: boolean;
   dataTypes: DataTypeForSelector[];
-  handleScroll?: boolean;
   hideHint?: boolean;
   maxHeight?: number;
   onSelect: (dataTypeId: VersionedUrl) => void;
@@ -497,7 +496,6 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
   const {
     allowSelectingAbstractTypes,
     dataTypes,
-    handleScroll = true,
     hideHint,
     maxHeight: maxHeightFromProps,
     onSelect,
@@ -505,9 +503,36 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
     selectedDataTypeId,
   } = props;
 
-  const maxHeight = !handleScroll
-    ? undefined
-    : (maxHeightFromProps ?? defaultMaxHeight);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [availableHeight, setAvailableHeight] = useState<number | undefined>();
+
+  useEffect(() => {
+    const updateAvailableHeight = () => {
+      if (!containerRef.current) {
+        return;
+      }
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const bottomSpace = windowHeight - rect.top;
+
+      // Add a small buffer (20px) to prevent touching the bottom of the window
+      const maxAvailableHeight = bottomSpace - 20;
+
+      setAvailableHeight(
+        Math.min(maxHeightFromProps ?? defaultMaxHeight, maxAvailableHeight),
+      );
+    };
+
+    updateAvailableHeight();
+    window.addEventListener("resize", updateAvailableHeight);
+
+    return () => {
+      window.removeEventListener("resize", updateAvailableHeight);
+    };
+  }, [maxHeightFromProps]);
+
+  const maxHeight = !availableHeight ? undefined : availableHeight;
 
   const [localSearchText, setLocalSearchText] = useState("");
 
@@ -565,7 +590,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
   }, [dataTypesToDisplay, searchText]);
 
   return (
-    <Stack sx={{ maxHeight }}>
+    <Stack ref={containerRef} sx={{ maxHeight: availableHeight }}>
       {externallyControlledSearchText === undefined && (
         <TextField
           autoFocus
@@ -620,10 +645,10 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
               (externallyControlledSearchText !== undefined ? 0 : inputHeight)
             : undefined,
           overflowY:
-            sortedDataTypes.length && handleScroll ? "scroll" : undefined,
+            sortedDataTypes.length && availableHeight ? "scroll" : undefined,
           px: 2,
           pb: 1.5,
-          pt: hideHint ? 1.5 : 0,
+          pt: 1.5,
         }}
       >
         {!sortedDataTypes.length && (

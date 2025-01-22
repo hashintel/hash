@@ -1,3 +1,4 @@
+import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   CustomCell,
@@ -7,6 +8,7 @@ import type {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 // import {
 //   ArrowRightRegularIcon,
 //   IconButton,
@@ -30,12 +32,20 @@ import type {
 } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { GridSort } from "../../../components/grid/grid";
+import type {
+  ConversionTargetsByColumnKey,
+  GridSort,
+} from "../../../components/grid/grid";
 import { Grid } from "../../../components/grid/grid";
 import type { BlankCell } from "../../../components/grid/utils";
 import { blankCell } from "../../../components/grid/utils";
 import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
 import type { ColumnFilter } from "../../../components/grid/utils/filtering";
+import type {
+  GetDataTypeConversionTargetsQuery,
+  GetDataTypeConversionTargetsQueryVariables,
+} from "../../../graphql/api-types.gen";
+import { getDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
 import { tableContentSx } from "../../../shared/table-content";
 import type { FilterState } from "../../../shared/table-header";
 // import { MenuItem } from "../../../shared/ui/menu-item";
@@ -150,7 +160,11 @@ export const EntitiesTable: FunctionComponent<
 }) => {
   const router = useRouter();
 
-  const { tableData, loading: tableDataCalculating } = useEntitiesTable({
+  const {
+    visibleDataTypeIdsByPropertyBaseUrl,
+    tableData,
+    loading: tableDataCalculating,
+  } = useEntitiesTable({
     createdByIds,
     editionCreatedByIds,
     entities,
@@ -165,6 +179,107 @@ export const EntitiesTable: FunctionComponent<
     typeTitles,
     webIds,
   });
+
+  const visibleDataTypeIds = useMemo(() => {
+    return Array.from(
+      new Set(Object.values(visibleDataTypeIdsByPropertyBaseUrl).flat()),
+    );
+  }, [visibleDataTypeIdsByPropertyBaseUrl]);
+
+  const { data: conversionTargetsData } = useQuery<
+    GetDataTypeConversionTargetsQuery,
+    GetDataTypeConversionTargetsQueryVariables
+  >(getDataTypeConversionTargetsQuery, {
+    fetchPolicy: "cache-first",
+    variables: {
+      dataTypeIds: visibleDataTypeIds,
+    },
+    skip: visibleDataTypeIds.length === 0,
+  });
+
+  console.log({ conversionTargetsData, visibleDataTypeIds });
+
+  const conversionTargetsByColumnKey =
+    useMemo<ConversionTargetsByColumnKey>(() => {
+      const conversionMap = conversionTargetsData?.getDataTypeConversionTargets;
+
+      if (!conversionMap) {
+        return {};
+      }
+
+      const conversionData: ConversionTargetsByColumnKey = {};
+
+      /**
+       * For each property, we need to find the conversion targets which are valid across all of the possible data types.
+       *
+       * A conversion target which isn't present for one of the dataTypeIds cannot be included.
+       */
+      for (const [propertyBaseUrl, dataTypeIds] of typedEntries(
+        visibleDataTypeIdsByPropertyBaseUrl,
+      )) {
+        const targetsByTargetTypeId: Record<
+          VersionedUrl,
+          { title: string; dataTypeId: VersionedUrl }[]
+        > = {};
+
+        for (const [index, sourceDataTypeId] of dataTypeIds.entries()) {
+          const conversionsByTargetId = conversionMap[sourceDataTypeId];
+
+          if (!conversionsByTargetId) {
+            /**
+             * We don't have any conversion targets for this dataTypeId, so there can't be any shared conversion targets across all of the data types.
+             */
+            continue;
+          }
+
+          for (const [targetTypeId, { title }] of typedEntries(
+            conversionsByTargetId,
+          )) {
+            if (index === 0) {
+              targetsByTargetTypeId[targetTypeId] ??= [];
+              targetsByTargetTypeId[targetTypeId].push({
+                dataTypeId: targetTypeId,
+                title,
+              });
+            } else if (
+              !targetsByTargetTypeId[targetTypeId] &&
+              !dataTypeIds.includes(targetTypeId)
+            ) {
+              /**
+               * If we haven't seen this target before, and we already have some targets, it is not a shared target.
+               * If the target is in the source dataTypeIds, we retain it because we assume conversion is reciprocal.
+               * This may not always hold.
+               */
+              continue;
+            }
+          }
+
+          /**
+           * Any target which is present from previous sources but not for this source is not a shared target.
+           * We exempt this source dataTypeId from deletion because we assume conversion is reciprocal.
+           * This may not always hold.
+           */
+          for (const existingTarget of typedKeys(targetsByTargetTypeId)) {
+            if (
+              !typedKeys(conversionsByTargetId).includes(existingTarget) &&
+              existingTarget !== sourceDataTypeId
+            ) {
+              delete targetsByTargetTypeId[existingTarget];
+            }
+          }
+        }
+        conversionData[propertyBaseUrl] = Object.values(
+          targetsByTargetTypeId,
+        ).flat();
+      }
+
+      return conversionData;
+    }, [
+      conversionTargetsData?.getDataTypeConversionTargets,
+      visibleDataTypeIdsByPropertyBaseUrl,
+    ]);
+
+  console.log({ conversionTargetsByColumnKey });
 
   useEffect(() => {
     setLoading(tableDataCalculating);
@@ -649,6 +764,7 @@ export const EntitiesTable: FunctionComponent<
       <Grid
         columnFilters={columnFilters}
         columns={columns}
+        conversionTargetsByColumnKey={conversionTargetsByColumnKey}
         createGetCellContent={createGetCellContent}
         currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
         customRenderers={[
@@ -661,6 +777,7 @@ export const EntitiesTable: FunctionComponent<
         firstColumnLeftPadding={firstColumnLeftPadding}
         freezeColumns={1}
         height={`min(${maxHeight}, 600px)`}
+        onConversionTargetSelected={console.log}
         onSearchClose={() => setShowSearch(false)}
         onSelectedRowsChange={(updatedSelectedRows) =>
           setSelectedRows(updatedSelectedRows)
