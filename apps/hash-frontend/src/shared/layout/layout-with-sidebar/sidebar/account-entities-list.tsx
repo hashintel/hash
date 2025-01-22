@@ -1,10 +1,15 @@
+import { useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, Collapse, Fade, Tooltip } from "@mui/material";
+import { Box, Collapse, Fade, Tooltip, Typography } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent } from "react";
@@ -12,6 +17,11 @@ import { useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
 
 import { useUpdateAuthenticatedUser } from "../../../../components/hooks/use-update-authenticated-user";
+import type {
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
+} from "../../../../graphql/api-types.gen";
+import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { hiddenEntityTypeIds } from "../../../../pages/shared/hidden-types";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { useLatestEntityTypesOptional } from "../../../entity-types-context/hooks";
@@ -19,7 +29,7 @@ import { ArrowDownAZRegularIcon } from "../../../icons/arrow-down-a-z-regular-ic
 import { ArrowUpZARegularIcon } from "../../../icons/arrow-up-a-z-regular-icon";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { Link } from "../../../ui";
-import { useEntityTypeEntities } from "../../../use-entity-type-entities";
+import { generateUseEntityTypeEntitiesFilter } from "../../../use-entity-type-entities";
 import { useUserPreferences } from "../../../use-user-preferences";
 import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { EntityOrTypeSidebarItem } from "./shared/entity-or-type-sidebar-item";
@@ -74,10 +84,35 @@ export const AccountEntitiesList: FunctionComponent<
     isSpecialEntityTypeLookup,
   } = useLatestEntityTypesOptional();
 
-  const { entities: userEntities, loading: entityTypeEntitiesLoading } =
-    useEntityTypeEntities({ ownedByIds: [ownedById] });
+  const { data: userEntitiesData, loading: userEntitiesLoading } = useQuery<
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
+    variables: {
+      request: {
+        /**
+         * We only make this request to get the count of entities by typeId to filter types in the sidebar,
+         * to only those for which the active workspace has at least one entity.
+         *
+         * We don't actually need a single entity but the Graph rejects requests with a limit of 0.
+         * We currently can't use countEntities as it just returns a total number, with no count by typeId.
+         */
+        limit: 1,
+        includeTypeIds: true,
+        filter: generateUseEntityTypeEntitiesFilter({
+          ownedByIds: [ownedById],
+          includeArchived: false,
+        }),
+        graphResolveDepths: zeroedGraphResolveDepths,
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+      includePermissions: false,
+    },
+    fetchPolicy: "network-only",
+  });
 
-  const loading = entityTypesLoading || entityTypeEntitiesLoading;
+  const loading = entityTypesLoading || userEntitiesLoading;
 
   const pinnedEntityTypes = useMemo(() => {
     const { pinnedEntityTypeBaseUrls } = activeWorkspace ?? {};
@@ -95,9 +130,9 @@ export const AccountEntitiesList: FunctionComponent<
         (root) =>
           ((isOwnedOntologyElementMetadata(root.metadata) &&
             root.metadata.ownedById === ownedById) ||
-            userEntities?.find((entity) =>
-              entity.metadata.entityTypeIds.includes(root.schema.$id),
-            )) &&
+            Object.keys(
+              userEntitiesData?.getEntitySubgraph.typeIds ?? {},
+            ).includes(root.schema.$id)) &&
           // Filter out external types from blockprotocol.org, except the Address type.
           (!root.schema.$id.startsWith(blockProtocolHubOrigin) ||
             root.schema.$id.includes("/address/")) &&
@@ -109,7 +144,12 @@ export const AccountEntitiesList: FunctionComponent<
     }
 
     return null;
-  }, [latestEntityTypes, ownedById, userEntities, isSpecialEntityTypeLookup]);
+  }, [
+    latestEntityTypes,
+    ownedById,
+    userEntitiesData,
+    isSpecialEntityTypeLookup,
+  ]);
 
   const sidebarEntityTypes = useMemo(
     () => [...(pinnedEntityTypes ?? []), ...(accountEntityTypes ?? [])],
@@ -184,7 +224,7 @@ export const AccountEntitiesList: FunctionComponent<
         <Box component="ul">
           {loading && sortedEntityTypes.length === 0 ? (
             <LoadingSkeleton />
-          ) : (
+          ) : sortedEntityTypes.length > 0 ? (
             <TransitionGroup>
               {sortedEntityTypes.map((root) => (
                 <Collapse key={root.schema.$id}>
@@ -198,6 +238,17 @@ export const AccountEntitiesList: FunctionComponent<
                 </Collapse>
               ))}
             </TransitionGroup>
+          ) : (
+            <Typography
+              component="li"
+              sx={{
+                pl: 2.5,
+                color: ({ palette }) => palette.gray[50],
+                fontSize: 13,
+              }}
+            >
+              No entities in this workspace
+            </Typography>
           )}
 
           <Box marginLeft={1} marginTop={0.5}>

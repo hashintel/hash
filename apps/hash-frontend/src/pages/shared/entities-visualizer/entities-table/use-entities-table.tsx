@@ -327,7 +327,6 @@ export const useEntitiesTable = (
         throw new Error("No worker available");
       }
 
-      setTableData(null);
       setWaitingTableData(true);
 
       worker.postMessage({

@@ -520,6 +520,7 @@ export const TypesTable: FunctionComponent<{
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           filterState={filterState}
+          loading={false}
           numberOfExternalItems={numberOfExternalItems}
           numberOfUserWebItems={numberOfUserWebItems}
           setFilterState={setFilterState}

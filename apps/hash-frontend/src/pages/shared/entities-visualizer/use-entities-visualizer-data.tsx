@@ -72,11 +72,11 @@ export const useEntitiesVisualizerData = (params: {
     createdByIds,
     cursor: nextCursor,
     editionCreatedByIds,
-    subgraph,
     entities,
     hadCachedContent,
     loading,
     refetch,
+    subgraph,
     typeIds,
     webIds,
   } = useEntityTypeEntities({
@@ -138,19 +138,36 @@ export const useEntitiesVisualizerData = (params: {
     return [relevantTypes, relevantProperties];
   }, [subgraph, entities]);
 
-  return {
-    count,
-    createdByIds,
-    cursor: nextCursor,
-    editionCreatedByIds,
-    entities,
-    entityTypes,
-    hadCachedContent,
-    loading,
-    propertyTypes,
-    refetch,
-    subgraph,
-    typeIds,
-    webIds,
-  };
+  return useMemo(
+    () => ({
+      count,
+      createdByIds,
+      cursor: nextCursor,
+      editionCreatedByIds,
+      entities,
+      entityTypes,
+      hadCachedContent,
+      loading,
+      propertyTypes,
+      refetch,
+      subgraph,
+      typeIds,
+      webIds,
+    }),
+    [
+      count,
+      createdByIds,
+      nextCursor,
+      editionCreatedByIds,
+      entities,
+      entityTypes,
+      hadCachedContent,
+      loading,
+      propertyTypes,
+      refetch,
+      subgraph,
+      typeIds,
+      webIds,
+    ],
+  );
 };
