@@ -54,7 +54,7 @@
     "uuid": "11.0.5"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.5-nightly.81fdedb",
+    "@biomejs/biome": "1.9.5-nightly.ff02a0b",
     "@blockprotocol/type-system": "0.1.2-canary.0",
     "@graphql-codegen/cli": "^5.0.3",
     "@graphql-codegen/fragment-matcher": "3.3.3",
