@@ -5,9 +5,21 @@
 // );
 
 permit (
-  principal in HASH::OrgRole::"HASH::member",
-  action    == HASH::Action::"Update",
-  resource  is HASH::Entity in HASH::Org::"HASH"
+  principal == HASH::User::"tim",
+  action    == HASH::Action::"View",
+  resource  == HASH::Entity::"photo"
+);
+
+permit (
+  principal in HASH::OrganizationRole::"HASH::member",
+  action    == HASH::Action::"View",
+  resource  is HASH::Entity in HASH::Organization::"HASH"
+);
+
+permit (
+  principal in HASH::OrganizationRole::"HASH::member",
+  action    == HASH::Action::"View",
+  resource  is HASH::Entity in HASH::Organization::"HASH"
 );
 
 // permit (

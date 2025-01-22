@@ -1,85 +1,46 @@
-use core::{cell::OnceCell, error::Error, iter::empty, str::FromStr};
+#![expect(
+    clippy::use_debug,
+    clippy::print_stdout,
+    clippy::print_stderr,
+    clippy::std_instead_of_alloc
+)]
+
+use core::iter::empty;
 use std::{
     collections::{HashMap, HashSet},
-    sync::Arc,
+    fs,
+    sync::{Arc, LazyLock, OnceLock},
 };
 
 use cedar_policy_core::{
     ast::{
-        self, Annotations, Effect, Eid, Entity, EntityAttrEvaluationError, EntityUID,
-        EntityUIDEntry, Expr, Extension, Id, Name, PolicyID, PolicySet, Request,
-        RequestSchemaAllPass, ResourceConstraint, RestrictedExpr, SlotId, StaticPolicy,
+        self, Annotations, Effect, Eid, Entity, EntityType, EntityUID, EntityUIDEntry, Expr, Name,
+        PolicyID, Request,
     },
-    authorizer::{Authorizer, PartialResponse, ResponseKind},
-    entities::{AllEntitiesNoAttrsSchema, Entities, NoEntitiesSchema, TCComputation},
-    est,
+    authorizer::Authorizer,
+    entities::{Entities, TCComputation},
     extensions::Extensions,
     parser::parse_policyset,
 };
 use cedar_policy_validator::{CoreSchema, ValidationMode, Validator, ValidatorSchema};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use smol_str::SmolStr;
 use uuid::Uuid;
 
-const POLICY_SRC: &str = include_str!("../cedar/policy.cedar");
+fn entity_type(name: &'static str) -> EntityType {
+    static HASH_NAMESPACE: LazyLock<Name> =
+        LazyLock::new(|| Name::parse_unqualified_name("HASH").expect("name should be valid"));
 
-fn eid(namespace: &'static str, name: impl Into<SmolStr>) -> EntityUID {
-    EntityUID::from_components(
-        Name::new(
-            Id::from_str(namespace).expect("namespace should be valid"),
-            [Id::from_str("HASH").expect("namespace should be valid")],
-        ),
-        Eid::new(name),
+    EntityType::from(
+        Name::parse_unqualified_name(name)
+            .expect("name should be valid")
+            .qualify_with_name(Some(&HASH_NAMESPACE)),
     )
-    .into()
 }
 
-pub struct User {
-    pub name: SmolStr,
-}
-
-impl From<User> for EntityUID {
-    fn from(user: User) -> Self {
-        eid("User", user.name)
-    }
-}
-
-fn user_euid(name: impl Into<SmolStr>) -> EntityUID {
-    User { name: name.into() }.into()
-}
-
-pub struct Organization {
-    pub name: SmolStr,
-}
-
-impl From<Organization> for EntityUID {
-    fn from(org: Organization) -> Self {
-        eid("Org", org.name)
-    }
-}
-
-fn organization_euid(name: impl Into<SmolStr>) -> EntityUID {
-    Organization { name: name.into() }.into()
-}
-
-pub struct OrganizationRole {
-    pub name: SmolStr,
-    pub role: SmolStr,
-}
-
-impl From<OrganizationRole> for EntityUID {
-    fn from(role: OrganizationRole) -> Self {
-        eid("OrgRole", &format!("{}::{}", role.name, role.role))
-    }
-}
-
-fn organization_role_euid(name: impl Into<SmolStr>, role: impl Into<SmolStr>) -> EntityUID {
-    OrganizationRole {
-        name: name.into(),
-        role: role.into(),
-    }
-    .into()
+fn eid(ty: &'static str, name: impl Into<SmolStr>) -> EntityUID {
+    EntityUID::from_components(entity_type(ty), Eid::new(name), None)
 }
 
 pub enum PrincipalConstraint {
@@ -121,16 +82,11 @@ pub enum ResourceType {
     Entity,
 }
 
-impl From<ResourceType> for Name {
-    fn from(principal: Resource) -> Self {
-        let namespace = match principal {
+impl From<ResourceType> for EntityType {
+    fn from(principal: ResourceType) -> Self {
+        entity_type(match principal {
             ResourceType::Entity => "Entity",
-        };
-
-        Name::new(
-            Id::from_str(namespace).expect("namespace should be valid"),
-            [Id::from_str("HASH").expect("namespace should be valid")],
-        )
+        })
     }
 }
 
@@ -147,13 +103,9 @@ impl From<Resource> for EntityUID {
 }
 
 pub enum ResourceConstraint {
-    Eq(Entity),
+    Eq(Resource),
     In(Organization),
     IsIn(ResourceType, Organization),
-}
-
-fn entity_euid(id: impl Into<SmolStr>) -> EntityUID {
-    Resource::Entity { id: id.into() }.into()
 }
 
 pub struct Policy {
@@ -163,67 +115,99 @@ pub struct Policy {
     pub conditions: Vec<()>,
 }
 
-impl From<Policy> for ast::Policy {
-    fn from(policy: Policy) -> Self {
-        let principal_constraint = policy.principal.map_or_else(
-            ast::PrincipalConstraint::any,
-            |principal| match principal {
-                PrincipalConstraint::Eq(user) => {
-                    ast::PrincipalConstraint::new(ast::PrincipalOrResourceConstraint::Eq(
-                        ast::EntityReference::EUID(Arc::new(user.into())),
-                    ))
-                }
-                PrincipalConstraint::In(role) => {
-                    ast::PrincipalConstraint::new(ast::PrincipalOrResourceConstraint::Eq(
-                        ast::EntityReference::EUID(Arc::new(role.into())),
-                    ))
-                }
-            },
-        );
-        let action_constraint = policy
-            .action
-            .map_or_else(ast::ActionConstraint::any, |action| match action {
-                ActionConstraint::Eq(action) => ast::ActionConstraint::Eq(Arc::new(action.into())),
-                ActionConstraint::In(actions) => ast::ActionConstraint::In(
-                    actions
-                        .into_iter()
-                        .map(|action| Arc::new(action.into()))
-                        .collect(),
-                ),
-            });
-        let resource_constraint =
-            policy
-                .resource
-                .map_or_else(ast::ResourceConstraint::any, |resource| match resource {
-                    ResourceConstraint::Eq(resource) => {
-                        ast::ResourceConstraint::new(ast::PrincipalOrResourceConstraint::Eq(
-                            ast::EntityReference::EUID(Arc::new(resource.into())),
-                        ))
-                    }
-                    ResourceConstraint::In(resource) => {
-                        ast::ResourceConstraint::new(ast::PrincipalOrResourceConstraint::In(
-                            ast::EntityReference::EUID(Arc::new(resource.into())),
-                        ))
-                    }
-                    ResourceConstraint::IsIn(ty, resource) => {
-                        ast::ResourceConstraint::new(ast::PrincipalOrResourceConstraint::IsIn(
-                            ty.into(),
-                            ast::EntityReference::EUID(Arc::new(resource.into())),
-                        ))
-                    }
-                });
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Web {
+    pub id: String,
+}
 
-        ast::Policy::from(
-            ast::StaticPolicy::new(
-                PolicyID::from_string(Uuid::new_v4().to_string()),
-                Annotations::new(),
-                Effect::Permit,
-                principal_constraint,
-                action_constraint,
-                resource_constraint,
-                Expr::val(true),
-            )
-            .expect("should not contain any slot"),
+impl Web {
+    fn to_entity_uid(&self) -> EntityUID {
+        static ENTITY_TYPE: LazyLock<EntityType> = LazyLock::new(|| entity_type("Web"));
+        EntityUID::from_components((*ENTITY_TYPE).clone(), Eid::new(&self.id), None)
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct User {
+    pub web: Web,
+}
+
+impl User {
+    fn to_entity_uid(&self) -> EntityUID {
+        static ENTITY_TYPE: LazyLock<EntityType> = LazyLock::new(|| entity_type("User"));
+        EntityUID::from_components((*ENTITY_TYPE).clone(), Eid::new(&self.web.id), None)
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Organization {
+    pub web: Web,
+}
+
+impl Organization {
+    fn to_entity_uid(&self) -> EntityUID {
+        static ENTITY_TYPE: LazyLock<EntityType> = LazyLock::new(|| entity_type("Organization"));
+        EntityUID::from_components((*ENTITY_TYPE).clone(), Eid::new(&self.web.id), None)
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationRole {
+    pub organization: Organization,
+    pub name: String,
+}
+
+impl OrganizationRole {
+    fn to_entity_uid(&self) -> EntityUID {
+        static ENTITY_TYPE: LazyLock<EntityType> =
+            LazyLock::new(|| entity_type("OrganizationRole"));
+        EntityUID::from_components(
+            (*ENTITY_TYPE).clone(),
+            Eid::new(format!("{}::{}", self.organization.web.id, self.name)),
+            None,
+        )
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Team {
+    pub organization: Organization,
+    pub name: String,
+}
+
+impl Team {
+    fn to_entity_uid(&self) -> EntityUID {
+        static ENTITY_TYPE: LazyLock<EntityType> = LazyLock::new(|| entity_type("Team"));
+        EntityUID::from_components(
+            (*ENTITY_TYPE).clone(),
+            Eid::new(format!("{}::{}", self.organization.web.id, self.name)),
+            None,
+        )
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TeamRole {
+    pub team: Team,
+    pub name: String,
+}
+
+impl TeamRole {
+    fn to_entity_uid(&self) -> EntityUID {
+        static ENTITY_TYPE: LazyLock<EntityType> = LazyLock::new(|| entity_type("TeamRole"));
+        EntityUID::from_components(
+            (*ENTITY_TYPE).clone(),
+            Eid::new(format!(
+                "{}::{}::{}",
+                self.team.organization.web.id, self.team.name, self.name
+            )),
+            None,
         )
     }
 }
@@ -235,60 +219,25 @@ pub enum Principal {
 
 impl From<User> for Principal {
     fn from(user: User) -> Self {
-        Principal::User(user)
+        Self::User(user)
     }
 }
 
 impl From<OrganizationRole> for Principal {
     fn from(role: OrganizationRole) -> Self {
-        Principal::OrganizationRole(role)
+        Self::OrganizationRole(role)
     }
 }
 
-fn viewer(principal: impl Into<Principal>, resource: Resource) -> Policy {
-    Policy {
-        principal: match principal.into() {
-            Principal::User(user) => Some(PrincipalConstraint::Eq(user)),
-            Principal::OrganizationRole(role) => Some(PrincipalConstraint::In(role)),
-        },
-        action: Some(ActionConstraint::Eq(Action::View)),
-        resource: Some(ResourceConstraint::Eq(())),
-        conditions: vec![],
-    }
-}
-
-fn editor(principal: impl Into<Principal>, resource: Resource) -> Policy {
-    Policy {
-        principal: match principal.into() {
-            Principal::User(user) => Some(PrincipalConstraint::Eq(user)),
-            Principal::OrganizationRole(role) => Some(PrincipalConstraint::In(role)),
-        },
-        action: Some(ActionConstraint::In(vec![Action::View, Action::Update])),
-        resource: Some(resource),
-        conditions: vec![],
-    }
-}
-
-fn main() -> Result<(), Box<dyn Error>> {
-    let mut policy_set = parse_policyset(POLICY_SRC)?;
-
-    policy_set.add(
-        viewer(User { name: "tim".into() }, Resource::Entity {
-            id: "photo".into(),
-        })
-        .into(),
-    );
-    policy_set.add(
-        editor(User { name: "tim".into() }, Resource::Entity {
-            id: "person".into(),
-        })
-        .into(),
-    );
+#[expect(clippy::too_many_lines)]
+fn main() -> miette::Result<()> {
+    let policy_set = parse_policyset(
+        &fs::read_to_string("cedar/policy.cedar").expect("Policy file should exist"),
+    )?;
 
     for policy in policy_set.policies() {
         println!("{policy}");
     }
-    use rand::distributions::{Alphanumeric, DistString};
 
     // let template_id = PolicyID::from_string("policy0");
     // let template = policy_set
@@ -328,17 +277,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                     },
                 },
                 "entityTypes": {
-                    "OrgRole": {
-                        "memberOfTypes": [ "OrgRole" ],
+                    "Web": {
                     },
-                    "Org": {
-
+                    "OrganizationRole": {
+                        "memberOfTypes": [ "Organization" ],
+                    },
+                    "Organization": {
+                        "memberOfTypes": [ "Web" ],
                     },
                     "User": {
-                        "memberOfTypes": [ "OrgRole" ],
+                        "memberOfTypes": [ "OrganizationRole", "Web" ],
                     },
                     "Entity": {
-                        "memberOfTypes": [ "Org" ],
+                        "memberOfTypes": [ "Organization", "Web" ],
                     }
                 }
             }
@@ -351,53 +302,61 @@ fn main() -> Result<(), Box<dyn Error>> {
         .validate(&policy_set, ValidationMode::Strict)
         .into_errors_and_warnings();
     for error in errors {
-        eprintln!("error: {error:?}");
+        eprintln!("ERROR: {:#?}", miette::Result::from(Err::<(), _>(error)));
     }
     for warning in warnings {
-        eprintln!("warning: {warning:?}");
+        eprintln!("WARN: {:#?}", miette::Result::from(Err::<(), _>(warning)));
     }
 
-    const ITERS: u32 = 10000;
+    #[expect(clippy::items_after_statements)]
+    const ITERS: u32 = 10_000;
     for i in 0..ITERS {
         let authorizer = Authorizer::new();
 
-        let tim = user_euid("tim");
-        let hash = organization_euid("HASH");
-        let hash_admin = organization_role_euid("HASH", "admin");
-        let hash_member = organization_role_euid("HASH", "member");
+        let tim = User {
+            web: Web {
+                id: "tim".to_owned(),
+            },
+        };
+        let tim_euid = tim.to_entity_uid();
+
+        let hash_member = OrganizationRole {
+            name: "member".to_owned(),
+            organization: Organization {
+                web: Web {
+                    id: "HASH".to_owned(),
+                },
+            },
+        };
+
         let view = EntityUID::from(Action::View);
-        let update = EntityUID::from(Action::Update);
 
         let request = Request::new_with_unknowns(
             EntityUIDEntry::Known {
-                euid: Arc::new(tim.clone()),
+                euid: Arc::new(tim_euid.clone()),
                 loc: None,
             },
             EntityUIDEntry::Known {
-                euid: Arc::new(update.clone()),
+                euid: Arc::new(view.clone()),
                 loc: None,
             },
-            EntityUIDEntry::Unknown { loc: None },
+            EntityUIDEntry::Unknown {
+                ty: Some(ResourceType::Entity.into()),
+                loc: None,
+            },
             None,
             Some(&schema),
             Extensions::all_available(),
         )?;
 
         let entities = Entities::new().add_entities(
-            [
-                Entity::new(
-                    tim.clone(),
-                    HashMap::from([]),
-                    HashSet::from([hash_admin.clone()]),
-                    &Extensions::all_available(),
-                )?,
-                Entity::new(
-                    hash_admin.clone(),
-                    HashMap::new(),
-                    HashSet::from([hash_member.clone()]),
-                    &Extensions::all_available(),
-                )?,
-            ],
+            [Arc::new(Entity::new(
+                tim_euid,
+                HashMap::from([]),
+                HashSet::from([hash_member.to_entity_uid()]),
+                empty(),
+                Extensions::all_available(),
+            )?)],
             Some(&schema),
             TCComputation::ComputeNow,
             Extensions::all_available(),
@@ -407,14 +366,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         if i == 0 {
             println!("{request}");
             println!("{entities}");
-            match response {
-                ResponseKind::FullyEvaluated(response) => println!("{:?}", response.decision),
-                ResponseKind::Partial(residual) => {
-                    println!("Residuals:");
-                    for policy in residual.residuals.policies() {
-                        println!("{policy}");
-                    }
-                }
+            println!("Residuals:");
+            for policy in response.all_residuals() {
+                println!("{policy}");
             }
         }
     }

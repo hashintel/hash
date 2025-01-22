@@ -20,16 +20,16 @@ hash-codec  = { workspace = true }
 type-system = { workspace = true }
 
 # Private third-party dependencies
-cedar-policy           = { version = "*" }
-cedar-policy-core      = { version = "*" }
-cedar-policy-validator = { version = "*" }
+cedar-policy-core      = { version = "4.3" }
+cedar-policy-validator = { version = "4.3" }
 derive-where           = { workspace = true }
 futures                = { workspace = true }
+miette                 = { version = "7.4", features = ["fancy"] }
 rand                   = { version = "*" }
 serde                  = { workspace = true, features = ["derive", "unstable"] }
 serde_json             = { workspace = true }
 serde_plain            = { workspace = true }
-smol_str               = { version = "*" }
+smol_str               = { version = "0.3.2" }
 tokio                  = { workspace = true }
 tokio-util             = { workspace = true, features = ["io"] }
 tracing                = { workspace = true, features = ["attributes"] }
