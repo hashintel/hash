@@ -1,6 +1,5 @@
 import type {
   BaseUrl,
-  ConversionDefinition,
   Conversions,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -23,6 +22,7 @@ import type {
   OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
+import type { DataTypeConversionTargets } from "@local/hash-isomorphic-utils/data-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -284,7 +284,7 @@ export const unarchiveDataType: ImpureGraphFunction<
 
 export const getDataTypeConversionTargets: ImpureGraphFunction<
   { dataTypeIds: VersionedUrl[] },
-  Promise<Record<VersionedUrl, Record<VersionedUrl, ConversionDefinition[]>>>
+  Promise<Record<VersionedUrl, Record<VersionedUrl, DataTypeConversionTargets>>>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
     .getDataTypeConversionTargets(actorId, params)

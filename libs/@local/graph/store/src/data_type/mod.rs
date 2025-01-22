@@ -2,11 +2,11 @@ pub(crate) use self::query::DataTypeQueryPathVisitor;
 pub use self::{
     query::{DataTypeQueryPath, DataTypeQueryToken},
     store::{
-        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
-        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
-        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
-        UpdateDataTypesParams,
+        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,
+        DataTypeConversionTargets, DataTypeStore, GetDataTypeConversionTargetsParams,
+        GetDataTypeConversionTargetsResponse, GetDataTypeSubgraphParams,
+        GetDataTypeSubgraphResponse, GetDataTypesParams, GetDataTypesResponse,
+        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
 };
 

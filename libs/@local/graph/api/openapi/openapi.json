@@ -3692,6 +3692,24 @@
           "propertyName": "type"
         }
       },
+      "DataTypeConversionTargets": {
+        "type": "object",
+        "required": [
+          "title",
+          "conversions"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversionDefinition"
+            }
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "DataTypeInferenceError": {
         "oneOf": [
           {
@@ -5606,10 +5624,7 @@
             "additionalProperties": {
               "type": "object",
               "additionalProperties": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ConversionDefinition"
-                }
+                "$ref": "#/components/schemas/DataTypeConversionTargets"
               }
             }
           }

@@ -171,7 +171,10 @@ describe("Data type CRU", () => {
               Object.entries(conversions).map(
                 ([targetDataTypeId, conversion]) => [
                   targetDataTypeId,
-                  createConversionFunction(conversion),
+                  {
+                    convert: createConversionFunction(conversion.conversions),
+                    title: conversion.title,
+                  },
                 ],
               ),
             ),
@@ -183,28 +186,56 @@ describe("Data type CRU", () => {
     expect(
       conversionMap[systemDataTypes.centimeters.dataTypeId]![
         systemDataTypes.millimeters.dataTypeId
-      ]!(100),
+      ]!.convert(100),
     ).toBe(1000);
     expect(
       conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.millimeters.dataTypeId
+      ]!.title,
+    ).toBe(systemDataTypes.millimeters.title);
+
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
         systemDataTypes.meters.dataTypeId
-      ]!(1000),
+      ]!.convert(1000),
     ).toBe(10);
     expect(
       conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.millimeters.dataTypeId
+      ]!.title,
+    ).toBe(systemDataTypes.millimeters.title);
+
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
         systemDataTypes.kilometers.dataTypeId
-      ]!(100000),
+      ]!.convert(100000),
     ).toBe(1);
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.kilometers.dataTypeId
+      ]!.title,
+    ).toBe(systemDataTypes.kilometers.title);
 
     expect(
       conversionMap[systemDataTypes.meters.dataTypeId]![
         systemDataTypes.millimeters.dataTypeId
-      ]!(1),
+      ]!.convert(1),
     ).toBe(1000);
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.millimeters.dataTypeId
+      ]!.title,
+    ).toBe(systemDataTypes.millimeters.title);
+
     expect(
       conversionMap[systemDataTypes.meters.dataTypeId]![
         systemDataTypes.kilometers.dataTypeId
-      ]!(1000),
+      ]!.convert(1000),
     ).toBe(1);
+    expect(
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![
+        systemDataTypes.kilometers.dataTypeId
+      ]!.title,
+    ).toBe(systemDataTypes.kilometers.title);
   });
 });
