@@ -473,7 +473,7 @@ const _linkEntityTypeChanges: Record<
   },
   "https://hash.ai/@h/types/entity-type/affiliated-with/v/1": {
     inverse: {
-      title: "Affiliate With",
+      title: "Affiliated With",
     },
   },
 };
