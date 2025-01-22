@@ -305,6 +305,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     refetch: refetchWithoutLinks,
     subgraph,
     typeIds,
+    typeTitles,
     webIds,
   } = visualizerData;
 
@@ -604,6 +605,7 @@ export const EntitiesVisualizer: FunctionComponent<{
             setSort={setSort}
             subgraph={subgraph}
             typeIds={typeIds}
+            typeTitles={typeTitles}
             webIds={webIds}
           />
         )}

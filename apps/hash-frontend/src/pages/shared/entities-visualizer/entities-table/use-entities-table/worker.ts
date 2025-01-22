@@ -315,16 +315,16 @@ const generateTableData = async (
           (allOf) => allOf.$ref === linkEntityTypeUrl,
         );
 
-        let entityTypeLabel = entityType.title;
-        if (entityTypesWithMultipleVersionsPresent.includes(entityType.$id)) {
-          entityTypeLabel += ` v${extractVersion(entityType.$id)}`;
-        }
-
         return {
-          title: entityTypeLabel,
+          title: entityType.title,
           entityTypeId: entityType.$id,
           icon: entityType.icon,
           isLink,
+          version: entityTypesWithMultipleVersionsPresent.includes(
+            entityType.$id,
+          )
+            ? extractVersion(entityType.$id)
+            : undefined,
         };
       }),
       web,

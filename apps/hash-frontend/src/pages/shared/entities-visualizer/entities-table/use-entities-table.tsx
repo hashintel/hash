@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system/slim";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
@@ -54,6 +55,7 @@ export const useEntitiesTable = (
     | "propertyTypes"
     | "subgraph"
     | "typeIds"
+    | "typeTitles"
     | "webIds"
   > & {
     hasSomeLinks?: boolean;
@@ -74,6 +76,7 @@ export const useEntitiesTable = (
     hidePropertiesColumns,
     propertyTypes,
     typeIds,
+    typeTitles,
     webIds,
   } = params;
 
@@ -240,22 +243,23 @@ export const useEntitiesTable = (
         });
       }
 
-      const typeTitles: EntitiesTableFilterData["entityTypeFilters"] = [];
+      const types: EntitiesTableFilterData["entityTypeFilters"] = [];
       for (const [entityTypeId, count] of typedEntries(typeIds ?? {})) {
-        const title = entityTypeId
-          .split("/")
-          .at(-3)!
-          .split("-")
-          .map(
-            (segment) =>
-              `${segment[0]?.toUpperCase() ?? ""}${segment.slice(1)}`,
-          )
-          .join(" ");
+        const title = typeTitles?.[entityTypeId];
 
-        typeTitles.push({
+        if (!title) {
+          throw new Error(
+            `Could not find title for entity type ${entityTypeId}`,
+          );
+        }
+
+        types.push({
           count,
           entityTypeId,
           title,
+          version: entityTypesWithMultipleVersionsPresent.includes(entityTypeId)
+            ? extractVersion(entityTypeId)
+            : undefined,
         });
       }
 
@@ -271,7 +275,7 @@ export const useEntitiesTable = (
 
       return {
         createdByActors: createdBy,
-        entityTypeFilters: typeTitles,
+        entityTypeFilters: types,
         lastEditedByActors: editedBy,
         webs: webCounts,
       };
@@ -279,7 +283,9 @@ export const useEntitiesTable = (
       actorsByAccountId,
       createdByIds,
       editionCreatedByIds,
+      entityTypesWithMultipleVersionsPresent,
       typeIds,
+      typeTitles,
       webIds,
       webNameByOwnedById,
     ]);

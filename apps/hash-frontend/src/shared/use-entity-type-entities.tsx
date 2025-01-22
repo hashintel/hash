@@ -154,6 +154,7 @@ export const generateUseEntityTypeEntitiesQueryVariables = ({
       includeCount: true,
       includeEditionCreatedByIds: true,
       includeTypeIds: true,
+      includeTypeTitles: true,
       includeWebIds: true,
       filter: generateUseEntityTypeEntitiesFilter({
         includeArchived,

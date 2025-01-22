@@ -12,6 +12,7 @@ import type {
   CreatedByIdsMap,
   Entity,
   TypeIdsMap,
+  TypeTitlesMap,
   WebIdsMap,
 } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -45,6 +46,7 @@ export type EntitiesVisualizerData = {
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
   typeIds?: TypeIdsMap | null;
+  typeTitles?: TypeTitlesMap | null;
   webIds?: WebIdsMap | null;
 };
 
@@ -78,6 +80,7 @@ export const useEntitiesVisualizerData = (params: {
     refetch,
     subgraph,
     typeIds,
+    typeTitles,
     webIds,
   } = useEntityTypeEntities({
     cursor,
@@ -152,6 +155,7 @@ export const useEntitiesVisualizerData = (params: {
       refetch,
       subgraph,
       typeIds,
+      typeTitles,
       webIds,
     }),
     [
@@ -167,6 +171,7 @@ export const useEntitiesVisualizerData = (params: {
       refetch,
       subgraph,
       typeIds,
+      typeTitles,
       webIds,
     ],
   );

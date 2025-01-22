@@ -82,6 +82,7 @@ export const EntitiesTable: FunctionComponent<
     | "propertyTypes"
     | "subgraph"
     | "typeIds"
+    | "typeTitles"
     | "webIds"
   > & {
     currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
@@ -144,6 +145,7 @@ export const EntitiesTable: FunctionComponent<
   sort,
   subgraph,
   typeIds,
+  typeTitles,
   webIds,
 }) => {
   const router = useRouter();
@@ -160,6 +162,7 @@ export const EntitiesTable: FunctionComponent<
     hideArchivedColumn: !filterState.includeArchived,
     hidePropertiesColumns,
     typeIds,
+    typeTitles,
     webIds,
   });
 
@@ -334,6 +337,7 @@ export const EntitiesTable: FunctionComponent<
                     ? { entityTypeIcon: value.icon }
                     : { inbuiltIcon: value.isLink ? "bpLink" : "bpAsterisk" },
                   iconFill: theme.palette.blue[70],
+                  suffix: value.version ? `v${value.version}` : undefined,
                   onClick: disableTypeClick
                     ? undefined
                     : () => {
@@ -556,10 +560,11 @@ export const EntitiesTable: FunctionComponent<
       {
         columnKey: "entityTypes",
         filterItems: entityTypeFilters.map(
-          ({ entityTypeId, count, title }) => ({
+          ({ entityTypeId, count, title, version }) => ({
             id: entityTypeId,
             label: title,
             count,
+            labelSuffix: version ? `v${version}` : undefined,
           }),
         ),
         selectedFilterItemIds: selectedEntityTypeIds,

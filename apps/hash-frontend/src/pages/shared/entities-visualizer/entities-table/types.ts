@@ -26,6 +26,7 @@ export interface EntitiesTableRow {
     icon?: string;
     isLink: boolean;
     title: string;
+    version?: number;
   }[];
   archived?: boolean;
   lastEdited: string;
@@ -110,6 +111,7 @@ export type EntityTypeTableFilterData = {
   entityTypeId: VersionedUrl;
   title: string;
   count: number;
+  version?: number;
 };
 
 export type WebTableFilterData = {
