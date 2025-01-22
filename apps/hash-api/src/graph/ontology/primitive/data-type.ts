@@ -1,6 +1,5 @@
 import type {
   BaseUrl,
-  ConversionDefinition,
   Conversions,
   VersionedUrl,
 } from "@blockprotocol/type-system";
