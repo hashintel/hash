@@ -16,7 +16,7 @@ const scaleValue = (value: number, scale: number) => {
   return Math.round(value * scale);
 };
 
-const precisionIfInfinite = 10;
+const maxDivisionPrecision = 10;
 
 export const divide = (numerator: number, denominator: number): number => {
   if (Number.isNaN(numerator) || Number.isNaN(denominator)) {
@@ -35,7 +35,7 @@ export const divide = (numerator: number, denominator: number): number => {
 
   const result = simplifiedNumerator / simplifiedDenominator;
 
-  const scale = 10 ** precisionIfInfinite;
+  const scale = 10 ** maxDivisionPrecision;
   const truncatedResult = scaleValue(result, scale) / scale;
 
   return truncatedResult;

@@ -17,7 +17,7 @@ import {
   Typography,
 } from "@mui/material";
 import type { CSSProperties } from "react";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { FixedSizeList } from "react-window";
 
 import { MenuItem } from "../../../shared/ui";
@@ -193,24 +193,6 @@ export const ColumnFilterMenu = <R extends GridRow>({
   columnFilter?: ColumnFilter<string, R>;
   onClose: () => void;
 } & PopperProps) => {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-
-    if (wrapper) {
-      const onMouseMove = (event: MouseEvent) => {
-        event.stopPropagation();
-      };
-
-      wrapper.addEventListener("mousemove", onMouseMove);
-
-      return () => {
-        wrapper.removeEventListener("mousemove", onMouseMove);
-      };
-    }
-  }, [wrapperRef]);
-
   const [previousColumnFilter, setPreviousColumnFilter] =
     useState<ColumnFilter<string, R>>();
 
@@ -323,7 +305,7 @@ export const ColumnFilterMenu = <R extends GridRow>({
                 }
               }}
             >
-              <Paper ref={wrapperRef} sx={{ padding: 0.25 }}>
+              <Paper sx={{ padding: 0.25 }}>
                 <Stack
                   direction="row"
                   alignItems="center"

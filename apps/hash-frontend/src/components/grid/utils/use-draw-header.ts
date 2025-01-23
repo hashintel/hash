@@ -1,3 +1,4 @@
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   DrawHeaderCallback,
   SizedGridColumn,
@@ -15,10 +16,18 @@ import type {
 } from "./interactable-manager/types";
 import type { ColumnSort } from "./sorting";
 
+export const generateInteractableId = (
+  type: "filter" | "sort" | "convert",
+  columnKey: string,
+) => `column-${type}-${columnKey}`;
+
 export const useDrawHeader = <
   C extends SizedGridColumn,
   S extends C["id"],
 >(props: {
+  activeConversions?: {
+    [columnBaseUrl: BaseUrl]: { dataTypeId: VersionedUrl; title: string };
+  } | null;
   columns: C[];
   conversionTargetsByColumnKey?: ConversionTargetsByColumnKey;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,6 +47,7 @@ export const useDrawHeader = <
   tableId: string;
 }): DrawHeaderCallback => {
   const {
+    activeConversions,
     columns,
     conversionTargetsByColumnKey,
     filters,
@@ -116,7 +126,7 @@ export const useDrawHeader = <
           InteractableManager.createColumnHeaderInteractable(
             { ...args, tableId },
             {
-              id: `column-sort-${columnKey}`,
+              id: generateInteractableId("sort", columnKey),
               pos: {
                 left: sortIconStartX,
                 right: sortIconStartX + sortIconSize,
@@ -167,7 +177,7 @@ export const useDrawHeader = <
           InteractableManager.createColumnHeaderInteractable(
             { ...args, tableId },
             {
-              id: `column-filter-${columnKey}`,
+              id: generateInteractableId("filter", columnKey),
               pos: {
                 left: columnFilterX,
                 right: columnFilterX + filterIconSize,
@@ -181,7 +191,10 @@ export const useDrawHeader = <
         );
       }
 
+      const hasConversionApplied = activeConversions?.[columnKey as BaseUrl];
+
       if (
+        hasConversionApplied ||
         Object.keys(conversionTargetsByColumnKey?.[columnKey] ?? {}).length > 0
       ) {
         const calculatorIconSize = 15;
@@ -195,13 +208,18 @@ export const useDrawHeader = <
             calculatorIconSize);
 
         args.spriteManager.drawSprite(
-          "calculatorSimpleLight",
+          "equalsRegular",
           "normal",
           ctx,
           calculatorIconStartX,
           centerY - calculatorIconSize / 2,
           calculatorIconSize,
-          theme,
+          {
+            ...theme,
+            fgIconHeader: hasConversionApplied
+              ? muiTheme.palette.blue[70]
+              : muiTheme.palette.gray[50],
+          },
           1,
         );
 
@@ -209,7 +227,7 @@ export const useDrawHeader = <
           InteractableManager.createColumnHeaderInteractable(
             { ...args, tableId },
             {
-              id: `column-convert-${columnKey}`,
+              id: generateInteractableId("convert", columnKey),
               pos: {
                 left: calculatorIconStartX,
                 right: calculatorIconStartX + calculatorIconSize,
@@ -233,6 +251,7 @@ export const useDrawHeader = <
       return true;
     },
     [
+      activeConversions,
       columns,
       conversionTargetsByColumnKey,
       filters,

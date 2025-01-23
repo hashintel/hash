@@ -10,16 +10,17 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { MenuItem } from "../../../shared/ui";
 
 export type ConversionTargetsByColumnKey = Record<
   string,
-  { title: string; dataTypeId: VersionedUrl }[]
+  { title: string; dataTypeId: VersionedUrl }[] | undefined
 >;
 
 export const ConversionMenu = ({
+  activeConversion,
   columnKey,
   conversionTargetsByColumnKey,
   onClose,
@@ -27,10 +28,11 @@ export const ConversionMenu = ({
   open,
   ...popoverProps
 }: {
+  activeConversion: { dataTypeId: VersionedUrl; title: string } | null;
   columnKey?: string;
   conversionTargetsByColumnKey?: ConversionTargetsByColumnKey;
   onClose: () => void;
-  onSelectConversionTarget: (dataTypeId: VersionedUrl) => void;
+  onSelectConversionTarget: (dataTypeId: VersionedUrl | null) => void;
 } & PopperProps) => {
   if (!conversionTargetsByColumnKey) {
     throw new Error(
@@ -42,25 +44,20 @@ export const ConversionMenu = ({
     throw new Error("Conversion targets not found for column key");
   }
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const [selectOpen, setSelectOpen] = useState(false);
 
   useEffect(() => {
-    const wrapper = wrapperRef.current;
-
-    if (wrapper) {
-      const onMouseMove = (event: MouseEvent) => {
-        event.stopPropagation();
-      };
-
-      wrapper.addEventListener("mousemove", onMouseMove);
-
-      return () => {
-        wrapper.removeEventListener("mousemove", onMouseMove);
-      };
+    if (open) {
+      setTimeout(() => setSelectOpen(true), 0);
     }
-  }, [wrapperRef]);
+  }, [open]);
 
-  console.log("Conversion menu open", open);
+  const activeConversionInTargets =
+    columnKey &&
+    conversionTargetsByColumnKey[columnKey]?.find(
+      (target) => target.dataTypeId === activeConversion?.dataTypeId,
+    );
 
   return (
     <Popper open={open} {...popoverProps}>
@@ -70,17 +67,17 @@ export const ConversionMenu = ({
             sx={{
               marginTop: 3,
               marginLeft: -3,
+              position: "absolute",
             }}
           >
             <ClickAwayListener
               onClickAway={() => {
-                if (open) {
-                  console.log("Click away");
+                if (!selectOpen) {
                   onClose();
                 }
               }}
             >
-              <Paper ref={wrapperRef} sx={{ padding: 0.25 }}>
+              <Paper sx={{ padding: 0.25 }}>
                 <Stack
                   direction="row"
                   alignItems="center"
@@ -98,21 +95,77 @@ export const ConversionMenu = ({
                       py: 0.5,
                     }}
                   >
-                    Convert values to
+                    Normalize
                   </Typography>
                 </Stack>
                 <Select
-                  onChange={(event) => {
-                    onSelectConversionTarget(
-                      event.target.value as VersionedUrl,
-                    );
+                  MenuProps={{
+                    anchorEl: selectRef.current,
+                    anchorOrigin: {
+                      vertical: "bottom",
+                      horizontal: "left",
+                    },
+                    transformOrigin: {
+                      vertical: "top",
+                      horizontal: "left",
+                    },
                   }}
+                  open={selectOpen}
+                  onClose={() => {
+                    setSelectOpen(false);
+                    onClose();
+                  }}
+                  onChange={(event) => {
+                    const value = event.target.value
+                      ? (event.target.value as VersionedUrl)
+                      : null;
+
+                    onSelectConversionTarget(value);
+                    onClose();
+                  }}
+                  displayEmpty
+                  renderValue={() => (
+                    <Typography
+                      sx={{
+                        fontSize: 14,
+                        color: "gray.50",
+                      }}
+                    >
+                      Convert values to...
+                    </Typography>
+                  )}
+                  ref={selectRef}
+                  sx={{ width: 200, mx: 1.5, mb: 1 }}
+                  value={activeConversion?.dataTypeId ?? ""}
                 >
-                  {conversionTargetsByColumnKey[columnKey].map((target) => (
-                    <MenuItem key={target.dataTypeId} value={target.dataTypeId}>
-                      {target.title}
+                  {activeConversion && (
+                    <MenuItem
+                      value={undefined}
+                      sx={{ color: ({ palette }) => palette.red[70] }}
+                    >
+                      Remove conversion
                     </MenuItem>
-                  ))}
+                  )}
+                  {/*
+                    If the active conversion is not in the targets already,
+                    we need to insert it to show the user the selected conversion.
+                  */}
+                  {activeConversion && !activeConversionInTargets && (
+                    <MenuItem disabled value={activeConversion.dataTypeId}>
+                      {activeConversion.title}
+                    </MenuItem>
+                  )}
+                  {columnKey &&
+                    conversionTargetsByColumnKey[columnKey]?.map(
+                      (target: { dataTypeId: VersionedUrl; title: string }) => (
+                        <MenuItem
+                          key={target.dataTypeId}
+                          value={target.dataTypeId}
+                        >
+                          {target.title}
+                        </MenuItem>
+                      ),
+                    )}
                 </Select>
               </Paper>
             </ClickAwayListener>

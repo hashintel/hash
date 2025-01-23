@@ -46,11 +46,16 @@ export type ConstructEntityTypeParams = Omit<
   SystemDefinedProperties
 >;
 
+export type ConversionRequest = {
+  path: PropertyPath;
+  dataTypeId: VersionedUrl;
+};
+
 export type GetEntitiesRequest = Omit<
   GetEntitiesRequestGraphApi,
   "conversions"
 > & {
-  conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
+  conversions?: ConversionRequest[];
 };
 
 export type GetEntitySubgraphRequest = Omit<
