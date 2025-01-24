@@ -38,7 +38,6 @@ import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
-import { PageErrorState } from "../../../components/page-error-state";
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
@@ -51,6 +50,7 @@ import {
 } from "../../../graphql/queries/knowledge/entity.queries";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
+import { NotFound } from "../../shared/not-found";
 import type { MinimalEntityValidationReport } from "../../shared/use-validate-entity";
 import { useValidateEntity } from "../../shared/use-validate-entity";
 import { EditBar } from "../shared/edit-bar";
@@ -407,15 +407,15 @@ const Page: NextPageWithLayout = () => {
     [validateFn],
   );
 
-  if (loading || !draftEntityTypesDetails) {
+  if (loading) {
     return <EntityPageLoadingState />;
   }
 
-  if (!draftEntitySubgraph) {
-    return <PageErrorState />;
+  if (!draftEntity) {
+    return <NotFound />;
   }
 
-  if (!draftEntity) {
+  if (!draftEntityTypesDetails || !draftEntitySubgraph) {
     return <NextErrorComponent statusCode={404} />;
   }
 

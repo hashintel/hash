@@ -14,7 +14,6 @@ import {
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
@@ -37,6 +36,7 @@ import { ProfilePageContent } from "./[shortname].page/profile-page-content";
 import { ProfilePageHeader } from "./[shortname].page/profile-page-header";
 import type { ProfilePageTab } from "./[shortname].page/util";
 import { parseProfilePageUrlQueryParams } from "./[shortname].page/util";
+import { NotFound } from "./shared/not-found";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 
 const ProfilePage: NextPageWithLayout = () => {
@@ -264,9 +264,7 @@ const ProfilePage: NextPageWithLayout = () => {
   }
 
   return profileNotFound ? (
-    <Container sx={{ paddingTop: 5 }}>
-      <Typography variant="h2">Profile not found</Typography>
-    </Container>
+    <NotFound />
   ) : (
     <>
       <ProfilePageHeader

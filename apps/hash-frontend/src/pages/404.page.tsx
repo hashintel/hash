@@ -1,11 +1,11 @@
 import type { ErrorProps } from "next/error";
-import NextErrorComponent from "next/error";
 
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithHeader } from "../shared/layout";
+import { NotFound } from "./shared/not-found";
 
 const NotFoundPage: NextPageWithLayout<ErrorProps> = () => {
-  return <NextErrorComponent statusCode={404} />;
+  return <NotFound />;
 };
 
 NotFoundPage.getLayout = getLayoutWithHeader;
