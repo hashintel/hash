@@ -20,7 +20,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives --flag unstable_ts_config ."
   },
   "dependencies": {
-    "@babel/core": "7.26.0",
+    "@babel/core": "7.26.7",
     "@babel/eslint-parser": "7.26.5",
     "@eslint/compat": "1.2.5",
     "@eslint/eslintrc": "3.2.0",
