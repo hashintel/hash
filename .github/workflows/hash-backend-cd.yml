@@ -86,7 +86,7 @@ jobs:
 
   build-api:
     name: Build and push HASH api image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
       contents: read
@@ -124,7 +124,7 @@ jobs:
 
   build-kratos:
     name: Build and push Kratos image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
       contents: read
@@ -165,7 +165,7 @@ jobs:
 
   build-hydra:
     name: Build and push Hydra image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
       contents: read
@@ -205,7 +205,7 @@ jobs:
 
   build-ts-worker:
     name: Build and push Temporal TS AI Worker
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
       contents: read
@@ -245,7 +245,7 @@ jobs:
 
   build-integration-worker:
     name: Build and push Temporal integration Worker
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
       contents: read
@@ -283,7 +283,7 @@ jobs:
 
   build-temporal-migrate:
     name: Build and push Temporal Migrate image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
       contents: read
@@ -324,7 +324,7 @@ jobs:
 
   build-temporal-setup:
     name: Build and push Temporal Setup image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
       contents: read

@@ -182,3 +182,60 @@ export const resolve = (
       logReverse(records).pipe(Effect.annotateLogs({ hostname, query })),
     ),
   );
+
+/** @internal */
+export const lookup = (
+  hostname: string,
+  query: {
+    records: NonEmptyReadonlyArray<RecordType>;
+  },
+) =>
+  Effect.gen(function* () {
+    const records = yield* Effect.tryPromise({
+      try: () => dns.lookup(hostname, { all: true }),
+      catch: (cause) => new DnsError({ cause }),
+    });
+
+    yield* Effect.fork(logEnvironment(hostname));
+
+    // partition into A and AAAA records
+    const [excluded, satisfying] = Array.partition(
+      records,
+      (record) => record.family === 4,
+    );
+
+    // we cannot determine the TTL of lookup records, therefore we set it to infinity
+    const aRecords = satisfying.map(
+      (record) =>
+        ({
+          type: "A",
+          address: record.address,
+          timeToLive: Duration.infinity,
+        }) as DnsRecord,
+    );
+
+    const aaaaRecords = excluded.map(
+      (record) =>
+        ({
+          type: "AAAA",
+          address: record.address,
+          timeToLive: Duration.infinity,
+        }) as DnsRecord,
+    );
+
+    const output: DnsRecord[] = [];
+
+    if (query.records.includes("A")) {
+      output.push(...aRecords);
+    }
+
+    if (query.records.includes("AAAA")) {
+      output.push(...aaaaRecords);
+    }
+
+    return output;
+  }).pipe(
+    Effect.tap((records) =>
+      logReverse(records).pipe(Effect.annotateLogs({ hostname, query })),
+    ),
+  );

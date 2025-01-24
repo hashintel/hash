@@ -10,9 +10,9 @@ locals {
 
 resource "aws_ssm_parameter" "spicedb_migration_env_vars" {
   # Only put secrets into SSM
-  for_each = {for env_var in var.spicedb_migration_env_vars : env_var.name => env_var if env_var.secret}
+  for_each = { for env_var in var.spicedb_migration_env_vars : env_var.name => env_var if env_var.secret }
 
-  name      = "${local.spicedb_param_prefix}/migration/${each.value.name}"
+  name = "${local.spicedb_param_prefix}/migration/${each.value.name}"
   # Still supports non-secret values
   type      = each.value.secret ? "SecureString" : "String"
   value     = each.value.secret ? sensitive(each.value.value) : each.value.value
@@ -22,9 +22,9 @@ resource "aws_ssm_parameter" "spicedb_migration_env_vars" {
 
 resource "aws_ssm_parameter" "spicedb_env_vars" {
   # Only put secrets into SSM
-  for_each = {for env_var in var.spicedb_env_vars : env_var.name => env_var if env_var.secret}
+  for_each = { for env_var in var.spicedb_env_vars : env_var.name => env_var if env_var.secret }
 
-  name      = "${local.spicedb_param_prefix}/${each.value.name}"
+  name = "${local.spicedb_param_prefix}/${each.value.name}"
   # Still supports non-secret values
   type      = each.value.secret ? "SecureString" : "String"
   value     = each.value.secret ? sensitive(each.value.value) : each.value.value
@@ -71,6 +71,11 @@ resource "aws_ecs_task_definition" "spicedb" {
   task_role_arn            = aws_iam_role.task_role.arn
   container_definitions    = jsonencode([for task_def in local.spicedb_task_defs : task_def.task_def])
   tags                     = {}
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
 }
 
 resource "aws_ecs_service" "spicedb" {
@@ -85,7 +90,7 @@ resource "aws_ecs_service" "spicedb" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups  = [
+    security_groups = [
       aws_security_group.spicedb.id,
     ]
   }
@@ -109,15 +114,15 @@ resource "aws_ecs_service" "spicedb" {
 
 locals {
   spicedb_migration_container_def = {
-    name             = "${local.spicedb_prefix}-migration"
-    image            = "${var.spicedb_image.name}:v${var.spicedb_image.version}"
-    cpu              = 0 # let ECS divvy up the available CPU
-    mountPoints      = []
-    volumesFrom      = []
-    command          = ["migrate", "head"]
+    name        = "${local.spicedb_prefix}-migration"
+    image       = "${var.spicedb_image.name}:v${var.spicedb_image.version}"
+    cpu         = 0 # let ECS divvy up the available CPU
+    mountPoints = []
+    volumesFrom = []
+    command     = ["migrate", "head"]
     logConfiguration = {
       logDriver = "awslogs"
-      options   = {
+      options = {
         "awslogs-create-group"  = "true"
         "awslogs-group"         = local.log_group_name
         "awslogs-stream-prefix" = local.spicedb_service_name
@@ -142,10 +147,10 @@ locals {
     cpu         = 0 # let ECS divvy up the available CPU
     mountPoints = []
     volumesFrom = []
-    dependsOn   = [
+    dependsOn = [
       { condition = "SUCCESS", containerName = local.spicedb_migration_container_def.name },
     ]
-    command     = ["serve"]
+    command = ["serve"]
     healthCheck = {
       command  = ["CMD", "grpc_health_probe", "-addr=localhost:50051"]
       retries  = 5
@@ -163,7 +168,7 @@ locals {
     ]
     logConfiguration = {
       logDriver = "awslogs"
-      options   = {
+      options = {
         "awslogs-create-group"  = "true"
         "awslogs-group"         = local.log_group_name
         "awslogs-stream-prefix" = local.spicedb_service_name
