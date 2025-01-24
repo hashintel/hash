@@ -357,10 +357,22 @@ export const connect = (transport: Transport, address: Address) =>
       resolved = yield* resolveMultiaddr(transport, address);
     }
 
-    return yield* Effect.tryPromise({
+    const connection = yield* Effect.tryPromise({
       try: (abort) => transport.dial(resolved, { signal: abort, force: true }),
       catch: (cause) => new TransportError({ cause }),
     });
+
+    if (!isPeerId(resolved)) {
+      yield* Effect.tryPromise({
+        try: () =>
+          transport.peerStore.merge(connection.remotePeer, {
+            multiaddrs: resolved,
+          }),
+        catch: (cause) => new TransportError({ cause }),
+      });
+    }
+
+    return connection;
   });
 
 /** @internal */

@@ -374,10 +374,10 @@ resource "aws_ecs_task_definition" "task" {
   container_definitions    = jsonencode([for task_def in local.task_defs : task_def.task_def])
   tags                     = {}
 
-  # runtime_platform {
-  #   operating_system_family = "LINUX"
-  #   cpu_architecture        = "ARM64"
-  # }
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
 }
 
 resource "aws_ecs_task_definition" "worker_task" {
