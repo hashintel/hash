@@ -407,6 +407,14 @@ const generateTableData = async (
     columnsToHide.push("archived");
   }
 
+  if (noSource === rows.length) {
+    columnsToHide.push("sourceEntity");
+  }
+
+  if (noTarget === rows.length) {
+    columnsToHide.push("targetEntity");
+  }
+
   for (const [columnKey, definition] of typedEntries(
     staticColumnDefinitionsByKey,
   )) {
