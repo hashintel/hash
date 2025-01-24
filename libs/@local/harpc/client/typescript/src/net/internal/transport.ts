@@ -36,19 +36,21 @@ import type { DNSConfig, Multiaddr, TransportConfig } from "../Transport.js";
 import * as Dns from "./dns.js";
 import * as HashableMultiaddr from "./multiaddr.js";
 
+interface TransportState {
+  config: TransportConfig;
+  dns: DNS;
+  cache: Cache.Cache<
+    HashableMultiaddr.HashableMultiaddr,
+    Option.Option<PeerId>,
+    TransportError
+  >;
+}
+
 /** @internal */
 export type Transport = Libp2p<{
   identify: Identify;
   ping: PingService;
-  state: {
-    config: TransportConfig;
-    dns: DNS;
-    cache: Cache.Cache<
-      HashableMultiaddr.HashableMultiaddr,
-      Option.Option<PeerId>,
-      TransportError
-    >;
-  };
+  state: TransportState;
 }>;
 
 /** @internal */
@@ -362,14 +364,15 @@ export const connect = (transport: Transport, address: Address) =>
       catch: (cause) => new TransportError({ cause }),
     });
 
+    // We already try to lookup the peer ID before dialing, if it doesn't exist in libp2p, associate the resolved address with the peer ID we just dialed,
+    // this means that the next time we dial the same peer, we can reuse the connection.
     if (!isPeerId(resolved)) {
-      yield* Effect.tryPromise({
-        try: () =>
-          transport.peerStore.merge(connection.remotePeer, {
-            multiaddrs: resolved,
-          }),
-        catch: (cause) => new TransportError({ cause }),
-      });
+      for (const resolvedAddress of resolved) {
+        yield* transport.services.state.cache.set(
+          HashableMultiaddr.make(resolvedAddress),
+          Option.some(connection.remotePeer),
+        );
+      }
     }
 
     return connection;
@@ -412,7 +415,11 @@ export const make = (config?: TransportConfig) =>
             // (This is due to the fact that the implementation of the ping service has a while true loop, that will keep receiving data, so the timeout is not really a timeout)
             // see: https://github.com/libp2p/js-libp2p/blob/96654117c449603aed5b3c6668da29bdab44cff9/packages/protocol-ping/src/ping.ts#L66
             ping: ping({ timeout: 60 * 1000 }),
-            state: () => ({ config: config ?? {}, dns: clientDns, cache }),
+            state: () => ({
+              config: config ?? {},
+              dns: clientDns,
+              cache,
+            }),
           },
           dns: clientDns,
         }),
