@@ -366,6 +366,13 @@ export const connect = (transport: Transport, address: Address) =>
 
     // We already try to lookup the peer ID before dialing, if it doesn't exist in libp2p, associate the resolved address with the peer ID we just dialed,
     // this means that the next time we dial the same peer, we can reuse the connection.
+    if (!isPeerId(address)) {
+      yield* transport.services.state.cache.set(
+        HashableMultiaddr.make(address),
+        Option.some(connection.remotePeer),
+      );
+    }
+
     if (!isPeerId(resolved)) {
       for (const resolvedAddress of resolved) {
         yield* transport.services.state.cache.set(

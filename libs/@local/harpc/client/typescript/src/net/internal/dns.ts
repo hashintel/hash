@@ -90,25 +90,6 @@ const logEnvironment = (hostname: string) =>
     );
   });
 
-const logReverse = (records: DnsRecord[]) =>
-  Effect.gen(function* () {
-    const reverseRecords = yield* pipe(
-      records,
-      Array.map((record) =>
-        Effect.tryPromise(() => dns.reverse(record.address)).pipe(
-          Effect.merge,
-          Effect.map((reverse) => [record.address, reverse] as const),
-        ),
-      ),
-      (effects) => Effect.all(effects, { concurrency: "unbounded" }),
-      Effect.map(Record.fromEntries),
-    );
-
-    yield* Effect.logTrace("queried DNS for hostname").pipe(
-      Effect.annotateLogs({ reverse: reverseRecords }),
-    );
-  });
-
 /** @internal */
 export const resolve = (
   hostname: string,
@@ -177,11 +158,7 @@ export const resolve = (
     }
 
     return Array.flatten(satisfying);
-  }).pipe(
-    Effect.tap((records) =>
-      logReverse(records).pipe(Effect.annotateLogs({ hostname, query })),
-    ),
-  );
+  });
 
 /** @internal */
 export const lookup = (
@@ -234,8 +211,4 @@ export const lookup = (
     }
 
     return output;
-  }).pipe(
-    Effect.tap((records) =>
-      logReverse(records).pipe(Effect.annotateLogs({ hostname, query })),
-    ),
-  );
+  });
