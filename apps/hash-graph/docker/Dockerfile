@@ -28,10 +28,8 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=:$PATH:/usr/local/cargo/bin
 
-COPY rust-toolchain.toml .
-RUN apk add --no-cache gcc musl-dev bash protobuf-dev && \
-    wget -q -O- https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal && \
-    rustup show
+RUN apk add --no-cache gcc musl-dev bash protobuf-dev yq && \
+    wget -q -O- https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
 
 SHELL ["bash", "-c"]
 
@@ -58,16 +56,19 @@ WORKDIR /usr/local/src/apps/hash-graph
 ARG PROFILE=production
 ARG ENABLE_TEST_SERVER=no
 
+COPY rust-toolchain.toml .
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
-    --mount=type=cache,target=/usr/local/src/apps/hash-graph/target,sharing=locked \
+    --mount=type=cache,target=/usr/local/src/target,sharing=locked \
     FEATURES=(); \
     if [[ ${ENABLE_TEST_SERVER^^} == Y* || ${ENABLE_TEST_SERVER^^} == T* || $ENABLE_TEST_SERVER == 1 ]]; then \
     FEATURES+=("test-server"); \
     fi; \
     if [[ ${PROFILE} == dev ]]; then \
     export RUSTFLAGS="$RUSTFLAGS -C debuginfo=line-tables-only"; \
+    export PROFILE=dev-llvm; \
     fi; \
+    export RUSTUP_TOOLCHAIN="$(yq '.toolchain.channel' rust-toolchain.toml)"; \
     FEATURES=${FEATURES[@]}; \
     cargo install --path . --features "${FEATURES// /,}" --profile $PROFILE --locked;
 

@@ -155,8 +155,8 @@ anstyle-yansi            = { version = "=2.0.2", default-features = false }
 approx                   = { version = "=0.5.1", default-features = false }
 async-scoped             = { version = "=0.9.0", default-features = false }
 async-trait              = { version = "=0.1.85", default-features = false }
-aws-config               = { version = "=1.5.14" }
-aws-sdk-s3               = { version = "=1.70.0", default-features = false }
+aws-config               = { version = "=1.5.15" }
+aws-sdk-s3               = { version = "=1.71.0", default-features = false }
 bitvec                   = { version = "=1.0.1", default-features = false }
 bytes-utils              = { version = "=0.1.4", default-features = false }
 clap                     = { version = "=4.5.27", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
@@ -190,7 +190,7 @@ once_cell                = { version = "=1.20.2", default-features = false }
 opentelemetry            = { version = "=0.27.1", default-features = false }
 opentelemetry-otlp       = { version = "=0.27.0", default-features = false }
 opentelemetry_sdk        = { version = "=0.27.1", default-features = false }
-orx-concurrent-vec       = { version = "=3.1.1", default-features = false }
+orx-concurrent-vec       = { version = "=3.2.0", default-features = false }
 owo-colors               = { version = "=4.1.0", default-features = false }
 paste                    = { version = "=1.0.15", default-features = false }
 pin-project              = { version = "=1.1.8", default-features = false }
@@ -241,6 +241,10 @@ winnow                   = { version = "=0.6.24", default-features = false }
 [profile.dev]
 codegen-backend = "cranelift"
 
+[profile.dev-llvm]
+codegen-backend = "llvm"
+inherits        = "dev"
+
 # We use LLVM for non-workspace crates, mainly due to the lack of AVX2 support in Cranelift
 [profile.dev.package."*"]
 codegen-backend = "llvm"
@@ -252,7 +256,7 @@ codegen-backend = "llvm"
 [profile.test.package."*"]
 codegen-backend = "llvm"
 
-# We use `llvm-cov` which requires LLVM`
+# We use `llvm-cov` which requires LLVM
 [profile.coverage]
 codegen-backend = "llvm"
 inherits        = "test"

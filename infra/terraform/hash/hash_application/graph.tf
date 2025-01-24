@@ -13,9 +13,9 @@ locals {
 
 resource "aws_ssm_parameter" "graph_migration_env_vars" {
   # Only put secrets into SSM
-  for_each = {for env_var in var.graph_migration_env_vars : env_var.name => env_var if env_var.secret}
+  for_each = { for env_var in var.graph_migration_env_vars : env_var.name => env_var if env_var.secret }
 
-  name      = "${local.graph_param_prefix}/migration/${each.value.name}"
+  name = "${local.graph_param_prefix}/migration/${each.value.name}"
   # Still supports non-secret values
   type      = each.value.secret ? "SecureString" : "String"
   value     = each.value.secret ? sensitive(each.value.value) : each.value.value
@@ -25,9 +25,9 @@ resource "aws_ssm_parameter" "graph_migration_env_vars" {
 
 resource "aws_ssm_parameter" "graph_env_vars" {
   # Only put secrets into SSM
-  for_each = {for env_var in var.graph_env_vars : env_var.name => env_var if env_var.secret}
+  for_each = { for env_var in var.graph_env_vars : env_var.name => env_var if env_var.secret }
 
-  name      = "${local.graph_param_prefix}/${each.value.name}"
+  name = "${local.graph_param_prefix}/${each.value.name}"
   # Still supports non-secret values
   type      = each.value.secret ? "SecureString" : "String"
   value     = each.value.secret ? sensitive(each.value.value) : each.value.value
@@ -107,10 +107,14 @@ resource "aws_ecs_task_definition" "graph" {
   cpu                      = var.cpu
   memory                   = var.memory
   network_mode             = "awsvpc"
-  execution_role_arn       = aws_iam_role.execution_role.arn
-  task_role_arn            = aws_iam_role.task_role.arn
-  container_definitions    = jsonencode([for task_def in local.graph_task_defs : task_def.task_def])
-  tags                     = {}
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
+  execution_role_arn    = aws_iam_role.execution_role.arn
+  task_role_arn         = aws_iam_role.task_role.arn
+  container_definitions = jsonencode([for task_def in local.graph_task_defs : task_def.task_def])
+  tags                  = {}
 }
 
 resource "aws_ecs_service" "graph" {
@@ -125,7 +129,7 @@ resource "aws_ecs_service" "graph" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups  = [
+    security_groups = [
       aws_security_group.graph.id,
     ]
   }
@@ -154,15 +158,15 @@ resource "aws_ecs_service" "graph" {
 
 locals {
   graph_migration_container_def = {
-    name             = "${local.graph_prefix}-migration"
-    image            = "${var.graph_image.url}:latest"
-    cpu              = 0 # let ECS divvy up the available CPU
-    mountPoints      = []
-    volumesFrom      = []
-    command          = ["migrate"]
+    name        = "${local.graph_prefix}-migration"
+    image       = "${var.graph_image.url}:latest"
+    cpu         = 0 # let ECS divvy up the available CPU
+    mountPoints = []
+    volumesFrom = []
+    command     = ["migrate"]
     logConfiguration = {
       logDriver = "awslogs"
-      options   = {
+      options = {
         "awslogs-create-group"  = "true"
         "awslogs-group"         = local.log_group_name
         "awslogs-stream-prefix" = local.graph_service_name
@@ -187,10 +191,10 @@ locals {
     cpu         = 0 # let ECS divvy up the available CPU
     mountPoints = []
     volumesFrom = []
-    dependsOn   = [
+    dependsOn = [
       { condition = "SUCCESS", containerName = local.graph_migration_container_def.name },
     ]
-    command     = ["server"]
+    command = ["server"]
     healthCheck = {
       command  = ["CMD", "/hash-graph", "server", "--healthcheck"]
       retries  = 5
@@ -212,7 +216,7 @@ locals {
     ]
     logConfiguration = {
       logDriver = "awslogs"
-      options   = {
+      options = {
         "awslogs-create-group"  = "true"
         "awslogs-group"         = local.log_group_name
         "awslogs-stream-prefix" = local.graph_service_name
@@ -222,7 +226,7 @@ locals {
     Environment = concat([
       for env_var in var.graph_env_vars :
       { name = env_var.name, value = env_var.value } if !env_var.secret
-    ],
+      ],
       [
         { name = "HASH_GRAPH_HTTP_HOST", value = "0.0.0.0" },
         { name = "HASH_GRAPH_HTTP_PORT", value = tostring(local.graph_http_container_port) },
