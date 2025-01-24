@@ -485,6 +485,7 @@ const DataTypeTreeView = (props: {
 export type DataTypeSelectorProps = {
   allowSelectingAbstractTypes?: boolean;
   dataTypes: DataTypeForSelector[];
+  handleScroll?: boolean;
   hideHint?: boolean;
   maxHeight?: number;
   onSelect: (dataTypeId: VersionedUrl) => void;
@@ -497,6 +498,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
     allowSelectingAbstractTypes,
     dataTypes,
     hideHint,
+    handleScroll,
     maxHeight: maxHeightFromProps,
     onSelect,
     searchText: externallyControlledSearchText,
@@ -508,7 +510,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
 
   useEffect(() => {
     const updateAvailableHeight = () => {
-      if (!containerRef.current) {
+      if (!containerRef.current || !handleScroll) {
         return;
       }
 
@@ -530,9 +532,10 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
     return () => {
       window.removeEventListener("resize", updateAvailableHeight);
     };
-  }, [maxHeightFromProps]);
+  }, [handleScroll, maxHeightFromProps]);
 
-  const maxHeight = !availableHeight ? undefined : availableHeight;
+  const maxHeight =
+    !availableHeight || !handleScroll ? undefined : availableHeight;
 
   const [localSearchText, setLocalSearchText] = useState("");
 
@@ -645,7 +648,9 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
               (externallyControlledSearchText !== undefined ? 0 : inputHeight)
             : undefined,
           overflowY:
-            sortedDataTypes.length && availableHeight ? "scroll" : undefined,
+            sortedDataTypes.length && availableHeight && handleScroll
+              ? "scroll"
+              : undefined,
           px: 2,
           pb: 1.5,
           pt: 1.5,

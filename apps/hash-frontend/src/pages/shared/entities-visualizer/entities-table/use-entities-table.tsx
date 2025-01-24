@@ -309,7 +309,7 @@ export const useEntitiesTable = (
               if (isBaseUrl(column.id)) {
                 /**
                  * The web worker can't measure text for us (no DOM) so we need to do it here.
-                 * We add extrato account for potential header buttons and padding.
+                 * We add extra to account for potential header buttons and padding.
                  */
                 return {
                   ...column,
