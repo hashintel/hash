@@ -116,7 +116,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
   const conversionTargetsById =
     chosenDataType &&
-    data?.getDataTypeConversionTargets?.[chosenDataType.dataType.$id];
+    data?.getDataTypeConversionTargets[chosenDataType.dataType.$id];
 
   useEffect(() => {
     if (

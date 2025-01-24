@@ -3,6 +3,7 @@ import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import {
   Entity,
   getClosedMultiEntityTypeFromMap,
+  getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
@@ -19,10 +20,7 @@ import {
   extractOwnedByIdFromEntityId,
   linkEntityTypeUrl,
 } from "@local/hash-subgraph";
-import {
-  getEntityRevision,
-  getEntityTypeById,
-} from "@local/hash-subgraph/stdlib";
+import { getEntityRevision } from "@local/hash-subgraph/stdlib";
 import { format } from "date-fns";
 
 import type {
@@ -284,17 +282,14 @@ const generateTableData = async (
               })
             : generateEntityLabel(sourceClosedMultiEntityType, source);
 
-      /**
-       * @todo H-3363 use closed schema to get entity's icon
-       */
-      const sourceEntityType = source
-        ? getEntityTypeById(subgraph, source.metadata.entityTypeIds[0])
+      const sourceDisplayFields = sourceClosedMultiEntityType
+        ? getDisplayFieldsForClosedEntityType(sourceClosedMultiEntityType)
         : undefined;
 
       sourceEntity = {
         entityId: entity.linkData.leftEntityId,
         label: sourceEntityLabel,
-        icon: sourceEntityType?.schema.icon,
+        icon: sourceDisplayFields?.icon,
         isLink: !!source?.linkData,
       };
 
@@ -323,17 +318,14 @@ const generateTableData = async (
               })
             : generateEntityLabel(targetClosedMultiEntityType, target);
 
-      /**
-       * @todo H-3363 use closed schema to get entity's icon
-       */
-      const targetEntityType = target
-        ? getEntityTypeById(subgraph, target.metadata.entityTypeIds[0])
+      const targetDisplayFields = targetClosedMultiEntityType
+        ? getDisplayFieldsForClosedEntityType(targetClosedMultiEntityType)
         : undefined;
 
       targetEntity = {
         entityId: entity.linkData.rightEntityId,
         label: targetEntityLabel,
-        icon: targetEntityType?.schema.icon,
+        icon: targetDisplayFields?.icon,
         isLink: !!target?.linkData,
       };
 

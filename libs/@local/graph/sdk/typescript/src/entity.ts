@@ -1,11 +1,11 @@
 import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
-  GraphApi,
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
-  PatchEntityParams as GraphApiPatchEntityParams,
+  GraphApi,
   OriginProvenance,
+  PatchEntityParams as GraphApiPatchEntityParams,
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
   ProvidedEntityEditionProvenanceOriginTypeEnum,

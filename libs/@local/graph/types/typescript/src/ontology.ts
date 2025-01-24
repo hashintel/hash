@@ -15,7 +15,6 @@ import type {
   ClosedEntityType as ClosedEntityTypeBp,
   ClosedEntityTypeMetadata as ClosedEntityTypeMetadataBp,
   ClosedMultiEntityType as ClosedMultiEntityTypeBp,
-  ConversionDefinition,
   DataType,
   EntityType,
   EntityTypeDisplayMetadata as EntityTypeDisplayMetadataBp,

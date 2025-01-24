@@ -634,6 +634,7 @@ export const EntitiesVisualizer: FunctionComponent<{
         ) : view === "Graph" ? (
           <Box height={tableHeight} sx={tableContentSx}>
             <EntityGraphVisualizer
+              closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
               defaultConfig={defaultGraphConfig}
               defaultFilters={defaultGraphFilters}
               entities={entities}
@@ -641,7 +642,6 @@ export const EntitiesVisualizer: FunctionComponent<{
               loadingComponent={loadingComponent}
               isPrimaryEntity={isPrimaryEntity}
               onEntityClick={handleEntityClick}
-              subgraphWithTypes={subgraph}
             />
           </Box>
         ) : view === "Grid" ? (

@@ -204,7 +204,6 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
                   fontSize={linksTableFontSize}
                   fill={({ palette }) => palette.blue[70]}
                   icon={sourceEntityType.icon}
-                  /* @todo H-3363 use closed entity type schema to check link status */
                   isLink={!!row.sourceEntity.linkData}
                 />
               }
