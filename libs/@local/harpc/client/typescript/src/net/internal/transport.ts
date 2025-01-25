@@ -351,7 +351,7 @@ export const connect = (transport: Transport, address: Address) =>
     //    without pre-resolving them.
     //
     // 2. This works fine in most cases, but causes issues when a proxy is involved:
-    //    - The reported remote address becomes the final (proxy) address
+    //    - The reported remote address becomes the final remote address, with any proxying resolved
     //    - This address may not be directly addressable
     //    - It may differ from the original DNS query result
     //
