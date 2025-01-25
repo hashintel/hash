@@ -76,7 +76,7 @@ locals {
     mountPoints = []
     volumesFrom = []
     dependsOn = [
-      # { condition = "SUCCESS", containerName = local.api_migration_container_def.name },
+      { condition = "SUCCESS", containerName = local.api_migration_container_def.name },
       { condition = "HEALTHY", containerName = local.hydra_service_container_def.name },
       { condition = "HEALTHY", containerName = local.kratos_service_container_def.name },
     ]
