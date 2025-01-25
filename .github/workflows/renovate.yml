@@ -88,7 +88,7 @@ jobs:
       - name: Enable corepack
         uses: ./.github/actions/enable-corepack
 
-      - uses: dawidd6/action-download-artifact@80620a5d27ce0ae443b965134db88467fc607b43 # v7
+      - uses: dawidd6/action-download-artifact@20319c5641d495c8a52e688b7dc5fada6c3a9fbc # v8
         if: github.event.inputs.repoCache != 'disabled'
         continue-on-error: true
         with:
