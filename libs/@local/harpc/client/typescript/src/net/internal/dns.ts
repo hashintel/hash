@@ -1,16 +1,7 @@
 import dns from "node:dns/promises";
 import { isIPv4, isIPv6 } from "node:net";
 
-import {
-  Array,
-  Cause,
-  Data,
-  Duration,
-  Effect,
-  Function,
-  pipe,
-  Record,
-} from "effect";
+import { Array, Cause, Data, Duration, Effect, Function } from "effect";
 import type { NonEmptyReadonlyArray } from "effect/Array";
 
 /** @internal */

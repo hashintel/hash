@@ -35,6 +35,7 @@ import type { DNSConfig, Multiaddr, TransportConfig } from "../Transport.js";
 
 import * as Dns from "./dns.js";
 import * as HashableMultiaddr from "./multiaddr.js";
+import * as PeerConnection from "./peerConnection.js";
 
 interface TransportState {
   config: TransportConfig;
@@ -325,6 +326,7 @@ export const connect = (transport: Transport, address: Address) =>
       const existingConnection = pipe(
         transport.getConnections(peerId.value),
         Array.head,
+        Option.map(PeerConnection.make),
       );
 
       if (Option.isSome(existingConnection)) {
@@ -372,7 +374,7 @@ export const connect = (transport: Transport, address: Address) =>
     const connection = yield* Effect.tryPromise({
       try: (abort) => transport.dial(resolved, { signal: abort, force: true }),
       catch: (cause) => new TransportError({ cause }),
-    });
+    }).pipe(Effect.map(PeerConnection.make));
 
     // We already try to lookup the peer ID before dialing, if it doesn't exist in libp2p, associate the resolved address with the peer ID we just dialed,
     // this means that the next time we dial the same peer, we can reuse the connection.
