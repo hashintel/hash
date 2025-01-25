@@ -345,12 +345,22 @@ export const connect = (transport: Transport, address: Address) =>
       Effect.annotateLogs({ peerId, address }),
     );
 
-    // Instead of trying to use the address as is, we're first resolving it ourselves. This is because of how libp2p handles DNS queries internally.
-    // Instead of resolving the DNS query before dispatching it to NodeJS to create a stream, the DNS address is simply forwarded to NodeJS when creating a TCP stream.
-    // *Usually* the resulting address is the same, except when a proxy is used, in that case the remote address of the socket reported is the final address,
-    // which isn't necessarily addressable or the address the DNS query resolved to. Any proxy in between the socket and DNS resolver has already been resolved.
-    // This is a major problem when trying to match an address to a peer, as libp2p will only report the final remote address of the connection, not the address the DNS query resolved to.
-    // This leads to a cache-miss every time in environments where a proxy or sidecar is used (such as AWS).
+    // We resolve the address ourselves before using it, due to how libp2p handles DNS queries:
+    //
+    // 1. libp2p forwards DNS addresses directly to NodeJS for TCP stream creation,
+    //    without pre-resolving them.
+    //
+    // 2. This works fine in most cases, but causes issues when a proxy is involved:
+    //    - The reported remote address becomes the final (proxy) address
+    //    - This address may not be directly addressable
+    //    - It may differ from the original DNS query result
+    //
+    // 3. This creates problems when matching addresses to peers:
+    //    - libp2p only reports the final remote address
+    //    - It doesn't provide the original DNS query result
+    //
+    // 4. In proxy environments (e.g., AWS), this leads to consistent cache misses
+    //    when trying to match addresses to peers.
     let resolved: Multiaddr[] | PeerId;
 
     if (isPeerId(address)) {
