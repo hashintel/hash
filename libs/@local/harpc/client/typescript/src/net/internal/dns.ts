@@ -173,6 +173,8 @@ export const lookup = (
     );
 
     // we cannot determine the TTL of lookup records, therefore we set it to infinity
+    // `getaddrinfo` (the underlying call used by dns.lookup) does not return TTLs
+    // to fix this see: https://linear.app/hash/issue/H-3785/create-typescripteffect-dns-package
     const aRecords = satisfying.map(
       (record) =>
         ({
