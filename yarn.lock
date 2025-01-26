@@ -539,7 +539,7 @@ __metadata:
     eslint: "npm:9.17.0"
     fractional-indexing: "npm:2.1.0"
     framer-motion: "npm:11.18.2"
-    graphology: "npm:0.25.4"
+    graphology: "npm:0.26.0"
     graphology-layout: "npm:0.6.1"
     graphology-layout-forceatlas2: "npm:0.10.1"
     graphology-shortest-path: "npm:2.1.0"
@@ -29276,15 +29276,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphology@npm:0.25.4":
-  version: 0.25.4
-  resolution: "graphology@npm:0.25.4"
+"graphology@npm:0.26.0":
+  version: 0.26.0
+  resolution: "graphology@npm:0.26.0"
   dependencies:
     events: "npm:^3.3.0"
-    obliterator: "npm:^2.0.2"
   peerDependencies:
     graphology-types: ">=0.24.0"
-  checksum: 10c0/b650a43619ccd9201ab02bafcbbcca2e2c4de646b22659ff660ad0669b4a2df3a5afb2f38a9135b3753b748cf2e897acfe9a34f0f3324362d9cd522282d41937
+  checksum: 10c0/9a480853c7075be21cbdd7dc0efb1677c9acb8d3d4d882e44d4e0944ce74a279cf666a70e8a777274a7800ed57d8b47fff5ff66689bfd37d318fc32aff7137a0
   languageName: node
   linkType: hard
 
@@ -37420,7 +37419,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"obliterator@npm:^2.0.1, obliterator@npm:^2.0.2":
+"obliterator@npm:^2.0.1":
   version: 2.0.4
   resolution: "obliterator@npm:2.0.4"
   checksum: 10c0/ff2c10d4de7d62cd1d588b4d18dfc42f246c9e3a259f60d5716f7f88e5b3a3f79856b3207db96ec9a836a01d0958a21c15afa62a3f4e73a1e0b75f2c2f6bab40
