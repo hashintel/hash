@@ -177,6 +177,17 @@ export const ExpectedValueSelector = ({
         for (const newValue of Object.values(
           formValues.flattenedCustomExpectedValueList,
         )) {
+          const stillInExpectedValues = value.some((customValue) => {
+            return (
+              typeof customValue === "object" && customValue.id === newValue.id
+            );
+          });
+
+          if (!stillInExpectedValues) {
+            // The custom value has been removed from the expected values list
+            continue;
+          }
+
           if (newValue.data?.typeId === "array") {
             if (newValue.data.itemIds.length === 0) {
               return "Arrays must have at least one item";
