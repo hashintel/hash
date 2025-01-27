@@ -1,5 +1,5 @@
 use alloc::collections::BTreeSet;
-use core::{borrow::Borrow as _, iter};
+use core::borrow::Borrow as _;
 use std::collections::HashSet;
 
 use error_stack::{
@@ -501,7 +501,13 @@ impl EntityVisitor for EntityPreprocessor {
             }
         }
 
+        property.metadata.canonical.clear();
         if let Some(data_type_id) = &property.metadata.data_type_id {
+            property
+                .metadata
+                .canonical
+                .insert(data_type_id.base_url.clone(), property.value.clone());
+
             match type_provider
                 .lookup_data_type_by_ref(<&DataTypeReference>::from(data_type_id))
                 .await
@@ -530,10 +536,6 @@ impl EntityVisitor for EntityPreprocessor {
                                     let converted_value = conversion.to.expression.evaluate(value);
                                     (target.clone(), JsonValue::from(converted_value))
                                 })
-                                .chain(iter::once((
-                                    data_type_id.base_url.clone(),
-                                    property.value.clone(),
-                                )))
                                 .collect();
                         } else {
                             property_validation.canonical_value.push(
