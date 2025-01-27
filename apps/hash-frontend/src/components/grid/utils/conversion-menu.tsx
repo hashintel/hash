@@ -131,7 +131,7 @@ export const ConversionMenu = ({
                         color: "gray.50",
                       }}
                     >
-                      Convert values to...
+                      Show values as...
                     </Typography>
                   )}
                   ref={selectRef}
@@ -143,7 +143,7 @@ export const ConversionMenu = ({
                       value={undefined}
                       sx={{ color: ({ palette }) => palette.red[70] }}
                     >
-                      Remove conversion
+                      Show original values
                     </MenuItem>
                   )}
                   {/*
