@@ -1,6 +1,8 @@
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
-import type { OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type {
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -36,7 +38,7 @@ export const persistFlowActivity = async (
     userAuthentication,
   });
 
-  const provenance: EnforcedEntityEditionProvenance = {
+  const provenance: ProvidedEntityEditionProvenance = {
     actorType: "machine",
     origin: {
       type: "flow",
