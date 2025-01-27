@@ -1,6 +1,6 @@
 use alloc::collections::BTreeSet;
-use core::borrow::Borrow as _;
-use std::collections::{HashSet, hash_map::RawEntryMut};
+use core::{borrow::Borrow as _, iter};
+use std::collections::HashSet;
 
 use error_stack::{
     FutureExt as _, Report, ResultExt as _, TryReportIteratorExt as _, TryReportStreamExt as _,
@@ -22,10 +22,10 @@ use hash_graph_types::{
             visitor::{
                 ArrayItemNumberMismatch, ArrayValidationReport, ConversionRetrieval,
                 DataTypeCanonicalCalculation, DataTypeConversionError, DataTypeInferenceError,
-                DataTypeRetrieval, EntityVisitor, InvalidCanonicalValue,
-                JsonSchemaValueTypeMismatch, ObjectPropertyValidationReport,
-                ObjectValidationReport, OneOfPropertyValidationReports, ValueValidationError,
-                ValueValidationReport, walk_array, walk_object, walk_one_of_property_value,
+                DataTypeRetrieval, EntityVisitor, JsonSchemaValueTypeMismatch,
+                ObjectPropertyValidationReport, ObjectValidationReport,
+                OneOfPropertyValidationReports, ValueValidationError, ValueValidationReport,
+                walk_array, walk_object, walk_one_of_property_value,
             },
         },
     },
@@ -502,11 +502,6 @@ impl EntityVisitor for EntityPreprocessor {
         }
 
         if let Some(data_type_id) = &property.metadata.data_type_id {
-            property
-                .metadata
-                .canonical
-                .insert(data_type_id.base_url.clone(), property.value.clone());
-
             match type_provider
                 .lookup_data_type_by_ref(<&DataTypeReference>::from(data_type_id))
                 .await
@@ -526,49 +521,20 @@ impl EntityVisitor for EntityPreprocessor {
                     if !data_type.borrow().metadata.conversions.is_empty() {
                         // We only support conversion of numbers for now
                         if let Some(value) = property.value.as_f64() {
-                            for (target, conversion) in &data_type.borrow().metadata.conversions {
-                                let converted_value = conversion.to.expression.evaluate(value);
-                                match property.metadata.canonical.raw_entry_mut().from_key(target) {
-                                    RawEntryMut::Occupied(entry) => {
-                                        if let Some(current_value) = entry.get().as_f64() {
-                                            #[expect(
-                                                clippy::float_arithmetic,
-                                                reason = "We properly checked for error margin"
-                                            )]
-                                            if f64::abs(current_value - converted_value)
-                                                > f64::EPSILON
-                                            {
-                                                property_validation.canonical_value.push(
-                                                    DataTypeCanonicalCalculation::InvalidValue {
-                                                        data: InvalidCanonicalValue {
-                                                            key: target.clone(),
-                                                            actual: current_value,
-                                                            expected: converted_value,
-                                                        },
-                                                    },
-                                                );
-                                            }
-                                        } else {
-                                            property_validation.canonical_value.push(
-                                                DataTypeCanonicalCalculation::WrongType {
-                                                    data: JsonSchemaValueTypeMismatch {
-                                                        actual: JsonSchemaValueType::from(
-                                                            &property.value,
-                                                        ),
-                                                        expected: JsonSchemaValueType::Number,
-                                                    },
-                                                },
-                                            );
-                                        }
-                                    }
-                                    RawEntryMut::Vacant(entry) => {
-                                        entry.insert(
-                                            target.clone(),
-                                            JsonValue::from(converted_value),
-                                        );
-                                    }
-                                }
-                            }
+                            property.metadata.canonical = data_type
+                                .borrow()
+                                .metadata
+                                .conversions
+                                .iter()
+                                .map(|(target, conversion)| {
+                                    let converted_value = conversion.to.expression.evaluate(value);
+                                    (target.clone(), JsonValue::from(converted_value))
+                                })
+                                .chain(iter::once((
+                                    data_type_id.base_url.clone(),
+                                    property.value.clone(),
+                                )))
+                                .collect();
                         } else {
                             property_validation.canonical_value.push(
                                 DataTypeCanonicalCalculation::WrongType {
