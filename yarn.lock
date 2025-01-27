@@ -9092,7 +9092,7 @@ __metadata:
   resolution: "@local/hash-graph-client@workspace:libs/@local/graph/client/typescript"
   dependencies:
     "@local/tsconfig": "npm:0.0.0-private"
-    "@openapitools/openapi-generator-cli": "npm:2.16.2"
+    "@openapitools/openapi-generator-cli": "npm:2.16.3"
     "@redocly/cli": "npm:1.27.2"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.10.10"
@@ -9218,7 +9218,7 @@ __metadata:
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
   dependencies:
     "@biomejs/biome": "npm:1.9.5-nightly.ff02a0b"
-    "@openapitools/openapi-generator-cli": "npm:2.16.2"
+    "@openapitools/openapi-generator-cli": "npm:2.16.3"
     "@types/node": "npm:22.10.10"
     axios: "npm:1.7.9"
     rimraf: "npm:6.0.1"
@@ -10101,9 +10101,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openapitools/openapi-generator-cli@npm:2.16.2":
-  version: 2.16.2
-  resolution: "@openapitools/openapi-generator-cli@npm:2.16.2"
+"@openapitools/openapi-generator-cli@npm:2.16.3":
+  version: 2.16.3
+  resolution: "@openapitools/openapi-generator-cli@npm:2.16.3"
   dependencies:
     "@nestjs/axios": "npm:3.1.3"
     "@nestjs/common": "npm:10.4.15"
@@ -10119,13 +10119,13 @@ __metadata:
     glob: "npm:9.3.5"
     inquirer: "npm:8.2.6"
     lodash: "npm:4.17.21"
-    proxy-agent: "npm:6.4.0"
+    proxy-agent: "npm:6.5.0"
     reflect-metadata: "npm:0.1.13"
     rxjs: "npm:7.8.1"
     tslib: "npm:2.8.1"
   bin:
     openapi-generator-cli: main.js
-  checksum: 10c0/067d826b62e05525c0048d4e853f12ed3ac3cbf74d4f6f5d7ebc6397876200b016c2084deb49cde7efb6624be5d8bfdf0437553b6691c3f8d4be2f1574febf8f
+  checksum: 10c0/a269ac1eae14e6e22f56341e5dbf4eb31687d85c6b27f38a23084319d4e2b7899c07bde6cf0927b696108172418c09dfadd52934c92e7a3274434a1238565149
   languageName: node
   linkType: hard
 
@@ -19850,12 +19850,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"agent-base@npm:^7.0.2, agent-base@npm:^7.1.0, agent-base@npm:^7.1.1":
-  version: 7.1.1
-  resolution: "agent-base@npm:7.1.1"
-  dependencies:
-    debug: "npm:^4.3.4"
-  checksum: 10c0/e59ce7bed9c63bf071a30cc471f2933862044c97fd9958967bfe22521d7a0f601ce4ed5a8c011799d0c726ca70312142ae193bbebb60f576b52be19d4a363b50
+"agent-base@npm:^7.1.0, agent-base@npm:^7.1.2":
+  version: 7.1.3
+  resolution: "agent-base@npm:7.1.3"
+  checksum: 10c0/6192b580c5b1d8fb399b9c62bf8343d76654c2dd62afcb9a52b2cf44a8b6ace1e3b704d3fe3547d91555c857d3df02603341ff2cb961b9cfe2b12f9f3c38ee11
   languageName: node
   linkType: hard
 
@@ -30254,13 +30252,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"https-proxy-agent@npm:^7.0.0, https-proxy-agent@npm:^7.0.1, https-proxy-agent@npm:^7.0.3, https-proxy-agent@npm:^7.0.4, https-proxy-agent@npm:^7.0.5":
-  version: 7.0.5
-  resolution: "https-proxy-agent@npm:7.0.5"
+"https-proxy-agent@npm:^7.0.0, https-proxy-agent@npm:^7.0.1, https-proxy-agent@npm:^7.0.4, https-proxy-agent@npm:^7.0.5, https-proxy-agent@npm:^7.0.6":
+  version: 7.0.6
+  resolution: "https-proxy-agent@npm:7.0.6"
   dependencies:
-    agent-base: "npm:^7.0.2"
+    agent-base: "npm:^7.1.2"
     debug: "npm:4"
-  checksum: 10c0/2490e3acec397abeb88807db52cac59102d5ed758feee6df6112ab3ccd8325e8a1ce8bce6f4b66e5470eca102d31e425ace904242e4fa28dbe0c59c4bafa7b2c
+  checksum: 10c0/f729219bc735edb621fa30e6e84e60ee5d00802b8247aac0d7b79b0bd6d4b3294737a337b93b86a0bd9e68099d031858a39260c976dc14cdbba238ba1f8779ac
   languageName: node
   linkType: hard
 
@@ -38001,19 +37999,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pac-proxy-agent@npm:^7.0.1":
-  version: 7.0.2
-  resolution: "pac-proxy-agent@npm:7.0.2"
+"pac-proxy-agent@npm:^7.1.0":
+  version: 7.1.0
+  resolution: "pac-proxy-agent@npm:7.1.0"
   dependencies:
     "@tootallnate/quickjs-emscripten": "npm:^0.23.0"
-    agent-base: "npm:^7.0.2"
+    agent-base: "npm:^7.1.2"
     debug: "npm:^4.3.4"
     get-uri: "npm:^6.0.1"
     http-proxy-agent: "npm:^7.0.0"
-    https-proxy-agent: "npm:^7.0.5"
+    https-proxy-agent: "npm:^7.0.6"
     pac-resolver: "npm:^7.0.1"
-    socks-proxy-agent: "npm:^8.0.4"
-  checksum: 10c0/1ef0812bb860d2c695aa3a8604acdb4239b8074183c9fdb9bdf3747b8b28bbb88f22269d3ca95cae825c8ed0ca82681e6692c0e304c961fe004231e579d1ca91
+    socks-proxy-agent: "npm:^8.0.5"
+  checksum: 10c0/072528e3e7a0bb1187d5c09687a112ae230f6fa0d974e7460eaa0c1406666930ed53ffadfbfadfe8e1c7a8cc8d6ae26a4db96e27723d40a918c8454f0f1a012a
   languageName: node
   linkType: hard
 
@@ -39616,19 +39614,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"proxy-agent@npm:6.4.0, proxy-agent@npm:^6.4.0":
-  version: 6.4.0
-  resolution: "proxy-agent@npm:6.4.0"
+"proxy-agent@npm:6.5.0, proxy-agent@npm:^6.4.0":
+  version: 6.5.0
+  resolution: "proxy-agent@npm:6.5.0"
   dependencies:
-    agent-base: "npm:^7.0.2"
+    agent-base: "npm:^7.1.2"
     debug: "npm:^4.3.4"
     http-proxy-agent: "npm:^7.0.1"
-    https-proxy-agent: "npm:^7.0.3"
+    https-proxy-agent: "npm:^7.0.6"
     lru-cache: "npm:^7.14.1"
-    pac-proxy-agent: "npm:^7.0.1"
+    pac-proxy-agent: "npm:^7.1.0"
     proxy-from-env: "npm:^1.1.0"
-    socks-proxy-agent: "npm:^8.0.2"
-  checksum: 10c0/0c5b85cacf67eec9d8add025a5e577b2c895672e4187079ec41b0ee2a6dacd90e69a837936cb3ac141dd92b05b50a325b9bfe86ab0dc3b904011aa3bcf406fc0
+    socks-proxy-agent: "npm:^8.0.5"
+  checksum: 10c0/7fd4e6f36bf17098a686d4aee3b8394abfc0b0537c2174ce96b0a4223198b9fafb16576c90108a3fcfc2af0168bd7747152bfa1f58e8fee91d3780e79aab7fd8
   languageName: node
   linkType: hard
 
@@ -43025,14 +43023,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socks-proxy-agent@npm:^8.0.2, socks-proxy-agent@npm:^8.0.3, socks-proxy-agent@npm:^8.0.4":
-  version: 8.0.4
-  resolution: "socks-proxy-agent@npm:8.0.4"
+"socks-proxy-agent@npm:^8.0.3, socks-proxy-agent@npm:^8.0.4, socks-proxy-agent@npm:^8.0.5":
+  version: 8.0.5
+  resolution: "socks-proxy-agent@npm:8.0.5"
   dependencies:
-    agent-base: "npm:^7.1.1"
+    agent-base: "npm:^7.1.2"
     debug: "npm:^4.3.4"
     socks: "npm:^2.8.3"
-  checksum: 10c0/345593bb21b95b0508e63e703c84da11549f0a2657d6b4e3ee3612c312cb3a907eac10e53b23ede3557c6601d63252103494caa306b66560f43af7b98f53957a
+  checksum: 10c0/5d2c6cecba6821389aabf18728325730504bf9bb1d9e342e7987a5d13badd7a98838cc9a55b8ed3cb866ad37cc23e1086f09c4d72d93105ce9dfe76330e9d2a6
   languageName: node
   linkType: hard
 
