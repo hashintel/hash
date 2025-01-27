@@ -227,7 +227,13 @@ export const makeUnchecked = (
       ),
       Stream.mapConcat((list) => list),
       // cast needed as uint8arraylist doesn't support Uint8Array<ArrayBuffer> yet
-      Stream.map((array) => array.buffer as ArrayBuffer),
+      Stream.map((array) =>
+        // take the underlying buffer and slice it to the correct view
+        (array.buffer as ArrayBuffer).slice(
+          array.byteOffset,
+          array.byteOffset + array.byteLength,
+        ),
+      ),
       ResponseFromBytesStream.make,
     );
 
