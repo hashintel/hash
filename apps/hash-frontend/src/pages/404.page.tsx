@@ -8,7 +8,7 @@ import { NotFound } from "./shared/not-found";
 const NotFoundPage: NextPageWithLayout<ErrorProps> = () => {
   return (
     <>
-      <NextSeo title="HASH – This page could not be found" noindex />
+      <NextSeo title="This page could not be found" noindex />
       <NotFound />
     </>
   );
