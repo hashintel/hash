@@ -14,7 +14,7 @@ use hash_graph_temporal_versioning::{ClosedTemporalBound, LimitedTemporalBound, 
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance,
+        entity::{ActorType, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
         property::{
             Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
             PropertyWithMetadataObject,
@@ -75,7 +75,11 @@ async fn insert() {
             link_data: None,
             draft: false,
             relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not create entity");
@@ -143,7 +147,11 @@ async fn query() {
             link_data: None,
             draft: false,
             relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not create entity");
@@ -214,7 +222,11 @@ async fn update() {
             link_data: None,
             draft: false,
             relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not create entity");
@@ -232,7 +244,11 @@ async fn update() {
             draft: None,
             decision_time: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not update entity");

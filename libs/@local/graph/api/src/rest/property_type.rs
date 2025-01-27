@@ -166,10 +166,6 @@ struct CreatePropertyTypeRequest {
     schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
     relationships: Vec<PropertyTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
     provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -266,10 +262,6 @@ enum LoadExternalPropertyTypeRequest {
     Create {
         schema: PropertyType,
         relationships: Vec<PropertyTypeRelationAndSubject>,
-        #[serde(
-            default,
-            skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-        )]
         provenance: Box<ProvidedOntologyEditionProvenance>,
     },
 }
@@ -521,10 +513,6 @@ struct UpdatePropertyTypeRequest {
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
     relationships: Vec<PropertyTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
     provenance: ProvidedOntologyEditionProvenance,
 }
 
