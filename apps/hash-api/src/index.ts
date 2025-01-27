@@ -586,7 +586,7 @@ const main = async () => {
       }).pipe(
         Effect.provide(
           RpcClient.connectLayer(
-            Transport.multiaddr(`/dns4/${rpcHost}/tcp/${rpcPort}`),
+            Transport.multiaddr(`/dns/${rpcHost}/tcp/${rpcPort}`),
           ),
         ),
         Logger.withMinimumLogLevel(LogLevel.Trace),
