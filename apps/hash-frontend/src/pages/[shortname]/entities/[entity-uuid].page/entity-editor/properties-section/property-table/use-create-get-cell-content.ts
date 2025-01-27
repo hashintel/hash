@@ -161,7 +161,9 @@ export const useCreateGetCellContent = (
               kind: GridCellKind.Custom,
               allowOverlay: true,
               readonly: true,
-              copyData: String(row.permittedDataTypes),
+              copyData: row.permittedDataTypes
+                .map((type) => type.schema.title)
+                .join(", "),
               data: {
                 kind: "chip-cell",
                 chips: row.permittedDataTypes.map((type) => {

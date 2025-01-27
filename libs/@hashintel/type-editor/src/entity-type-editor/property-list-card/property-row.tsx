@@ -109,9 +109,7 @@ export const PropertyRow = ({
     useState(-1);
 
   const children = useMemo(() => {
-    const selectedProperty = property.oneOf[selectedExpectedValueIndex]
-      ? property.oneOf[selectedExpectedValueIndex]
-      : null;
+    const selectedProperty = property.oneOf[selectedExpectedValueIndex] ?? null;
 
     const selectedObjectProperties =
       selectedProperty && "properties" in selectedProperty

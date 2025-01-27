@@ -57,9 +57,7 @@ export const DraftEntityWeb: FunctionComponent<{ entity: Entity }> = ({
     return web.kind === "user"
       ? web.accountId === authenticatedUser.accountId
         ? "My Web"
-        : web.displayName
-          ? web.displayName
-          : "Unknown User"
+        : (web.displayName ?? "Unknown User")
       : web.name;
   }, [web, authenticatedUser]);
 
