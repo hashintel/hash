@@ -173,7 +173,22 @@ export const ExpectedValueSelector = ({
         propertyTypeFormMethods.clearErrors("expectedValues");
         setExpectedValuesValid(false);
       },
-      validate: (value) => {
+      validate: (value, formValues) => {
+        for (const newValue of Object.values(
+          formValues.flattenedCustomExpectedValueList,
+        )) {
+          if (newValue.data?.typeId === "array") {
+            if (newValue.data.itemIds.length === 0) {
+              return "Arrays must have at least one item";
+            }
+          }
+          if (newValue.data?.typeId === "object") {
+            if (newValue.data.properties.length === 0) {
+              return "Objects must have at least one property";
+            }
+          }
+        }
+
         setExpectedValuesValid(!!value.length);
         return value.length
           ? true
@@ -221,7 +236,7 @@ export const ExpectedValueSelector = ({
         }
 
         setInputValue("");
-        inputRef.current?.focus();
+        setAutocompleteFocused(false);
       },
       autocompleteFocused,
       closeAutocomplete: () => {
@@ -280,6 +295,8 @@ export const ExpectedValueSelector = ({
           { shouldDirty: true },
         );
         closeCustomExpectedValueBuilder();
+
+        setAutocompleteFocused(false);
       },
     };
   }, [
@@ -384,7 +401,6 @@ export const ExpectedValueSelector = ({
           )}
           sx={{ width: "70%" }}
           options={[]}
-          disableCloseOnSelect
           componentsProps={{
             popper: {
               className: fluidFontClassName,
