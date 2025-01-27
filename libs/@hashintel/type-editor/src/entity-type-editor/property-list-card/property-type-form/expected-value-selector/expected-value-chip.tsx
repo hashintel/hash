@@ -94,7 +94,10 @@ export const ExpectedValueChip = ({
                   }}
                 >
                   <IconButton
-                    onClick={onDelete}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onDelete?.(event);
+                    }}
                     sx={{
                       p: 0,
                       ":hover": {
