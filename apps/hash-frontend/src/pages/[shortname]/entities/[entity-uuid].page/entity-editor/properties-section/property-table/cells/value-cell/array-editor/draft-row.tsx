@@ -34,7 +34,7 @@ export const DraftRow = ({
     return expectedTypes[0].schema;
   });
 
-  if (!dataType) {
+  if (!dataType || dataType.abstract) {
     return (
       <EditorTypePicker
         expectedTypes={expectedTypes}
