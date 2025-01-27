@@ -93,7 +93,7 @@ export type ExternalOntologyElementMetadata = {
   };
 };
 
-type OntologyElementMetadata = Subtype<
+export type OntologyElementMetadata = Subtype<
   OntologyElementMetadataBp,
   OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
 >;

@@ -84,6 +84,20 @@ export const make = <E, R>(
 
   return pipe(
     stream,
+    Stream.tap((chunk) => {
+      // hex view of the chunk (trying to decode characters as string if possible)
+      const hexView = [...new Uint8Array(chunk)]
+        .map((byte) => {
+          const char = String.fromCharCode(byte);
+
+          return char.match(/[a-z0-9]/i)
+            ? char
+            : `0x${byte.toString(16).padStart(2, "0")}`;
+        })
+        .join(" ");
+
+      return Effect.logTrace(`Received chunk: ${hexView}`);
+    }),
     Stream.mapConcatEffect((chunk) =>
       Effect.gen(function* () {
         MutableBytes.appendBuffer(scratch, chunk);

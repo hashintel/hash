@@ -22,9 +22,11 @@ import type {
   OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
+import type { DataTypeConversionTargets } from "@local/hash-isomorphic-utils/data-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  mapGraphApiDataTypeConversions,
   mapGraphApiDataTypesToDataTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
@@ -279,6 +281,14 @@ export const unarchiveDataType: ImpureGraphFunction<
 
   return temporalMetadata;
 };
+
+export const getDataTypeConversionTargets: ImpureGraphFunction<
+  { dataTypeIds: VersionedUrl[] },
+  Promise<Record<VersionedUrl, Record<VersionedUrl, DataTypeConversionTargets>>>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .getDataTypeConversionTargets(actorId, params)
+    .then(({ data }) => mapGraphApiDataTypeConversions(data.conversions));
 
 export const getDataTypeAuthorizationRelationships: ImpureGraphFunction<
   { dataTypeId: VersionedUrl },

@@ -12,8 +12,10 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::{
     data_type::{
-        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeQueryPath,
-        DataTypeStore, GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
+        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,
+        DataTypeConversionTargets, DataTypeQueryPath, DataTypeStore,
+        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
+        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
         GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
     },
@@ -1086,6 +1088,109 @@ where
             .change_context(UpdateError)?;
 
         Ok(())
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn get_data_type_conversion_targets(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypeConversionTargetsParams,
+    ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
+        let mut response = GetDataTypeConversionTargetsResponse {
+            conversions: HashMap::with_capacity(params.data_type_ids.len()),
+        };
+
+        for data_type_id in params.data_type_ids {
+            let mut conversions = HashMap::new();
+            let data_type_uuid = DataTypeUuid::from_url(&data_type_id);
+
+            self.authorization_api
+                .check_data_type_permission(
+                    actor_id,
+                    DataTypePermission::View,
+                    data_type_uuid,
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(QueryError)?
+                .assert_permission()
+                .change_context(QueryError)?;
+
+            // Get the conversions between non-canonical data types to other non-canonical data
+            // types
+            conversions.extend(
+                self.as_client()
+                    .query(
+                        r#"
+                            SELECT schema->>'$id', schema->>'title', conversion_a."into", conversion_b."from"
+                            FROM data_type_conversions AS conversion_a
+                            JOIN data_type_conversions AS conversion_b ON conversion_a.target_data_type_base_url = conversion_b.target_data_type_base_url AND conversion_a.source_data_type_ontology_id != conversion_b.source_data_type_ontology_id
+                            JOIN data_types ON data_types.ontology_id = conversion_b.source_data_type_ontology_id
+                            WHERE conversion_a.source_data_type_ontology_id = $1;
+                        "#,
+                        &[&data_type_uuid])
+                    .await
+                    .change_context(QueryError)?
+                    .into_iter()
+                    .map(|row| {
+                        (row.get::<_, VersionedUrl>(0), DataTypeConversionTargets {
+                            title: row.get(1),
+                            conversions: vec![row.get(2), row.get(3)],
+                        })
+                    }),
+            );
+
+            // Get the conversions between non-canonical data types to canonical data types
+            conversions.extend(
+                self.as_client()
+                    .query(
+                        r#"
+                            SELECT schema->>'$id', schema->>'title', "into"
+                            FROM data_type_conversions
+                            JOIN ontology_ids ON ontology_ids.base_url = target_data_type_base_url
+                            JOIN data_types ON data_types.ontology_id = ontology_ids.ontology_id
+                            WHERE source_data_type_ontology_id = $1;
+                        "#,
+                        &[&data_type_uuid],
+                    )
+                    .await
+                    .change_context(QueryError)?
+                    .into_iter()
+                    .map(|row| {
+                        (row.get::<_, VersionedUrl>(0), DataTypeConversionTargets {
+                            title: row.get(1),
+                            conversions: vec![row.get(2)],
+                        })
+                    }),
+            );
+
+            // Get the conversions between canonical data types to non-canonical data types
+            conversions.extend(
+                self.as_client()
+                    .query(
+                        r#"
+                            SELECT schema->>'$id', schema->>'title', "from"
+                            FROM data_type_conversions
+                            JOIN data_types ON ontology_id = source_data_type_ontology_id
+                            WHERE target_data_type_base_url = $1;
+                        "#,
+                        &[&data_type_id.base_url],
+                    )
+                    .await
+                    .change_context(QueryError)?
+                    .into_iter()
+                    .map(|row| {
+                        (row.get::<_, VersionedUrl>(0), DataTypeConversionTargets {
+                            title: row.get(1),
+                            conversions: vec![row.get(2)],
+                        })
+                    }),
+            );
+
+            response.conversions.insert(data_type_id, conversions);
+        }
+
+        Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip(self))]

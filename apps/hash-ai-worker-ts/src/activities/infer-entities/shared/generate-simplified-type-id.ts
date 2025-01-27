@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
-const generateSimplifiedTypeIdFromTitle = (params: {
+export const generateSimplifiedTypeIdFromTitle = (params: {
   title: string;
   postfix?: string;
 }) => {
@@ -23,12 +23,27 @@ export const generateSimplifiedTypeId = <
   title: string;
   typeIdOrBaseUrl: T;
   existingTypeMappings: Record<string, T>;
+  existingReverseTypeMappings: Record<T, string>;
 }): {
   simplifiedTypeId: string;
   updatedTypeMappings: Record<string, T>;
+  updatedReverseTypeMappings: Record<T, string>;
 } => {
-  const { title, typeIdOrBaseUrl, existingTypeMappings } = params;
+  const {
+    title,
+    typeIdOrBaseUrl,
+    existingTypeMappings,
+    existingReverseTypeMappings,
+  } = params;
   let counter = 1;
+
+  if (existingReverseTypeMappings[typeIdOrBaseUrl]) {
+    return {
+      simplifiedTypeId: existingReverseTypeMappings[typeIdOrBaseUrl],
+      updatedTypeMappings: existingTypeMappings,
+      updatedReverseTypeMappings: existingReverseTypeMappings,
+    };
+  }
 
   let simplifiedTypeId = generateSimplifiedTypeIdFromTitle({ title });
 
@@ -46,6 +61,10 @@ export const generateSimplifiedTypeId = <
     updatedTypeMappings: {
       ...existingTypeMappings,
       [simplifiedTypeId]: typeIdOrBaseUrl,
+    },
+    updatedReverseTypeMappings: {
+      ...existingReverseTypeMappings,
+      [typeIdOrBaseUrl]: simplifiedTypeId,
     },
   };
 };

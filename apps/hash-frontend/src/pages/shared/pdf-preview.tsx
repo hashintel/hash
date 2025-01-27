@@ -9,6 +9,7 @@ import {
   MagnifyingGlassPlusLightIcon,
 } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
+import { debounce } from "lodash";
 import dynamic from "next/dynamic";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useState } from "react";
@@ -28,8 +29,11 @@ import {
 } from "./pdf-preview/dimensions";
 import { PageThumbnail } from "./pdf-preview/page-thumbnail";
 import { PdfPreviewSkeleton } from "./pdf-preview/pdf-preview-skeleton";
-import type { SearchHit, SearchHits } from "./pdf-preview/pdf-search";
-import { PdfSearch } from "./pdf-preview/pdf-search";
+import {
+  PdfSearch,
+  type SearchHit,
+  type SearchHits,
+} from "./pdf-preview/pdf-search";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
 
 /**
@@ -204,10 +208,11 @@ export const PdfPreview = ({
 
   const viewportVerticalPadding = fullScreenHandle.active ? 0 : 120;
 
-  const pageContainerHeight =
+  const pageContainerHeight = Math.ceil(
     fullPageHeight > viewportHeight - viewportVerticalPadding
       ? viewportHeight - viewportVerticalPadding
-      : fullPageHeight;
+      : fullPageHeight,
+  );
 
   const pageWidth = Math.ceil(pageContainerHeight / pageWidthHeightRatio);
 
@@ -219,6 +224,13 @@ export const PdfPreview = ({
     px: `${thumbnailXPadding}px`,
     py: `${thumbnailYPadding}px`,
   };
+
+  const setPageWidthHeightRatioDebounced = debounce(
+    (height: number, width: number) => {
+      setPageWidthHeightRatio(Math.round((height / width) * 100) / 100);
+    },
+    200,
+  );
 
   return (
     <FullScreen
@@ -379,7 +391,7 @@ export const PdfPreview = ({
                     }
                     height={pageContainerHeight - 4}
                     onLoadSuccess={({ height, width }) => {
-                      setPageWidthHeightRatio(height / width);
+                      setPageWidthHeightRatioDebounced(height, width);
                     }}
                     pageNumber={selectedPageNumber}
                     renderTextLayer

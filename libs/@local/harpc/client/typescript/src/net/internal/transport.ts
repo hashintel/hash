@@ -35,20 +35,23 @@ import type { DNSConfig, Multiaddr, TransportConfig } from "../Transport.js";
 
 import * as Dns from "./dns.js";
 import * as HashableMultiaddr from "./multiaddr.js";
+import * as PeerConnection from "./peerConnection.js";
+
+interface TransportState {
+  config: TransportConfig;
+  dns: DNS;
+  cache: Cache.Cache<
+    HashableMultiaddr.HashableMultiaddr,
+    Option.Option<PeerId>,
+    TransportError
+  >;
+}
 
 /** @internal */
 export type Transport = Libp2p<{
   identify: Identify;
   ping: PingService;
-  state: {
-    config: TransportConfig;
-    dns: DNS;
-    cache: Cache.Cache<
-      HashableMultiaddr.HashableMultiaddr,
-      Option.Option<PeerId>,
-      TransportError
-    >;
-  };
+  state: TransportState;
 }>;
 
 /** @internal */
@@ -105,7 +108,7 @@ const resolveDnsMultiaddrSegment = (code: number, value?: string) =>
       types.push("AAAA");
     }
 
-    const records = yield* Dns.resolve(hostname, {
+    const records = yield* Dns.lookup(hostname, {
       records: types as NonEmptyArray<Dns.RecordType>,
     }).pipe(Effect.mapError((cause) => new TransportError({ cause })));
 
@@ -218,22 +221,24 @@ const resolveDnsaddrMultiaddr = (multiaddr: Multiaddr, options: DNSConfig) =>
     return resolved;
   });
 
+const resolveMultiaddr = (transport: Transport, address: Multiaddr) =>
+  pipe(
+    resolveDnsaddrMultiaddr(address, {
+      resolver: transport.services.state.dns,
+      maxRecursiveDepth: transport.services.state.config.dns?.maxRecursiveDepth,
+    }),
+    Stream.fromIterableEffect,
+    Stream.flatMap((multiaddr) => resolveDnsMultiaddr(multiaddr), {
+      concurrency: "unbounded",
+    }),
+    Stream.runCollect,
+    Effect.map(Chunk.toReadonlyArray),
+    Effect.map(Array.flatten),
+  );
+
 const lookupPeer = (transport: Transport, address: Multiaddr) =>
   Effect.gen(function* () {
-    const resolved = yield* pipe(
-      resolveDnsaddrMultiaddr(address, {
-        resolver: transport.services.state.dns,
-        maxRecursiveDepth:
-          transport.services.state.config.dns?.maxRecursiveDepth,
-      }),
-      Stream.fromIterableEffect,
-      Stream.flatMap((multiaddr) => resolveDnsMultiaddr(multiaddr), {
-        concurrency: "unbounded",
-      }),
-      Stream.runCollect,
-      Effect.map(Chunk.toReadonlyArray),
-      Effect.map(Array.flatten),
-    );
+    const resolved = yield* resolveMultiaddr(transport, address);
 
     const peers = yield* Effect.tryPromise({
       try: () => transport.peerStore.all(),
@@ -321,6 +326,7 @@ export const connect = (transport: Transport, address: Address) =>
       const existingConnection = pipe(
         transport.getConnections(peerId.value),
         Array.head,
+        Option.map(PeerConnection.make),
       );
 
       if (Option.isSome(existingConnection)) {
@@ -341,10 +347,54 @@ export const connect = (transport: Transport, address: Address) =>
       Effect.annotateLogs({ peerId, address }),
     );
 
-    return yield* Effect.tryPromise({
-      try: (abort) => transport.dial(address, { signal: abort, force: true }),
+    // We resolve the address ourselves before using it, due to how libp2p handles DNS queries:
+    //
+    // 1. libp2p forwards DNS addresses directly to NodeJS for TCP stream creation,
+    //    without pre-resolving them.
+    //
+    // 2. This works fine in most cases, but causes issues when a proxy is involved:
+    //    - The reported remote address becomes the final remote address, with any proxying resolved
+    //    - This address may not be directly addressable
+    //    - It may differ from the original DNS query result
+    //
+    // 3. This creates problems when matching addresses to peers:
+    //    - libp2p only reports the final remote address
+    //    - It doesn't provide the original DNS query result
+    //
+    // 4. In proxy environments (e.g., AWS), this leads to consistent cache misses
+    //    when trying to match addresses to peers.
+    let resolved: Multiaddr[] | PeerId;
+
+    if (isPeerId(address)) {
+      resolved = address;
+    } else {
+      resolved = yield* resolveMultiaddr(transport, address);
+    }
+
+    const connection = yield* Effect.tryPromise({
+      try: (abort) => transport.dial(resolved, { signal: abort, force: true }),
       catch: (cause) => new TransportError({ cause }),
-    });
+    }).pipe(Effect.map(PeerConnection.make));
+
+    // We already try to lookup the peer ID before dialing, if it doesn't exist in libp2p, associate the resolved address with the peer ID we just dialed,
+    // this means that the next time we dial the same peer, we can reuse the connection.
+    if (!isPeerId(address)) {
+      yield* transport.services.state.cache.set(
+        HashableMultiaddr.make(address),
+        Option.some(connection.remotePeer),
+      );
+    }
+
+    if (!isPeerId(resolved)) {
+      for (const resolvedAddress of resolved) {
+        yield* transport.services.state.cache.set(
+          HashableMultiaddr.make(resolvedAddress),
+          Option.some(connection.remotePeer),
+        );
+      }
+    }
+
+    return connection;
   });
 
 /** @internal */
@@ -384,7 +434,11 @@ export const make = (config?: TransportConfig) =>
             // (This is due to the fact that the implementation of the ping service has a while true loop, that will keep receiving data, so the timeout is not really a timeout)
             // see: https://github.com/libp2p/js-libp2p/blob/96654117c449603aed5b3c6668da29bdab44cff9/packages/protocol-ping/src/ping.ts#L66
             ping: ping({ timeout: 60 * 1000 }),
-            state: () => ({ config: config ?? {}, dns: clientDns, cache }),
+            state: () => ({
+              config: config ?? {},
+              dns: clientDns,
+              cache,
+            }),
           },
           dns: clientDns,
         }),

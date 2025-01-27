@@ -165,7 +165,7 @@ mod test {
     use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{
-        Located, Parser as _, Stateful,
+        LocatingSlice, Parser as _, Stateful,
         error::{ContextError, ErrMode, ParseError},
     };
 
@@ -181,12 +181,12 @@ mod test {
     ) -> Result<
         Symbol,
         ParseError<
-            Stateful<Located<&'input str>, ParseState<'arena, 'spans>>,
+            Stateful<LocatingSlice<&'input str>, ParseState<'arena, 'spans>>,
             ErrMode<ContextError>,
         >,
     > {
         let state = Stateful {
-            input: Located::new(input),
+            input: LocatingSlice::new(input),
             state,
         };
 
@@ -203,8 +203,10 @@ mod test {
         state: ParseState<'arena, 'spans>,
         input: &'input str,
         restriction: ParseRestriction,
-    ) -> ParseError<Stateful<Located<&'input str>, ParseState<'arena, 'spans>>, ErrMode<ContextError>>
-    {
+    ) -> ParseError<
+        Stateful<LocatingSlice<&'input str>, ParseState<'arena, 'spans>>,
+        ErrMode<ContextError>,
+    > {
         parse(state, input, restriction).expect_err("should be invalid symbol")
     }
 

@@ -2,7 +2,6 @@
   "name": "@blocks/ai-image",
   "version": "0.1.2",
   "private": true,
-  "type": "module",
   "description": "Generate any image you can put into words, in just a few seconds",
   "keywords": [
     "blockprotocol",
@@ -16,6 +15,7 @@
   },
   "license": "see LICENSE.md",
   "author": "HASH",
+  "type": "module",
   "scripts": {
     "build": "block-scripts build",
     "codegen": "block-scripts codegen && yarn format",

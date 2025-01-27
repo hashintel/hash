@@ -566,6 +566,51 @@
         }
       }
     },
+    "/data-types/query/conversions": {
+      "post": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "get_data_type_conversion_targets",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetDataTypeConversionTargetsParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetDataTypeConversionTargetsResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/data-types/query/subgraph": {
       "post": {
         "tags": [
@@ -3580,24 +3625,6 @@
                 ]
               }
             }
-          },
-          {
-            "type": "object",
-            "required": [
-              "data",
-              "type"
-            ],
-            "properties": {
-              "data": {
-                "$ref": "#/components/schemas/InvalidCanonicalValue"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "invalidValue"
-                ]
-              }
-            }
           }
         ],
         "discriminator": {
@@ -3645,6 +3672,24 @@
         ],
         "discriminator": {
           "propertyName": "type"
+        }
+      },
+      "DataTypeConversionTargets": {
+        "type": "object",
+        "required": [
+          "title",
+          "conversions"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversionDefinition"
+            }
+          },
+          "title": {
+            "type": "string"
+          }
         }
       },
       "DataTypeInferenceError": {
@@ -5535,6 +5580,38 @@
           }
         }
       },
+      "GetDataTypeConversionTargetsParams": {
+        "type": "object",
+        "required": [
+          "dataTypeIds"
+        ],
+        "properties": {
+          "dataTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetDataTypeConversionTargetsResponse": {
+        "type": "object",
+        "required": [
+          "conversions"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/components/schemas/DataTypeConversionTargets"
+              }
+            }
+          }
+        }
+      },
       "GetDataTypeSubgraphParams": {
         "type": "object",
         "required": [
@@ -6398,27 +6475,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "InvalidCanonicalValue": {
-        "type": "object",
-        "required": [
-          "key",
-          "expected",
-          "actual"
-        ],
-        "properties": {
-          "actual": {
-            "type": "number",
-            "format": "double"
-          },
-          "expected": {
-            "type": "number",
-            "format": "double"
-          },
-          "key": {
-            "$ref": "#/components/schemas/BaseUrl"
-          }
-        }
       },
       "JsonSchemaValueType": {
         "type": "string",

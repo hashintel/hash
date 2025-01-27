@@ -1,6 +1,6 @@
 import { IconButton } from "@hashintel/design-system";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
-import { Box, Collapse, Fade, Tooltip } from "@mui/material";
+import { Box, Collapse, Fade, Tooltip, Typography } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent } from "react";
@@ -156,7 +156,7 @@ export const AccountEntityTypeList: FunctionComponent<
         <Box component="ul">
           {loading && filteredEntityTypes.length === 0 ? (
             <LoadingSkeleton />
-          ) : (
+          ) : filteredEntityTypes.length > 0 ? (
             <TransitionGroup>
               {filteredEntityTypes.map((root) => (
                 <Collapse key={root.schema.$id}>
@@ -167,6 +167,17 @@ export const AccountEntityTypeList: FunctionComponent<
                 </Collapse>
               ))}
             </TransitionGroup>
+          ) : (
+            <Typography
+              component="li"
+              sx={{
+                pl: 2.5,
+                color: ({ palette }) => palette.gray[50],
+                fontSize: 13,
+              }}
+            >
+              No types in this workspace
+            </Typography>
           )}
           <Box
             tabIndex={0}

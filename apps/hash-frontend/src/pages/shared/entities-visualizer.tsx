@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { LoadingSpinner } from "@hashintel/design-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   EntityQueryCursor,
   EntityQuerySortingPath,
@@ -10,9 +11,15 @@ import type {
   NullOrdering,
   Ordering,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  type Entity,
+  getClosedMultiEntityTypeFromMap,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  ClosedMultiEntityType,
+} from "@local/hash-graph-types/ontology";
 import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -237,6 +244,9 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const [limit, setLimit] = useState<number>(10);
   const [cursor, setCursor] = useState<EntityQueryCursor>();
+  const [activeConversionsWithoutTitle, setActiveConversions] = useState<{
+    [columnBaseUrl: BaseUrl]: VersionedUrl;
+  } | null>(null);
 
   const [view, setView] = useState<VisualizerView>(defaultView);
 
@@ -277,21 +287,15 @@ export const EntitiesVisualizer: FunctionComponent<{
     [sort],
   );
 
-  const {
-    count: totalCount,
-    createdByIds,
-    cursor: nextCursor,
-    editionCreatedByIds,
-    entities: lastLoadedEntities,
-    entityTypes,
-    hadCachedContent,
-    loading,
-    propertyTypes,
-    refetch: refetchWithoutLinks,
-    subgraph,
-    typeIds,
-    webIds,
-  } = useEntitiesVisualizerData({
+  const entitiesData = useEntitiesVisualizerData({
+    conversions: activeConversionsWithoutTitle
+      ? typedEntries(activeConversionsWithoutTitle).map(
+          ([columnBaseUrl, dataTypeId]) => ({
+            path: [columnBaseUrl],
+            dataTypeId,
+          }),
+        )
+      : undefined,
     cursor,
     entityTypeBaseUrl,
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
@@ -304,6 +308,90 @@ export const EntitiesVisualizer: FunctionComponent<{
     ownedByIds: filterState.includeGlobal ? undefined : internalWebIds,
     sort: graphSort,
   });
+
+  const [dataLoading, setDataLoading] = useState(entitiesData.loading);
+  const [visualizerData, setVisualizerData] = useState(entitiesData);
+
+  const {
+    count: totalCount,
+    createdByIds,
+    cursor: nextCursor,
+    definitions,
+    editionCreatedByIds,
+    entities,
+    closedMultiEntityTypes: closedMultiEntityTypesRootMap,
+    refetch: refetchWithoutLinks,
+    subgraph,
+    typeIds,
+    typeTitles,
+    webIds,
+  } = visualizerData;
+
+  const closedMultiEntityTypes = useMemo(() => {
+    if (!entities || !definitions || !closedMultiEntityTypesRootMap) {
+      return [];
+    }
+
+    const relevantEntityTypesMap = new Map<string, ClosedMultiEntityType>();
+
+    for (const { metadata } of entities) {
+      const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
+        closedMultiEntityTypesRootMap,
+        metadata.entityTypeIds,
+      );
+
+      const key = metadata.entityTypeIds.toSorted().join(",");
+
+      relevantEntityTypesMap.set(key, closedMultiEntityType);
+    }
+
+    const relevantTypes = Array.from(relevantEntityTypesMap.values());
+
+    return relevantTypes;
+  }, [entities, definitions, closedMultiEntityTypesRootMap]);
+
+  const activeConversions = useMemo(() => {
+    return activeConversionsWithoutTitle
+      ? Object.fromEntries(
+          typedEntries(activeConversionsWithoutTitle).map(
+            ([columnBaseUrl, dataTypeId]) => {
+              const dataType = definitions?.dataTypes[dataTypeId];
+
+              if (!dataType) {
+                throw new Error(
+                  `No data type found for column base URL: ${columnBaseUrl}`,
+                );
+              }
+
+              return [
+                columnBaseUrl,
+                {
+                  dataTypeId,
+                  title: dataType.schema.title,
+                },
+              ];
+            },
+          ),
+        )
+      : null;
+  }, [activeConversionsWithoutTitle, definitions]);
+
+  /**
+   * We don't want to clear the old table data when a new request is triggered,
+   * so we hold the visualizerData here rather than relying on the useEntitiesVisualizerData hook directly,
+   * as it will clear the data when a new request is triggered.
+   *
+   * An alternative would be to have an onComplete callback in the hook.
+   */
+  useEffect(() => {
+    setDataLoading(entitiesData.loading);
+
+    if (!entitiesData.loading) {
+      setVisualizerData(entitiesData);
+    }
+  }, [entitiesData]);
+
+  const [childDoingWork, setChildDoingWork] = useState(false);
 
   const internalEntitiesCount =
     externalWebsOnlyCountData?.countEntities == null || totalCount == null
@@ -336,11 +424,16 @@ export const EntitiesVisualizer: FunctionComponent<{
       /**
        * Otherwise we check the fetched `entityTypes` as a fallback.
        */
-      (entityTypes?.length &&
-        entityTypes.every(
-          ({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile,
+      (closedMultiEntityTypes.length &&
+        closedMultiEntityTypes.every(({ allOf }) =>
+          allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
         )),
-    [entityTypeBaseUrl, entityTypeId, entityTypes, isSpecialEntityTypeLookup],
+    [
+      entityTypeBaseUrl,
+      entityTypeId,
+      closedMultiEntityTypes,
+      isSpecialEntityTypeLookup,
+    ],
   );
 
   const supportGridView = isDisplayingFilesOnly;
@@ -352,15 +445,6 @@ export const EntitiesVisualizer: FunctionComponent<{
       setView(defaultView);
     }
   }, [defaultView, isDisplayingFilesOnly]);
-
-  const entities = useMemo(
-    /**
-     * If a network request is in process and there is no cached content for the request, return undefined.
-     * There may be stale data in the context related to an earlier request with different variables.
-     */
-    () => (loading && !hadCachedContent ? undefined : lastLoadedEntities),
-    [hadCachedContent, loading, lastLoadedEntities],
-  );
 
   const { isViewingOnlyPages, hasSomeLinks } = useMemo(() => {
     let isViewingPages = true;
@@ -509,6 +593,7 @@ export const EntitiesVisualizer: FunctionComponent<{
           hideExportToCsv={view !== "Table"}
           hideFilters={hideFilters}
           itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
+          loading={dataLoading || childDoingWork}
           onBulkActionCompleted={() => {
             void refetchWithoutLinks();
           }}
@@ -532,7 +617,7 @@ export const EntitiesVisualizer: FunctionComponent<{
               : undefined
           }
         />
-        {!subgraph ? (
+        {!subgraph || !closedMultiEntityTypesRootMap ? (
           <Stack
             alignItems="center"
             justifyContent="center"
@@ -549,6 +634,7 @@ export const EntitiesVisualizer: FunctionComponent<{
         ) : view === "Graph" ? (
           <Box height={tableHeight} sx={tableContentSx}>
             <EntityGraphVisualizer
+              closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
               defaultConfig={defaultGraphConfig}
               defaultFilters={defaultGraphFilters}
               entities={entities}
@@ -556,31 +642,33 @@ export const EntitiesVisualizer: FunctionComponent<{
               loadingComponent={loadingComponent}
               isPrimaryEntity={isPrimaryEntity}
               onEntityClick={handleEntityClick}
-              subgraphWithTypes={subgraph}
             />
           </Box>
         ) : view === "Grid" ? (
           <GridView entities={entities} />
         ) : (
           <EntitiesTable
+            activeConversions={activeConversions}
             createdByIds={createdByIds}
             currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
             currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+            closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
+            definitions={definitions}
             editionCreatedByIds={editionCreatedByIds}
-            entities={entities ?? []}
-            entityTypes={entityTypes ?? []}
+            entities={entities}
             filterState={filterState}
             handleEntityClick={handleEntityClick}
             hasSomeLinks={hasSomeLinks}
             hideColumns={hideColumns}
             limit={limit}
-            loading={loading}
+            loading={dataLoading}
             loadingComponent={loadingComponent}
             isViewingOnlyPages={isViewingOnlyPages}
             maxHeight={tableHeight}
             goToNextPage={nextCursor ? nextPage : undefined}
-            propertyTypes={propertyTypes ?? []}
             readonly={readonly}
+            setActiveConversions={setActiveConversions}
+            setLoading={setChildDoingWork}
             setSelectedEntityType={setSelectedEntityType}
             setSelectedRows={setSelectedTableRows}
             selectedRows={selectedTableRows}
@@ -591,6 +679,7 @@ export const EntitiesVisualizer: FunctionComponent<{
             setSort={setSort}
             subgraph={subgraph}
             typeIds={typeIds}
+            typeTitles={typeTitles}
             webIds={webIds}
           />
         )}

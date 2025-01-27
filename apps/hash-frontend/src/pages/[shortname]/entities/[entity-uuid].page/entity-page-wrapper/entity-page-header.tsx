@@ -108,7 +108,7 @@ export const EntityPageHeader = ({
           <Stack
             direction="row"
             alignItems="center"
-            spacing={2}
+            spacing={2.5}
             sx={{ color: lightTitle ? "gray.50" : "gray.90", marginTop: 2 }}
           >
             <EntityOrTypeIcon

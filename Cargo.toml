@@ -117,11 +117,11 @@ inferno            = { version = "=0.12.1", default-features = false }
 iso8601-duration   = { version = "=0.2.0", default-features = false }
 json-number        = { version = "=0.4.9", default-features = false }
 jsonptr            = { version = "=0.6.3", default-features = false }
-libp2p-core        = { version = "=0.42.0", default-features = false }
+libp2p-core        = { version = "=0.43.0", default-features = false }
 libp2p-identity    = { version = "=0.2.10", default-features = false }
-libp2p-ping        = { version = "=0.45.0", default-features = false }
-libp2p-swarm       = { version = "=0.45.1", default-features = false }
-libp2p-yamux       = { version = "=0.46.0", default-features = false }
+libp2p-ping        = { version = "=0.46.0", default-features = false }
+libp2p-swarm       = { version = "=0.46.0", default-features = false }
+libp2p-yamux       = { version = "=0.47.0", default-features = false }
 multiaddr          = { version = "=0.18.2", default-features = false }
 multistream-select = { version = "=0.13.0", default-features = false }
 pdfium-render      = { version = "=0.8.26" }
@@ -155,8 +155,8 @@ anstyle-yansi            = { version = "=2.0.2", default-features = false }
 approx                   = { version = "=0.5.1", default-features = false }
 async-scoped             = { version = "=0.9.0", default-features = false }
 async-trait              = { version = "=0.1.85", default-features = false }
-aws-config               = { version = "=1.5.14" }
-aws-sdk-s3               = { version = "=1.69.0", default-features = false }
+aws-config               = { version = "=1.5.15" }
+aws-sdk-s3               = { version = "=1.71.0", default-features = false }
 bitvec                   = { version = "=1.0.1", default-features = false }
 bytes-utils              = { version = "=0.1.4", default-features = false }
 clap                     = { version = "=4.5.27", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
@@ -174,13 +174,13 @@ hifijson                 = { version = "=0.2.2", default-features = false }
 humansize                = { version = "=2.1.3", default-features = false }
 hyper                    = { version = "=1.5.2", default-features = false }
 include_dir              = { version = "=0.7.4", default-features = false }
-insta                    = { version = "=1.42.0", default-features = false }
+insta                    = { version = "=1.42.1", default-features = false }
 itertools                = { version = "=0.14.0", default-features = false }
-jsonschema               = { version = "=0.28.1", default-features = false }
+jsonschema               = { version = "=0.28.3", default-features = false }
 justjson                 = { version = "=0.3.0", default-features = false }
 lexical                  = { version = "=7.0.4", default-features = false }
-libp2p                   = { version = "=0.54.1", default-features = false }
-libp2p-stream            = { version = "=0.2.0-alpha", default-features = false }
+libp2p                   = { version = "=0.55.0", default-features = false }
+libp2p-stream            = { version = "=0.3.0-alpha", default-features = false }
 logos                    = { version = "=0.15.0", default-features = false }
 memchr                   = { version = "=2.7.4", default-features = false }
 mimalloc                 = { version = "=0.1.43", default-features = false }
@@ -190,7 +190,7 @@ once_cell                = { version = "=1.20.2", default-features = false }
 opentelemetry            = { version = "=0.27.1", default-features = false }
 opentelemetry-otlp       = { version = "=0.27.0", default-features = false }
 opentelemetry_sdk        = { version = "=0.27.1", default-features = false }
-orx-concurrent-vec       = { version = "=3.1.0", default-features = false }
+orx-concurrent-vec       = { version = "=3.2.0", default-features = false }
 owo-colors               = { version = "=4.1.0", default-features = false }
 paste                    = { version = "=1.0.15", default-features = false }
 pin-project              = { version = "=1.1.8", default-features = false }
@@ -231,15 +231,19 @@ tracing-error            = { version = "=0.2.1", default-features = false }
 tracing-flame            = { version = "=0.2.0", default-features = false }
 tracing-opentelemetry    = { version = "=0.28.0", default-features = false }
 trait-variant            = { version = "=0.1.2", default-features = false }
-trybuild                 = { version = "=1.0.102", default-features = false }
+trybuild                 = { version = "=1.0.103", default-features = false }
 tsify                    = { version = "=0.4.5", default-features = false }
 unicode-ident            = { version = "=1.0.14", default-features = false }
 virtue                   = { version = "=0.0.18", default-features = false }
 walkdir                  = { version = "=2.5.0", default-features = false }
-winnow                   = { version = "=0.6.22", default-features = false }
+winnow                   = { version = "=0.6.24", default-features = false }
 
 [profile.dev]
 codegen-backend = "cranelift"
+
+[profile.dev-llvm]
+codegen-backend = "llvm"
+inherits        = "dev"
 
 # We use LLVM for non-workspace crates, mainly due to the lack of AVX2 support in Cranelift
 [profile.dev.package."*"]
@@ -252,7 +256,7 @@ codegen-backend = "llvm"
 [profile.test.package."*"]
 codegen-backend = "llvm"
 
-# We use `llvm-cov` which requires LLVM`
+# We use `llvm-cov` which requires LLVM
 [profile.coverage]
 codegen-backend = "llvm"
 inherits        = "test"

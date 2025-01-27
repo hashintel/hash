@@ -64,219 +64,214 @@ export const oAuthLinear: RequestHandler<
   {
     ownedById?: EntityUuid;
   }
-> =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  async (req, res) => {
-    if (!linearClientId) {
-      res
-        .status(501)
-        .send(
-          "Linear integration is not configured – set a client id and secret.",
-        );
-      return;
-    }
+> = async (req, res) => {
+  if (!linearClientId) {
+    res
+      .status(501)
+      .send(
+        "Linear integration is not configured – set a client id and secret.",
+      );
+    return;
+  }
 
-    if (!req.user) {
-      res.status(401).send("You must be authenticated to do this.");
-      return;
-    }
-    const authentication = { actorId: req.user.accountId };
+  if (!req.user) {
+    res.status(401).send("You must be authenticated to do this.");
+    return;
+  }
+  const authentication = { actorId: req.user.accountId };
 
-    const { ownedById } = req.query;
+  const { ownedById } = req.query;
 
-    if (!ownedById) {
-      res.status(400).send("No ownedById for secret provided.");
-      return;
-    }
+  if (!ownedById) {
+    res.status(400).send("No ownedById for secret provided.");
+    return;
+  }
 
-    const userEntityId = req.user.entity.metadata.recordId.entityId;
+  const userEntityId = req.user.entity.metadata.recordId.entityId;
 
-    if (
-      extractEntityUuidFromEntityId(userEntityId) !== ownedById &&
-      !(await isUserMemberOfOrg(req.context, authentication, {
-        userEntityId,
-        orgEntityUuid: ownedById as EntityUuid,
-      }))
-    ) {
-      res
-        .status(403)
-        .send(
-          "ownedById must represent the user or an organization they are a member of.",
-        );
-      return;
-    }
+  if (
+    extractEntityUuidFromEntityId(userEntityId) !== ownedById &&
+    !(await isUserMemberOfOrg(req.context, authentication, {
+      userEntityId,
+      orgEntityUuid: ownedById as EntityUuid,
+    }))
+  ) {
+    res
+      .status(403)
+      .send(
+        "ownedById must represent the user or an organization they are a member of.",
+      );
+    return;
+  }
 
-    const state = crypto.randomBytes(16).toString("hex");
+  const state = crypto.randomBytes(16).toString("hex");
 
-    stateMap.set(state, {
-      actorEntityId: req.user.entity.metadata.recordId.entityId,
-      expires: new Date(Date.now() + 1000 * 60 * 5), // 5 minutes expiry
-      ownedById: ownedById as EntityUuid,
-    });
+  stateMap.set(state, {
+    actorEntityId: req.user.entity.metadata.recordId.entityId,
+    expires: new Date(Date.now() + 1000 * 60 * 5), // 5 minutes expiry
+    ownedById: ownedById as EntityUuid,
+  });
 
-    res.redirect(generateLinearOAuthUrl(state));
-  };
+  res.redirect(generateLinearOAuthUrl(state));
+};
 
 export const oAuthLinearCallback: RequestHandler<
   Record<string, never>,
   Entity | { error: string },
   never,
   { code: string; state?: string }
-> =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  async (req, res) => {
-    const { code, state } = req.query;
+> = async (req, res) => {
+  const { code, state } = req.query;
 
-    if (!req.context.vaultClient) {
-      res.status(501).send({ error: "Vault integration is not configured." });
-      return;
-    }
+  if (!req.context.vaultClient) {
+    res.status(501).send({ error: "Vault integration is not configured." });
+    return;
+  }
 
-    if (!state) {
-      res.status(400).send({ error: "No state provided" });
-      return;
-    }
+  if (!state) {
+    res.status(400).send({ error: "No state provided" });
+    return;
+  }
 
-    const stateData = stateMap.get(state);
+  const stateData = stateMap.get(state);
 
-    if (!stateData) {
-      res.status(400).send({ error: "Invalid state" });
-      return;
-    }
+  if (!stateData) {
+    res.status(400).send({ error: "Invalid state" });
+    return;
+  }
 
-    if (
-      stateData.actorEntityId !== req.user?.entity.metadata.recordId.entityId
-    ) {
-      res.status(403).send({ error: "State mismatch" });
-      return;
-    }
+  if (stateData.actorEntityId !== req.user?.entity.metadata.recordId.entityId) {
+    res.status(403).send({ error: "State mismatch" });
+    return;
+  }
 
-    const now = new Date();
-    if (stateData.expires < now) {
-      res.status(400).send({ error: "State expired" });
-      return;
-    }
+  const now = new Date();
+  if (stateData.expires < now) {
+    res.status(400).send({ error: "State expired" });
+    return;
+  }
 
-    const { actorEntityId } = stateData;
+  const { actorEntityId } = stateData;
 
-    stateMap.delete(state);
+  stateMap.delete(state);
 
-    if (!linearClientId || !linearClientSecret) {
-      res.status(501).send({ error: "Linear integration is not configured." });
-      return;
-    }
+  if (!linearClientId || !linearClientSecret) {
+    res.status(501).send({ error: "Linear integration is not configured." });
+    return;
+  }
 
-    const formData = new URLSearchParams();
-    formData.append("client_id", linearClientId);
-    formData.append("client_secret", linearClientSecret);
-    formData.append("code", code);
-    formData.append("redirect_uri", linearOAuthCallbackUrl);
-    formData.append("grant_type", "authorization_code");
+  const formData = new URLSearchParams();
+  formData.append("client_id", linearClientId);
+  formData.append("client_secret", linearClientSecret);
+  formData.append("code", code);
+  formData.append("redirect_uri", linearOAuthCallbackUrl);
+  formData.append("grant_type", "authorization_code");
 
-    const response = await fetch("https://api.linear.app/oauth/token", {
-      method: "POST",
-      body: formData.toString(),
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-      },
-    }).then(
-      (resp) =>
-        resp.json() as Promise<{ access_token: string; expires_in: number }>,
-    );
+  const response = await fetch("https://api.linear.app/oauth/token", {
+    method: "POST",
+    body: formData.toString(),
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+    },
+  }).then(
+    (resp) =>
+      resp.json() as Promise<{ access_token: string; expires_in: number }>,
+  );
 
-    const { access_token, expires_in } = response;
+  const { access_token, expires_in } = response;
 
-    // Linear tokens last for 10 years as at 2023/07/25. 10 minute padding to account for time between issuing and this line
-    const expiredAt = new Date(Date.now() + expires_in * 1000 - 600_000);
+  // Linear tokens last for 10 years as at 2023/07/25. 10 minute padding to account for time between issuing and this line
+  const expiredAt = new Date(Date.now() + expires_in * 1000 - 600_000);
 
-    const linearClient = new LinearClient({
-      accessToken: response.access_token,
-    });
+  const linearClient = new LinearClient({
+    accessToken: response.access_token,
+  });
 
-    const org = await linearClient.organization;
+  const org = await linearClient.organization;
 
-    const linearOrgId = org.id;
+  const linearOrgId = org.id;
 
-    const userAccountId = extractEntityUuidFromEntityId(
-      actorEntityId,
-    ) as Uuid as AccountId;
+  const userAccountId = extractEntityUuidFromEntityId(
+    actorEntityId,
+  ) as Uuid as AccountId;
 
-    const authentication = { actorId: userAccountId };
+  const authentication = { actorId: userAccountId };
 
-    /**
-     * Create the linear integration entity if it doesn't exist, and link it to the user secret
-     */
-    const existingLinearIntegration = await getLinearIntegrationByLinearOrgId(
-      req.context,
-      authentication,
-      { linearOrgId, userAccountId },
-    );
+  /**
+   * Create the linear integration entity if it doesn't exist, and link it to the user secret
+   */
+  const existingLinearIntegration = await getLinearIntegrationByLinearOrgId(
+    req.context,
+    authentication,
+    { linearOrgId, userAccountId },
+  );
 
-    let linearIntegration: LinearIntegration;
-    if (existingLinearIntegration) {
-      linearIntegration = existingLinearIntegration;
-    } else {
-      const linearIntegrationProperties: LinearIntegrationPropertiesWithMetadata =
-        {
-          value: {
-            "https://hash.ai/@h/types/property-type/linear-org-id/": {
-              value: linearOrgId,
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-              },
+  let linearIntegration: LinearIntegration;
+  if (existingLinearIntegration) {
+    linearIntegration = existingLinearIntegration;
+  } else {
+    const linearIntegrationProperties: LinearIntegrationPropertiesWithMetadata =
+      {
+        value: {
+          "https://hash.ai/@h/types/property-type/linear-org-id/": {
+            value: linearOrgId,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-        };
-
-      // Create the Linear integration entity, which any web member can view and edit
-      const linearIntegrationEntity = await createEntity(
-        req.context,
-        authentication,
-        {
-          entityTypeIds: [systemEntityTypes.linearIntegration.entityTypeId],
-          ownedById: userAccountId as OwnedById,
-          properties: linearIntegrationProperties,
-          relationships:
-            createDefaultAuthorizationRelationships(authentication),
         },
-      );
+      };
 
-      linearIntegration = getLinearIntegrationFromEntity({
-        entity: linearIntegrationEntity,
-      });
-    }
-
-    /**
-     * Get the linear bot, which will be the only entity with edit access to the secret and the link to the secret
-     */
-    const linearBotAccountId = await getMachineActorId(
+    // Create the Linear integration entity, which any web member can view and edit
+    const linearIntegrationEntity = await createEntity(
       req.context,
       authentication,
-      { identifier: "linear" },
+      {
+        entityTypeIds: [systemEntityTypes.linearIntegration.entityTypeId],
+        ownedById: userAccountId as OwnedById,
+        properties: linearIntegrationProperties,
+        relationships: createDefaultAuthorizationRelationships(authentication),
+      },
     );
 
-    await createUserSecret({
-      /**
-       * Because we have overwritten any existing secret with the same path, we should archive existing secrets.
-       */
-      archiveExistingSecrets: true,
-      expiresAt: expiredAt.toISOString(),
-      graphApi: req.context.graphApi,
-      managingBotAccountId: linearBotAccountId,
-      provenance: req.context.provenance,
-      restOfPath: `workspace/${linearOrgId}`,
-      secretData: { value: access_token },
-      service: "linear",
-      sourceIntegrationEntityId:
-        linearIntegration.entity.metadata.recordId.entityId,
-      userAccountId: req.user.accountId,
-      vaultClient: req.context.vaultClient,
+    linearIntegration = getLinearIntegrationFromEntity({
+      entity: linearIntegrationEntity,
     });
+  }
 
-    res.redirect(
-      `${frontendUrl}/settings/integrations/linear/new?linearIntegrationEntityId=${linearIntegration.entity.metadata.recordId.entityId}`,
-    );
-  };
+  /**
+   * Get the linear bot, which will be the only entity with edit access to the secret and the link to the secret
+   */
+  const linearBotAccountId = await getMachineActorId(
+    req.context,
+    authentication,
+    { identifier: "linear" },
+  );
+
+  await createUserSecret({
+    /**
+     * Because we have overwritten any existing secret with the same path, we should archive existing secrets.
+     */
+    archiveExistingSecrets: true,
+    expiresAt: expiredAt.toISOString(),
+    graphApi: req.context.graphApi,
+    managingBotAccountId: linearBotAccountId,
+    provenance: req.context.provenance,
+    restOfPath: `workspace/${linearOrgId}`,
+    secretData: { value: access_token },
+    service: "linear",
+    sourceIntegrationEntityId:
+      linearIntegration.entity.metadata.recordId.entityId,
+    userAccountId: req.user.accountId,
+    vaultClient: req.context.vaultClient,
+  });
+
+  res.redirect(
+    `${frontendUrl}/settings/integrations/linear/new?linearIntegrationEntityId=${linearIntegration.entity.metadata.recordId.entityId}`,
+  );
+};

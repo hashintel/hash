@@ -4,9 +4,10 @@ export type ColumnFilter<ColumnKey extends string, Row extends GridRow> = {
   columnKey: ColumnKey;
   filterItems: {
     id: string;
+    count?: number;
     doesNotApplyValue?: boolean;
     label: string;
-    count?: number;
+    labelSuffix?: string;
   }[];
   selectedFilterItemIds: Set<string>;
   setSelectedFilterItemIds: (selectedFilterItemIds: Set<string>) => void;

@@ -19,6 +19,7 @@ export const entityTypedef = gql`
   scalar QueryOperationInput
   scalar SerializedEntity
   scalar TypeIdsMap
+  scalar TypeTitlesMap
   scalar UserPermissions
   scalar UserPermissionsOnEntities
   scalar ValidateEntityParamsComponents
@@ -39,6 +40,7 @@ export const entityTypedef = gql`
     userPermissionsOnEntities: UserPermissionsOnEntities!
     subgraph: Subgraph!
     typeIds: TypeIdsMap
+    typeTitles: TypeTitlesMap
     webIds: WebIdsMap
   }
 

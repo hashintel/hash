@@ -150,6 +150,10 @@ const generatePropertyMetadata = (params: {
 
     propertyMetadata.value[baseUrl] = {
       metadata: {
+        /**
+         * @todo H-3359: Specify the dataTypeId for the property value
+         * See implementation in get-llm-analysis-of-doc.ts for automatic detection (where only one oneOf appears in property schema)
+         */
         dataTypeId: null,
         provenance: { sources: sourcesUsedToDetermineValue },
       },

@@ -57,7 +57,7 @@ mod test {
     use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{
-        Located, Parser as _, Stateful,
+        LocatingSlice, Parser as _, Stateful,
         error::{ContextError, ErrMode, ParseError},
     };
 
@@ -72,12 +72,12 @@ mod test {
     ) -> Result<
         Path<'arena>,
         ParseError<
-            Stateful<Located<&'input str>, ParseState<'arena, 'spans>>,
+            Stateful<LocatingSlice<&'input str>, ParseState<'arena, 'spans>>,
             ErrMode<ContextError>,
         >,
     > {
         let input = Stateful {
-            input: Located::new(input),
+            input: LocatingSlice::new(input),
             state,
         };
 
@@ -92,8 +92,10 @@ mod test {
     fn parse_err<'arena, 'spans, 'input>(
         state: ParseState<'arena, 'spans>,
         input: &'input str,
-    ) -> ParseError<Stateful<Located<&'input str>, ParseState<'arena, 'spans>>, ErrMode<ContextError>>
-    {
+    ) -> ParseError<
+        Stateful<LocatingSlice<&'input str>, ParseState<'arena, 'spans>>,
+        ErrMode<ContextError>,
+    > {
         parse(state, input).expect_err("should be invalid path")
     }
 

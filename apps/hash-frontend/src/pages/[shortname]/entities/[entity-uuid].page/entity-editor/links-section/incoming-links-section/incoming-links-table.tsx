@@ -204,7 +204,6 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
                   fontSize={linksTableFontSize}
                   fill={({ palette }) => palette.blue[70]}
                   icon={sourceEntityType.icon}
-                  /* @todo H-3363 use closed entity type schema to check link status */
                   isLink={!!row.sourceEntity.linkData}
                 />
               }
@@ -384,12 +383,11 @@ export const IncomingLinksTable = memo(
         );
 
         const leftEntityLabel = leftEntity.linkData
-          ? generateLinkEntityLabel(
-              entitySubgraph,
-              leftEntity,
-              leftEntityClosedMultiType,
-              closedMultiEntityTypesDefinitions,
-            )
+          ? generateLinkEntityLabel(entitySubgraph, leftEntity, {
+              closedType: leftEntityClosedMultiType,
+              entityTypeDefinitions: closedMultiEntityTypesDefinitions,
+              closedMultiEntityTypesRootMap: closedMultiEntityTypesMap,
+            })
           : generateEntityLabel(leftEntityClosedMultiType, leftEntity);
 
         filterDefs.linkedFrom.options[leftEntity.metadata.recordId.entityId] ??=

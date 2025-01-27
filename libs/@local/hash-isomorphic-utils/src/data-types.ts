@@ -1,6 +1,9 @@
 import type { JsonValue } from "@blockprotocol/core";
 import type {
   ClosedDataType,
+  ConversionDefinition,
+  ConversionExpression,
+  ConversionValue,
   DataType,
   NumberConstraints,
   SingleValueConstraints,
@@ -10,7 +13,10 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import type { DataTypeConversionTargets as GraphApiDataTypeConversionTargets } from "@local/hash-graph-client";
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
+
+import { add, divide, multiply, subtract } from "./numbers.js";
 
 type MergedNumberSchema = {
   type: "number";
@@ -140,6 +146,84 @@ export const formatDataValue = (
 
   return createFormattedParts({ inner: String(value), schema });
 };
+
+type Context = {
+  self: number;
+};
+
+const evaluateConversionValue = (
+  value: ConversionValue,
+  context: Context,
+): number => {
+  if (Array.isArray(value)) {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    return evaluateExpression(value, context);
+  } else if (value === "self") {
+    return context.self;
+  } else {
+    return value.const;
+  }
+};
+
+const evaluateExpression = (
+  expression: ConversionExpression,
+  context: Context,
+): number => {
+  switch (expression[0]) {
+    case "+":
+      return add(
+        evaluateConversionValue(expression[1], context),
+        evaluateConversionValue(expression[2], context),
+      );
+    case "-":
+      return subtract(
+        evaluateConversionValue(expression[1], context),
+        evaluateConversionValue(expression[2], context),
+      );
+    case "*":
+      return multiply(
+        evaluateConversionValue(expression[1], context),
+        evaluateConversionValue(expression[2], context),
+      );
+    case "/":
+      return divide(
+        evaluateConversionValue(expression[1], context),
+        evaluateConversionValue(expression[2], context),
+      );
+  }
+};
+
+export const createConversionFunction = (
+  conversions: ConversionDefinition[],
+): ((value: number) => number) => {
+  return (value: number) => {
+    let evaluatedValue = value;
+    for (const conversion of conversions) {
+      evaluatedValue = evaluateExpression(conversion.expression, {
+        self: evaluatedValue,
+      });
+    }
+
+    return evaluatedValue;
+  };
+};
+
+export type DataTypeConversionTargets = Omit<
+  GraphApiDataTypeConversionTargets,
+  "conversions"
+> & {
+  conversions: ConversionDefinition[];
+};
+
+/**
+ * A map from a dataTypeId, to a map of target dataTypeIds, to conversion definitions.
+ *
+ * Each conversion definition contains (1) the target data type `title`, and (2) the `conversions`: steps required to convert to the target dataTypeId.
+ */
+export type DataTypeConversionsMap = Record<
+  VersionedUrl,
+  Record<VersionedUrl, DataTypeConversionTargets>
+>;
 
 const transformConstraint = (
   constraint: SingleValueConstraints & {

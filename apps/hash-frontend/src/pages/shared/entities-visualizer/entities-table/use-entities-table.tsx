@@ -1,13 +1,15 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system/slim";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import {
+  type BaseUrl,
+  type ClosedDataTypeDefinition,
+  type ClosedMultiEntityTypesRootMap,
+  isBaseUrl,
+} from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import {
-  getEntityTypeById,
-  getPropertyTypesForEntityType,
-} from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -26,7 +28,7 @@ import { isGenerateEntitiesTableDataResultMessage } from "./types";
 
 let canvas: HTMLCanvasElement | undefined = undefined;
 
-const getTextWidth = (text: string) => {
+export const getTextWidth = (text: string) => {
   canvas ??= document.createElement("canvas");
 
   const context = canvas.getContext("2d")!;
@@ -37,43 +39,45 @@ const getTextWidth = (text: string) => {
   return metrics.width;
 };
 
-type PropertiesByEntityTypeId = {
-  [entityTypeId: VersionedUrl]: {
-    propertyType: PropertyTypeWithMetadata;
-    width: number;
-  }[];
-};
-
 export const useEntitiesTable = (
   params: Pick<
     EntitiesVisualizerData,
     | "createdByIds"
+    | "definitions"
     | "editionCreatedByIds"
     | "entities"
-    | "entityTypes"
-    | "propertyTypes"
     | "subgraph"
     | "typeIds"
+    | "typeTitles"
     | "webIds"
   > & {
+    closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
     hasSomeLinks?: boolean;
     hideColumns?: (keyof EntitiesTableRow)[];
     hideArchivedColumn?: boolean;
     hidePropertiesColumns: boolean;
   },
-): { loading: boolean; tableData: EntitiesTableData | null } => {
+): {
+  visibleDataTypesByPropertyBaseUrl: Record<
+    BaseUrl,
+    ClosedDataTypeDefinition[]
+  >;
+  loading: boolean;
+  tableData: EntitiesTableData | null;
+} => {
   const {
+    closedMultiEntityTypesRootMap,
     createdByIds,
+    definitions,
     editionCreatedByIds,
     entities,
-    entityTypes,
     subgraph,
     hasSomeLinks,
     hideColumns,
     hideArchivedColumn = false,
     hidePropertiesColumns,
-    propertyTypes,
     typeIds,
+    typeTitles,
     webIds,
   } = params;
 
@@ -93,33 +97,53 @@ export const useEntitiesTable = (
   const getOwnerForEntity = useGetOwnerForEntity();
 
   const {
-    entitiesHaveSameType,
     entityTypesWithMultipleVersionsPresent,
-    usedPropertyTypesByEntityTypeId,
+    visibleDataTypeIdsByPropertyBaseUrl,
   } = useMemo<{
-    entitiesHaveSameType: boolean;
+    visibleDataTypeIdsByPropertyBaseUrl: Record<
+      BaseUrl,
+      Set<ClosedDataTypeDefinition>
+    >;
     entityTypesWithMultipleVersionsPresent: VersionedUrl[];
-    usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
   }>(() => {
-    if (!entities || !subgraph) {
+    if (!entities || !definitions) {
       return {
-        entitiesHaveSameType: false,
         entityTypesWithMultipleVersionsPresent: [],
-        usedPropertyTypesByEntityTypeId: {},
+        visibleDataTypeIdsByPropertyBaseUrl: {},
       };
     }
 
-    const propertyMap: PropertiesByEntityTypeId = {};
+    const dataTypesByProperty: {
+      [propertyBaseUrl: BaseUrl]: Set<ClosedDataTypeDefinition>;
+    } = {};
 
     const typesWithMultipleVersions: VersionedUrl[] = [];
     const firstSeenTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
 
     for (const entity of entities) {
-      for (const entityTypeId of entity.metadata.entityTypeIds) {
-        if (propertyMap[entityTypeId]) {
-          continue;
-        }
+      for (const [baseUrl, { metadata }] of typedEntries(
+        entity.propertiesMetadata.value,
+      )) {
+        if (metadata && "dataTypeId" in metadata && metadata.dataTypeId) {
+          dataTypesByProperty[baseUrl] ??= new Set();
 
+          const dataType = definitions.dataTypes[metadata.dataTypeId];
+
+          if (!dataType) {
+            throw new Error(
+              `Could not find dataType with id ${metadata.dataTypeId} in subgraph`,
+            );
+          }
+
+          /**
+           * As there is only one instance of each DataType in the subgraph, it'll be the same object in memory,
+           * and the Set equality check will work.
+           */
+          dataTypesByProperty[baseUrl].add(dataType);
+        }
+      }
+
+      for (const entityTypeId of entity.metadata.entityTypeIds) {
         const baseUrl = extractBaseUrl(entityTypeId);
         if (firstSeenTypeByBaseUrl[baseUrl]) {
           typesWithMultipleVersions.push(entityTypeId);
@@ -127,38 +151,14 @@ export const useEntitiesTable = (
         } else {
           firstSeenTypeByBaseUrl[baseUrl] = entityTypeId;
         }
-
-        const entityType = getEntityTypeById(subgraph, entityTypeId);
-        if (!entityType) {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `Could not find entityType with id ${entityTypeId}, it may be loading...`,
-          );
-          continue;
-        }
-
-        const propertyTypesForEntity = getPropertyTypesForEntityType(
-          entityType.schema,
-          subgraph,
-        );
-
-        propertyMap[entityTypeId] ??= [];
-
-        for (const propertyType of propertyTypesForEntity.values()) {
-          propertyMap[entityTypeId].push({
-            propertyType,
-            width: getTextWidth(propertyType.schema.title) + 70,
-          });
-        }
       }
     }
 
     return {
-      entitiesHaveSameType: Object.keys(firstSeenTypeByBaseUrl).length === 1,
+      visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
       entityTypesWithMultipleVersionsPresent: typesWithMultipleVersions,
-      usedPropertyTypesByEntityTypeId: propertyMap,
     };
-  }, [entities, subgraph]);
+  }, [definitions, entities]);
 
   const editorActorIds = useMemo(() => {
     const editorIds = new Set<AccountId>([
@@ -240,22 +240,23 @@ export const useEntitiesTable = (
         });
       }
 
-      const typeTitles: EntitiesTableFilterData["entityTypeFilters"] = [];
+      const types: EntitiesTableFilterData["entityTypeFilters"] = [];
       for (const [entityTypeId, count] of typedEntries(typeIds ?? {})) {
-        const title = entityTypeId
-          .split("/")
-          .at(-3)!
-          .split("-")
-          .map(
-            (segment) =>
-              `${segment[0]?.toUpperCase() ?? ""}${segment.slice(1)}`,
-          )
-          .join(" ");
+        const title = typeTitles?.[entityTypeId];
 
-        typeTitles.push({
+        if (!title) {
+          throw new Error(
+            `Could not find title for entity type ${entityTypeId}`,
+          );
+        }
+
+        types.push({
           count,
           entityTypeId,
           title,
+          version: entityTypesWithMultipleVersionsPresent.includes(entityTypeId)
+            ? extractVersion(entityTypeId)
+            : undefined,
         });
       }
 
@@ -271,7 +272,7 @@ export const useEntitiesTable = (
 
       return {
         createdByActors: createdBy,
-        entityTypeFilters: typeTitles,
+        entityTypeFilters: types,
         lastEditedByActors: editedBy,
         webs: webCounts,
       };
@@ -279,7 +280,9 @@ export const useEntitiesTable = (
       actorsByAccountId,
       createdByIds,
       editionCreatedByIds,
+      entityTypesWithMultipleVersionsPresent,
       typeIds,
+      typeTitles,
       webIds,
       webNameByOwnedById,
     ]);
@@ -302,6 +305,19 @@ export const useEntitiesTable = (
         if (done) {
           setTableData({
             ...result,
+            columns: result.columns.map((column) => {
+              if (isBaseUrl(column.id)) {
+                /**
+                 * The web worker can't measure text for us (no DOM) so we need to do it here.
+                 * We add extra to account for potential header buttons and padding.
+                 */
+                return {
+                  ...column,
+                  width: getTextWidth(column.title) + 105,
+                };
+              }
+              return column;
+            }),
             filterData: {
               ...result.filterData,
               createdByActors,
@@ -320,31 +336,28 @@ export const useEntitiesTable = (
   }, [createdByActors, entityTypeFilters, lastEditedByActors, webs, worker]);
 
   useEffect(() => {
-    if (entities && entityTypes && subgraph && !actorsLoading) {
+    if (entities && subgraph && definitions && !actorsLoading) {
       const serializedSubgraph = serializeSubgraph(subgraph);
 
       if (!worker) {
         throw new Error("No worker available");
       }
 
-      setTableData(null);
       setWaitingTableData(true);
 
       worker.postMessage({
         type: "generateEntitiesTableData",
         params: {
           actorsByAccountId,
+          closedMultiEntityTypesRootMap,
+          definitions,
           entities: entities.map((entity) => entity.toJSON()),
-          entitiesHaveSameType,
           entityTypesWithMultipleVersionsPresent,
-          entityTypes,
-          propertyTypes,
           subgraph: serializedSubgraph,
           hasSomeLinks,
           hideColumns,
           hideArchivedColumn,
           hidePropertiesColumns,
-          usedPropertyTypesByEntityTypeId,
           webNameByOwnedById,
         },
       } satisfies GenerateEntitiesTableDataRequestMessage);
@@ -352,22 +365,25 @@ export const useEntitiesTable = (
   }, [
     actorsByAccountId,
     actorsLoading,
+    closedMultiEntityTypesRootMap,
+    definitions,
     entities,
-    entityTypes,
-    entitiesHaveSameType,
     entityTypesWithMultipleVersionsPresent,
     hasSomeLinks,
     hideColumns,
     hideArchivedColumn,
     hidePropertiesColumns,
-    propertyTypes,
     subgraph,
-    usedPropertyTypesByEntityTypeId,
     webNameByOwnedById,
     worker,
   ]);
 
   return {
+    visibleDataTypesByPropertyBaseUrl: Object.fromEntries(
+      Object.entries(visibleDataTypeIdsByPropertyBaseUrl).map(
+        ([baseUrl, dataTypeIds]) => [baseUrl, Array.from(dataTypeIds)],
+      ),
+    ),
     tableData,
     loading: waitingTableData || actorsLoading,
   };

@@ -5,6 +5,7 @@ import {
   EyeRegularIcon,
   EyeSlashRegularIcon,
   IconButton,
+  LoadingSpinner,
 } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -23,6 +24,7 @@ import {
   styled,
   Tooltip,
   tooltipClasses,
+  useTheme,
 } from "@mui/material";
 import type {
   Dispatch,
@@ -112,6 +114,7 @@ type TableHeaderProps<R extends GridRow> = {
   hideExportToCsv?: boolean;
   hideFilters?: boolean;
   itemLabelPlural: "entities" | "pages" | "types";
+  loading: boolean;
   numberOfExternalItems?: number;
   numberOfUserWebItems?: number;
   onBulkActionCompleted?: () => void;
@@ -140,6 +143,7 @@ export const TableHeader = <R extends GridRow>({
   hideExportToCsv,
   hideFilters,
   itemLabelPlural,
+  loading,
   numberOfExternalItems,
   numberOfUserWebItems,
   onBulkActionCompleted,
@@ -151,6 +155,8 @@ export const TableHeader = <R extends GridRow>({
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
   const [publicFilterHovered, setPublicFilterHovered] =
     useState<boolean>(false);
+
+  const theme = useTheme();
 
   const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
     const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
@@ -308,6 +314,7 @@ export const TableHeader = <R extends GridRow>({
             </NoMaxWidthTooltip>
           </>
         )}
+        {loading && <LoadingSpinner size={16} color={theme.palette.blue[70]} />}
       </Box>
       <Box display="flex" alignItems="center" columnGap={1}>
         {!hideFilters && (

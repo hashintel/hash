@@ -1,14 +1,23 @@
+import { useQuery } from "@apollo/client";
 import type { ClosedDataType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import type { PropertyMetadataValue } from "@local/hash-graph-types/entity";
 import { isValueMetadata } from "@local/hash-graph-types/entity";
 import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
-import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
+import {
+  createConversionFunction,
+  getMergedDataTypeSchema,
+} from "@local/hash-isomorphic-utils/data-types";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useEffect, useRef, useState } from "react";
 
+import type {
+  GetDataTypeConversionTargetsQuery,
+  GetDataTypeConversionTargetsQueryVariables,
+} from "../../../../../../../../../graphql/api-types.gen";
+import { getDataTypeConversionTargetsQuery } from "../../../../../../../../../graphql/queries/ontology/data-type.queries";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { getEditorSpecs } from "./editor-specs";
 import { EditorTypePicker } from "./editor-type-picker";
@@ -94,6 +103,21 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     };
   });
 
+  const { data } = useQuery<
+    GetDataTypeConversionTargetsQuery,
+    GetDataTypeConversionTargetsQueryVariables
+  >(getDataTypeConversionTargetsQuery, {
+    fetchPolicy: "cache-first",
+    variables: {
+      dataTypeIds: chosenDataType ? [chosenDataType.dataType.$id] : [],
+    },
+    skip: !chosenDataType || !showTypePicker,
+  });
+
+  const conversionTargetsById =
+    chosenDataType &&
+    data?.getDataTypeConversionTargets[chosenDataType.dataType.$id];
+
   useEffect(() => {
     if (
       chosenDataType &&
@@ -165,16 +189,39 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
                 draftCell.data.showTypePicker = false;
               });
 
-              return onFinishedEditing(newCell);
+              onFinishedEditing(newCell);
             } else {
+              const conversions =
+                conversionTargetsById?.[type.$id]?.conversions;
+
               const newCell = produce(cell, (draftCell) => {
                 draftCell.data.propertyRow.valueMetadata = {
                   metadata: { dataTypeId: type.$id },
                 };
                 draftCell.data.showTypePicker = false;
+
+                if (conversions) {
+                  const conversionFunction =
+                    createConversionFunction(conversions);
+
+                  // @ts-expect-error - things other than numbers are not yet convertible.
+                  // we could throw an error if we find a non-number value, but this way it'll just start working when we add support.
+                  // not handling a non-number case is only an issue if we add non-number conversions without updating createConversionFunction, which we are unlikely to do.
+                  const newValue = conversionFunction(value);
+
+                  draftCell.data.propertyRow.value = newValue;
+                }
               });
 
-              return onChange(newCell);
+              if (conversions) {
+                /**
+                 * If the user has switched between convertible data types, assume the usual case is that they don't need to edit it.
+                 */
+                onFinishedEditing(newCell);
+                return;
+              }
+
+              onChange(newCell);
             }
           }}
           selectedDataTypeId={chosenDataType?.dataType.$id}
