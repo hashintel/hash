@@ -27,7 +27,7 @@ const imageThumbnailWidth = 90;
 type TypeDisplayData = { $id: VersionedUrl; icon?: string; title: string };
 
 export type SelectorAutocompleteOptionProps = {
-  liProps: HTMLAttributes<HTMLLIElement>;
+  liProps: HTMLAttributes<HTMLLIElement> & { key?: string };
   description?: string;
   entityProperties?: EntityPropertiesObject;
   icon: string | ReactElement | null;
@@ -63,11 +63,13 @@ export const SelectorAutocompleteOption = ({
   const onMouseEnter = () => (imageUrl ? setShowPreviewPane(true) : null);
   const onMouseLeave = () => (imageUrl ? setShowPreviewPane(false) : null);
 
+  const { key: _key, ...rest } = liProps;
+
   /** @todo H-1978 use the entity type's icon below rather than hardcoding EntityTypeIcon */
 
   return (
     <li
-      {...liProps}
+      {...rest}
       data-testid="selector-autocomplete-option"
       /** added GRID_CLICK_IGNORE_CLASS to be able to use this selector with Grid component */
       className={clsx(liProps.className, GRID_CLICK_IGNORE_CLASS)}

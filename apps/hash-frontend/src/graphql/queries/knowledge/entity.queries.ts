@@ -72,6 +72,7 @@ export const getEntitySubgraphQuery = gql`
         ...SubgraphFields
       }
       typeIds
+      typeTitles
       webIds
     }
   }

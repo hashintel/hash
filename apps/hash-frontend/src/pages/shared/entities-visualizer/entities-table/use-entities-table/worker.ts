@@ -1,6 +1,10 @@
 import { extractVersion } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import {
+  Entity,
+  getClosedMultiEntityTypeFromMap,
+  getDisplayFieldsForClosedEntityType,
+} from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   generateEntityLabel,
@@ -10,24 +14,20 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   extractOwnedByIdFromEntityId,
   linkEntityTypeUrl,
 } from "@local/hash-subgraph";
-import {
-  getEntityRevision,
-  getEntityTypeById,
-} from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { getEntityRevision } from "@local/hash-subgraph/stdlib";
 import { format } from "date-fns";
 
 import type {
   EntitiesTableColumn,
   EntitiesTableColumnKey,
   EntitiesTableRow,
+  EntitiesTableRowPropertyCell,
   GenerateEntitiesTableDataParams,
   GenerateEntitiesTableDataResultMessage,
   WorkerDataReturn,
@@ -98,11 +98,10 @@ const generateTableData = async (
 ): Promise<WorkerDataReturn | "cancelled"> => {
   const {
     actorsByAccountId,
+    closedMultiEntityTypesRootMap,
+    definitions,
     entities,
-    entitiesHaveSameType,
     entityTypesWithMultipleVersionsPresent,
-    entityTypes,
-    usedPropertyTypesByEntityTypeId,
     subgraph: serializedSubgraph,
     hideColumns,
     hideArchivedColumn,
@@ -136,70 +135,52 @@ const generateTableData = async (
 
   const propertyColumnsMap = new Map<string, EntitiesTableColumn>();
 
-  for (const { propertyType, width } of Object.values(
-    usedPropertyTypesByEntityTypeId,
-  ).flat()) {
-    const propertyTypeBaseUrl = extractBaseUrl(propertyType.schema.$id);
-
-    if (!propertyColumnsMap.has(propertyTypeBaseUrl)) {
-      propertyColumnsMap.set(propertyTypeBaseUrl, {
-        id: propertyTypeBaseUrl,
-        title: propertyType.schema.title,
-        width: width + 70,
-      });
-    }
-  }
-  const propertyColumns = Array.from(propertyColumnsMap.values());
-
-  const columns: EntitiesTableColumn[] = [
-    {
-      title: entitiesHaveSameType
-        ? (entityTypes.find(
-            ({ $id }) =>
-              entities[0] &&
-              $id === new Entity(entities[0]).metadata.entityTypeIds[0],
-          )?.title ?? "Entity")
-        : "Entity",
-      id: "entityLabel",
-      width: 300,
-      grow: 1,
-    },
-  ];
-
-  const columnsToHide = hideColumns ?? [];
-  if (hideArchivedColumn) {
-    columnsToHide.push("archived");
-  }
-
-  for (const [columnKey, definition] of typedEntries(
-    staticColumnDefinitionsByKey,
-  )) {
-    if (!columnsToHide.includes(columnKey)) {
-      columns.push(definition);
-    }
-  }
-
-  if (!hidePropertiesColumns) {
-    columns.push(
-      ...propertyColumns.sort((a, b) => a.title.localeCompare(b.title)),
-    );
-  }
+  const entityTypeTitlesSharedAcrossAllEntities = new Set<string>();
 
   const rows: EntitiesTableRow[] = [];
-  for (const serializedEntity of entities) {
+  for (const [index, serializedEntity] of entities.entries()) {
     if (await isCancelled(requestId)) {
       return "cancelled";
     }
 
     const entity = new Entity(serializedEntity);
 
-    const entityLabel = generateEntityLabel(subgraph, entity);
-
-    const currentEntitysTypes = entityTypes.filter((type) =>
-      entity.metadata.entityTypeIds.includes(type.$id),
+    const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
+      closedMultiEntityTypesRootMap,
+      entity.metadata.entityTypeIds,
     );
 
-    const entityIcon = currentEntitysTypes[0]?.icon;
+    const entityLabel = generateEntityLabel(closedMultiEntityType, entity);
+
+    let entityIcon: string | undefined;
+    const entityTypeTitles = new Set<string>();
+    for (const entityType of closedMultiEntityType.allOf) {
+      if (index === 0) {
+        /**
+         * We add the titles of the types of the first entity to the set.
+         */
+        entityTypeTitlesSharedAcrossAllEntities.add(entityType.title);
+      } else {
+        entityTypeTitles.add(entityType.title);
+      }
+
+      for (const typeOrAncestor of entityType.allOf ?? []) {
+        if (typeOrAncestor.icon) {
+          entityIcon = typeOrAncestor.icon;
+          break;
+        }
+      }
+    }
+
+    /**
+     * Check for any titles in our shared set that aren't present in the current entity's types.
+     * If they aren't present, remove them from the shared set – they aren't shared.
+     */
+    for (const sharedTitle of entityTypeTitlesSharedAcrossAllEntities) {
+      if (!entityTypeTitles.has(sharedTitle)) {
+        entityTypeTitlesSharedAcrossAllEntities.delete(sharedTitle);
+      }
+    }
 
     const entityNamespace =
       webNameByOwnedById[
@@ -230,11 +211,52 @@ const generateTableData = async (
 
     const createdBy = actorsByAccountId[entity.metadata.provenance.createdById];
 
-    const applicableProperties = currentEntitysTypes.flatMap((entityType) =>
-      usedPropertyTypesByEntityTypeId[entityType.$id]!.map(({ propertyType }) =>
-        extractBaseUrl(propertyType.schema.$id),
-      ),
-    );
+    const propertyCellsForRow: Record<BaseUrl, EntitiesTableRowPropertyCell> =
+      {};
+
+    for (const [baseUrl, schema] of typedEntries(
+      closedMultiEntityType.properties,
+    )) {
+      const propertyTypeId = "$ref" in schema ? schema.$ref : schema.items.$ref;
+
+      const propertyType = definitions.propertyTypes[propertyTypeId];
+
+      if (!propertyType) {
+        throw new Error(
+          `Property type not found for ${propertyTypeId} in ${entityId}`,
+        );
+      }
+
+      const isArray = "items" in schema || "items" in propertyType.oneOf[0];
+
+      if (entity.properties[baseUrl] !== undefined) {
+        const propertyMetadata = entity.propertyMetadata([baseUrl]);
+
+        if (!propertyMetadata) {
+          throw new Error(
+            `Property metadata not found for ${baseUrl} in ${entityId}`,
+          );
+        }
+
+        propertyCellsForRow[baseUrl] = {
+          isArray,
+          propertyMetadata,
+          value: entity.properties[baseUrl],
+        };
+      }
+
+      if (!propertyColumnsMap.has(baseUrl)) {
+        propertyColumnsMap.set(baseUrl, {
+          id: baseUrl,
+          title: propertyType.title,
+          /**
+           * This fixed width will be adjusted in the caller by measuring the text.
+           * We can't measure the text here because we can't create DOM elements in the worker.
+           */
+          width: 200,
+        });
+      }
+    }
 
     let sourceEntity: EntitiesTableRow["sourceEntity"];
     let targetEntity: EntitiesTableRow["targetEntity"];
@@ -242,23 +264,32 @@ const generateTableData = async (
       const source = getEntityRevision(subgraph, entity.linkData.leftEntityId);
       const target = getEntityRevision(subgraph, entity.linkData.rightEntityId);
 
-      const sourceEntityLabel = !source
-        ? entity.linkData.leftEntityId
-        : source.linkData
-          ? generateLinkEntityLabel(subgraph, source, null, null)
-          : generateEntityLabel(subgraph, source);
+      const sourceClosedMultiEntityType = source
+        ? getClosedMultiEntityTypeFromMap(
+            closedMultiEntityTypesRootMap,
+            source.metadata.entityTypeIds,
+          )
+        : undefined;
 
-      /**
-       * @todo H-3363 use closed schema to get entity's icon
-       */
-      const sourceEntityType = source
-        ? getEntityTypeById(subgraph, source.metadata.entityTypeIds[0])
+      const sourceEntityLabel =
+        !source || !sourceClosedMultiEntityType
+          ? entity.linkData.leftEntityId
+          : source.linkData
+            ? generateLinkEntityLabel(subgraph, source, {
+                closedType: sourceClosedMultiEntityType,
+                entityTypeDefinitions: definitions,
+                closedMultiEntityTypesRootMap,
+              })
+            : generateEntityLabel(sourceClosedMultiEntityType, source);
+
+      const sourceDisplayFields = sourceClosedMultiEntityType
+        ? getDisplayFieldsForClosedEntityType(sourceClosedMultiEntityType)
         : undefined;
 
       sourceEntity = {
         entityId: entity.linkData.leftEntityId,
         label: sourceEntityLabel,
-        icon: sourceEntityType?.schema.icon,
+        icon: sourceDisplayFields?.icon,
         isLink: !!source?.linkData,
       };
 
@@ -269,23 +300,32 @@ const generateTableData = async (
       };
       sourcesByEntityId[sourceEntity.entityId]!.count++;
 
-      const targetEntityLabel = !target
-        ? entity.linkData.leftEntityId
-        : target.linkData
-          ? generateLinkEntityLabel(subgraph, target, null, null)
-          : generateEntityLabel(subgraph, target);
+      const targetClosedMultiEntityType = target
+        ? getClosedMultiEntityTypeFromMap(
+            closedMultiEntityTypesRootMap,
+            target.metadata.entityTypeIds,
+          )
+        : undefined;
 
-      /**
-       * @todo H-3363 use closed schema to get entity's icon
-       */
-      const targetEntityType = target
-        ? getEntityTypeById(subgraph, target.metadata.entityTypeIds[0])
+      const targetEntityLabel =
+        !target || !targetClosedMultiEntityType
+          ? entity.linkData.leftEntityId
+          : target.linkData
+            ? generateLinkEntityLabel(subgraph, target, {
+                closedType: targetClosedMultiEntityType,
+                entityTypeDefinitions: definitions,
+                closedMultiEntityTypesRootMap,
+              })
+            : generateEntityLabel(targetClosedMultiEntityType, target);
+
+      const targetDisplayFields = targetClosedMultiEntityType
+        ? getDisplayFieldsForClosedEntityType(targetClosedMultiEntityType)
         : undefined;
 
       targetEntity = {
         entityId: entity.linkData.rightEntityId,
         label: targetEntityLabel,
-        icon: targetEntityType?.schema.icon,
+        icon: targetDisplayFields?.icon,
         isLink: !!target?.linkData,
       };
 
@@ -307,24 +347,30 @@ const generateTableData = async (
       entityId,
       entityLabel,
       entityIcon,
-      entityTypes: currentEntitysTypes.map((entityType) => {
-        /**
-         * @todo H-3363 use closed schema to take account of indirectly inherited link entity types
-         */
-        const isLink = !!entityType.allOf?.some(
-          (allOf) => allOf.$ref === linkEntityTypeUrl,
-        );
+      entityTypes: closedMultiEntityType.allOf.map((entityType) => {
+        let isLink: boolean = false;
+        let icon: string | undefined;
 
-        let entityTypeLabel = entityType.title;
-        if (entityTypesWithMultipleVersionsPresent.includes(entityType.$id)) {
-          entityTypeLabel += ` v${extractVersion(entityType.$id)}`;
+        for (const typeOrAncestor of entityType.allOf ?? []) {
+          if (!icon && typeOrAncestor.icon) {
+            icon = typeOrAncestor.icon;
+          }
+
+          if (!isLink && typeOrAncestor.$id === linkEntityTypeUrl) {
+            isLink = true;
+          }
         }
 
         return {
-          title: entityTypeLabel,
+          title: entityType.title,
           entityTypeId: entityType.$id,
-          icon: entityType.icon,
+          icon,
           isLink,
+          version: entityTypesWithMultipleVersionsPresent.includes(
+            entityType.$id,
+          )
+            ? extractVersion(entityType.$id)
+            : undefined,
         };
       }),
       web,
@@ -337,24 +383,50 @@ const generateTableData = async (
       createdBy: createdBy ?? "loading",
       sourceEntity,
       targetEntity,
-      applicableProperties,
-      ...propertyColumns.reduce((fields, column) => {
-        if (column.id) {
-          const propertyValue = entity.properties[column.id as BaseUrl];
-
-          const value =
-            typeof propertyValue === "undefined"
-              ? ""
-              : typeof propertyValue === "number"
-                ? propertyValue
-                : stringifyPropertyValue(propertyValue);
-
-          return { ...fields, [column.id]: value };
-        }
-
-        return fields;
-      }, {}),
+      applicableProperties: typedKeys(closedMultiEntityType.properties),
+      ...propertyCellsForRow,
     });
+  }
+
+  const propertyColumns = Array.from(propertyColumnsMap.values());
+
+  const columns: EntitiesTableColumn[] = [
+    {
+      title:
+        entityTypeTitlesSharedAcrossAllEntities.size === 0
+          ? "Entity"
+          : entityTypeTitlesSharedAcrossAllEntities.values().next().value!,
+      id: "entityLabel",
+      width: 300,
+      grow: 1,
+    },
+  ];
+
+  const columnsToHide = hideColumns ?? [];
+  if (hideArchivedColumn) {
+    columnsToHide.push("archived");
+  }
+
+  if (noSource === rows.length) {
+    columnsToHide.push("sourceEntity");
+  }
+
+  if (noTarget === rows.length) {
+    columnsToHide.push("targetEntity");
+  }
+
+  for (const [columnKey, definition] of typedEntries(
+    staticColumnDefinitionsByKey,
+  )) {
+    if (!columnsToHide.includes(columnKey)) {
+      columns.push(definition);
+    }
+  }
+
+  if (!hidePropertiesColumns) {
+    columns.push(
+      ...propertyColumns.sort((a, b) => a.title.localeCompare(b.title)),
+    );
   }
 
   return {

@@ -370,12 +370,11 @@ export const OutgoingLinksTable = memo(
         );
 
         const rightEntityLabel = rightEntity.linkData
-          ? generateLinkEntityLabel(
-              entitySubgraph,
-              rightEntity,
-              rightEntityClosedMultiType,
-              closedMultiEntityTypesDefinitions,
-            )
+          ? generateLinkEntityLabel(entitySubgraph, rightEntity, {
+              closedType: rightEntityClosedMultiType,
+              entityTypeDefinitions: closedMultiEntityTypesDefinitions,
+              closedMultiEntityTypesRootMap: closedMultiEntityTypesMap,
+            })
           : generateEntityLabel(rightEntityClosedMultiType, rightEntity);
 
         filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId] ??=

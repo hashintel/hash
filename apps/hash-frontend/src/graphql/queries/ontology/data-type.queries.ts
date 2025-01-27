@@ -32,3 +32,9 @@ export const queryDataTypesQuery = gql`
   }
   ${subgraphFieldsFragment}
 `;
+
+export const getDataTypeConversionTargetsQuery = gql`
+  query getDataTypeConversionTargets($dataTypeIds: [VersionedUrl!]!) {
+    getDataTypeConversionTargets(dataTypeIds: $dataTypeIds)
+  }
+`;

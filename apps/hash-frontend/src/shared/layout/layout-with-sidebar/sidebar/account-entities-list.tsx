@@ -2,10 +2,6 @@ import { useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -29,7 +25,7 @@ import { ArrowDownAZRegularIcon } from "../../../icons/arrow-down-a-z-regular-ic
 import { ArrowUpZARegularIcon } from "../../../icons/arrow-up-a-z-regular-icon";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { Link } from "../../../ui";
-import { generateUseEntityTypeEntitiesFilter } from "../../../use-entity-type-entities";
+import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../use-entity-type-entities";
 import { useUserPreferences } from "../../../use-user-preferences";
 import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { EntityOrTypeSidebarItem } from "./shared/entity-or-type-sidebar-item";
@@ -88,27 +84,9 @@ export const AccountEntitiesList: FunctionComponent<
     GetEntitySubgraphQuery,
     GetEntitySubgraphQueryVariables
   >(getEntitySubgraphQuery, {
-    variables: {
-      request: {
-        /**
-         * We only make this request to get the count of entities by typeId to filter types in the sidebar,
-         * to only those for which the active workspace has at least one entity.
-         *
-         * We don't actually need a single entity but the Graph rejects requests with a limit of 0.
-         * We currently can't use countEntities as it just returns a total number, with no count by typeId.
-         */
-        limit: 1,
-        includeTypeIds: true,
-        filter: generateUseEntityTypeEntitiesFilter({
-          ownedByIds: [ownedById],
-          includeArchived: false,
-        }),
-        graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: false,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-      includePermissions: false,
-    },
+    variables: generateSidebarEntityTypeEntitiesQueryVariables({
+      ownedById,
+    }),
     fetchPolicy: "network-only",
   });
 

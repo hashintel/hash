@@ -1,25 +1,23 @@
 import { TextField } from "@hashintel/design-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import {
-  outlinedInputClasses,
-  type PopperProps,
-  Stack,
-  type SxProps,
-  type Theme,
-} from "@mui/material";
-import {
   Box,
   Checkbox,
   ClickAwayListener,
   Fade,
   ListItemIcon,
   ListItemText,
+  outlinedInputClasses,
   Paper,
   Popper,
+  type PopperProps,
+  Stack,
+  type SxProps,
+  type Theme,
   Typography,
 } from "@mui/material";
 import type { CSSProperties } from "react";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { FixedSizeList } from "react-window";
 
 import { MenuItem } from "../../../shared/ui";
@@ -47,6 +45,8 @@ type FilterItemData = {
   id: string;
   doesNotApplyValue?: boolean;
   label: string;
+  count?: number;
+  labelSuffix?: string;
   checked: boolean;
 };
 
@@ -77,7 +77,7 @@ const FilterItem = memo(
     } = data;
 
     const item = items[index]!;
-    const { id, doesNotApplyValue, label, checked } = item;
+    const { id, count, doesNotApplyValue, label, labelSuffix, checked } = item;
 
     return (
       <Box style={style}>
@@ -123,7 +123,30 @@ const FilterItem = memo(
               />
             </ListItemIcon>
             <ListItemText
-              primary={label}
+              primary={
+                <Stack direction="row" alignItems="center">
+                  <Box component="span">{label}</Box>
+                  {labelSuffix && (
+                    <Box
+                      component="span"
+                      sx={{
+                        ml: 0.5,
+                        color: ({ palette }) => palette.gray[40],
+                      }}
+                    >
+                      {labelSuffix}
+                    </Box>
+                  )}
+                  {count !== undefined && (
+                    <Box
+                      component="span"
+                      sx={{ ml: 0.5, color: ({ palette }) => palette.gray[60] }}
+                    >
+                      ({formatNumber(count)})
+                    </Box>
+                  )}
+                </Stack>
+              }
               primaryTypographyProps={
                 doesNotApplyValue
                   ? {
@@ -170,24 +193,6 @@ export const ColumnFilterMenu = <R extends GridRow>({
   columnFilter?: ColumnFilter<string, R>;
   onClose: () => void;
 } & PopperProps) => {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-
-    if (wrapper) {
-      const onMouseMove = (event: MouseEvent) => {
-        event.stopPropagation();
-      };
-
-      wrapper.addEventListener("mousemove", onMouseMove);
-
-      return () => {
-        wrapper.removeEventListener("mousemove", onMouseMove);
-      };
-    }
-  }, [wrapperRef]);
-
   const [previousColumnFilter, setPreviousColumnFilter] =
     useState<ColumnFilter<string, R>>();
 
@@ -229,17 +234,16 @@ export const ColumnFilterMenu = <R extends GridRow>({
         continue;
       }
 
-      const { id, doesNotApplyValue, label, count } = item;
+      const { id, doesNotApplyValue, label, count, labelSuffix } = item;
 
       const checked = !!selectedFilterItemIds?.has(id);
-
-      const text =
-        count !== undefined ? `${label} (${formatNumber(count)})` : label;
 
       filteredItems.push({
         id,
         doesNotApplyValue,
-        label: text,
+        label,
+        count,
+        labelSuffix,
         checked,
       });
     }
@@ -301,7 +305,7 @@ export const ColumnFilterMenu = <R extends GridRow>({
                 }
               }}
             >
-              <Paper ref={wrapperRef} sx={{ padding: 0.25 }}>
+              <Paper sx={{ padding: 0.25 }}>
                 <Stack
                   direction="row"
                   alignItems="center"

@@ -1,20 +1,27 @@
-import type {
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, PropertyValue } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  PropertyMetadata,
+  PropertyValue,
+} from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
-  PropertyTypeWithMetadata,
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { SerializedSubgraph } from "@local/hash-subgraph";
 
 import type { MinimalActor } from "../../../../shared/use-actors";
+
+export type EntitiesTableRowPropertyCell = {
+  isArray: boolean;
+  propertyMetadata: PropertyMetadata;
+  value: PropertyValue;
+};
 
 export interface EntitiesTableRow {
   rowId: EntityId;
@@ -26,6 +33,7 @@ export interface EntitiesTableRow {
     icon?: string;
     isLink: boolean;
     title: string;
+    version?: number;
   }[];
   archived?: boolean;
   lastEdited: string;
@@ -47,7 +55,7 @@ export interface EntitiesTableRow {
   web: string;
   applicableProperties: BaseUrl[];
 
-  [key: BaseUrl]: PropertyValue;
+  [key: BaseUrl]: EntitiesTableRowPropertyCell;
 }
 
 export type EntitiesTableColumnKey =
@@ -67,6 +75,16 @@ export type SortableEntitiesTableColumnKey =
     >
   | BaseUrl;
 
+export const filterableEntitiesTableColumnKeys: EntitiesTableColumnKey[] = [
+  "entityTypes",
+  "web",
+  "createdBy",
+  "lastEditedBy",
+] as const;
+
+export type FilterableEntitiesColumnKey =
+  (typeof filterableEntitiesTableColumnKeys)[number];
+
 export interface EntitiesTableColumn extends SizedGridColumn {
   id: EntitiesTableColumnKey;
 }
@@ -77,26 +95,17 @@ export type SourceOrTargetFilterData = {
   label: string;
 };
 
-export type PropertiesByEntityTypeId = {
-  [entityTypeId: VersionedUrl]: {
-    propertyType: PropertyTypeWithMetadata;
-    width: number;
-  }[];
-};
-
 export type GenerateEntitiesTableDataParams = {
   actorsByAccountId: Record<AccountId, MinimalActor | null>;
+  closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
+  definitions: ClosedMultiEntityTypesDefinitions;
   entities: SerializedEntity[];
-  entitiesHaveSameType: boolean;
   entityTypesWithMultipleVersionsPresent: VersionedUrl[];
-  entityTypes: EntityType[];
-  propertyTypes?: PropertyType[];
   subgraph: SerializedSubgraph;
   hasSomeLinks?: boolean;
   hideColumns?: (keyof EntitiesTableRow)[];
   hideArchivedColumn?: boolean;
   hidePropertiesColumns: boolean;
-  usedPropertyTypesByEntityTypeId: PropertiesByEntityTypeId;
   webNameByOwnedById: Record<OwnedById, string>;
 };
 
@@ -110,6 +119,7 @@ export type EntityTypeTableFilterData = {
   entityTypeId: VersionedUrl;
   title: string;
   count: number;
+  version?: number;
 };
 
 export type WebTableFilterData = {

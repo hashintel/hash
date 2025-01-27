@@ -65,6 +65,7 @@ import type { AuthenticationContext } from "./authentication-context.js";
  */
 export type CreatedByIdsMap = Record<AccountId, number>;
 export type TypeIdsMap = Record<VersionedUrl, number>;
+export type TypeTitlesMap = Record<VersionedUrl, string>;
 export type WebIdsMap = Record<OwnedById, number>;
 
 export type EnforcedEntityEditionProvenance = Omit<

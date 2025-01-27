@@ -17,6 +17,8 @@ export const scalars = {
   DataTypeWithMetadata: "@local/hash-graph-types/ontology#DataTypeWithMetadata",
   ConstructDataTypeParams:
     "@local/hash-isomorphic-utils/data-types#ConstructDataTypeParams",
+  DataTypeConversionsMap:
+    "@local/hash-isomorphic-utils/data-types#DataTypeConversionsMap",
 
   ClosedMultiEntityType:
     "@local/hash-graph-types/ontology#ClosedMultiEntityType",
@@ -56,6 +58,7 @@ export const scalars = {
   EntityQueryCursor: "@local/hash-graph-client#EntityQueryCursor",
   CreatedByIdsMap: "@local/hash-graph-sdk/entity#CreatedByIdsMap",
   TypeIdsMap: "@local/hash-graph-sdk/entity#TypeIdsMap",
+  TypeTitlesMap: "@local/hash-graph-sdk/entity#TypeTitlesMap",
   WebIdsMap: "@local/hash-graph-sdk/entity#WebIdsMap",
 
   Filter: "@local/hash-graph-client#Filter",
