@@ -2,11 +2,17 @@ import type {
   MessageParam as AnthropicMessage,
   ToolResultBlockParam as AnthropicToolResultBlockParam,
 } from "@anthropic-ai/sdk/resources/messages";
+import type { Content } from "@google-cloud/vertexai/build/src/types/content.js";
 import type { OpenAI } from "openai";
 
 export type LlmMessageTextContent = {
   type: "text";
   text: string;
+};
+
+export type FileMessageContent = {
+  mimeType: string;
+  fileUri: string;
 };
 
 export type LlmMessageToolUseContent<ToolName = string> = {
@@ -30,7 +36,11 @@ export type LlmMessageToolResultContent = {
 
 export type LlmUserMessage = {
   role: "user";
-  content: (LlmMessageTextContent | LlmMessageToolResultContent)[];
+  content: (
+    | LlmMessageTextContent
+    | LlmMessageToolResultContent
+    | FileMessageContent
+  )[];
 };
 
 export type LlmMessage = LlmAssistantMessage | LlmUserMessage;
@@ -342,4 +352,27 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
     },
     [] as LlmMessage[],
   );
+};
+
+export const mapGoogleVertexAiMessagesToLlmMessages = (params: {
+  messages: Content[];
+}): LlmMessage[] => {
+  const { messages } = params;
+
+  return messages.map((message) => ({
+    role: message.role as "user" | "assistant",
+    content: message.parts.map((part) => {
+      if ("fileData" in part && part.fileData) {
+        return {
+          type: "file" as const,
+          fileEntity: part.fileData.fileUri,
+        };
+      } else {
+        return {
+          type: "text" as const,
+          text: part.text,
+        };
+      }
+    }),
+  }));
 };

@@ -1,3 +1,4 @@
+import type { GenerateContentResponse } from "@google-cloud/vertexai";
 import type { OpenAI } from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
@@ -9,7 +10,11 @@ import type {
   AnthropicMessagesCreateResponse,
 } from "./anthropic-client.js";
 import { isAnthropicMessageModel } from "./anthropic-client.js";
-import type { LlmAssistantMessage, LlmMessage } from "./llm-message.js";
+import type {
+  FileMessageContent,
+  LlmAssistantMessage,
+  LlmMessage,
+} from "./llm-message.js";
 
 export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
@@ -20,6 +25,8 @@ export type LlmToolDefinition<ToolName extends string = string> = {
   };
   sanitizeInputBeforeValidation?: (rawInput: object) => object;
 };
+
+export type LlmService = "anthropic" | "openai" | "google-ai";
 
 export type CommonLlmParams<ToolName extends string = string> = {
   model: AnthropicMessageModel | PermittedOpenAiModel;
@@ -32,10 +39,24 @@ export type CommonLlmParams<ToolName extends string = string> = {
     previousSuccessfulToolCalls: ParsedLlmToolCall<ToolName>[];
     previousUsage: LlmUsage;
   };
+  service: LlmService;
+};
+
+export type GoogleAiParams<ToolName extends string = string> = Omit<
+  CommonLlmParams<ToolName>,
+  "messages"
+> & {
+  messages: (LlmMessage | FileMessageContent)[];
+  model: "gemini-1.5-pro-002";
+  service: "google-vertex-ai";
+  previousInvalidResponses?: (GenerateContentResponse & {
+    requestTime: number;
+  })[];
 };
 
 export type AnthropicLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
+    service: "anthropic";
     model: AnthropicMessageModel;
     maxTokens?: number;
     previousInvalidResponses?: (AnthropicMessagesCreateResponse & {
@@ -48,6 +69,7 @@ export type AnthropicLlmParams<ToolName extends string = string> =
 
 export type OpenAiLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
+    service: "openai";
     model: PermittedOpenAiModel;
     trimMessageAtIndex?: number;
     previousInvalidResponses?: (OpenAI.ChatCompletion & {

@@ -340,6 +340,12 @@ const migrate: MigrationFunction = async ({
       inputUnitCost: 0.00000025,
       outputUnitCost: 0.00000125,
     },
+    {
+      serviceName: "Google AI",
+      featureName: "gemini-1.5-pro-002",
+      inputUnitCost: 0.00000125,
+      outputUnitCost: 0.000005,
+    },
   ];
 
   const hashOrg = await getOrgByShortname(context, authentication, {

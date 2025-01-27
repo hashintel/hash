@@ -64,12 +64,7 @@ export const isAnthropicContentToolUseBlock = (
   content: AnthropicMessagesCreateResponseContent,
 ): content is ToolUseBlock => content.type === "tool_use";
 
-export type AnthropicMessagesCreateResponse = Omit<
-  Message,
-  "content" | "stop_reason"
-> & {
-  stop_reason: Message["stop_reason"] | "tool_use";
-  content: AnthropicMessagesCreateResponseContent[];
+export type AnthropicMessagesCreateResponse = Message & {
   provider: AnthropicApiProvider;
 };
 
