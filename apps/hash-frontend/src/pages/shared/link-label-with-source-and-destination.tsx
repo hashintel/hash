@@ -44,7 +44,7 @@ import { Fragment, useMemo, useRef } from "react";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { Link } from "../../shared/ui";
-import { useEntityEditor } from "../[shortname]/entities/[entity-uuid].page/entity-editor/entity-editor-context";
+import { useEntityEditor } from "../@/[shortname]/entities/[entity-uuid].page/entity-editor/entity-editor-context";
 import { TooltipChip } from "./tooltip-chip";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({

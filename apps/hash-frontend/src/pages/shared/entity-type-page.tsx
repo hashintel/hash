@@ -27,7 +27,7 @@ import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../shared/is-archived";
 import { isHrefExternal } from "../../shared/is-href-external";
 import { useUserPermissionsOnEntityType } from "../../shared/use-user-permissions-on-entity-type";
-import { ArchiveMenuItem } from "../[shortname]/shared/archive-menu-item";
+import { ArchiveMenuItem } from "../@/[shortname]/shared/archive-menu-item";
 import { ConvertTypeMenuItem } from "./entity-type-page/convert-type-menu-item";
 import { DefinitionTab } from "./entity-type-page/definition-tab";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";

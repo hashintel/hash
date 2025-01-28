@@ -60,7 +60,7 @@
     "@rollup/plugin-typescript": "12.1.2",
     "@rollup/plugin-wasm": "6.2.2",
     "@types/node": "22.12.0",
-    "@types/react": "19.0.1",
+    "@types/react": "19.0.8",
     "@vitest/coverage-istanbul": "2.1.8",
     "eslint": "9.19.0",
     "react": "19.0.0",
