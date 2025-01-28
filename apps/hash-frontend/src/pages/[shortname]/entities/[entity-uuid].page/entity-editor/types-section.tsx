@@ -254,8 +254,6 @@ export const TypesSection = () => {
     });
   }, [closedMultiEntityType, latestEntityTypesData]);
 
-  console.log({ entityTypes });
-
   const [addingType, setAddingType] = useState(false);
 
   const onNewTypeSelected = async (entityTypeId: VersionedUrl) => {
