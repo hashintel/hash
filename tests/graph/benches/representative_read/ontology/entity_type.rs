@@ -9,7 +9,7 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_types::account::AccountId;
-use rand::{prelude::IteratorRandom as _, thread_rng};
+use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
 use type_system::url::VersionedUrl;
 
@@ -27,7 +27,7 @@ pub fn bench_get_entity_type_by_id<A: AuthorizationApi>(
             // Each iteration, *before timing*, pick a random entity type from the sample to query
             entity_type_ids
                 .iter()
-                .choose(&mut thread_rng())
+                .choose(&mut rng())
                 .expect("could not choose random entity type")
         },
         |entity_type_id| async move {
