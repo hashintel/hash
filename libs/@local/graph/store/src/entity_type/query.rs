@@ -60,7 +60,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde_json::json;
     /// # use hash_graph_store::{filter::{Filter, FilterExpression, Parameter}};
     /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
-    /// # use graph_types::ontology::EntityTypeWithMetadata;
+    /// # use hash_graph_types::ontology::EntityTypeWithMetadata;
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
     /// let path = Filter::<EntityTypeWithMetadata>::deserialize(filter_value)?;
     /// assert_eq!(path, Filter::Equal(
@@ -387,7 +387,49 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// Corresponds to the values of [`EntityType::link_mappings()`].
     ///
-    /// Only used internally and not available for deserialization, yet.
+    /// As an [`EntityType`] can link to multiple [`EntityType`]s, the deserialized path
+    /// requires an additional selector to identify the [`EntityType`] to query. Currently,
+    /// only the `*` selector is available, so the path will be deserialized as
+    /// `["linkDestinations", "*", ...]` where `...` is the path to the desired field of the
+    /// [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
+    /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// let path = EntityTypeQueryPath::deserialize(json!(["linkDestinations", "*", "baseUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Outgoing,
+    ///     inheritance_depth: None,
+    /// });
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// ### Specifying the inheritance depth
+    ///
+    /// By passing `inheritanceDepth` as a parameter it's possible to limit the searched depth:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
+    /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// let path = EntityTypeQueryPath::deserialize(json!([
+    ///     "linkDestinations(inheritanceDepth=10)",
+    ///     "*",
+    ///     "baseUrl"
+    /// ]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Outgoing,
+    ///     inheritance_depth: Some(10),
+    /// });
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     EntityTypeEdge {
         edge_kind: OntologyEdgeKind,
         path: Box<Self>,
@@ -590,6 +632,7 @@ pub enum EntityTypeQueryToken {
     Icon,
     EditionProvenance,
     Links,
+    LinkDestinations,
     InheritsFrom,
     Children,
     Embedding,
@@ -609,7 +652,7 @@ impl EntityTypeQueryPathVisitor {
     pub(crate) const EXPECTING: &'static str =
         "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `title`, `description`, \
          `properties`, `required`, `labelProperty`, `icon`, `editionProvenance`, `links`, \
-         `inheritsFrom`, `children`, `embedding`";
+         `linkDestinations`, `inheritsFrom`, `children`, `embedding`";
 
     #[must_use]
     pub(crate) const fn new(position: usize) -> Self {
@@ -668,6 +711,22 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
 
                 EntityTypeQueryPath::EntityTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                    path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                    direction: EdgeDirection::Outgoing,
+                    inheritance_depth: parameters
+                        .remove("inheritanceDepth")
+                        .map(u32::from_str)
+                        .transpose()
+                        .map_err(de::Error::custom)?,
+                }
+            }
+            EntityTypeQueryToken::LinkDestinations => {
+                seq.next_element::<Selector>()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                self.position += 1;
+
+                EntityTypeQueryPath::EntityTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                     path: Box::new(Self::new(self.position).visit_seq(seq)?),
                     direction: EdgeDirection::Outgoing,
                     inheritance_depth: parameters
