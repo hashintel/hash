@@ -1,7 +1,7 @@
 import { Effect, pipe, Stream } from "effect";
 
-import * as Buffer from "../Buffer.js";
 import { Request } from "../models/request/index.js";
+import { MutableBuffer } from "../../binary/index.js";
 
 export const make = <E, R>(
   stream: Stream.Stream<Request.Request, E, R>,
@@ -10,11 +10,11 @@ export const make = <E, R>(
     stream,
     Stream.mapEffect((request) =>
       Effect.gen(function* () {
-        const buffer = yield* Buffer.makeWrite();
+        const buffer = MutableBuffer.makeWrite();
 
         yield* Request.encode(buffer, request);
 
-        return yield* Buffer.take(buffer);
+        return MutableBuffer.take(buffer);
       }),
     ),
   );

@@ -1,6 +1,5 @@
 import { Function, Hash, Record, Tuple } from "effect";
 
-import type * as Buffer from "./wire-protocol/Buffer.js";
 import type { MutableBuffer } from "./binary/index.js";
 
 export const createProto = <
@@ -45,7 +44,10 @@ export const createProto = <
 /**
  * This is more strictly typed than necessary, but this allows us to give better type hints.
  */
-export const implEncode: <U, E extends Buffer.UnexpectedEndOfBufferError>(
+export const implEncode: <
+  U,
+  E extends MutableBuffer.UnexpectedEndOfBufferError,
+>(
   closure: (
     buffer: MutableBuffer.WriteBuffer,
     self: U,

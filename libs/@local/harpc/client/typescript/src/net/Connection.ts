@@ -15,11 +15,11 @@ import {
 import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
-import { Buffer } from "../wire-protocol/index.js";
 import {
   type RequestId,
   Request as WireRequest,
 } from "../wire-protocol/models/request/index.js";
+import { MutableBuffer } from "../binary/index.js";
 import {
   type Response as WireResponse,
   ResponseFlags,
@@ -229,6 +229,7 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
       (array.buffer as ArrayBuffer).slice(
         array.byteOffset,
         array.byteOffset + array.byteLength,
+        ),
       ),
     ),
     ResponseFromBytesStream.make,
@@ -243,11 +244,12 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
     ),
     Sink.mapInputEffect((request: WireRequest.Request) =>
       Effect.gen(function* () {
-        const buffer = yield* Buffer.makeWrite();
+          // in the future we might be able to re-use the allocated buffer (we would likely still need to copy the contents tho)
+          const buffer = MutableBuffer.makeWrite();
 
         yield* WireRequest.encode(buffer, request);
 
-        const array = yield* Buffer.take(buffer);
+          const array = MutableBuffer.take(buffer);
 
         return new Uint8Array(array);
       }),

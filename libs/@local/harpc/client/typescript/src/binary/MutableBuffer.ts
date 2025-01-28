@@ -16,7 +16,7 @@ export interface MutableBuffer<T> extends Pipeable.Pipeable {
 }
 
 const Read: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/Buffer/Read",
+  "@local/harpc-client/binary/MutableBuffer/Read",
 );
 
 export type Read = typeof Read;
@@ -26,7 +26,7 @@ export type ReadBuffer = MutableBuffer<Read>;
 export type ReadResult<T, E = UnexpectedEndOfBufferError> = Either.Either<T, E>;
 
 const Write: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/Buffer/Write",
+  "@local/harpc-client/binary/MutableBuffer/Write",
 );
 
 export type Write = typeof Write;
