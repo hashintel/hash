@@ -79,6 +79,18 @@ describe("put", () => {
 
     expect(new Uint8Array(array)).toStrictEqual(new Uint8Array([0x04, 0x03]));
   });
+
+  test("length", () => {
+    const buffer = MutableBuffer.makeWrite();
+
+    MutableBuffer.putU8(buffer, 0x04).pipe(Either.getOrThrow);
+
+    expect(MutableBuffer.length(buffer)).toBe(1);
+
+    MutableBuffer.putU16(buffer, 0x04_03).pipe(Either.getOrThrow);
+
+    expect(MutableBuffer.length(buffer)).toBe(3);
+  });
 });
 
 describe("get", () => {
@@ -128,5 +140,21 @@ describe("get", () => {
     expect(
       MutableBuffer.getSlice(makeBuffer(), 2).pipe(Either.getOrThrow),
     ).toStrictEqual(new Uint8Array([0xff, 0xfe]));
+  });
+
+  test("advance", () => {
+    const buffer = makeBuffer();
+
+    MutableBuffer.advance(buffer, 2).pipe(Either.getOrThrow);
+
+    expect(MutableBuffer.getU8(buffer).pipe(Either.getOrThrow)).toBe(0xfd);
+  });
+
+  test("remaining", () => {
+    const buffer = makeBuffer();
+
+    MutableBuffer.advance(buffer, 2).pipe(Either.getOrThrow);
+
+    expect(MutableBuffer.remaining(buffer)).toBe(254);
   });
 });
