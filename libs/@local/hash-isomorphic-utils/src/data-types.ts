@@ -99,7 +99,7 @@ const createFormattedParts = ({
 };
 
 const arrayItemSeparator: FormattedValuePart = {
-  color: "#91A5BA",
+  color: "#758AA1",
   type: "rightLabel",
   text: ", ",
 };
