@@ -324,7 +324,7 @@ __metadata:
     officeparser: "npm:4.2.0"
     openai: "npm:4.80.1"
     openai-chat-tokens: "npm:0.2.8"
-    papaparse: "npm:5.5.1"
+    papaparse: "npm:5.5.2"
     pdf2json: "npm:3.1.5"
     puppeteer: "npm:22.15.0"
     puppeteer-extra: "npm:3.3.6"
@@ -557,7 +557,7 @@ __metadata:
     next-seo: "npm:6.6.0"
     nextjs-progressbar: "npm:0.0.16"
     notistack: "npm:2.0.8"
-    papaparse: "npm:5.5.1"
+    papaparse: "npm:5.5.2"
     prismjs: "npm:1.29.0"
     prosemirror-collab: "npm:1.3.0"
     prosemirror-commands: "npm:1.3.1"
@@ -38083,10 +38083,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"papaparse@npm:5.5.1, papaparse@npm:^5.4.1":
-  version: 5.5.1
-  resolution: "papaparse@npm:5.5.1"
-  checksum: 10c0/32f7b39ef175f9adc8dc5fecddc4b2801a82626149c65463d19cbdcb2e53ce3eb74867c59c50d7169b26082059fad46cef9fbd36178cb7c5c6a714d8c577217d
+"papaparse@npm:5.5.2, papaparse@npm:^5.4.1":
+  version: 5.5.2
+  resolution: "papaparse@npm:5.5.2"
+  checksum: 10c0/83b8c0cf570395581a42331cd9231194dbba43bc8c608026739f5180827506575993dc788def039a9666bc103e2a96075de8732ea8a63e507b74c02aa757bcd5
   languageName: node
   linkType: hard
 
