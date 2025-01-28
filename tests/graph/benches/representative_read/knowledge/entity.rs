@@ -18,7 +18,7 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_types::{account::AccountId, knowledge::entity::EntityUuid};
-use rand::{prelude::IteratorRandom as _, thread_rng};
+use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
 
 use crate::util::Store;
@@ -35,7 +35,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
             // Each iteration, *before timing*, pick a random entity from the sample to query
             *entity_uuids
                 .iter()
-                .choose(&mut thread_rng())
+                .choose(&mut rng())
                 .expect("could not choose random entity")
         },
         |entity_uuid| async move {
