@@ -41,7 +41,7 @@ import { useMemoCompare } from "../../shared/use-memo-compare";
 import type {
   CustomColumn,
   EntityEditorProps,
-} from "../[shortname]/entities/[entity-uuid].page/entity-editor";
+} from "../@/[shortname]/entities/[entity-uuid].page/entity-editor";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";

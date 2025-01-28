@@ -5,6 +5,7 @@ import {
 } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 
+import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { Button } from "../../shared/ui/button";
 import { useAuthInfo } from "./auth-info-context";
 
@@ -39,7 +40,7 @@ export const NotFound = () => {
     <Stack
       sx={{
         position: "absolute",
-        top: 0,
+        top: HEADER_HEIGHT,
         left: 0,
         height: "100%",
         width: "100%",
