@@ -3,7 +3,7 @@ import { describe, it } from "@effect/vitest";
 import { Effect, Equal, Schema } from "effect";
 
 import { ResponseKind } from "../../src/types/index.js";
-import { Buffer } from "../../src/wire-protocol/index.js";
+import { MutableBuffer, MutableBytes } from "../../src/binary/index.js";
 import {
   Response,
   ResponseBegin,
@@ -97,7 +97,7 @@ describe.concurrent("decode", () => {
         const input = convertResponseHeader(header);
 
         const array = yield* callDecode("response-header", input);
-        const buffer = yield* Buffer.makeRead(new DataView(array.buffer));
+        const buffer = MutableBuffer.makeRead(MutableBytes.from(array.buffer));
 
         const received = yield* ResponseHeader.decode(buffer);
 
@@ -113,7 +113,7 @@ describe.concurrent("decode", () => {
         const input = convertResponseBegin(begin);
 
         const array = yield* callDecode("response-begin", input);
-        const buffer = yield* Buffer.makeRead(new DataView(array.buffer));
+        const buffer = MutableBuffer.makeRead(MutableBytes.from(array.buffer));
 
         const received = yield* ResponseBegin.decode(buffer);
 
@@ -129,7 +129,7 @@ describe.concurrent("decode", () => {
         const input = convertResponseFrame(frame);
 
         const array = yield* callDecode("response-frame", input);
-        const buffer = yield* Buffer.makeRead(new DataView(array.buffer));
+        const buffer = MutableBuffer.makeRead(MutableBytes.from(array.buffer));
 
         const received = yield* ResponseFrame.decode(buffer);
 
@@ -148,7 +148,7 @@ describe.concurrent("decode", () => {
         const input = convertResponse(Response.prepare(response));
 
         const array = yield* callDecode("response", input);
-        const buffer = yield* Buffer.makeRead(new DataView(array.buffer));
+        const buffer = MutableBuffer.makeRead(MutableBytes.from(array.buffer));
 
         const received = yield* Response.decode(buffer);
 
