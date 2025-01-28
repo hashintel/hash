@@ -1,16 +1,7 @@
 import dns from "node:dns/promises";
 import { isIPv4, isIPv6 } from "node:net";
 
-import {
-  Array,
-  Cause,
-  Data,
-  Duration,
-  Effect,
-  Function,
-  pipe,
-  Record,
-} from "effect";
+import { Array, Cause, Data, Duration, Effect, Function } from "effect";
 import type { NonEmptyReadonlyArray } from "effect/Array";
 
 /** @internal */
@@ -90,25 +81,6 @@ const logEnvironment = (hostname: string) =>
     );
   });
 
-const logReverse = (records: DnsRecord[]) =>
-  Effect.gen(function* () {
-    const reverseRecords = yield* pipe(
-      records,
-      Array.map((record) =>
-        Effect.tryPromise(() => dns.reverse(record.address)).pipe(
-          Effect.merge,
-          Effect.map((reverse) => [record.address, reverse] as const),
-        ),
-      ),
-      (effects) => Effect.all(effects, { concurrency: "unbounded" }),
-      Effect.map(Record.fromEntries),
-    );
-
-    yield* Effect.logTrace("queried DNS for hostname").pipe(
-      Effect.annotateLogs({ reverse: reverseRecords }),
-    );
-  });
-
 /** @internal */
 export const resolve = (
   hostname: string,
@@ -177,8 +149,59 @@ export const resolve = (
     }
 
     return Array.flatten(satisfying);
-  }).pipe(
-    Effect.tap((records) =>
-      logReverse(records).pipe(Effect.annotateLogs({ hostname, query })),
-    ),
-  );
+  });
+
+/** @internal */
+export const lookup = (
+  hostname: string,
+  query: {
+    records: NonEmptyReadonlyArray<RecordType>;
+  },
+) =>
+  Effect.gen(function* () {
+    const records = yield* Effect.tryPromise({
+      try: () => dns.lookup(hostname, { all: true }),
+      catch: (cause) => new DnsError({ cause }),
+    });
+
+    yield* Effect.fork(logEnvironment(hostname));
+
+    // partition into A and AAAA records
+    const [excluded, satisfying] = Array.partition(
+      records,
+      (record) => record.family === 4,
+    );
+
+    // we cannot determine the TTL of lookup records, therefore we set it to infinity
+    // `getaddrinfo` (the underlying call used by dns.lookup) does not return TTLs
+    // to fix this see: https://linear.app/hash/issue/H-3785/create-typescripteffect-dns-package
+    const aRecords = satisfying.map(
+      (record) =>
+        ({
+          type: "A",
+          address: record.address,
+          timeToLive: Duration.infinity,
+        }) as DnsRecord,
+    );
+
+    const aaaaRecords = excluded.map(
+      (record) =>
+        ({
+          type: "AAAA",
+          address: record.address,
+          timeToLive: Duration.infinity,
+        }) as DnsRecord,
+    );
+
+    const output: DnsRecord[] = [];
+
+    if (query.records.includes("A")) {
+      output.push(...aRecords);
+    }
+
+    if (query.records.includes("AAAA")) {
+      output.push(...aaaaRecords);
+    }
+
+    return output;
+  });

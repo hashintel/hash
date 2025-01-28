@@ -1,13 +1,20 @@
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { ibm } from "@hashintel/design-system/palettes";
+import {
+  getClosedMultiEntityTypeFromMap,
+  getDisplayFieldsForClosedEntityType,
+} from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityMetadata,
   LinkData,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type {
+  ClosedMultiEntityType,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { Subgraph } from "@local/hash-subgraph";
 import { isEntityId } from "@local/hash-subgraph";
@@ -57,6 +64,7 @@ const fallbackDefaultConfig = {
 
 export const EntityGraphVisualizer = memo(
   <T extends EntityForGraph>({
+    closedMultiEntityTypesRootMap,
     defaultConfig: defaultConfigFromProps,
     defaultFilters,
     entities,
@@ -67,6 +75,7 @@ export const EntityGraphVisualizer = memo(
     onEntityClick,
     onEntityTypeClick,
   }: {
+    closedMultiEntityTypesRootMap?: ClosedMultiEntityTypesRootMap;
     defaultConfig?: GraphVizConfig<DynamicNodeSizing>;
     defaultFilters?: GraphVizFilters;
     fullScreenMode?: "document" | "element";
@@ -82,7 +91,10 @@ export const EntityGraphVisualizer = memo(
      */
     isPrimaryEntity?: (entity: T) => boolean;
     loadingComponent: ReactElement;
-    subgraphWithTypes: Subgraph;
+    /**
+     * @todo H-3849 make flow outputs use closed type, then we can remove this and make closedMultiEntityTypesRootMap required
+     */
+    subgraphWithTypes?: Subgraph;
   }) => {
     const { palette } = useTheme();
 
@@ -106,7 +118,10 @@ export const EntityGraphVisualizer = memo(
         linkData: NonNullable<T["linkData"]>;
       })[] = [];
 
-      const entityTypesById: Record<string, EntityTypeWithMetadata> = {};
+      const entityTypesByIds: Record<
+        string,
+        EntityType | ClosedMultiEntityType
+      > = {};
 
       const entityTypeIdToColor = new Map<string, number>();
 
@@ -150,24 +165,57 @@ export const EntityGraphVisualizer = memo(
           ? { color: palette.blue[50], borderColor: palette.blue[60] }
           : nodeColors[entityTypeIdToColor.get(firstEntityTypeId)!]!;
 
-        const entityType =
-          entityTypesById[firstEntityTypeId] ??
-          getEntityTypeById(subgraphWithTypes, firstEntityTypeId);
+        const combinedKey = sortedEntityTypeIds.join(",");
+
+        let entityType = entityTypesByIds[combinedKey];
+        let icon: string | undefined;
+        let nodeTypeLabel: string | undefined;
+        let entityLabel: string | undefined;
+
+        if (!entityType) {
+          /**
+           * @todo H-3849 remove this when flow outputs use closed types
+           */
+          if (subgraphWithTypes) {
+            entityType = getEntityTypeById(
+              subgraphWithTypes,
+              firstEntityTypeId,
+            )?.schema;
+          } else if (closedMultiEntityTypesRootMap) {
+            entityType = getClosedMultiEntityTypeFromMap(
+              closedMultiEntityTypesRootMap,
+              entity.metadata.entityTypeIds,
+            );
+          }
+        }
 
         if (!entityType) {
           throw new Error(
-            `Could not find entity type for ${firstEntityTypeId}`,
+            `Could not find entity type for ${firstEntityTypeId} in subgraphWithTypes`,
           );
         }
 
-        entityTypesById[firstEntityTypeId] ??= entityType;
+        if ("title" in entityType) {
+          nodeTypeLabel = entityType.title;
+          icon = entityType.icon;
+          nodeTypeLabel = entityType.title;
+          entityLabel = generateEntityLabel(subgraphWithTypes!, entity);
+        } else {
+          const displayFields = getDisplayFieldsForClosedEntityType(entityType);
+          icon = displayFields.icon;
+
+          nodeTypeLabel = entityType.allOf[0].title;
+          entityLabel = generateEntityLabel(entityType, entity);
+        }
+
+        entityTypesByIds[combinedKey] = entityType!;
 
         nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
-          icon: entityType.schema.icon ?? undefined,
-          label: generateEntityLabel(subgraphWithTypes, entity),
+          icon,
+          label: entityLabel,
           nodeId: entity.metadata.recordId.entityId,
           nodeTypeId: firstEntityTypeId,
-          nodeTypeLabel: entityType.schema.title,
+          nodeTypeLabel,
           color,
           borderColor,
           size: defaultConfig.nodeSizing.min,
@@ -204,11 +252,12 @@ export const EntityGraphVisualizer = memo(
         edges: edgesToAdd,
       };
     }, [
-      defaultConfig.nodeSizing,
+      closedMultiEntityTypesRootMap,
+      defaultConfig.nodeSizing.min,
       entities,
       isPrimaryEntity,
       nodeColors,
-      palette,
+      palette.blue,
       subgraphWithTypes,
     ]);
 

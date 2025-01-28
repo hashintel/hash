@@ -149,7 +149,7 @@ export type Property = PropertyValue | PropertyArray | PropertyObject;
  * The metadata for a `PropertyValue`.
  */
 export type PropertyMetadataValue = {
-  metadata: Omit<ValueMetadata, "dataTypeId"> & {
+  metadata: Omit<ValueMetadata, "dataTypeId" | "canonical"> & {
     dataTypeId: VersionedUrl | null;
   };
 };

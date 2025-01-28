@@ -61,15 +61,6 @@ pub struct PropertyValueTypeMismatch {
 
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub struct InvalidCanonicalValue {
-    pub key: BaseUrl,
-    pub expected: f64,
-    pub actual: f64,
-}
-
-#[derive(Debug, serde::Serialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "type", rename_all = "camelCase")]
 #[must_use]
 pub enum DataTypeInferenceError {
@@ -101,7 +92,6 @@ pub enum DataTypeConversionError {
 pub enum DataTypeCanonicalCalculation {
     Retrieval { error: Report<DataTypeRetrieval> },
     WrongType { data: JsonSchemaValueTypeMismatch },
-    InvalidValue { data: InvalidCanonicalValue },
 }
 
 #[derive(Debug, serde::Serialize)]

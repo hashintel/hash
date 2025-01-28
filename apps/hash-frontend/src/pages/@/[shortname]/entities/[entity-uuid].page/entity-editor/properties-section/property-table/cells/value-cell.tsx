@@ -1,16 +1,6 @@
-import type { JsonValue } from "@blockprotocol/core";
 import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import {
-  isArrayMetadata,
-  isValueMetadata,
-} from "@local/hash-graph-types/entity";
-import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
-import {
-  formatDataValue,
-  getMergedDataTypeSchema,
-} from "@local/hash-isomorphic-utils/data-types";
 
 import {
   getCellHorizontalPadding,
@@ -21,9 +11,10 @@ import { drawTextWithIcon } from "../../../../../../../../../components/grid/uti
 import { drawUrlAsLink } from "../../../../../../../../../components/grid/utils/draw-url-as-link";
 import { InteractableManager } from "../../../../../../../../../components/grid/utils/interactable-manager";
 import { drawInteractableTooltipIcons } from "../../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
+import { formatValue } from "../../../../../../../../shared/format-value";
 import { isValueEmpty } from "../../is-value-empty";
 import { ArrayEditor } from "./value-cell/array-editor";
-import { ReadonlyPopup } from "./value-cell/readonly-popup";
+import { ReadonlyValueCellPopup } from "./value-cell/readonly-popup";
 import { SingleValueEditor } from "./value-cell/single-value-editor";
 import type { ValueCell } from "./value-cell/types";
 
@@ -83,87 +74,11 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
         );
       }
 
-      const valueParts: FormattedValuePart[] = [];
-      if (Array.isArray(value)) {
-        for (const [index, entry] of value.entries()) {
-          if (!isArrayMetadata(valueMetadata)) {
-            throw new Error(
-              `Expected array metadata for value '${JSON.stringify(value)}', got ${JSON.stringify(valueMetadata)}`,
-            );
-          }
-
-          const arrayItemMetadata = valueMetadata.value[index];
-
-          if (!arrayItemMetadata) {
-            throw new Error(
-              `Expected metadata for array item at index ${index} in value '${JSON.stringify(value)}'`,
-            );
-          }
-
-          if (!isValueMetadata(arrayItemMetadata)) {
-            throw new Error(
-              `Expected single value metadata for array item at index ${index} in value '${JSON.stringify(value)}', got ${JSON.stringify(arrayItemMetadata)}`,
-            );
-          }
-
-          const dataTypeId = arrayItemMetadata.metadata.dataTypeId;
-
-          const dataType = permittedDataTypesIncludingChildren.find(
-            (type) => type.schema.$id === dataTypeId,
-          );
-
-          if (!dataType) {
-            throw new Error(
-              "Expected a data type to be set on the value or at least one permitted data type",
-            );
-          }
-
-          const schema = getMergedDataTypeSchema(dataType.schema);
-
-          if ("anyOf" in schema) {
-            throw new Error(
-              "Data types with different expected sets of constraints (anyOf) are not yet supported",
-            );
-          }
-
-          valueParts.push(...formatDataValue(entry as JsonValue, schema));
-          if (index < value.length - 1) {
-            valueParts.push({
-              text: ", ",
-              color: customColors.gray[50],
-              type: "rightLabel",
-            });
-          }
-        }
-      } else {
-        if (!isValueMetadata(valueMetadata)) {
-          throw new Error(
-            `Expected single value metadata for value '${value}', got ${JSON.stringify(valueMetadata)}`,
-          );
-        }
-
-        const dataTypeId = valueMetadata.metadata.dataTypeId;
-
-        const dataType = permittedDataTypesIncludingChildren.find(
-          (type) => type.schema.$id === dataTypeId,
-        );
-
-        if (!dataType) {
-          throw new Error(
-            "Expected a data type to be set on the value or at least one permitted data type",
-          );
-        }
-
-        const schema = getMergedDataTypeSchema(dataType.schema);
-
-        if ("anyOf" in schema) {
-          throw new Error(
-            "Data types with different expected sets of constraints (anyOf) are not yet supported",
-          );
-        }
-
-        valueParts.push(...formatDataValue(value as JsonValue, schema));
-      }
+      const valueParts = formatValue(
+        value,
+        valueMetadata,
+        permittedDataTypesIncludingChildren,
+      );
 
       let textOffset = left;
       for (const [index, part] of valueParts.entries()) {
@@ -208,7 +123,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       return {
         disableStyling: true,
         disablePadding: true,
-        editor: ReadonlyPopup,
+        editor: ReadonlyValueCellPopup,
       };
     }
 

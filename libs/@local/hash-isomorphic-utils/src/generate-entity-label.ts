@@ -1,10 +1,14 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
+import {
+  getClosedMultiEntityTypeFromMap,
+  getDisplayFieldsForClosedEntityType,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityMetadata, Property } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
   ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
   EntityTypeWithMetadata,
   PartialEntityType,
 } from "@local/hash-graph-types/ontology";
@@ -205,11 +209,14 @@ export const generateLinkEntityLabel = (
     properties: Entity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
-  closedType: ClosedMultiEntityType | null,
-  entityTypeDefinitions: ClosedMultiEntityTypesDefinitions | null,
+  closedTypeData: {
+    closedType: ClosedMultiEntityType;
+    entityTypeDefinitions: ClosedMultiEntityTypesDefinitions;
+    closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
+  } | null,
 ) => {
   const entityLabel = generateEntityLabel(
-    closedType ?? entitySubgraph,
+    closedTypeData?.closedType ?? entitySubgraph,
     entity,
     false,
   );
@@ -234,18 +241,57 @@ export const generateLinkEntityLabel = (
     return entityLabel;
   }
 
-  const partialEntityTypeForLeftEntity =
-    entityTypeDefinitions?.entityTypes[leftEntity.metadata.entityTypeIds[0]];
-  const partialEntityTypeForRightEntity =
-    entityTypeDefinitions?.entityTypes[rightEntity.metadata.entityTypeIds[0]];
+  let typeForLeftEntity:
+    | PartialEntityType
+    | ClosedMultiEntityType
+    | Subgraph
+    | undefined;
+  let typeForRightEntity:
+    | PartialEntityType
+    | ClosedMultiEntityType
+    | Subgraph
+    | undefined;
 
-  const leftLabel = generateEntityLabel(
-    partialEntityTypeForLeftEntity ?? entitySubgraph,
-    leftEntity,
-  );
+  if (!closedTypeData) {
+    typeForLeftEntity = entitySubgraph;
+    typeForRightEntity = entitySubgraph;
+  } else {
+    try {
+      typeForLeftEntity = getClosedMultiEntityTypeFromMap(
+        closedTypeData.closedMultiEntityTypesRootMap,
+        leftEntity.metadata.entityTypeIds,
+      );
+    } catch {
+      typeForLeftEntity =
+        closedTypeData.entityTypeDefinitions.entityTypes[
+          leftEntity.metadata.entityTypeIds[0]
+        ];
+    }
+
+    try {
+      typeForRightEntity = getClosedMultiEntityTypeFromMap(
+        closedTypeData.closedMultiEntityTypesRootMap,
+        rightEntity.metadata.entityTypeIds,
+      );
+    } catch {
+      typeForRightEntity =
+        closedTypeData.entityTypeDefinitions.entityTypes[
+          rightEntity.metadata.entityTypeIds[0]
+        ];
+    }
+
+    if (!typeForLeftEntity || !typeForRightEntity) {
+      throw new Error(
+        `Type definitions for left or right entity not found in closed type data`,
+      );
+    }
+  }
+
+  const leftLabel = generateEntityLabel(typeForLeftEntity, leftEntity, false);
   const rightLabel = generateEntityLabel(
-    partialEntityTypeForRightEntity ?? entitySubgraph,
+    typeForRightEntity,
     rightEntity,
+    false,
   );
 
   return `${leftLabel} - ${entityLabel} - ${rightLabel}`;

@@ -1,3 +1,4 @@
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   DrawHeaderCallback,
   SizedGridColumn,
@@ -5,7 +6,7 @@ import type {
 import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 
-import type { ColumnKey } from "../grid";
+import type { ColumnKey, ConversionTargetsByColumnKey } from "../grid";
 import { getCellHorizontalPadding, getYCenter } from "../utils";
 import type { ColumnFilter } from "./filtering";
 import { InteractableManager } from "./interactable-manager";
@@ -15,14 +16,27 @@ import type {
 } from "./interactable-manager/types";
 import type { ColumnSort } from "./sorting";
 
+export const generateInteractableId = (
+  type: "filter" | "sort" | "convert",
+  columnKey: string,
+) => `column-${type}-${columnKey}`;
+
 export const useDrawHeader = <
   C extends SizedGridColumn,
   S extends C["id"],
 >(props: {
+  activeConversions?: {
+    [columnBaseUrl: BaseUrl]: { dataTypeId: VersionedUrl; title: string };
+  } | null;
   columns: C[];
+  conversionTargetsByColumnKey?: ConversionTargetsByColumnKey;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filters?: ColumnFilter<ColumnKey<C>, any>[];
   firstColumnLeftPadding?: number;
+  onConvertClicked?: (
+    columnKey: ColumnKey<C>,
+    interactablePosition: InteractablePosition,
+  ) => void;
   onFilterClick?: (
     columnKey: ColumnKey<C>,
     interactablePosition: InteractablePosition,
@@ -33,9 +47,12 @@ export const useDrawHeader = <
   tableId: string;
 }): DrawHeaderCallback => {
   const {
+    activeConversions,
     columns,
+    conversionTargetsByColumnKey,
     filters,
     firstColumnLeftPadding,
+    onConvertClicked,
     onFilterClick,
     onSortClick,
     sort,
@@ -77,7 +94,9 @@ export const useDrawHeader = <
 
       const iconSpacing = 10;
 
-      if (sort && sortableColumns.includes(column.id as S)) {
+      const isSortable = sort && sortableColumns.includes(column.id as S);
+
+      if (isSortable) {
         const sortIconStartX =
           columnHeaderStartX +
           (columnHeaderWidth - sortIconSize - paddingRight);
@@ -107,7 +126,7 @@ export const useDrawHeader = <
           InteractableManager.createColumnHeaderInteractable(
             { ...args, tableId },
             {
-              id: `column-sort-${columnKey}`,
+              id: generateInteractableId("sort", columnKey),
               pos: {
                 left: sortIconStartX,
                 right: sortIconStartX + sortIconSize,
@@ -124,14 +143,14 @@ export const useDrawHeader = <
         (filter) => filter.columnKey === columnKey,
       );
 
-      if (columnFilter) {
-        const filterIconSize = 15;
+      const filterIconSize = 15;
 
+      if (columnFilter) {
         const columnFilterX =
           columnHeaderStartX +
           (columnHeaderWidth -
             paddingRight -
-            (sort ? sortIconSize + iconSpacing : 0) -
+            (isSortable ? sortIconSize + iconSpacing : 0) -
             filterIconSize);
 
         const isFilterModified =
@@ -158,7 +177,7 @@ export const useDrawHeader = <
           InteractableManager.createColumnHeaderInteractable(
             { ...args, tableId },
             {
-              id: `column-filter-${columnKey}`,
+              id: generateInteractableId("filter", columnKey),
               pos: {
                 left: columnFilterX,
                 right: columnFilterX + filterIconSize,
@@ -167,6 +186,56 @@ export const useDrawHeader = <
               },
               onClick: (interactable) =>
                 onFilterClick?.(columnKey, interactable.pos),
+            },
+          ),
+        );
+      }
+
+      const hasConversionApplied = activeConversions?.[columnKey as BaseUrl];
+
+      if (
+        hasConversionApplied ||
+        Object.keys(conversionTargetsByColumnKey?.[columnKey] ?? {}).length > 0
+      ) {
+        const calculatorIconSize = 15;
+
+        const calculatorIconStartX =
+          columnHeaderStartX +
+          (columnHeaderWidth -
+            paddingRight -
+            (isSortable ? sortIconSize + iconSpacing : 0) -
+            (columnFilter ? filterIconSize + iconSpacing : 0) -
+            calculatorIconSize);
+
+        args.spriteManager.drawSprite(
+          "equalsRegular",
+          "normal",
+          ctx,
+          calculatorIconStartX,
+          centerY - calculatorIconSize / 2,
+          calculatorIconSize,
+          {
+            ...theme,
+            fgIconHeader: hasConversionApplied
+              ? muiTheme.palette.blue[70]
+              : muiTheme.palette.gray[50],
+          },
+          1,
+        );
+
+        interactables.push(
+          InteractableManager.createColumnHeaderInteractable(
+            { ...args, tableId },
+            {
+              id: generateInteractableId("convert", columnKey),
+              pos: {
+                left: calculatorIconStartX,
+                right: calculatorIconStartX + calculatorIconSize,
+                top: centerY - calculatorIconSize / 2,
+                bottom: centerY + calculatorIconSize / 2,
+              },
+              onClick: (interactable) =>
+                onConvertClicked?.(columnKey, interactable.pos),
             },
           ),
         );
@@ -182,11 +251,14 @@ export const useDrawHeader = <
       return true;
     },
     [
+      activeConversions,
       columns,
+      conversionTargetsByColumnKey,
       filters,
       firstColumnLeftPadding,
       muiTheme.palette.blue,
       muiTheme.palette.gray,
+      onConvertClicked,
       onFilterClick,
       onSortClick,
       sort,

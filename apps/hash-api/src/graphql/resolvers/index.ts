@@ -80,7 +80,11 @@ import { meResolver } from "./knowledge/user/me";
 import { submitEarlyAccessFormResolver } from "./knowledge/user/submit-early-access-form";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
-import { getDataType, queryDataTypes } from "./ontology/data-type";
+import {
+  getDataType,
+  getDataTypeConversionTargetsResolver,
+  queryDataTypes,
+} from "./ontology/data-type";
 import {
   archiveEntityTypeResolver,
   checkUserPermissionsOnEntityTypeResolver,
@@ -118,6 +122,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     // Ontology
     queryDataTypes,
     getDataType,
+    getDataTypeConversionTargets: getDataTypeConversionTargetsResolver,
     queryPropertyTypes: queryPropertyTypesResolver,
     getPropertyType: getPropertyTypeResolver,
     queryEntityTypes: queryEntityTypesResolver,

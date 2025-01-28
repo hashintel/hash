@@ -25,7 +25,7 @@ import {
   getEntitySubgraphQuery,
 } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { Link } from "../../../../../shared/ui/link";
-import { generateUseEntityTypeEntitiesQueryVariables } from "../../../../../shared/use-entity-type-entities";
+import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../../../shared/use-entity-type-entities";
 import { useGetClosedMultiEntityType } from "../../../../shared/use-get-closed-multi-entity-type";
 import type { MinimalEntityValidationReport } from "../../../../shared/use-validate-entity";
 import { useValidateEntity } from "../../../../shared/use-validate-entity";
@@ -99,21 +99,21 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     CreateEntityMutation,
     CreateEntityMutationVariables
   >(createEntityMutation, {
-    refetchQueries: [
-      /**
-       * This refetch query accounts for the "Entities" section
-       * in the sidebar being updated when the first instance of
-       * a type is created by a user that is from a different web.
-       */
-      {
-        query: getEntitySubgraphQuery,
-        variables: generateUseEntityTypeEntitiesQueryVariables({
-          ownedByIds: activeWorkspaceOwnedById
-            ? [activeWorkspaceOwnedById]
-            : undefined,
-        }),
-      },
-    ],
+    refetchQueries: activeWorkspaceOwnedById
+      ? [
+          /**
+           * This refetch query accounts for the "Entities" section
+           * in the sidebar being updated when the first instance of
+           * a type is created by a user that is from a different web.
+           */
+          {
+            query: getEntitySubgraphQuery,
+            variables: generateSidebarEntityTypeEntitiesQueryVariables({
+              ownedById: activeWorkspaceOwnedById,
+            }),
+          },
+        ]
+      : [],
   });
 
   const [creating, setCreating] = useState(false);

@@ -1,7 +1,7 @@
 locals {
-  prefix           = var.prefix
-  log_group_name   = "${local.prefix}-log"
-  param_prefix     = var.param_prefix
+  prefix         = var.prefix
+  log_group_name = "${local.prefix}-log"
+  param_prefix   = var.param_prefix
 }
 
 module "migrate_ecr" {
@@ -122,6 +122,11 @@ resource "aws_ecs_task_definition" "task" {
   execution_role_arn       = aws_iam_role.execution_role.arn
   task_role_arn            = aws_iam_role.task_role.arn
   container_definitions    = jsonencode(local.task_definitions)
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
 }
 
 resource "aws_ecs_service" "svc" {
