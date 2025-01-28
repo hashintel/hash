@@ -127,6 +127,12 @@ export const asArray = (self: MutableBytes) => {
   return new Uint8Array(impl.inner, 0, length(self));
 };
 
+export const asDataView = (self: MutableBytes) => {
+  const impl = self as MutableBytesImpl;
+
+  return new DataView(impl.inner, 0, length(self));
+};
+
 export const appendArray = (
   self: MutableBytes,
   ...bytes: readonly Uint8Array[]
