@@ -84,7 +84,7 @@
     "officeparser": "4.2.0",
     "openai": "4.80.1",
     "openai-chat-tokens": "0.2.8",
-    "papaparse": "5.5.1",
+    "papaparse": "5.5.2",
     "pdf2json": "3.1.5",
     "puppeteer": "22.15.0",
     "puppeteer-extra": "3.3.6",
