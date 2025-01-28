@@ -161,7 +161,7 @@ export const TypeButton = ({
         title={entityTypeTitle}
         version={currentVersion}
         newVersionConfig={
-          readonly && newVersion
+          !readonly && newVersion
             ? {
                 newVersion,
                 onUpdateVersion: onUpgradeClicked,
