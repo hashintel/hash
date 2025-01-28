@@ -98,6 +98,12 @@ const createFormattedParts = ({
   return parts;
 };
 
+const arrayItemSeparator: FormattedValuePart = {
+  color: "#91A5BA",
+  type: "rightLabel",
+  text: ", ",
+};
+
 export const formatDataValue = (
   value: JsonValue,
   schema: MergedDataTypeSingleSchema,
@@ -119,25 +125,33 @@ export const formatDataValue = (
 
     const isTuple = "prefixItems" in schema;
 
-    const innerValue: string = value
-      .map((inner, index) => {
-        if (isTuple) {
-          const itemSchema = schema.prefixItems[index];
+    return value.flatMap((inner, index) => {
+      if (isTuple) {
+        const itemSchema = schema.prefixItems[index];
 
-          if (!itemSchema) {
-            throw new Error(
-              `No schema for tuple item at index ${index} – value has too many items`,
-            );
-          }
-
-          return formatDataValue(inner, schema.prefixItems[index]!);
+        if (!itemSchema) {
+          throw new Error(
+            `No schema for tuple item at index ${index} – value has too many items`,
+          );
         }
 
-        return formatDataValue(inner, schema.items);
-      })
-      .join("");
+        const innerValue = formatDataValue(inner, itemSchema);
 
-    return formatDataValue(innerValue, schema);
+        if (index < innerValue.length - 1) {
+          return [arrayItemSeparator, ...innerValue];
+        }
+
+        return innerValue;
+      }
+
+      const innerValue = formatDataValue(inner, schema.items);
+
+      if (index < value.length - 1) {
+        return [arrayItemSeparator, ...innerValue];
+      }
+
+      return innerValue;
+    });
   }
 
   if (typeof value === "object" && value) {

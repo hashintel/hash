@@ -1047,12 +1047,17 @@ export const EntityResultTable = memo(
                */
               const baseUrl = extractBaseUrl(field);
 
+              const valueA = a.data.properties[baseUrl];
+              const valueB = b.data.properties[baseUrl];
+
+              if (typeof valueA === "number" && typeof valueB === "number") {
+                return (valueA - valueB) * direction;
+              }
+
               return (
-                (a.data.properties[baseUrl]
-                  ?.toString()
-                  .localeCompare(
-                    b.data.properties[baseUrl]?.toString() ?? "",
-                  ) ?? 0) * direction
+                stringifyPropertyValue(valueA).localeCompare(
+                  stringifyPropertyValue(valueB),
+                ) * direction
               );
             }
 
