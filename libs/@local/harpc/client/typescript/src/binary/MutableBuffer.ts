@@ -219,12 +219,9 @@ export const putSlice = Function.dual<
     Either.map(() => {
       const impl = self as MutableBufferImpl<Write>;
 
-      const slice = MutableBytes.asArray(impl.bytes).slice(
-        impl.index,
-        impl.index + value.length,
-      );
+      const slice = MutableBytes.asArray(impl.bytes);
 
-      slice.set(value);
+      slice.set(value, impl.index);
 
       impl.index = impl.index + value.length;
 
@@ -244,9 +241,15 @@ export const getSlice = (self: ReadBuffer, byteLength: number) =>
         impl.index + byteLength,
       );
 
+      // clone the buffer
+      const clone = new ArrayBuffer(byteLength);
+      const value = new Uint8Array(clone);
+
+      value.set(slice);
+
       impl.index = impl.index + byteLength;
 
-      return slice;
+      return value;
     }),
   );
 
