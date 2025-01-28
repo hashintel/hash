@@ -1,5 +1,6 @@
 import "@glideapps/glide-data-grid/dist/index.css";
 
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   DataEditorProps,
   DataEditorRef,
@@ -17,28 +18,35 @@ import {
   DataEditor,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import type { PopperProps } from "@mui/material";
 import { Box, useTheme } from "@mui/material";
-import type { Instance as PopperInstance } from "@popperjs/core";
+import type {
+  Instance as PopperInstance,
+  VirtualElement,
+} from "@popperjs/core";
 import { uniqueId } from "lodash";
 import type { MutableRefObject, Ref } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getCellHorizontalPadding } from "./utils";
 import { ColumnFilterMenu } from "./utils/column-filter-menu";
+import {
+  ConversionMenu,
+  type ConversionTargetsByColumnKey,
+} from "./utils/conversion-menu";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import type { ColumnFilter } from "./utils/filtering";
 import { InteractableManager } from "./utils/interactable-manager";
-import type {
-  ColumnHeaderPath,
-  Interactable,
-} from "./utils/interactable-manager/types";
+import type { ColumnHeaderPath } from "./utils/interactable-manager/types";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
 import type { ColumnSort } from "./utils/sorting";
 import { defaultSortRows } from "./utils/sorting";
-import { useDrawHeader } from "./utils/use-draw-header";
+import { generateInteractableId, useDrawHeader } from "./utils/use-draw-header";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
+
+export type { ConversionTargetsByColumnKey };
 
 export type ColumnKey<C extends SizedGridColumn> = C["id"];
 
@@ -66,8 +74,12 @@ export type GridProps<
   | "rows"
   | "onCellEdited"
 > & {
+  activeConversions?: {
+    [columnBaseUrl: BaseUrl]: { dataTypeId: VersionedUrl; title: string };
+  } | null;
   columnFilters?: ColumnFilter<ColumnKey<Column>, Row>[];
   columns: Column[];
+  conversionTargetsByColumnKey?: ConversionTargetsByColumnKey;
   createGetCellContent: (rows: Row[]) => (cell: Item) => GridCell;
   createOnCellEdited?: (rows: Row[]) => DataEditorProps["onCellEdited"];
   currentlyDisplayedRowsRef?: MutableRefObject<Row[] | null>;
@@ -80,6 +92,13 @@ export type GridProps<
    * Provide to set an initial sort if sorting state is NOT managed by the parent component.
    */
   initialSort?: GridSort<Sortable>;
+  onConversionTargetSelected?: ({
+    columnKey,
+    dataTypeId,
+  }: {
+    columnKey: BaseUrl;
+    dataTypeId: VersionedUrl | null;
+  }) => void;
   onSelectedRowsChange?: (selectedRows: Row[]) => void;
   resizable?: boolean;
   rows?: Row[];
@@ -101,6 +120,18 @@ export type GridProps<
   sortRows?: SortGridRows<Row, Column, Sortable>;
 };
 
+const emptyRect: ReturnType<VirtualElement["getBoundingClientRect"]> = {
+  width: 0,
+  height: 0,
+  top: 0,
+  left: 0,
+  bottom: 0,
+  right: 0,
+  x: 0,
+  y: 0,
+  toJSON: () => "",
+};
+
 const gridHeaderHeight = 42;
 
 export const gridHeaderHeightWithBorder = gridHeaderHeight + 1;
@@ -114,10 +145,12 @@ export const Grid = <
   Column extends SizedGridColumn,
   Sortable extends Column["id"],
 >({
+  activeConversions,
   createGetCellContent,
   createOnCellEdited,
   columnFilters,
   columns,
+  conversionTargetsByColumnKey,
   currentlyDisplayedRowsRef,
   customRenderers,
   dataLoading,
@@ -127,6 +160,7 @@ export const Grid = <
   firstColumnLeftPadding,
   gridRef,
   initialSort,
+  onConversionTargetSelected,
   onSelectedRowsChange,
   onVisibleRegionChanged,
   resizable = true,
@@ -211,6 +245,8 @@ export const Grid = <
 
   const [openFilterColumnKey, setOpenFilterColumnKey] = useState<string>();
 
+  const [openConvertColumnKey, setOpenConvertColumnKey] = useState<string>();
+
   const handleSortClick = useCallback(
     (columnKey: Sortable) => {
       if (!sort) {
@@ -235,10 +271,17 @@ export const Grid = <
     setOpenFilterColumnKey(columnKey);
   }, []);
 
+  const handleConvertClick = useCallback((columnKey: ColumnKey<Column>) => {
+    setOpenConvertColumnKey(columnKey);
+  }, []);
+
   const defaultDrawHeader = useDrawHeader({
+    activeConversions,
     columns,
+    conversionTargetsByColumnKey,
     filters: columnFilters,
     firstColumnLeftPadding,
+    onConvertClicked: handleConvertClick,
     onFilterClick: handleFilterClick,
     onSortClick: handleSortClick,
     sort,
@@ -451,11 +494,13 @@ export const Grid = <
     [openFilterColumnKey, columnFilters],
   );
 
-  const previousInteractableRef = useRef<Interactable | null>(null);
-
   const filterIconVirtualElement = useMemo<PopperProps["anchorEl"]>(
     () => ({
       getBoundingClientRect: () => {
+        if (!openFilterColumnKey) {
+          return emptyRect;
+        }
+
         const columnIndex = columns.findIndex(
           ({ id }) => id === openFilterColumnKey,
         );
@@ -465,34 +510,13 @@ export const Grid = <
          * as the user might have scrolled horizontally since the last
          * call to `getBoundingClientRect`.
          */
-        const interactable =
-          InteractableManager.getInteractable(
-            `${tableIdRef.current}-${columnIndex}`,
-            `column-filter-${openFilterColumnKey}`,
-          ) ?? previousInteractableRef.current;
-
-        /**
-         * When the user clicks away from the popover, briefly the `interactable`
-         * is set to `undefined` causing the popover to jump position. This is
-         * a quick fix for this.
-         *
-         * @todo: figure out why the `interactable` is briefly `undefined` in the
-         * first place.
-         */
-        previousInteractableRef.current = interactable;
+        const interactable = InteractableManager.getInteractable(
+          `${tableIdRef.current}-${columnIndex}`,
+          generateInteractableId("filter", openFilterColumnKey),
+        );
 
         if (!interactable) {
-          return {
-            width: 0,
-            height: 0,
-            top: 0,
-            left: 0,
-            bottom: 0,
-            right: 0,
-            x: 0,
-            y: 0,
-            toJSON: () => "",
-          };
+          return emptyRect;
         }
 
         const { y: wrapperYPosition, x: wrapperXPosition } =
@@ -515,6 +539,53 @@ export const Grid = <
       },
     }),
     [columns, openFilterColumnKey],
+  );
+
+  const conversionMenuVirtualElement = useMemo<PopperProps["anchorEl"]>(
+    () => ({
+      getBoundingClientRect: () => {
+        if (!openConvertColumnKey) {
+          return emptyRect;
+        }
+
+        const columnIndex = columns.findIndex(
+          ({ id }) => id === openConvertColumnKey,
+        );
+
+        /**
+         * We need to obtain the most recent version of the interactable,
+         * as the user might have scrolled horizontally since the last
+         * call to `getBoundingClientRect`.
+         */
+        const interactable = InteractableManager.getInteractable(
+          `${tableIdRef.current}-${columnIndex}`,
+          generateInteractableId("convert", openConvertColumnKey),
+        );
+
+        if (!interactable) {
+          return emptyRect;
+        }
+
+        const { y: wrapperYPosition, x: wrapperXPosition } =
+          wrapperRef.current!.getBoundingClientRect();
+
+        const left = wrapperXPosition + interactable.pos.left;
+
+        const top = interactable.pos.top + wrapperYPosition;
+
+        return {
+          width: 0,
+          height: 0,
+          ...interactable.pos,
+          left,
+          top,
+          x: left,
+          y: top,
+          toJSON: () => "",
+        };
+      },
+    }),
+    [columns, openConvertColumnKey],
   );
 
   if (currentlyDisplayedRowsRef && sortedAndFilteredRows) {
@@ -541,15 +612,42 @@ export const Grid = <
       }}
     >
       <ColumnFilterMenu
-        open={!!openFilterColumn}
-        columnFilter={openFilterColumn}
-        onClose={() => setOpenFilterColumnKey(undefined)}
-        key={openFilterColumnKey}
         anchorEl={filterIconVirtualElement}
+        columnFilter={openFilterColumn}
+        key={openFilterColumnKey}
+        onClose={() => setOpenFilterColumnKey(undefined)}
+        open={!!openFilterColumn}
+        placement="bottom-start"
         popperRef={popperRef}
         transition
-        placement="bottom-start"
       />
+      {conversionTargetsByColumnKey && onConversionTargetSelected && (
+        <ConversionMenu
+          activeConversion={
+            activeConversions?.[openConvertColumnKey as BaseUrl] ?? null
+          }
+          anchorEl={conversionMenuVirtualElement}
+          columnKey={openConvertColumnKey}
+          conversionTargetsByColumnKey={conversionTargetsByColumnKey}
+          key={openConvertColumnKey}
+          onClose={() => setOpenConvertColumnKey(undefined)}
+          open={!!openConvertColumnKey}
+          onSelectConversionTarget={(dataTypeId) => {
+            if (!openConvertColumnKey) {
+              return;
+            }
+
+            onConversionTargetSelected({
+              columnKey: openConvertColumnKey as BaseUrl,
+              dataTypeId,
+            });
+            setOpenConvertColumnKey(undefined);
+          }}
+          placement="bottom-start"
+          transition
+        />
+      )}
+
       <DataEditor
         cellActivationBehavior="single-click"
         columnSelect="none"

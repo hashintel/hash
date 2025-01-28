@@ -3625,24 +3625,6 @@
                 ]
               }
             }
-          },
-          {
-            "type": "object",
-            "required": [
-              "data",
-              "type"
-            ],
-            "properties": {
-              "data": {
-                "$ref": "#/components/schemas/InvalidCanonicalValue"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "invalidValue"
-                ]
-              }
-            }
           }
         ],
         "discriminator": {
@@ -6493,27 +6475,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "InvalidCanonicalValue": {
-        "type": "object",
-        "required": [
-          "key",
-          "expected",
-          "actual"
-        ],
-        "properties": {
-          "actual": {
-            "type": "number",
-            "format": "double"
-          },
-          "expected": {
-            "type": "number",
-            "format": "double"
-          },
-          "key": {
-            "$ref": "#/components/schemas/BaseUrl"
-          }
-        }
       },
       "JsonSchemaValueType": {
         "type": "string",

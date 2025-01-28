@@ -1,3 +1,4 @@
+import type { DataTypeConversionsMap } from "@local/hash-isomorphic-utils/data-types";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
@@ -12,9 +13,13 @@ import type {
   SerializedSubgraph,
 } from "@local/hash-subgraph";
 
-import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
+import {
+  getDataTypeConversionTargets,
+  getDataTypeSubgraphById,
+} from "../../../graph/ontology/primitive/data-type";
 import type {
   QueryGetDataTypeArgs,
+  QueryGetDataTypeConversionTargetsArgs,
   QueryQueryDataTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
@@ -87,3 +92,16 @@ export const getDataType: ResolverFn<
       },
     ),
   );
+
+export const getDataTypeConversionTargetsResolver: ResolverFn<
+  Promise<DataTypeConversionsMap>,
+  Record<string, never>,
+  GraphQLContext,
+  QueryGetDataTypeConversionTargetsArgs
+> = async (_, { dataTypeIds }, graphQLContext) => {
+  return await getDataTypeConversionTargets(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    { dataTypeIds },
+  );
+};

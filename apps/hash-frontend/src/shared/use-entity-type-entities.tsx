@@ -13,7 +13,10 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { GetEntitySubgraphRequest } from "@local/hash-isomorphic-utils/types";
+import type {
+  ConversionRequest,
+  GetEntitySubgraphRequest,
+} from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -33,11 +36,13 @@ import { apolloClient } from "../lib/apollo-client";
 import type { EntitiesVisualizerData } from "../pages/shared/entities-visualizer/use-entities-visualizer-data";
 
 type UseEntityTypeEntitiesQueryParams = {
+  conversions?: ConversionRequest[];
   cursor?: EntityQueryCursor | null;
   entityTypeBaseUrl?: BaseUrl;
   entityTypeIds?: VersionedUrl[];
   graphResolveDepths?: Partial<GraphResolveDepths>;
   includeArchived?: boolean;
+  includeTypeIds?: boolean;
   ownedByIds?: OwnedById[];
   limit?: number;
   sort?: EntityQuerySortingRecord;
@@ -138,7 +143,39 @@ export const generateUseEntityTypeEntitiesFilter = ({
   };
 };
 
-export const generateUseEntityTypeEntitiesQueryVariables = ({
+/**
+ * These are the variables for the query which populates the "Entities" section of the sidebar,
+ * if the user has chosen to show it as a toggleable list of types rather than a single 'Entities' link.
+ */
+export const generateSidebarEntityTypeEntitiesQueryVariables = ({
+  ownedById,
+}: {
+  ownedById: OwnedById;
+}): GetEntitySubgraphQueryVariables => {
+  return {
+    request: {
+      /**
+       * We only make this request to get the count of entities by typeId to filter types in the sidebar,
+       * to only those for which the active workspace has at least one entity.
+       *
+       * We don't actually need a single entity but the Graph rejects requests with a limit of 0.
+       * We currently can't use countEntities as it just returns a total number, with no count by typeId.
+       */
+      limit: 1,
+      includeTypeIds: true,
+      filter: generateUseEntityTypeEntitiesFilter({
+        ownedByIds: [ownedById],
+        includeArchived: false,
+      }),
+      graphResolveDepths: zeroedGraphResolveDepths,
+      includeDrafts: false,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+    includePermissions: false,
+  };
+};
+
+const generateUseEntityTypeEntitiesQueryVariables = ({
   ownedByIds,
   entityTypeBaseUrl,
   entityTypeIds,
@@ -154,6 +191,7 @@ export const generateUseEntityTypeEntitiesQueryVariables = ({
       includeCount: true,
       includeEditionCreatedByIds: true,
       includeTypeIds: true,
+      includeTypeTitles: true,
       includeWebIds: true,
       filter: generateUseEntityTypeEntitiesFilter({
         includeArchived,
@@ -166,6 +204,7 @@ export const generateUseEntityTypeEntitiesQueryVariables = ({
         ...graphResolveDepths,
       },
       includeDrafts: false,
+      includeEntityTypes: "resolvedWithDataTypeChildren",
       sortingPaths: sort ? [sort] : undefined,
       /**
        * @todo H-2633 when we use entity archival via timestamp, this will need varying to include archived entities

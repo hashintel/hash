@@ -1,3 +1,4 @@
+import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   CustomCell,
@@ -7,6 +8,7 @@ import type {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 // import {
 //   ArrowRightRegularIcon,
 //   IconButton,
@@ -14,6 +16,10 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 //   Select,
 // } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  BaseUrl,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
 import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import {
@@ -23,27 +29,42 @@ import {
 import { Box, Stack, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import type {
+  Dispatch,
   FunctionComponent,
   MutableRefObject,
   ReactElement,
   RefObject,
+  SetStateAction,
 } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { GridSort } from "../../../components/grid/grid";
+import type {
+  ConversionTargetsByColumnKey,
+  GridSort,
+} from "../../../components/grid/grid";
 import { Grid } from "../../../components/grid/grid";
 import type { BlankCell } from "../../../components/grid/utils";
 import { blankCell } from "../../../components/grid/utils";
 import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
 import type { ColumnFilter } from "../../../components/grid/utils/filtering";
+import type {
+  GetDataTypeConversionTargetsQuery,
+  GetDataTypeConversionTargetsQueryVariables,
+} from "../../../graphql/api-types.gen";
+import { getDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
 import { tableContentSx } from "../../../shared/table-content";
 import type { FilterState } from "../../../shared/table-header";
 // import { MenuItem } from "../../../shared/ui/menu-item";
 import { isAiMachineActor } from "../../../shared/use-actors";
+import { useMemoCompare } from "../../../shared/use-memo-compare";
 import type { ChipCellProps } from "../chip-cell";
 import { createRenderChipCell } from "../chip-cell";
 import type { UrlCellProps } from "../url-cell";
 import { createRenderUrlCell } from "../url-cell";
+import {
+  createRenderEntitiesTableValueCell,
+  type EntitiesTableValueCellProps,
+} from "./entities-table/entities-table-value-cell";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import type {
@@ -76,14 +97,21 @@ export const EntitiesTable: FunctionComponent<
   Pick<
     EntitiesVisualizerData,
     | "createdByIds"
+    | "definitions"
     | "editionCreatedByIds"
     | "entities"
-    | "entityTypes"
-    | "propertyTypes"
     | "subgraph"
     | "typeIds"
+    | "typeTitles"
     | "webIds"
   > & {
+    activeConversions: {
+      [columnBaseUrl: BaseUrl]: {
+        dataTypeId: VersionedUrl;
+        title: string;
+      };
+    } | null;
+    closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
     currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
     currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
     disableTypeClick?: boolean;
@@ -103,6 +131,11 @@ export const EntitiesTable: FunctionComponent<
     goToNextPage?: () => void;
     readonly?: boolean;
     selectedRows: EntitiesTableRow[];
+    setActiveConversions: Dispatch<
+      SetStateAction<{
+        [columnBaseUrl: BaseUrl]: VersionedUrl;
+      } | null>
+    >;
     setLimit: (limit: number) => void;
     setLoading: (loading: boolean) => void;
     setSelectedRows: (rows: EntitiesTableRow[]) => void;
@@ -113,13 +146,15 @@ export const EntitiesTable: FunctionComponent<
     setSort: (sort: GridSort<SortableEntitiesTableColumnKey>) => void;
   }
 > = ({
+  activeConversions,
+  closedMultiEntityTypesRootMap,
   createdByIds,
   currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
+  definitions,
   disableTypeClick,
   editionCreatedByIds,
   entities,
-  entityTypes,
   filterState,
   hasSomeLinks,
   handleEntityClick,
@@ -131,10 +166,10 @@ export const EntitiesTable: FunctionComponent<
   isViewingOnlyPages,
   maxHeight,
   goToNextPage: _goToNextPage,
-  propertyTypes,
   readonly,
   setLimit: _setLimit,
   selectedRows,
+  setActiveConversions,
   setLoading,
   setSelectedRows,
   showSearch,
@@ -144,23 +179,144 @@ export const EntitiesTable: FunctionComponent<
   sort,
   subgraph,
   typeIds,
+  typeTitles,
   webIds,
 }) => {
   const router = useRouter();
 
-  const { tableData, loading: tableDataCalculating } = useEntitiesTable({
+  const {
+    visibleDataTypesByPropertyBaseUrl,
+    tableData,
+    loading: tableDataCalculating,
+  } = useEntitiesTable({
+    closedMultiEntityTypesRootMap,
     createdByIds,
+    definitions,
     editionCreatedByIds,
     entities,
-    entityTypes,
-    propertyTypes,
-    subgraph,
     hasSomeLinks,
     hideColumns,
     hideArchivedColumn: !filterState.includeArchived,
     hidePropertiesColumns,
+    subgraph,
     typeIds,
+    typeTitles,
     webIds,
+  });
+
+  const visibleDataTypeIds = useMemoCompare(
+    () => {
+      return Array.from(
+        new Set(
+          Object.values(visibleDataTypesByPropertyBaseUrl).flatMap((types) =>
+            types.map((type) => type.schema.$id),
+          ),
+        ),
+      );
+    },
+    [visibleDataTypesByPropertyBaseUrl],
+    (oldValue, newValue) => {
+      const oldSet = new Set(oldValue);
+      const newSet = new Set(newValue);
+      return oldSet.size === newSet.size && oldSet.isSubsetOf(newSet);
+    },
+  );
+
+  /**
+   * Although this is derived from the query data return, we don't want to do it in a useMemo because the data becomes undefined temporarily.
+   * useQuery has a `previousData` property which we could fall back to, but there's a brief moment where going from a converted column
+   * to a non-converted column will mean the conversion targets are out of sync with the entity data.
+   * We rely on knowing that a column has conversion targets in order to show the conversion button, and don't want it to flicker on and off.
+   *
+   * @todo H-3939 we can simplify a lot of this logic when the Graph API doesn't error if not all rows can be converted to a desired target.
+   */
+  const [conversionTargetsByColumnKey, setConversionTargetsByColumnKey] =
+    useState<ConversionTargetsByColumnKey>({});
+
+  useQuery<
+    GetDataTypeConversionTargetsQuery,
+    GetDataTypeConversionTargetsQueryVariables
+  >(getDataTypeConversionTargetsQuery, {
+    fetchPolicy: "cache-first",
+    variables: {
+      dataTypeIds: visibleDataTypeIds,
+    },
+    skip: visibleDataTypeIds.length === 0,
+    onCompleted: (data) => {
+      const conversionMap = data.getDataTypeConversionTargets;
+
+      const conversionData: ConversionTargetsByColumnKey = {};
+
+      /**
+       * For each property, we need to find the conversion targets which are valid across all of the possible data types.
+       *
+       * A conversion target which isn't present for one of the dataTypeIds cannot be included.
+       */
+      for (const [propertyBaseUrl, dataTypes] of typedEntries(
+        visibleDataTypesByPropertyBaseUrl,
+      )) {
+        const targetsByTargetTypeId: Record<
+          VersionedUrl,
+          { title: string; dataTypeId: VersionedUrl }[]
+        > = {};
+
+        for (const [index, sourceDataType] of dataTypes.entries()) {
+          const sourceDataTypeId = sourceDataType.schema.$id;
+
+          const conversionsByTargetId = conversionMap[sourceDataTypeId];
+
+          if (!conversionsByTargetId) {
+            /**
+             * We don't have any conversion targets for this dataTypeId, so there can't be any shared conversion targets across all of the data types.
+             */
+            continue;
+          }
+
+          for (const [targetTypeId, { title }] of typedEntries(
+            conversionsByTargetId,
+          )) {
+            if (index === 0) {
+              targetsByTargetTypeId[targetTypeId] ??= [];
+              targetsByTargetTypeId[targetTypeId].push({
+                dataTypeId: targetTypeId,
+                title,
+              });
+            } else if (
+              !targetsByTargetTypeId[targetTypeId] &&
+              !dataTypes.some(
+                (dataType) => dataType.schema.$id === targetTypeId,
+              )
+            ) {
+              /**
+               * If we haven't seen this target before, and we already have some targets, it is not a shared target.
+               * If the target is in the source dataTypeIds, we retain it because we assume conversion is reciprocal.
+               * This may not always hold.
+               */
+              continue;
+            }
+          }
+
+          /**
+           * Any target which is present from previous sources but not for this source is not a shared target.
+           * We exempt this source dataTypeId from deletion because we assume conversion is reciprocal.
+           * This may not always hold.
+           */
+          for (const existingTarget of typedKeys(targetsByTargetTypeId)) {
+            if (
+              !typedKeys(conversionsByTargetId).includes(existingTarget) &&
+              existingTarget !== sourceDataTypeId
+            ) {
+              delete targetsByTargetTypeId[existingTarget];
+            }
+          }
+        }
+        conversionData[propertyBaseUrl] = Object.values(
+          targetsByTargetTypeId,
+        ).flat();
+
+        setConversionTargetsByColumnKey(conversionData);
+      }
+    },
   });
 
   useEffect(() => {
@@ -196,7 +352,7 @@ export const EntitiesTable: FunctionComponent<
         if (columnId) {
           const row = entityRows[rowIndex];
 
-          if (!row) {
+          if (!row || !definitions?.dataTypes) {
             /**
              * This can occur when `createGetCellContent` is called
              * for a row that has just been filtered out, so we handle
@@ -212,12 +368,14 @@ export const EntitiesTable: FunctionComponent<
           }
 
           if (isBaseUrl(columnId)) {
-            const propertyCellValue = columnId && row[columnId];
+            const propertyCell = columnId && row[columnId];
 
-            if (propertyCellValue) {
+            if (propertyCell) {
+              const { isArray, value, propertyMetadata } = propertyCell;
+
               let isUrl = false;
               try {
-                const url = new URL(propertyCellValue as string);
+                const url = new URL(value as string);
                 if (url.protocol === "http:" || url.protocol === "https:") {
                   isUrl = true;
                 }
@@ -230,34 +388,26 @@ export const EntitiesTable: FunctionComponent<
                   kind: GridCellKind.Custom,
                   data: {
                     kind: "url-cell",
-                    url: propertyCellValue as string,
+                    url: value as string,
                   } satisfies UrlCellProps,
-                  copyData: stringifyPropertyValue(propertyCellValue),
+                  copyData: stringifyPropertyValue(value),
                   allowOverlay: false,
                   readonly: true,
                 };
               }
 
-              const isNumber = typeof propertyCellValue === "number";
-
-              if (isNumber) {
-                return {
-                  kind: GridCellKind.Number,
-                  allowOverlay: true,
-                  readonly: true,
-                  displayData: propertyCellValue.toString(),
-                  data: propertyCellValue,
-                };
-              }
-
-              const stringValue = stringifyPropertyValue(propertyCellValue);
-
               return {
-                kind: GridCellKind.Text,
+                kind: GridCellKind.Custom,
                 allowOverlay: true,
                 readonly: true,
-                displayData: stringValue,
-                data: stringValue,
+                copyData: stringifyPropertyValue(value),
+                data: {
+                  kind: "entities-table-value-cell",
+                  isArray,
+                  value,
+                  propertyMetadata,
+                  dataTypeDefinitions: definitions.dataTypes,
+                } satisfies EntitiesTableValueCellProps,
               };
             }
 
@@ -267,7 +417,7 @@ export const EntitiesTable: FunctionComponent<
 
             return {
               kind: GridCellKind.Text,
-              allowOverlay: true,
+              allowOverlay: false,
               readonly: true,
               displayData: data,
               data,
@@ -334,6 +484,7 @@ export const EntitiesTable: FunctionComponent<
                     ? { entityTypeIcon: value.icon }
                     : { inbuiltIcon: value.isLink ? "bpLink" : "bpAsterisk" },
                   iconFill: theme.palette.blue[70],
+                  suffix: value.version ? `v${value.version}` : undefined,
                   onClick: disableTypeClick
                     ? undefined
                     : () => {
@@ -488,12 +639,14 @@ export const EntitiesTable: FunctionComponent<
       },
     [
       columns,
+      definitions?.dataTypes,
       disableTypeClick,
       handleEntityClick,
-      router,
       isViewingOnlyPages,
+      router,
       setSelectedEntityType,
-      theme.palette,
+      theme.palette.blue,
+      theme.palette.gray,
     ],
   );
 
@@ -556,10 +709,11 @@ export const EntitiesTable: FunctionComponent<
       {
         columnKey: "entityTypes",
         filterItems: entityTypeFilters.map(
-          ({ entityTypeId, count, title }) => ({
+          ({ entityTypeId, count, title, version }) => ({
             id: entityTypeId,
             label: title,
             count,
+            labelSuffix: version ? `v${version}` : undefined,
           }),
         ),
         selectedFilterItemIds: selectedEntityTypeIds,
@@ -621,6 +775,50 @@ export const EntitiesTable: FunctionComponent<
     ];
   }, [columns]);
 
+  const onConversionTargetSelected = useCallback(
+    ({
+      columnKey,
+      dataTypeId,
+    }: { columnKey: BaseUrl; dataTypeId: VersionedUrl | null }) => {
+      if (!dataTypeId) {
+        if (!activeConversions) {
+          return;
+        }
+
+        const newConversions: Parameters<typeof setActiveConversions>[0] = {};
+        let hasKeysRemaining = false;
+
+        for (const [key, value] of typedEntries(activeConversions)) {
+          if (key !== columnKey) {
+            newConversions[key] = value.dataTypeId;
+            hasKeysRemaining = true;
+          }
+        }
+
+        if (!hasKeysRemaining) {
+          setActiveConversions(null);
+        } else {
+          setActiveConversions(newConversions);
+        }
+      } else {
+        setActiveConversions((existingConversions) => ({
+          ...existingConversions,
+          [columnKey]: dataTypeId,
+        }));
+      }
+    },
+    [activeConversions, setActiveConversions],
+  );
+
+  const customRenderers = useMemo(() => {
+    return [
+      createRenderTextIconCell({ firstColumnLeftPadding }),
+      createRenderUrlCell({ firstColumnLeftPadding }),
+      createRenderChipCell({ firstColumnLeftPadding }),
+      createRenderEntitiesTableValueCell({ firstColumnLeftPadding }),
+    ];
+  }, []);
+
   if (!tableData && (entityDataLoading || tableDataCalculating)) {
     return (
       <Stack
@@ -642,20 +840,19 @@ export const EntitiesTable: FunctionComponent<
   return (
     <Stack gap={1}>
       <Grid
+        activeConversions={activeConversions}
         columnFilters={columnFilters}
         columns={columns}
+        conversionTargetsByColumnKey={conversionTargetsByColumnKey}
         createGetCellContent={createGetCellContent}
         currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-        customRenderers={[
-          createRenderTextIconCell({ firstColumnLeftPadding }),
-          createRenderUrlCell({ firstColumnLeftPadding }),
-          createRenderChipCell({ firstColumnLeftPadding }),
-        ]}
+        customRenderers={customRenderers}
         dataLoading={false}
         enableCheckboxSelection={!readonly}
         firstColumnLeftPadding={firstColumnLeftPadding}
         freezeColumns={1}
         height={`min(${maxHeight}, 600px)`}
+        onConversionTargetSelected={onConversionTargetSelected}
         onSearchClose={() => setShowSearch(false)}
         onSelectedRowsChange={(updatedSelectedRows) =>
           setSelectedRows(updatedSelectedRows)

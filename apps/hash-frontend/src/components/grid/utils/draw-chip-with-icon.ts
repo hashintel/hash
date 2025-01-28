@@ -1,4 +1,5 @@
 import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
+import { customColors } from "@hashintel/design-system/theme";
 
 import type {
   ChipCellColor,
@@ -138,6 +139,7 @@ export type DrawChipWithIconProps = {
     | { entityTypeIcon: string };
   iconFill?: string;
   text: string;
+  suffix?: string;
   left: number;
   color: ChipCellColor;
   variant?: ChipCellVariant;
@@ -159,6 +161,7 @@ export const drawChipWithIcon = ({
   icon,
   iconFill,
   text,
+  suffix,
   left,
   color,
   variant,
@@ -169,7 +172,8 @@ export const drawChipWithIcon = ({
   const paddingX = 12;
   const iconHeight = icon && "imageSrc" in icon ? 24 : 12;
   const gap = 8;
-
+  const suffixWidth = suffix ? ctx.measureText(suffix).width : 0;
+  const suffixPaddingX = suffix ? 4 : 0;
   const iconLeft = left + paddingX;
 
   ctx.font = args.theme.baseFontStyle;
@@ -186,7 +190,8 @@ export const drawChipWithIcon = ({
 
   const iconColor = iconFill ?? defaultColor;
 
-  let chipWidth = iconHeight + gap + textWidth + 2 * paddingX;
+  let chipWidth =
+    iconHeight + gap + textWidth + suffixWidth + suffixPaddingX + 2 * paddingX;
 
   let chipHeight;
   let chipTop;
@@ -203,7 +208,8 @@ export const drawChipWithIcon = ({
       const imageHeight = (image.height / image.width) * width;
       const imageTop = iconTop + (iconHeight - imageHeight) / 2;
 
-      chipWidth = width + gap + textWidth + 2 * paddingX;
+      chipWidth =
+        width + gap + textWidth + suffixWidth + suffixPaddingX + 2 * paddingX;
 
       ({ height: chipHeight, top: chipTop } = drawChip(
         args,
@@ -291,10 +297,16 @@ export const drawChipWithIcon = ({
     }
   }
 
-  const textLeft = left + chipWidth - paddingX - textWidth;
+  const textLeft =
+    left + chipWidth - paddingX - textWidth - suffixWidth - suffixPaddingX;
 
   ctx.fillStyle = textColor;
   ctx.fillText(text, textLeft, yCenter);
+
+  if (suffix) {
+    ctx.fillStyle = customColors.gray[40];
+    ctx.fillText(suffix, textLeft + textWidth + suffixPaddingX, yCenter);
+  }
 
   return {
     height: chipHeight,
