@@ -16,7 +16,11 @@ import { MenuItem } from "../../../shared/ui";
 
 export type ConversionTargetsByColumnKey = Record<
   string,
-  { title: string; dataTypeId: VersionedUrl }[] | undefined
+  {
+    title: string;
+    dataTypeId: VersionedUrl;
+    guessedAsCanonical?: boolean;
+  }[]
 >;
 
 export const ConversionMenu = ({

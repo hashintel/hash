@@ -96,6 +96,7 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
 const generateGraphSort = (
   columnKey: SortableEntitiesTableColumnKey,
   direction: "asc" | "desc",
+  convertTo?: BaseUrl,
 ): EntityQuerySortingRecord => {
   const nulls: NullOrdering = direction === "asc" ? "last" : "first";
   const ordering: Ordering = direction === "asc" ? "ascending" : "descending";
@@ -124,7 +125,11 @@ const generateGraphSort = (
       if (!isBaseUrl(columnKey)) {
         throw new Error(`Unexpected sorting column key: ${columnKey}`);
       }
-      path = ["properties", columnKey];
+      path = ["properties" satisfies EntityQuerySortingToken, columnKey];
+
+      if (convertTo) {
+        path.push("convert", convertTo);
+      }
     }
   }
 
@@ -277,13 +282,15 @@ export const EntitiesVisualizer: FunctionComponent<{
     fetchPolicy: "network-only",
   });
 
-  const [sort, setSort] = useState<ColumnSort<SortableEntitiesTableColumnKey>>({
+  const [sort, setSort] = useState<
+    ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }
+  >({
     columnKey: "entityLabel",
     direction: "asc",
   });
 
   const graphSort = useMemo(
-    () => generateGraphSort(sort.columnKey, sort.direction),
+    () => generateGraphSort(sort.columnKey, sort.direction, sort.convertTo),
     [sort],
   );
 
