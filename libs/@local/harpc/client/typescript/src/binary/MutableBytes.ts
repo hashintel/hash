@@ -62,7 +62,7 @@ export const make = (options?: {
     },
   ) satisfies MutableBytesImpl as MutableBytes;
 
-export const makeFrom = (
+export const from = (
   buffer: ArrayBuffer,
   options?: {
     /**
