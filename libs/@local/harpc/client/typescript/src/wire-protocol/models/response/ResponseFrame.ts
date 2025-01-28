@@ -1,6 +1,6 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
   Either,
   Equal,
   Hash,
@@ -11,7 +11,6 @@ import {
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
-import * as Buffer from "../../Buffer.js";
 import * as Payload from "../Payload.js";
 import { MutableBuffer } from "../../../binary/index.js";
 

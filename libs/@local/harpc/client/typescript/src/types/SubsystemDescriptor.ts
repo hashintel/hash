@@ -1,6 +1,6 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
   Either,
   Equal,
   Function,
@@ -12,7 +12,6 @@ import {
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../utils.js";
-import type * as Buffer from "../wire-protocol/Buffer.js";
 
 import * as SubsystemId from "./SubsystemId.js";
 import * as Version from "./Version.js";

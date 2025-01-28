@@ -1,7 +1,7 @@
 import {
   type FastCheck,
   type Option,
-  Effect,
+  type Effect,
   Either,
   Equal,
   Function,
@@ -13,11 +13,9 @@ import {
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
-import type * as Buffer from "../../Buffer.js";
 
 import * as RequestBegin from "./RequestBegin.js";
 import * as RequestFrame from "./RequestFrame.js";
-import { MutableBuffer } from "@local/harpc-client/binary";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestBody",

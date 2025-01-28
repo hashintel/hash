@@ -1,6 +1,6 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
   Equal,
   Hash,
   Inspectable,
@@ -12,7 +12,6 @@ import {
 
 import { U32_MAX, U32_MIN } from "../../../constants.js";
 import { createProto, implDecode, implEncode } from "../../../utils.js";
-import * as Buffer from "../../Buffer.js";
 import { MutableBuffer } from "../../../binary/index.js";
 
 const TypeId: unique symbol = Symbol(

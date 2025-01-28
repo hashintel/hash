@@ -1,6 +1,6 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
   Either,
   Equal,
   Hash,
@@ -12,7 +12,6 @@ import {
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
 import { MutableBuffer } from "../../../binary/index.js";
-import * as Buffer from "../../Buffer.js";
 import * as Payload from "../Payload.js";
 
 const TypeId: unique symbol = Symbol(

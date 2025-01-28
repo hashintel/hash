@@ -1,6 +1,6 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
   Either,
   Equal,
   Function,
@@ -13,7 +13,6 @@ import {
 
 import { U8_MAX, U8_MIN } from "../constants.js";
 import { createProto, implDecode, implEncode } from "../utils.js";
-import * as Buffer from "../wire-protocol/Buffer.js";
 import { MutableBuffer } from "../binary/index.js";
 
 const TypeId: unique symbol = Symbol(
