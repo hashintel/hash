@@ -1,6 +1,6 @@
 import { Box, Skeleton } from "@mui/material";
 
-import { pageContentWidth } from "../pages/[shortname]/[page-slug].page";
+import { pageContentWidth } from "../pages/@/[shortname]/[page-slug].page";
 import { ProsemirrorLoadingState } from "../pages/shared/block-collection/loading-view";
 import {
   PAGE_TITLE_FONT_SIZE,

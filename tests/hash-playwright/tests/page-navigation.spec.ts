@@ -20,11 +20,9 @@ testTolerateConsoleErrors("logged-in user shown 404 page", async ({ page }) => {
   });
 
   await page.goto("/non/existing/page");
-  await expect(page).toHaveTitle("404: This page could not be found");
+  await expect(page).toHaveTitle("This page could not be found | HASH");
 
-  await expect(
-    page.locator("text=This page could not be found."),
-  ).toBeVisible();
+  await expect(page.locator("text=This page may not exist")).toBeVisible();
 });
 
 test("user can toggle nested pages", async ({ page }) => {

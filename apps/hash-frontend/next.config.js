@@ -76,6 +76,10 @@ export default withSentryConfig(
             source: "/pages",
             destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeBaseUrl}`,
           },
+          {
+            source: "/@:shortname/:path*",
+            destination: "/@/:shortname/:path*",
+          },
         ];
       },
       images: {

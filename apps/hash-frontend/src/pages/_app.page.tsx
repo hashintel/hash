@@ -217,9 +217,10 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   const { cookie } = req?.headers ?? {};
 
   /**
-   * Fetch the authenticated user on the very first page load so it's available in the frontend –
-   *   on subsequent loads it will be cached so long as the cookie value remains the same.
+   * Fetch the authenticated user on the very first page load so it's available in the frontend.
    * We leave it up to the client to re-fetch the user as necessary in response to user-initiated actions.
+   *
+   * @todo this is running on every page transition. make it stop or make caching work (need to create new client on request to stop sharing user data)
    */
   const initialAuthenticatedUserSubgraph = await apolloClient
     .query<MeQuery>({
