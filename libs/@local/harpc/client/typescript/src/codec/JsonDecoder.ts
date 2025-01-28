@@ -35,50 +35,48 @@ const parseJson = <T>(text: string) =>
     catch: (cause) => new InvalidJsonError({ cause }),
   }).pipe(Effect.mapError((cause) => new Decoder.DecodingError({ cause })));
 
-const processArrayBuffer = <T, E, R>(
+const processArrayBuffer = Effect.fn("processArrayBuffer")(function* <T, E, R>(
   buffer: ArrayBuffer,
   decoder: TextDecoder,
   input: string,
   decodeText: Option.Option<(text: string) => Effect.Effect<T, E, R>>,
-) =>
-  Effect.gen(function* () {
-    const items: T[] = [];
+) {
+  const items: T[] = [];
 
-    let fragment = input;
-    let slice = buffer;
+  let fragment = input;
+  let slice = buffer;
 
-    while (slice.byteLength > 0) {
-      const separatorPosition = pipe(
-        new Uint8Array(slice),
-        (array) => array.indexOf(SEPARATOR),
-        Option.liftPredicate((position) => position >= 0),
-      );
+  while (slice.byteLength > 0) {
+    const separatorPosition = pipe(
+      new Uint8Array(slice),
+      (array) => array.indexOf(SEPARATOR),
+      Option.liftPredicate((position) => position >= 0),
+    );
 
-      if (Option.isNone(separatorPosition)) {
-        fragment =
-          fragment + (yield* textDecode(decoder, slice, { stream: true }));
-
-        return [fragment, items] as const;
-      }
-
-      const left = slice.slice(0, separatorPosition.value);
-
-      slice = slice.slice(separatorPosition.value + 1);
-
+    if (Option.isNone(separatorPosition)) {
       fragment =
-        fragment + (yield* textDecode(decoder, left, { stream: false }));
+        fragment + (yield* textDecode(decoder, slice, { stream: true }));
 
-      if (Option.isSome(decodeText)) {
-        items.push(yield* decodeText.value(fragment));
-      } else {
-        items.push(yield* parseJson<T>(fragment));
-      }
-
-      fragment = "";
+      return [fragment, items] as const;
     }
 
-    return [fragment, items] as const;
-  });
+    const left = slice.slice(0, separatorPosition.value);
+
+    slice = slice.slice(separatorPosition.value + 1);
+
+    fragment = fragment + (yield* textDecode(decoder, left, { stream: false }));
+
+    if (Option.isSome(decodeText)) {
+      items.push(yield* decodeText.value(fragment));
+    } else {
+      items.push(yield* parseJson<T>(fragment));
+    }
+
+    fragment = "";
+  }
+
+  return [fragment, items] as const;
+});
 
 interface Options {
   schema: boolean;
