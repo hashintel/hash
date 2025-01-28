@@ -5,7 +5,10 @@ use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     knowledge::{
-        entity::{EntityId, EntityUuid, ProvidedEntityEditionProvenance},
+        entity::{
+            ActorType, EntityId, EntityUuid, OriginProvenance, OriginType,
+            ProvidedEntityEditionProvenance,
+        },
         link::LinkData,
         property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
@@ -65,7 +68,11 @@ async fn insert() {
         link_data: None,
         draft: false,
         relationships: [],
-        provenance: ProvidedEntityEditionProvenance::default(),
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     };
 
     let bob_id = EntityUuid::new(Uuid::new_v4());
@@ -86,7 +93,11 @@ async fn insert() {
         link_data: None,
         draft: false,
         relationships: [],
-        provenance: ProvidedEntityEditionProvenance::default(),
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     };
 
     let friendship_entity = CreateEntityParams {
@@ -118,7 +129,11 @@ async fn insert() {
         }),
         draft: false,
         relationships: [],
-        provenance: ProvidedEntityEditionProvenance::default(),
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     };
 
     let entities = api

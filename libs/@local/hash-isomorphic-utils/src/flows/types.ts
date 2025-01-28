@@ -1,9 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type {
-  EnforcedEntityEditionProvenance,
-  SerializedEntity,
-} from "@local/hash-graph-sdk/entity";
+import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
@@ -43,7 +41,7 @@ export type ProposedEntity = {
     isSubjectOf: EntityId[];
     isObjectOf: EntityId[];
   };
-  provenance: EnforcedEntityEditionProvenance;
+  provenance: ProvidedEntityEditionProvenance;
   propertyMetadata: PropertyMetadataObject;
   localEntityId: EntityId;
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];

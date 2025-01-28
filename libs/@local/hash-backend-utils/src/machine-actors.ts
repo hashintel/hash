@@ -1,6 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type {
+  GraphApi,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -138,7 +140,7 @@ export const createMachineActorEntity = async (
     ],
   );
 
-  const provenance: EnforcedEntityEditionProvenance = {
+  const provenance: ProvidedEntityEditionProvenance = {
     actorType: "machine",
     origin: {
       type: "api",

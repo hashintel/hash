@@ -6,7 +6,9 @@ use hash_graph_temporal_versioning::ClosedTemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     knowledge::{
-        entity::{EntityId, ProvidedEntityEditionProvenance},
+        entity::{
+            ActorType, EntityId, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
+        },
         property::{
             Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
             PropertyWithMetadataObject,
@@ -98,7 +100,11 @@ async fn initial_draft() {
             link_data: None,
             draft: true,
             relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not create entity");
@@ -135,7 +141,11 @@ async fn initial_draft() {
             draft: Some(true),
             decision_time: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not update entity");
@@ -183,7 +193,11 @@ async fn initial_draft() {
             draft: Some(false),
             decision_time: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not update entity");
@@ -262,7 +276,11 @@ async fn no_initial_draft() {
             link_data: None,
             draft: false,
             relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not create entity");
@@ -304,7 +322,11 @@ async fn no_initial_draft() {
                 draft: Some(true),
                 decision_time: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             })
             .await
             .expect("could not update entity");
@@ -363,7 +385,11 @@ async fn no_initial_draft() {
                 draft: Some(false),
                 decision_time: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             })
             .await
             .expect("could not update entity");
@@ -425,7 +451,11 @@ async fn multiple_drafts() {
             link_data: None,
             draft: false,
             relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not create entity");
@@ -473,7 +503,11 @@ async fn multiple_drafts() {
                 draft: Some(true),
                 decision_time: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             })
             .await
             .expect("could not update entity");
@@ -535,7 +569,11 @@ async fn multiple_drafts() {
                 draft: Some(false),
                 decision_time: None,
                 confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             })
             .await
             .expect("could not update entity");

@@ -19,7 +19,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance,
+        entity::{ActorType, OriginProvenance, OriginType, ProvidedEntityEditionProvenance},
         property::{
             ObjectMetadata, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
             PropertyWithMetadataValue, ValueMetadata,
@@ -57,7 +57,11 @@ async fn insert() {
         },
         relationships: data_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
         conversions: HashMap::new(),
     })
     .await
@@ -82,7 +86,11 @@ async fn query() {
         },
         relationships: data_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
         conversions: HashMap::new(),
     })
     .await
@@ -161,7 +169,11 @@ async fn inheritance() {
         },
         relationships: data_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
         conversions: HashMap::new(),
     })
     .await
@@ -253,7 +265,11 @@ async fn inheritance() {
     api.update_data_type(api.account_id, UpdateDataTypesParams {
         schema: centimeter_dt_v2.clone(),
         relationships: data_type_relationships(),
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
         conversions: HashMap::new(),
     })
     .await
@@ -295,7 +311,11 @@ async fn inheritance() {
             link_data: None,
             draft: false,
             relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect_err("could create ambiguous entity");
@@ -333,7 +353,11 @@ async fn inheritance() {
         link_data: None,
         draft: false,
         relationships: [],
-        provenance: ProvidedEntityEditionProvenance::default(),
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     })
     .await
     .expect("should be able to create entity");
@@ -369,7 +393,11 @@ async fn inheritance() {
         link_data: None,
         draft: false,
         relationships: [],
-        provenance: ProvidedEntityEditionProvenance::default(),
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     })
     .await
     .expect("could not create entity with child data type");
@@ -396,7 +424,11 @@ async fn update() {
         },
         relationships: data_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
         conversions: HashMap::new(),
     })
     .await
@@ -405,7 +437,11 @@ async fn update() {
     api.update_data_type(api.account_id, UpdateDataTypesParams {
         schema: object_dt_v2.clone(),
         relationships: data_type_relationships(),
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
         conversions: HashMap::new(),
     })
     .await
@@ -452,6 +488,7 @@ async fn update() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn insert_same_base_url() {
     let object_dt_v1: DataType = serde_json::from_str(hash_graph_test_data::data_type::OBJECT_V1)
         .expect("could not parse data type representation");
@@ -472,7 +509,11 @@ async fn insert_same_base_url() {
         },
         relationships: data_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
         conversions: HashMap::new(),
     })
     .await
@@ -486,7 +527,11 @@ async fn insert_same_base_url() {
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
             conversions: HashMap::new(),
         })
         .await
@@ -504,7 +549,11 @@ async fn insert_same_base_url() {
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
             conversions: HashMap::new(),
         })
         .await
@@ -522,7 +571,11 @@ async fn insert_same_base_url() {
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
             conversions: HashMap::new(),
         })
         .await
@@ -540,7 +593,11 @@ async fn insert_same_base_url() {
             },
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
             conversions: HashMap::new(),
         })
         .await
@@ -569,7 +626,11 @@ async fn wrong_update_order() {
         .update_data_type(api.account_id, UpdateDataTypesParams {
             schema: object_dt_v1.clone(),
             relationships: data_type_relationships(),
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
             conversions: HashMap::new(),
         })
         .await
@@ -586,7 +647,11 @@ async fn wrong_update_order() {
         },
         relationships: data_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
         conversions: HashMap::new(),
     })
     .await
@@ -596,7 +661,11 @@ async fn wrong_update_order() {
         .update_data_type(api.account_id, UpdateDataTypesParams {
             schema: object_dt_v1.clone(),
             relationships: data_type_relationships(),
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
             conversions: HashMap::new(),
         })
         .await
@@ -609,7 +678,11 @@ async fn wrong_update_order() {
     api.update_data_type(api.account_id, UpdateDataTypesParams {
         schema: object_dt_v2.clone(),
         relationships: data_type_relationships(),
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
         conversions: HashMap::new(),
     })
     .await
@@ -619,7 +692,11 @@ async fn wrong_update_order() {
         .update_data_type(api.account_id, UpdateDataTypesParams {
             schema: object_dt_v2.clone(),
             relationships: data_type_relationships(),
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
             conversions: HashMap::new(),
         })
         .await
@@ -651,7 +728,11 @@ async fn update_external_with_owned() {
         },
         relationships: data_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
         conversions: HashMap::new(),
     })
     .await
@@ -661,7 +742,11 @@ async fn update_external_with_owned() {
         .update_data_type(api.account_id, UpdateDataTypesParams {
             schema: object_dt_v2.clone(),
             relationships: data_type_relationships(),
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
             conversions: HashMap::new(),
         })
         .await
@@ -678,7 +763,11 @@ async fn update_external_with_owned() {
         },
         relationships: data_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
         conversions: HashMap::new(),
     })
     .await
@@ -688,7 +777,11 @@ async fn update_external_with_owned() {
         .update_data_type(api.account_id, UpdateDataTypesParams {
             schema: object_dt_v2,
             relationships: data_type_relationships(),
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
             conversions: HashMap::new(),
         })
         .await

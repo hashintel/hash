@@ -11,6 +11,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity_type, property_type};
 use hash_graph_types::{
+    knowledge::entity::{ActorType, OriginProvenance, OriginType},
     ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
     owned_by_id::OwnedById,
 };
@@ -55,7 +56,11 @@ async fn insert() {
         },
         relationships: entity_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     })
     .await
     .expect("could not create entity type");
@@ -83,7 +88,11 @@ async fn query() {
         },
         relationships: entity_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     })
     .await
     .expect("could not create entity type");
@@ -113,6 +122,7 @@ async fn query() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn update() {
     let page_et_v1: EntityType = serde_json::from_str(entity_type::PAGE_V1)
         .expect("could not parse entity type representation");
@@ -157,7 +167,11 @@ async fn update() {
         },
         relationships: entity_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     })
     .await
     .expect("could not create entity type");
@@ -165,7 +179,11 @@ async fn update() {
     api.update_entity_type(api.account_id, UpdateEntityTypesParams {
         schema: page_et_v2.clone(),
         relationships: entity_type_relationships(),
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     })
     .await
     .expect("could not update entity type");

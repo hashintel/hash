@@ -1,5 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import type {
   EntityId,
   PropertyPatchOperation,
@@ -109,7 +109,7 @@ export const deduplicateClaims = async (
 
     newClaimObject.sources = mergedSources;
 
-    const provenance: EnforcedEntityEditionProvenance = {
+    const provenance: ProvidedEntityEditionProvenance = {
       actorType: "ai",
       origin: {
         id: flowEntityId,
@@ -141,27 +141,13 @@ export const deduplicateClaims = async (
           },
         },
       ] satisfies PropertyPatchOperation[],
-      provenance: {
-        ...provenance,
-        origin: {
-          ...provenance.origin,
-          // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
-          type: provenance.origin.type satisfies "migration",
-        },
-      },
+      provenance,
     });
 
     await graphApiClient.patchEntity(aiAssistantAccountId, {
       entityId: currentClaimInLoop.claimId,
       archived: true,
-      provenance: {
-        ...provenance,
-        origin: {
-          ...provenance.origin,
-          // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
-          type: provenance.origin.type satisfies "migration",
-        },
-      },
+      provenance,
     });
 
     canonicalClaimIdByDuplicateId[currentClaimInLoop.claimId] =

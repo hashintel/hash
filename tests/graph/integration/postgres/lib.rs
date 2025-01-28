@@ -79,7 +79,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     account::AccountId,
-    knowledge::entity::{Entity, EntityId},
+    knowledge::entity::{ActorType, Entity, EntityId, OriginProvenance, OriginType},
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, PropertyTypeMetadata,
@@ -245,7 +245,11 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         },
                         relationships: data_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
-                        provenance: ProvidedOntologyEditionProvenance::default(),
+                        provenance: ProvidedOntologyEditionProvenance {
+                            actor_type: ActorType::Human,
+                            origin: OriginProvenance::from_empty_type(OriginType::Api),
+                            sources: Vec::new(),
+                        },
                         conversions: HashMap::new(),
                     }
                 }),
@@ -265,7 +269,11 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         },
                         relationships: property_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
-                        provenance: ProvidedOntologyEditionProvenance::default(),
+                        provenance: ProvidedOntologyEditionProvenance {
+                            actor_type: ActorType::Human,
+                            origin: OriginProvenance::from_empty_type(OriginType::Api),
+                            sources: Vec::new(),
+                        },
                     }
                 }),
             )
@@ -284,7 +292,11 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         },
                         relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
-                        provenance: ProvidedOntologyEditionProvenance::default(),
+                        provenance: ProvidedOntologyEditionProvenance {
+                            actor_type: ActorType::Human,
+                            origin: OriginProvenance::from_empty_type(OriginType::Api),
+                            sources: Vec::new(),
+                        },
                     }
                 }),
             )
