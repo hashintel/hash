@@ -171,7 +171,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "kind": "account",
         "subjectId": "{{account_id}}"
       }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -197,7 +201,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -224,7 +232,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -251,7 +263,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -278,7 +294,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -305,7 +325,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -332,7 +356,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -363,7 +391,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -393,7 +425,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -423,7 +459,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -453,7 +493,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -483,7 +527,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -513,7 +561,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -543,7 +595,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -573,7 +629,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -603,7 +663,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -633,7 +697,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -663,7 +731,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -693,7 +765,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -723,7 +799,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -753,7 +833,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -783,7 +867,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -813,7 +901,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -843,7 +935,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -873,7 +969,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -903,7 +1003,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -933,7 +1037,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -963,7 +1071,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -993,7 +1105,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1023,7 +1139,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1053,7 +1173,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1083,7 +1207,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1113,7 +1241,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1143,7 +1275,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%

@@ -12,6 +12,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, property_type};
 use hash_graph_types::{
+    knowledge::entity::{ActorType, OriginProvenance, OriginType},
     ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
     owned_by_id::OwnedById,
 };
@@ -37,7 +38,11 @@ async fn insert() {
         },
         relationships: property_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     })
     .await
     .expect("could not create property type");
@@ -61,7 +66,11 @@ async fn query() {
         },
         relationships: property_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     })
     .await
     .expect("could not create property type");
@@ -116,7 +125,11 @@ async fn update() {
         },
         relationships: property_type_relationships(),
         conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     })
     .await
     .expect("could not create property type");
@@ -124,7 +137,11 @@ async fn update() {
     api.update_property_type(api.account_id, UpdatePropertyTypesParams {
         schema: user_id_pt_v2.clone(),
         relationships: property_type_relationships(),
-        provenance: ProvidedOntologyEditionProvenance::default(),
+        provenance: ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::Human,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
     })
     .await
     .expect("could not update property type");

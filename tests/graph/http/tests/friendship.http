@@ -149,7 +149,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "subject": {
       "kind": "public"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -202,7 +206,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "subject": {
       "kind": "public"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -298,7 +306,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "subject": {
       "kind": "public"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -354,7 +366,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "updateFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -410,7 +426,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "updateFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -502,7 +522,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "updateFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -596,7 +620,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "subject": {
       "kind": "public"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -654,7 +682,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "updateFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -774,7 +806,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "updateFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -903,7 +939,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "kind": "setting",
       "subjectId": "updateFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1304,7 +1344,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
        "kind": "setting",
        "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1427,7 +1471,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         }
       }
     }
-  ]
+  ],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1501,7 +1549,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
        "kind": "setting",
        "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1652,7 +1704,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
        "kind": "setting",
        "subjectId": "administratorFromWeb"
     }
-  }]
+  }],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1671,7 +1727,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "entityId": "{{person_b_entity_id}}",
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
-  "draft": false
+  "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1690,7 +1750,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "entityId": "{{link_entity_id}}",
   "entityTypeIds": ["{{friendship_link_entity_type_id}}"],
-  "draft": false
+  "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -1810,7 +1874,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityId": "{{person_b_entity_id}}",
-  "archived": true
+  "archived": true,
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -2160,7 +2228,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
        "subjectId": "administratorFromWeb"
     }
   }],
-  "decisionTime": "2020-01-01T00:00:00.000Z"
+  "decisionTime": "2020-01-01T00:00:00.000Z",
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -2191,7 +2263,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         }
       }
     }
-  ]
+  ],
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%
@@ -2222,7 +2298,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     }
   ],
-  "draft": false
+  "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": { "type":  "api" }
+  }
 }
 
 > {%

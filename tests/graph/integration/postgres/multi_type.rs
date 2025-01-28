@@ -16,7 +16,9 @@ use hash_graph_store::{
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     knowledge::{
-        entity::{Entity, ProvidedEntityEditionProvenance},
+        entity::{
+            ActorType, Entity, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
+        },
         property::{PropertyObject, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
@@ -89,7 +91,11 @@ async fn empty_entity() {
             link_data: None,
             draft: false,
             relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         },)
             .await
             .expect_err("created entity with no types")
@@ -116,7 +122,11 @@ async fn initial_person() {
             link_data: None,
             draft: false,
             relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not create entity");
@@ -165,7 +175,11 @@ async fn initial_person() {
             draft: None,
             archived: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not create entity");
@@ -261,7 +275,11 @@ async fn create_multi() {
             link_data: None,
             draft: false,
             relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not create entity");
@@ -343,7 +361,11 @@ async fn create_multi() {
             draft: None,
             archived: None,
             confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         })
         .await
         .expect("could not create entity");

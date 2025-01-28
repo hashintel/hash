@@ -279,6 +279,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
       schema: dataTypeSchema,
       relationships,
       conversions,
+      provenance: context.provenance,
     });
 
     return await getDataTypeById(context, authentication, {
@@ -376,6 +377,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: propertyTypeSchema,
       relationships,
+      provenance: context.provenance,
     });
 
     return await getPropertyTypeById(context, authentication, {
@@ -604,6 +606,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: entityTypeSchema,
       relationships,
+      provenance: context.provenance,
     });
 
     return await getEntityTypeById(context, authentication, {
@@ -790,6 +793,7 @@ export const updateSystemEntityType: ImpureGraphFunction<
             ...schemaWithConsistentSelfReferences,
             $id: nextEntityTypeId,
           },
+          provenance: context.provenance,
         })
         .then((resp) => resp.data)
     : await context.graphApi
@@ -797,6 +801,7 @@ export const updateSystemEntityType: ImpureGraphFunction<
           typeToUpdate: currentEntityTypeId,
           schema: schemaWithConsistentSelfReferences,
           relationships: currentRelationships,
+          provenance: context.provenance,
         })
         .then((resp) => resp.data);
 
@@ -865,6 +870,7 @@ export const updateSystemPropertyType: ImpureGraphFunction<
             ...newSchema,
             $id: nextPropertyTypeId,
           },
+          provenance: context.provenance,
         })
         .then((resp) => resp.data)
     : await context.graphApi
@@ -872,6 +878,7 @@ export const updateSystemPropertyType: ImpureGraphFunction<
           typeToUpdate: currentPropertyTypeId,
           schema: schemaWithout$id,
           relationships: currentRelationships,
+          provenance: context.provenance,
         })
         .then((resp) => resp.data);
 

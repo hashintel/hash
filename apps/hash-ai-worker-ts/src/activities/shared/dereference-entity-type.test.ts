@@ -219,6 +219,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {
@@ -275,6 +279,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {
@@ -347,6 +355,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {
@@ -387,6 +399,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {
@@ -482,6 +498,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {
@@ -525,6 +545,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {
@@ -568,6 +592,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {
@@ -611,6 +639,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {
@@ -655,6 +687,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {
@@ -698,6 +734,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {
@@ -738,6 +778,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {
@@ -781,6 +825,10 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             provenance: {
               edition: {
                 createdById: "3660bed8-caae-4f20-a52c-a7e8ebca8bc4",
+                actorType: "machine",
+                origin: {
+                  type: "api",
+                },
               },
             },
             temporalVersioning: {

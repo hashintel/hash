@@ -11,12 +11,10 @@ import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws
 import type {
   OriginProvenance,
   PropertyProvenance,
+  ProvidedEntityEditionProvenance,
   SourceProvenance,
 } from "@local/hash-graph-client";
-import type {
-  EnforcedEntityEditionProvenance,
-  Entity,
-} from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -237,7 +235,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     location: { uri: fileUrl },
   };
 
-  const provenance: EnforcedEntityEditionProvenance = {
+  const provenance: ProvidedEntityEditionProvenance = {
     actorType: "ai",
     origin: {
       type: "flow",
