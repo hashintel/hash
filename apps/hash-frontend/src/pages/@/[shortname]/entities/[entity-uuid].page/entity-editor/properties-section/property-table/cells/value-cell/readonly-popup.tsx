@@ -1,4 +1,4 @@
-import { ReadonlyGridPopup } from "../../../../../../../../shared/readonly-grid-popup";
+import { ReadonlyGridPopup } from "../../../../../../../../../shared/readonly-grid-popup";
 import type { ValueCellEditorComponent } from "./types";
 
 export const ReadonlyValueCellPopup: ValueCellEditorComponent = (props) => {

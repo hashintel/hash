@@ -16,8 +16,8 @@ import { useEffect, useRef, useState } from "react";
 import type {
   GetDataTypeConversionTargetsQuery,
   GetDataTypeConversionTargetsQueryVariables,
-} from "../../../../../../../../../graphql/api-types.gen";
-import { getDataTypeConversionTargetsQuery } from "../../../../../../../../../graphql/queries/ontology/data-type.queries";
+} from "../../../../../../../../../../graphql/api-types.gen";
+import { getDataTypeConversionTargetsQuery } from "../../../../../../../../../../graphql/queries/ontology/data-type.queries";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { getEditorSpecs } from "./editor-specs";
 import { EditorTypePicker } from "./editor-type-picker";
