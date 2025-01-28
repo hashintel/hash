@@ -161,7 +161,7 @@ export const TypeButton = ({
         title={entityTypeTitle}
         version={currentVersion}
         newVersionConfig={
-          readonly && newVersion
+          !readonly && newVersion
             ? {
                 newVersion,
                 onUpdateVersion: onUpgradeClicked,
@@ -253,6 +253,8 @@ export const TypesSection = () => {
       };
     });
   }, [closedMultiEntityType, latestEntityTypesData]);
+
+  console.log({ entityTypes });
 
   const [addingType, setAddingType] = useState(false);
 

@@ -10,6 +10,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import type { ListItemButtonProps } from "@mui/material";
 import {
@@ -268,7 +269,7 @@ export const MentionSuggesterEntity = forwardRef<
                 >
                   {item.kind === "outgoing-link"
                     ? item.targetEntityLabel
-                    : item.propertyValue?.toString()}
+                    : stringifyPropertyValue(item.propertyValue)}
                 </ListItemSecondaryText>
               </ListItemButton>
             ))}

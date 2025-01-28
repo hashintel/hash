@@ -19,6 +19,7 @@ import type {
   EntityTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
@@ -64,7 +65,7 @@ const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
   } else if (typeof value === "undefined") {
     return "Undefined";
   } else {
-    return String(value);
+    return stringifyPropertyValue(value);
   }
 };
 

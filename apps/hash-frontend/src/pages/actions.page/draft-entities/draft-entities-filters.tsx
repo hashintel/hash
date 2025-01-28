@@ -503,9 +503,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 web.kind === "user"
                   ? web.accountId === authenticatedUser.accountId
                     ? "My Web"
-                    : web.displayName
-                      ? web.displayName
-                      : "Unknown User"
+                    : (web.displayName ?? "Unknown User")
                   : web.name;
 
               return { label, web };

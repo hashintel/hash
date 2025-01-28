@@ -75,7 +75,7 @@ export const formatValue = (
       if (index < value.length - 1) {
         valueParts.push({
           text: ", ",
-          color: customColors.gray[50],
+          color: customColors.gray[60],
           type: "rightLabel",
         });
       }
