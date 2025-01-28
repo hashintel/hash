@@ -311,7 +311,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
                     ),
                     actorType: "human",
                     origin: {
-                      type: "api",
+                      type: "web-app",
                     },
                   },
                 },
