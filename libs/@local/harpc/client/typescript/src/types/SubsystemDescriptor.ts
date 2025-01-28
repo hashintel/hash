@@ -1,6 +1,7 @@
 import {
   type FastCheck,
   Effect,
+  Either,
   Equal,
   Function,
   Hash,
@@ -10,7 +11,7 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../utils.js";
+import { createProto, implDecode, implEncode } from "../utils.js";
 import type * as Buffer from "../wire-protocol/Buffer.js";
 
 import * as SubsystemId from "./SubsystemId.js";
@@ -83,24 +84,24 @@ export const make = (
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, descriptor: SubsystemDescriptor) =>
-    pipe(
-      buffer,
-      SubsystemId.encode(descriptor.id),
-      Effect.andThen(Version.encode(descriptor.version)),
-    ),
+export const encode = implEncode((buffer, descriptor: SubsystemDescriptor) =>
+  pipe(
+    buffer,
+    SubsystemId.encode(descriptor.id),
+    Either.andThen(Version.encode(descriptor.version)),
+  ),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
     const id = yield* SubsystemId.decode(buffer);
     const version = yield* Version.decode(buffer);
 
     return make(id, version);
-  });
+  }),
+);
 
 export const isSubsystemDescriptor = (
   value: unknown,

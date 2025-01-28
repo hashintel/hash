@@ -23,6 +23,8 @@ export type Read = typeof Read;
 
 export type ReadBuffer = MutableBuffer<Read>;
 
+export type ReadResult<T, E = UnexpectedEndOfBufferError> = Either.Either<T, E>;
+
 const Write: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Buffer/Write",
 );
@@ -30,6 +32,11 @@ const Write: unique symbol = Symbol(
 export type Write = typeof Write;
 
 export type WriteBuffer = MutableBuffer<Write>;
+
+export type WriteResult<E = UnexpectedEndOfBufferError> = Either.Either<
+  WriteBuffer,
+  E
+>;
 
 export class UnexpectedEndOfBufferError extends Data.TaggedError(
   "UnexpectedEndOfBufferError",
@@ -73,7 +80,10 @@ export const makeRead = (bytes: MutableBytes.MutableBytes): ReadBuffer =>
 
 export const makeWrite = (buffer?: MutableBytes.MutableBytes): WriteBuffer =>
   makeUnchecked(
-    buffer ?? MutableBytes.make({ initialCapacity: 64 * 1024 }),
+    MutableBytes.require(
+      buffer ?? MutableBytes.make({ initialCapacity: 64 * 1024 }),
+      64 * 1024,
+    ),
     Write,
   );
 
@@ -108,15 +118,8 @@ const validateBounds = <T>(
  */
 const putInt = (sign: "u" | "i", width: 1 | 2 | 4) =>
   Function.dual<
-    (
-      value: number,
-    ) => (
-      self: WriteBuffer,
-    ) => Either.Either<WriteBuffer, UnexpectedEndOfBufferError>,
-    (
-      self: WriteBuffer,
-      value: number,
-    ) => Either.Either<WriteBuffer, UnexpectedEndOfBufferError>
+    (value: number) => (self: WriteBuffer) => WriteResult,
+    (self: WriteBuffer, value: number) => WriteResult
   >(2, (self, value) =>
     pipe(
       validateBounds(self, width),
@@ -208,15 +211,8 @@ export const getI16 = getInt("i", 2);
 export const getI32 = getInt("i", 4);
 
 export const putSlice = Function.dual<
-  (
-    value: Uint8Array,
-  ) => (
-    self: WriteBuffer,
-  ) => Either.Either<WriteBuffer, UnexpectedEndOfBufferError>,
-  (
-    self: WriteBuffer,
-    value: Uint8Array,
-  ) => Either.Either<WriteBuffer, UnexpectedEndOfBufferError>
+  (value: Uint8Array) => (self: WriteBuffer) => WriteResult,
+  (self: WriteBuffer, value: Uint8Array) => WriteResult
 >(2, (self, value) =>
   pipe(
     validateBounds(self, value.length),
@@ -255,20 +251,13 @@ export const getSlice = (self: ReadBuffer, byteLength: number) =>
   );
 
 export const advance = Function.dual<
-  (
-    length: number,
-  ) => (
-    self: WriteBuffer,
-  ) => Either.Either<WriteBuffer, UnexpectedEndOfBufferError>,
-  (
-    self: WriteBuffer,
-    length: number,
-  ) => Either.Either<WriteBuffer, UnexpectedEndOfBufferError>
->(2, (self, byteLength) =>
+  (length: number) => <T>(self: MutableBuffer<T>) => WriteResult,
+  <T>(self: MutableBuffer<T>, length: number) => WriteResult
+>(2, <T>(self: MutableBuffer<T>, byteLength: number) =>
   pipe(
     validateBounds(self, byteLength),
     Either.map(() => {
-      const impl = self as MutableBufferImpl<Write>;
+      const impl = self as MutableBufferImpl<T>;
 
       impl.index = impl.index + byteLength;
 

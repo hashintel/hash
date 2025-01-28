@@ -62,6 +62,29 @@ export const make = (options?: {
     },
   ) satisfies MutableBytesImpl as MutableBytes;
 
+export const makeFrom = (
+  buffer: ArrayBuffer,
+  options?: {
+    /**
+     * The strategy for growing the buffer when more space is needed.
+     *
+     * @defaultValue "doubling"
+     */
+    readonly growthStrategy?: GrowthStrategy;
+  },
+): MutableBytes =>
+  createProto(
+    MutableBytesProto,
+    {
+      initialCapacity: buffer.byteLength,
+      growthStrategy: options?.growthStrategy ?? "doubling",
+    },
+    {
+      length: buffer.byteLength,
+      inner: buffer,
+    },
+  ) satisfies MutableBytesImpl as MutableBytes;
+
 export const capacity = (self: MutableBytes) =>
   (self as MutableBytesImpl).inner.byteLength;
 
@@ -113,6 +136,16 @@ const requiredCapacity = (self: MutableBytes, minimum: number) => {
 
 export const reserve = (self: MutableBytes, additional: number) => {
   return allocate(self, requiredCapacity(self, length(self) + additional));
+};
+
+export const require = (self: MutableBytes, byteLength: number) => {
+  allocate(self, requiredCapacity(self, byteLength));
+
+  const impl = self as MutableBytesImpl;
+
+  impl.length = byteLength;
+
+  return self;
 };
 
 export const asBuffer = (self: MutableBytes) => {

@@ -1,6 +1,7 @@
 import {
   type FastCheck,
   Effect,
+  Either,
   Equal,
   Function,
   Hash,
@@ -11,7 +12,8 @@ import {
 } from "effect";
 
 import * as ResponseKind from "../../../types/ResponseKind.js";
-import { createProto, encodeDual } from "../../../utils.js";
+import { createProto, implDecode, implEncode } from "../../../utils.js";
+import { MutableBuffer } from "../../../binary/index.js";
 import * as Buffer from "../../Buffer.js";
 import * as Payload from "../Payload.js";
 
@@ -82,26 +84,26 @@ export const make = (
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, begin: ResponseBegin) =>
-    pipe(
-      buffer,
-      Buffer.advance(17),
-      Effect.andThen(ResponseKind.encode(buffer, begin.kind)),
-      Effect.andThen(Payload.encode(begin.payload)),
-    ),
+export const encode = implEncode((buffer, begin: ResponseBegin) =>
+  pipe(
+    buffer,
+    MutableBuffer.advance(17),
+    Either.andThen(ResponseKind.encode(buffer, begin.kind)),
+    Either.andThen(Payload.encode(begin.payload)),
+  ),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
-    yield* Buffer.advance(buffer, 17);
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
+    yield* MutableBuffer.advance(buffer, 17);
     const kind = yield* ResponseKind.decode(buffer);
     const payload = yield* Payload.decode(buffer);
 
     return make(kind, payload);
-  });
+  }),
+);
 
 export const isResponseBegin = (value: unknown): value is ResponseBegin =>
   Predicate.hasProperty(value, TypeId);

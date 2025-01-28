@@ -1,6 +1,7 @@
 import {
   type FastCheck,
   Effect,
+  Either,
   Equal,
   Function,
   Hash,
@@ -12,7 +13,8 @@ import {
 
 import * as ProcedureDescriptor from "../../../types/ProcedureDescriptor.js";
 import * as SubsystemDescriptor from "../../../types/SubsystemDescriptor.js";
-import { createProto, encodeDual } from "../../../utils.js";
+import { MutableBuffer } from "../../../binary/index.js";
+import { createProto, implDecode, implEncode } from "../../../utils.js";
 import * as Buffer from "../../Buffer.js";
 import * as Payload from "../Payload.js";
 
@@ -92,29 +94,29 @@ export const make = (
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, begin: RequestBegin) =>
-    pipe(
-      buffer,
-      SubsystemDescriptor.encode(begin.subsystem),
-      Effect.andThen(ProcedureDescriptor.encode(begin.procedure)),
-      Effect.andThen(Buffer.advance(13)),
-      Effect.andThen(Payload.encode(begin.payload)),
-    ),
+export const encode = implEncode((buffer, begin: RequestBegin) =>
+  pipe(
+    buffer,
+    SubsystemDescriptor.encode(begin.subsystem),
+    Either.andThen(ProcedureDescriptor.encode(begin.procedure)),
+    Either.andThen(MutableBuffer.advance(13)),
+    Either.andThen(Payload.encode(begin.payload)),
+  ),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
     const subsystem = yield* SubsystemDescriptor.decode(buffer);
     const procedure = yield* ProcedureDescriptor.decode(buffer);
 
-    yield* Buffer.advance(buffer, 13);
+    yield* MutableBuffer.advance(buffer, 13);
     const payload = yield* Payload.decode(buffer);
 
     return make(subsystem, procedure, payload);
-  });
+  }),
+);
 
 export const isRequestBegin = (value: unknown): value is RequestBegin =>
   Predicate.hasProperty(value, TypeId);

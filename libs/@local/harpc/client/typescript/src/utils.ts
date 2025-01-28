@@ -1,6 +1,7 @@
 import { Function, Hash, Record, Tuple } from "effect";
 
 import type * as Buffer from "./wire-protocol/Buffer.js";
+import type { MutableBuffer } from "./binary/index.js";
 
 export const createProto = <
   T extends object,
@@ -44,12 +45,26 @@ export const createProto = <
 /**
  * This is more strictly typed than necessary, but this allows us to give better type hints.
  */
-export const encodeDual: <U, E extends Buffer.UnexpectedEndOfBufferError>(
-  closure: (buffer: Buffer.WriteBuffer, self: U) => Buffer.WriteResult<E>,
+export const implEncode: <U, E extends Buffer.UnexpectedEndOfBufferError>(
+  closure: (
+    buffer: MutableBuffer.WriteBuffer,
+    self: U,
+  ) => MutableBuffer.WriteResult<E>,
 ) => {
-  (self: U): (buffer: Buffer.WriteBuffer) => Buffer.WriteResult<E>;
-  (buffer: Buffer.WriteBuffer, self: U): Buffer.WriteResult<E>;
+  (
+    self: U,
+  ): (buffer: MutableBuffer.WriteBuffer) => MutableBuffer.WriteResult<E>;
+  (buffer: MutableBuffer.WriteBuffer, self: U): MutableBuffer.WriteResult<E>;
 } = (closure) => Function.dual(2, closure as (...args: unknown[]) => unknown);
+
+/**
+ * This is more strictly typed than necessary, but this allows us to give better type hints.
+ */
+export const implDecode: <U, E>(
+  closure: (buffer: MutableBuffer.ReadBuffer) => MutableBuffer.ReadResult<U, E>,
+) => (buffer: MutableBuffer.ReadBuffer) => MutableBuffer.ReadResult<U, E> = (
+  closure,
+) => closure;
 
 export const hashUint8Array = (array: Uint8Array) => {
   // same as array, so initial state is the same

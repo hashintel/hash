@@ -12,11 +12,12 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../../../utils.js";
+import { createProto, implDecode, implEncode } from "../../../utils.js";
 import type * as Buffer from "../../Buffer.js";
 
 import * as RequestBegin from "./RequestBegin.js";
 import * as RequestFrame from "./RequestFrame.js";
+import { MutableBuffer } from "@local/harpc-client/binary";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestBody",
@@ -142,37 +143,36 @@ export const mapBoth: {
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, body: RequestBody) =>
-    match(body, {
-      onBegin: (begin) => RequestBegin.encode(buffer, begin),
-      onFrame: (frame) => RequestFrame.encode(buffer, frame),
-    }),
+export const encode = implEncode((buffer, body: RequestBody) =>
+  match(body, {
+    onBegin: (begin) => RequestBegin.encode(buffer, begin),
+    onFrame: (frame) => RequestFrame.encode(buffer, frame),
+  }),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Effect.Effect.Error<
+  ReturnType<ReturnType<typeof decode>>
+>;
 
-export const decode = (
-  buffer: Buffer.ReadBuffer,
-  variantHint: RequestBodyVariant,
-) => {
-  switch (variantHint) {
-    case "RequestBegin": {
-      return pipe(
-        buffer,
-        RequestBegin.decode,
-        Effect.andThen((begin) => make(Either.right(begin))),
-      );
+export const decode = (variantHint: RequestBodyVariant) =>
+  implDecode((buffer) => {
+    switch (variantHint) {
+      case "RequestBegin": {
+        return pipe(
+          buffer,
+          RequestBegin.decode,
+          Either.andThen((begin) => make(Either.right(begin))),
+        );
+      }
+      case "RequestFrame": {
+        return pipe(
+          buffer,
+          RequestFrame.decode,
+          Either.andThen((frame) => make(Either.left(frame))),
+        );
+      }
     }
-    case "RequestFrame": {
-      return pipe(
-        buffer,
-        RequestFrame.decode,
-        Effect.andThen((frame) => make(Either.left(frame))),
-      );
-    }
-  }
-};
+  });
 
 export const variant = (body: RequestBody): RequestBodyVariant =>
   match(body, {

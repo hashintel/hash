@@ -11,8 +11,8 @@ import {
 } from "effect";
 
 import { U16_MAX } from "../constants.js";
-import { createProto, encodeDual } from "../utils.js";
-import * as Buffer from "../wire-protocol/Buffer.js";
+import { createProto, implEncode } from "../utils.js";
+import { MutableBuffer } from "../binary/index.js";
 
 const TypeId = Symbol("@local/harpc-client/wire-protocol/types/ErrorCode");
 
@@ -104,9 +104,8 @@ export const make = (
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, errorCode: ErrorCode) =>
-    Buffer.putU16(buffer, errorCode.value),
+export const encode = implEncode((buffer, errorCode: ErrorCode) =>
+  MutableBuffer.putU16(buffer, errorCode.value),
 );
 
 // no decode function, decoding is done through the ResponseKind.ts file

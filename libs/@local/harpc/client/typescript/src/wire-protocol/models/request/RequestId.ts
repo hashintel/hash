@@ -7,11 +7,13 @@ import {
   pipe,
   Pipeable,
   Predicate,
+  Either,
 } from "effect";
 
 import { U32_MAX, U32_MIN } from "../../../constants.js";
-import { createProto, encodeDual } from "../../../utils.js";
+import { createProto, implDecode, implEncode } from "../../../utils.js";
 import * as Buffer from "../../Buffer.js";
+import { MutableBuffer } from "../../../binary/index.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestId",
@@ -73,18 +75,18 @@ export const makeUnchecked = (value: number): RequestId =>
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, requestId: RequestId) =>
-    Buffer.putU32(buffer, requestId.value),
+export const encode = implEncode((buffer, requestId: RequestId) =>
+  MutableBuffer.putU32(buffer, requestId.value),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
+export const decode = implDecode((buffer) =>
   pipe(
-    Buffer.getU32(buffer), //
-    Effect.map(makeUnchecked),
-  );
+    MutableBuffer.getU32(buffer), //
+    Either.map(makeUnchecked),
+  ),
+);
 
 export const isRequestId = (value: unknown): value is RequestId =>
   Predicate.hasProperty(value, TypeId);
