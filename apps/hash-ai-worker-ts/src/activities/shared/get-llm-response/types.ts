@@ -3,18 +3,18 @@ import type { OpenAI } from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { PermittedOpenAiModel } from "../openai-client.js";
-import type {
-  AnthropicApiProvider,
-  AnthropicMessageModel,
-  AnthropicMessagesCreateParams,
-  AnthropicMessagesCreateResponse,
+import {
+  type AnthropicApiProvider,
+  type AnthropicMessagesCreateParams,
+  type AnthropicMessagesCreateResponse,
+  isPermittedAnthropicModel,
+  type PermittedAnthropicModel,
 } from "./anthropic-client.js";
-import { isAnthropicMessageModel } from "./anthropic-client.js";
-import type {
-  FileMessageContent,
-  LlmAssistantMessage,
-  LlmMessage,
-} from "./llm-message.js";
+import {
+  isPermittedGoogleAiModel,
+  type PermittedGoogleAiModel,
+} from "./google-vertex-ai-client.js";
+import type { LlmAssistantMessage, LlmMessage } from "./llm-message.js";
 
 export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
@@ -26,10 +26,11 @@ export type LlmToolDefinition<ToolName extends string = string> = {
   sanitizeInputBeforeValidation?: (rawInput: object) => object;
 };
 
-export type LlmService = "anthropic" | "openai" | "google-ai";
-
 export type CommonLlmParams<ToolName extends string = string> = {
-  model: AnthropicMessageModel | PermittedOpenAiModel;
+  model:
+    | PermittedAnthropicModel
+    | PermittedOpenAiModel
+    | PermittedGoogleAiModel;
   tools?: LlmToolDefinition<ToolName>[];
   systemPrompt?: string;
   messages: LlmMessage[];
@@ -39,25 +40,19 @@ export type CommonLlmParams<ToolName extends string = string> = {
     previousSuccessfulToolCalls: ParsedLlmToolCall<ToolName>[];
     previousUsage: LlmUsage;
   };
-  service: LlmService;
 };
 
-export type GoogleAiParams<ToolName extends string = string> = Omit<
-  CommonLlmParams<ToolName>,
-  "messages"
-> & {
-  messages: (LlmMessage | FileMessageContent)[];
-  model: "gemini-1.5-pro-002";
-  service: "google-vertex-ai";
-  previousInvalidResponses?: (GenerateContentResponse & {
-    requestTime: number;
-  })[];
-};
+export type GoogleAiParams<ToolName extends string = string> =
+  CommonLlmParams<ToolName> & {
+    model: PermittedGoogleAiModel;
+    previousInvalidResponses?: (GenerateContentResponse & {
+      requestTime: number;
+    })[];
+  };
 
 export type AnthropicLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
-    service: "anthropic";
-    model: AnthropicMessageModel;
+    model: PermittedAnthropicModel;
     maxTokens?: number;
     previousInvalidResponses?: (AnthropicMessagesCreateResponse & {
       requestTime: number;
@@ -69,7 +64,6 @@ export type AnthropicLlmParams<ToolName extends string = string> =
 
 export type OpenAiLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
-    service: "openai";
     model: PermittedOpenAiModel;
     trimMessageAtIndex?: number;
     previousInvalidResponses?: (OpenAI.ChatCompletion & {
@@ -82,7 +76,8 @@ export type OpenAiLlmParams<ToolName extends string = string> =
 
 export type LlmParams<ToolName extends string = string> =
   | AnthropicLlmParams<ToolName>
-  | OpenAiLlmParams<ToolName>;
+  | OpenAiLlmParams<ToolName>
+  | GoogleAiParams<ToolName>;
 
 export type LlmRequestMetadata = {
   requestId: string;
@@ -90,7 +85,7 @@ export type LlmRequestMetadata = {
   taskName?: string;
 };
 
-export type LlmProvider = AnthropicApiProvider | "openai";
+export type LlmProvider = AnthropicApiProvider | "openai" | "google-vertex-ai";
 
 export type LlmLog = LlmRequestMetadata & {
   finalized: boolean;
@@ -112,7 +107,11 @@ export type LlmServerErrorLog = LlmRequestMetadata & {
 
 export const isLlmParamsAnthropicLlmParams = (
   params: LlmParams,
-): params is AnthropicLlmParams => isAnthropicMessageModel(params.model);
+): params is AnthropicLlmParams => isPermittedAnthropicModel(params.model);
+
+export const isLlmParamsGoogleAiParams = (
+  params: LlmParams,
+): params is GoogleAiParams => isPermittedGoogleAiModel(params.model);
 
 export type AnthropicResponse = Omit<
   AnthropicMessagesCreateResponse,
@@ -128,6 +127,13 @@ export type OpenAiResponse = Omit<
   "usage" | "choices" | "object"
 > & {
   invalidResponses: (OpenAI.ChatCompletion & { requestTime: number })[];
+};
+
+export type GoogleAiResponse = Omit<
+  GenerateContentResponse,
+  "usage" | "candidates"
+> & {
+  invalidResponses: (GenerateContentResponse & { requestTime: number })[];
 };
 
 export type ParsedLlmToolCall<
@@ -231,5 +237,7 @@ export type LlmResponse<T extends LlmParams> =
       >;
     } & (T extends AnthropicLlmParams
       ? Omit<AnthropicResponse, "stop_reason">
-      : OpenAiResponse))
+      : T extends GoogleAiParams
+        ? GoogleAiResponse
+        : OpenAiResponse))
   | LlmErrorResponse;

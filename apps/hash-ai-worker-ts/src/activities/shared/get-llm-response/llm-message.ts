@@ -10,9 +10,12 @@ export type LlmMessageTextContent = {
   text: string;
 };
 
-export type FileMessageContent = {
-  mimeType: string;
-  fileUri: string;
+export type LlmFileMessageContent = {
+  type: "file";
+  fileData?: {
+    mimeType: string;
+    fileUri: string;
+  };
 };
 
 export type LlmMessageToolUseContent<ToolName = string> = {
@@ -39,7 +42,7 @@ export type LlmUserMessage = {
   content: (
     | LlmMessageTextContent
     | LlmMessageToolResultContent
-    | FileMessageContent
+    | LlmFileMessageContent
   )[];
 };
 
@@ -55,14 +58,18 @@ export const mapLlmMessageToAnthropicMessage = (params: {
   message: LlmMessage;
 }): AnthropicMessage => ({
   role: params.message.role,
-  content: params.message.content.map((content) =>
-    content.type === "tool_result"
+  content: params.message.content.map((content) => {
+    if (content.type === "file") {
+      throw new Error("File content not supported for Anthropic calls");
+    }
+
+    return content.type === "tool_result"
       ? ({
           ...content,
           content: [{ type: "text", text: content.content }],
         } satisfies AnthropicToolResultBlockParam)
-      : content,
-  ),
+      : content;
+  }),
 });
 
 export const mapAnthropicMessageToLlmMessage = (params: {
@@ -215,6 +222,10 @@ export const mapLlmMessageToOpenAiMessages = (params: {
       } satisfies OpenAI.ChatCompletionUserMessageParam;
     }
 
+    if (content.type === "file") {
+      throw new Error("File content not supported for OpenAI calls");
+    }
+
     return {
       role: "tool",
       tool_call_id: content.tool_use_id,
@@ -354,25 +365,104 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
   );
 };
 
+export const mapLlmMessageToGoogleVertexAiMessage = (
+  message: LlmMessage,
+): Content => {
+  if (message.role === "user") {
+    return {
+      role: "user",
+      parts: message.content.map((content) => ({
+        text: content.text,
+      })),
+    };
+  }
+};
+
 export const mapGoogleVertexAiMessagesToLlmMessages = (params: {
   messages: Content[];
 }): LlmMessage[] => {
   const { messages } = params;
 
-  return messages.map((message) => ({
-    role: message.role as "user" | "assistant",
-    content: message.parts.map((part) => {
-      if ("fileData" in part && part.fileData) {
-        return {
-          type: "file" as const,
-          fileEntity: part.fileData.fileUri,
-        };
-      } else {
-        return {
-          type: "text" as const,
-          text: part.text,
-        };
-      }
-    }),
-  }));
+  return messages.map((message) => {
+    if (message.role === "user") {
+      return {
+        role: message.role,
+        content: message.parts.map((part) => {
+          if ("functionResponse" in part) {
+            if (!part.functionResponse) {
+              throw new Error("Function response is undefined");
+            }
+
+            return {
+              type: "tool_result" as const,
+              tool_use_id: "no-ids-in-google-ai-function-calls",
+              name: part.functionResponse.name,
+              content: JSON.stringify(part.functionResponse.response),
+            };
+          }
+
+          if ("text" in part) {
+            if (typeof part.text !== "string") {
+              throw new Error("Text is not a string");
+            }
+
+            return {
+              type: "text" as const,
+              text: part.text,
+            };
+          }
+
+          if ("fileData" in part) {
+            if (!part.fileData) {
+              throw new Error("File data is undefined");
+            }
+
+            return {
+              type: "file" as const,
+              fileData: part.fileData,
+            };
+          }
+
+          throw new Error(
+            `Unexpected content type for 'user' message: ${JSON.stringify(part)}`,
+          );
+        }),
+      };
+    } else if (message.role === "assistant") {
+      return {
+        role: message.role,
+        content: message.parts.map((part) => {
+          if ("functionCall" in part) {
+            if (!part.functionCall) {
+              throw new Error("Function call is undefined");
+            }
+
+            return {
+              type: "tool_use" as const,
+              id: "no-ids-in-google-ai-function-calls",
+              name: part.functionCall.name,
+              input: part.functionCall.args,
+            };
+          }
+
+          if ("text" in part) {
+            if (typeof part.text !== "string") {
+              throw new Error("Text is not a string");
+            }
+
+            return {
+              type: "text" as const,
+              text: part.text,
+            };
+          }
+
+          throw new Error(
+            `Unexpected content type for 'assistant' message: ${JSON.stringify(part)}`,
+          );
+        }),
+      };
+    }
+
+    throw new Error(`Unexpected message role: ${message.role}`);
+  });
 };

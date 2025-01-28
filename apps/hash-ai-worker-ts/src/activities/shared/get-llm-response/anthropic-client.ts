@@ -16,22 +16,22 @@ export const anthropic = new Anthropic({
   apiKey: anthropicApiKey,
 });
 
-const anthropicMessageModels = [
+const permittedAnthropicModels = [
   "claude-3-5-sonnet-20240620",
   "claude-3-opus-20240229",
   "claude-3-haiku-20240307",
 ] satisfies MessageCreateParamsBase["model"][];
 
-export type AnthropicMessageModel = (typeof anthropicMessageModels)[number];
+export type PermittedAnthropicModel = (typeof permittedAnthropicModels)[number];
 
-export const isAnthropicMessageModel = (
+export const isPermittedAnthropicModel = (
   model: string,
-): model is AnthropicMessageModel =>
-  anthropicMessageModels.includes(model as AnthropicMessageModel);
+): model is PermittedAnthropicModel =>
+  permittedAnthropicModels.includes(model as PermittedAnthropicModel);
 
 /** @see https://docs.anthropic.com/claude/docs/models-overview#model-comparison */
 export const anthropicMessageModelToContextWindow: Record<
-  AnthropicMessageModel,
+  PermittedAnthropicModel,
   number
 > = {
   "claude-3-haiku-20240307": 200_000,
@@ -41,7 +41,7 @@ export const anthropicMessageModelToContextWindow: Record<
 
 /** @see https://docs.anthropic.com/en/docs/about-claude/models#model-comparison */
 export const anthropicMessageModelToMaxOutput: Record<
-  AnthropicMessageModel,
+  PermittedAnthropicModel,
   number
 > = {
   "claude-3-haiku-20240307": 4096,
@@ -54,7 +54,7 @@ export type AnthropicMessagesCreateParams = {
     | { type: "tool"; name: string }
     | { type: "any" }
     | { type: "auto" };
-  model: AnthropicMessageModel;
+  model: PermittedAnthropicModel;
   messages: MessageParam[];
 } & Omit<MessageCreateParamsNonStreaming, "model" | "messages">;
 
@@ -93,7 +93,7 @@ type AnthropicBedrockModel =
 
 /** @see https://docs.anthropic.com/en/api/claude-on-amazon-bedrock#api-model-names */
 export const anthropicModelToBedrockModel: Record<
-  AnthropicMessageModel,
+  PermittedAnthropicModel,
   AnthropicBedrockModel
 > = {
   "claude-3-haiku-20240307": "anthropic.claude-3-haiku-20240307-v1:0",

@@ -19,6 +19,7 @@ import { logger } from "./activity-logger.js";
 import { getFlowContext } from "./get-flow-context.js";
 // import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-service-usage-not-exceeded.js";
 import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response.js";
+import { getGoogleAiResponse } from "./get-llm-response/get-google-ai-response.js";
 import { getOpenAiResponse } from "./get-llm-response/get-openai-reponse.js";
 import { logLlmRequest } from "./get-llm-response/log-llm-request.js";
 import type {
@@ -26,7 +27,10 @@ import type {
   LlmRequestMetadata,
   LlmResponse,
 } from "./get-llm-response/types.js";
-import { isLlmParamsAnthropicLlmParams } from "./get-llm-response/types.js";
+import {
+  isLlmParamsAnthropicLlmParams,
+  isLlmParamsGoogleAiParams,
+} from "./get-llm-response/types.js";
 import { stringify } from "./stringify.js";
 
 export type UsageTrackingParams = {
@@ -119,7 +123,9 @@ export const getLlmResponse = async <T extends LlmParams>(
   const llmResponse = (
     isLlmParamsAnthropicLlmParams(llmParams)
       ? await getAnthropicResponse(llmParams, metadata)
-      : await getOpenAiResponse(llmParams, metadata)
+      : isLlmParamsGoogleAiParams(llmParams)
+        ? await getGoogleAiResponse(llmParams, metadata)
+        : await getOpenAiResponse(llmParams, metadata)
   ) as LlmResponse<T>;
 
   const timeAfterApiCall = Date.now();
