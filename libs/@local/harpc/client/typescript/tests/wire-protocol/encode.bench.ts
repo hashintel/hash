@@ -11,12 +11,29 @@ const request = FastCheck.sample(Request.arbitrary(FastCheck), {
   numRuns: 1,
 });
 
+const requestEncoded = Effect.runSync(
+  pipe(
+    Buffer.makeWrite(),
+    Effect.andThen((buffer) => Request.encode(buffer, request[0]!)),
+    Effect.andThen(Buffer.take),
+  ),
+);
+
 describe("request", () => {
-  bench("encode request", async () => {
+  bench("encode", async () => {
     await Effect.runPromise(
       pipe(
         Buffer.makeWrite(),
         Effect.andThen((buffer) => Request.encode(buffer, request[0]!)),
+      ),
+    );
+  });
+
+  bench("decode", async () => {
+    await Effect.runPromise(
+      pipe(
+        Buffer.makeRead(new DataView(requestEncoded)),
+        Effect.andThen((buffer) => Request.decode(buffer)),
       ),
     );
   });
