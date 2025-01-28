@@ -2,7 +2,7 @@ use ecow::EcoString;
 use hql_cst::symbol::Symbol;
 use unicode_ident::{is_xid_continue, is_xid_start};
 use winnow::{
-    PResult, Parser, Stateful,
+    ModalResult, Parser, Stateful,
     combinator::{delimited, empty, fail, opt, peek},
     dispatch,
     error::ParserError,
@@ -103,7 +103,7 @@ where
 /// regular = XID_START *XID_CONTINUE
 /// ignore = "_" *XID_CONTINUE
 /// ```
-fn parse_rust_identifier<Input, Error>(input: &mut Input) -> PResult<Input::Slice, Error>
+fn parse_rust_identifier<Input, Error>(input: &mut Input) -> ModalResult<Input::Slice, Error>
 where
     Input: StreamIsPartial //
         + Stream<Token: AsChar + Clone>
@@ -128,7 +128,7 @@ where
 /// ```abnf
 /// operator = "+" / "-" / "*" / "/" / "|" / "&" / "^" / "==" / "!=" / ">" / ">=" / "<" / "<="
 /// ```
-fn parse_operator<Input, Error>(input: &mut Input) -> PResult<Input::Slice, Error>
+fn parse_operator<Input, Error>(input: &mut Input) -> ModalResult<Input::Slice, Error>
 where
     Input: StreamIsPartial //
         + Stream<Token: AsChar + Clone>
@@ -144,7 +144,7 @@ where
     .parse_next(input)
 }
 
-fn parse_safe_operator<Input, Error>(input: &mut Input) -> PResult<Input::Slice, Error>
+fn parse_safe_operator<Input, Error>(input: &mut Input) -> ModalResult<Input::Slice, Error>
 where
     Input: StreamIsPartial //
         + Stream<Token: AsChar + Clone>
