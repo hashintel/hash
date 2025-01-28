@@ -1,6 +1,6 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
   Either,
   Equal,
   Function,
@@ -14,7 +14,6 @@ import {
 import * as ResponseKind from "../../../types/ResponseKind.js";
 import { createProto, implDecode, implEncode } from "../../../utils.js";
 import { MutableBuffer } from "../../../binary/index.js";
-import * as Buffer from "../../Buffer.js";
 import * as Payload from "../Payload.js";
 
 const TypeId: unique symbol = Symbol(

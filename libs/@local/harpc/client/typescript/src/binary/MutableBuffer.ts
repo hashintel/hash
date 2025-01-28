@@ -251,8 +251,15 @@ export const getSlice = (self: ReadBuffer, byteLength: number) =>
   );
 
 export const advance = Function.dual<
-  (length: number) => <T>(self: MutableBuffer<T>) => WriteResult,
-  <T>(self: MutableBuffer<T>, length: number) => WriteResult
+  (
+    length: number,
+  ) => <T>(
+    self: MutableBuffer<T>,
+  ) => Either.Either<MutableBuffer<T>, UnexpectedEndOfBufferError>,
+  <T>(
+    self: MutableBuffer<T>,
+    length: number,
+  ) => Either.Either<MutableBuffer<T>, UnexpectedEndOfBufferError>
 >(2, <T>(self: MutableBuffer<T>, byteLength: number) =>
   pipe(
     validateBounds(self, byteLength),

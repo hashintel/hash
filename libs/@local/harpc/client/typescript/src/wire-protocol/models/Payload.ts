@@ -19,7 +19,6 @@ import {
   implDecode,
   implEncode,
 } from "../../utils.js";
-import * as Buffer from "../Buffer.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Payload",

@@ -1,6 +1,6 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
   Either,
   Equal,
   Function,
@@ -12,7 +12,6 @@ import {
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
-import type * as Buffer from "../../Buffer.js";
 
 import * as RequestBody from "./RequestBody.js";
 import * as RequestFlags from "./RequestFlags.js";

@@ -1,7 +1,7 @@
 import {
   type FastCheck,
   type Option,
-  Effect,
+  type Effect,
   Either,
   Equal,
   Function,
@@ -13,7 +13,6 @@ import {
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
-import type * as Buffer from "../../Buffer.js";
 
 import * as ResponseBegin from "./ResponseBegin.js";
 import * as ResponseFrame from "./ResponseFrame.js";

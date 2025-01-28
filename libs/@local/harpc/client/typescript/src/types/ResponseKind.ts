@@ -1,6 +1,6 @@
 /* eslint-disable unicorn/prevent-abbreviations -- same name as Rust reference implementation */
 import {
-  Effect,
+  type Effect,
   Either,
   Equal,
   type FastCheck,
@@ -14,10 +14,9 @@ import {
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../utils.js";
-import * as Buffer from "../wire-protocol/Buffer.js";
+import { MutableBuffer } from "../binary/index.js";
 
 import * as ErrorCode from "./ErrorCode.js";
-import { MutableBuffer } from "../binary/index.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/ResponseKind",

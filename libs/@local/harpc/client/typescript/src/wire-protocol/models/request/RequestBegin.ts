@@ -1,6 +1,6 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
   Either,
   Equal,
   Function,
@@ -15,7 +15,6 @@ import * as ProcedureDescriptor from "../../../types/ProcedureDescriptor.js";
 import * as SubsystemDescriptor from "../../../types/SubsystemDescriptor.js";
 import { MutableBuffer } from "../../../binary/index.js";
 import { createProto, implDecode, implEncode } from "../../../utils.js";
-import * as Buffer from "../../Buffer.js";
 import * as Payload from "../Payload.js";
 
 const TypeId: unique symbol = Symbol(
