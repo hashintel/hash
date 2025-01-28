@@ -527,7 +527,7 @@ __metadata:
     "@types/react-dom": "npm:19.0.3"
     "@types/react-window": "npm:1.8.8"
     "@types/url-regex-safe": "npm:1.0.2"
-    "@vercel/edge-config": "npm:0.1.1"
+    "@vercel/edge-config": "npm:0.4.1"
     "@welldone-software/why-did-you-render": "npm:8.0.3"
     axios: "npm:1.7.9"
     buffer: "npm:6.0.3"
@@ -19126,10 +19126,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vercel/edge-config@npm:0.1.1":
-  version: 0.1.1
-  resolution: "@vercel/edge-config@npm:0.1.1"
-  checksum: 10c0/f0ca2b288630ebf4404a34a867a0961bf0d88c859c7c213aab2b77549b665ceed87c1ba0485517ad02f1782438ef8675c03cfbdc1873110de6924371307fdd16
+"@vercel/edge-config-fs@npm:0.1.0":
+  version: 0.1.0
+  resolution: "@vercel/edge-config-fs@npm:0.1.0"
+  checksum: 10c0/a3bd58d216832eac6280615b7ae6999a13b63d9f4bc2f9b4d7ffd0263903505862937591026b5e4e1abedecaf07a597595f0b7abe6718176be93585ad393ed3f
+  languageName: node
+  linkType: hard
+
+"@vercel/edge-config@npm:0.4.1":
+  version: 0.4.1
+  resolution: "@vercel/edge-config@npm:0.4.1"
+  dependencies:
+    "@vercel/edge-config-fs": "npm:0.1.0"
+  checksum: 10c0/3b1278662409371a9594113500a17da3ce55ce4dd1e0be122e8441fa0ff9c962e6633f713f17441c0b8b399904e6952de97946abb5e69a9e768ba51eb2910472
   languageName: node
   linkType: hard
 
