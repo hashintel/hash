@@ -1,0 +1,19 @@
+engine marzano(0.1)
+language js(typescript)
+
+`const $name = $body`
+    where {
+        $body <: arrow_function(
+            parameters = $parameters,
+            type_parameters = $type_parameters,
+            body = or {
+                `Effect.gen(function* () { $statements })` where {
+                    $pipe = ``
+                },
+                `Effect.gen(function* () { $statements }).pipe($pipe)` where {
+                    $pipe = `, $pipe`
+                }
+            }
+        )
+    }
+    => `const $name = Effect.fn("$name")(function* $type_parameters($parameters) { $statements } $pipe);`
