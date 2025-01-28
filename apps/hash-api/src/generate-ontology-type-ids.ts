@@ -205,7 +205,7 @@ const generateOntologyIds = async () => {
     getOrgByShortname(
       graphContext,
       { actorId: publicUserAccountId },
-      { shortname: "hash" },
+      { shortname: "h" },
     ),
     getOrgByShortname(
       graphContext,
@@ -316,7 +316,6 @@ import type { BaseUrl } from "@local/hash-graph-types/ontology";\n\n`;
         entityTypes: hashEntityTypes,
         propertyTypes: hashPropertyTypes,
         dataTypes: hashDataTypes,
-        /** @todo: change this to "hash"? */
         prefix: "system",
       }),
       serializeTypes(graphContext, authentication, {

@@ -27,14 +27,14 @@ scenarios:
                   }
                 variables:
                   ownedById: "{{ session.ownedById }}"
-                  entityTypeId: https://hash.ai/@hash/types/entity-type/usage-record/v/1
+                  entityTypeId: https://hash.ai/@h/types/entity-type/usage-record/v/1
                   properties:
                     value:
-                      https://hash.ai/@hash/types/property-type/input-unit-count/:
+                      https://hash.ai/@h/types/property-type/input-unit-count/:
                         value: 1000
                         metadata:
                           dataTypeId: https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1
-                      https://hash.ai/@hash/types/property-type/output-unit-count/:
+                      https://hash.ai/@h/types/property-type/output-unit-count/:
                         value: 1000
                         metadata:
                           dataTypeId: https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1
@@ -48,14 +48,14 @@ scenarios:
               json:
                 - ownedById: "{{ session.ownedById }}"
                   entityTypeIds:
-                    - https://hash.ai/@hash/types/entity-type/usage-record/v/1
+                    - https://hash.ai/@h/types/entity-type/usage-record/v/1
                   properties:
                     value:
-                      https://hash.ai/@hash/types/property-type/input-unit-count/:
+                      https://hash.ai/@h/types/property-type/input-unit-count/:
                         value: 1000
                         metadata:
                           dataTypeId: https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1
-                      https://hash.ai/@hash/types/property-type/output-unit-count/:
+                      https://hash.ai/@h/types/property-type/output-unit-count/:
                         value: 1000
                         metadata:
                           dataTypeId: https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1

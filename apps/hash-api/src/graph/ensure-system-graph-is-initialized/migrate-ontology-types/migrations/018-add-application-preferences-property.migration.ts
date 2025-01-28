@@ -35,7 +35,7 @@ const migrate: MigrationFunction = async ({
          */
         possibleValues: [{ primitiveDataType: "object" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 

@@ -265,7 +265,7 @@ describe("Entity CRU", () => {
         },
       },
       entityTypeIds: [
-        systemEntityTypes.image.entityTypeId,
+        systemEntityTypes.imageFile.entityTypeId,
         systemEntityTypes.text.entityTypeId,
       ],
       relationships: createDefaultAuthorizationRelationships(authentication),

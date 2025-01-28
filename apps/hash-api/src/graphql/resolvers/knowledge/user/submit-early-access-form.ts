@@ -36,56 +36,50 @@ export const submitEarlyAccessFormResolver: ResolverFn<
       entityTypeIds: [systemEntityTypes.prospectiveUser.entityTypeId],
       properties: {
         value: {
-          "https://hash.ai/@hash/types/property-type/current-approach/": {
+          "https://hash.ai/@h/types/property-type/current-approach/": {
             value:
               properties[
-                "https://hash.ai/@hash/types/property-type/current-approach/"
+                "https://hash.ai/@h/types/property-type/current-approach/"
               ],
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-          "https://hash.ai/@hash/types/property-type/email/": {
-            value:
-              properties["https://hash.ai/@hash/types/property-type/email/"],
+          "https://hash.ai/@h/types/property-type/email/": {
+            value: properties["https://hash.ai/@h/types/property-type/email/"],
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1",
             },
           },
-          "https://hash.ai/@hash/types/property-type/intended-use/": {
+          "https://hash.ai/@h/types/property-type/intended-use/": {
             value:
               properties[
-                "https://hash.ai/@hash/types/property-type/intended-use/"
+                "https://hash.ai/@h/types/property-type/intended-use/"
               ],
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-          "https://hash.ai/@hash/types/property-type/role/": {
-            value:
-              properties["https://hash.ai/@hash/types/property-type/role/"],
+          "https://hash.ai/@h/types/property-type/role/": {
+            value: properties["https://hash.ai/@h/types/property-type/role/"],
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-          "https://hash.ai/@hash/types/property-type/website-url/": {
+          "https://hash.ai/@h/types/property-type/website-url/": {
             value:
-              properties[
-                "https://hash.ai/@hash/types/property-type/website-url/"
-              ],
+              properties["https://hash.ai/@h/types/property-type/website-url/"],
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
             },
           },
-          "https://hash.ai/@hash/types/property-type/willing-to-pay/": {
+          "https://hash.ai/@h/types/property-type/willing-to-pay/": {
             value:
               properties[
-                "https://hash.ai/@hash/types/property-type/willing-to-pay/"
+                "https://hash.ai/@h/types/property-type/willing-to-pay/"
               ],
             metadata: {
               dataTypeId:

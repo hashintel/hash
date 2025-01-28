@@ -32,7 +32,7 @@ const isSpatiallyPositionedProperties = (
     | HasIndexedContentProperties,
 ): properties is HasSpatiallyPositionedContentProperties => {
   const testProperty: keyof HasSpatiallyPositionedContentProperties =
-    "https://hash.ai/@hash/types/property-type/rotation-in-rads/";
+    "https://hash.ai/@h/types/property-type/rotation-in-rads/";
 
   return testProperty in properties;
 };

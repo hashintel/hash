@@ -57,6 +57,7 @@ export const Modal: FunctionComponent<ModalProps> = ({
             width: {
               xs: "90%",
               sm: 520,
+              md: "auto",
             },
             bgcolor: "white",
             boxShadow:

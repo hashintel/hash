@@ -44,12 +44,12 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
       );
 
     const newFileStorageKey = getNewValueForPath(
-      "https://hash.ai/@hash/types/property-type/file-storage-key/",
+      "https://hash.ai/@h/types/property-type/file-storage-key/",
     );
 
     const oldFileStorageKey =
       previousEntityProperties.properties[
-        "https://hash.ai/@hash/types/property-type/file-storage-key/"
+        "https://hash.ai/@h/types/property-type/file-storage-key/"
       ];
 
     const { textualContent, fileStorageProvider, uploadCompletedAt } =

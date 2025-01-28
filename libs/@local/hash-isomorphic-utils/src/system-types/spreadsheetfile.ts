@@ -7,6 +7,8 @@ import type { ObjectMetadata } from "@local/hash-graph-client";
 import type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -38,6 +40,8 @@ import type {
   FileStorageRegionPropertyValueWithMetadata,
   FileURLPropertyValue,
   FileURLPropertyValueWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   MIMETypePropertyValue,
   MIMETypePropertyValueWithMetadata,
   NumberDataType,
@@ -52,11 +56,15 @@ import type {
   TextDataTypeWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -88,6 +96,8 @@ export type {
   FileStorageRegionPropertyValueWithMetadata,
   FileURLPropertyValue,
   FileURLPropertyValueWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   MIMETypePropertyValue,
   MIMETypePropertyValueWithMetadata,
   NumberDataType,
@@ -102,15 +112,15 @@ export type {
   TextDataTypeWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
 };
 
 /**
  * A spreadsheet file.
  */
 export type SpreadsheetFile = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/spreadsheet-file/v/1"];
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
 };
@@ -122,18 +132,10 @@ export type SpreadsheetFileOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A spreadsheet file.
  */
-export type SpreadsheetFileProperties = SpreadsheetFileProperties1 &
-  SpreadsheetFileProperties2;
-export type SpreadsheetFileProperties1 = FileProperties;
-
-export type SpreadsheetFileProperties2 = {};
+export type SpreadsheetFileProperties = FileProperties & {};
 
 export type SpreadsheetFilePropertiesWithMetadata =
-  SpreadsheetFilePropertiesWithMetadata1 &
-    SpreadsheetFilePropertiesWithMetadata2;
-export type SpreadsheetFilePropertiesWithMetadata1 = FilePropertiesWithMetadata;
-
-export type SpreadsheetFilePropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  FilePropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

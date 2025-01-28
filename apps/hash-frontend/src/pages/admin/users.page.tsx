@@ -70,7 +70,7 @@ const AdminUsersPage: NextPageWithLayout = () => {
             ? users.map(({ shortname, displayName, entity }) => {
                 const [email] =
                   entity.properties[
-                    "https://hash.ai/@hash/types/property-type/email/"
+                    "https://hash.ai/@h/types/property-type/email/"
                   ];
 
                 return (

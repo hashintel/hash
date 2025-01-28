@@ -25,7 +25,7 @@ export const hiddenEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.mentionNotification.entityTypeId,
   systemEntityTypes.profileBio.entityTypeId,
   systemEntityTypes.prospectiveUser.entityTypeId,
-  systemEntityTypes.quickNote.entityTypeId,
+  systemEntityTypes.note.entityTypeId,
   systemEntityTypes.text.entityTypeId,
   systemEntityTypes.tiktokAccount.entityTypeId,
   systemEntityTypes.twitterAccount.entityTypeId,

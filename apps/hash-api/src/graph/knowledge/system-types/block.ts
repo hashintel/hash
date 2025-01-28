@@ -114,7 +114,7 @@ export const createBlock: ImpureGraphFunction<
     ownedById,
     properties: {
       value: {
-        "https://hash.ai/@hash/types/property-type/component-id/": {
+        "https://hash.ai/@h/types/property-type/component-id/": {
           value: componentId,
           metadata: {
             dataTypeId:

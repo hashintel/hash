@@ -32,7 +32,7 @@ const migrate: MigrationFunction = async ({
         description: "The ID of the trigger definition.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -48,7 +48,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -73,7 +73,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -91,7 +91,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -102,6 +102,9 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Flow Definition",
+        titlePlural: "Flow Definitions",
+        /** @todo icon */
+
         description: "The definition of a HASH flow.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
@@ -128,7 +131,7 @@ const migrate: MigrationFunction = async ({
         ],
       },
 
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -153,7 +156,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -181,7 +184,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -194,7 +197,7 @@ const migrate: MigrationFunction = async ({
           "The ID of the flow definition (the `entityId` of the flow definition entity).",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -213,7 +216,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -224,6 +227,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Flow Run",
+        titlePlural: "Flow Runs",
+        /** @todo icon */
         description: "An execution run of a flow.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
@@ -248,7 +253,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -269,7 +274,7 @@ const migrate: MigrationFunction = async ({
         description: "What something is directed towards.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -283,7 +288,7 @@ const migrate: MigrationFunction = async ({
         description: "A thing or theme that something is about.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -295,10 +300,14 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Subject",
+        /** @todo icon */
+        inverse: {
+          title: "Subject Of",
+        },
         description: "The subject something has",
         properties: [],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -311,10 +320,14 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Object",
+        /** @todo icon */
+        inverse: {
+          title: "Object Of",
+        },
         description: "The object something has",
         properties: [],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -326,6 +339,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Claim",
+        titlePlural: "Claims",
+        /** @todo icon */
         description: "A claim made about something.",
         properties: [
           {
@@ -350,7 +365,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -367,10 +382,14 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Incurred In",
+        /** @todo icon */
+        inverse: {
+          title: "Incurred",
+        },
         description: "Something that was incurred in something else.",
         properties: [],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -404,7 +423,7 @@ const migrate: MigrationFunction = async ({
         description: "Additional information about something.",
         possibleValues: [{ primitiveDataType: "object" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );

@@ -161,7 +161,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
               }
             : {
                 fileEntityCreationInput: {
-                  entityTypeId: systemEntityTypes.image.entityTypeId,
+                  entityTypeId: systemEntityTypes.imageFile.entityTypeId,
                 },
               }),
         },

@@ -1,4 +1,8 @@
 import {
+  blockProtocolPropertyTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
   descriptionPropertyTypeUrl,
   fileUrlPropertyTypeUrl,
   linkEntityTypeUrl,
@@ -11,6 +15,7 @@ import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashDataTypeId,
 } from "../util";
 
 const migrate: MigrationFunction = async ({
@@ -30,7 +35,7 @@ const migrate: MigrationFunction = async ({
           "Whether or not user functionality related to pages is enabled.",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -43,7 +48,7 @@ const migrate: MigrationFunction = async ({
           "Whether or not user self registration (sign-up) is enabled.",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -55,7 +60,7 @@ const migrate: MigrationFunction = async ({
           "Whether or not a user can self-register an org (note this does not apply to instance admins).",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -67,7 +72,7 @@ const migrate: MigrationFunction = async ({
           "Whether or not a user is able to register another user by inviting them to an org.",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -95,7 +100,7 @@ const migrate: MigrationFunction = async ({
       ],
       outgoingLinks: [],
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: {
       kind: "account",
@@ -112,7 +117,7 @@ const migrate: MigrationFunction = async ({
         description: "The bucket in which a file is stored.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -124,7 +129,7 @@ const migrate: MigrationFunction = async ({
           "The endpoint for making requests to a file storage provider.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -136,7 +141,7 @@ const migrate: MigrationFunction = async ({
           "Whether to force path style for requests to a file storage provider (vs virtual host style).",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -149,7 +154,7 @@ const migrate: MigrationFunction = async ({
         description: "The key identifying a file in storage.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -161,7 +166,7 @@ const migrate: MigrationFunction = async ({
         description: "The provider of a file storage service.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -172,7 +177,7 @@ const migrate: MigrationFunction = async ({
         description: "The region in which a file is stored.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -182,7 +187,11 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "File",
+        titlePlural: "Files",
         description: "A file hosted at a URL",
+        icon: "/icons/types/file.svg",
+        labelProperty:
+          blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
         properties: [
           {
             propertyType: fileUrlPropertyTypeUrl,
@@ -242,7 +251,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -256,10 +265,12 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         allOf: [fileEntityType.schema.$id],
-        title: "Image",
+        title: "Image File",
+        titlePlural: "Image Files",
+        icon: "/icons/types/file-image.svg",
         description: "An image file hosted at a URL",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -276,7 +287,7 @@ const migrate: MigrationFunction = async ({
         description: "An identifier for a component.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -288,9 +299,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Data",
+        inverse: {
+          title: "Data For",
+        },
         description: "The data that something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -302,6 +316,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Block",
+        titlePlural: "Blocks",
+        icon: "/icons/types/cube.svg",
         description:
           "A block that displays or otherwise uses data, part of a wider page or collection.",
         properties: [
@@ -318,7 +334,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -332,9 +348,11 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Block Collection",
+        titlePlural: "Block Collections",
+        icon: "/icons/types/cubes.svg",
         description: "A collection of blocks.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -352,7 +370,7 @@ const migrate: MigrationFunction = async ({
           "The fractional index indicating the current position of something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -362,6 +380,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Indexed Content",
+        inverse: {
+          title: "Indexed Content For",
+        },
         description: "Something contained at an index by something",
         properties: [
           {
@@ -370,7 +391,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -382,6 +403,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockCollectionEntityType.schema.$id],
         title: "Profile Bio",
+        titlePlural: "Profile Bios",
+        icon: "/icons/types/memo-circle-info.svg",
         description:
           "A biography for display on someone or something's profile.",
         outgoingLinks: [
@@ -392,7 +415,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -409,7 +432,7 @@ const migrate: MigrationFunction = async ({
         description: "A unique identifier for something, in the form of a slug",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -423,7 +446,7 @@ const migrate: MigrationFunction = async ({
         description: "The name of an organization.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -437,10 +460,15 @@ const migrate: MigrationFunction = async ({
         description: "A location for something, expressed as a single string",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
+
+  const uriDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "uri",
+    migrationState,
+  });
 
   const websiteUrlPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -449,9 +477,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Website URL",
         description: "A URL for a website",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: uriDataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -461,9 +489,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Pinned Entity Type Base URL",
         description: "The base URL of a pinned entity type.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: uriDataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -474,9 +502,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Avatar",
+        inverse: {
+          title: "Avatar For",
+        },
         description: "The avatar something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -489,9 +520,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Cover Image",
+        inverse: {
+          title: "Cover Image For",
+        },
         description: "The cover image something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -504,9 +538,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Bio",
+        inverse: {
+          title: "Bio For",
+        },
         description: "The biography something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -518,6 +555,9 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Organization",
+        titlePlural: "Organizations",
+        icon: "/icons/types/people-group.svg",
+        labelProperty: systemPropertyTypes.organizationName.propertyTypeBaseUrl,
         description:
           "An organization. Organizations are root-level objects that contain user accounts and teams.",
         properties: [
@@ -567,7 +607,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -582,9 +622,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Profile URL",
         description: "A URL to a profile",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: uriDataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -595,6 +635,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Service Account",
+        titlePlural: "Service Accounts",
+        icon: "/icons/types/person-to-portal.svg",
         description: "A service account.",
         properties: [
           {
@@ -607,7 +649,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -619,9 +661,11 @@ const migrate: MigrationFunction = async ({
     entityTypeDefinition: {
       allOf: [serviceAccountEntityType.schema.$id],
       title: "LinkedIn Account",
+      titlePlural: "LinkedIn Accounts",
+      icon: "/icons/types/linkedin.svg",
       description: "A LinkedIn account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -632,9 +676,11 @@ const migrate: MigrationFunction = async ({
     entityTypeDefinition: {
       allOf: [serviceAccountEntityType.schema.$id],
       title: "Twitter Account",
+      titlePlural: "Twitter Accounts",
+      icon: "/icons/types/x-twitter.svg",
       description: "A Twitter account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -645,9 +691,11 @@ const migrate: MigrationFunction = async ({
     entityTypeDefinition: {
       allOf: [serviceAccountEntityType.schema.$id],
       title: "TikTok Account",
+      titlePlural: "TikTok Accounts",
+      icon: "/icons/types/tiktok.svg",
       description: "A TikTok account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -658,9 +706,11 @@ const migrate: MigrationFunction = async ({
     entityTypeDefinition: {
       allOf: [serviceAccountEntityType.schema.$id],
       title: "Facebook Account",
+      titlePlural: "Facebook Accounts",
+      icon: "/icons/types/facebook.svg",
       description: "A Facebook account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -671,9 +721,11 @@ const migrate: MigrationFunction = async ({
     entityTypeDefinition: {
       allOf: [serviceAccountEntityType.schema.$id],
       title: "Instagram Account",
+      titlePlural: "Instagram Accounts",
+      icon: "/icons/types/instagram.svg",
       description: "An Instagram account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
@@ -684,14 +736,21 @@ const migrate: MigrationFunction = async ({
     entityTypeDefinition: {
       allOf: [serviceAccountEntityType.schema.$id],
       title: "GitHub Account",
+      titlePlural: "GitHub Accounts",
+      icon: "/icons/types/github.svg",
       description: "A GitHub account.",
     },
-    webShortname: "hash",
+    webShortname: "h",
     migrationState,
     instantiator: anyUserInstantiator,
   });
 
   /** User entity type */
+
+  const emailDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "email",
+    migrationState,
+  });
 
   const emailPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -700,9 +759,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Email",
         description: "An email address",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: emailDataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -714,7 +773,7 @@ const migrate: MigrationFunction = async ({
         description: "An identifier for a record in Ory Kratos.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -727,7 +786,7 @@ const migrate: MigrationFunction = async ({
         description: "The preferred name of someone or something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -739,7 +798,7 @@ const migrate: MigrationFunction = async ({
         description: "Someone's preferred pronouns.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -750,9 +809,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Is Member Of",
+        inverse: {
+          title: "Has Member",
+        },
         description: "Something that someone or something is a member of.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -763,9 +825,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Service Account",
+        inverse: {
+          title: "Service Account For",
+        },
         description: "The service account something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -776,7 +841,10 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "User",
+        titlePlural: "Users",
+        icon: "/icons/types/user.svg",
         description: "A user of the HASH application.",
+        labelProperty: systemPropertyTypes.preferredName.propertyTypeBaseUrl,
         properties: [
           {
             propertyType: shortnamePropertyType,
@@ -836,9 +904,12 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
+      instantiator: {
+        kind: "account",
+        subjectId: systemAccountId,
+      },
     },
   );
 
@@ -850,6 +921,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Text",
+        titlePlural: "Texts",
+        icon: "/icons/types/text.svg",
         description: "An ordered sequence of characters.",
         properties: [
           {
@@ -859,7 +932,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -876,7 +949,7 @@ const migrate: MigrationFunction = async ({
         title: "Archived",
         description: "Whether or not something has been archived.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -890,7 +963,7 @@ const migrate: MigrationFunction = async ({
         description: "The summary of the something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -904,7 +977,7 @@ const migrate: MigrationFunction = async ({
         description: "The title of something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -918,7 +991,7 @@ const migrate: MigrationFunction = async ({
         description: "An emoji icon.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -930,9 +1003,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Parent",
+        inverse: {
+          title: "Parent Of",
+        },
         description: "The parent something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -945,6 +1021,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockCollectionEntityType.schema.$id],
         title: "Page",
+        titlePlural: "Pages",
+        icon: "/icons/types/page.svg",
+        labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
         description:
           "A page for displaying and potentially interacting with data.",
         properties: [
@@ -974,7 +1053,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -988,6 +1067,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Document",
+        titlePlural: "Documents",
         description:
           "A page in document format, with content arranged in columns.",
         allOf: [pageEntityType.schema.$id],
@@ -999,7 +1079,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1016,7 +1096,7 @@ const migrate: MigrationFunction = async ({
         description: "The position of something on the x axis.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1030,7 +1110,7 @@ const migrate: MigrationFunction = async ({
         description: "The position of something on the y axis.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1044,7 +1124,7 @@ const migrate: MigrationFunction = async ({
         description: "The height of something in pixels.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1058,7 +1138,7 @@ const migrate: MigrationFunction = async ({
         description: "The width of something in pixels.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1072,7 +1152,7 @@ const migrate: MigrationFunction = async ({
         description: "The rotation of something in radians.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1082,6 +1162,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Spatially Positioned Content",
+        inverse: {
+          title: "Spatially Positioned Content For",
+        },
         description: "Something contained at a spatial position by something",
         properties: [
           {
@@ -1106,7 +1189,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1117,6 +1200,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Canvas",
+        titlePlural: "Canvases",
+        icon: "/icons/types/rectangle.svg",
         description:
           "A page in canvas format, with content in a free-form arrangement.",
         allOf: [pageEntityType.schema.$id],
@@ -1128,7 +1213,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1142,7 +1227,9 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         allOf: [blockCollectionEntityType.schema.$id],
-        title: "Quick Note",
+        title: "Note",
+        titlePlural: "Notes",
+        icon: "/icons/types/note-sticky.svg",
         description: "A (usually) quick or short note.",
         properties: [{ propertyType: archivedPropertyType }],
         outgoingLinks: [
@@ -1153,11 +1240,16 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
   );
+
+  const dateTimeDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "datetime",
+    migrationState,
+  });
 
   const expiredAtPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -1166,9 +1258,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Expired At",
         description: "Stringified timestamp of when something expired.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1180,7 +1272,7 @@ const migrate: MigrationFunction = async ({
         description: "The name of the connection source.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     });
 
@@ -1193,7 +1285,7 @@ const migrate: MigrationFunction = async ({
         description: "The path to a secret in Hashicorp Vault.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1207,7 +1299,7 @@ const migrate: MigrationFunction = async ({
         description: "The unique identifier for a team in Linear.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1225,7 +1317,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1237,9 +1329,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Uses User Secret",
+        inverse: {
+          title: "Used By",
+        },
         description: "The user secret something uses.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1251,6 +1346,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "User Secret",
+        titlePlural: "User Secrets",
+        icon: "/icons/types/user-lock.svg",
         description: "A secret or credential belonging to a user.",
         properties: [
           {
@@ -1267,7 +1364,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1282,7 +1379,7 @@ const migrate: MigrationFunction = async ({
         description: "The unique identifier for an org in Linear.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1313,7 +1410,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1328,9 +1425,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Resolved At",
         description: "Stringified timestamp of when something was resolved.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1342,9 +1439,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Deleted At",
         description: "Stringified timestamp of when something was deleted.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1356,9 +1453,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Has Text",
+        inverse: {
+          title: "Text For",
+        },
         description: "The text something has.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1371,9 +1471,13 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Authored By",
+        icon: "/icons/types/pen.svg",
+        inverse: {
+          title: "Author Of",
+        },
         description: "What or whom something was authored by.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1385,6 +1489,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Comment",
+        titlePlural: "Comments",
+        icon: "/icons/types/comment.svg",
         description: "Comment associated with the issue.",
         properties: [
           {
@@ -1415,7 +1521,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1430,9 +1536,9 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Read At",
         description: "The timestamp of when something was read.",
-        possibleValues: [{ primitiveDataType: "text" }],
+        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -1443,6 +1549,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Notification",
+        titlePlural: "Notifications",
+        icon: "/icons/types/megaphone.svg",
         description: "A notification to a user.",
         properties: [
           {
@@ -1453,7 +1561,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1466,9 +1574,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Occurred In Entity",
+        inverse: {
+          title: "Location Of",
+        },
         description: "An entity that something occurred in.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1480,9 +1591,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Occurred In Block",
+        inverse: {
+          title: "Location Of",
+        },
         description: "A block that something occurred in.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1493,9 +1607,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Occurred In Comment",
+        inverse: {
+          title: "Location Of",
+        },
         description: "A comment that something occurred in.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1507,9 +1624,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Occurred In Text",
+        inverse: {
+          title: "Location Of",
+        },
         description: "Text that something occurred in.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1522,9 +1642,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Triggered By User",
+        inverse: {
+          title: "Triggered",
+        },
         description: "A user that triggered something.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -1535,8 +1658,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [notificationEntityType.schema.$id],
         title: "Mention Notification",
+        titlePlural: "Mention Notifications",
         description: "A notification that a user was mentioned somewhere.",
-
         outgoingLinks: [
           {
             linkEntityType: occurredInEntityLinkEntityType,
@@ -1570,7 +1693,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1582,9 +1705,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Triggered By Comment",
+        inverse: {
+          title: "Triggered",
+        },
         description: "A comment that triggered something.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1594,9 +1720,12 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Replied To Comment",
+        inverse: {
+          title: "Replied To By",
+        },
         description: "The comment that something replied to.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -1605,6 +1734,7 @@ const migrate: MigrationFunction = async ({
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
         title: "Comment Notification",
+        titlePlural: "Comment Notifications",
         description: "A notification related to a comment.",
         allOf: [notificationEntityType.schema.$id],
         outgoingLinks: [
@@ -1640,7 +1770,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });

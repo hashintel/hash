@@ -12,7 +12,7 @@ export type { BooleanDataType, BooleanDataTypeWithMetadata };
  * An instance of HASH.
  */
 export type HASHInstance = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/hash-instance/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/hash-instance/v/1"];
   properties: HASHInstanceProperties;
   propertiesWithMetadata: HASHInstancePropertiesWithMetadata;
 };
@@ -25,19 +25,19 @@ export type HASHInstanceOutgoingLinksByLinkEntityTypeId = {};
  * An instance of HASH.
  */
 export type HASHInstanceProperties = {
-  "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValue;
-  "https://hash.ai/@hash/types/property-type/pages-are-enabled/": PagesAreEnabledPropertyValue;
-  "https://hash.ai/@hash/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValue;
-  "https://hash.ai/@hash/types/property-type/user-self-registration-is-enabled/": UserSelfRegistrationIsEnabledPropertyValue;
+  "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValue;
+  "https://hash.ai/@h/types/property-type/pages-are-enabled/": PagesAreEnabledPropertyValue;
+  "https://hash.ai/@h/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValue;
+  "https://hash.ai/@h/types/property-type/user-self-registration-is-enabled/": UserSelfRegistrationIsEnabledPropertyValue;
 };
 
 export type HASHInstancePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/pages-are-enabled/": PagesAreEnabledPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/user-self-registration-is-enabled/": UserSelfRegistrationIsEnabledPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/pages-are-enabled/": PagesAreEnabledPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/user-self-registration-is-enabled/": UserSelfRegistrationIsEnabledPropertyValueWithMetadata;
   };
 };
 

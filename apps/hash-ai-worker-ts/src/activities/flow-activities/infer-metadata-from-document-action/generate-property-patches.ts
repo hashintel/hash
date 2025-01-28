@@ -19,7 +19,7 @@ export const generateDocumentPropertyPatches = ({
   const propertyPatches: PropertyPatchOperation[] = [];
 
   const numPagesKey =
-    "https://hash.ai/@hash/types/property-type/number-of-pages/" satisfies keyof DocProperties;
+    "https://hash.ai/@h/types/property-type/number-of-pages/" satisfies keyof DocProperties;
 
   propertyPatches.push({
     op: "add",

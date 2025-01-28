@@ -35,7 +35,7 @@ test("user can visit a page listing entities of a type", async ({ page }) => {
     return (
       url.pathname === "/entities" &&
       url.search ===
-        "?entityTypeIdOrBaseUrl=https://hash.ai/@hash/types/entity-type/document/"
+        "?entityTypeIdOrBaseUrl=https://hash.ai/@h/types/entity-type/document/"
     );
   });
 

@@ -209,10 +209,10 @@ const calculateSaveActions = (
     );
 
     const fractionalIndex =
-      "https://hash.ai/@hash/types/property-type/fractional-index/" in
+      "https://hash.ai/@h/types/property-type/fractional-index/" in
       contentLinkEntity.properties
         ? contentLinkEntity.properties[
-            "https://hash.ai/@hash/types/property-type/fractional-index/"
+            "https://hash.ai/@h/types/property-type/fractional-index/"
           ]
         : null;
 
@@ -309,7 +309,7 @@ const calculateSaveActions = (
             linkEntityId: newValue[1].linkEntityId,
             position: {
               indexPosition: {
-                "https://hash.ai/@hash/types/property-type/fractional-index/":
+                "https://hash.ai/@h/types/property-type/fractional-index/":
                   newFractionalIndex,
               },
             },
@@ -386,7 +386,7 @@ const calculateSaveActions = (
           ownedById,
           position: {
             indexPosition: {
-              "https://hash.ai/@hash/types/property-type/fractional-index/":
+              "https://hash.ai/@h/types/property-type/fractional-index/":
                 newFractionalIndex,
             },
           },
@@ -470,9 +470,7 @@ const mapEntityToGqlBlock = (
   }
 
   const componentId =
-    entity.properties[
-      "https://hash.ai/@hash/types/property-type/component-id/"
-    ];
+    entity.properties["https://hash.ai/@h/types/property-type/component-id/"];
 
   return {
     blockChildEntity: blockChildEntity.toJSON(),

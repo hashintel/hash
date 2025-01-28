@@ -280,7 +280,7 @@ export const gptQueryEntities: RequestHandler<
             type: isUser ? "User" : "Organization",
             name: (
               owningEntity.properties as UserProperties | OrganizationProperties
-            )["https://hash.ai/@hash/types/property-type/shortname/"]!,
+            )["https://hash.ai/@h/types/property-type/shortname/"]!,
             uuid: webOwnedById,
           };
 

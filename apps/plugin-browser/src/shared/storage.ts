@@ -19,7 +19,7 @@ import type {
   SimpleProperties,
   Simplified,
 } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
+import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import type {
   BrowserPluginSettings,
   Organization,
@@ -45,9 +45,9 @@ type SimplifiedUser = {
 };
 
 type UserAndLinkedData = SimplifiedUser & {
-  avatar?: Image;
+  avatar?: ImageFile;
   orgs: (Simplified<Entity<Organization>> & {
-    avatar?: Image;
+    avatar?: ImageFile;
     webOwnedById: OwnedById;
   })[];
   settingsEntityId: EntityId;
@@ -166,7 +166,7 @@ const debouncedEntityUpdate = debounce(async () => {
     entityTypeIds: [systemEntityTypes.browserPluginSettings.entityTypeId],
     updatedProperties: {
       value: {
-        "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
+        "https://hash.ai/@h/types/property-type/automatic-inference-configuration/":
           {
             value: currentAutomaticConfig,
             metadata: {
@@ -174,7 +174,7 @@ const debouncedEntityUpdate = debounce(async () => {
                 "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
             },
           },
-        "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
+        "https://hash.ai/@h/types/property-type/manual-inference-configuration/":
           {
             value: currentManualConfig,
             metadata: {
@@ -182,7 +182,7 @@ const debouncedEntityUpdate = debounce(async () => {
                 "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
             },
           },
-        "https://hash.ai/@hash/types/property-type/browser-plugin-tab/": {
+        "https://hash.ai/@h/types/property-type/browser-plugin-tab/": {
           value: currentPopupTab,
           metadata: {
             dataTypeId:
@@ -191,7 +191,7 @@ const debouncedEntityUpdate = debounce(async () => {
         },
         ...(currentDraftNote
           ? {
-              "https://hash.ai/@hash/types/property-type/draft-note/": {
+              "https://hash.ai/@h/types/property-type/draft-note/": {
                 value: currentDraftNote,
                 metadata: {
                   dataTypeId:
