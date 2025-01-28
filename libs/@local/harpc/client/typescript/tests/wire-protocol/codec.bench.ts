@@ -1,7 +1,7 @@
-import { Effect, FastCheck, pipe } from "effect";
+import { Either, FastCheck, pipe } from "effect";
 import { bench, describe } from "vitest";
 
-import { Buffer } from "../../src/wire-protocol/index.js";
+import { MutableBuffer, MutableBytes } from "../../src/binary/index.js";
 import { Request } from "../../src/wire-protocol/models/request/index.js";
 import { Response } from "../../src/wire-protocol/models/response/index.js";
 
@@ -12,12 +12,12 @@ const request = FastCheck.sample(Request.arbitrary(FastCheck), {
   numRuns: 1,
 });
 
-const requestEncoded = Effect.runSync(
-  pipe(
-    Buffer.makeWrite(),
-    Effect.andThen((buffer) => Request.encode(buffer, request[0]!)),
-    Effect.andThen(Buffer.take),
-  ),
+const requestEncoded = pipe(
+  Request.encode(MutableBuffer.makeWrite(), request[0]!),
+  Either.andThen(MutableBuffer.take),
+  Either.getOrThrowWith((error) => {
+    return error;
+  }),
 );
 
 const response = FastCheck.sample(Response.arbitrary(FastCheck), {
@@ -26,50 +26,42 @@ const response = FastCheck.sample(Response.arbitrary(FastCheck), {
   numRuns: 1,
 });
 
-const responseEncoded = Effect.runSync(
-  pipe(
-    Buffer.makeWrite(),
-    Effect.andThen((buffer) => Response.encode(buffer, response[0]!)),
-    Effect.andThen(Buffer.take),
-  ),
+const responseEncoded = pipe(
+  Response.encode(MutableBuffer.makeWrite(), response[0]!),
+  Either.andThen(MutableBuffer.take),
+  Either.getOrThrowWith((error) => {
+    return error;
+  }),
 );
 
 describe("request", () => {
-  bench("encode", async () => {
-    await Effect.runPromise(
-      pipe(
-        Buffer.makeWrite(),
-        Effect.andThen((buffer) => Request.encode(buffer, request[0]!)),
-      ),
+  bench("encode", () => {
+    Request.encode(MutableBuffer.makeWrite(), request[0]!).pipe(
+      Either.getOrThrow,
     );
   });
 
-  bench("decode", async () => {
-    await Effect.runPromise(
-      pipe(
-        Buffer.makeRead(new DataView(requestEncoded)),
-        Effect.andThen((buffer) => Request.decode(buffer)),
-      ),
+  bench("decode", () => {
+    const buffer = MutableBuffer.makeRead(
+      MutableBytes.makeFrom(requestEncoded),
     );
+
+    Request.decode(buffer);
   });
 });
 
 describe("response", () => {
-  bench("encode", async () => {
-    await Effect.runPromise(
-      pipe(
-        Buffer.makeWrite(),
-        Effect.andThen((buffer) => Response.encode(buffer, response[0]!)),
-      ),
+  bench("encode", () => {
+    Response.encode(MutableBuffer.makeWrite(), response[0]!).pipe(
+      Either.getOrThrow,
     );
   });
 
-  bench("decode", async () => {
-    await Effect.runPromise(
-      pipe(
-        Buffer.makeRead(new DataView(responseEncoded)),
-        Effect.andThen((buffer) => Response.decode(buffer)),
-      ),
+  bench("decode", () => {
+    const buffer = MutableBuffer.makeRead(
+      MutableBytes.makeFrom(responseEncoded),
     );
+
+    Response.decode(buffer);
   });
 });

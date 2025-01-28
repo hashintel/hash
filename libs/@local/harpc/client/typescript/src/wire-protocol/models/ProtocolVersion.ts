@@ -2,6 +2,7 @@ import {
   type FastCheck,
   Data,
   Effect,
+  Either,
   Equal,
   Hash,
   Inspectable,
@@ -10,8 +11,9 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../../utils.js";
-import * as Buffer from "../Buffer.js";
+import { createProto, implDecode, implEncode } from "../../utils.js";
+
+import { MutableBuffer } from "../../binary/index.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/ProtocolVersion",
@@ -77,27 +79,25 @@ const ProtocolVersionProto: Omit<ProtocolVersion, "value"> = {
 const make = (value: number): ProtocolVersion =>
   createProto(ProtocolVersionProto, { value });
 
-export const encode = encodeDual(
-  (
-    buffer: Buffer.WriteBuffer,
-    version: ProtocolVersion,
-  ): Buffer.WriteResult => {
-    return Buffer.putU8(buffer, version.value);
-  },
+export const encode = implEncode((buffer, version: ProtocolVersion) =>
+  MutableBuffer.putU8(buffer, version.value),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
-    const version = yield* Buffer.getU8(buffer);
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
+    const version = yield* MutableBuffer.getU8(buffer);
 
     if (version !== 1) {
-      yield* new InvalidProtocolVersionError({ received: version });
+      yield* Either.left(
+        new InvalidProtocolVersionError({ received: version }),
+      );
     }
 
     return make(version);
-  });
+  }),
+);
 
 export const V1: ProtocolVersion = make(1);
 
