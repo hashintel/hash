@@ -6364,7 +6364,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/compat@npm:1.2.5, @eslint/compat@npm:^1.1.1, @eslint/compat@npm:^1.2.4":
+"@eslint/compat@npm:1.2.5, @eslint/compat@npm:^1.1.1, @eslint/compat@npm:^1.2.4, @eslint/compat@npm:^1.2.5":
   version: 1.2.5
   resolution: "@eslint/compat@npm:1.2.5"
   peerDependencies:
@@ -8983,7 +8983,7 @@ __metadata:
     effect: "npm:3.12.7"
     eslint: "npm:9.19.0"
     eslint-config-airbnb: "npm:19.0.4"
-    eslint-config-flat-gitignore: "npm:1.0.0"
+    eslint-config-flat-gitignore: "npm:1.0.1"
     eslint-config-prettier: "npm:10.0.1"
     eslint-config-sheriff: "npm:25.7.0"
     eslint-import-resolver-node: "npm:0.3.9"
@@ -25977,15 +25977,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-config-flat-gitignore@npm:1.0.0":
-  version: 1.0.0
-  resolution: "eslint-config-flat-gitignore@npm:1.0.0"
+"eslint-config-flat-gitignore@npm:1.0.1":
+  version: 1.0.1
+  resolution: "eslint-config-flat-gitignore@npm:1.0.1"
   dependencies:
-    "@eslint/compat": "npm:^1.2.4"
-    find-up-simple: "npm:^1.0.0"
+    "@eslint/compat": "npm:^1.2.5"
   peerDependencies:
     eslint: ^9.5.0
-  checksum: 10c0/46798f10ef7149167485e5279cdfcfeaadbe3a811032e15e71b9dbc29071139e3f5229490c1ff0df247401ff029f42f191a10877d500fbcc5e31024560264ec0
+  checksum: 10c0/4477c7aebf299be9a4e4d39c4d972d0a6adc0b2198657c5118dd35a8961356b5eebb02b156335accd2fe4ae0c341b9100169dc9254a0c17c2f1166cfb7e51d0d
   languageName: node
   linkType: hard
 
