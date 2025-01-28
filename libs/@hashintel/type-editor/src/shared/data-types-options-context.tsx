@@ -219,7 +219,7 @@ export const DataTypesOptionsContextProvider = ({
   const getExpectedValueDisplay = useCallback(
     (
       expectedValue: CustomExpectedValueTypeId | CustomExpectedValueTypeId[],
-    ) => {
+    ): ExpectedValueDisplay => {
       if (expectedValue === "object") {
         return {
           title: "Property Object",
@@ -291,12 +291,20 @@ export const DataTypesOptionsContextProvider = ({
             };
           }
           const dataType = dataTypeOptions[type];
-          if (dataType && isArrayItemsSchema(dataType)) {
+
+          if (dataType) {
+            if (isArrayItemsSchema(dataType)) {
+              return {
+                title: `${dataType.title} Array`,
+                ...getArrayDataTypeDisplay({
+                  items: dataType,
+                }),
+              };
+            }
+
             return {
+              ...getExpectedValueDisplay(dataType.$id),
               title: `${dataType.title} Array`,
-              ...getArrayDataTypeDisplay({
-                items: dataType,
-              }),
             };
           }
         }
