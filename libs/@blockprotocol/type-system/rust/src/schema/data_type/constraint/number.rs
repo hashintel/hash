@@ -1,7 +1,4 @@
-use std::collections::HashSet;
-
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail, ensure};
-use hash_codec::numeric::Decimal;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -30,27 +27,27 @@ pub enum NumberValidationError {
         "the provided value is not greater than or equal to the minimum value, expected \
          `{actual}` to be greater than or equal to `{expected}`"
     )]
-    Minimum { actual: Decimal, expected: Decimal },
+    Minimum { actual: f64, expected: f64 },
     #[error(
         "the provided value is not less than or equal to the maximum value, expected `{actual}` \
          to be less than or equal to `{expected}`"
     )]
-    Maximum { actual: Decimal, expected: Decimal },
+    Maximum { actual: f64, expected: f64 },
     #[error(
         "the provided value is not greater than the minimum value, expected `{actual}` to be \
          strictly greater than `{expected}`"
     )]
-    ExclusiveMinimum { actual: Decimal, expected: Decimal },
+    ExclusiveMinimum { actual: f64, expected: f64 },
     #[error(
         "the provided value is not less than the maximum value, expected `{actual}` to be \
          strictly less than `{expected}`"
     )]
-    ExclusiveMaximum { actual: Decimal, expected: Decimal },
+    ExclusiveMaximum { actual: f64, expected: f64 },
     #[error(
         "the provided value is not a multiple of the expected value, expected `{actual}` to be a \
          multiple of `{expected}`"
     )]
-    MultipleOf { actual: Decimal, expected: Decimal },
+    MultipleOf { actual: f64, expected: f64 },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,31 +64,49 @@ pub enum NumberTypeTag {
 pub enum NumberSchema {
     Constrained(NumberConstraints),
     Const {
-        r#const: Decimal,
+        r#const: f64,
     },
     Enum {
         #[cfg_attr(target_arch = "wasm32", tsify(type = "[number, ...number[]]"))]
-        r#enum: HashSet<Decimal>,
+        r#enum: Vec<f64>,
     },
 }
 
-fn float_eq(lhs: &Decimal, rhs: &Decimal) -> bool {
-    lhs == rhs
+#[expect(
+    clippy::float_arithmetic,
+    reason = "Validation requires floating point arithmetic"
+)]
+fn float_eq(lhs: f64, rhs: f64) -> bool {
+    f64::abs(lhs - rhs) < f64::EPSILON
 }
 
-fn float_less_eq(lhs: &Decimal, rhs: &Decimal) -> bool {
-    lhs <= rhs
+#[expect(
+    clippy::float_equality_without_abs,
+    reason = "False positive: This is a comparison of floating point numbers, not a check for \
+              equality"
+)]
+#[expect(
+    clippy::float_arithmetic,
+    reason = "Validation requires floating point arithmetic"
+)]
+fn float_less_eq(lhs: f64, rhs: f64) -> bool {
+    lhs - rhs < f64::EPSILON
 }
 
-fn float_less(lhs: &Decimal, rhs: &Decimal) -> bool {
-    lhs < rhs
+fn float_less(lhs: f64, rhs: f64) -> bool {
+    float_less_eq(lhs, rhs) && !float_eq(lhs, rhs)
 }
 
-fn float_multiple_of(lhs: &Decimal, rhs: &Decimal) -> bool {
-    if *rhs == Decimal::from(0) {
+#[expect(
+    clippy::float_arithmetic,
+    reason = "Validation requires floating point arithmetic"
+)]
+fn float_multiple_of(lhs: f64, rhs: f64) -> bool {
+    if float_eq(rhs, 0.0) {
         return false;
     }
-    lhs % rhs == Decimal::from(0)
+    let quotient = lhs / rhs;
+    (quotient - quotient.round()).abs() < f64::EPSILON
 }
 
 impl Constraint for NumberSchema {
@@ -105,16 +120,14 @@ impl Constraint for NumberSchema {
                 .map(|(lhs, rhs)| (Self::Constrained(lhs), rhs.map(Self::Constrained)))?,
             (Self::Const { r#const }, Self::Constrained(constraints))
             | (Self::Constrained(constraints), Self::Const { r#const }) => {
-                constraints
-                    .validate_value(&r#const)
-                    .change_context_lazy(|| {
-                        ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                            Value::Number(r#const.clone()),
-                            ValueConstraints::Typed(SingleValueConstraints::Number(
-                                Self::Constrained(constraints),
-                            )),
-                        )
-                    })?;
+                constraints.validate_value(&r#const).change_context(
+                    ResolveClosedDataTypeError::UnsatisfiedConstraint(
+                        Value::Number(r#const),
+                        ValueConstraints::Typed(SingleValueConstraints::Number(Self::Constrained(
+                            constraints,
+                        ))),
+                    ),
+                )?;
 
                 (Self::Const { r#const }, None)
             }
@@ -126,29 +139,29 @@ impl Constraint for NumberSchema {
                 let passed = r#enum
                     .iter()
                     .filter(|&value| constraints.is_valid(value))
-                    .cloned()
-                    .collect::<HashSet<_>>();
+                    .copied()
+                    .collect::<Vec<_>>();
 
-                match passed.len() {
-                    0 => {
+                match passed[..] {
+                    [] => {
                         // We now properly capture errors to return it to the caller.
                         let () = r#enum
-                            .into_iter()
+                            .iter()
                             .map(|value| {
-                                constraints.validate_value(&value).change_context(
+                                constraints.validate_value(value).change_context(
                                     ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
-                                        Value::Number(value),
+                                        Value::Number(*value),
                                     ),
                                 )
                             })
                             .try_collect_reports()
-                            .change_context_lazy(|| {
+                            .change_context(
                                 ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
                                     ValueConstraints::Typed(SingleValueConstraints::Number(
                                         Self::Constrained(constraints.clone()),
                                     )),
-                                )
-                            })?;
+                                ),
+                            )?;
 
                         // This should only happen if `enum` is malformed and has no values. This
                         // should be caught by the schema validation, however, if this still happens
@@ -159,22 +172,12 @@ impl Constraint for NumberSchema {
                             )),
                         ))
                     }
-                    1 => (
-                        Self::Const {
-                            r#const: passed.into_iter().next().unwrap_or_else(|| {
-                                unreachable!(
-                                    "we have exactly one value in the enum that passed the \
-                                     constraints"
-                                )
-                            }),
-                        },
-                        None,
-                    ),
-                    _ => (Self::Enum { r#enum: passed }, None),
+                    [r#const] => (Self::Const { r#const }, None),
+                    [..] => (Self::Enum { r#enum: passed }, None),
                 }
             }
             (Self::Const { r#const: lhs }, Self::Const { r#const: rhs }) => {
-                if float_eq(&lhs, &rhs) {
+                if float_eq(lhs, rhs) {
                     (Self::Const { r#const: lhs }, None)
                 } else {
                     bail!(ResolveClosedDataTypeError::ConflictingConstValues(
@@ -184,24 +187,19 @@ impl Constraint for NumberSchema {
                 }
             }
             (Self::Enum { r#enum: lhs }, Self::Enum { r#enum: rhs }) => {
-                let intersection = lhs.intersection(&rhs).cloned().collect::<HashSet<_>>();
+                let intersection = lhs
+                    .iter()
+                    .filter(|value| rhs.iter().any(|other| float_eq(**value, *other)))
+                    .copied()
+                    .collect::<Vec<_>>();
 
-                match intersection.len() {
-                    0 => bail!(ResolveClosedDataTypeError::ConflictingEnumValues(
+                match intersection[..] {
+                    [] => bail!(ResolveClosedDataTypeError::ConflictingEnumValues(
                         lhs.into_iter().map(Value::Number).collect(),
                         rhs.into_iter().map(Value::Number).collect(),
                     )),
-                    1 => (
-                        Self::Const {
-                            r#const: intersection.into_iter().next().unwrap_or_else(|| {
-                                unreachable!(
-                                    "we have exactly least one value in the enum intersection"
-                                )
-                            }),
-                        },
-                        None,
-                    ),
-                    _ => (
+                    [r#const] => (Self::Const { r#const }, None),
+                    [..] => (
                         Self::Enum {
                             r#enum: intersection,
                         },
@@ -212,7 +210,7 @@ impl Constraint for NumberSchema {
             (Self::Const { r#const }, Self::Enum { r#enum })
             | (Self::Enum { r#enum }, Self::Const { r#const }) => {
                 ensure!(
-                    r#enum.iter().any(|value| float_eq(value, &r#const)),
+                    r#enum.iter().any(|value| float_eq(*value, r#const)),
                     ResolveClosedDataTypeError::ConflictingConstEnumValue(
                         Value::Number(r#const),
                         r#enum.into_iter().map(Value::Number).collect(),
@@ -248,39 +246,36 @@ impl ConstraintValidator<Value> for NumberSchema {
     }
 }
 
-impl ConstraintValidator<Decimal> for NumberSchema {
+impl ConstraintValidator<f64> for NumberSchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &Decimal) -> bool {
+    fn is_valid(&self, value: &f64) -> bool {
         match self {
             Self::Constrained(constraints) => constraints.is_valid(value),
-            Self::Const { r#const } => float_eq(value, r#const),
-            Self::Enum { r#enum } => r#enum.iter().any(|expected| float_eq(value, expected)),
+            Self::Const { r#const } => float_eq(*value, *r#const),
+            Self::Enum { r#enum } => r#enum.iter().any(|expected| float_eq(*value, *expected)),
         }
     }
 
-    fn validate_value(&self, value: &Decimal) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &f64) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Constrained(constraints) => constraints
                 .validate_value(value)
                 .change_context(ConstraintError::ValueConstraint)?,
             Self::Const { r#const } => {
-                if !float_eq(value, r#const) {
+                if !float_eq(*value, *r#const) {
                     bail!(ConstraintError::InvalidConstValue {
-                        actual: Value::Number(value.clone()),
-                        expected: Value::Number(r#const.clone()),
+                        actual: Value::Number(*value),
+                        expected: Value::Number(*r#const),
                     });
                 }
             }
             Self::Enum { r#enum } => {
                 ensure!(
-                    r#enum.iter().any(|expected| float_eq(value, expected)),
+                    r#enum.iter().any(|expected| float_eq(*value, *expected)),
                     ConstraintError::InvalidEnumValue {
-                        actual: Value::Number(value.clone()),
-                        expected: r#enum
-                            .iter()
-                            .map(|number| Value::Number(number.clone()))
-                            .collect(),
+                        actual: Value::Number(*value),
+                        expected: r#enum.iter().map(|number| Value::Number(*number)).collect(),
                     }
                 );
             }
@@ -294,15 +289,15 @@ impl ConstraintValidator<Decimal> for NumberSchema {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NumberConstraints {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub minimum: Option<Decimal>,
+    pub minimum: Option<f64>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub exclusive_minimum: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub maximum: Option<Decimal>,
+    pub maximum: Option<f64>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub exclusive_maximum: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub multiple_of: Option<Decimal>,
+    pub multiple_of: Option<f64>,
 }
 
 impl Constraint for NumberConstraints {
@@ -312,45 +307,33 @@ impl Constraint for NumberConstraints {
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         let mut remainder = None::<Self>;
 
-        self.minimum = match self.minimum.as_ref().zip(other.minimum.as_ref()) {
-            Some((lhs, rhs)) => {
-                if float_less_eq(lhs, rhs) {
-                    other.minimum
-                } else {
-                    self.minimum
-                }
-            }
+        self.minimum = match self.minimum.zip(other.minimum) {
+            Some((lhs, rhs)) => Some(if float_less_eq(lhs, rhs) { rhs } else { lhs }),
             None => self.minimum.or(other.minimum),
         };
         self.exclusive_minimum = self.exclusive_minimum || other.exclusive_minimum;
-        self.maximum = match self.maximum.as_ref().zip(other.maximum.as_ref()) {
-            Some((lhs, rhs)) => {
-                if float_less_eq(lhs, rhs) {
-                    self.maximum
-                } else {
-                    other.maximum
-                }
-            }
+        self.maximum = match self.maximum.zip(other.maximum) {
+            Some((lhs, rhs)) => Some(if float_less_eq(lhs, rhs) { lhs } else { rhs }),
             None => self.maximum.or(other.maximum),
         };
         self.exclusive_maximum = self.exclusive_maximum || other.exclusive_maximum;
-        self.multiple_of = match self.multiple_of.as_ref().zip(other.multiple_of.as_ref()) {
-            Some((lhs, rhs)) if float_multiple_of(lhs, rhs) => self.multiple_of,
-            Some((lhs, rhs)) if float_multiple_of(rhs, lhs) => other.multiple_of,
-            Some((_, _)) => {
-                remainder.get_or_insert_default().multiple_of = other.multiple_of;
-                self.multiple_of
+        self.multiple_of = match self.multiple_of.zip(other.multiple_of) {
+            Some((lhs, rhs)) if float_multiple_of(lhs, rhs) => Some(lhs),
+            Some((lhs, rhs)) if float_multiple_of(rhs, lhs) => Some(rhs),
+            Some((lhs, rhs)) => {
+                remainder.get_or_insert_default().multiple_of = Some(rhs);
+                Some(lhs)
             }
             None => self.multiple_of.or(other.multiple_of),
         };
 
-        if let Some((minimum, maximum)) = self.minimum.as_ref().zip(self.maximum.as_ref()) {
+        if let Some((minimum, maximum)) = self.minimum.zip(self.maximum) {
             ensure!(
                 float_less_eq(minimum, maximum),
                 ResolveClosedDataTypeError::UnsatisfiableConstraint(ValueConstraints::Typed(
                     SingleValueConstraints::Number(NumberSchema::Constrained(Self {
-                        minimum: self.minimum,
-                        maximum: self.maximum,
+                        minimum: Some(minimum),
+                        maximum: Some(maximum),
                         ..Self::default()
                     }),)
                 ),)
@@ -361,26 +344,28 @@ impl Constraint for NumberConstraints {
     }
 }
 
-impl ConstraintValidator<Decimal> for NumberConstraints {
+impl ConstraintValidator<f64> for NumberConstraints {
     type Error = [NumberValidationError];
 
-    fn is_valid(&self, value: &Decimal) -> bool {
-        if let Some(minimum) = &self.minimum {
-            if self.exclusive_minimum && float_less_eq(value, minimum) || float_less(value, minimum)
+    fn is_valid(&self, value: &f64) -> bool {
+        if let Some(minimum) = self.minimum {
+            if self.exclusive_minimum && float_less_eq(*value, minimum)
+                || float_less(*value, minimum)
             {
                 return false;
             }
         }
 
-        if let Some(maximum) = &self.maximum {
-            if self.exclusive_maximum && float_less_eq(maximum, value) || float_less(maximum, value)
+        if let Some(maximum) = self.maximum {
+            if self.exclusive_maximum && float_less_eq(maximum, *value)
+                || float_less(maximum, *value)
             {
                 return false;
             }
         }
 
-        if let Some(expected) = &self.multiple_of {
-            if !float_multiple_of(value, expected) {
+        if let Some(expected) = self.multiple_of {
+            if !float_multiple_of(*value, expected) {
                 return false;
             }
         }
@@ -388,46 +373,46 @@ impl ConstraintValidator<Decimal> for NumberConstraints {
         true
     }
 
-    fn validate_value(&self, value: &Decimal) -> Result<(), Report<[NumberValidationError]>> {
+    fn validate_value(&self, value: &f64) -> Result<(), Report<[NumberValidationError]>> {
         let mut status = ReportSink::new();
 
-        if let Some(minimum) = &self.minimum {
+        if let Some(minimum) = self.minimum {
             if self.exclusive_minimum {
-                if float_less_eq(value, minimum) {
+                if float_less_eq(*value, minimum) {
                     status.capture(NumberValidationError::ExclusiveMinimum {
-                        actual: value.clone(),
-                        expected: minimum.clone(),
+                        actual: *value,
+                        expected: minimum,
                     });
                 }
-            } else if float_less(value, minimum) {
+            } else if float_less(*value, minimum) {
                 status.capture(NumberValidationError::Minimum {
-                    actual: value.clone(),
-                    expected: minimum.clone(),
+                    actual: *value,
+                    expected: minimum,
                 });
             }
         }
 
-        if let Some(maximum) = &self.maximum {
+        if let Some(maximum) = self.maximum {
             if self.exclusive_maximum {
-                if float_less_eq(maximum, value) {
+                if float_less_eq(maximum, *value) {
                     status.capture(NumberValidationError::ExclusiveMaximum {
-                        actual: value.clone(),
-                        expected: maximum.clone(),
+                        actual: *value,
+                        expected: maximum,
                     });
                 }
-            } else if float_less(maximum, value) {
+            } else if float_less(maximum, *value) {
                 status.capture(NumberValidationError::Maximum {
-                    actual: value.clone(),
-                    expected: maximum.clone(),
+                    actual: *value,
+                    expected: maximum,
                 });
             }
         }
 
-        if let Some(expected) = &self.multiple_of {
-            if !float_multiple_of(value, expected) {
+        if let Some(expected) = self.multiple_of {
+            if !float_multiple_of(*value, expected) {
                 status.capture(NumberValidationError::MultipleOf {
-                    actual: value.clone(),
-                    expected: expected.clone(),
+                    actual: *value,
+                    expected,
                 });
             }
         }
@@ -456,47 +441,66 @@ mod tests {
     };
 
     #[test]
+    #[expect(clippy::float_cmp, reason = "Test case for float_eq")]
+    fn compare_equality() {
+        assert_ne!(0.1 + 0.2, 0.3);
+        assert!(float_eq(0.1 + 0.2, 0.3));
+
+        assert!(!float_eq(1.0, 1.0 + f64::EPSILON));
+        assert!(float_eq(1.0, 1.0 + f64::EPSILON / 2.0));
+        assert!(float_eq(1.0, 1.0));
+        assert!(float_eq(1.0, 1.0 - f64::EPSILON / 2.0));
+        assert!(!float_eq(1.0, 1.0 - f64::EPSILON));
+    }
+
+    #[test]
+    fn compare_less() {
+        assert!(float_less(1.0, 1.0 + f64::EPSILON));
+        assert!(!float_less(1.0, 1.0 + f64::EPSILON / 2.0));
+        assert!(!float_less(1.0, 1.0));
+        assert!(!float_less(1.0, 1.0 - f64::EPSILON / 2.0));
+        assert!(!float_less(1.0, 1.0 - f64::EPSILON));
+    }
+
+    #[test]
+    fn compare_less_eq() {
+        assert!(float_less_eq(1.0, 1.0 + f64::EPSILON));
+        assert!(float_less_eq(1.0, 1.0 + f64::EPSILON / 2.0));
+        assert!(float_less_eq(1.0, 1.0));
+        assert!(float_less_eq(1.0, 1.0 - f64::EPSILON / 2.0));
+        assert!(!float_less_eq(1.0, 1.0 - f64::EPSILON));
+    }
+
+    #[test]
     fn compare_modulo() {
-        assert!(float_multiple_of(&Decimal::from(10), &Decimal::from(5)));
-        assert!(!float_multiple_of(&Decimal::from(10), &Decimal::from(3)));
-        assert!(float_multiple_of(
-            &Decimal::from(10),
-            &Decimal::from_natural(25, -1)
-        ));
-        assert!(float_multiple_of(
-            &Decimal::from_natural(1, 9),
-            &Decimal::from_natural(1, 6)
-        ));
-        assert!(float_multiple_of(
-            &Decimal::from_natural(1, -5),
-            &Decimal::from_natural(1, -6)
-        ));
-        assert!(float_multiple_of(&Decimal::from(-10), &Decimal::from(-5)));
-        assert!(float_multiple_of(&Decimal::from(-10), &Decimal::from(5)));
-        assert!(!float_multiple_of(&Decimal::from(10), &Decimal::from(0)));
-        assert!(float_multiple_of(&Decimal::from(0), &Decimal::from(5)));
-        assert!(!float_multiple_of(
-            &Decimal::from_natural(1, -1),
-            &Decimal::from_natural(3, -2)
-        ));
-        assert!(float_multiple_of(&Decimal::from(5), &Decimal::from(5)));
+        assert!(float_multiple_of(10.0, 5.0));
+        assert!(!float_multiple_of(10.0, 3.0));
+        assert!(float_multiple_of(10.0, 2.5));
+        assert!(float_multiple_of(1e9, 1e6));
+        assert!(float_multiple_of(0.0001, 0.00001));
+        assert!(float_multiple_of(-10.0, -5.0));
+        assert!(float_multiple_of(-10.0, 5.0));
+        assert!(!float_multiple_of(10.0, 0.0));
+        assert!(float_multiple_of(0.0, 5.0));
+        assert!(!float_multiple_of(0.1, 0.03));
+        assert!(float_multiple_of(5.0, 5.0));
     }
 
     #[test]
     fn combine_with_non_conflicting_constraints() {
         let constraints1 = NumberConstraints {
-            minimum: Some(Decimal::from(1)),
+            minimum: Some(1.0),
             exclusive_minimum: false,
-            maximum: Some(Decimal::from(10)),
+            maximum: Some(10.0),
             exclusive_maximum: false,
-            multiple_of: Some(Decimal::from(2)),
+            multiple_of: Some(2.0),
         };
         let constraints2 = NumberConstraints {
-            minimum: Some(Decimal::from(5)),
+            minimum: Some(5.0),
             exclusive_minimum: true,
-            maximum: Some(Decimal::from(15)),
+            maximum: Some(15.0),
             exclusive_maximum: true,
-            multiple_of: Some(Decimal::from(4)),
+            multiple_of: Some(4.0),
         };
 
         let (combined, None) = constraints1
@@ -505,17 +509,17 @@ mod tests {
         else {
             panic!("Expected no remainder")
         };
-        assert_eq!(combined.minimum, Some(Decimal::from(5)));
+        assert_eq!(combined.minimum, Some(5.0));
         assert!(combined.exclusive_minimum);
-        assert_eq!(combined.maximum, Some(Decimal::from(10)));
+        assert_eq!(combined.maximum, Some(10.0));
         assert!(combined.exclusive_maximum);
-        assert_eq!(combined.multiple_of, Some(Decimal::from(4)));
+        assert_eq!(combined.multiple_of, Some(4.0));
     }
 
     #[test]
     fn combine_with_conflicting_constraints() {
         let constraints1 = NumberConstraints {
-            minimum: Some(Decimal::from(6)),
+            minimum: Some(6.0),
             exclusive_minimum: false,
             maximum: None,
             exclusive_maximum: false,
@@ -524,7 +528,7 @@ mod tests {
         let constraints2 = NumberConstraints {
             minimum: None,
             exclusive_minimum: false,
-            maximum: Some(Decimal::from(5)),
+            maximum: Some(5.0),
             exclusive_maximum: false,
             multiple_of: None,
         };
@@ -555,18 +559,18 @@ mod tests {
     #[test]
     fn combine_with_remainder() {
         let constraints1 = NumberConstraints {
-            minimum: Some(Decimal::from(1)),
+            minimum: Some(1.0),
             exclusive_minimum: false,
-            maximum: Some(Decimal::from(10)),
+            maximum: Some(10.0),
             exclusive_maximum: false,
-            multiple_of: Some(Decimal::from(2)),
+            multiple_of: Some(2.0),
         };
         let constraints2 = NumberConstraints {
-            minimum: Some(Decimal::from(5)),
+            minimum: Some(5.0),
             exclusive_minimum: true,
-            maximum: Some(Decimal::from(15)),
+            maximum: Some(15.0),
             exclusive_maximum: true,
-            multiple_of: Some(Decimal::from(3)),
+            multiple_of: Some(3.0),
         };
 
         let (_, Some(remainder)) = constraints1
@@ -575,7 +579,7 @@ mod tests {
         else {
             panic!("Expected remainder");
         };
-        assert_eq!(remainder.multiple_of, Some(Decimal::from(3)));
+        assert_eq!(remainder.multiple_of, Some(3.0));
     }
 
     #[test]
@@ -597,8 +601,8 @@ mod tests {
     fn simple_number() {
         let number_schema = read_schema(&json!({
             "type": "number",
-            "minimum": 0,
-            "maximum": 10,
+            "minimum": 0.0,
+            "maximum": 10.0,
         }));
 
         check_constraints(&number_schema, json!(0));
@@ -609,14 +613,14 @@ mod tests {
         }]);
         check_constraints_error(&number_schema, json!(-2), [
             NumberValidationError::Minimum {
-                actual: Decimal::from(-2),
-                expected: Decimal::from(0),
+                actual: -2.0,
+                expected: 0.0,
             },
         ]);
         check_constraints_error(&number_schema, json!(15), [
             NumberValidationError::Maximum {
-                actual: Decimal::from(15),
-                expected: Decimal::from(10),
+                actual: 15.0,
+                expected: 10.0,
             },
         ]);
     }
@@ -625,9 +629,9 @@ mod tests {
     fn simple_number_exclusive() {
         let number_schema = read_schema(&json!({
             "type": "number",
-            "minimum": 0,
+            "minimum": 0.0,
             "exclusiveMinimum": true,
-            "maximum": 10,
+            "maximum": 10.0,
             "exclusiveMaximum": true,
         }));
 
@@ -639,29 +643,24 @@ mod tests {
         }]);
         check_constraints_error(&number_schema, json!(0), [
             NumberValidationError::ExclusiveMinimum {
-                actual: Decimal::from(0),
-                expected: Decimal::from(0),
+                actual: 0.0,
+                expected: 0.0,
             },
         ]);
         check_constraints_error(&number_schema, json!(10), [
             NumberValidationError::ExclusiveMaximum {
-                actual: Decimal::from(10),
-                expected: Decimal::from(10),
+                actual: 10.0,
+                expected: 10.0,
             },
         ]);
     }
 
     #[test]
     fn multiple_of() {
-        let number_schema = ValueConstraints::Typed(SingleValueConstraints::Number(
-            NumberSchema::Constrained(NumberConstraints {
-                minimum: None,
-                exclusive_minimum: false,
-                maximum: None,
-                exclusive_maximum: false,
-                multiple_of: Some(Decimal::from_natural(1, -1)),
-            }),
-        ));
+        let number_schema = read_schema(&json!({
+            "type": "number",
+            "multipleOf": 0.1,
+        }));
 
         check_constraints(&number_schema, json!(0.1));
         check_constraints(&number_schema, json!(0.9));
@@ -671,8 +670,8 @@ mod tests {
         }]);
         check_constraints_error(&number_schema, json!(0.11), [
             NumberValidationError::MultipleOf {
-                actual: Decimal::from_natural(11, -2),
-                expected: Decimal::from_natural(1, -1),
+                actual: 0.11,
+                expected: 0.1,
             },
         ]);
     }
@@ -681,14 +680,14 @@ mod tests {
     fn constant() {
         let number_schema = read_schema(&json!({
             "type": "number",
-            "const": 50,
+            "const": 50.0,
         }));
 
-        check_constraints(&number_schema, json!(50));
-        check_constraints_error(&number_schema, json!(10), [
+        check_constraints(&number_schema, json!(50.0));
+        check_constraints_error(&number_schema, json!(10.0), [
             ConstraintError::InvalidConstValue {
-                actual: Value::Number(Decimal::from(10)),
-                expected: Value::Number(Decimal::from(50)),
+                actual: Value::Number(10.0),
+                expected: Value::Number(50.0),
             },
         ]);
     }
@@ -697,14 +696,14 @@ mod tests {
     fn enumeration() {
         let number_schema = read_schema(&json!({
             "type": "number",
-            "enum": [20],
+            "enum": [20.0, 50.0],
         }));
 
-        check_constraints(&number_schema, json!(20));
-        check_constraints_error(&number_schema, json!(10), [
+        check_constraints(&number_schema, json!(50.0));
+        check_constraints_error(&number_schema, json!(10.0), [
             ConstraintError::InvalidEnumValue {
-                actual: Value::Number(Decimal::from(10)),
-                expected: vec![Value::Number(Decimal::from(20))],
+                actual: Value::Number(10.0),
+                expected: vec![Value::Number(20.0), Value::Number(50.0)],
             },
         ]);
     }
@@ -712,7 +711,7 @@ mod tests {
     #[test]
     fn missing_type() {
         from_value::<ValueConstraints>(json!({
-            "minimum": 0,
+            "minimum": 0.0,
         }))
         .expect_err("Deserialized number schema without type");
     }
@@ -771,8 +770,8 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 5,
-                    "maximum": 10,
+                    "minimum": 5.0,
+                    "maximum": 10.0,
                 }),
                 json!({
                     "type": "number",
@@ -780,8 +779,8 @@ mod tests {
             ],
             [json!({
                 "type": "number",
-                "minimum": 5,
-                "maximum": 10,
+                "minimum": 5.0,
+                "maximum": 10.0,
             })],
         );
     }
@@ -792,19 +791,19 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 5,
-                    "maximum": 10,
+                    "minimum": 5.0,
+                    "maximum": 10.0,
                 }),
                 json!({
                     "type": "number",
-                    "minimum": 7,
-                    "maximum": 12,
+                    "minimum": 7.0,
+                    "maximum": 12.0,
                 }),
             ],
             [json!({
                 "type": "number",
-                "minimum": 7,
-                "maximum": 10,
+                "minimum": 7.0,
+                "maximum": 10.0,
             })],
         );
     }
@@ -815,21 +814,21 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 5,
-                    "maximum": 10,
+                    "minimum": 5.0,
+                    "maximum": 10.0,
                 }),
                 json!({
                     "type": "number",
-                    "minimum": 12,
-                    "maximum": 15,
+                    "minimum": 12.0,
+                    "maximum": 15.0,
                 }),
             ],
             [ResolveClosedDataTypeError::UnsatisfiableConstraint(
                 from_value(json!(
                     {
                         "type": "number",
-                        "minimum": 12,
-                        "maximum": 10,
+                        "minimum": 12.0,
+                        "maximum": 10.0,
                     }
                 ))
                 .expect("Failed to parse schema"),
@@ -843,9 +842,9 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 5,
+                    "minimum": 5.0,
                     "exclusiveMinimum": true,
-                    "maximum": 10,
+                    "maximum": 10.0,
                     "exclusiveMaximum": true,
                 }),
                 json!({
@@ -854,9 +853,9 @@ mod tests {
             ],
             [json!({
                 "type": "number",
-                "minimum": 5,
+                "minimum": 5.0,
                 "exclusiveMinimum": true,
-                "maximum": 10,
+                "maximum": 10.0,
                 "exclusiveMaximum": true,
             })],
         );
@@ -868,24 +867,24 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 5,
+                    "minimum": 5.0,
                     "exclusiveMinimum": true,
-                    "maximum": 10,
+                    "maximum": 10.0,
                     "exclusiveMaximum": true,
                 }),
                 json!({
                     "type": "number",
-                    "minimum": 7,
+                    "minimum": 7.0,
                     "exclusiveMinimum": true,
-                    "maximum": 12,
+                    "maximum": 12.0,
                     "exclusiveMaximum": true,
                 }),
             ],
             [json!({
                 "type": "number",
-                "minimum": 7,
+                "minimum": 7.0,
                 "exclusiveMinimum": true,
-                "maximum": 10,
+                "maximum": 10.0,
                 "exclusiveMaximum": true,
             })],
         );
@@ -897,7 +896,7 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "multipleOf": 5,
+                    "multipleOf": 5.0,
                 }),
                 json!({
                     "type": "number",
@@ -905,7 +904,7 @@ mod tests {
             ],
             [json!({
                 "type": "number",
-                "multipleOf": 5,
+                "multipleOf": 5.0,
             })],
         );
     }
@@ -916,21 +915,21 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "multipleOf": 5,
+                    "multipleOf": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 3,
+                    "multipleOf": 3.0,
                 }),
             ],
             [
                 json!({
                     "type": "number",
-                    "multipleOf": 5,
+                    "multipleOf": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 3,
+                    "multipleOf": 3.0,
                 }),
             ],
         );
@@ -942,16 +941,16 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "multipleOf": 5,
+                    "multipleOf": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 10,
+                    "multipleOf": 10.0,
                 }),
             ],
             [json!({
                 "type": "number",
-                "multipleOf": 10,
+                "multipleOf": 10.0,
             })],
         );
 
@@ -959,16 +958,16 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "multipleOf": 10,
+                    "multipleOf": 10.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 5,
+                    "multipleOf": 5.0,
                 }),
             ],
             [json!({
                 "type": "number",
-                "multipleOf": 10,
+                "multipleOf": 10.0,
             })],
         );
     }
@@ -979,16 +978,16 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "const": 5,
+                    "const": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "const": 5,
+                    "const": 5.0,
                 }),
             ],
             [json!({
                 "type": "number",
-                "const": 5,
+                "const": 5.0,
             })],
         );
     }
@@ -999,16 +998,16 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "const": 5,
+                    "const": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "const": 10,
+                    "const": 10.0,
                 }),
             ],
             [ResolveClosedDataTypeError::ConflictingConstValues(
-                Value::Number(Decimal::from(5)),
-                Value::Number(Decimal::from(10)),
+                Value::Number(5.0),
+                Value::Number(10.0),
             )],
         );
     }
@@ -1019,44 +1018,38 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "const": 5,
+                    "const": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "enum": [5, 10],
+                    "enum": [5.0, 10.0],
                 }),
             ],
             [json!({
                 "type": "number",
-                "const": 5,
+                "const": 5.0,
             })],
         );
     }
 
     #[test]
     fn intersect_const_enum_incompatible() {
-        let report = intersect_schemas([
-            json!({
-                "type": "number",
-                "const": 5,
-            }),
-            json!({
-                "type": "number",
-                "enum": [10, 15],
-            }),
-        ])
-        .expect_err("Intersected invalid schemas");
-
-        let Some(ResolveClosedDataTypeError::ConflictingConstEnumValue(lhs, rhs)) =
-            report.downcast_ref::<ResolveClosedDataTypeError>()
-        else {
-            panic!("Expected conflicting const-enum values error");
-        };
-        assert_eq!(lhs, &Value::Number(Decimal::from(5)));
-
-        assert_eq!(rhs.len(), 2);
-        assert!(rhs.contains(&Value::Number(Decimal::from(10))));
-        assert!(rhs.contains(&Value::Number(Decimal::from(15))));
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "number",
+                    "const": 5.0,
+                }),
+                json!({
+                    "type": "number",
+                    "enum": [10.0, 15.0],
+                }),
+            ],
+            [ResolveClosedDataTypeError::ConflictingConstEnumValue(
+                Value::Number(5.0),
+                vec![Value::Number(10.0), Value::Number(15.0)],
+            )],
+        );
     }
 
     #[test]
@@ -1064,15 +1057,15 @@ mod tests {
         let intersection = intersect_schemas([
             json!({
                 "type": "number",
-                "enum": [5, 10, 15],
+                "enum": [5.0, 10.0, 15.0],
             }),
             json!({
                 "type": "number",
-                "enum": [5, 15, 20],
+                "enum": [5.0, 15.0, 20.0],
             }),
             json!({
                 "type": "number",
-                "enum": [0, 5, 15],
+                "enum": [0.0, 5.0, 15.0],
             }),
         ])
         .expect("Intersected invalid constraints")
@@ -1089,8 +1082,8 @@ mod tests {
             panic!("Expected string enum schema");
         };
         assert_eq!(r#enum.len(), 2);
-        assert!(r#enum.contains(&Decimal::from(5)));
-        assert!(r#enum.contains(&Decimal::from(15)));
+        assert!(r#enum.contains(&5.0));
+        assert!(r#enum.contains(&15.0));
     }
 
     #[test]
@@ -1099,52 +1092,46 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "enum": [5, 10, 15],
+                    "enum": [5.0, 10.0, 15.0],
                 }),
                 json!({
                     "type": "number",
-                    "enum": [5, 15, 20],
+                    "enum": [5.0, 15.0, 20.0],
                 }),
                 json!({
                     "type": "number",
-                    "enum": [5, 20],
+                    "enum": [5.0, 20.0],
                 }),
             ],
             [json!({
                 "type": "number",
-                "const": 5,
+                "const": 5.0,
             })],
         );
     }
 
     #[test]
     fn intersect_enum_enum_incompatible() {
-        let report = intersect_schemas([
-            json!({
-                "type": "number",
-                "enum": [5, 10, 15],
-            }),
-            json!({
-                "type": "number",
-                "enum": [20, 25, 30],
-            }),
-        ])
-        .expect_err("Intersected invalid schemas");
-
-        let Some(ResolveClosedDataTypeError::ConflictingEnumValues(lhs, rhs)) =
-            report.downcast_ref::<ResolveClosedDataTypeError>()
-        else {
-            panic!("Expected conflicting enum values error");
-        };
-        assert_eq!(lhs.len(), 3);
-        assert!(lhs.contains(&Value::Number(Decimal::from(5))));
-        assert!(lhs.contains(&Value::Number(Decimal::from(10))));
-        assert!(lhs.contains(&Value::Number(Decimal::from(15))));
-
-        assert_eq!(rhs.len(), 3);
-        assert!(rhs.contains(&Value::Number(Decimal::from(20))));
-        assert!(rhs.contains(&Value::Number(Decimal::from(25))));
-        assert!(rhs.contains(&Value::Number(Decimal::from(30))));
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "number",
+                    "enum": [5.0, 10.0, 15.0],
+                }),
+                json!({
+                    "type": "number",
+                    "enum": [20.0, 25.0, 30.0],
+                }),
+            ],
+            [ResolveClosedDataTypeError::ConflictingEnumValues(
+                vec![Value::Number(5.0), Value::Number(10.0), Value::Number(15.0)],
+                vec![
+                    Value::Number(20.0),
+                    Value::Number(25.0),
+                    Value::Number(30.0),
+                ],
+            )],
+        );
     }
 
     #[test]
@@ -1153,17 +1140,17 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "const": 5,
+                    "const": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "minimum": 0,
-                    "maximum": 10,
+                    "minimum": 0.0,
+                    "maximum": 10.0,
                 }),
             ],
             [json!({
                 "type": "number",
-                "const": 5,
+                "const": 5.0,
             })],
         );
 
@@ -1171,17 +1158,17 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 0,
-                    "maximum": 10,
+                    "minimum": 0.0,
+                    "maximum": 10.0,
                 }),
                 json!({
                     "type": "number",
-                    "const": 5,
+                    "const": 5.0,
                 }),
             ],
             [json!({
                 "type": "number",
-                "const": 5,
+                "const": 5.0,
             })],
         );
     }
@@ -1192,20 +1179,20 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "const": 5,
+                    "const": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "minimum": 10,
-                    "maximum": 15,
+                    "minimum": 10.0,
+                    "maximum": 15.0,
                 }),
             ],
             [ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                Value::Number(Decimal::from(5)),
+                Value::Number(5.0),
                 from_value(json!({
                     "type": "number",
-                    "minimum": 10,
-                    "maximum": 15,
+                    "minimum": 10.0,
+                    "maximum": 15.0,
                 }))
                 .expect("Failed to parse schema"),
             )],
@@ -1215,20 +1202,20 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 10,
-                    "maximum": 15,
+                    "minimum": 10.0,
+                    "maximum": 15.0,
                 }),
                 json!({
                     "type": "number",
-                    "const": 5,
+                    "const": 5.0,
                 }),
             ],
             [ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                Value::Number(Decimal::from(5)),
+                Value::Number(5.0),
                 from_value(json!({
                     "type": "number",
-                    "minimum": 10,
-                    "maximum": 15,
+                    "minimum": 10.0,
+                    "maximum": 15.0,
                 }))
                 .expect("Failed to parse schema"),
             )],
@@ -1241,23 +1228,23 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "enum": [5, 10, 15],
+                    "enum": [5.0, 10.0, 15.0],
                 }),
                 json!({
                     "type": "number",
-                    "minimum": 0,
-                    "maximum": 10,
+                    "minimum": 0.0,
+                    "maximum": 10.0,
                     "exclusiveMaximum": true,
                 }),
                 json!({
                     "type": "number",
-                    "minimum": 5,
-                    "maximum": 15,
+                    "minimum": 5.0,
+                    "maximum": 15.0,
                 }),
             ],
             [json!({
                 "type": "number",
-                "const": 5,
+                "const": 5.0,
             })],
         );
     }
@@ -1267,11 +1254,11 @@ mod tests {
         let intersection = intersect_schemas([
             json!({
                 "type": "number",
-                "enum": [5, 10, 15],
+                "enum": [5.0, 10.0, 15.0],
             }),
             json!({
                 "type": "number",
-                "minimum": 10,
+                "minimum": 10.0,
             }),
         ])
         .expect("Intersected invalid constraints")
@@ -1288,8 +1275,8 @@ mod tests {
             panic!("Expected string enum schema");
         };
         assert_eq!(r#enum.len(), 2);
-        assert!(r#enum.contains(&Decimal::from(10)));
-        assert!(r#enum.contains(&Decimal::from(15)));
+        assert!(r#enum.contains(&10.0));
+        assert!(r#enum.contains(&15.0));
     }
 
     #[test]
@@ -1298,30 +1285,24 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "enum": [5, 10, 15],
+                    "enum": [5.0, 10.0, 15.0],
                 }),
                 json!({
                     "type": "number",
-                    "minimum": 20,
+                    "minimum": 20.0,
                 }),
             ],
             [
                 ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
                     from_value(json!({
                         "type": "number",
-                        "minimum": 20,
+                        "minimum": 20.0,
                     }))
                     .expect("Failed to parse schema"),
                 ),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(
-                    Decimal::from(5),
-                )),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(
-                    Decimal::from(10),
-                )),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(
-                    Decimal::from(15),
-                )),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(5.0)),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(10.0)),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(15.0)),
             ],
         );
     }
@@ -1332,44 +1313,44 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 5,
+                    "minimum": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 5,
+                    "multipleOf": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "maximum": 10,
+                    "maximum": 10.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 3,
+                    "multipleOf": 3.0,
                 }),
                 json!({
                     "type": "number",
-                    "maximum": 15,
+                    "maximum": 15.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 10,
+                    "multipleOf": 10.0,
                 }),
                 json!({
                     "type": "number",
-                    "minimum": 7,
-                    "maximum": 20,
+                    "minimum": 7.0,
+                    "maximum": 20.0,
                 }),
             ],
             [
                 json!({
                     "type": "number",
-                    "minimum": 7,
-                    "maximum": 10,
-                    "multipleOf": 10,
+                    "minimum": 7.0,
+                    "maximum": 10.0,
+                    "multipleOf": 10.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 3,
+                    "multipleOf": 3.0,
                 }),
             ],
         );
@@ -1378,41 +1359,41 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 5,
+                    "minimum": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 5,
+                    "multipleOf": 5.0,
                 }),
                 json!({
                     "type": "number",
-                    "maximum": 10,
+                    "maximum": 10.0,
                 }),
                 json!({
                     "type": "number",
-                    "maximum": 15,
+                    "maximum": 15.0,
                 }),
                 json!({
                     "type": "number",
-                    "const": 10,
+                    "const": 10.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 10,
+                    "multipleOf": 10.0,
                 }),
                 json!({
                     "type": "number",
-                    "minimum": 10,
-                    "maximum": 10,
+                    "minimum": 10.0,
+                    "maximum": 10.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 2,
+                    "multipleOf": 2.0,
                 }),
             ],
             [json!({
                 "type": "number",
-                "const": 10,
+                "const": 10.0,
             })],
         );
     }

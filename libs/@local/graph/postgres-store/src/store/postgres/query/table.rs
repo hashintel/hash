@@ -806,9 +806,9 @@ impl DatabaseColumn for DataTypeEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::Decimal,
+            Self::Distance => ParameterType::F64,
         }
     }
 
@@ -866,9 +866,9 @@ impl DatabaseColumn for PropertyTypeEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::Decimal,
+            Self::Distance => ParameterType::F64,
         }
     }
 
@@ -898,9 +898,9 @@ impl DatabaseColumn for EntityTypeEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::Decimal,
+            Self::Distance => ParameterType::F64,
         }
     }
 
@@ -933,12 +933,12 @@ impl DatabaseColumn for EntityEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::WebId | Self::EntityUuid => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::Property => ParameterType::BaseUrl,
             Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
                 ParameterType::Timestamp
             }
-            Self::Distance => ParameterType::Decimal,
+            Self::Distance => ParameterType::F64,
         }
     }
 
@@ -983,7 +983,7 @@ impl DatabaseColumn for EntityEditions {
             Self::EditionId => ParameterType::Uuid,
             Self::Properties | Self::Provenance | Self::PropertyMetadata => ParameterType::Any,
             Self::Archived => ParameterType::Boolean,
-            Self::Confidence => ParameterType::Decimal,
+            Self::Confidence => ParameterType::F64,
         }
     }
 
@@ -1080,7 +1080,7 @@ impl DatabaseColumn for EntityHasLeftEntity {
                 ParameterType::Uuid
             }
             Self::Provenance => ParameterType::Any,
-            Self::Confidence => ParameterType::Decimal,
+            Self::Confidence => ParameterType::F64,
         }
     }
 
@@ -1120,7 +1120,7 @@ impl DatabaseColumn for EntityHasRightEntity {
                 ParameterType::Uuid
             }
             Self::Provenance => ParameterType::Any,
-            Self::Confidence => ParameterType::Decimal,
+            Self::Confidence => ParameterType::F64,
         }
     }
 

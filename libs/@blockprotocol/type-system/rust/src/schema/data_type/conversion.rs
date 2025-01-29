@@ -4,7 +4,6 @@ use core::fmt::{self, Write as _};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-use hash_codec::numeric::Decimal;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
@@ -75,15 +74,15 @@ impl fmt::Display for Variable {
 #[serde(from = "codec::SerializableValue", into = "codec::SerializableValue")]
 pub enum ConversionValue {
     Variable(Variable),
-    Constant(Decimal),
+    Constant(f64),
     Expression(Box<ConversionExpression>),
 }
 
 impl ConversionValue {
-    fn evaluate(&self, value: Decimal) -> Decimal {
+    fn evaluate(&self, value: f64) -> f64 {
         match self {
             Self::Variable(Variable::This) => value,
-            Self::Constant(constant) => constant.clone(),
+            Self::Constant(constant) => *constant,
             Self::Expression(expression) => expression.evaluate(value),
         }
     }
@@ -134,8 +133,8 @@ pub struct ConversionExpression {
 impl ConversionExpression {
     #[must_use]
     #[expect(clippy::float_arithmetic)]
-    pub fn evaluate(&self, value: Decimal) -> Decimal {
-        let lhs = self.lhs.evaluate(value.clone());
+    pub fn evaluate(&self, value: f64) -> f64 {
+        let lhs = self.lhs.evaluate(value);
         let rhs = self.rhs.evaluate(value);
 
         match self.operator {
@@ -189,7 +188,6 @@ impl utoipa::ToSchema<'_> for ConversionExpression {
 }
 
 mod codec {
-    use hash_codec::numeric::Decimal;
     use serde::{Deserialize, Serialize};
 
     use super::{ConversionExpression, ConversionValue, Operator, Variable};
@@ -203,7 +201,7 @@ mod codec {
         Variable(Variable),
         Constant {
             #[serde(rename = "const")]
-            value: Decimal,
+            value: f64,
             #[cfg_attr(feature = "utoipa", schema(inline))]
             r#type: NumberTypeTag,
         },
@@ -276,7 +274,7 @@ mod tests {
         let expression = ConversionExpression {
             lhs: ConversionValue::Variable(Variable::This),
             operator: Operator::Multiply,
-            rhs: ConversionValue::Constant(Decimal::from(100)),
+            rhs: ConversionValue::Constant(100.0),
         };
 
         test_conversion(
@@ -284,13 +282,13 @@ mod tests {
             json!([
                 "*",
                 "self",
-                { "const": 100, "type": "number" }
+                { "const": 100.0, "type": "number" }
             ]),
             "self * 100",
         );
 
-        assert_eq!(expression.evaluate(Decimal::from(1)), Decimal::from(100));
-        assert_eq!(expression.evaluate(Decimal::from(10)), Decimal::from(1000));
+        assert!((expression.evaluate(1.0) - 100.0).abs() < f64::EPSILON);
+        assert!((expression.evaluate(10.0) - 1000.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -298,7 +296,7 @@ mod tests {
         let expression = ConversionExpression {
             lhs: ConversionValue::Variable(Variable::This),
             operator: Operator::Divide,
-            rhs: ConversionValue::Constant(Decimal::from(100)),
+            rhs: ConversionValue::Constant(100.0),
         };
 
         test_conversion(
@@ -306,13 +304,13 @@ mod tests {
             json!([
                 "/",
                 "self",
-                { "const": 100, "type": "number" }
+                { "const": 100.0, "type": "number" }
             ]),
             "self / 100",
         );
 
-        assert_eq!(expression.evaluate(Decimal::from(100)), Decimal::from(1));
-        assert_eq!(expression.evaluate(Decimal::from(1000)), Decimal::from(10));
+        assert!((expression.evaluate(100.0) - 1.0).abs() < f64::EPSILON);
+        assert!((expression.evaluate(1000.0) - 10.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -322,13 +320,13 @@ mod tests {
                 lhs: ConversionValue::Expression(Box::new(ConversionExpression {
                     lhs: ConversionValue::Variable(Variable::This),
                     operator: Operator::Multiply,
-                    rhs: ConversionValue::Constant(Decimal::from(9)),
+                    rhs: ConversionValue::Constant(9.0),
                 })),
                 operator: Operator::Divide,
-                rhs: ConversionValue::Constant(Decimal::from(5)),
+                rhs: ConversionValue::Constant(5.0),
             })),
             operator: Operator::Add,
-            rhs: ConversionValue::Constant(Decimal::from(32)),
+            rhs: ConversionValue::Constant(32.0),
         };
 
         test_conversion(
@@ -340,17 +338,17 @@ mod tests {
                     [
                         "*",
                         "self",
-                        { "const": 9, "type": "number" }
+                        { "const": 9.0, "type": "number" }
                     ],
-                    { "const": 5, "type": "number" }
+                    { "const": 5.0, "type": "number" }
                 ],
-                { "const": 32, "type": "number" },
+                { "const": 32.0, "type": "number" },
             ]),
             "self * 9 / 5 + 32",
         );
 
-        assert_eq!(expression.evaluate(Decimal::from(0)), Decimal::from(32));
-        assert_eq!(expression.evaluate(Decimal::from(100)), Decimal::from(212));
+        assert!((expression.evaluate(0.0) - 32.0).abs() < f64::EPSILON);
+        assert!((expression.evaluate(100.0) - 212.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -360,39 +358,34 @@ mod tests {
                 lhs: ConversionValue::Variable(Variable::This),
                 operator: Operator::Multiply,
                 rhs: ConversionValue::Expression(Box::new(ConversionExpression {
-                    lhs: ConversionValue::Constant(Decimal::from(9)),
+                    lhs: ConversionValue::Constant(9.0),
                     operator: Operator::Divide,
-                    rhs: ConversionValue::Constant(Decimal::from(5)),
+                    rhs: ConversionValue::Constant(5.0),
                 })),
             })),
             operator: Operator::Add,
-            rhs: ConversionValue::Constant(Decimal::from(32)),
+            rhs: ConversionValue::Constant(32.0),
         };
-        // test_conversion(
-        //     &expression,
-        //     json!([
-        //         "+",
-        //         [
-        //             "*",
-        //             "self",
-        //             [
-        //                 "/",
-        //                 { "const": 9, "type": "number" },
-        //                 { "const": 5, "type": "number" }
-        //             ]
-        //         ],
-        //         { "const": 32, "type": "number" },
-        //     ]),
-        //     "self * (9 / 5) + 32",
-        // );
-
-        assert_eq!(expression.evaluate(Decimal::from(0)), Decimal::from(32));
-        assert_eq!(
-            expression.evaluate(Decimal::from(100)),
-            Decimal::from(212),
-            "{}",
-            expression.evaluate(Decimal::from(100))
+        test_conversion(
+            &expression,
+            json!([
+                "+",
+                [
+                    "*",
+                    "self",
+                    [
+                        "/",
+                        { "const": 9.0, "type": "number" },
+                        { "const": 5.0, "type": "number" }
+                    ]
+                ],
+                { "const": 32.0, "type": "number" },
+            ]),
+            "self * (9 / 5) + 32",
         );
+
+        assert!((expression.evaluate(0.0) - 32.0).abs() < f64::EPSILON);
+        assert!((expression.evaluate(100.0) - 212.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -402,13 +395,13 @@ mod tests {
                 lhs: ConversionValue::Expression(Box::new(ConversionExpression {
                     lhs: ConversionValue::Variable(Variable::This),
                     operator: Operator::Subtract,
-                    rhs: ConversionValue::Constant(Decimal::from(32)),
+                    rhs: ConversionValue::Constant(32.0),
                 })),
                 operator: Operator::Multiply,
-                rhs: ConversionValue::Constant(Decimal::from(5)),
+                rhs: ConversionValue::Constant(5.0),
             })),
             operator: Operator::Divide,
-            rhs: ConversionValue::Constant(Decimal::from(9)),
+            rhs: ConversionValue::Constant(9.0),
         };
 
         test_conversion(
@@ -420,17 +413,17 @@ mod tests {
                     [
                         "-",
                         "self",
-                        { "const": 32, "type": "number" }
+                        { "const": 32.0, "type": "number" }
                     ],
-                    { "const": 5, "type": "number" }
+                    { "const": 5.0, "type": "number" }
                 ],
-                { "const": 9, "type": "number" },
+                { "const": 9.0, "type": "number" },
             ]),
             "(self - 32) * 5 / 9",
         );
 
-        assert_eq!(expression.evaluate(Decimal::from(32)), Decimal::from(0));
-        assert_eq!(expression.evaluate(Decimal::from(212)), Decimal::from(100));
+        assert!(expression.evaluate(32.0).abs() < f64::EPSILON);
+        assert!((expression.evaluate(212.0) - 100.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -439,40 +432,35 @@ mod tests {
             lhs: ConversionValue::Expression(Box::new(ConversionExpression {
                 lhs: ConversionValue::Variable(Variable::This),
                 operator: Operator::Subtract,
-                rhs: ConversionValue::Constant(Decimal::from(32)),
+                rhs: ConversionValue::Constant(32.0),
             })),
             operator: Operator::Multiply,
             rhs: ConversionValue::Expression(Box::new(ConversionExpression {
-                lhs: ConversionValue::Constant(Decimal::from(5)),
+                lhs: ConversionValue::Constant(5.0),
                 operator: Operator::Divide,
-                rhs: ConversionValue::Constant(Decimal::from(9)),
+                rhs: ConversionValue::Constant(9.0),
             })),
         };
 
-        // test_conversion(
-        //     &expression,
-        //     json!([
-        //         "*",
-        //         [
-        //             "-",
-        //             "self",
-        //             { "const": 32, "type": "number" }
-        //         ],
-        //         [
-        //             "/",
-        //             { "const": 5, "type": "number" },
-        //             { "const": 9, "type": "number" }
-        //         ]
-        //     ]),
-        //     "(self - 32) * (5 / 9)",
-        // );
-
-        assert_eq!(expression.evaluate(Decimal::from(32)), Decimal::from(0));
-        assert_eq!(
-            expression.evaluate(Decimal::from(212)),
-            Decimal::from(100),
-            "{}",
-            expression.evaluate(Decimal::from(212))
+        test_conversion(
+            &expression,
+            json!([
+                "*",
+                [
+                    "-",
+                    "self",
+                    { "const": 32.0, "type": "number" }
+                ],
+                [
+                    "/",
+                    { "const": 5.0, "type": "number" },
+                    { "const": 9.0, "type": "number" }
+                ]
+            ]),
+            "(self - 32) * (5 / 9)",
         );
+
+        assert!(expression.evaluate(32.0).abs() < f64::EPSILON);
+        assert!((expression.evaluate(212.0) - 100.0).abs() < f64::EPSILON);
     }
 }

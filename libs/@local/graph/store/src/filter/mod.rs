@@ -393,7 +393,7 @@ where
                     convert: _,
                 } = max
                 {
-                    parameter.convert_to_parameter_type(ParameterType::Decimal)?;
+                    parameter.convert_to_parameter_type(ParameterType::F64)?;
                 }
                 match (lhs, rhs) {
                     (
@@ -504,10 +504,10 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
     {
         if let Self::Parameter { parameter, convert } = self {
             if let Some(conversion) = convert.take() {
-                let &mut Parameter::Decimal(mut decimal) = parameter else {
+                let &mut Parameter::F64(mut number) = parameter else {
                     bail!(ParameterConversionError::InvalidParameterType {
                         actual: ActualParameterType::Parameter(parameter.to_owned()),
-                        expected: ParameterType::Decimal,
+                        expected: ParameterType::F64,
                     });
                 };
 
@@ -522,10 +522,10 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
                         to: conversion.to.clone(),
                     })?;
                 for conversion in conversions.borrow() {
-                    decimal = conversion.evaluate(decimal.into_owned());
+                    number = conversion.evaluate(number);
                 }
 
-                *parameter = Parameter::Decimal(decimal);
+                *parameter = Parameter::F64(number);
             }
         }
 

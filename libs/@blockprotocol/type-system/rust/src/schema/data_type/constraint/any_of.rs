@@ -140,18 +140,18 @@ mod tests {
             [
                 json!({
                     "type": "number",
-                    "minimum": 5,
-                    "maximum": 10,
+                    "minimum": 5.0,
+                    "maximum": 10.0,
                 }),
                 json!({
                     "anyOf": [
                         {
                             "type": "number",
-                            "minimum": 7,
+                            "minimum": 7.0,
                         },
                         {
                             "type": "number",
-                            "maximum": 12,
+                            "maximum": 12.0,
                         },
                     ],
                 }),
@@ -160,13 +160,13 @@ mod tests {
                 "anyOf": [
                     {
                         "type": "number",
-                        "minimum": 7,
-                        "maximum": 10,
+                        "minimum": 7.0,
+                        "maximum": 10.0,
                     },
                     {
                         "type": "number",
-                        "minimum": 5,
-                        "maximum": 10,
+                        "minimum": 5.0,
+                        "maximum": 10.0,
                     },
                 ],
             })],
@@ -181,8 +181,8 @@ mod tests {
                     "anyOf": [
                         {
                             "type": "number",
-                            "minimum": 7,
-                            "maximum": 12,
+                            "minimum": 7.0,
+                            "maximum": 12.0,
                         },
                     ],
                 }),
@@ -190,8 +190,8 @@ mod tests {
                     "anyOf": [
                         {
                             "type": "number",
-                            "minimum": 5,
-                            "maximum": 10,
+                            "minimum": 5.0,
+                            "maximum": 10.0,
                         },
                     ],
                 }),
@@ -199,8 +199,8 @@ mod tests {
             [json!(
                 {
                     "type": "number",
-                    "minimum": 7,
-                    "maximum": 10,
+                    "minimum": 7.0,
+                    "maximum": 10.0,
                 }
             )],
         );
@@ -214,8 +214,8 @@ mod tests {
                     "anyOf": [
                         {
                             "type": "number",
-                            "minimum": 7,
-                            "maximum": 12,
+                            "minimum": 7.0,
+                            "maximum": 12.0,
                         },
                     ],
                 }),
@@ -223,8 +223,8 @@ mod tests {
                     "anyOf": [
                         {
                             "type": "number",
-                            "minimum": 5,
-                            "maximum": 10,
+                            "minimum": 5.0,
+                            "maximum": 10.0,
                             "description": "A number between 5 and 10",
                         },
                     ],
@@ -234,8 +234,8 @@ mod tests {
                 "anyOf": [
                     {
                         "type": "number",
-                        "minimum": 7,
-                        "maximum": 10,
+                        "minimum": 7.0,
+                        "maximum": 10.0,
                         "description": "A number between 5 and 10",
                     },
                 ],
@@ -251,7 +251,7 @@ mod tests {
                     "anyOf": [
                         {
                             "type": "number",
-                            "multipleOf": 2,
+                            "multipleOf": 2.0,
                         },
                     ],
                 }),
@@ -259,7 +259,7 @@ mod tests {
                     "anyOf": [
                         {
                             "type": "number",
-                            "multipleOf": 3,
+                            "multipleOf": 3.0,
                         },
                     ],
                 }),
@@ -268,11 +268,11 @@ mod tests {
                 json!(
                 {
                     "type": "number",
-                    "multipleOf": 2,
+                    "multipleOf": 2.0,
                 }),
                 json!({
                     "type": "number",
-                    "multipleOf": 3,
+                    "multipleOf": 3.0,
                 }),
             ],
         );
@@ -285,11 +285,11 @@ mod tests {
                 "anyOf": [
                     {
                         "type": "number",
-                        "multipleOf": 2,
+                        "multipleOf": 2.0,
                     },
                     {
                         "type": "number",
-                        "multipleOf": 7,
+                        "multipleOf": 7.0,
                     },
                 ],
             }),
@@ -297,11 +297,11 @@ mod tests {
                 "anyOf": [
                     {
                         "type": "number",
-                        "multipleOf": 3,
+                        "multipleOf": 3.0,
                     },
                     {
                         "type": "number",
-                        "multipleOf": 5,
+                        "multipleOf": 5.0,
                     },
                 ],
             }),
@@ -317,12 +317,12 @@ mod tests {
                     "anyOf": [
                         {
                             "type": "number",
-                            "minimum": 2,
+                            "minimum": 2.0,
                             "description": "A1",
                         },
                         {
                             "type": "number",
-                            "minimum": 5,
+                            "minimum": 5.0,
                         },
                     ],
                 }),
@@ -330,12 +330,12 @@ mod tests {
                     "anyOf": [
                         {
                             "type": "number",
-                            "maximum": 10,
+                            "maximum": 10.0,
                             "description": "B1",
                         },
                         {
                             "type": "number",
-                            "maximum": 15,
+                            "maximum": 15.0,
                             "description": "B2",
                         },
                     ],
@@ -345,26 +345,26 @@ mod tests {
                 "anyOf": [
                     {
                         "type": "number",
-                        "minimum": 2,
-                        "maximum": 10,
+                        "minimum": 2.0,
+                        "maximum": 10.0,
                         "description": "A1",
                     },
                     {
                         "type": "number",
-                        "minimum": 2,
-                        "maximum": 15,
+                        "minimum": 2.0,
+                        "maximum": 15.0,
                         "description": "A1",
                     },
                     {
                         "type": "number",
-                        "minimum": 5,
-                        "maximum": 10,
+                        "minimum": 5.0,
+                        "maximum": 10.0,
                         "description": "B1",
                     },
                     {
                         "type": "number",
-                        "minimum": 5,
-                        "maximum": 15,
+                        "minimum": 5.0,
+                        "maximum": 15.0,
                         "description": "B2",
                     },
                 ],
@@ -380,11 +380,11 @@ mod tests {
                     "anyOf": [
                         {
                             "type": "number",
-                            "minimum": 3,
+                            "minimum": 3.0,
                         },
                         {
                             "type": "number",
-                            "minimum": 4,
+                            "minimum": 4.0,
                         },
                     ],
                 }),
@@ -392,11 +392,11 @@ mod tests {
                     "anyOf": [
                         {
                             "type": "number",
-                            "maximum": 1,
+                            "maximum": 1.0,
                         },
                         {
                             "type": "number",
-                            "maximum": 2,
+                            "maximum": 2.0,
                         },
                     ],
                 }),
@@ -406,32 +406,32 @@ mod tests {
                 ResolveClosedDataTypeError::UnsatisfiableConstraint(
                     from_value(json!({
                         "type": "number",
-                        "minimum": 3,
-                        "maximum": 1,
+                        "minimum": 3.0,
+                        "maximum": 1.0,
                     }))
                     .expect("Failed to parse schema"),
                 ),
                 ResolveClosedDataTypeError::UnsatisfiableConstraint(
                     from_value(json!({
                         "type": "number",
-                        "minimum": 4,
-                        "maximum": 1,
+                        "minimum": 4.0,
+                        "maximum": 1.0,
                     }))
                     .expect("Failed to parse schema"),
                 ),
                 ResolveClosedDataTypeError::UnsatisfiableConstraint(
                     from_value(json!({
                         "type": "number",
-                        "minimum": 3,
-                        "maximum": 2,
+                        "minimum": 3.0,
+                        "maximum": 2.0,
                     }))
                     .expect("Failed to parse schema"),
                 ),
                 ResolveClosedDataTypeError::UnsatisfiableConstraint(
                     from_value(json!({
                         "type": "number",
-                        "minimum": 4,
-                        "maximum": 2,
+                        "minimum": 4.0,
+                        "maximum": 2.0,
                     }))
                     .expect("Failed to parse schema"),
                 ),

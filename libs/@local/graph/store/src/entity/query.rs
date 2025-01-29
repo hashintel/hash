@@ -515,9 +515,9 @@ impl QueryPath for EntityQueryPath<'_> {
             | Self::LeftEntityProvenance
             | Self::RightEntityProvenance => ParameterType::Any,
             Self::EntityConfidence | Self::LeftEntityConfidence | Self::RightEntityConfidence => {
-                ParameterType::Decimal
+                ParameterType::F64
             }
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::Archived => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),

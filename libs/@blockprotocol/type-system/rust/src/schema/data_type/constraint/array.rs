@@ -394,16 +394,12 @@ mod tests {
     use serde_json::{from_value, json};
 
     use super::*;
-    use crate::{
-        Decimal,
-        schema::{
-            NumberValidationError,
-            data_type::constraint::{
-                ValueConstraints,
-                tests::{
-                    check_constraints, check_constraints_error, check_schema_intersection,
-                    read_schema,
-                },
+    use crate::schema::{
+        NumberValidationError,
+        data_type::constraint::{
+            ValueConstraints,
+            tests::{
+                check_constraints, check_constraints_error, check_schema_intersection, read_schema,
             },
         },
     };
@@ -426,7 +422,7 @@ mod tests {
             "items": {
                 "type": "number",
                 "description": "A number",
-                "minimum": 0
+                "minimum": 0.0
             },
         }));
 
@@ -440,12 +436,12 @@ mod tests {
         ]);
         check_constraints_error(&array_schema, json!([1, -2, -4]), [
             NumberValidationError::Minimum {
-                actual: Decimal::from(-2),
-                expected: Decimal::from(0),
+                actual: -2.0,
+                expected: 0.0,
             },
             NumberValidationError::Minimum {
-                actual: Decimal::from(-4),
-                expected: Decimal::from(0),
+                actual: -4.0,
+                expected: 0.0,
             },
         ]);
     }
@@ -458,7 +454,7 @@ mod tests {
             "prefixItems": [{
                 "type": "number",
                 "description": "A number",
-                "maximum": 10
+                "maximum": 10.0
             }],
         }));
 
@@ -475,8 +471,8 @@ mod tests {
         check_constraints(&array_schema, json!([1]));
         check_constraints_error(&array_schema, json!([15]), [
             NumberValidationError::Maximum {
-                actual: Decimal::from(15),
-                expected: Decimal::from(10),
+                actual: 15.0,
+                expected: 10.0,
             },
         ]);
     }

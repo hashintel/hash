@@ -256,7 +256,7 @@ mod tests {
               "allOf": [{ "$ref": number.id }],
               "type": "number",
               "abstract": false,
-              "multipleOf": 1,
+              "multipleOf": 1.0,
             }),
             DataTypeValidator,
             JsonEqualityCheck::Yes,
@@ -274,7 +274,7 @@ mod tests {
               "allOf": [{ "$ref": number.id }],
               "type": "number",
               "abstract": false,
-              "minimum": 0,
+              "minimum": 0.0,
             }),
             DataTypeValidator,
             JsonEqualityCheck::Yes,
@@ -291,7 +291,7 @@ mod tests {
               "description": "An unsigned integer.",
               "allOf": [{ "$ref": integer.id }, { "$ref": unsigned.id }],
               "type": "number",
-              "maximum": 0xFFFF_FFFF_u32,
+              "maximum": 4_294_967_295.0,
               "abstract": false,
             }),
             DataTypeValidator,
@@ -310,7 +310,7 @@ mod tests {
               "label": { "right": "i8" },
               "allOf": [{ "$ref": number.id }],
               "type": "number",
-              "maximum": 255,
+              "maximum": 255.0,
               "abstract": false,
             }),
             DataTypeValidator,
@@ -328,7 +328,7 @@ mod tests {
               "description": "An unsigned integer.",
               "allOf": [{ "$ref": unsigned_int.id }, { "$ref": small.id }],
               "type": "number",
-              "maximum": 100,
+              "maximum": 100.0,
               "abstract": false,
             }),
             DataTypeValidator,
@@ -400,9 +400,9 @@ mod tests {
             json!([
                 {
                     "type": "number",
-                    "minimum": 0,
-                    "maximum": 0xFFFF_FFFF_u32,
-                    "multipleOf": 1,
+                    "minimum": 0.0,
+                    "maximum": 4_294_967_295.0,
+                    "multipleOf": 1.0,
                 }
             ])
         );
@@ -442,9 +442,9 @@ mod tests {
             json!([
                 {
                     "type": "number",
-                    "minimum": 0,
-                    "maximum": 100,
-                    "multipleOf": 1,
+                    "minimum": 0.0,
+                    "maximum": 100.0,
+                    "multipleOf": 1.0,
                 }
             ])
         );

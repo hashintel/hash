@@ -328,7 +328,7 @@ mod tests {
 
     pub(crate) fn check_constraints(schema: &ValueConstraints, value: JsonValue) {
         let value = Value::from(value);
-        assert!(schema.is_valid(dbg!(&value)));
+        assert!(schema.is_valid(&value));
         schema
             .validate_value(&value)
             .expect("Failed to validate value");

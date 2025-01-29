@@ -9,7 +9,6 @@ authors.workspace = true
 [dependencies]
 # Public workspace dependencies
 error-stack              = { workspace = true, features = ["serde"] }
-hash-codec               = { workspace = true, public = true, features = ["numeric", "serde"] }
 hash-graph-authorization = { workspace = true, public = true }
 hash-temporal-client     = { workspace = true, public = true }
 
