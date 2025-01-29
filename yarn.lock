@@ -424,7 +424,7 @@ __metadata:
     googleapis: "npm:133.0.0"
     graphql: "npm:16.10.0"
     graphql-parse-resolve-info: "npm:4.13.0"
-    graphql-scalars: "npm:1.24.0"
+    graphql-scalars: "npm:1.24.1"
     helmet: "npm:4.6.0"
     hot-shots: "npm:8.5.2"
     html-to-text: "npm:8.2.1"
@@ -29113,14 +29113,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphql-scalars@npm:1.24.0":
-  version: 1.24.0
-  resolution: "graphql-scalars@npm:1.24.0"
+"graphql-scalars@npm:1.24.1":
+  version: 1.24.1
+  resolution: "graphql-scalars@npm:1.24.1"
   dependencies:
     tslib: "npm:^2.5.0"
   peerDependencies:
     graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
-  checksum: 10c0/c4a3b8d3e65aad77bd27f21bf2619edec664f4e399c94bae412dc89f7687c4494ac84409224c8acf1f0431459c6ec76a49a193b1cc1f285878609fc0b4bb903e
+  checksum: 10c0/08f9d4f3e87e15b32a279f55d6550d2f095c9d133387f1224d6c213d88ace508f8f4c0ae7862982e35eb80fba15e94dfc3cd67501f6948aef96942d3128f01f9
   languageName: node
   linkType: hard
 
