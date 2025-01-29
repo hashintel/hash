@@ -869,7 +869,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
             Parameter::F64(number) => {
                 self.artifacts.parameters.push(number);
-                ParameterType::F64
+                ParameterType::Decimal
             }
             Parameter::Text(text) => {
                 self.artifacts.parameters.push(text);
@@ -881,7 +881,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
             Parameter::Vector(vector) => {
                 self.artifacts.parameters.push(vector);
-                ParameterType::Vector(Box::new(ParameterType::F64))
+                ParameterType::Vector(Box::new(ParameterType::Decimal))
             }
             Parameter::Any(json) => {
                 self.artifacts.parameters.push(json);

@@ -11,7 +11,6 @@ pub mod url;
 
 pub mod schema;
 mod utils;
-
 use alloc::sync::Arc;
 #[cfg(feature = "postgres")]
 use core::error::Error;
@@ -25,9 +24,11 @@ use std::collections::HashMap;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
+use hash_codec::numeric::Decimal;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
-use serde::Serialize as _;
+#[cfg(test)]
+use serde::Deserialize as _;
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -36,15 +37,15 @@ use serde::Serialize as _;
 pub enum Value {
     Null,
     Bool(bool),
-    Number(f64),
     String(String),
+    Number(Decimal),
     Array(Vec<Self>),
     Object(HashMap<String, Self>),
 }
 
 impl fmt::Display for Value {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
+        fmt::Display::fmt(&serde_json::json!(self), fmt)
     }
 }
 
@@ -78,24 +79,22 @@ impl ToSql for Value {
     }
 }
 
+#[cfg(test)]
 impl From<serde_json::Value> for Value {
     fn from(value: serde_json::Value) -> Self {
         match value {
             serde_json::Value::Null => Self::Null,
             serde_json::Value::Bool(value) => Self::Bool(value),
             serde_json::Value::Number(number) => {
-                Self::Number(number.as_f64().expect("number is not a f64"))
+                Self::Number(Decimal::deserialize(number).unwrap())
             }
             serde_json::Value::String(value) => Self::String(value),
             serde_json::Value::Array(value) => {
                 Self::Array(value.into_iter().map(Self::from).collect())
             }
-            serde_json::Value::Object(value) => Self::Object(
-                value
-                    .into_iter()
-                    .map(|(key, value)| (key, Self::from(value)))
-                    .collect(),
-            ),
+            serde_json::Value::Object(value) => {
+                Self::Object(value.into_iter().map(|(k, v)| (k, Self::from(v))).collect())
+            }
         }
     }
 }

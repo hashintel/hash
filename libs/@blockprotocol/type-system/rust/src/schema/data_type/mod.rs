@@ -114,6 +114,7 @@ mod raw {
     use alloc::collections::BTreeSet;
     use std::collections::HashSet;
 
+    use hash_codec::numeric::Decimal;
     use serde::{Deserialize, Serialize};
 
     use super::{DataTypeSchemaTag, DataTypeTag, ValueSchemaMetadata};
@@ -181,7 +182,7 @@ mod raw {
             base: DataTypeBase,
             #[serde(flatten)]
             metadata: ValueSchemaMetadata,
-            r#const: f64,
+            r#const: Decimal,
         },
         NumberEnum {
             r#type: NumberTypeTag,
@@ -189,7 +190,7 @@ mod raw {
             base: DataTypeBase,
             #[serde(flatten)]
             metadata: ValueSchemaMetadata,
-            r#enum: Vec<f64>,
+            r#enum: HashSet<Decimal>,
         },
         String {
             r#type: StringTypeTag,

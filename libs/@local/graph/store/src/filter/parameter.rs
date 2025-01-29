@@ -2,6 +2,7 @@ use alloc::borrow::Cow;
 use core::{error::Error, fmt, mem, str::FromStr as _};
 
 use error_stack::{Report, ResultExt as _, bail};
+use hash_codec::numeric::Decimal;
 use hash_graph_temporal_versioning::Timestamp;
 use hash_graph_types::{Embedding, knowledge::entity::EntityEditionId};
 use serde::Deserialize;
@@ -17,7 +18,7 @@ use uuid::Uuid;
 pub enum Parameter<'p> {
     Boolean(bool),
     I32(i32),
-    F64(f64),
+    Decimal(Cow<'p, Decimal>),
     Text(Cow<'p, str>),
     Vector(Embedding<'p>),
     Any(Value),
@@ -32,7 +33,7 @@ pub enum Parameter<'p> {
 pub enum ParameterType {
     Boolean,
     I32,
-    F64,
+    Decimal,
     OntologyTypeVersion,
     Text,
     Vector(Box<Self>),
@@ -50,7 +51,7 @@ impl fmt::Display for ParameterType {
         match self {
             Self::Boolean => fmt.write_str("boolean"),
             Self::I32 => fmt.write_str("signed 32 bit integral number"),
-            Self::F64 => fmt.write_str("64 bit floating point number"),
+            Self::Decimal => fmt.write_str("decimal number"),
             Self::OntologyTypeVersion => fmt.write_str("ontology type version"),
             Self::Text => fmt.write_str("text"),
             Self::Vector(inner) => write!(fmt, "{inner}[]"),
@@ -79,7 +80,7 @@ impl Parameter<'_> {
         match self {
             Parameter::Boolean(bool) => Parameter::Boolean(*bool),
             Parameter::I32(number) => Parameter::I32(*number),
-            Parameter::F64(number) => Parameter::F64(*number),
+            Parameter::Decimal(number) => Parameter::Decimal(Cow::Owned(number.to_owned())),
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
             Parameter::Vector(vector) => Parameter::Vector(vector.to_owned()),
             Parameter::Any(value) => Parameter::Any(value.clone()),
@@ -94,9 +95,9 @@ impl Parameter<'_> {
         match self {
             Parameter::Boolean(_) => ParameterType::Boolean,
             Parameter::I32(_) => ParameterType::I32,
-            Parameter::F64(_) => ParameterType::F64,
+            Parameter::Decimal(_) => ParameterType::Decimal,
             Parameter::Text(_) => ParameterType::Text,
-            Parameter::Vector(_) => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Parameter::Vector(_) => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Parameter::Any(_) => ParameterType::Any,
             Parameter::Uuid(_) => ParameterType::Uuid,
             Parameter::OntologyTypeVersion(_) => ParameterType::OntologyTypeVersion,
@@ -133,6 +134,10 @@ pub enum ParameterConversionError {
         actual: ActualParameterType,
         expected: ParameterType,
     },
+    CouldNotConvertDecimal {
+        number: Decimal,
+        expected: ParameterType,
+    },
 }
 
 impl fmt::Display for ParameterConversionError {
@@ -146,7 +151,7 @@ impl fmt::Display for ParameterConversionError {
                             boolean.to_string()
                         }
                         Parameter::I32(number) => number.to_string(),
-                        Parameter::F64(number) => number.to_string(),
+                        Parameter::Decimal(number) => number.to_string(),
                         Parameter::Any(Value::Number(number)) => number.to_string(),
                         Parameter::Text(text) => text.to_string(),
                         Parameter::Vector(_) => "vector".to_owned(),
@@ -171,6 +176,9 @@ impl fmt::Display for ParameterConversionError {
             }
             Self::NoConversionFound { from, to } => {
                 write!(fmt, "no conversion found from `{from}` to `{to}`")
+            }
+            Self::CouldNotConvertDecimal { number, expected } => {
+                write!(fmt, "could not convert `{number}` to `{expected}`")
             }
         }
     }
@@ -197,10 +205,15 @@ impl Parameter<'_> {
 
             // Integral conversions
             (Parameter::I32(number), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Number(f64::from(*number)));
+                *self = Parameter::Any(Value::Number(number.into()));
             }
             (Parameter::Any(Value::Number(number)), ParameterType::I32) => {
-                *self = Parameter::I32(*number as i32);
+                *self = Parameter::I32(number.to_i32().ok_or_else(|| {
+                    bail!(ParameterConversionError::InvalidParameterType {
+                        actual: self.to_owned().into(),
+                        expected: ParameterType::OntologyTypeVersion,
+                    })
+                })?);
             }
             (Parameter::I32(number), ParameterType::OntologyTypeVersion) => {
                 *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
@@ -217,11 +230,11 @@ impl Parameter<'_> {
             }
 
             // Floating point conversions
-            (Parameter::F64(number), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Number(*number));
+            (Parameter::Decimal(number), ParameterType::Any) => {
+                *self = Parameter::Any(Value::Number(Cow::Owned(number.to_owned())));
             }
-            (Parameter::Any(Value::Number(number)), ParameterType::F64) => {
-                *self = Parameter::F64(*number);
+            (Parameter::Any(Value::Number(number)), ParameterType::Decimal) => {
+                *self = Parameter::Decimal(number.to_owned());
             }
 
             // Text conversions
@@ -258,7 +271,7 @@ impl Parameter<'_> {
                 ));
             }
             (Parameter::Any(Value::Array(array)), ParameterType::Vector(rhs))
-                if **rhs == ParameterType::F64 =>
+                if **rhs == ParameterType::Decimal =>
             {
                 *self = Parameter::Vector(
                     mem::take(array)
@@ -274,7 +287,12 @@ impl Parameter<'_> {
                                 clippy::cast_possible_truncation,
                                 reason = "truncation is expected"
                             )]
-                            Ok(number as f32)
+                            number.to_f32().ok_or_else(|| {
+                                bail!(ParameterConversionError::CouldNotConvertDecimal {
+                                    number: number.to_owned(),
+                                    expected: expected.clone(),
+                                })
+                            })
                         })
                         .collect::<Result<_, _>>()?,
                 );
