@@ -8,9 +8,9 @@ import { Backdrop } from "@mui/material";
 import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useMemo, useState } from "react";
 
-import type { EditEntitySlideOverProps } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
-import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
-import type { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
+import type { EditEntitySlideOverProps } from "../@/[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
+import { EditEntitySlideOver } from "../@/[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
+import type { EntityEditorProps } from "../@/[shortname]/entities/[entity-uuid].page/entity-editor";
 import { generateEntityRootedSubgraph } from "./subgraphs";
 
 interface EntityEditorSlideStackProps {

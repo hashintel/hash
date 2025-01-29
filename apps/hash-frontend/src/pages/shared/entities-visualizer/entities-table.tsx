@@ -26,6 +26,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import type {
@@ -143,7 +144,11 @@ export const EntitiesTable: FunctionComponent<
     setShowSearch: (showSearch: boolean) => void;
     showSearch: boolean;
     sort: GridSort<SortableEntitiesTableColumnKey>;
-    setSort: (sort: GridSort<SortableEntitiesTableColumnKey>) => void;
+    setSort: (
+      sort: GridSort<SortableEntitiesTableColumnKey> & {
+        convertTo?: BaseUrl;
+      },
+    ) => void;
   }
 > = ({
   activeConversions,
@@ -257,7 +262,11 @@ export const EntitiesTable: FunctionComponent<
       )) {
         const targetsByTargetTypeId: Record<
           VersionedUrl,
-          { title: string; dataTypeId: VersionedUrl }[]
+          {
+            title: string;
+            dataTypeId: VersionedUrl;
+            guessedAsCanonical?: boolean;
+          }[]
         > = {};
 
         for (const [index, sourceDataType] of dataTypes.entries()) {
@@ -272,7 +281,7 @@ export const EntitiesTable: FunctionComponent<
             continue;
           }
 
-          for (const [targetTypeId, { title }] of typedEntries(
+          for (const [targetTypeId, { title, conversions }] of typedEntries(
             conversionsByTargetId,
           )) {
             if (index === 0) {
@@ -280,6 +289,7 @@ export const EntitiesTable: FunctionComponent<
               targetsByTargetTypeId[targetTypeId].push({
                 dataTypeId: targetTypeId,
                 title,
+                guessedAsCanonical: conversions.length === 1,
               });
             } else if (
               !targetsByTargetTypeId[targetTypeId] &&
@@ -819,6 +829,26 @@ export const EntitiesTable: FunctionComponent<
     ];
   }, []);
 
+  const setSortWithConversion = useCallback(
+    (newSort: GridSort<SortableEntitiesTableColumnKey>) => {
+      const targetConversions = conversionTargetsByColumnKey[newSort.columnKey];
+
+      const canonical = targetConversions?.find(
+        (conversion) => conversion.guessedAsCanonical,
+      );
+
+      if (canonical) {
+        setSort({
+          ...newSort,
+          convertTo: extractBaseUrl(canonical.dataTypeId),
+        });
+      } else {
+        setSort(newSort);
+      }
+    },
+    [conversionTargetsByColumnKey, setSort],
+  );
+
   if (!tableData && (entityDataLoading || tableDataCalculating)) {
     return (
       <Stack
@@ -862,7 +892,7 @@ export const EntitiesTable: FunctionComponent<
         showSearch={showSearch}
         sortableColumns={sortableColumns}
         sort={sort}
-        setSort={setSort}
+        setSort={setSortWithConversion}
       />
       {/* @todo H-3255 Enable pagination when performance improvements are implemented */}
 

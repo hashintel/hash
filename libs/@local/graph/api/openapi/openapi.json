@@ -4876,6 +4876,7 @@
           "icon",
           "editionProvenance",
           "links",
+          "linkDestinations",
           "inheritsFrom",
           "children",
           "embedding"

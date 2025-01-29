@@ -22,7 +22,7 @@ use hash_graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use rand::{prelude::IteratorRandom as _, thread_rng};
+use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
 use type_system::schema::EntityType;
 use uuid::Uuid;
@@ -147,7 +147,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
             entity_metadata_list
                 .iter()
                 .map(|entity| entity.metadata.record_id)
-                .choose(&mut thread_rng())
+                .choose(&mut rng())
                 .expect("could not choose random entity")
         },
         |entity_record_id| async move {

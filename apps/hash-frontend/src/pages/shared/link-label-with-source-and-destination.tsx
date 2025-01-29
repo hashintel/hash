@@ -19,6 +19,7 @@ import type {
   EntityTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
@@ -43,7 +44,7 @@ import { Fragment, useMemo, useRef } from "react";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { Link } from "../../shared/ui";
-import { useEntityEditor } from "../[shortname]/entities/[entity-uuid].page/entity-editor/entity-editor-context";
+import { useEntityEditor } from "../@/[shortname]/entities/[entity-uuid].page/entity-editor/entity-editor-context";
 import { TooltipChip } from "./tooltip-chip";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({
@@ -64,7 +65,7 @@ const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
   } else if (typeof value === "undefined") {
     return "Undefined";
   } else {
-    return String(value);
+    return stringifyPropertyValue(value);
   }
 };
 

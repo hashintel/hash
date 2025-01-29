@@ -30,7 +30,7 @@ criterion          = { workspace = true, features = ["async_tokio", "html_report
 criterion-macro    = { workspace = true }
 either             = { workspace = true }
 itertools          = { workspace = true }
-rand               = { workspace = true }
+rand               = { workspace = true, features = ["thread_rng"] }
 serde              = { workspace = true, features = ["derive"] }
 serde_json         = { workspace = true }
 tokio              = { workspace = true, features = ["macros"] }
