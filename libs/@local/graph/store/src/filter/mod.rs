@@ -352,7 +352,7 @@ where
                             parameter,
                             convert: _,
                         }),
-                    ) => parameter.convert_to_parameter_type(path.expected_type())?,
+                    ) => parameter.convert_to_parameter_type(&path.expected_type())?,
                     (..) => {}
                 }
             }
@@ -378,7 +378,7 @@ where
                             convert: _,
                         },
                     ) => {
-                        parameter.convert_to_parameter_type(path.expected_type())?;
+                        parameter.convert_to_parameter_type(&path.expected_type())?;
                     }
                     (..) => {}
                 }
@@ -393,7 +393,7 @@ where
                     convert: _,
                 } = max
                 {
-                    parameter.convert_to_parameter_type(ParameterType::F64)?;
+                    parameter.convert_to_parameter_type(&ParameterType::Decimal)?;
                 }
                 match (lhs, rhs) {
                     (
@@ -410,7 +410,7 @@ where
                             convert: _,
                         },
                     ) => {
-                        parameter.convert_to_parameter_type(path.expected_type())?;
+                        parameter.convert_to_parameter_type(&path.expected_type())?;
                     }
                     (..) => {}
                 }
@@ -428,7 +428,7 @@ where
                         | ParameterList::PropertyTypeIds(_)
                         | ParameterList::EntityTypeIds(_)
                         | ParameterList::EntityEditionIds(_) => {
-                            parameter.convert_to_parameter_type(ParameterType::Uuid)?;
+                            parameter.convert_to_parameter_type(&ParameterType::Uuid)?;
                         }
                     }
                 }
@@ -445,14 +445,14 @@ where
                     convert: _,
                 } = lhs
                 {
-                    parameter.convert_to_parameter_type(ParameterType::Text)?;
+                    parameter.convert_to_parameter_type(&ParameterType::Text)?;
                 }
                 if let FilterExpression::Parameter {
                     parameter,
                     convert: _,
                 } = rhs
                 {
-                    parameter.convert_to_parameter_type(ParameterType::Text)?;
+                    parameter.convert_to_parameter_type(&ParameterType::Text)?;
                 }
             }
         }
@@ -504,10 +504,10 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
     {
         if let Self::Parameter { parameter, convert } = self {
             if let Some(conversion) = convert.take() {
-                let &mut Parameter::F64(mut number) = parameter else {
+                let &mut Parameter::Decimal(mut number) = parameter else {
                     bail!(ParameterConversionError::InvalidParameterType {
                         actual: ActualParameterType::Parameter(parameter.to_owned()),
-                        expected: ParameterType::F64,
+                        expected: ParameterType::Decimal,
                     });
                 };
 
@@ -525,7 +525,7 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
                     number = conversion.evaluate(number);
                 }
 
-                *parameter = Parameter::F64(number);
+                *parameter = Parameter::Decimal(number);
             }
         }
 

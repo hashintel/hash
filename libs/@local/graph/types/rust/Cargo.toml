@@ -19,6 +19,7 @@ error-stack = { workspace = true, features = ["serde"] }
 hash-codec  = { workspace = true, features = ["bytes"] }
 
 # Private third-party dependencies
+bigdecimal     = { workspace = true, features = ["serde"] }
 bytes          = { workspace = true }
 derive_more    = { workspace = true, features = ["display", "error"] }
 futures        = { workspace = true }

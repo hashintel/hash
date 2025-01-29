@@ -1,13 +1,15 @@
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail, ensure};
 use serde::{Deserialize, Serialize};
-use serde_json::{Number as JsonNumber, Value as JsonValue, json};
 use thiserror::Error;
 
-use crate::schema::{
-    ConstraintError, JsonSchemaValueType, SingleValueConstraints,
-    data_type::{
-        closed::ResolveClosedDataTypeError,
-        constraint::{Constraint, ConstraintValidator, ValueConstraints},
+use crate::{
+    Value,
+    schema::{
+        ConstraintError, JsonSchemaValueType, SingleValueConstraints,
+        data_type::{
+            closed::ResolveClosedDataTypeError,
+            constraint::{Constraint, ConstraintValidator, ValueConstraints},
+        },
     },
 };
 
@@ -21,13 +23,6 @@ const fn is_false(value: &bool) -> bool {
 
 #[derive(Debug, Error)]
 pub enum NumberValidationError {
-    #[error(
-        "the provided number cannot be converted into a 64-bit representation of IEEE floating \
-         point number, the value provided is `{actual}`. If this issue is encountered please file \
-         a bug report, the linear tracking issue for this error is `H-2980`"
-    )]
-    InsufficientPrecision { actual: JsonNumber },
-
     #[error(
         "the provided value is not greater than or equal to the minimum value, expected \
          `{actual}` to be greater than or equal to `{expected}`"
@@ -127,7 +122,7 @@ impl Constraint for NumberSchema {
             | (Self::Constrained(constraints), Self::Const { r#const }) => {
                 constraints.validate_value(&r#const).change_context(
                     ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                        json!(r#const),
+                        Value::Number(r#const),
                         ValueConstraints::Typed(SingleValueConstraints::Number(Self::Constrained(
                             constraints,
                         ))),
@@ -155,7 +150,7 @@ impl Constraint for NumberSchema {
                             .map(|value| {
                                 constraints.validate_value(value).change_context(
                                     ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
-                                        json!(*value),
+                                        Value::Number(*value),
                                     ),
                                 )
                             })
@@ -186,8 +181,8 @@ impl Constraint for NumberSchema {
                     (Self::Const { r#const: lhs }, None)
                 } else {
                     bail!(ResolveClosedDataTypeError::ConflictingConstValues(
-                        json!(lhs),
-                        json!(rhs),
+                        Value::Number(lhs),
+                        Value::Number(rhs),
                     ))
                 }
             }
@@ -200,8 +195,8 @@ impl Constraint for NumberSchema {
 
                 match intersection[..] {
                     [] => bail!(ResolveClosedDataTypeError::ConflictingEnumValues(
-                        lhs.iter().map(|val| json!(*val)).collect(),
-                        rhs.iter().map(|val| json!(*val)).collect(),
+                        lhs.into_iter().map(Value::Number).collect(),
+                        rhs.into_iter().map(Value::Number).collect(),
                     )),
                     [r#const] => (Self::Const { r#const }, None),
                     [..] => (
@@ -217,8 +212,8 @@ impl Constraint for NumberSchema {
                 ensure!(
                     r#enum.iter().any(|value| float_eq(*value, r#const)),
                     ResolveClosedDataTypeError::ConflictingConstEnumValue(
-                        json!(r#const),
-                        r#enum.iter().map(|val| json!(*val)).collect(),
+                        Value::Number(r#const),
+                        r#enum.into_iter().map(Value::Number).collect(),
                     )
                 );
 
@@ -228,19 +223,19 @@ impl Constraint for NumberSchema {
     }
 }
 
-impl ConstraintValidator<JsonValue> for NumberSchema {
+impl ConstraintValidator<Value> for NumberSchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &JsonValue) -> bool {
-        if let JsonValue::Number(number) = value {
+    fn is_valid(&self, value: &Value) -> bool {
+        if let Value::Number(number) = value {
             self.is_valid(number)
         } else {
             false
         }
     }
 
-    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
-        if let JsonValue::Number(number) = value {
+    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
+        if let Value::Number(number) = value {
             self.validate_value(number)
         } else {
             bail!(ConstraintError::InvalidType {
@@ -248,26 +243,6 @@ impl ConstraintValidator<JsonValue> for NumberSchema {
                 expected: JsonSchemaValueType::Number,
             });
         }
-    }
-}
-
-impl ConstraintValidator<JsonNumber> for NumberSchema {
-    type Error = ConstraintError;
-
-    fn is_valid(&self, value: &JsonNumber) -> bool {
-        value.as_f64().is_some_and(|number| self.is_valid(&number))
-    }
-
-    fn validate_value(&self, value: &JsonNumber) -> Result<(), Report<ConstraintError>> {
-        value.as_f64().map_or_else(
-            || {
-                Err(Report::new(NumberValidationError::InsufficientPrecision {
-                    actual: value.clone(),
-                })
-                .change_context(ConstraintError::ValueConstraint))
-            },
-            |number| self.validate_value(&number),
-        )
     }
 }
 
@@ -290,8 +265,8 @@ impl ConstraintValidator<f64> for NumberSchema {
             Self::Const { r#const } => {
                 if !float_eq(*value, *r#const) {
                     bail!(ConstraintError::InvalidConstValue {
-                        actual: json!(*value),
-                        expected: json!(*r#const),
+                        actual: Value::Number(*value),
+                        expected: Value::Number(*r#const),
                     });
                 }
             }
@@ -299,8 +274,8 @@ impl ConstraintValidator<f64> for NumberSchema {
                 ensure!(
                     r#enum.iter().any(|expected| float_eq(*value, *expected)),
                     ConstraintError::InvalidEnumValue {
-                        actual: json!(*value),
-                        expected: r#enum.iter().map(|value| json!(*value)).collect(),
+                        actual: Value::Number(*value),
+                        expected: r#enum.iter().map(|number| Value::Number(*number)).collect(),
                     }
                 );
             }
@@ -613,8 +588,8 @@ mod tests {
             "type": "number",
         }));
 
-        check_constraints(&number_schema, &json!(0));
-        check_constraints_error(&number_schema, &json!("NaN"), [
+        check_constraints(&number_schema, json!(0));
+        check_constraints_error(&number_schema, json!("NaN"), [
             ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::String,
                 expected: JsonSchemaValueType::Number,
@@ -630,21 +605,19 @@ mod tests {
             "maximum": 10.0,
         }));
 
-        check_constraints(&number_schema, &json!(0));
-        check_constraints(&number_schema, &json!(10));
-        check_constraints_error(&number_schema, &json!("2"), [
-            ConstraintError::InvalidType {
-                actual: JsonSchemaValueType::String,
-                expected: JsonSchemaValueType::Number,
-            },
-        ]);
-        check_constraints_error(&number_schema, &json!(-2), [
+        check_constraints(&number_schema, json!(0));
+        check_constraints(&number_schema, json!(10));
+        check_constraints_error(&number_schema, json!("2"), [ConstraintError::InvalidType {
+            actual: JsonSchemaValueType::String,
+            expected: JsonSchemaValueType::Number,
+        }]);
+        check_constraints_error(&number_schema, json!(-2), [
             NumberValidationError::Minimum {
                 actual: -2.0,
                 expected: 0.0,
             },
         ]);
-        check_constraints_error(&number_schema, &json!(15), [
+        check_constraints_error(&number_schema, json!(15), [
             NumberValidationError::Maximum {
                 actual: 15.0,
                 expected: 10.0,
@@ -662,21 +635,19 @@ mod tests {
             "exclusiveMaximum": true,
         }));
 
-        check_constraints(&number_schema, &json!(0.1));
-        check_constraints(&number_schema, &json!(0.9));
-        check_constraints_error(&number_schema, &json!("2"), [
-            ConstraintError::InvalidType {
-                actual: JsonSchemaValueType::String,
-                expected: JsonSchemaValueType::Number,
-            },
-        ]);
-        check_constraints_error(&number_schema, &json!(0), [
+        check_constraints(&number_schema, json!(0.1));
+        check_constraints(&number_schema, json!(0.9));
+        check_constraints_error(&number_schema, json!("2"), [ConstraintError::InvalidType {
+            actual: JsonSchemaValueType::String,
+            expected: JsonSchemaValueType::Number,
+        }]);
+        check_constraints_error(&number_schema, json!(0), [
             NumberValidationError::ExclusiveMinimum {
                 actual: 0.0,
                 expected: 0.0,
             },
         ]);
-        check_constraints_error(&number_schema, &json!(10), [
+        check_constraints_error(&number_schema, json!(10), [
             NumberValidationError::ExclusiveMaximum {
                 actual: 10.0,
                 expected: 10.0,
@@ -691,15 +662,13 @@ mod tests {
             "multipleOf": 0.1,
         }));
 
-        check_constraints(&number_schema, &json!(0.1));
-        check_constraints(&number_schema, &json!(0.9));
-        check_constraints_error(&number_schema, &json!("2"), [
-            ConstraintError::InvalidType {
-                actual: JsonSchemaValueType::String,
-                expected: JsonSchemaValueType::Number,
-            },
-        ]);
-        check_constraints_error(&number_schema, &json!(0.11), [
+        check_constraints(&number_schema, json!(0.1));
+        check_constraints(&number_schema, json!(0.9));
+        check_constraints_error(&number_schema, json!("2"), [ConstraintError::InvalidType {
+            actual: JsonSchemaValueType::String,
+            expected: JsonSchemaValueType::Number,
+        }]);
+        check_constraints_error(&number_schema, json!(0.11), [
             NumberValidationError::MultipleOf {
                 actual: 0.11,
                 expected: 0.1,
@@ -714,11 +683,11 @@ mod tests {
             "const": 50.0,
         }));
 
-        check_constraints(&number_schema, &json!(50.0));
-        check_constraints_error(&number_schema, &json!(10.0), [
+        check_constraints(&number_schema, json!(50.0));
+        check_constraints_error(&number_schema, json!(10.0), [
             ConstraintError::InvalidConstValue {
-                actual: json!(10.0),
-                expected: json!(50.0),
+                actual: Value::Number(10.0),
+                expected: Value::Number(50.0),
             },
         ]);
     }
@@ -730,11 +699,11 @@ mod tests {
             "enum": [20.0, 50.0],
         }));
 
-        check_constraints(&number_schema, &json!(50.0));
-        check_constraints_error(&number_schema, &json!(10.0), [
+        check_constraints(&number_schema, json!(50.0));
+        check_constraints_error(&number_schema, json!(10.0), [
             ConstraintError::InvalidEnumValue {
-                actual: json!(10.0),
-                expected: vec![json!(20.0), json!(50.0)],
+                actual: Value::Number(10.0),
+                expected: vec![Value::Number(20.0), Value::Number(50.0)],
             },
         ]);
     }
@@ -1037,8 +1006,8 @@ mod tests {
                 }),
             ],
             [ResolveClosedDataTypeError::ConflictingConstValues(
-                json!(5.0),
-                json!(10.0),
+                Value::Number(5.0),
+                Value::Number(10.0),
             )],
         );
     }
@@ -1077,8 +1046,8 @@ mod tests {
                 }),
             ],
             [ResolveClosedDataTypeError::ConflictingConstEnumValue(
-                json!(5.0),
-                vec![json!(10.0), json!(15.0)],
+                Value::Number(5.0),
+                vec![Value::Number(10.0), Value::Number(15.0)],
             )],
         );
     }
@@ -1155,8 +1124,12 @@ mod tests {
                 }),
             ],
             [ResolveClosedDataTypeError::ConflictingEnumValues(
-                vec![json!(5.0), json!(10.0), json!(15.0)],
-                vec![json!(20.0), json!(25.0), json!(30.0)],
+                vec![Value::Number(5.0), Value::Number(10.0), Value::Number(15.0)],
+                vec![
+                    Value::Number(20.0),
+                    Value::Number(25.0),
+                    Value::Number(30.0),
+                ],
             )],
         );
     }
@@ -1215,7 +1188,7 @@ mod tests {
                 }),
             ],
             [ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                json!(5.0),
+                Value::Number(5.0),
                 from_value(json!({
                     "type": "number",
                     "minimum": 10.0,
@@ -1238,7 +1211,7 @@ mod tests {
                 }),
             ],
             [ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                json!(5.0),
+                Value::Number(5.0),
                 from_value(json!({
                     "type": "number",
                     "minimum": 10.0,
@@ -1327,9 +1300,9 @@ mod tests {
                     }))
                     .expect("Failed to parse schema"),
                 ),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(json!(5.0)),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(json!(10.0)),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(json!(15.0)),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(5.0)),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(10.0)),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::Number(15.0)),
             ],
         );
     }

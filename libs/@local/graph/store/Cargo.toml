@@ -23,6 +23,7 @@ hash-graph-types               = { workspace = true }
 type-system                    = { workspace = true }
 
 # Private third-party dependencies
+bigdecimal   = { workspace = true, features = ["serde"] }
 bytes        = { workspace = true, optional = true }
 derive-where = { workspace = true }
 derive_more  = { workspace = true, features = ["display", "error"] }

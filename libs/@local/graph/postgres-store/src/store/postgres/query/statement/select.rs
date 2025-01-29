@@ -291,7 +291,7 @@ mod tests {
                     path: DataTypeQueryPath::Version,
                 }),
                 Some(FilterExpression::Parameter {
-                    parameter: Parameter::I32(1),
+                    parameter: Parameter::Integer(1),
                     convert: None,
                 }),
             ),
@@ -447,7 +447,7 @@ mod tests {
                     },
                 }),
                 Some(FilterExpression::Parameter {
-                    parameter: Parameter::I32(1),
+                    parameter: Parameter::Integer(1),
                     convert: None,
                 }),
             ),
@@ -857,7 +857,7 @@ mod tests {
                 },
             }),
             Some(FilterExpression::Parameter {
-                parameter: Parameter::I32(10),
+                parameter: Parameter::Integer(10),
                 convert: None,
             }),
         );
@@ -918,7 +918,7 @@ mod tests {
                 },
             }),
             Some(FilterExpression::Parameter {
-                parameter: Parameter::I32(10),
+                parameter: Parameter::Integer(10),
                 convert: None,
             }),
         );
@@ -1167,7 +1167,7 @@ mod tests {
                 convert: None,
             },
             FilterExpression::Parameter {
-                parameter: Parameter::F64(0.5),
+                parameter: Parameter::Decimal(0.5),
                 convert: None,
             },
         );

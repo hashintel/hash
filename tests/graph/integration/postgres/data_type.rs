@@ -30,9 +30,9 @@ use hash_graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use serde_json::json;
 use time::OffsetDateTime;
 use type_system::{
+    Value,
     schema::{DataType, DataTypeUuid},
     url::{BaseUrl, VersionedUrl},
 };
@@ -279,7 +279,7 @@ async fn inheritance() {
                     )
                     .expect("couldn't construct Base URL"),
                     PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: json!(5),
+                        value: Value::Number(5.0),
                         metadata: ValueMetadata {
                             provenance: PropertyProvenance::default(),
                             confidence: None,
@@ -317,7 +317,7 @@ async fn inheritance() {
                 BaseUrl::new("http://localhost:3000/@alice/types/property-type/length/".to_owned())
                     .expect("couldn't construct Base URL"),
                 PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!(10),
+                    value: Value::Number(10.0),
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: None,
@@ -353,7 +353,7 @@ async fn inheritance() {
                 BaseUrl::new("http://localhost:3000/@alice/types/property-type/length/".to_owned())
                     .expect("couldn't construct Base URL"),
                 PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!(10),
+                    value: Value::Number(10.0),
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: None,

@@ -25,8 +25,10 @@ use hash_graph_types::{
     owned_by_id::OwnedById,
 };
 use pretty_assertions::assert_eq;
-use serde_json::json;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::{
+    Value,
+    url::{BaseUrl, VersionedUrl},
+};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
@@ -114,7 +116,7 @@ async fn properties_add() {
             PropertyPatchOperation::Add {
                 path: once(PropertyPathElement::from(age_property_type_id())).collect(),
                 property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!(30),
+                    value: Value::Number(30.0),
                     metadata: ValueMetadata {
                         confidence: None,
                         data_type_id: None,
@@ -127,7 +129,7 @@ async fn properties_add() {
             PropertyPatchOperation::Add {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                 property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!("Alice Allison"),
+                    value: Value::String("Alice Allison".to_owned()),
                     metadata: ValueMetadata {
                         confidence: None,
                         data_type_id: None,
@@ -176,8 +178,11 @@ async fn properties_add() {
 
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 2);
-    assert_eq!(properties[&name_property_type_id()], json!("Alice Allison"));
-    assert_eq!(properties[&age_property_type_id()], json!(30));
+    assert_eq!(
+        properties[&name_property_type_id()],
+        Value::String("Alice Allison".to_owned())
+    );
+    assert_eq!(properties[&age_property_type_id()], Value::Number(30.0));
 }
 
 #[tokio::test]
@@ -280,7 +285,7 @@ async fn properties_replace() {
         properties: vec![PropertyPatchOperation::Replace {
             path: once(PropertyPathElement::from(name_property_type_id())).collect(),
             property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                value: json!("Bob"),
+                value: Value::String("Bob".to_owned()),
                 metadata: ValueMetadata {
                     confidence: None,
                     data_type_id: None,
@@ -328,7 +333,10 @@ async fn properties_replace() {
 
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 1);
-    assert_eq!(properties[&name_property_type_id()], json!("Bob"));
+    assert_eq!(
+        properties[&name_property_type_id()],
+        Value::String("Bob".to_owned())
+    );
 }
 
 #[tokio::test]

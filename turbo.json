@@ -111,5 +111,6 @@
     "Cargo.toml",
     "package.json",
     "apps/hash-external-services/**"
-  ]
+  ],
+  "globalPassThroughEnv": ["CARGO_TERM_PROGRESS_WHEN"]
 }

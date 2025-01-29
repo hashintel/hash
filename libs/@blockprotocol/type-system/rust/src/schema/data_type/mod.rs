@@ -28,9 +28,8 @@ use alloc::collections::BTreeSet;
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 
-use crate::{schema::data_type::constraint::ValueConstraints, url::VersionedUrl};
+use crate::{Value, schema::data_type::constraint::ValueConstraints, url::VersionedUrl};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -75,15 +74,15 @@ impl ValueLabel {
     }
 }
 
-impl From<&JsonValue> for JsonSchemaValueType {
-    fn from(value: &JsonValue) -> Self {
+impl From<&Value> for JsonSchemaValueType {
+    fn from(value: &Value) -> Self {
         match value {
-            JsonValue::Null => Self::Null,
-            JsonValue::Bool(_) => Self::Boolean,
-            JsonValue::Number(_) => Self::Number,
-            JsonValue::String(_) => Self::String,
-            JsonValue::Array(_) => Self::Array,
-            JsonValue::Object(_) => Self::Object,
+            Value::Null => Self::Null,
+            Value::Bool(_) => Self::Boolean,
+            Value::Number(_) => Self::Number,
+            Value::String(_) => Self::String,
+            Value::Array(_) => Self::Array,
+            Value::Object(_) => Self::Object,
         }
     }
 }
