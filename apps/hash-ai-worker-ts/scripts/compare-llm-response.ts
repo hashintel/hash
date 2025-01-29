@@ -88,6 +88,7 @@ export const compareLlmResponses = async () => {
   const llmResponses = await Promise.all(
     models.map((model) => {
       return getLlmResponse(
+        // @ts-expect-error -- inference stumbling on Google AI model, @todo figure out why
         {
           ...llmParams,
           model,

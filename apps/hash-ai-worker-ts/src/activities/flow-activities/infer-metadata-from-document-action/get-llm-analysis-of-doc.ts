@@ -1,8 +1,7 @@
 import { type VersionedUrl } from "@blockprotocol/type-system";
-import { Storage } from "@google-cloud/storage";
-import type { Part, ResponseSchema } from "@google-cloud/vertexai";
-import { SchemaType, VertexAI } from "@google-cloud/vertexai";
+import { SchemaType } from "@google-cloud/vertexai";
 import type { PropertyProvenance } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   PropertyObjectWithMetadata,
@@ -16,11 +15,11 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityTypeRootType } from "@local/hash-subgraph";
 import { getEntityTypes } from "@local/hash-subgraph/stdlib";
 import dedent from "dedent";
 
-import { logger } from "../../shared/activity-logger.js";
 import {
   type DereferencedEntityType,
   type DereferencedEntityTypeWithSimplifiedKeys,
@@ -28,13 +27,21 @@ import {
   type MinimalPropertyObject,
 } from "../../shared/dereference-entity-type.js";
 import { getFlowContext } from "../../shared/get-flow-context.js";
+import { getLlmResponse } from "../../shared/get-llm-response.js";
+import {
+  getToolCallsFromLlmAssistantMessage,
+  type LlmFileMessageContent,
+  type LlmMessageTextContent,
+  type LlmUserMessage,
+} from "../../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 
 const generateOutputSchema = (
   dereferencedDocEntityTypes: DereferencedEntityType[],
-): ResponseSchema => {
-  const rawSchema = {
-    type: SchemaType.OBJECT,
+) => {
+  return {
+    type: "object",
+    additionalProperties: false,
     properties: {
       documentMetadata: {
         anyOf: dereferencedDocEntityTypes.map(
@@ -47,7 +54,7 @@ const generateOutputSchema = (
             required,
           }) => {
             return {
-              type: SchemaType.OBJECT,
+              type: "object",
               title,
               properties: {
                 entityTypeId: { type: SchemaType.STRING, enum: [$id] },
@@ -59,30 +66,28 @@ const generateOutputSchema = (
         ),
       },
       authors: {
-        type: SchemaType.ARRAY,
+        type: "array",
         items: {
-          type: SchemaType.OBJECT,
+          type: "object",
+          additionalProperties: false,
           properties: {
             affiliatedWith: {
-              type: SchemaType.ARRAY,
+              type: "array",
               items: {
-                type: SchemaType.STRING,
+                type: "string",
               },
               description:
                 "Any institution(s) or organization(s) that the document identifies the author as being affiliated with",
             },
             name: {
               description: "The name of the author",
-              type: SchemaType.STRING,
+              type: "string",
             },
           },
         },
       },
     },
-  };
-
-  // @ts-expect-error -- we could fix this by making {@link transformSchemaForGoogle} types more precise
-  return transformSchemaForGoogle(rawSchema);
+  } as const;
 };
 
 type DocumentMetadataWithSimplifiedProperties = {
@@ -366,64 +371,13 @@ const unsimplifyDocumentMetadata = (
   };
 };
 
-const googleCloudProjectId = process.env.GOOGLE_CLOUD_HASH_PROJECT_ID;
-
-let _vertexAi: VertexAI | undefined;
-
-export const getVertexAi = () => {
-  if (!googleCloudProjectId) {
-    throw new Error(
-      "GOOGLE_CLOUD_HASH_PROJECT_ID environment variable is not set",
-    );
-  }
-
-  if (_vertexAi) {
-    return _vertexAi;
-  }
-
-  const vertexAI = new VertexAI({
-    project: googleCloudProjectId,
-    location: "us-east4",
-  });
-
-  _vertexAi = vertexAI;
-
-  return vertexAI;
-};
-
-let _googleCloudStorage: Storage | undefined;
-
-export const storageBucket = process.env.GOOGLE_CLOUD_STORAGE_BUCKET;
-
-const getGoogleCloudStorage = () => {
-  if (_googleCloudStorage) {
-    return _googleCloudStorage;
-  }
-
-  const storage = new Storage();
-  _googleCloudStorage = storage;
-
-  return storage;
-};
-
 export const getLlmAnalysisOfDoc = async ({
-  hashFileStorageKey,
-  fileSystemPath,
-  entityId,
-  fileUrl,
+  fileEntity,
 }: {
-  hashFileStorageKey: string;
-  fileSystemPath: string;
-  entityId: EntityId;
-  fileUrl: string;
+  fileEntity: Entity<File>;
 }): Promise<DocumentData> => {
-  if (!storageBucket) {
-    throw new Error(
-      "GOOGLE_CLOUD_STORAGE_BUCKET environment variable is not set",
-    );
-  }
-
-  const { userAuthentication } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const docsEntityTypeSubgraph = await graphApiClient
     .getEntityTypeSubgraph(userAuthentication.actorId, {
@@ -480,47 +434,8 @@ export const getLlmAnalysisOfDoc = async ({
     dereferencedDocEntityTypes.map((type) => type.schema),
   );
 
-  const vertexAi = getVertexAi();
-
-  const gemini = vertexAi.getGenerativeModel({
-    model: "gemini-1.5-pro",
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: schema,
-    },
-  });
-
-  const storage = getGoogleCloudStorage();
-
-  const cloudStorageFilePath = `gs://${storageBucket}/${hashFileStorageKey}`;
-
-  try {
-    await storage.bucket(storageBucket).file(hashFileStorageKey).getMetadata();
-
-    logger.info(
-      `Already exists in Google Cloud Storage: HASH key ${hashFileStorageKey} in ${storageBucket} bucket`,
-    );
-  } catch (err) {
-    if ("code" in (err as Error) && (err as { code: unknown }).code === 404) {
-      await storage
-        .bucket(storageBucket)
-        .upload(fileSystemPath, { destination: hashFileStorageKey });
-      logger.info(
-        `Uploaded to Google Cloud Storage: HASH key ${hashFileStorageKey} in ${storageBucket} bucket`,
-      );
-    } else {
-      throw err;
-    }
-  }
-
-  const filePart: Part = {
-    fileData: {
-      fileUri: cloudStorageFilePath,
-      mimeType: "application/pdf",
-    },
-  };
-
-  const textPart = {
+  const textContent: LlmMessageTextContent = {
+    type: "text",
     text: dedent(`Please provide metadata about this document, using only the information visible in the document.
     
     You are given multiple options of what type of document this might be, and must choose from them.
@@ -534,31 +449,64 @@ export const getLlmAnalysisOfDoc = async ({
     If you're not confident about any of the metadata fields, omit them.`),
   };
 
-  const request = {
-    contents: [{ role: "user", parts: [filePart, textPart] }],
+  const fileContent: LlmFileMessageContent = {
+    type: "file",
+    fileEntity,
   };
 
-  /**
-   * @todo H-3922 add usage tracking for Gemini models
-   *
-   * Documents count as 258 tokens per page.
-   */
-  const resp = await gemini.generateContent(request);
+  const message: LlmUserMessage = {
+    role: "user",
+    content: [textContent, fileContent],
+  };
 
-  const contentResponse = resp.response.candidates?.[0]?.content.parts[0]?.text;
+  const response = await getLlmResponse(
+    {
+      model: "gemini-1.5-pro-002",
+      messages: [message],
+      toolChoice: "required",
+      tools: [
+        {
+          name: "provideDocumentMetadata" as const,
+          description: "Provide metadata about the document",
+          inputSchema: schema,
+        },
+      ],
+    },
+    {
+      customMetadata: {
+        stepId,
+        taskName: "summarize-web-page",
+      },
+      userAccountId: userAuthentication.actorId,
+      graphApiClient,
+      incurredInEntities: [{ entityId: flowEntityId }],
+      webId,
+    },
+  );
 
-  if (!contentResponse) {
-    throw new Error("No content response from LLM analysis");
+  if (response.status !== "ok") {
+    throw new Error("LLM analysis failed");
   }
 
-  const parsedResponse: unknown = JSON.parse(contentResponse);
+  const toolCalls = getToolCallsFromLlmAssistantMessage({
+    message: response.message,
+  });
+
+  const toolCall = toolCalls[0];
+
+  if (!toolCall) {
+    throw new Error("No tool call found");
+  }
 
   return unsimplifyDocumentMetadata(
-    parsedResponse,
+    toolCall.input,
     dereferencedDocEntityTypes,
     {
-      entityId,
-      fileUrl,
+      entityId: fileEntity.entityId,
+      fileUrl:
+        fileEntity.properties[
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+        ],
     },
   );
 };

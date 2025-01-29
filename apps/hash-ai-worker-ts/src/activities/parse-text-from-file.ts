@@ -43,7 +43,9 @@ export const parseTextFromFile = async (
   const { presignedFileDownloadUrl, webMachineActorId } = params;
   const fileEntity = new Entity(params.fileEntity);
 
-  const fileBuffer = await fetchFileFromUrl(presignedFileDownloadUrl);
+  const fileResponse = await fetchFileFromUrl(presignedFileDownloadUrl);
+
+  const fileBuffer = Buffer.from(await fileResponse.arrayBuffer());
 
   let textParsingFunction: TextParsingFunction | undefined;
   for (const entityTypeId of fileEntity.metadata.entityTypeIds) {

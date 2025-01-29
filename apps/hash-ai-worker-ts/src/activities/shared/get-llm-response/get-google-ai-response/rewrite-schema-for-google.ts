@@ -1,6 +1,7 @@
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type { FunctionDeclarationSchema, Schema } from "@google-cloud/vertexai";
 import { SchemaType } from "@google-cloud/vertexai";
+import type { JSONSchema } from "openai/lib/jsonschema.mjs";
 
 import type { DereferencedPropertyType } from "../../dereference-entity-type.js";
 import type { LlmToolDefinition } from "../types.js";
@@ -52,14 +53,22 @@ type JsonSchemaPart = NonNullable<
   LlmToolDefinition["inputSchema"]["properties"]
 >[string];
 
-export const rewriteSchemaPart = (schema: JsonSchemaPart): Schema => {
-  if (typeof schema === "boolean") {
+type SchemaValue = JSONSchema[keyof JSONSchema];
+
+function assertNonBoolean<T>(value: T): asserts value is Exclude<T, boolean> {
+  if (typeof value === "boolean") {
     throw new Error("Schema is a boolean");
   }
+}
+
+export const rewriteSchemaPart = (schema: JsonSchemaPart): Schema => {
+  assertNonBoolean(schema);
 
   const result: Schema = {};
 
-  for (const [uncheckedKey, value] of Object.entries(schema)) {
+  for (const [uncheckedKey, value] of Object.entries(
+    schema as Record<string, SchemaValue>,
+  )) {
     const key = uncheckedKey === "oneOf" ? "anyOf" : uncheckedKey;
 
     if (key === "format" && typeof value === "string") {
@@ -82,11 +91,32 @@ export const rewriteSchemaPart = (schema: JsonSchemaPart): Schema => {
         // Google wants the type to be uppercase for some reason
         result[key] = value.toUpperCase() as SchemaType;
       }
-    } else if (typeof value === "object") {
+    } else if (fieldsToExclude.includes(key)) {
+      if (typeof value === "object" && value !== null) {
+        /**
+         * If the value is an object, this might well be a property which happens to have the same simplified key
+         * as one of our rejected fields.
+         */
+        if ("title" in value || "titlePlural" in value) {
+          /**
+           * This is the 'inverse' field, the only one of our excluded fields which has an object value.
+           */
+          continue;
+        }
+        // @ts-expect-error -- @todo fix this
+        result[key] = rewriteSchemaPart(value);
+      }
+
+      /**
+       * If the value is not an object, we have one of our fields which will be rejected,
+       * not a schema.
+       */
+      continue;
+    } else if (typeof value === "object" && value !== null) {
       if (
         "oneOf" in value &&
-        (value as JsonSchemaPart).find((option) => {
-          if ("type" in option) {
+        (value as NonNullable<JSONSchema["oneOf"]>).find((option) => {
+          if (typeof option === "object" && "type" in option) {
             return option.type === "null";
           }
           return false;
@@ -121,27 +151,10 @@ export const rewriteSchemaPart = (schema: JsonSchemaPart): Schema => {
           mustHaveAtLeastOne(newOneOf);
       }
 
-      result[key] = transformSchemaForGoogle(value);
-    } else if (fieldsToExclude.includes(key)) {
-      if (typeof value === "object" && value !== null) {
-        /**
-         * If the value is an object, this might well be a property which happens to have the same simplified key
-         * as one of our rejected fields.
-         */
-        if ("title" in value || "titlePlural" in value) {
-          /**
-           * This is the 'inverse' field, the only one of our excluded fields which has an object value.
-           */
-          continue;
-        }
-        result[key] = transformSchemaForGoogle(value);
-      }
-      /**
-       * If the value is not an object, we have one of our fields which will be rejected,
-       * not a schema.
-       */
-      continue;
+      // @ts-expect-error -- @todo fix this
+      result[key] = rewriteSchemaPart(value);
     } else {
+      // @ts-expect-error -- @todo fix this
       result[key] = value;
     }
   }

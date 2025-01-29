@@ -1,15 +1,21 @@
-import { Storage } from "@google-cloud/storage";
 import {
+  type Content,
   FunctionCallingMode,
   type FunctionDeclaration,
+  type GenerateContentResponse,
+  type Part,
 } from "@google-cloud/vertexai";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import { getVertexAi } from "../../flow-activities/infer-metadata-from-document-action/get-llm-analysis-of-doc.js";
+import { logger } from "../activity-logger.js";
+import { isActivityCancelled } from "../get-flow-context.js";
+import { mapGoogleMessagesToLlmMessages } from "./get-google-ai-response/map-google-messages-to-llm-messages.js";
+import { mapLlmContentToGooglePartAndUploadFiles } from "./get-google-ai-response/map-parts-and-upload-files.js";
 import { rewriteSchemaForGoogle } from "./get-google-ai-response/rewrite-schema-for-google.js";
-import {
-  mapGoogleVertexAiMessagesToLlmMessages,
-  mapLlmMessageToGoogleVertexAiMessage,
-} from "./llm-message.js";
+import { getVertexAiClient } from "./google-vertex-ai-client.js";
+import { type LlmMessage } from "./llm-message.js";
 import type {
   GoogleAiParams,
   LlmRequestMetadata,
@@ -17,21 +23,6 @@ import type {
   LlmToolDefinition,
   LlmUsage,
 } from "./types.js";
-
-let _googleCloudStorage: Storage | undefined;
-
-const storageBucket = process.env.GOOGLE_CLOUD_STORAGE_BUCKET;
-
-const getGoogleCloudStorage = () => {
-  if (_googleCloudStorage) {
-    return _googleCloudStorage;
-  }
-
-  const storage = new Storage();
-  _googleCloudStorage = storage;
-
-  return storage;
-};
 
 const mapLlmToolDefinitionToGoogleAiToolDefinition = (
   tool: LlmToolDefinition,
@@ -43,14 +34,8 @@ const mapLlmToolDefinitionToGoogleAiToolDefinition = (
 
 export const getGoogleAiResponse = async <ToolName extends string>(
   params: GoogleAiParams<ToolName>,
-  metadata: LlmRequestMetadata,
+  _metadata: LlmRequestMetadata,
 ): Promise<LlmResponse<GoogleAiParams<ToolName>>> => {
-  if (!storageBucket) {
-    throw new Error(
-      "GOOGLE_CLOUD_STORAGE_BUCKET environment variable is not set",
-    );
-  }
-
   const {
     model,
     tools,
@@ -61,7 +46,7 @@ export const getGoogleAiResponse = async <ToolName extends string>(
     retryContext,
   } = params;
 
-  const vertexAi = getVertexAi();
+  const vertexAi = getVertexAiClient();
 
   const gemini = vertexAi.getGenerativeModel({
     model,
@@ -69,28 +54,59 @@ export const getGoogleAiResponse = async <ToolName extends string>(
 
   const timeBeforeRequest = Date.now();
 
-  const { response } = await gemini.generateContent({
-    contents: messages.map(mapLlmMessageToGoogleVertexAiMessage),
-    systemInstruction: systemPrompt,
-    toolConfig: toolChoice
-      ? {
-          functionCallingConfig: {
-            mode: FunctionCallingMode.ANY,
-            allowedFunctionNames:
-              toolChoice === "required" ? undefined : [toolChoice],
-          },
-        }
-      : undefined,
-    tools: tools
-      ? [
-          {
-            functionDeclarations: tools.map(
-              mapLlmToolDefinitionToGoogleAiToolDefinition,
-            ),
-          },
-        ]
-      : undefined,
-  });
+  const contents: Content[] = [];
+  const fileEntities: Pick<Entity<File>, "entityId" | "properties">[] = [];
+
+  for (const message of messages) {
+    const parts: Part[] = [];
+
+    for (const llmContent of message.content) {
+      if (llmContent.type === "file") {
+        fileEntities.push(llmContent.fileEntity);
+      }
+
+      parts.push(await mapLlmContentToGooglePartAndUploadFiles(llmContent));
+    }
+
+    contents.push({
+      role: message.role,
+      parts,
+    });
+  }
+
+  let response: GenerateContentResponse;
+  try {
+    ({ response } = await gemini.generateContent({
+      contents,
+      systemInstruction: systemPrompt,
+      toolConfig: toolChoice
+        ? {
+            functionCallingConfig: {
+              mode: FunctionCallingMode.ANY,
+              allowedFunctionNames:
+                toolChoice === "required" ? undefined : [toolChoice],
+            },
+          }
+        : undefined,
+      tools: tools
+        ? [
+            {
+              functionDeclarations: tools.map(
+                mapLlmToolDefinitionToGoogleAiToolDefinition,
+              ),
+            },
+          ]
+        : undefined,
+    }));
+  } catch (error) {
+    logger.error(`Google AI API error: ${stringifyError(error)}`);
+
+    return {
+      status: isActivityCancelled() ? "aborted" : "api-error",
+      provider: "google-vertex-ai",
+      error,
+    };
+  }
 
   const currentRequestTime = Date.now() - timeBeforeRequest;
 
@@ -104,13 +120,30 @@ export const getGoogleAiResponse = async <ToolName extends string>(
 
   const responseContent = response.candidates?.[0]?.content;
 
-  if (!responseContent) {
-    throw new Error("No response content");
+  const { usageMetadata, promptFeedback } = response;
+
+  if (!responseContent && !promptFeedback) {
+    throw new Error("No response content or prompt feedback");
   }
 
-  const responseMessages = mapGoogleVertexAiMessagesToLlmMessages({
-    messages: [responseContent],
-  });
+  const responseMessages: LlmMessage[] = responseContent
+    ? mapGoogleMessagesToLlmMessages({
+        messages: [responseContent],
+        fileEntities,
+      })
+    : [
+        {
+          role: "assistant",
+          content: [
+            {
+              type: "text",
+              text: promptFeedback?.blockReason
+                ? `Content blocked. Reason: ${promptFeedback.blockReasonMessage}.${promptFeedback.blockReasonMessage ? ` ${promptFeedback.blockReasonMessage}` : ""}`
+                : "Content blocked, no reason given.",
+            },
+          ],
+        },
+      ];
 
   const message = responseMessages[0];
 
@@ -121,8 +154,6 @@ export const getGoogleAiResponse = async <ToolName extends string>(
   if (message.role === "user") {
     throw new Error("Unexpected user message in response");
   }
-
-  const { usageMetadata, promptFeedback } = response;
 
   const usage: LlmUsage = {
     inputTokens:
@@ -140,7 +171,6 @@ export const getGoogleAiResponse = async <ToolName extends string>(
     status: "ok",
     stopReason: promptFeedback?.blockReason ? "content_filter" : "stop",
     provider: "google-vertex-ai",
-    service: "google-ai",
     usage,
     lastRequestTime: currentRequestTime,
     totalRequestTime,

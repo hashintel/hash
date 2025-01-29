@@ -393,7 +393,6 @@ export const getOpenAiResponse = async <ToolName extends string>(
       response: {
         status: "ok",
         provider: "openai",
-        service: "openai",
         model: openAiResponse.model,
         id: openAiResponse.id,
         created: openAiResponse.created,

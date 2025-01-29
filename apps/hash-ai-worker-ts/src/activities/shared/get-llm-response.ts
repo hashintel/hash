@@ -48,7 +48,7 @@ export type UsageTrackingParams = {
 };
 
 /**
- * This function sends a request to the Anthropic or OpenAI API based on the
+ * This function sends a request to the Anthropic, OpenAI or Google AI API based on the
  * `model` provided in the parameters.
  */
 export const getLlmResponse = async <T extends LlmParams>(
@@ -94,7 +94,9 @@ export const getLlmResponse = async <T extends LlmParams>(
       message: `Failed to retrieve AI assistant account ID ${userAccountId}`,
       provider: isLlmParamsAnthropicLlmParams(llmParams)
         ? "anthropic"
-        : "openai",
+        : isLlmParamsGoogleAiParams(llmParams)
+          ? "google-vertex-ai"
+          : "openai",
     };
   }
 
@@ -159,7 +161,9 @@ export const getLlmResponse = async <T extends LlmParams>(
               customMetadata,
               serviceName: isLlmParamsAnthropicLlmParams(llmParams)
                 ? "Anthropic"
-                : "OpenAI",
+                : isLlmParamsGoogleAiParams(llmParams)
+                  ? "Google AI"
+                  : "OpenAI",
               featureName: llmParams.model,
               inputUnitCount: usage.inputTokens,
               outputUnitCount: usage.outputTokens,
