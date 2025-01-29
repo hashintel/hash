@@ -20,7 +20,10 @@ use hash_graph_types::{
 };
 use pretty_assertions::assert_eq;
 use serde_json::json;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::{
+    Value,
+    url::{BaseUrl, VersionedUrl},
+};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
@@ -195,7 +198,10 @@ async fn initial_metadata() {
                 confidence: Confidence::new(0.5),
                 data_type_id: Some(text_data_type_id()),
                 original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                canonical: HashMap::from([(
+                    text_data_type_id().base_url,
+                    Value::String("Alice".to_owned())
+                )]),
             },
         },)]),
         metadata: ObjectMetadata {
@@ -213,7 +219,7 @@ async fn initial_metadata() {
                 )))
                 .collect(),
                 property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!("Bob"),
+                    value: Value::String("Bob".to_owned()),
                     metadata: ValueMetadata {
                         provenance: property_provenance_a(),
                         confidence: Confidence::new(0.6),
@@ -240,7 +246,10 @@ async fn initial_metadata() {
                 confidence: Confidence::new(0.6),
                 data_type_id: Some(text_data_type_id()),
                 original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Bob"))]),
+                canonical: HashMap::from([(
+                    text_data_type_id().base_url,
+                    Value::String("Bob".to_owned())
+                )]),
             }
         })]),
         metadata: ObjectMetadata {
@@ -301,7 +310,10 @@ async fn no_initial_metadata() {
                 confidence: None,
                 data_type_id: Some(text_data_type_id()),
                 original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                canonical: HashMap::from([(
+                    text_data_type_id().base_url,
+                    Value::String("Alice".to_owned())
+                )]),
             },
         },)]),
         metadata: ObjectMetadata::default(),
@@ -345,7 +357,10 @@ async fn no_initial_metadata() {
                 confidence: None,
                 data_type_id: Some(text_data_type_id()),
                 original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                canonical: HashMap::from([(
+                    text_data_type_id().base_url,
+                    Value::String("Alice".to_owned())
+                )]),
             },
         },)]),
         metadata: ObjectMetadata::default(),
@@ -357,7 +372,7 @@ async fn no_initial_metadata() {
             properties: vec![PropertyPatchOperation::Replace {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                 property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!("Alice"),
+                    value: Value::String("Alice".to_owned()),
                     metadata: ValueMetadata {
                         confidence: Confidence::new(0.5),
                         data_type_id: None,
@@ -385,7 +400,10 @@ async fn no_initial_metadata() {
                 confidence: Confidence::new(0.5),
                 data_type_id: Some(text_data_type_id()),
                 original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                canonical: HashMap::from([(
+                    text_data_type_id().base_url,
+                    Value::String("Alice".to_owned())
+                )]),
             },
         },)]),
         metadata: ObjectMetadata::default(),
@@ -413,7 +431,10 @@ async fn no_initial_metadata() {
                 confidence: Confidence::new(0.5),
                 data_type_id: Some(text_data_type_id()),
                 original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                canonical: HashMap::from([(
+                    text_data_type_id().base_url,
+                    Value::String("Alice".to_owned())
+                )]),
             },
         },)]),
         metadata: ObjectMetadata::default(),
@@ -456,7 +477,7 @@ async fn properties_add() {
             properties: vec![PropertyPatchOperation::Add {
                 path: path.clone(),
                 property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!(30),
+                    value: Value::Number(30.0),
                     metadata: ValueMetadata {
                         confidence: Confidence::new(0.5),
                         data_type_id: None,
@@ -482,7 +503,10 @@ async fn properties_add() {
                     confidence: None,
                     data_type_id: Some(text_data_type_id()),
                     original_data_type_id: Some(text_data_type_id()),
-                    canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                    canonical: HashMap::from([(
+                        text_data_type_id().base_url,
+                        Value::String("Alice".to_owned())
+                    )]),
                 },
             },),
             (age_property_type_id(), PropertyMetadata::Value {
@@ -491,7 +515,10 @@ async fn properties_add() {
                     confidence: Confidence::new(0.5),
                     data_type_id: Some(number_data_type_id()),
                     original_data_type_id: Some(number_data_type_id()),
-                    canonical: HashMap::from([(number_data_type_id().base_url, json!(30))]),
+                    canonical: HashMap::from([(
+                        number_data_type_id().base_url,
+                        Value::Number(30.0)
+                    )]),
                 },
             },)
         ]),
@@ -551,7 +578,7 @@ async fn properties_remove() {
                 PropertyPatchOperation::Add {
                     path: film_path.clone(),
                     property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: json!("Fight Club"),
+                        value: Value::String("Fight Club".to_owned()),
                         metadata: ValueMetadata {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
@@ -578,7 +605,10 @@ async fn properties_remove() {
                     confidence: None,
                     data_type_id: Some(text_data_type_id()),
                     original_data_type_id: Some(text_data_type_id()),
-                    canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                    canonical: HashMap::from([(
+                        text_data_type_id().base_url,
+                        Value::String("Alice".to_owned())
+                    )]),
                 },
             },),
             (interests_property_type_id(), PropertyMetadata::Object {
@@ -590,7 +620,7 @@ async fn properties_remove() {
                         original_data_type_id: Some(text_data_type_id()),
                         canonical: HashMap::from([(
                             text_data_type_id().base_url,
-                            json!("Fight Club")
+                            Value::String("Fight Club".to_owned())
                         )]),
                     },
                 },)]),
@@ -626,7 +656,10 @@ async fn properties_remove() {
                 confidence: None,
                 data_type_id: Some(text_data_type_id()),
                 original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                canonical: HashMap::from([(
+                    text_data_type_id().base_url,
+                    Value::String("Alice".to_owned())
+                )]),
             },
         },)]),
         metadata: ObjectMetadata::default(),

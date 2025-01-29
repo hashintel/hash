@@ -31,9 +31,9 @@ use hash_graph_types::{
     },
     ontology::{DataTypeLookup, OntologyTypeProvider},
 };
-use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
+    Value,
     schema::{
         ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConstraintValidator as _,
         DataTypeReference, JsonSchemaValueType, PropertyObjectSchema, PropertyType,
@@ -288,7 +288,7 @@ impl EntityVisitor for EntityPreprocessor {
     async fn visit_value<P>(
         &mut self,
         desired_data_type_reference: &DataTypeReference,
-        value: &mut JsonValue,
+        value: &mut Value,
         metadata: &mut ValueMetadata,
         type_provider: &P,
     ) -> Result<(), ValueValidationReport>
@@ -482,11 +482,11 @@ impl EntityVisitor for EntityPreprocessor {
                             });
                     }
                     Ok(conversions) => {
-                        if let Some(mut value) = property.value.as_f64() {
+                        if let Value::Number(mut value) = property.value {
                             for conversion in conversions.borrow() {
                                 value = conversion.evaluate(value);
                             }
-                            property.value = JsonValue::from(value);
+                            property.value = Value::Number(value);
                         } else {
                             property_validation.value_conversion =
                                 Some(DataTypeConversionError::WrongType {
@@ -526,7 +526,7 @@ impl EntityVisitor for EntityPreprocessor {
                 Ok(data_type) => {
                     if !data_type.borrow().metadata.conversions.is_empty() {
                         // We only support conversion of numbers for now
-                        if let Some(value) = property.value.as_f64() {
+                        if let Value::Number(value) = property.value {
                             property.metadata.canonical = data_type
                                 .borrow()
                                 .metadata
@@ -534,7 +534,7 @@ impl EntityVisitor for EntityPreprocessor {
                                 .iter()
                                 .map(|(target, conversion)| {
                                     let converted_value = conversion.to.expression.evaluate(value);
-                                    (target.clone(), JsonValue::from(converted_value))
+                                    (target.clone(), Value::Number(converted_value))
                                 })
                                 .collect();
                         } else {

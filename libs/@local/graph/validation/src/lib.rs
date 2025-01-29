@@ -72,6 +72,7 @@ mod tests {
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{
+        Value,
         schema::{
             ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConversionExpression,
             DataType, DataTypeReference, DataTypeUuid, EntityType, EntityTypeUuid,
@@ -391,12 +392,13 @@ mod tests {
     }
 
     pub(crate) async fn validate_data(
-        mut value: JsonValue,
+        value: JsonValue,
         data_type: &str,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
     ) -> Result<PropertyWithMetadataValue, ValueValidationReport> {
         install_error_stack_hooks();
+        let mut value = Value::from(value);
 
         let mut provider = Provider::new(
             [],

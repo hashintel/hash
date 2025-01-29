@@ -15,14 +15,90 @@ mod utils;
 use alloc::sync::Arc;
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{borrow::Borrow, fmt::Debug, ops::Deref, ptr};
+use core::{
+    borrow::Borrow,
+    fmt::{self, Debug},
+    ops::Deref,
+    ptr,
+};
+use std::collections::HashMap;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
+use serde::Serialize as _;
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(untagged)]
+pub enum Value {
+    Null,
+    Bool(bool),
+    Number(f64),
+    String(String),
+    Array(Vec<Self>),
+    Object(HashMap<String, Self>),
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.serialize(fmt)
+    }
+}
+
 #[cfg(feature = "postgres")]
-use serde::{Deserialize, Serialize};
+impl<'a> FromSql<'a> for Value {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        let value = Json::<Self>::from_sql(ty, raw)?.0;
+        dbg!(value.to_string());
+        Ok(value)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <Json<Self> as FromSql>::accepts(ty)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for Value {
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        dbg!(self.to_string());
+        Json(self).to_sql(ty, out)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <Json<Self> as ToSql>::accepts(ty)
+    }
+}
+
+impl From<serde_json::Value> for Value {
+    fn from(value: serde_json::Value) -> Self {
+        match value {
+            serde_json::Value::Null => Self::Null,
+            serde_json::Value::Bool(value) => Self::Bool(value),
+            serde_json::Value::Number(number) => {
+                Self::Number(number.as_f64().expect("number is not a f64"))
+            }
+            serde_json::Value::String(value) => Self::String(value),
+            serde_json::Value::Array(value) => {
+                Self::Array(value.into_iter().map(Self::from).collect())
+            }
+            serde_json::Value::Object(value) => Self::Object(
+                value
+                    .into_iter()
+                    .map(|(key, value)| (key, Self::from(value)))
+                    .collect(),
+            ),
+        }
+    }
+}
 
 pub trait Validator<V>: Sync {
     type Error;
@@ -109,7 +185,7 @@ impl<T> AsRef<T> for Valid<T> {
 #[cfg(feature = "postgres")]
 impl<'de, 'a: 'de, T> FromSql<'a> for Valid<T>
 where
-    T: Deserialize<'de>,
+    T: serde::Deserialize<'de>,
 {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Self {
@@ -125,7 +201,7 @@ where
 #[cfg(feature = "postgres")]
 impl<T> ToSql for Valid<T>
 where
-    T: Serialize + Debug,
+    T: serde::Serialize + Debug,
 {
     postgres_types::to_sql_checked!();
 

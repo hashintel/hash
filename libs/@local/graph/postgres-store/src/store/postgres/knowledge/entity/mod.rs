@@ -65,10 +65,10 @@ use hash_graph_types::{
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
-use serde_json::Value as JsonValue;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
+    Value,
     schema::{
         ClosedEntityType, ClosedMultiEntityType, DataTypeReference, EntityTypeUuid,
         InheritanceDepth, OntologyTypeUuid,
@@ -363,7 +363,7 @@ where
             return;
         };
 
-        let Some(mut value_number) = value.as_f64() else {
+        let Value::Number(mut value_number) = *value else {
             // If the value is not a number, we can ignore the property.
             return;
         };
@@ -373,7 +373,7 @@ where
         }
         drop(conversions);
 
-        *value = JsonValue::from(value_number);
+        *value = Value::Number(value_number);
 
         metadata.data_type_id = Some(target_data_type_id.clone());
     }
