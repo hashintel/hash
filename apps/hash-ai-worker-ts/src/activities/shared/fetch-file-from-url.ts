@@ -1,6 +1,6 @@
 import isDocker from "is-docker";
 
-export const fetchFileFromUrl = async (url: string): Promise<Buffer> => {
+export const fetchFileFromUrl = async (url: string): Promise<Response> => {
   const urlObject = new URL(url);
 
   let rewrittenUrl: string | undefined = undefined;
@@ -24,7 +24,5 @@ export const fetchFileFromUrl = async (url: string): Promise<Buffer> => {
     throw new Error(`Failed to download file: ${response.statusText}`);
   }
 
-  const arrayBuffer = await response.arrayBuffer();
-
-  return Buffer.from(arrayBuffer);
+  return response;
 };
