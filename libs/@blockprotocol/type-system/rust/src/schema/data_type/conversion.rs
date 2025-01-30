@@ -4,6 +4,7 @@ use core::fmt::{self, Write as _};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
+use hash_codec::numeric::Real;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
@@ -74,15 +75,15 @@ impl fmt::Display for Variable {
 #[serde(from = "codec::SerializableValue", into = "codec::SerializableValue")]
 pub enum ConversionValue {
     Variable(Variable),
-    Constant(f64),
+    Constant(Real),
     Expression(Box<ConversionExpression>),
 }
 
 impl ConversionValue {
-    fn evaluate(&self, value: f64) -> f64 {
+    fn evaluate(&self, value: Real) -> Real {
         match self {
             Self::Variable(Variable::This) => value,
-            Self::Constant(constant) => *constant,
+            Self::Constant(constant) => constant.clone(),
             Self::Expression(expression) => expression.evaluate(value),
         }
     }
@@ -132,9 +133,8 @@ pub struct ConversionExpression {
 
 impl ConversionExpression {
     #[must_use]
-    #[expect(clippy::float_arithmetic)]
-    pub fn evaluate(&self, value: f64) -> f64 {
-        let lhs = self.lhs.evaluate(value);
+    pub fn evaluate(&self, value: Real) -> Real {
+        let lhs = self.lhs.evaluate(value.clone());
         let rhs = self.rhs.evaluate(value);
 
         match self.operator {
@@ -188,6 +188,7 @@ impl utoipa::ToSchema<'_> for ConversionExpression {
 }
 
 mod codec {
+    use hash_codec::numeric::Real;
     use serde::{Deserialize, Serialize};
 
     use super::{ConversionExpression, ConversionValue, Operator, Variable};
@@ -201,7 +202,7 @@ mod codec {
         Variable(Variable),
         Constant {
             #[serde(rename = "const")]
-            value: f64,
+            value: Real,
             #[cfg_attr(feature = "utoipa", schema(inline))]
             r#type: NumberTypeTag,
         },
@@ -274,7 +275,7 @@ mod tests {
         let expression = ConversionExpression {
             lhs: ConversionValue::Variable(Variable::This),
             operator: Operator::Multiply,
-            rhs: ConversionValue::Constant(100.0),
+            rhs: ConversionValue::Constant(Real::from(100)),
         };
 
         test_conversion(
@@ -287,8 +288,8 @@ mod tests {
             "self * 100",
         );
 
-        assert!((expression.evaluate(1.0) - 100.0).abs() < f64::EPSILON);
-        assert!((expression.evaluate(10.0) - 1000.0).abs() < f64::EPSILON);
+        assert_eq!(expression.evaluate(Real::from(1)), Real::from(100));
+        assert_eq!(expression.evaluate(Real::from(10)), Real::from(1000));
     }
 
     #[test]
@@ -296,7 +297,7 @@ mod tests {
         let expression = ConversionExpression {
             lhs: ConversionValue::Variable(Variable::This),
             operator: Operator::Divide,
-            rhs: ConversionValue::Constant(100.0),
+            rhs: ConversionValue::Constant(Real::from(100)),
         };
 
         test_conversion(
@@ -309,8 +310,8 @@ mod tests {
             "self / 100",
         );
 
-        assert!((expression.evaluate(100.0) - 1.0).abs() < f64::EPSILON);
-        assert!((expression.evaluate(1000.0) - 10.0).abs() < f64::EPSILON);
+        assert_eq!(expression.evaluate(Real::from(100)), Real::from(1));
+        assert_eq!(expression.evaluate(Real::from(1000)), Real::from(10));
     }
 
     #[test]
@@ -320,13 +321,13 @@ mod tests {
                 lhs: ConversionValue::Expression(Box::new(ConversionExpression {
                     lhs: ConversionValue::Variable(Variable::This),
                     operator: Operator::Multiply,
-                    rhs: ConversionValue::Constant(9.0),
+                    rhs: ConversionValue::Constant(Real::from(9)),
                 })),
                 operator: Operator::Divide,
-                rhs: ConversionValue::Constant(5.0),
+                rhs: ConversionValue::Constant(Real::from(5)),
             })),
             operator: Operator::Add,
-            rhs: ConversionValue::Constant(32.0),
+            rhs: ConversionValue::Constant(Real::from(32)),
         };
 
         test_conversion(
@@ -347,8 +348,8 @@ mod tests {
             "self * 9 / 5 + 32",
         );
 
-        assert!((expression.evaluate(0.0) - 32.0).abs() < f64::EPSILON);
-        assert!((expression.evaluate(100.0) - 212.0).abs() < f64::EPSILON);
+        assert_eq!(expression.evaluate(Real::from(0)), Real::from(32));
+        assert_eq!(expression.evaluate(Real::from(100)), Real::from(212));
     }
 
     #[test]
@@ -358,13 +359,13 @@ mod tests {
                 lhs: ConversionValue::Variable(Variable::This),
                 operator: Operator::Multiply,
                 rhs: ConversionValue::Expression(Box::new(ConversionExpression {
-                    lhs: ConversionValue::Constant(9.0),
+                    lhs: ConversionValue::Constant(Real::from(9)),
                     operator: Operator::Divide,
-                    rhs: ConversionValue::Constant(5.0),
+                    rhs: ConversionValue::Constant(Real::from(5)),
                 })),
             })),
             operator: Operator::Add,
-            rhs: ConversionValue::Constant(32.0),
+            rhs: ConversionValue::Constant(Real::from(32)),
         };
         test_conversion(
             &expression,
@@ -384,8 +385,8 @@ mod tests {
             "self * (9 / 5) + 32",
         );
 
-        assert!((expression.evaluate(0.0) - 32.0).abs() < f64::EPSILON);
-        assert!((expression.evaluate(100.0) - 212.0).abs() < f64::EPSILON);
+        assert_eq!(expression.evaluate(Real::from(0)), Real::from(32));
+        assert_eq!(expression.evaluate(Real::from(100)), Real::from(212));
     }
 
     #[test]
@@ -395,13 +396,13 @@ mod tests {
                 lhs: ConversionValue::Expression(Box::new(ConversionExpression {
                     lhs: ConversionValue::Variable(Variable::This),
                     operator: Operator::Subtract,
-                    rhs: ConversionValue::Constant(32.0),
+                    rhs: ConversionValue::Constant(Real::from(32)),
                 })),
                 operator: Operator::Multiply,
-                rhs: ConversionValue::Constant(5.0),
+                rhs: ConversionValue::Constant(Real::from(5)),
             })),
             operator: Operator::Divide,
-            rhs: ConversionValue::Constant(9.0),
+            rhs: ConversionValue::Constant(Real::from(9)),
         };
 
         test_conversion(
@@ -422,8 +423,8 @@ mod tests {
             "(self - 32) * 5 / 9",
         );
 
-        assert!(expression.evaluate(32.0).abs() < f64::EPSILON);
-        assert!((expression.evaluate(212.0) - 100.0).abs() < f64::EPSILON);
+        assert_eq!(expression.evaluate(Real::from(32)), Real::from(0));
+        assert_eq!(expression.evaluate(Real::from(212)), Real::from(100));
     }
 
     #[test]
@@ -432,13 +433,13 @@ mod tests {
             lhs: ConversionValue::Expression(Box::new(ConversionExpression {
                 lhs: ConversionValue::Variable(Variable::This),
                 operator: Operator::Subtract,
-                rhs: ConversionValue::Constant(32.0),
+                rhs: ConversionValue::Constant(Real::from(32)),
             })),
             operator: Operator::Multiply,
             rhs: ConversionValue::Expression(Box::new(ConversionExpression {
-                lhs: ConversionValue::Constant(5.0),
+                lhs: ConversionValue::Constant(Real::from(5)),
                 operator: Operator::Divide,
-                rhs: ConversionValue::Constant(9.0),
+                rhs: ConversionValue::Constant(Real::from(9)),
             })),
         };
 
@@ -460,7 +461,7 @@ mod tests {
             "(self - 32) * (5 / 9)",
         );
 
-        assert!(expression.evaluate(32.0).abs() < f64::EPSILON);
-        assert!((expression.evaluate(212.0) - 100.0).abs() < f64::EPSILON);
+        assert_eq!(expression.evaluate(Real::from(32)), Real::from(0));
+        assert_eq!(expression.evaluate(Real::from(212)), Real::from(100));
     }
 }

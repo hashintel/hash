@@ -2,6 +2,7 @@ use alloc::borrow::Cow;
 use core::{error::Error, fmt, mem, str::FromStr as _};
 
 use error_stack::{Report, ResultExt as _, bail};
+use hash_codec::numeric::Real;
 use hash_graph_temporal_versioning::Timestamp;
 use hash_graph_types::{Embedding, knowledge::entity::EntityEditionId};
 use serde::Deserialize;
@@ -17,7 +18,7 @@ use uuid::Uuid;
 pub enum Parameter<'p> {
     Boolean(bool),
     Integer(i32),
-    Decimal(f64),
+    Decimal(Real),
     Text(Cow<'p, str>),
     Vector(Embedding<'p>),
     Any(Value),
@@ -79,7 +80,7 @@ impl Parameter<'_> {
         match self {
             Parameter::Boolean(bool) => Parameter::Boolean(*bool),
             Parameter::Integer(number) => Parameter::Integer(*number),
-            Parameter::Decimal(number) => Parameter::Decimal(*number),
+            Parameter::Decimal(number) => Parameter::Decimal(number.to_owned()),
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
             Parameter::Vector(vector) => Parameter::Vector(vector.to_owned()),
             Parameter::Any(value) => Parameter::Any(value.clone()),
@@ -133,6 +134,10 @@ pub enum ParameterConversionError {
         actual: ActualParameterType,
         expected: ParameterType,
     },
+    ConversionError {
+        from: ParameterType,
+        to: ParameterType,
+    },
 }
 
 impl fmt::Display for ParameterConversionError {
@@ -173,6 +178,9 @@ impl fmt::Display for ParameterConversionError {
             Self::NoConversionFound { from, to } => {
                 write!(fmt, "no conversion found from `{from}` to `{to}`")
             }
+            Self::ConversionError { from, to } => {
+                write!(fmt, "could not convert from `{from}` to `{to}`")
+            }
         }
     }
 }
@@ -198,11 +206,15 @@ impl Parameter<'_> {
 
             // Integral conversions
             (Parameter::Integer(number), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Number(f64::from(*number)));
+                *self = Parameter::Any(Value::Number(Real::from(*number)));
             }
-            #[expect(clippy::cast_possible_truncation)]
             (Parameter::Any(Value::Number(number)), ParameterType::Integer) => {
-                *self = Parameter::Integer(*number as i32);
+                *self = Parameter::Integer(number.to_i32().ok_or_else(|| {
+                    ParameterConversionError::InvalidParameterType {
+                        actual: self.to_owned().into(),
+                        expected: ParameterType::Integer,
+                    }
+                })?);
             }
             (Parameter::Integer(number), ParameterType::OntologyTypeVersion) => {
                 *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
@@ -220,10 +232,10 @@ impl Parameter<'_> {
 
             // Floating point conversions
             (Parameter::Decimal(number), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Number(*number));
+                *self = Parameter::Any(Value::Number(number.to_owned()));
             }
             (Parameter::Any(Value::Number(number)), ParameterType::Decimal) => {
-                *self = Parameter::Decimal(*number);
+                *self = Parameter::Decimal(number.to_owned());
             }
 
             // Text conversions
@@ -255,8 +267,15 @@ impl Parameter<'_> {
                 *self = Parameter::Any(Value::Array(
                     vector
                         .iter()
-                        .map(|value| Value::Number(value.into()))
-                        .collect(),
+                        .map(|value| {
+                            Real::try_from(value)
+                                .change_context_lazy(|| ParameterConversionError::ConversionError {
+                                    from: ParameterType::Vector(Box::new(ParameterType::Decimal)),
+                                    to: ParameterType::Decimal,
+                                })
+                                .map(Value::Number)
+                        })
+                        .collect::<Result<_, _>>()?,
                 ));
             }
             (Parameter::Any(Value::Array(array)), ParameterType::Vector(rhs))
@@ -272,11 +291,7 @@ impl Parameter<'_> {
                                     expected: expected.clone(),
                                 });
                             };
-                            #[expect(
-                                clippy::cast_possible_truncation,
-                                reason = "truncation is expected"
-                            )]
-                            Ok(number as f32)
+                            Ok(number.to_f32())
                         })
                         .collect::<Result<_, _>>()?,
                 );

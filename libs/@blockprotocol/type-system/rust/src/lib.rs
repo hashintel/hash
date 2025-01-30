@@ -25,6 +25,7 @@ use std::collections::HashMap;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
+use hash_codec::numeric::Real;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::Serialize as _;
@@ -36,8 +37,8 @@ use serde::Serialize as _;
 pub enum Value {
     Null,
     Bool(bool),
-    Number(f64),
     String(String),
+    Number(Real),
     Array(Vec<Self>),
     Object(HashMap<String, Self>),
 }
@@ -72,28 +73,6 @@ impl ToSql for Value {
 
     fn accepts(ty: &Type) -> bool {
         <Json<Self> as ToSql>::accepts(ty)
-    }
-}
-
-impl From<serde_json::Value> for Value {
-    fn from(value: serde_json::Value) -> Self {
-        match value {
-            serde_json::Value::Null => Self::Null,
-            serde_json::Value::Bool(value) => Self::Bool(value),
-            serde_json::Value::Number(number) => {
-                Self::Number(number.as_f64().expect("number is not a f64"))
-            }
-            serde_json::Value::String(value) => Self::String(value),
-            serde_json::Value::Array(value) => {
-                Self::Array(value.into_iter().map(Self::from).collect())
-            }
-            serde_json::Value::Object(value) => Self::Object(
-                value
-                    .into_iter()
-                    .map(|(key, value)| (key, Self::from(value)))
-                    .collect(),
-            ),
-        }
     }
 }
 

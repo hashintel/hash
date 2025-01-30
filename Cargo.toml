@@ -97,6 +97,9 @@ bumpalo            = { version = "=3.16.0", default-features = false }
 bytes              = { version = "=1.9.0" }
 clap_builder       = { version = "=4.5.27", default-features = false, features = ["std"] }
 criterion          = { version = "=0.5.1" }
+dashu              = { version = "=0.4.2", default-features = false }
+dashu-base         = { version = "=0.4.1", default-features = false }
+dashu-float        = { version = "=0.4.3", default-features = false }
 deadpool           = { version = "=0.12.1", default-features = false }
 deadpool-postgres  = { version = "=0.14.1", default-features = false }
 ecow               = { version = "=0.2.3", default-features = false }

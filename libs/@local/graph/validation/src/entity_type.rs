@@ -482,7 +482,7 @@ impl EntityVisitor for EntityPreprocessor {
                             });
                     }
                     Ok(conversions) => {
-                        if let Value::Number(mut value) = property.value {
+                        if let Value::Number(mut value) = property.value.clone() {
                             for conversion in conversions.borrow() {
                                 value = conversion.evaluate(value);
                             }
@@ -526,14 +526,15 @@ impl EntityVisitor for EntityPreprocessor {
                 Ok(data_type) => {
                     if !data_type.borrow().metadata.conversions.is_empty() {
                         // We only support conversion of numbers for now
-                        if let Value::Number(value) = property.value {
+                        if let Value::Number(value) = &property.value {
                             property.metadata.canonical = data_type
                                 .borrow()
                                 .metadata
                                 .conversions
                                 .iter()
                                 .map(|(target, conversion)| {
-                                    let converted_value = conversion.to.expression.evaluate(value);
+                                    let converted_value =
+                                        conversion.to.expression.evaluate(value.clone());
                                     (target.clone(), Value::Number(converted_value))
                                 })
                                 .collect();

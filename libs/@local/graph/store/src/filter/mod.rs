@@ -504,7 +504,7 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
     {
         if let Self::Parameter { parameter, convert } = self {
             if let Some(conversion) = convert.take() {
-                let &mut Parameter::Decimal(mut number) = parameter else {
+                let &mut Parameter::Decimal(ref number) = parameter else {
                     bail!(ParameterConversionError::InvalidParameterType {
                         actual: ActualParameterType::Parameter(parameter.to_owned()),
                         expected: ParameterType::Decimal,
@@ -521,6 +521,7 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
                         from: conversion.from.clone(),
                         to: conversion.to.clone(),
                     })?;
+                let mut number = number.clone();
                 for conversion in conversions.borrow() {
                     number = conversion.evaluate(number);
                 }

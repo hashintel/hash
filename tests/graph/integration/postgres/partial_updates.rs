@@ -1,6 +1,7 @@
 use core::{iter::once, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
 
+use hash_codec::numeric::Real;
 use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
     entity::{
@@ -116,7 +117,7 @@ async fn properties_add() {
             PropertyPatchOperation::Add {
                 path: once(PropertyPathElement::from(age_property_type_id())).collect(),
                 property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: Value::Number(30.0),
+                    value: Value::Number(Real::from(30)),
                     metadata: ValueMetadata {
                         confidence: None,
                         data_type_id: None,
@@ -182,7 +183,10 @@ async fn properties_add() {
         properties[&name_property_type_id()],
         Value::String("Alice Allison".to_owned())
     );
-    assert_eq!(properties[&age_property_type_id()], Value::Number(30.0));
+    assert_eq!(
+        properties[&age_property_type_id()],
+        Value::Number(Real::from(30))
+    );
 }
 
 #[tokio::test]

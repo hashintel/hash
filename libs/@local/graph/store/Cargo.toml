@@ -18,6 +18,7 @@ tokio-postgres = { workspace = true, public = true, optional = true }
 utoipa         = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
+hash-codec                     = { workspace = true, features = ["numeric"] }
 hash-graph-temporal-versioning = { workspace = true }
 hash-graph-types               = { workspace = true }
 type-system                    = { workspace = true }

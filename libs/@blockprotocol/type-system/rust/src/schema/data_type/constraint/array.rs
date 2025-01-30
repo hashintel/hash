@@ -391,6 +391,7 @@ impl ConstraintValidator<[Value]> for TupleConstraints {
 
 #[cfg(test)]
 mod tests {
+    use hash_codec::numeric::Real;
     use serde_json::{from_value, json};
 
     use super::*;
@@ -436,12 +437,12 @@ mod tests {
         ]);
         check_constraints_error(&array_schema, json!([1, -2, -4]), [
             NumberValidationError::Minimum {
-                actual: -2.0,
-                expected: 0.0,
+                actual: Real::from(-2),
+                expected: Real::from(0),
             },
             NumberValidationError::Minimum {
-                actual: -4.0,
-                expected: 0.0,
+                actual: Real::from(-4),
+                expected: Real::from(0),
             },
         ]);
     }
@@ -471,8 +472,8 @@ mod tests {
         check_constraints(&array_schema, json!([1]));
         check_constraints_error(&array_schema, json!([15]), [
             NumberValidationError::Maximum {
-                actual: 15.0,
-                expected: 10.0,
+                actual: Real::from(15),
+                expected: Real::from(10),
             },
         ]);
     }

@@ -115,6 +115,7 @@ impl Transpile for SelectStatement {
 mod tests {
     use alloc::borrow::Cow;
 
+    use hash_codec::numeric::Real;
     use hash_graph_store::{
         data_type::DataTypeQueryPath,
         entity::EntityQueryPath,
@@ -1167,7 +1168,7 @@ mod tests {
                 convert: None,
             },
             FilterExpression::Parameter {
-                parameter: Parameter::Decimal(0.5),
+                parameter: Parameter::Decimal(Real::from_natural(5, -1)),
                 convert: None,
             },
         );
@@ -1194,7 +1195,10 @@ mod tests {
                 AND "entity_embeddings_0_1_0"."distance" <= $2
               ORDER BY "entity_embeddings_0_1_0"."distance" ASC
             "#,
-            &[&Embedding::from(vec![0.0; 1536]), &0.5_f64],
+            &[
+                &Embedding::from(vec![0.0; 1536]),
+                &Real::from_natural(5, -1),
+            ],
         );
     }
 

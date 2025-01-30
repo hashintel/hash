@@ -309,12 +309,9 @@ mod tests {
     use error_stack::{Frame, Report};
     use serde_json::{Value as JsonValue, json};
 
-    use crate::{
-        Value,
-        schema::data_type::{
-            closed::ResolveClosedDataTypeError,
-            constraint::{ConstraintValidator as _, ValueConstraints},
-        },
+    use crate::schema::data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{ConstraintValidator as _, ValueConstraints},
     };
 
     pub(crate) fn read_schema(schema: &JsonValue) -> ValueConstraints {
@@ -327,8 +324,10 @@ mod tests {
     }
 
     pub(crate) fn check_constraints(schema: &ValueConstraints, value: JsonValue) {
-        let value = Value::from(value);
-        assert!(schema.is_valid(&value));
+        let value = serde_json::from_value(value).expect("should be a valid value");
+        schema
+            .validate_value(&value)
+            .expect("schema should be valid");
         schema
             .validate_value(&value)
             .expect("Failed to validate value");
@@ -339,7 +338,7 @@ mod tests {
         value: JsonValue,
         expected_errors: impl IntoIterator<Item = E>,
     ) {
-        let value = Value::from(value);
+        let value = serde_json::from_value(value).expect("should be a valid value");
         assert!(!schema.is_valid(&value));
         let err = schema
             .validate_value(&value)

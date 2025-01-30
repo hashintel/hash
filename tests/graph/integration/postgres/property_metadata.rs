@@ -2,6 +2,7 @@ use alloc::borrow::Cow;
 use core::{iter::once, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
 
+use hash_codec::numeric::Real;
 use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _, PatchEntityParams};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
@@ -477,7 +478,7 @@ async fn properties_add() {
             properties: vec![PropertyPatchOperation::Add {
                 path: path.clone(),
                 property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: Value::Number(30.0),
+                    value: Value::Number(Real::from(30)),
                     metadata: ValueMetadata {
                         confidence: Confidence::new(0.5),
                         data_type_id: None,
@@ -517,7 +518,7 @@ async fn properties_add() {
                     original_data_type_id: Some(number_data_type_id()),
                     canonical: HashMap::from([(
                         number_data_type_id().base_url,
-                        Value::Number(30.0)
+                        Value::Number(Real::from(30))
                     )]),
                 },
             },)

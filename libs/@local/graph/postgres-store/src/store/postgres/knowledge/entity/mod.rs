@@ -363,17 +363,18 @@ where
             return;
         };
 
-        let Value::Number(mut value_number) = *value else {
+        let &mut Value::Number(ref mut value_number) = value else {
             // If the value is not a number, we can ignore the property.
             return;
         };
 
+        let mut real = value_number.clone();
         for conversion in conversions.borrow() {
-            value_number = conversion.evaluate(value_number);
+            real = conversion.evaluate(real);
         }
         drop(conversions);
 
-        *value = Value::Number(value_number);
+        *value = Value::Number(real);
 
         metadata.data_type_id = Some(target_data_type_id.clone());
     }
