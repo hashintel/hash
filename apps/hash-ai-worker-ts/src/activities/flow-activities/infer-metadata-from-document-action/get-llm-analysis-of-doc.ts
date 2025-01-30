@@ -327,13 +327,15 @@ const unsimplifyDocumentMetadata = (
     );
   }
 
+  const title = properties.title as string | undefined;
+
   const propertyProvenance: PropertyProvenance = {
     sources: [
       {
         authors: rest.authors?.map((author) => author.name),
         type: "document",
         entityId: provenance.entityId,
-        location: { uri: provenance.fileUrl },
+        location: { uri: provenance.fileUrl, name: title },
       },
     ],
   };

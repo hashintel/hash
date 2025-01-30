@@ -522,14 +522,16 @@ export const Grid = <
         const { y: wrapperYPosition, x: wrapperXPosition } =
           wrapperRef.current!.getBoundingClientRect();
 
-        const left = wrapperXPosition + interactable.pos.left;
+        const left =
+          wrapperXPosition + interactable.posRelativeToVisibleGridArea.left;
 
-        const top = interactable.pos.top + wrapperYPosition;
+        const top =
+          interactable.posRelativeToVisibleGridArea.top + wrapperYPosition;
 
         return {
           width: 0,
           height: 0,
-          ...interactable.pos,
+          ...interactable.posRelativeToVisibleGridArea,
           left,
           top,
           x: left,
@@ -569,14 +571,16 @@ export const Grid = <
         const { y: wrapperYPosition, x: wrapperXPosition } =
           wrapperRef.current!.getBoundingClientRect();
 
-        const left = wrapperXPosition + interactable.pos.left;
+        const left =
+          wrapperXPosition + interactable.posRelativeToVisibleGridArea.left;
 
-        const top = interactable.pos.top + wrapperYPosition;
+        const top =
+          interactable.posRelativeToVisibleGridArea.top + wrapperYPosition;
 
         return {
           width: 0,
           height: 0,
-          ...interactable.pos,
+          ...interactable.posRelativeToVisibleGridArea,
           left,
           top,
           x: left,

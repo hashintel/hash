@@ -16,10 +16,7 @@ import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  DocProperties,
-  File,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -163,11 +160,22 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
   const entityTypeIds = new Set(documentEntity.metadata.entityTypeIds);
   entityTypeIds.add(entityTypeId);
 
+  const filename =
+    documentEntity.properties[
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
+    ] ??
+    documentEntity.properties[
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"
+    ]!;
+
+  const title = properties.value[systemPropertyTypes.title.propertyTypeBaseUrl]
+    ?.value as string | undefined;
+
   const sourceProvenance: SourceProvenance = {
     type: "document",
     authors: (authors ?? []).map((author) => author.name),
     entityId: documentEntityId,
-    location: { uri: fileUrl },
+    location: { uri: fileUrl, name: title ?? filename },
   };
 
   const provenance: EnforcedEntityEditionProvenance = {
@@ -224,20 +232,12 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     },
   ]);
 
-  const title =
-    "https://hash.ai/@hash/types/property-type/title/" in
-    updatedEntity.properties
-      ? (updatedEntity.properties as DocProperties)[
-          "https://hash.ai/@hash/types/property-type/title/"
-        ]
-      : undefined;
-
   const proposedEntities =
     await generateDocumentProposedEntitiesAndCreateClaims({
       aiAssistantAccountId,
       documentEntityId,
       documentMetadata: { authors },
-      documentTitle: title ?? "[Untitled]",
+      documentTitle: title ?? filename,
       provenance,
       propertyProvenance,
     });

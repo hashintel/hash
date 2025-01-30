@@ -127,7 +127,7 @@ export const useDrawHeader = <
             { ...args, tableId },
             {
               id: generateInteractableId("sort", columnKey),
-              pos: {
+              posRelativeToVisibleGridArea: {
                 left: sortIconStartX,
                 right: sortIconStartX + sortIconSize,
                 top: centerY - sortIconSize / 2,
@@ -178,14 +178,17 @@ export const useDrawHeader = <
             { ...args, tableId },
             {
               id: generateInteractableId("filter", columnKey),
-              pos: {
+              posRelativeToVisibleGridArea: {
                 left: columnFilterX,
                 right: columnFilterX + filterIconSize,
                 top: centerY - filterIconSize / 2,
                 bottom: centerY + filterIconSize / 2,
               },
               onClick: (interactable) =>
-                onFilterClick?.(columnKey, interactable.pos),
+                onFilterClick?.(
+                  columnKey,
+                  interactable.posRelativeToVisibleGridArea,
+                ),
             },
           ),
         );
@@ -228,14 +231,17 @@ export const useDrawHeader = <
             { ...args, tableId },
             {
               id: generateInteractableId("convert", columnKey),
-              pos: {
+              posRelativeToVisibleGridArea: {
                 left: calculatorIconStartX,
                 right: calculatorIconStartX + calculatorIconSize,
                 top: centerY - calculatorIconSize / 2,
                 bottom: centerY + calculatorIconSize / 2,
               },
               onClick: (interactable) =>
-                onConvertClicked?.(columnKey, interactable.pos),
+                onConvertClicked?.(
+                  columnKey,
+                  interactable.posRelativeToVisibleGridArea,
+                ),
             },
           ),
         );

@@ -96,7 +96,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
         interactables.push(
           InteractableManager.createCellInteractable(args, {
             id: `${cell.data.linkRow.rowId}-retry-upload`,
-            pos: {
+            posRelativeToVisibleGridArea: {
               left: leftDrawPosition,
               right: leftDrawPosition + retryIconWidth,
               top: yCenter - retryIconWidth / 2,
@@ -186,7 +186,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
 
     const deleteButton = InteractableManager.createCellInteractable(args, {
       id: "delete",
-      pos: {
+      posRelativeToVisibleGridArea: {
         left: buttonRight - iconSize,
         right: buttonRight,
         top: yCenter - iconSize / 2,
@@ -204,8 +204,8 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       "bpTrash",
       "normal",
       ctx,
-      deleteButton.pos.left,
-      deleteButton.pos.top,
+      deleteButton.posRelativeToVisibleGridArea.left,
+      deleteButton.posRelativeToVisibleGridArea.top,
       iconSize,
       {
         ...theme,

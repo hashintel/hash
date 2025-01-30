@@ -16,12 +16,28 @@ const Page: NextPageWithLayout = () => {
   const isDraft = !!router.query.draft;
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
-  const [slug, _, requestedVersionString] = router.query[
-    "slug-maybe-version"
-  ] as [string, "v" | undefined, `${number}` | undefined]; // @todo validate that the URL is formatted as expected;
+  /**
+   * router.query is not populated in this page, probably some combination of the rewrite @[shortname] routes and the fact this is a catch all.
+   * We have to parse out the path ourselves.
+   *
+   * @see https://github.com/vercel/next.js/issues/50212 –– possibly related
+   *
+   * @example /@hash/types/entity-type/user/v/1
+   * @example /@hash/types/entity-type/user
+   */
+  const [_, shortname, _types, _entityType, slug, _v, requestedVersionString] =
+    router.asPath.split("/") as [
+      "",
+      `@${string}`,
+      "types",
+      "entity-type",
+      string,
+      "v" | undefined,
+      `${number}` | undefined,
+    ];
 
   const entityTypeBaseUrl = !isDraft
-    ? getEntityTypeBaseUrl(slug, `@${router.query.shortname}`)
+    ? getEntityTypeBaseUrl(slug, shortname)
     : undefined;
 
   const draftEntityType = useMemo(() => {
