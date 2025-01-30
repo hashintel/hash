@@ -322,7 +322,7 @@ __metadata:
     md5: "npm:2.3.0"
     mime-types: "npm:2.1.35"
     officeparser: "npm:4.2.0"
-    openai: "npm:4.80.1"
+    openai: "npm:4.81.0"
     openai-chat-tokens: "npm:0.2.8"
     papaparse: "npm:5.5.2"
     pdf2json: "npm:3.1.5"
@@ -345,11 +345,11 @@ __metadata:
   resolution: "@apps/hash-api@workspace:apps/hash-api"
   dependencies:
     "@apps/hash-graph": "npm:0.0.0-private"
-    "@aws-sdk/client-s3": "npm:3.735.0"
-    "@aws-sdk/client-ses": "npm:3.734.0"
-    "@aws-sdk/credential-provider-node": "npm:3.734.0"
-    "@aws-sdk/s3-presigned-post": "npm:3.735.0"
-    "@aws-sdk/s3-request-presigner": "npm:3.735.0"
+    "@aws-sdk/client-s3": "npm:3.738.0"
+    "@aws-sdk/client-ses": "npm:3.738.0"
+    "@aws-sdk/credential-provider-node": "npm:3.738.0"
+    "@aws-sdk/s3-presigned-post": "npm:3.738.0"
+    "@aws-sdk/s3-request-presigner": "npm:3.738.0"
     "@biomejs/biome": "npm:1.9.5-nightly.ff02a0b"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
@@ -424,7 +424,7 @@ __metadata:
     googleapis: "npm:133.0.0"
     graphql: "npm:16.10.0"
     graphql-parse-resolve-info: "npm:4.13.0"
-    graphql-scalars: "npm:1.24.0"
+    graphql-scalars: "npm:1.24.1"
     helmet: "npm:4.6.0"
     hot-shots: "npm:8.5.2"
     html-to-text: "npm:8.2.1"
@@ -440,7 +440,7 @@ __metadata:
     nanoid: "npm:3.3.8"
     nodemailer: "npm:6.10.0"
     oembed-providers: "npm:1.0.20241022"
-    openai: "npm:4.80.1"
+    openai: "npm:4.81.0"
     rimraf: "npm:6.0.1"
     ts-json-schema-generator: "npm:1.5.1"
     tsx: "npm:4.19.2"
@@ -1252,15 +1252,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/client-s3@npm:3.735.0":
-  version: 3.735.0
-  resolution: "@aws-sdk/client-s3@npm:3.735.0"
+"@aws-sdk/client-s3@npm:3.738.0":
+  version: 3.738.0
+  resolution: "@aws-sdk/client-s3@npm:3.738.0"
   dependencies:
     "@aws-crypto/sha1-browser": "npm:5.2.0"
     "@aws-crypto/sha256-browser": "npm:5.2.0"
     "@aws-crypto/sha256-js": "npm:5.2.0"
     "@aws-sdk/core": "npm:3.734.0"
-    "@aws-sdk/credential-provider-node": "npm:3.734.0"
+    "@aws-sdk/credential-provider-node": "npm:3.738.0"
     "@aws-sdk/middleware-bucket-endpoint": "npm:3.734.0"
     "@aws-sdk/middleware-expect-continue": "npm:3.734.0"
     "@aws-sdk/middleware-flexible-checksums": "npm:3.735.0"
@@ -1312,7 +1312,7 @@ __metadata:
     "@smithy/util-utf8": "npm:^4.0.0"
     "@smithy/util-waiter": "npm:^4.0.2"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/1378a40e9ac1ae68bcfe930c9244f04f95ad5aef9db52444bfb6f4c876fed413dc815c03c96c6ab90246e56fe6eba5604d6e784bb6350a4623cb78d52458ca40
+  checksum: 10c0/f122c86cfd942c5b8b3183d95f0dc7bf7c980c9be82d0d9c079691ce521ab9e4b4ddb024c33a9a631a050dcae53eda9e065920593b385535784ec396b57a5802
   languageName: node
   linkType: hard
 
@@ -1368,14 +1368,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/client-ses@npm:3.734.0":
-  version: 3.734.0
-  resolution: "@aws-sdk/client-ses@npm:3.734.0"
+"@aws-sdk/client-ses@npm:3.738.0":
+  version: 3.738.0
+  resolution: "@aws-sdk/client-ses@npm:3.738.0"
   dependencies:
     "@aws-crypto/sha256-browser": "npm:5.2.0"
     "@aws-crypto/sha256-js": "npm:5.2.0"
     "@aws-sdk/core": "npm:3.734.0"
-    "@aws-sdk/credential-provider-node": "npm:3.734.0"
+    "@aws-sdk/credential-provider-node": "npm:3.738.0"
     "@aws-sdk/middleware-host-header": "npm:3.734.0"
     "@aws-sdk/middleware-logger": "npm:3.734.0"
     "@aws-sdk/middleware-recursion-detection": "npm:3.734.0"
@@ -1412,7 +1412,7 @@ __metadata:
     "@smithy/util-utf8": "npm:^4.0.0"
     "@smithy/util-waiter": "npm:^4.0.2"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/434971fcf4e0cbf9520e03faf3c9ed5b190aef07d6412a3a64848c21eae39735f56d6ec6a2e6656d40d26294c55f9c3668dafc225ef90da3ce60bef3ccad623d
+  checksum: 10c0/c85c483156cef9843db7ffd8d00b630621ad86101abd7a282aae94797f7f909ef059a17cfbf8b9a772be8b3f48d1c9105c885444117a9cfd4d1010754fa654b4
   languageName: node
   linkType: hard
 
@@ -1968,9 +1968,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/credential-provider-node@npm:3.734.0":
-  version: 3.734.0
-  resolution: "@aws-sdk/credential-provider-node@npm:3.734.0"
+"@aws-sdk/credential-provider-node@npm:3.738.0":
+  version: 3.738.0
+  resolution: "@aws-sdk/credential-provider-node@npm:3.738.0"
   dependencies:
     "@aws-sdk/credential-provider-env": "npm:3.734.0"
     "@aws-sdk/credential-provider-http": "npm:3.734.0"
@@ -1984,7 +1984,7 @@ __metadata:
     "@smithy/shared-ini-file-loader": "npm:^4.0.1"
     "@smithy/types": "npm:^4.1.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/5ef9d24a473e73c831748bde93169ca4634d7f7e4ac1b5100d78f08c407b3bc0ffe7ff21b65c6a04b0e7c1fe9a4c484a1348b3e63cb6e394d72066940c5ea507
+  checksum: 10c0/c9ab6582ddc536113fe7e037179f3d145b7c42d661f5f118967227a519e7a51368307a2a5edb7d7768187ca5768d147bf0026be51c6bfff9c78ff6fba03b7407
   languageName: node
   linkType: hard
 
@@ -2487,11 +2487,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/s3-presigned-post@npm:3.735.0":
-  version: 3.735.0
-  resolution: "@aws-sdk/s3-presigned-post@npm:3.735.0"
+"@aws-sdk/s3-presigned-post@npm:3.738.0":
+  version: 3.738.0
+  resolution: "@aws-sdk/s3-presigned-post@npm:3.738.0"
   dependencies:
-    "@aws-sdk/client-s3": "npm:3.735.0"
+    "@aws-sdk/client-s3": "npm:3.738.0"
     "@aws-sdk/types": "npm:3.734.0"
     "@aws-sdk/util-format-url": "npm:3.734.0"
     "@smithy/middleware-endpoint": "npm:^4.0.2"
@@ -2500,13 +2500,13 @@ __metadata:
     "@smithy/util-hex-encoding": "npm:^4.0.0"
     "@smithy/util-utf8": "npm:^4.0.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/292b9c585939197d503580effbb1e43b1ce512924e173d02b862bfee617a84a253422b5186d4062139df1cff4b4216bb7622e9c019b9181e4391bbd7a67f75d2
+  checksum: 10c0/d726bfed137130190cc77898fb20206ab757f7e575b2a20666203d19592f83e2db73fd5990858e573d24fa81a36e851d206aba2d92af563072f62b0c57afd2e4
   languageName: node
   linkType: hard
 
-"@aws-sdk/s3-request-presigner@npm:3.735.0":
-  version: 3.735.0
-  resolution: "@aws-sdk/s3-request-presigner@npm:3.735.0"
+"@aws-sdk/s3-request-presigner@npm:3.738.0":
+  version: 3.738.0
+  resolution: "@aws-sdk/s3-request-presigner@npm:3.738.0"
   dependencies:
     "@aws-sdk/signature-v4-multi-region": "npm:3.734.0"
     "@aws-sdk/types": "npm:3.734.0"
@@ -2516,7 +2516,7 @@ __metadata:
     "@smithy/smithy-client": "npm:^4.1.2"
     "@smithy/types": "npm:^4.1.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/fbaa40ba5d74e5f925ccbdf87a0f2433d8a3d2d6f2c5c5e23788071868543f4c6297e8f7e69ced99151198663d442d276b47a253556a299160eced08e16ad121
+  checksum: 10c0/6859821a9c67e33f5d7c4675e99b5e66176f8061fbbe08f9cf53ae74dfa044df25bc31846ddd2bc9c5a7048d0ac2267aee76efa0816498c71143e2f34a455f07
   languageName: node
   linkType: hard
 
@@ -9036,8 +9036,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/hash-backend-utils@workspace:libs/@local/hash-backend-utils"
   dependencies:
-    "@aws-sdk/client-s3": "npm:3.735.0"
-    "@aws-sdk/s3-request-presigner": "npm:3.735.0"
+    "@aws-sdk/client-s3": "npm:3.738.0"
+    "@aws-sdk/s3-request-presigner": "npm:3.738.0"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
@@ -29113,14 +29113,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphql-scalars@npm:1.24.0":
-  version: 1.24.0
-  resolution: "graphql-scalars@npm:1.24.0"
+"graphql-scalars@npm:1.24.1":
+  version: 1.24.1
+  resolution: "graphql-scalars@npm:1.24.1"
   dependencies:
     tslib: "npm:^2.5.0"
   peerDependencies:
     graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
-  checksum: 10c0/c4a3b8d3e65aad77bd27f21bf2619edec664f4e399c94bae412dc89f7687c4494ac84409224c8acf1f0431459c6ec76a49a193b1cc1f285878609fc0b4bb903e
+  checksum: 10c0/08f9d4f3e87e15b32a279f55d6550d2f095c9d133387f1224d6c213d88ace508f8f4c0ae7862982e35eb80fba15e94dfc3cd67501f6948aef96942d3128f01f9
   languageName: node
   linkType: hard
 
@@ -37335,9 +37335,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openai@npm:4.80.1, openai@npm:^4.73.1":
-  version: 4.80.1
-  resolution: "openai@npm:4.80.1"
+"openai@npm:4.81.0, openai@npm:^4.73.1":
+  version: 4.81.0
+  resolution: "openai@npm:4.81.0"
   dependencies:
     "@types/node": "npm:^18.11.18"
     "@types/node-fetch": "npm:^2.6.4"
@@ -37356,7 +37356,7 @@ __metadata:
       optional: true
   bin:
     openai: bin/cli
-  checksum: 10c0/008e5d3a26bf8ee9ca7facac47190696bee72cbd3fc05d0fe766f0f06301207ccb48ab9ceba35973164064400de828e55fe22a7c4d61f95da23a73d4c4da1d33
+  checksum: 10c0/71606ff69e6a77d56c2e0c9716f3cdea536cb79b41a57e0487d022851b0cd25defd3d31b9db9c60e5b447ed44973ccd822d926b1ba09430423b94709758816a0
   languageName: node
   linkType: hard
 

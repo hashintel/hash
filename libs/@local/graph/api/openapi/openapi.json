@@ -5495,6 +5495,12 @@
                       "$ref": "#/components/schemas/Selector"
                     },
                     {
+                      "type": "string",
+                      "enum": [
+                        "convert"
+                      ]
+                    },
+                    {
                       "type": "string"
                     },
                     {
