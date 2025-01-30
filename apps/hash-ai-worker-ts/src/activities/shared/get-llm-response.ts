@@ -282,5 +282,5 @@ export const getLlmResponse = async <T extends LlmParams>(
     transformedRequest,
   });
 
-  return llmResponse;
+  return llmResponse as LlmResponse<T>;
 };

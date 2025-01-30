@@ -307,7 +307,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
   params: AnthropicLlmParams<ToolName>,
   metadata: LlmRequestMetadata,
 ): Promise<{
-  llmResponse: LlmResponse<AnthropicLlmParams<ToolName>>;
+  llmResponse: LlmResponse<AnthropicLlmParams>;
   transformedRequest?: undefined;
 }> => {
   const {
@@ -495,7 +495,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
       request: params,
     });
 
-    return getAnthropicResponse(
+    return await getAnthropicResponse(
       {
         ...params,
         messages: [
