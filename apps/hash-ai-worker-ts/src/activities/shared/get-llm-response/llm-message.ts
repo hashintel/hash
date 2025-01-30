@@ -2,11 +2,20 @@ import type {
   MessageParam as AnthropicMessage,
   ToolResultBlockParam as AnthropicToolResultBlockParam,
 } from "@anthropic-ai/sdk/resources/messages";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { OpenAI } from "openai";
 
 export type LlmMessageTextContent = {
   type: "text";
   text: string;
+};
+
+export type LlmFileMessageContent = {
+  type: "file";
+  fileEntity: Pick<Entity<File>, "entityId" | "properties"> & {
+    metadata?: undefined;
+  };
 };
 
 export type LlmMessageToolUseContent<ToolName = string> = {
@@ -30,7 +39,11 @@ export type LlmMessageToolResultContent = {
 
 export type LlmUserMessage = {
   role: "user";
-  content: (LlmMessageTextContent | LlmMessageToolResultContent)[];
+  content: (
+    | LlmMessageTextContent
+    | LlmMessageToolResultContent
+    | LlmFileMessageContent
+  )[];
 };
 
 export type LlmMessage = LlmAssistantMessage | LlmUserMessage;
@@ -45,14 +58,18 @@ export const mapLlmMessageToAnthropicMessage = (params: {
   message: LlmMessage;
 }): AnthropicMessage => ({
   role: params.message.role,
-  content: params.message.content.map((content) =>
-    content.type === "tool_result"
+  content: params.message.content.map((content) => {
+    if (content.type === "file") {
+      throw new Error("File content not supported for Anthropic calls");
+    }
+
+    return content.type === "tool_result"
       ? ({
           ...content,
           content: [{ type: "text", text: content.content }],
         } satisfies AnthropicToolResultBlockParam)
-      : content,
-  ),
+      : content;
+  }),
 });
 
 export const mapAnthropicMessageToLlmMessage = (params: {
@@ -203,6 +220,10 @@ export const mapLlmMessageToOpenAiMessages = (params: {
         role: "user",
         content: content.text,
       } satisfies OpenAI.ChatCompletionUserMessageParam;
+    }
+
+    if (content.type === "file") {
+      throw new Error("File content not supported for OpenAI calls");
     }
 
     return {
