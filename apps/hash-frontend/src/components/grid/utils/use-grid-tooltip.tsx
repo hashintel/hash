@@ -1,10 +1,10 @@
 import type { DataEditorRef } from "@glideapps/glide-data-grid";
 import type { PopoverPosition } from "@mui/material";
-import { Popover, Typography } from "@mui/material";
+import { Box, Popover, Typography } from "@mui/material";
 import { isEqual } from "lodash";
-import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
+import { usePopupState } from "material-ui-popup-state/hooks";
 import type { RefObject } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useWindowEventListener } from "rooks";
 
 import type {
@@ -24,6 +24,14 @@ export const useGridTooltip = (
   const [gridTooltip, setGridTooltip] = useState<GridTooltip | null>(null);
   const [tooltipPos, setTooltipPos] = useState<PopoverPosition>();
 
+  const latestGridRef = useRef(gridRef.current);
+
+  useEffect(() => {
+    latestGridRef.current = gridRef.current;
+  });
+
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
   // prevent tooltip from staying at the same position when user scrolls vertically
   useWindowEventListener("scroll", () => {
     popupState.close();
@@ -32,24 +40,41 @@ export const useGridTooltip = (
 
   useEffect(() => {
     const eventListener = (event: MouseEvent) => {
+      if (tooltipRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
       if (!gridTooltip) {
         return;
       }
 
-      // close the tooltip if we've moved outside of it
-      const bounds = gridRef.current?.getBounds(
-        gridTooltip.colIndex,
-        gridTooltip.rowIndex,
-      );
+      const ref = latestGridRef.current;
+
+      const bounds = ref?.getBounds(gridTooltip.colIndex, gridTooltip.rowIndex);
+
+      if (!bounds) {
+        setGridTooltip(null);
+        return;
+      }
+
+      const { interactablePosRelativeToCell, interactableSize } = gridTooltip;
+
+      const interactableStartX =
+        bounds.x +
+        ("right" in interactablePosRelativeToCell
+          ? bounds.width -
+            interactableSize.width -
+            interactablePosRelativeToCell.right
+          : interactablePosRelativeToCell.left);
+
+      const interactableStartY = bounds.y + interactablePosRelativeToCell.top;
 
       if (
-        !bounds ||
-        event.clientX < bounds.x ||
-        event.clientX > bounds.x + bounds.width ||
-        event.clientY < bounds.y ||
-        event.clientY > bounds.y + bounds.height
+        event.clientX < interactableStartX ||
+        event.clientX > interactableStartX + interactableSize.width ||
+        event.clientY < interactableStartY ||
+        event.clientY > interactableStartY + interactableSize.height
       ) {
-        popupState.close();
         setGridTooltip(null);
       }
     };
@@ -59,7 +84,7 @@ export const useGridTooltip = (
     return () => {
       document.removeEventListener("mousemove", eventListener);
     };
-  }, [gridTooltip, gridRef, popupState]);
+  }, [gridTooltip]);
 
   const showTooltip = useCallback<TooltipCellProps["showTooltip"]>(
     (newTooltip) => {
@@ -70,22 +95,26 @@ export const useGridTooltip = (
         return;
       }
 
-      if (!isEqual(gridTooltip, newTooltip)) {
-        setGridTooltip(newTooltip);
-      }
+      const ref = latestGridRef.current;
 
-      const bounds = gridRef.current?.getBounds(
-        newTooltip.colIndex,
-        newTooltip.rowIndex,
-      );
+      const bounds = ref?.getBounds(newTooltip.colIndex, newTooltip.rowIndex);
 
       if (!bounds) {
         return;
       }
 
-      popupState.open();
+      if (!isEqual(gridTooltip, newTooltip)) {
+        setGridTooltip(newTooltip);
+      }
 
-      const left = bounds.x + newTooltip.iconX;
+      const left =
+        bounds.x +
+        ("right" in newTooltip.interactablePosRelativeToCell
+          ? bounds.width -
+            newTooltip.interactableSize.width -
+            newTooltip.interactablePosRelativeToCell.right
+          : newTooltip.interactablePosRelativeToCell.left);
+
       const top = bounds.y;
 
       setTooltipPos((prev) => {
@@ -96,7 +125,7 @@ export const useGridTooltip = (
         return { left, top };
       });
     },
-    [popupState, gridTooltip, gridRef],
+    [gridTooltip],
   );
 
   const hideTooltip = useCallback<TooltipCellProps["hideTooltip"]>(
@@ -112,30 +141,48 @@ export const useGridTooltip = (
     [popupState, gridTooltip],
   );
 
+  const bounds = gridTooltip
+    ? gridRef.current?.getBounds(gridTooltip.colIndex, gridTooltip.rowIndex)
+    : null;
+
   return {
     showTooltip,
     hideTooltip,
     tooltipElement: !gridTooltip ? null : (
       <Popover
-        {...bindPopover(popupState)}
+        hideBackdrop
         anchorReference="anchorPosition"
         anchorPosition={tooltipPos}
-        transformOrigin={{ horizontal: "center", vertical: "bottom" }}
+        open
+        transformOrigin={{ horizontal: "left", vertical: "bottom" }}
         PaperProps={{
           sx: {
-            py: 0.75,
-            px: 1.5,
-            backgroundColor: ({ palette }) => palette.gray[90],
+            p: 0,
           },
         }}
       >
-        <Typography
-          sx={{ fontSize: 13, fontWeight: 500, lineHeight: "18px" }}
-          textAlign="center"
-          color="white"
-        >
-          {gridTooltip.text}
-        </Typography>
+        {typeof gridTooltip.content === "string" ? (
+          <Box
+            ref={tooltipRef}
+            sx={{
+              py: 0.75,
+              px: 1.5,
+              backgroundColor: ({ palette }) => palette.gray[90],
+            }}
+          >
+            <Typography
+              sx={{ fontSize: 13, fontWeight: 500, lineHeight: "18px" }}
+              textAlign="center"
+              color="white"
+            >
+              {gridTooltip.content}
+            </Typography>
+          </Box>
+        ) : (
+          <Box ref={tooltipRef} sx={{ maxWidth: bounds?.width }}>
+            {gridTooltip.content}
+          </Box>
+        )}
       </Popover>
     ),
   };

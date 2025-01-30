@@ -4,7 +4,7 @@ import type { RefObject } from "react";
 
 import { Link } from "../../shared/ui/link";
 
-const SourcesList = ({ sources }: { sources: SourceProvenance[] }) => {
+export const SourcesList = ({ sources }: { sources: SourceProvenance[] }) => {
   return (
     <Box
       p={1.5}
@@ -100,7 +100,8 @@ export const SourcesPopover = ({
           sx: {
             borderRadius: 2,
             width: cellRef.current?.scrollWidth,
-            minWidth: "fit-content",
+            minWidth: 400,
+            maxWidth: 600,
           },
         },
         root: {

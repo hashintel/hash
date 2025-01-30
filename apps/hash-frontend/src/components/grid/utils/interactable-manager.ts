@@ -52,7 +52,7 @@ class InteractableManagerClass {
 
     const hovered = isCursorOnInteractable(
       { posX: hoverX, posY: hoverY },
-      props.pos,
+      props.posRelativeToVisibleGridArea,
       rect,
     );
 
@@ -146,8 +146,9 @@ class InteractableManagerClass {
     const interactableMap = this.interactableStore[path] ?? {};
     const interactables = Object.values(interactableMap);
 
-    const foundInteractable = interactables.find(({ pos, cellRect }) =>
-      isCursorOnInteractable(event, pos, cellRect),
+    const foundInteractable = interactables.find(
+      ({ posRelativeToVisibleGridArea: pos, cellRect }) =>
+        isCursorOnInteractable(event, pos, cellRect),
     );
 
     if (!foundInteractable) {

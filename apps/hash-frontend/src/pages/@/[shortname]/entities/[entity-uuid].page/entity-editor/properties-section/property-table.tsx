@@ -26,7 +26,9 @@ export const PropertyTable = ({
   const gridRef = useRef<DataEditorRef>(null);
   const { togglePropertyExpand, propertyExpandStatus } = useEntityEditor();
   const [rows, sortAndFlattenRows] = useRows();
+
   const { tooltipElement, showTooltip, hideTooltip } = useGridTooltip(gridRef);
+
   const createGetCellContent = useCreateGetCellContent(
     showTooltip,
     hideTooltip,

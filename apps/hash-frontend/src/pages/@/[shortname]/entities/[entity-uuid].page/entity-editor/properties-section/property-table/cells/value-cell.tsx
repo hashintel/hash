@@ -12,6 +12,7 @@ import { drawUrlAsLink } from "../../../../../../../../../components/grid/utils/
 import { InteractableManager } from "../../../../../../../../../components/grid/utils/interactable-manager";
 import { drawInteractableTooltipIcons } from "../../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import { formatValue } from "../../../../../../../../shared/format-value";
+import { SourcesList } from "../../../../../../../../shared/sources-popover";
 import { isValueEmpty } from "../../is-value-empty";
 import { ArrayEditor } from "./value-cell/array-editor";
 import { ReadonlyValueCellPopup } from "./value-cell/readonly-popup";
@@ -24,9 +25,9 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (cell.data as any).kind === "value-cell",
   draw: (args, cell) => {
-    const { ctx, rect, theme } = args;
+    const { ctx, rect, theme, col, row } = args;
 
-    const { readonly } = cell.data;
+    const { readonly, showTooltip } = cell.data;
 
     const {
       value,
@@ -97,8 +98,45 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       }
     }
 
-    const tooltipInteractables = drawInteractableTooltipIcons(args);
-    InteractableManager.setInteractablesForCell(args, tooltipInteractables);
+    const cellInteractables = drawInteractableTooltipIcons(args);
+
+    const sources = valueMetadata?.metadata?.provenance?.sources;
+
+    if (sources?.length) {
+      const sourcesTooltipContent = <SourcesList sources={sources} />;
+
+      const posRelativeToGrid = {
+        left: rect.x,
+        right: rect.x + rect.width - 80,
+        top: rect.y,
+        bottom: rect.y + rect.height,
+      };
+
+      const interactable = InteractableManager.createCellInteractable(args, {
+        id: `cell-sources-tooltip-${row}`,
+        posRelativeToVisibleGridArea: posRelativeToGrid,
+        onMouseEnter: () => {
+          showTooltip({
+            content: sourcesTooltipContent,
+            horizontalAlign: "left",
+            interactablePosRelativeToCell: {
+              left: 0,
+              top: 0,
+            },
+            interactableSize: {
+              width: rect.width - 80,
+              height: rect.height,
+            },
+            colIndex: col,
+            rowIndex: row,
+          });
+        },
+      });
+
+      cellInteractables.push(interactable);
+    }
+
+    InteractableManager.setInteractablesForCell(args, cellInteractables);
 
     if (validationError) {
       ctx.beginPath();
