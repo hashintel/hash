@@ -1,6 +1,5 @@
 import {
   type Content,
-  FunctionCallingMode,
   type FunctionDeclaration,
   type GenerateContentResponse,
   type Part,
@@ -35,14 +34,16 @@ const mapLlmToolDefinitionToGoogleAiToolDefinition = (
 export const getGoogleAiResponse = async <ToolName extends string>(
   params: GoogleAiParams<ToolName>,
   _metadata: LlmRequestMetadata,
-): Promise<LlmResponse<GoogleAiParams<ToolName>>> => {
+): Promise<{
+  llmResponse: LlmResponse<GoogleAiParams<ToolName>>;
+  transformedRequest: Record<string, unknown>;
+}> => {
   const {
     model,
     tools,
     systemPrompt,
     messages,
     previousInvalidResponses,
-    toolChoice,
     retryContext,
   } = params;
 
@@ -75,36 +76,48 @@ export const getGoogleAiResponse = async <ToolName extends string>(
   }
 
   let response: GenerateContentResponse;
+  const transformedRequest = {
+    contents,
+    systemInstruction: systemPrompt,
+    tools: tools
+      ? [
+          {
+            functionDeclarations: tools.map(
+              mapLlmToolDefinitionToGoogleAiToolDefinition,
+            ),
+          },
+        ]
+      : undefined,
+  } as const;
+
   try {
-    ({ response } = await gemini.generateContent({
-      contents,
-      systemInstruction: systemPrompt,
-      toolConfig: toolChoice
-        ? {
-            functionCallingConfig: {
-              mode: FunctionCallingMode.ANY,
-              allowedFunctionNames:
-                toolChoice === "required" ? undefined : [toolChoice],
-            },
-          }
-        : undefined,
-      tools: tools
-        ? [
-            {
-              functionDeclarations: tools.map(
-                mapLlmToolDefinitionToGoogleAiToolDefinition,
-              ),
-            },
-          ]
-        : undefined,
-    }));
+    ({ response } = await gemini.generateContent(transformedRequest));
   } catch (error) {
     logger.error(`Google AI API error: ${stringifyError(error)}`);
 
+    if (isActivityCancelled()) {
+      return {
+        llmResponse: {
+          status: "aborted",
+          provider: "google-vertex-ai",
+        },
+        transformedRequest,
+      };
+    }
+
+    const message =
+      "message" in (error as Error)
+        ? (error as Error).message
+        : "Unknown error";
+
     return {
-      status: isActivityCancelled() ? "aborted" : "api-error",
-      provider: "google-vertex-ai",
-      error,
+      llmResponse: {
+        status: "api-error",
+        provider: "google-vertex-ai",
+        message,
+        error,
+      },
+      transformedRequest,
     };
   }
 
@@ -177,5 +190,8 @@ export const getGoogleAiResponse = async <ToolName extends string>(
     message,
   };
 
-  return normalizedResponse;
+  return {
+    llmResponse: normalizedResponse,
+    transformedRequest,
+  };
 };

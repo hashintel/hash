@@ -194,6 +194,7 @@ export type LlmErrorResponse =
   | {
       status: "api-error";
       provider: LlmProvider;
+      message: string;
       error?: unknown;
     }
   | {

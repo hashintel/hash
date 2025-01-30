@@ -451,7 +451,10 @@ export const getLlmAnalysisOfDoc = async ({
 
   const fileContent: LlmFileMessageContent = {
     type: "file",
-    fileEntity,
+    fileEntity: {
+      entityId: fileEntity.entityId,
+      properties: fileEntity.properties,
+    },
   };
 
   const message: LlmUserMessage = {
@@ -475,7 +478,7 @@ export const getLlmAnalysisOfDoc = async ({
     {
       customMetadata: {
         stepId,
-        taskName: "summarize-web-page",
+        taskName: "infer-metadata-from-document",
       },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
@@ -485,7 +488,15 @@ export const getLlmAnalysisOfDoc = async ({
   );
 
   if (response.status !== "ok") {
-    throw new Error("LLM analysis failed");
+    throw new Error(
+      `LLM analysis failed: ${
+        response.status === "aborted"
+          ? "aborted"
+          : response.status === "api-error"
+            ? response.message
+            : response.status
+      }`,
+    );
   }
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({

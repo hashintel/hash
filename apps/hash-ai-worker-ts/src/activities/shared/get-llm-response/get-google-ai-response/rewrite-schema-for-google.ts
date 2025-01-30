@@ -3,8 +3,15 @@ import type { FunctionDeclarationSchema, Schema } from "@google-cloud/vertexai";
 import { SchemaType } from "@google-cloud/vertexai";
 import type { JSONSchema } from "openai/lib/jsonschema.mjs";
 
-import type { DereferencedPropertyType } from "../../dereference-entity-type.js";
 import type { LlmToolDefinition } from "../types.js";
+
+/**
+ * @file
+ *
+ * This file is not type safe and littered with @ts-expect-errors
+ *
+ * Hopefully Google makes their schema less annoying before it becomes a problem.
+ */
 
 /**
  * The Vertex AI controlled generation (i.e. output) schema supports a subset of the Vertex AI schema fields,
@@ -49,10 +56,6 @@ const fieldsToExclude = [
  */
 const vertexSupportedFormatValues = ["date", "date-time", "duration", "time"];
 
-type JsonSchemaPart = NonNullable<
-  LlmToolDefinition["inputSchema"]["properties"]
->[string];
-
 type SchemaValue = JSONSchema[keyof JSONSchema];
 
 function assertNonBoolean<T>(value: T): asserts value is Exclude<T, boolean> {
@@ -61,8 +64,19 @@ function assertNonBoolean<T>(value: T): asserts value is Exclude<T, boolean> {
   }
 }
 
-export const rewriteSchemaPart = (schema: JsonSchemaPart): Schema => {
+export const rewriteSchemaPart = (
+  schema: SchemaValue | SchemaValue[],
+): SchemaValue => {
+  if (typeof schema !== "object" || schema === null) {
+    return schema;
+  }
+
   assertNonBoolean(schema);
+
+  if (Array.isArray(schema)) {
+    // @ts-expect-error -- @todo fix this
+    return schema.map(rewriteSchemaPart);
+  }
 
   const result: Schema = {};
 
@@ -115,7 +129,7 @@ export const rewriteSchemaPart = (schema: JsonSchemaPart): Schema => {
     } else if (typeof value === "object" && value !== null) {
       if (
         "oneOf" in value &&
-        (value as NonNullable<JSONSchema["oneOf"]>).find((option) => {
+        (value.oneOf as NonNullable<JSONSchema["oneOf"]>).find((option) => {
           if (typeof option === "object" && "type" in option) {
             return option.type === "null";
           }
@@ -126,9 +140,16 @@ export const rewriteSchemaPart = (schema: JsonSchemaPart): Schema => {
          * Google doesn't support type: "null", instead it supports nullable: boolean;
          * We need to transform any schema containing oneOf to add nullable: true to all its options.
          */
-        const newOneOf = (value as DereferencedPropertyType).oneOf
-          .filter((option) => "type" in option && option.type !== "null")
-          .map((option: DereferencedPropertyType["oneOf"][number]) => ({
+        const newOneOf = (value.oneOf as NonNullable<JSONSchema["oneOf"]>)
+          .filter((option) => {
+            if (typeof option === "object" && "type" in option) {
+              return option.type !== "null";
+            }
+            return false;
+          })
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+          .map((option: NonNullable<JSONSchema["oneOf"]>[number]) => ({
+            // @ts-expect-error -- @todo fix this
             ...option,
             nullable: true,
           }));
@@ -147,7 +168,7 @@ export const rewriteSchemaPart = (schema: JsonSchemaPart): Schema => {
           );
         }
 
-        (value as DereferencedPropertyType).oneOf =
+        (value.oneOf as NonNullable<JSONSchema["oneOf"]>) =
           mustHaveAtLeastOne(newOneOf);
       }
 
@@ -167,6 +188,7 @@ export const rewriteSchemaForGoogle = (
   const properties: FunctionDeclarationSchema["properties"] = {};
 
   for (const [key, value] of Object.entries(schema.properties ?? {})) {
+    // @ts-expect-error -- @todo fix this
     properties[key] = rewriteSchemaPart(value);
   }
 

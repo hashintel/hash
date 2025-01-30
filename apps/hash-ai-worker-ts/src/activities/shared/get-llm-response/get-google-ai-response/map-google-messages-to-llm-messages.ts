@@ -64,9 +64,9 @@ export const mapGoogleMessagesToLlmMessages = (params: {
           );
         }),
       };
-    } else if (message.role === "assistant") {
+    } else if (message.role === "model") {
       return {
-        role: message.role,
+        role: "assistant",
         content: message.parts.map((part) => {
           if ("functionCall" in part) {
             if (!part.functionCall) {

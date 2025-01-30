@@ -306,7 +306,10 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
 export const getAnthropicResponse = async <ToolName extends string>(
   params: AnthropicLlmParams<ToolName>,
   metadata: LlmRequestMetadata,
-): Promise<LlmResponse<AnthropicLlmParams>> => {
+): Promise<{
+  llmResponse: LlmResponse<AnthropicLlmParams<ToolName>>;
+  transformedRequest?: undefined;
+}> => {
   const {
     tools,
     messages,
@@ -361,10 +364,27 @@ export const getAnthropicResponse = async <ToolName extends string>(
       `Anthropic API error for request ${metadata.requestId}: ${stringifyError(error)}`,
     );
 
+    if (isActivityCancelled()) {
+      return {
+        llmResponse: {
+          status: "aborted",
+          provider: initialProvider,
+        },
+      };
+    }
+
+    const message =
+      "message" in (error as Error)
+        ? (error as Error).message
+        : "Unknown error";
+
     return {
-      status: isActivityCancelled() ? "aborted" : "api-error",
-      provider: initialProvider,
-      error,
+      llmResponse: {
+        status: "api-error",
+        provider: initialProvider,
+        message,
+        error,
+      },
     };
   }
 
@@ -393,13 +413,15 @@ export const getAnthropicResponse = async <ToolName extends string>(
 
   if (anthropicResponse.stop_reason === "max_tokens") {
     return {
-      status: "max-tokens",
-      provider: anthropicResponse.provider,
-      lastRequestTime,
-      totalRequestTime,
-      requestMaxTokens: maxTokens,
-      response: anthropicResponse,
-      usage,
+      llmResponse: {
+        status: "max-tokens",
+        provider: anthropicResponse.provider,
+        lastRequestTime,
+        totalRequestTime,
+        requestMaxTokens: maxTokens,
+        response: anthropicResponse,
+        usage,
+      },
     };
   }
 
@@ -410,15 +432,19 @@ export const getAnthropicResponse = async <ToolName extends string>(
   const retry = async (retryParams: {
     successfullyParsedToolCalls: ParsedLlmToolCall<ToolName>[];
     retryMessageContent: LlmUserMessage["content"];
-  }): Promise<LlmResponse<AnthropicLlmParams>> => {
+  }): Promise<{
+    llmResponse: LlmResponse<AnthropicLlmParams>;
+  }> => {
     if (retryCount > maxRetryCount) {
       return {
-        status: "exceeded-maximum-retries",
-        provider: anthropicResponse.provider,
-        invalidResponses: previousInvalidResponses ?? [],
-        lastRequestTime,
-        totalRequestTime,
-        usage,
+        llmResponse: {
+          status: "exceeded-maximum-retries",
+          provider: anthropicResponse.provider,
+          invalidResponses: previousInvalidResponses ?? [],
+          lastRequestTime,
+          totalRequestTime,
+          usage,
+        },
       };
     }
 
@@ -582,17 +608,19 @@ export const getAnthropicResponse = async <ToolName extends string>(
   }
 
   return {
-    status: "ok",
-    id: anthropicResponse.id,
-    model: anthropicResponse.model,
-    provider: anthropicResponse.provider,
-    type: anthropicResponse.type,
-    stop_sequence: anthropicResponse.stop_sequence,
-    stopReason,
-    message,
-    usage,
-    invalidResponses: previousInvalidResponses ?? [],
-    lastRequestTime,
-    totalRequestTime,
+    llmResponse: {
+      status: "ok",
+      id: anthropicResponse.id,
+      model: anthropicResponse.model,
+      provider: anthropicResponse.provider,
+      type: anthropicResponse.type,
+      stop_sequence: anthropicResponse.stop_sequence,
+      stopReason,
+      message,
+      usage,
+      invalidResponses: previousInvalidResponses ?? [],
+      lastRequestTime,
+      totalRequestTime,
+    },
   };
 };

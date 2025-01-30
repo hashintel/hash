@@ -122,13 +122,13 @@ export const getLlmResponse = async <T extends LlmParams>(
     stepId,
   };
 
-  const llmResponse = (
-    isLlmParamsAnthropicLlmParams(llmParams)
-      ? await getAnthropicResponse(llmParams, metadata)
-      : isLlmParamsGoogleAiParams(llmParams)
-        ? await getGoogleAiResponse(llmParams, metadata)
-        : await getOpenAiResponse(llmParams, metadata)
-  ) as LlmResponse<T>;
+  const { llmResponse, transformedRequest } = isLlmParamsAnthropicLlmParams(
+    llmParams,
+  )
+    ? await getAnthropicResponse(llmParams, metadata)
+    : isLlmParamsGoogleAiParams(llmParams)
+      ? await getGoogleAiResponse(llmParams, metadata)
+      : await getOpenAiResponse(llmParams, metadata);
 
   const timeAfterApiCall = Date.now();
 
@@ -279,6 +279,7 @@ export const getLlmResponse = async <T extends LlmParams>(
     secondsTaken: numberOfSeconds,
     request: llmParams,
     response: llmResponse,
+    transformedRequest,
   });
 
   return llmResponse;

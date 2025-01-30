@@ -205,7 +205,10 @@ const openAiChatCompletionWithBackoff = async (params: {
 export const getOpenAiResponse = async <ToolName extends string>(
   params: OpenAiLlmParams<ToolName>,
   metadata: LlmRequestMetadata,
-): Promise<LlmResponse<OpenAiLlmParams>> => {
+): Promise<{
+  llmResponse: LlmResponse<OpenAiLlmParams<ToolName>>;
+  transformedRequest?: undefined;
+}> => {
   const {
     tools,
     trimMessageAtIndex,
@@ -307,10 +310,27 @@ export const getOpenAiResponse = async <ToolName extends string>(
   } catch (error) {
     logger.error(`OpenAI API error: ${stringifyError(error)}`);
 
+    if (isActivityCancelled()) {
+      return {
+        llmResponse: {
+          status: "aborted",
+          provider: "openai",
+        },
+      };
+    }
+
+    const message =
+      "message" in (error as Error)
+        ? (error as Error).message
+        : "Unknown error";
+
     return {
-      status: isActivityCancelled() ? "aborted" : "api-error",
-      provider: "openai",
-      error,
+      llmResponse: {
+        status: "api-error",
+        provider: "openai",
+        message,
+        error,
+      },
     };
   }
 
@@ -349,15 +369,19 @@ export const getOpenAiResponse = async <ToolName extends string>(
   const retry = async (retryParams: {
     successfullyParsedToolCalls: ParsedLlmToolCall<ToolName>[];
     retryMessageContent: LlmUserMessage["content"];
-  }): Promise<LlmResponse<OpenAiLlmParams>> => {
+  }): Promise<{
+    llmResponse: LlmResponse<OpenAiLlmParams>;
+  }> => {
     if (retryCount > maxRetryCount) {
       return {
-        status: "exceeded-maximum-retries",
-        provider: "openai",
-        invalidResponses: previousInvalidResponses ?? [],
-        lastRequestTime,
-        totalRequestTime,
-        usage,
+        llmResponse: {
+          status: "exceeded-maximum-retries",
+          provider: "openai",
+          invalidResponses: previousInvalidResponses ?? [],
+          lastRequestTime,
+          totalRequestTime,
+          usage,
+        },
       };
     }
 
@@ -457,13 +481,15 @@ export const getOpenAiResponse = async <ToolName extends string>(
 
   if (firstChoice.finish_reason === "length") {
     return {
-      status: "max-tokens",
-      provider: "openai",
-      response: openAiResponse,
-      requestMaxTokens: params.max_tokens ?? undefined,
-      lastRequestTime,
-      totalRequestTime,
-      usage,
+      llmResponse: {
+        status: "max-tokens",
+        provider: "openai",
+        response: openAiResponse,
+        requestMaxTokens: params.max_tokens ?? undefined,
+        lastRequestTime,
+        totalRequestTime,
+        usage,
+      },
     };
   }
 
@@ -623,5 +649,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
       ) ?? currentRequestTime,
   };
 
-  return response;
+  return {
+    llmResponse: response,
+  };
 };

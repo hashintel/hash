@@ -13,7 +13,9 @@ export type LlmMessageTextContent = {
 
 export type LlmFileMessageContent = {
   type: "file";
-  fileEntity: Pick<Entity<File>, "entityId" | "properties">;
+  fileEntity: Pick<Entity<File>, "entityId" | "properties"> & {
+    metadata?: undefined;
+  };
 };
 
 export type LlmMessageToolUseContent<ToolName = string> = {
