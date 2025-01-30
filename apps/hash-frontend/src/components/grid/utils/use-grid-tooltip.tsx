@@ -158,6 +158,7 @@ export const useGridTooltip = (
         PaperProps={{
           sx: {
             p: 0,
+            borderRadius: 2,
           },
         }}
       >
@@ -179,7 +180,10 @@ export const useGridTooltip = (
             </Typography>
           </Box>
         ) : (
-          <Box ref={tooltipRef} sx={{ maxWidth: bounds?.width }}>
+          <Box
+            ref={tooltipRef}
+            sx={{ maxWidth: bounds?.width, borderRadius: 2 }}
+          >
             {gridTooltip.content}
           </Box>
         )}

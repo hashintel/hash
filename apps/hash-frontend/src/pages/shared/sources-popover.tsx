@@ -39,31 +39,30 @@ export const SourcesList = ({ sources }: { sources: SourceProvenance[] }) => {
                 p: 1.5,
               })}
             >
-              <Typography
-                sx={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                {source.location?.name ?? "Unknown"}
-              </Typography>
-              <Box mt={0.5} sx={{ lineHeight: 1 }}>
-                {sourceUrl ? (
-                  <Link
-                    href={sourceUrl}
-                    target="_blank"
-                    sx={{
-                      fontSize: 13,
-                      textDecoration: "none",
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {sourceUrl}
-                  </Link>
-                ) : (
-                  "Unknown"
-                )}
-              </Box>
+              {sourceUrl ? (
+                <Link
+                  href={sourceUrl}
+                  target="_blank"
+                  sx={{
+                    display: "block",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    textDecoration: "none",
+                  }}
+                >
+                  {source.location?.name ?? sourceUrl}
+                </Link>
+              ) : (
+                <Typography
+                  sx={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  {source.location?.name ?? "[Unknown title]"}
+                </Typography>
+              )}
             </Box>
           );
         })}
