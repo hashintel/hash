@@ -38,8 +38,8 @@ uuid         = { workspace = true, features = ["v4"] }
 tokio = { workspace = true, features = ["macros"] }
 
 [features]
-utoipa   = ["hash-graph-temporal-versioning/utoipa", "dep:utoipa"]
-postgres = ["hash-graph-temporal-versioning/postgres", "dep:postgres-types", "dep:tokio-postgres", "dep:bytes"]
+utoipa   = ["hash-graph-temporal-versioning/utoipa", "hash-codec/utoipa", "dep:utoipa"]
+postgres = ["hash-graph-temporal-versioning/postgres", "hash-codec/postgres", "dep:postgres-types", "dep:tokio-postgres", "dep:bytes"]
 
 [lints]
 workspace = true
