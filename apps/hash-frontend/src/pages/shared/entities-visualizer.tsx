@@ -652,7 +652,7 @@ export const EntitiesVisualizer: FunctionComponent<{
             />
           </Box>
         ) : view === "Grid" ? (
-          <GridView entities={entities} />
+          <GridView entities={entities} onEntityClick={handleEntityClick} />
         ) : (
           <EntitiesTable
             activeConversions={activeConversions}

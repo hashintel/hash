@@ -222,15 +222,15 @@ export const useFreezeScrollWhileTransitioning = () => {
   return ref;
 };
 
-export const EditBarContainer = styled(Box)<{ hasErrors?: boolean }>(
-  ({ hasErrors, theme }) => ({
-    height: EDIT_BAR_HEIGHT,
-    backgroundColor: hasErrors ? theme.palette.red[70] : theme.palette.blue[70],
-    color: theme.palette.white,
-    display: "flex",
-    alignItems: "center",
-  }),
-);
+export const EditBarContainer = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "hasErrors",
+})<{ hasErrors?: boolean }>(({ hasErrors, theme }) => ({
+  height: EDIT_BAR_HEIGHT,
+  backgroundColor: hasErrors ? theme.palette.red[70] : theme.palette.blue[70],
+  color: theme.palette.white,
+  display: "flex",
+  alignItems: "center",
+}));
 
 export const EditBarCollapse = styled(Collapse)(({ theme }) => ({
   position: "sticky",
