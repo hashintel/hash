@@ -202,6 +202,7 @@ mod codec {
         Variable(Variable),
         Constant {
             #[serde(rename = "const")]
+            #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
             value: Real,
             #[cfg_attr(feature = "utoipa", schema(inline))]
             r#type: NumberTypeTag,

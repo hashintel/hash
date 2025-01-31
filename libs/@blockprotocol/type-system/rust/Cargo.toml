@@ -30,7 +30,6 @@ uuid             = { workspace = true, public = true, features = ["v5", "serde",
 # Private workspace dependencies
 
 # Private third-party dependencies
-bigdecimal  = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true, features = ["display", "error", "from"] }
 futures     = { workspace = true }
 itertools   = { workspace = true, features = ["use_alloc"] }

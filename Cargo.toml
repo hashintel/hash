@@ -97,7 +97,6 @@ bumpalo            = { version = "=3.16.0", default-features = false }
 bytes              = { version = "=1.9.0" }
 clap_builder       = { version = "=4.5.27", default-features = false, features = ["std"] }
 criterion          = { version = "=0.5.1" }
-dashu              = { version = "=0.4.2", default-features = false }
 dashu-base         = { version = "=0.4.1", default-features = false }
 dashu-float        = { version = "=0.4.3", default-features = false }
 deadpool           = { version = "=0.12.1", default-features = false }
@@ -160,7 +159,6 @@ async-scoped             = { version = "=0.9.0", default-features = false }
 async-trait              = { version = "=0.1.85", default-features = false }
 aws-config               = { version = "=1.5.15" }
 aws-sdk-s3               = { version = "=1.71.0", default-features = false }
-bigdecimal               = { version = "=0.4.7", default-features = false }
 bitvec                   = { version = "=1.0.1", default-features = false }
 bytes-utils              = { version = "=0.1.4", default-features = false }
 clap                     = { version = "=4.5.27", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
@@ -186,7 +184,6 @@ lexical                  = { version = "=7.0.4", default-features = false }
 libp2p                   = { version = "=0.55.0", default-features = false }
 libp2p-stream            = { version = "=0.3.0-alpha", default-features = false }
 logos                    = { version = "=0.15.0", default-features = false }
-malachite-float          = { version = "=0.4.18", default-features = false }
 memchr                   = { version = "=2.7.4", default-features = false }
 mimalloc                 = { version = "=0.1.43", default-features = false }
 mime                     = { version = "=0.3.17", default-features = false }
@@ -275,7 +272,6 @@ strip    = "none"
 future_incompatible = { level = "warn", priority = -1 }
 nonstandard_style   = { level = "warn", priority = -1 }
 
-linker_messages = "allow"
 unreachable_pub = "warn"
 unsafe_code     = "deny"
 
