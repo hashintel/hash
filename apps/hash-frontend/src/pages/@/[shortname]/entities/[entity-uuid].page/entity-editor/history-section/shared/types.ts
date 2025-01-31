@@ -2,6 +2,7 @@ import type {
   EntityEditionProvenance,
   EntityType,
   PropertyDiff,
+  PropertyMetadata,
   PropertyProvenance,
   PropertyType,
 } from "@local/hash-graph-client";
@@ -24,6 +25,7 @@ type CreationEvent = HistoryEventBase & {
 type PropertyUpdateEvent = HistoryEventBase & {
   type: "property-update";
   diff: PropertyDiff;
+  metadata: PropertyMetadata;
   propertyType: PropertyType;
   provenance: {
     edition: EntityEditionProvenance;
