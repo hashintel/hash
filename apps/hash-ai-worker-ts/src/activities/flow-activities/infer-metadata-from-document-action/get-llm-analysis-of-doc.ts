@@ -468,7 +468,6 @@ export const getLlmAnalysisOfDoc = async ({
     {
       model: "gemini-1.5-pro-002",
       messages: [message],
-      toolChoice: "required",
       tools: [
         {
           name: "provideDocumentMetadata" as const,
