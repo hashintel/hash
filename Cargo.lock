@@ -6807,6 +6807,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_combinators"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0de5fb30ae2918667d3cee99ef4b112f1f7ca0a6c58fa349d7d9e76035c72f8b"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_derive"
 version = "1.0.217"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7409,11 +7418,12 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz"
-version = "7.0.2"
+version = "7.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05bbd25ff0dc83e6388300f12fb5a82f6183b689d52cf5899da7ae70d75dec69"
+checksum = "13b092bf18815b5fcfadc8b15d4644d5d68b4d761b32ac1192912e3241aa45f7"
 dependencies = [
  "serde",
+ "serde_combinators",
  "test-fuzz-internal",
  "test-fuzz-macro",
  "test-fuzz-runtime",
@@ -7421,9 +7431,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-internal"
-version = "7.0.2"
+version = "7.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ed9da48c18ee185cf7d7961de0b6138199e25e95f556bdb90bfb87217f8ee7e"
+checksum = "f04fc3fa0293849f8762c3e8427cb11a73b8bfc2157f2713029d93df554da052"
 dependencies = [
  "bincode",
  "cargo_metadata",
@@ -7432,14 +7442,13 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-macro"
-version = "7.0.2"
+version = "7.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85f01568271699270f63da1fa5be9e96c5ef902d0f5c062d9d2ef48a7437efc1"
+checksum = "fcc398c37df7cf559845f32bcf694b3984e0378887dc2e177775a7a918ee7110"
 dependencies = [
  "darling",
  "heck 0.5.0",
  "itertools 0.14.0",
- "once_cell",
  "prettyplease",
  "proc-macro2",
  "quote",
@@ -7448,9 +7457,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-runtime"
-version = "7.0.2"
+version = "7.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c819230994d2f7e2b5f68ef96e4f178cff28e97a86b2c1428a33677899e5cce6"
+checksum = "2dede21a17233c03fdb704ea831e4a6b52da877f54e8bc273f74eee47903d446"
 dependencies = [
  "hex",
  "num-traits",
