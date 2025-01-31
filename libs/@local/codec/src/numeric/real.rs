@@ -1,6 +1,6 @@
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{fmt, hash::Hash, ops, str::FromStr as _};
+use core::{fmt, ops, str::FromStr as _};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
@@ -45,12 +45,6 @@ impl Real {
     #[must_use]
     pub fn to_f64(&self) -> f64 {
         self.0.to_f64().value()
-    }
-}
-
-impl Hash for Real {
-    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        self.0.to_string().hash(state);
     }
 }
 

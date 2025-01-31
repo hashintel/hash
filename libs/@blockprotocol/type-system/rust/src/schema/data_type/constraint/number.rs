@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use alloc::collections::BTreeSet;
 
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, bail, ensure};
 use hash_codec::numeric::Real;
@@ -71,7 +71,7 @@ pub enum NumberSchema {
     },
     Enum {
         #[cfg_attr(target_arch = "wasm32", tsify(type = "[number, ...number[]]"))]
-        r#enum: HashSet<Real>,
+        r#enum: BTreeSet<Real>,
     },
 }
 
@@ -128,7 +128,7 @@ impl Constraint for NumberSchema {
                     .iter()
                     .filter(|&value| constraints.is_valid(value))
                     .cloned()
-                    .collect::<HashSet<_>>();
+                    .collect::<BTreeSet<_>>();
 
                 match passed.len() {
                     0 => {
@@ -185,7 +185,7 @@ impl Constraint for NumberSchema {
                 }
             }
             (Self::Enum { r#enum: lhs }, Self::Enum { r#enum: rhs }) => {
-                let intersection = lhs.intersection(&rhs).cloned().collect::<HashSet<_>>();
+                let intersection = lhs.intersection(&rhs).cloned().collect::<BTreeSet<_>>();
 
                 match intersection.len() {
                     0 => bail!(ResolveClosedDataTypeError::ConflictingEnumValues(

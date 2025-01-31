@@ -190,7 +190,7 @@ mod raw {
             base: DataTypeBase,
             #[serde(flatten)]
             metadata: ValueSchemaMetadata,
-            r#enum: HashSet<Real>,
+            r#enum: BTreeSet<Real>,
         },
         String {
             r#type: StringTypeTag,
