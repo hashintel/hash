@@ -1,6 +1,7 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
+  Either,
   Equal,
   Hash,
   HashSet,
@@ -10,8 +11,8 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../../../utils.js";
-import * as Buffer from "../../Buffer.js";
+import { createProto, implDecode, implEncode } from "../../../utils.js";
+import { MutableBuffer } from "../../../binary/index.js";
 
 import type * as RequestBody from "./RequestBody.js";
 
@@ -108,20 +109,15 @@ export const repr = (flags: RequestFlags) => {
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, flags: RequestFlags) =>
-    Effect.gen(function* () {
-      const value = repr(flags);
-
-      return yield* Buffer.putU8(buffer, value);
-    }),
+export const encode = implEncode((buffer, flags: RequestFlags) =>
+  MutableBuffer.putU8(buffer, repr(flags)),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
-    const value = yield* Buffer.getU8(buffer);
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
+    const value = yield* MutableBuffer.getU8(buffer);
 
     const flags = HashSet.empty<Flag>().pipe(HashSet.beginMutation);
 
@@ -134,7 +130,8 @@ export const decode = (buffer: Buffer.ReadBuffer) =>
     }
 
     return makeUnchecked(flags.pipe(HashSet.endMutation));
-  });
+  }),
+);
 
 export const isRequestFlags = (value: unknown): value is RequestFlags =>
   Predicate.hasProperty(value, TypeId);

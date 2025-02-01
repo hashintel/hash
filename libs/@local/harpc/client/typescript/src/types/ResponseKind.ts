@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/prevent-abbreviations -- same name as Rust reference implementation */
 import {
-  Effect,
+  type Effect,
+  Either,
   Equal,
   type FastCheck,
   Function,
@@ -12,8 +13,8 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../utils.js";
-import * as Buffer from "../wire-protocol/Buffer.js";
+import { createProto, implDecode, implEncode } from "../utils.js";
+import { MutableBuffer } from "../binary/index.js";
 
 import * as ErrorCode from "./ErrorCode.js";
 
@@ -126,31 +127,28 @@ export type ResponseKind = Ok | Err;
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, kind: ResponseKind) =>
-    Effect.gen(function* () {
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      if (isOk(kind)) {
-        return yield* Buffer.putU16(buffer, 0);
-      }
-
-      return yield* ErrorCode.encode(buffer, kind.code);
-    }),
+export const encode = implEncode((buffer, kind: ResponseKind) =>
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  isOk(kind)
+    ? MutableBuffer.putU16(buffer, 0)
+    : ErrorCode.encode(buffer, kind.code),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
-    const value = yield* Buffer.getU16(buffer);
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
+    const value = yield* MutableBuffer.getU16(buffer);
 
     if (value === 0) {
       return ok();
     }
+
     const code = ErrorCode.makeUnchecked(value);
 
     return err(code);
-  });
+  }),
+);
 
 export const isResponseKind = (value: unknown): value is ResponseKind =>
   Predicate.hasProperty(value, TypeId);

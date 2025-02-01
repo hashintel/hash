@@ -1,6 +1,7 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
+  Either,
   Equal,
   Hash,
   Inspectable,
@@ -9,8 +10,8 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../../../utils.js";
-import * as Buffer from "../../Buffer.js";
+import { createProto, implDecode, implEncode } from "../../../utils.js";
+import { MutableBuffer } from "../../../binary/index.js";
 import * as Payload from "../Payload.js";
 
 const TypeId: unique symbol = Symbol(
@@ -72,24 +73,24 @@ export const make = (payload: Payload.Payload): RequestFrame =>
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, frame: RequestFrame) =>
-    pipe(
-      buffer,
-      Buffer.advance(19),
-      Effect.andThen(Payload.encode(frame.payload)),
-    ),
+export const encode = implEncode((buffer, frame: RequestFrame) =>
+  pipe(
+    buffer,
+    MutableBuffer.advance(19),
+    Either.andThen(Payload.encode(frame.payload)),
+  ),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
-    yield* Buffer.advance(buffer, 19);
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
+    yield* MutableBuffer.advance(buffer, 19);
     const payload = yield* Payload.decode(buffer);
 
     return make(payload);
-  });
+  }),
+);
 
 export const isRequestFrame = (value: unknown): value is RequestFrame =>
   Predicate.hasProperty(value, TypeId);

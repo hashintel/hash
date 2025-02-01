@@ -1,7 +1,7 @@
 import {
   type FastCheck,
   type Option,
-  Effect,
+  type Effect,
   Either,
   Equal,
   Function,
@@ -12,8 +12,7 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../../../utils.js";
-import type * as Buffer from "../../Buffer.js";
+import { createProto, implDecode, implEncode } from "../../../utils.js";
 
 import * as ResponseBegin from "./ResponseBegin.js";
 import * as ResponseFrame from "./ResponseFrame.js";
@@ -136,37 +135,36 @@ export const mapBoth: {
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, body: ResponseBody) =>
-    match(body, {
-      onBegin: (begin) => ResponseBegin.encode(buffer, begin),
-      onFrame: (frame) => ResponseFrame.encode(buffer, frame),
-    }),
+export const encode = implEncode((buffer, body: ResponseBody) =>
+  match(body, {
+    onBegin: (begin) => ResponseBegin.encode(buffer, begin),
+    onFrame: (frame) => ResponseFrame.encode(buffer, frame),
+  }),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Effect.Effect.Error<
+  ReturnType<ReturnType<typeof decode>>
+>;
 
-export const decode = (
-  buffer: Buffer.ReadBuffer,
-  variantHint: ResponseBodyVariant,
-) => {
-  switch (variantHint) {
-    case "ResponseBegin": {
-      return pipe(
-        buffer,
-        ResponseBegin.decode,
-        Effect.andThen((begin) => make(Either.right(begin))),
-      );
+export const decode = (variantHint: ResponseBodyVariant) =>
+  implDecode((buffer) => {
+    switch (variantHint) {
+      case "ResponseBegin": {
+        return pipe(
+          buffer,
+          ResponseBegin.decode,
+          Either.andThen((begin) => make(Either.right(begin))),
+        );
+      }
+      case "ResponseFrame": {
+        return pipe(
+          buffer,
+          ResponseFrame.decode,
+          Either.andThen((frame) => make(Either.left(frame))),
+        );
+      }
     }
-    case "ResponseFrame": {
-      return pipe(
-        buffer,
-        ResponseFrame.decode,
-        Effect.andThen((frame) => make(Either.left(frame))),
-      );
-    }
-  }
-};
+  });
 
 export const variant = (body: ResponseBody): ResponseBodyVariant =>
   match(body, {

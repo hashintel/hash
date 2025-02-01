@@ -2,7 +2,7 @@ import { NodeContext } from "@effect/platform-node";
 import { type TestContext, describe, it } from "@effect/vitest";
 import { Effect, Option, Predicate, Schema } from "effect";
 
-import { Buffer } from "../../src/wire-protocol/index.js";
+import { MutableBuffer } from "../../src/binary/index.js";
 import {
   Request,
   RequestBegin,
@@ -120,11 +120,11 @@ describe.concurrent("encode", () => {
     { header: RequestHeaderFromSelf },
     ({ header }, cx) =>
       Effect.gen(function* () {
-        const buffer = yield* Buffer.makeWrite();
+        const buffer = MutableBuffer.makeWrite();
 
         yield* RequestHeader.encode(buffer, header);
 
-        const array = yield* Buffer.take(buffer);
+        const array = MutableBuffer.take(buffer);
         const received = yield* callEncode(
           "request-header",
           new Uint8Array(array),
@@ -139,11 +139,11 @@ describe.concurrent("encode", () => {
     { begin: RequestBeginFromSelf },
     ({ begin }, cx) =>
       Effect.gen(function* () {
-        const buffer = yield* Buffer.makeWrite();
+        const buffer = MutableBuffer.makeWrite();
 
         yield* RequestBegin.encode(buffer, begin);
 
-        const array = yield* Buffer.take(buffer);
+        const array = MutableBuffer.take(buffer);
         const received = yield* callEncode(
           "request-begin",
           new Uint8Array(array),
@@ -158,11 +158,11 @@ describe.concurrent("encode", () => {
     { frame: RequestFrameFromSelf },
     ({ frame }, cx) =>
       Effect.gen(function* () {
-        const buffer = yield* Buffer.makeWrite();
+        const buffer = MutableBuffer.makeWrite();
 
         yield* RequestFrame.encode(buffer, frame);
 
-        const array = yield* Buffer.take(buffer);
+        const array = MutableBuffer.take(buffer);
         const received = yield* callEncode(
           "request-frame",
           new Uint8Array(array),
@@ -177,11 +177,11 @@ describe.concurrent("encode", () => {
     { request: RequestFromSelf },
     ({ request }, cx) =>
       Effect.gen(function* () {
-        const buffer = yield* Buffer.makeWrite();
+        const buffer = MutableBuffer.makeWrite();
 
         yield* Request.encode(buffer, request);
 
-        const array = yield* Buffer.take(buffer);
+        const array = MutableBuffer.take(buffer);
         const received = yield* callEncode("request", new Uint8Array(array));
 
         assertRequest(cx, request, received as RequestData);
