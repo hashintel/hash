@@ -9,7 +9,6 @@ mod string;
 
 use error_stack::{Report, bail};
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 
 pub use self::{
     any_of::AnyOfConstraints,
@@ -24,7 +23,10 @@ pub use self::{
         StringValidationError,
     },
 };
-use crate::schema::{ValueLabel, data_type::closed::ResolveClosedDataTypeError};
+use crate::{
+    Value,
+    schema::{ValueLabel, data_type::closed::ResolveClosedDataTypeError},
+};
 
 pub trait Constraint: Sized {
     /// Combines the current constraints with the provided one.
@@ -160,17 +162,17 @@ impl Constraint for ValueConstraints {
     }
 }
 
-impl ConstraintValidator<JsonValue> for ValueConstraints {
+impl ConstraintValidator<Value> for ValueConstraints {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &JsonValue) -> bool {
+    fn is_valid(&self, value: &Value) -> bool {
         match self {
             Self::Typed(constraints) => constraints.is_valid(value),
             Self::AnyOf(constraints) => constraints.is_valid(value),
         }
     }
 
-    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Typed(constraints) => constraints.validate_value(value),
             Self::AnyOf(constraints) => constraints.validate_value(value),
@@ -213,10 +215,10 @@ impl Constraint for SingleValueConstraints {
     }
 }
 
-impl ConstraintValidator<JsonValue> for SingleValueConstraints {
+impl ConstraintValidator<Value> for SingleValueConstraints {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &JsonValue) -> bool {
+    fn is_valid(&self, value: &Value) -> bool {
         match self {
             Self::Null => NullSchema.is_valid(value),
             Self::Boolean => BooleanSchema.is_valid(value),
@@ -227,7 +229,7 @@ impl ConstraintValidator<JsonValue> for SingleValueConstraints {
         }
     }
 
-    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Null => NullSchema.validate_value(value),
             Self::Boolean => BooleanSchema.validate_value(value),
@@ -321,21 +323,25 @@ mod tests {
         parsed
     }
 
-    pub(crate) fn check_constraints(schema: &ValueConstraints, value: &JsonValue) {
-        assert!(schema.is_valid(value));
+    pub(crate) fn check_constraints(schema: &ValueConstraints, value: JsonValue) {
+        let value = serde_json::from_value(value).expect("should be a valid value");
         schema
-            .validate_value(value)
+            .validate_value(&value)
+            .expect("schema should be valid");
+        schema
+            .validate_value(&value)
             .expect("Failed to validate value");
     }
 
     pub(crate) fn check_constraints_error<E: Display + Send + Sync + 'static>(
         schema: &ValueConstraints,
-        value: &JsonValue,
+        value: JsonValue,
         expected_errors: impl IntoIterator<Item = E>,
     ) {
-        assert!(!schema.is_valid(value));
+        let value = serde_json::from_value(value).expect("should be a valid value");
+        assert!(!schema.is_valid(&value));
         let err = schema
-            .validate_value(value)
+            .validate_value(&value)
             .expect_err("Expected validation error");
         let errors = expected_errors
             .into_iter()

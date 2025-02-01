@@ -16,6 +16,7 @@
     "@rust/harpc-system": "0.0.0-private",
     "@rust/harpc-tower": "0.0.0-private",
     "@rust/harpc-types": "0.0.0-private",
+    "@rust/hash-codec": "0.0.0-private",
     "@rust/hash-graph-authorization": "0.0.0-private",
     "@rust/hash-graph-postgres-store": "0.0.0-private",
     "@rust/hash-graph-store": "0.0.0-private",

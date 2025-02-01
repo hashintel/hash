@@ -1,13 +1,15 @@
+use std::collections::HashMap;
+
 use error_stack::{Report, ResultExt as _, bail};
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 use thiserror::Error;
 
-type JsonObject = serde_json::Map<String, JsonValue>;
-
-use crate::schema::{
-    ConstraintError, ConstraintValidator, JsonSchemaValueType,
-    data_type::{closed::ResolveClosedDataTypeError, constraint::Constraint},
+use crate::{
+    Value,
+    schema::{
+        ConstraintError, ConstraintValidator, JsonSchemaValueType,
+        data_type::{closed::ResolveClosedDataTypeError, constraint::Constraint},
+    },
 };
 
 #[derive(Debug, Error)]
@@ -43,19 +45,19 @@ impl Constraint for ObjectSchema {
     }
 }
 
-impl ConstraintValidator<JsonValue> for ObjectSchema {
+impl ConstraintValidator<Value> for ObjectSchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &JsonValue) -> bool {
-        if let JsonValue::Object(object) = value {
+    fn is_valid(&self, value: &Value) -> bool {
+        if let Value::Object(object) = value {
             self.is_valid(object)
         } else {
             false
         }
     }
 
-    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
-        if let JsonValue::Object(object) = value {
+    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
+        if let Value::Object(object) = value {
             self.validate_value(object)
         } else {
             bail!(ConstraintError::InvalidType {
@@ -66,16 +68,19 @@ impl ConstraintValidator<JsonValue> for ObjectSchema {
     }
 }
 
-impl ConstraintValidator<JsonObject> for ObjectSchema {
+impl ConstraintValidator<HashMap<String, Value>> for ObjectSchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &JsonObject) -> bool {
+    fn is_valid(&self, value: &HashMap<String, Value>) -> bool {
         match self {
             Self::Constrained(constraints) => constraints.is_valid(value),
         }
     }
 
-    fn validate_value(&self, value: &JsonObject) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(
+        &self,
+        value: &HashMap<String, Value>,
+    ) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Constrained(constraints) => constraints
                 .validate_value(value)
@@ -98,14 +103,17 @@ impl Constraint for ObjectConstraints {
     }
 }
 
-impl ConstraintValidator<JsonObject> for ObjectConstraints {
+impl ConstraintValidator<HashMap<String, Value>> for ObjectConstraints {
     type Error = [ObjectValidationError];
 
-    fn is_valid(&self, _value: &JsonObject) -> bool {
+    fn is_valid(&self, _value: &HashMap<String, Value>) -> bool {
         true
     }
 
-    fn validate_value(&self, _value: &JsonObject) -> Result<(), Report<[ObjectValidationError]>> {
+    fn validate_value(
+        &self,
+        _value: &HashMap<String, Value>,
+    ) -> Result<(), Report<[ObjectValidationError]>> {
         Ok(())
     }
 }

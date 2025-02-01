@@ -15,7 +15,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 # Public workspace dependencies
 error-stack = { workspace = true, public = true, features = ["unstable"] }
-hash-codec  = { workspace = true, public = true, features = ["serde"] }
+hash-codec  = { workspace = true, public = true, features = ["serde", "numeric"] }
 
 # Public third-party dependencies
 bytes            = { workspace = true, public = true }
@@ -28,11 +28,11 @@ utoipa           = { workspace = true, public = true, features = ["url"], option
 uuid             = { workspace = true, public = true, features = ["v5", "serde", "std"] }
 
 # Private workspace dependencies
-futures   = { workspace = true }
-itertools = { workspace = true, features = ["use_alloc"] }
 
 # Private third-party dependencies
 derive_more = { workspace = true, features = ["display", "error", "from"] }
+futures     = { workspace = true }
+itertools   = { workspace = true, features = ["use_alloc"] }
 regex       = { workspace = true, features = ["std"] }
 serde       = { workspace = true, features = ["derive", "rc"] }
 thiserror   = { workspace = true }

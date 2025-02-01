@@ -4,5 +4,7 @@ extern crate alloc;
 pub mod bytes;
 #[cfg(feature = "harpc")]
 pub mod harpc;
+#[cfg(feature = "numeric")]
+pub mod numeric;
 #[cfg(feature = "serde")]
 pub mod serde;

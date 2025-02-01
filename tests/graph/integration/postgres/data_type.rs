@@ -1,6 +1,7 @@
 use core::str::FromStr as _;
 use std::collections::{HashMap, HashSet};
 
+use hash_codec::numeric::Real;
 use hash_graph_postgres_store::store::error::{
     BaseUrlAlreadyExists, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
     VersionedUrlAlreadyExists,
@@ -30,9 +31,9 @@ use hash_graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use serde_json::json;
 use time::OffsetDateTime;
 use type_system::{
+    Value,
     schema::{DataType, DataTypeUuid},
     url::{BaseUrl, VersionedUrl},
 };
@@ -279,7 +280,7 @@ async fn inheritance() {
                     )
                     .expect("couldn't construct Base URL"),
                     PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: json!(5),
+                        value: Value::Number(Real::from(5)),
                         metadata: ValueMetadata {
                             provenance: PropertyProvenance::default(),
                             confidence: None,
@@ -317,7 +318,7 @@ async fn inheritance() {
                 BaseUrl::new("http://localhost:3000/@alice/types/property-type/length/".to_owned())
                     .expect("couldn't construct Base URL"),
                 PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!(10),
+                    value: Value::Number(Real::from(10)),
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: None,
@@ -353,7 +354,7 @@ async fn inheritance() {
                 BaseUrl::new("http://localhost:3000/@alice/types/property-type/length/".to_owned())
                     .expect("couldn't construct Base URL"),
                 PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!(10),
+                    value: Value::Number(Real::from(10)),
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: None,

@@ -1,11 +1,10 @@
 use core::str::FromStr as _;
 use std::{collections::HashSet, sync::LazyLock};
 
-use serde_json::Value as JsonValue;
 use thiserror::Error;
 
 use crate::{
-    Valid, Validator,
+    Valid, Validator, Value,
     schema::{ClosedDataType, DataType, DataTypeReference},
     url::VersionedUrl,
 };
@@ -14,8 +13,8 @@ use crate::{
 pub enum ValidateDataTypeError {
     #[error("Enum values are not compatible with `const` value")]
     EnumValuesNotCompatibleWithConst {
-        const_value: JsonValue,
-        enum_values: Vec<JsonValue>,
+        const_value: Value,
+        enum_values: Vec<Value>,
     },
     #[error("Missing data type `{data_type_id}`")]
     MissingDataType { data_type_id: VersionedUrl },

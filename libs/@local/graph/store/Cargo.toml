@@ -18,6 +18,7 @@ tokio-postgres = { workspace = true, public = true, optional = true }
 utoipa         = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
+hash-codec                     = { workspace = true, features = ["numeric"] }
 hash-graph-temporal-versioning = { workspace = true }
 hash-graph-types               = { workspace = true }
 type-system                    = { workspace = true }
@@ -37,8 +38,8 @@ uuid         = { workspace = true, features = ["v4"] }
 tokio = { workspace = true, features = ["macros"] }
 
 [features]
-utoipa   = ["hash-graph-temporal-versioning/utoipa", "dep:utoipa"]
-postgres = ["hash-graph-temporal-versioning/postgres", "dep:postgres-types", "dep:tokio-postgres", "dep:bytes"]
+utoipa   = ["hash-graph-temporal-versioning/utoipa", "type-system/utoipa", "dep:utoipa"]
+postgres = ["hash-graph-temporal-versioning/postgres", "type-system/postgres", "dep:postgres-types", "dep:tokio-postgres", "dep:bytes"]
 
 [lints]
 workspace = true

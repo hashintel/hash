@@ -27,8 +27,8 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 use hash_graph_types::knowledge::entity::Entity;
-use serde_json::Value;
 use tokio_postgres::Row;
+use type_system::Value;
 
 pub use self::{
     compile::{SelectCompiler, SelectCompilerError},

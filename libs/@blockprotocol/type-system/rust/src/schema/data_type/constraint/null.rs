@@ -1,10 +1,12 @@
 use error_stack::{Report, bail};
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 
-use crate::schema::{
-    ConstraintError, ConstraintValidator, JsonSchemaValueType,
-    data_type::{closed::ResolveClosedDataTypeError, constraint::Constraint},
+use crate::{
+    Value,
+    schema::{
+        ConstraintError, ConstraintValidator, JsonSchemaValueType,
+        data_type::{closed::ResolveClosedDataTypeError, constraint::Constraint},
+    },
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,15 +28,15 @@ impl Constraint for NullSchema {
     }
 }
 
-impl ConstraintValidator<JsonValue> for NullSchema {
+impl ConstraintValidator<Value> for NullSchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &JsonValue) -> bool {
-        value.is_null()
+    fn is_valid(&self, value: &Value) -> bool {
+        *value == Value::Null
     }
 
-    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
-        if value.is_null() {
+    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
+        if self.is_valid(value) {
             Ok(())
         } else {
             bail!(ConstraintError::InvalidType {

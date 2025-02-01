@@ -4,7 +4,7 @@ use serde::Serialize;
 
 use crate::knowledge::property::{Property, PropertyPath};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "op")]
 pub enum PropertyDiff<'e> {

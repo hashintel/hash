@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::{
+    Value,
+    url::{BaseUrl, VersionedUrl},
+};
 
 use crate::knowledge::{Confidence, property::PropertyProvenance};
 
@@ -21,13 +24,13 @@ pub struct ValueMetadata {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub original_data_type_id: Option<VersionedUrl>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub canonical: HashMap<BaseUrl, serde_json::Value>,
+    pub canonical: HashMap<BaseUrl, Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyWithMetadataValue {
-    pub value: serde_json::Value,
+    pub value: Value,
     pub metadata: ValueMetadata,
 }
