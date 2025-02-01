@@ -19,17 +19,18 @@ import {
 } from "../../src/wire-protocol/models/request/index.js";
 import { expectArrayBuffer } from "../wire-protocol/utils.js";
 
-const makeRequest = <E, R>(stream: Stream.Stream<ArrayBuffer, E, R>) =>
-  Effect.gen(function* () {
-    return yield* Request.make(
-      SubsystemDescriptor.make(
-        yield* SubsystemId.make(0x00),
-        Version.make(0x00, 0x00),
-      ),
-      ProcedureDescriptor.make(yield* ProcedureId.make(0x00)),
-      stream,
-    );
-  });
+const makeRequest = Effect.fn("makeRequest")(function* <E, R>(
+  stream: Stream.Stream<ArrayBuffer, E, R>,
+) {
+  return yield* Request.make(
+    SubsystemDescriptor.make(
+      yield* SubsystemId.make(0x00),
+      Version.make(0x00, 0x00),
+    ),
+    ProcedureDescriptor.make(yield* ProcedureId.make(0x00)),
+    stream,
+  );
+});
 
 const assertBody = (
   cx: vitest.TaskContext<vitest.RunnerTestCase> & vitest.TestContext,
