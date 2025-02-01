@@ -21,14 +21,16 @@ use type_system::url::BaseUrl;
 pub enum PropertyMetadata {
     #[cfg_attr(feature = "utoipa", schema(title = "PropertyMetadataArray"))]
     Array {
-        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[serde(default)]
+        #[cfg_attr(feature = "utoipa", schema(required))]
         value: Vec<Self>,
         #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
         metadata: ArrayMetadata,
     },
     #[cfg_attr(feature = "utoipa", schema(title = "PropertyMetadataObject"))]
     Object {
-        #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+        #[serde(default)]
+        #[cfg_attr(feature = "utoipa", schema(required))]
         value: HashMap<BaseUrl, Self>,
         #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
         metadata: ObjectMetadata,
