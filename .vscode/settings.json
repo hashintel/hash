@@ -5,5 +5,8 @@
     "typescript",
     "typescriptreact"
   ],
-  "vitest.disableWorkspaceWarning": true
+  "vitest.disableWorkspaceWarning": true,
+  "files.associations": {
+    "turbo.json": "jsonc"
+  }
 }
