@@ -125,7 +125,7 @@ libp2p-yamux       = { version = "=0.47.0", default-features = false }
 multiaddr          = { version = "=0.18.2", default-features = false }
 multistream-select = { version = "=0.13.0", default-features = false }
 pdfium-render      = { version = "=0.8.26" }
-postgres-types     = { version = "=0.2.8", default-features = false }
+postgres-types     = { version = "=0.2.9", default-features = false }
 prometheus-client  = { version = "=0.23.1", default-features = false }
 regex              = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 reqwest            = { version = "=0.12.12", default-features = false, features = ["rustls-tls"] }
@@ -136,7 +136,7 @@ serde_json         = { version = "=1.0.138" }
 text-size          = { version = "=1.1.1", default-features = false }
 time               = { version = "=0.3.37", default-features = false }
 tokio              = { version = "=1.43.0", default-features = false }
-tokio-postgres     = { version = "=0.7.12", default-features = false }
+tokio-postgres     = { version = "=0.7.13", default-features = false }
 tokio-util         = { version = "=0.7.13", default-features = false }
 tower-http         = { version = "=0.6.2", features = ["trace"] }
 tower-layer        = { version = "=0.3.3", default-features = false }
@@ -195,7 +195,7 @@ owo-colors               = { version = "=4.1.0", default-features = false }
 paste                    = { version = "=1.0.15", default-features = false }
 pin-project              = { version = "=1.1.8", default-features = false }
 pin-project-lite         = { version = "=0.2.16", default-features = false }
-postgres-protocol        = { version = "=0.6.7", default-features = false }
+postgres-protocol        = { version = "=0.6.8", default-features = false }
 pretty_assertions        = { version = "=1.4.1", default-features = false, features = ["alloc"] }
 proc-macro-error2        = { version = "=2.0.1", default-features = false }
 proc-macro2              = { version = "=1.0.93", default-features = false }
