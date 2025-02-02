@@ -124,7 +124,7 @@ libp2p-swarm       = { version = "=0.46.0", default-features = false }
 libp2p-yamux       = { version = "=0.47.0", default-features = false }
 multiaddr          = { version = "=0.18.2", default-features = false }
 multistream-select = { version = "=0.13.0", default-features = false }
-pdfium-render      = { version = "=0.8.26" }
+pdfium-render      = { version = "=0.8.27" }
 postgres-types     = { version = "=0.2.9", default-features = false }
 prometheus-client  = { version = "=0.23.1", default-features = false }
 regex              = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
