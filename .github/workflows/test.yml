@@ -41,11 +41,11 @@ jobs:
         id: packages
         run: |
           UNIT_TEST_PACKAGES=$(turbo query 'query { affectedPackages(filter: {has: {field: TASK_NAME, value: "test:unit"}}) { items { name path } } }' \
-            | jq --compact-output '.data.affectedPackages.items | { name: [.[].name], include: . }')
+            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
           INTEGRATION_TEST_PACKAGES=$(turbo query 'query { affectedPackages(filter: {has: {field: TASK_NAME, value: "test:integration"}}) { items { name path } } }' \
-            | jq --compact-output '.data.affectedPackages.items | { name: [.[].name], include: . }')
+            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
           DOCKER_PACKAGES=$(turbo query 'query { affectedPackages(filter: {has: {field: TASK_NAME, value: "build:docker"}}) { items { name path } } }' \
-            | jq --compact-output '.data.affectedPackages.items | { name: [.[].name], include: . }')
+            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 
           PUBLISH_PACKAGES=[]
           PUBLISH_INCLUDES=[]
