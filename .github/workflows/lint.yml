@@ -36,11 +36,8 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          FILTER=$(turbo run lint --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
-          PACKAGES=$(sh -c "turbo run lint --dry-run=json $FILTER" \
-            | jq '.tasks[]' \
-            | jq 'select(.task == "lint")' \
-            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+          PACKAGES=$(turbo query 'query { affectedPackages { items { name path } } }' \
+            | jq '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 
           echo "packages=$PACKAGES" | tee -a $GITHUB_OUTPUT
 
@@ -50,7 +47,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
       fail-fast: false
-    if: needs.setup.outputs.packages != '{"package":[],"include":[]}'
+    if: needs.setup.outputs.packages != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -68,23 +65,23 @@ jobs:
         id: lints
         run: |
           set -x
-          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}' --dry-run=json \
+          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.name }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "eslint=$ESLINT" | tee -a $GITHUB_OUTPUT
 
-          TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}' --dry-run=json \
+          TSC=$(turbo run lint:tsc --filter '${{ matrix.name }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "tsc=$TSC" | tee -a $GITHUB_OUTPUT
 
-          CODEGEN=$(turbo run codegen --filter '${{ matrix.package }}' --dry-run=json \
+          CODEGEN=$(turbo run codegen --filter '${{ matrix.name }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "codegen" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "codegen=$CODEGEN" | tee -a $GITHUB_OUTPUT
 
-          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
-            if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
-              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
+            if [[ -f "${{ matrix.path }}/rust-toolchain.toml" ]]; then
+              RUST_TOOLCHAIN_FILE="${{ matrix.path }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
@@ -96,7 +93,7 @@ jobs:
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
-          scope: ${{ matrix.package }}
+          scope: ${{ matrix.name }}
 
       - name: Install Protobuf
         if: always() && steps.lints.outputs.has-rust == 'true'
@@ -107,7 +104,7 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.lints.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.directory }}
+          working-directory: ${{ matrix.path }}
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
@@ -122,7 +119,7 @@ jobs:
         if: always() && steps.lints.outputs.has-rust == 'true'
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          workspaces: ${{ matrix.directory }}
+          workspaces: ${{ matrix.path }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Show disk usage
@@ -132,67 +129,67 @@ jobs:
         if: always() && steps.lints.outputs.codegen == 'true'
         run: |
           set -o pipefail
-          turbo run codegen --force --filter "${{ matrix.package }}"
+          turbo run codegen --force --filter "${{ matrix.name }}"
           while IFS= read -r line; do
             if [[ -n "$line" ]]; then
-              echo "Checking diff of ${{ matrix.directory }}/$line"
-              git --no-pager diff --exit-code --color -- "${{ matrix.directory }}/$line"
+              echo "Checking diff of ${{ matrix.path }}/$line"
+              git --no-pager diff --exit-code --color -- "${{ matrix.path }}/$line"
             fi
-          done <<< "$(cat ${{ matrix.directory }}/turbo.json | grep -v '^ *//' | jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end')"
+          done <<< "$(cat ${{ matrix.path }}/turbo.json | grep -v '^ *//' | jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end')"
 
       - name: Show disk usage
         run: df -h
 
       - name: Run ESLint
         if: always() && steps.lints.outputs.eslint == 'true'
-        run: turbo run lint:eslint --filter "${{ matrix.package }}"
+        run: turbo run lint:eslint --filter "${{ matrix.name }}"
 
       - name: Run TSC
         if: always() && steps.lints.outputs.tsc == 'true'
-        run: turbo run lint:tsc --filter "${{ matrix.package }}"
+        run: turbo run lint:tsc --filter "${{ matrix.name }}"
 
       - name: Run rustfmt
         if: always() && steps.lints.outputs.has-rustfmt == 'true'
-        working-directory: ${{ matrix.directory }}
+        working-directory: ${{ matrix.path }}
         run: just format --check
 
       - name: Run clippy
         if: always() && steps.lints.outputs.has-clippy == 'true'
         run: |
-          pushd ${{ matrix.directory }}
+          pushd ${{ matrix.path }}
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
             > clippy.sarif
           popd
-          cat ${{ matrix.directory }}/clippy.sarif | sarif-fmt
+          cat ${{ matrix.path }}/clippy.sarif | sarif-fmt
 
-          jq -e '.runs[].results == []' ${{ matrix.directory }}/clippy.sarif> /dev/null
+          jq -e '.runs[].results == []' ${{ matrix.path }}/clippy.sarif> /dev/null
 
       - name: Print clippy errors to summary
         if: failure() && steps.lints.outputs.has-clippy == 'true'
         run: |
           echo '```' >> $GITHUB_STEP_SUMMARY
-          cat ${{ matrix.directory }}/clippy.sarif | sarif-fmt >> $GITHUB_STEP_SUMMARY
+          cat ${{ matrix.path }}/clippy.sarif | sarif-fmt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@dd746615b3b9d728a6a37ca2045b68ca76d4841a # v3.28.8
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
-          sarif_file: ${{ matrix.directory }}/clippy.sarif
-          category: ${{ matrix.package }}
+          sarif_file: ${{ matrix.path }}/clippy.sarif
+          category: ${{ matrix.name }}
 
       - name: Check public documentation
         if: always() && steps.lints.outputs.has-rust == 'true'
-        working-directory: ${{ matrix.directory }}
+        working-directory: ${{ matrix.path }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
         run: cargo doc --all-features --no-deps -Zrustdoc-scrape-examples
 
       - name: Check private documentation
         if: always() && steps.lints.outputs.has-rust == 'true'
-        working-directory: ${{ matrix.directory }}
+        working-directory: ${{ matrix.path }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
         run: cargo doc --all-features --no-deps -Zrustdoc-scrape-examples  --document-private-items
