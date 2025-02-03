@@ -592,7 +592,7 @@ where
                     );
                 }
             },
-        };
+        }
     }
 
     validation_map

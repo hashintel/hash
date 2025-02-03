@@ -32,10 +32,6 @@ where
     let tasks = TaskTracker::new();
     pin!(stream);
 
-    #[expect(
-        clippy::significant_drop_in_scrutinee,
-        reason = "Semaphore permit being dropped is expected, used for control flow in Arc"
-    )]
     while let Some(transaction) = stream.next().await {
         let (context, sink, stream) = transaction.into_parts();
 

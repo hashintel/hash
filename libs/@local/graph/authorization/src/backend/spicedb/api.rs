@@ -591,9 +591,12 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             deleted_at: model::ZedToken,
         }
 
-        self.call::<Response>("/v1/relationships/delete", &DeleteRelationshipsRequest {
-            relationship_filter: filter,
-        })
+        self.call::<Response>(
+            "/v1/relationships/delete",
+            &DeleteRelationshipsRequest {
+                relationship_filter: filter,
+            },
+        )
         .await
         .map(|response| DeleteRelationshipResponse {
             deleted_at: response.deleted_at.into(),

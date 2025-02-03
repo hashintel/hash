@@ -16,7 +16,7 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@playwright/test": "1.50.0",
+    "@playwright/test": "1.50.1",
     "execa": "5.1.1",
     "graphql": "16.10.0",
     "js-yaml": "4.1.0"
@@ -29,7 +29,7 @@
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@graphql-codegen/cli": "^5.0.3",
     "@local/eslint": "0.0.0-private",
-    "eslint": "9.17.0",
+    "eslint": "9.19.0",
     "rimraf": "6.0.1",
     "typescript": "5.7.3"
   }

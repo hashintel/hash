@@ -16,7 +16,7 @@ const scaleValue = (value: number, scale: number) => {
   return Math.round(value * scale);
 };
 
-const maxDivisionPrecision = 10;
+const maxDivisionPrecision = 16;
 
 export const divide = (numerator: number, denominator: number): number => {
   if (Number.isNaN(numerator) || Number.isNaN(denominator)) {

@@ -24,7 +24,7 @@ export type ColumnHeaderDrawArgs = Parameters<DrawHeaderCallback>[0] & {
 type InteractableEventHandler = (interactable: Interactable) => void;
 
 export interface Interactable {
-  pos: InteractablePosition;
+  posRelativeToVisibleGridArea: InteractablePosition;
   path: CellPath | ColumnHeaderPath;
   hovered: boolean;
   cellRect: Rectangle;

@@ -586,12 +586,14 @@ mod tests {
         }));
 
         check_constraints(&number_schema, json!(0));
-        check_constraints_error(&number_schema, json!("NaN"), [
-            ConstraintError::InvalidType {
+        check_constraints_error(
+            &number_schema,
+            json!("NaN"),
+            [ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::String,
                 expected: JsonSchemaValueType::Number,
-            },
-        ]);
+            }],
+        );
     }
 
     #[test]
@@ -604,22 +606,30 @@ mod tests {
 
         check_constraints(&number_schema, json!(0));
         check_constraints(&number_schema, json!(10));
-        check_constraints_error(&number_schema, json!("2"), [ConstraintError::InvalidType {
-            actual: JsonSchemaValueType::String,
-            expected: JsonSchemaValueType::Number,
-        }]);
-        check_constraints_error(&number_schema, json!(-2), [
-            NumberValidationError::Minimum {
+        check_constraints_error(
+            &number_schema,
+            json!("2"),
+            [ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::String,
+                expected: JsonSchemaValueType::Number,
+            }],
+        );
+        check_constraints_error(
+            &number_schema,
+            json!(-2),
+            [NumberValidationError::Minimum {
                 actual: Real::from(-2),
                 expected: Real::from(0),
-            },
-        ]);
-        check_constraints_error(&number_schema, json!(15), [
-            NumberValidationError::Maximum {
+            }],
+        );
+        check_constraints_error(
+            &number_schema,
+            json!(15),
+            [NumberValidationError::Maximum {
                 actual: Real::from(15),
                 expected: Real::from(10),
-            },
-        ]);
+            }],
+        );
     }
 
     #[test]
@@ -634,22 +644,30 @@ mod tests {
 
         check_constraints(&number_schema, json!(0.1));
         check_constraints(&number_schema, json!(0.9));
-        check_constraints_error(&number_schema, json!("2"), [ConstraintError::InvalidType {
-            actual: JsonSchemaValueType::String,
-            expected: JsonSchemaValueType::Number,
-        }]);
-        check_constraints_error(&number_schema, json!(0), [
-            NumberValidationError::ExclusiveMinimum {
+        check_constraints_error(
+            &number_schema,
+            json!("2"),
+            [ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::String,
+                expected: JsonSchemaValueType::Number,
+            }],
+        );
+        check_constraints_error(
+            &number_schema,
+            json!(0),
+            [NumberValidationError::ExclusiveMinimum {
                 actual: Real::from(0),
                 expected: Real::from(0),
-            },
-        ]);
-        check_constraints_error(&number_schema, json!(10), [
-            NumberValidationError::ExclusiveMaximum {
+            }],
+        );
+        check_constraints_error(
+            &number_schema,
+            json!(10),
+            [NumberValidationError::ExclusiveMaximum {
                 actual: Real::from(10),
                 expected: Real::from(10),
-            },
-        ]);
+            }],
+        );
     }
 
     #[test]
@@ -671,16 +689,22 @@ mod tests {
             .validate_value(&Value::Number(Real::from_natural(9, -1)))
             .expect("value should be valid");
 
-        check_constraints_error(&number_schema, json!("2"), [ConstraintError::InvalidType {
-            actual: JsonSchemaValueType::String,
-            expected: JsonSchemaValueType::Number,
-        }]);
-        check_constraints_error(&number_schema, json!(0.11), [
-            NumberValidationError::MultipleOf {
+        check_constraints_error(
+            &number_schema,
+            json!("2"),
+            [ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::String,
+                expected: JsonSchemaValueType::Number,
+            }],
+        );
+        check_constraints_error(
+            &number_schema,
+            json!(0.11),
+            [NumberValidationError::MultipleOf {
                 actual: Real::from_natural(11, -2),
                 expected: Real::from_natural(1, -1),
-            },
-        ]);
+            }],
+        );
     }
 
     #[test]
@@ -691,12 +715,14 @@ mod tests {
         }));
 
         check_constraints(&number_schema, json!(50.0));
-        check_constraints_error(&number_schema, json!(10.0), [
-            ConstraintError::InvalidConstValue {
+        check_constraints_error(
+            &number_schema,
+            json!(10.0),
+            [ConstraintError::InvalidConstValue {
                 actual: Value::Number(Real::from(10)),
                 expected: Value::Number(Real::from(50)),
-            },
-        ]);
+            }],
+        );
     }
 
     #[test]
@@ -707,12 +733,14 @@ mod tests {
         }));
 
         check_constraints(&number_schema, json!(20.0));
-        check_constraints_error(&number_schema, json!(10.0), [
-            ConstraintError::InvalidEnumValue {
+        check_constraints_error(
+            &number_schema,
+            json!(10.0),
+            [ConstraintError::InvalidEnumValue {
                 actual: Value::Number(Real::from(10)),
                 expected: vec![Value::Number(Real::from(20))],
-            },
-        ]);
+            }],
+        );
     }
 
     #[test]

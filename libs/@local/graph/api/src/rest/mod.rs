@@ -811,6 +811,11 @@ impl Modify for FilterSchemaAddon {
                                             .item(Ref::from_schema_name("Selector"))
                                             .item(
                                                 ObjectBuilder::new()
+                                                    .schema_type(SchemaType::String)
+                                                    .enum_values(Some(["convert"])),
+                                            )
+                                            .item(
+                                                ObjectBuilder::new()
                                                     .schema_type(SchemaType::String),
                                             )
                                             .item(

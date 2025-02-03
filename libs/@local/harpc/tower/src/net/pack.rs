@@ -253,10 +253,10 @@ mod test {
             code: ErrorCode::INTERNAL_SERVER_ERROR,
         });
 
-        assert_eq!(values, [
-            Ok(Bytes::from_static(b"hello" as &[_])),
-            Err(error),
-        ]);
+        assert_eq!(
+            values,
+            [Ok(Bytes::from_static(b"hello" as &[_])), Err(error),]
+        );
     }
 
     #[tokio::test]
@@ -349,10 +349,13 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(values, [
-            Ok(Bytes::from_static(b"hello" as &[_])),
-            Ok(Bytes::from_static(b"world" as &[_])),
-        ]);
+        assert_eq!(
+            values,
+            [
+                Ok(Bytes::from_static(b"hello" as &[_])),
+                Ok(Bytes::from_static(b"world" as &[_])),
+            ]
+        );
     }
 
     #[tokio::test]
@@ -402,11 +405,14 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(values, [
-            Ok(Bytes::from_static(b"hello " as &[_])),
-            Ok(Bytes::from_static(b"world" as &[_])),
-            Ok(Bytes::from_static(b"steven" as &[_])),
-        ]);
+        assert_eq!(
+            values,
+            [
+                Ok(Bytes::from_static(b"hello " as &[_])),
+                Ok(Bytes::from_static(b"world" as &[_])),
+                Ok(Bytes::from_static(b"steven" as &[_])),
+            ]
+        );
     }
 
     #[tokio::test]
@@ -431,11 +437,14 @@ mod test {
             code: ErrorCode::INTERNAL_SERVER_ERROR,
         });
 
-        assert_eq!(values, [
-            Ok(Bytes::from_static(b"hello " as &[_])),
-            Ok(Bytes::from_static(b"world" as &[_])),
-            Err(error),
-        ]);
+        assert_eq!(
+            values,
+            [
+                Ok(Bytes::from_static(b"hello " as &[_])),
+                Ok(Bytes::from_static(b"world" as &[_])),
+                Err(error),
+            ]
+        );
     }
 
     #[tokio::test]
@@ -460,10 +469,10 @@ mod test {
             code: ErrorCode::INTERNAL_SERVER_ERROR,
         });
 
-        assert_eq!(values, [
-            Err(error),
-            Ok(Bytes::from_static(b"steven" as &[_])),
-        ]);
+        assert_eq!(
+            values,
+            [Err(error), Ok(Bytes::from_static(b"steven" as &[_])),]
+        );
     }
 
     #[tokio::test]

@@ -194,9 +194,11 @@ where
         scope: Connection<S, C>,
         actor_id: AccountId,
     ) -> Result<(), Report<AuthenticationError>> {
-        invoke_call_discrete(scope, meta::AuthenticationProcedureId::Authenticate, [
-            actor_id,
-        ])
+        invoke_call_discrete(
+            scope,
+            meta::AuthenticationProcedureId::Authenticate,
+            [actor_id],
+        )
         .await
         .change_context(AuthenticationError)
     }

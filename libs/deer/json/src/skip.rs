@@ -41,5 +41,5 @@ pub(crate) fn skip_tokens(tokenizer: &mut Tokenizer<false>, start: &Token) {
         Token::Array => skip_nested(tokenizer, &Token::ArrayEnd),
         Token::Object => skip_nested(tokenizer, &Token::ObjectEnd),
         _ => {}
-    };
+    }
 }

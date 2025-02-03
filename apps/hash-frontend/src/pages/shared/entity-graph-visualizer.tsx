@@ -23,7 +23,7 @@ import { Box, Stack, useTheme } from "@mui/material";
 import type { ReactElement, RefObject } from "react";
 import { memo, useCallback, useMemo, useState } from "react";
 
-import type { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
+import type { EntityEditorProps } from "../@/[shortname]/entities/[entity-uuid].page/entity-editor";
 import type {
   DynamicNodeSizing,
   GraphVisualizerProps,

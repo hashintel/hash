@@ -3,6 +3,7 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   extractEntityUuidFromEntityId,
@@ -138,7 +139,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 
       const propertyValue = entity?.properties[propertyTypeBaseUrl];
 
-      return propertyValue?.toString();
+      return stringifyPropertyValue(propertyValue);
     }
   }, [mention, entityId, entitySubgraph, entity, entityLabel]);
 

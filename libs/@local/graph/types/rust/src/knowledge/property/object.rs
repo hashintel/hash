@@ -136,7 +136,8 @@ impl<'a> FromSql<'a> for PropertyObject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyWithMetadataObject {
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(required))]
     pub value: HashMap<BaseUrl, PropertyWithMetadata>,
     #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
     pub metadata: ObjectMetadata,
@@ -192,9 +193,12 @@ impl PropertyWithMetadataObject {
                 ((base_url.clone(), property), (base_url, metadata))
             })
             .unzip();
-        (PropertyObject::new(properties), PropertyMetadataObject {
-            value: metadata_properties,
-            metadata: self.metadata,
-        })
+        (
+            PropertyObject::new(properties),
+            PropertyMetadataObject {
+                value: metadata_properties,
+                metadata: self.metadata,
+            },
+        )
     }
 }

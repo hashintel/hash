@@ -353,16 +353,22 @@ mod tests {
         )
         .await;
 
-        test_property_type_references(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/name/v/1",
-            "https://blockprotocol.org/@alice/types/property-type/blurb/v/1",
-            "https://blockprotocol.org/@alice/types/property-type/published-on/v/1",
-        ]);
+        test_property_type_references(
+            &entity_type,
+            [
+                "https://blockprotocol.org/@alice/types/property-type/name/v/1",
+                "https://blockprotocol.org/@alice/types/property-type/blurb/v/1",
+                "https://blockprotocol.org/@alice/types/property-type/published-on/v/1",
+            ],
+        );
 
-        test_link_mappings(&entity_type, [(
-            "https://blockprotocol.org/@alice/types/entity-type/written-by/v/1",
-            vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
-        )]);
+        test_link_mappings(
+            &entity_type,
+            [(
+                "https://blockprotocol.org/@alice/types/entity-type/written-by/v/1",
+                vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
+            )],
+        );
     }
 
     #[tokio::test]
@@ -374,11 +380,14 @@ mod tests {
         )
         .await;
 
-        test_property_type_references(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/address-line-1/v/1",
-            "https://blockprotocol.org/@alice/types/property-type/postcode/v/1",
-            "https://blockprotocol.org/@alice/types/property-type/city/v/1",
-        ]);
+        test_property_type_references(
+            &entity_type,
+            [
+                "https://blockprotocol.org/@alice/types/property-type/address-line-1/v/1",
+                "https://blockprotocol.org/@alice/types/property-type/postcode/v/1",
+                "https://blockprotocol.org/@alice/types/property-type/city/v/1",
+            ],
+        );
 
         test_link_mappings(&entity_type, []);
     }
@@ -392,9 +401,10 @@ mod tests {
         )
         .await;
 
-        test_property_type_references(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/name/v/1",
-        ]);
+        test_property_type_references(
+            &entity_type,
+            ["https://blockprotocol.org/@alice/types/property-type/name/v/1"],
+        );
 
         test_link_mappings(&entity_type, []);
     }
@@ -408,20 +418,24 @@ mod tests {
         )
         .await;
 
-        test_property_type_references(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/built-at/v/1",
-        ]);
+        test_property_type_references(
+            &entity_type,
+            ["https://blockprotocol.org/@alice/types/property-type/built-at/v/1"],
+        );
 
-        test_link_mappings(&entity_type, [
-            (
-                "https://blockprotocol.org/@alice/types/entity-type/located-at/v/1",
-                vec!["https://blockprotocol.org/@alice/types/entity-type/uk-address/v/1"],
-            ),
-            (
-                "https://blockprotocol.org/@alice/types/entity-type/tenant/v/1",
-                vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
-            ),
-        ]);
+        test_link_mappings(
+            &entity_type,
+            [
+                (
+                    "https://blockprotocol.org/@alice/types/entity-type/located-at/v/1",
+                    vec!["https://blockprotocol.org/@alice/types/entity-type/uk-address/v/1"],
+                ),
+                (
+                    "https://blockprotocol.org/@alice/types/entity-type/tenant/v/1",
+                    vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
+                ),
+            ],
+        );
     }
 
     #[tokio::test]
@@ -433,22 +447,28 @@ mod tests {
         )
         .await;
 
-        test_property_type_references(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/name/v/1",
-            "https://blockprotocol.org/@alice/types/property-type/age/v/1",
-            "https://blockprotocol.org/@alice/types/property-type/interests/v/1",
-        ]);
+        test_property_type_references(
+            &entity_type,
+            [
+                "https://blockprotocol.org/@alice/types/property-type/name/v/1",
+                "https://blockprotocol.org/@alice/types/property-type/age/v/1",
+                "https://blockprotocol.org/@alice/types/property-type/interests/v/1",
+            ],
+        );
 
-        test_link_mappings(&entity_type, [
-            (
-                "https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1",
-                vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
-            ),
-            (
-                "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/v/1",
-                vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
-            ),
-        ]);
+        test_link_mappings(
+            &entity_type,
+            [
+                (
+                    "https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1",
+                    vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
+                ),
+                (
+                    "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/v/1",
+                    vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
+                ),
+            ],
+        );
     }
 
     #[tokio::test]
@@ -460,14 +480,18 @@ mod tests {
         )
         .await;
 
-        test_property_type_references(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/name/v/1",
-        ]);
+        test_property_type_references(
+            &entity_type,
+            ["https://blockprotocol.org/@alice/types/property-type/name/v/1"],
+        );
 
-        test_link_mappings(&entity_type, [(
-            "https://blockprotocol.org/@alice/types/entity-type/contains/v/1",
-            vec!["https://blockprotocol.org/@alice/types/entity-type/song/v/1"],
-        )]);
+        test_link_mappings(
+            &entity_type,
+            [(
+                "https://blockprotocol.org/@alice/types/entity-type/contains/v/1",
+                vec!["https://blockprotocol.org/@alice/types/entity-type/song/v/1"],
+            )],
+        );
     }
 
     #[tokio::test]
@@ -479,9 +503,10 @@ mod tests {
         )
         .await;
 
-        test_property_type_references(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/name/v/1",
-        ]);
+        test_property_type_references(
+            &entity_type,
+            ["https://blockprotocol.org/@alice/types/property-type/name/v/1"],
+        );
 
         test_link_mappings(&entity_type, []);
     }
@@ -495,20 +520,24 @@ mod tests {
         )
         .await;
 
-        test_property_type_references(&entity_type, [
-            "https://blockprotocol.org/@alice/types/property-type/text/v/1",
-        ]);
+        test_property_type_references(
+            &entity_type,
+            ["https://blockprotocol.org/@alice/types/property-type/text/v/1"],
+        );
 
-        test_link_mappings(&entity_type, [
-            (
-                "https://blockprotocol.org/@alice/types/entity-type/written-by/v/1",
-                vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
-            ),
-            (
-                "https://blockprotocol.org/@alice/types/entity-type/contains/v/1",
-                vec!["https://blockprotocol.org/@alice/types/entity-type/block/v/1"],
-            ),
-        ]);
+        test_link_mappings(
+            &entity_type,
+            [
+                (
+                    "https://blockprotocol.org/@alice/types/entity-type/written-by/v/1",
+                    vec!["https://blockprotocol.org/@alice/types/entity-type/person/v/1"],
+                ),
+                (
+                    "https://blockprotocol.org/@alice/types/entity-type/contains/v/1",
+                    vec!["https://blockprotocol.org/@alice/types/entity-type/block/v/1"],
+                ),
+            ],
+        );
     }
 
     #[tokio::test]

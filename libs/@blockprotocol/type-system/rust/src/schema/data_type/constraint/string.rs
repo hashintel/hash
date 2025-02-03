@@ -484,7 +484,7 @@ impl Constraint for StringConstraints {
                 remainder.get_or_insert_default().pattern = other.pattern;
             }
             None => self.pattern = self.pattern.or(other.pattern),
-        };
+        }
 
         if let Some((min_length, max_length)) = self.min_length.zip(self.max_length) {
             ensure!(
@@ -597,10 +597,14 @@ mod tests {
         }));
 
         check_constraints(&string_schema, json!("NaN"));
-        check_constraints_error(&string_schema, json!(10), [ConstraintError::InvalidType {
-            actual: JsonSchemaValueType::Number,
-            expected: JsonSchemaValueType::String,
-        }]);
+        check_constraints_error(
+            &string_schema,
+            json!(10),
+            [ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::Number,
+                expected: JsonSchemaValueType::String,
+            }],
+        );
     }
 
     #[test]
@@ -613,22 +617,30 @@ mod tests {
 
         check_constraints(&string_schema, json!("12345"));
         check_constraints(&string_schema, json!("1234567890"));
-        check_constraints_error(&string_schema, json!(2), [ConstraintError::InvalidType {
-            actual: JsonSchemaValueType::Number,
-            expected: JsonSchemaValueType::String,
-        }]);
-        check_constraints_error(&string_schema, json!("1234"), [
-            StringValidationError::MinLength {
+        check_constraints_error(
+            &string_schema,
+            json!(2),
+            [ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::Number,
+                expected: JsonSchemaValueType::String,
+            }],
+        );
+        check_constraints_error(
+            &string_schema,
+            json!("1234"),
+            [StringValidationError::MinLength {
                 actual: "1234".to_owned(),
                 expected: 5,
-            },
-        ]);
-        check_constraints_error(&string_schema, json!("12345678901"), [
-            StringValidationError::MaxLength {
+            }],
+        );
+        check_constraints_error(
+            &string_schema,
+            json!("12345678901"),
+            [StringValidationError::MaxLength {
                 actual: "12345678901".to_owned(),
                 expected: 10,
-            },
-        ]);
+            }],
+        );
     }
 
     #[test]
@@ -639,12 +651,14 @@ mod tests {
         }));
 
         check_constraints(&string_schema, json!("foo"));
-        check_constraints_error(&string_schema, json!("bar"), [
-            ConstraintError::InvalidConstValue {
+        check_constraints_error(
+            &string_schema,
+            json!("bar"),
+            [ConstraintError::InvalidConstValue {
                 actual: Value::String("bar".to_owned()),
                 expected: Value::String("foo".to_owned()),
-            },
-        ]);
+            }],
+        );
     }
 
     #[test]
@@ -655,12 +669,14 @@ mod tests {
         }));
 
         check_constraints(&string_schema, json!("foo"));
-        check_constraints_error(&string_schema, json!("bar"), [
-            ConstraintError::InvalidEnumValue {
+        check_constraints_error(
+            &string_schema,
+            json!("bar"),
+            [ConstraintError::InvalidEnumValue {
                 actual: Value::String("bar".to_owned()),
                 expected: vec![Value::String("foo".to_owned())],
-            },
-        ]);
+            }],
+        );
     }
 
     #[test]

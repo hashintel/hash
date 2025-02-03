@@ -80,6 +80,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
   const innerSubmit = handleSubmit(async (data) => {
     const { parentPage } = data;
 
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- don't want an empty string here
     const title = !data.title ? defaultTitle : data.title;
 
     const prevFractionalIndex =

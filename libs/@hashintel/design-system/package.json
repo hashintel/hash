@@ -61,7 +61,7 @@
     "@storybook/react": "7.6.20",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
-    "eslint": "9.17.0",
+    "eslint": "9.19.0",
     "eslint-plugin-storybook": "0.11.2",
     "react": "19.0.0",
     "react-dom": "19.0.0",

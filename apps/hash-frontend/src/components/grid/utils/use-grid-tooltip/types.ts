@@ -6,8 +6,21 @@ import type { CustomIcon } from "../custom-grid-icons";
 export type GridTooltip = {
   colIndex: number;
   rowIndex: number;
-  text: string;
-  iconX: number;
+  content: string | ReactElement;
+  horizontalAlign: "left" | "center";
+  interactablePosRelativeToCell:
+    | {
+        right: number;
+        top: number;
+      }
+    | {
+        left: number;
+        top: number;
+      };
+  interactableSize: {
+    width: number;
+    height: number;
+  };
 };
 
 export type CellTooltipData = {

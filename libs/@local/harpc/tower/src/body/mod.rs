@@ -48,7 +48,7 @@ impl<D, C> Frame<D, C> {
         }
     }
 
-    pub fn data_mut(&mut self) -> Option<&mut D> {
+    pub const fn data_mut(&mut self) -> Option<&mut D> {
         match self {
             Self::Data(data) => Some(data),
             Self::Control(_) => None,
@@ -81,7 +81,7 @@ impl<D, C> Frame<D, C> {
         }
     }
 
-    pub fn control_mut(&mut self) -> Option<&mut C> {
+    pub const fn control_mut(&mut self) -> Option<&mut C> {
         match self {
             Self::Data(_) => None,
             Self::Control(control) => Some(control),

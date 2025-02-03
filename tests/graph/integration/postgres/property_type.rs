@@ -30,15 +30,18 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    api.create_property_type(api.account_id, CreatePropertyTypeParams {
-        schema: age_pt,
-        classification: OntologyTypeClassificationMetadata::Owned {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+    api.create_property_type(
+        api.account_id,
+        CreatePropertyTypeParams {
+            schema: age_pt,
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: property_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
         },
-        relationships: property_type_relationships(),
-        conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
-    })
+    )
     .await
     .expect("could not create property type");
 }
@@ -54,30 +57,39 @@ async fn query() {
         .await
         .expect("could not seed database");
 
-    api.create_property_type(api.account_id, CreatePropertyTypeParams {
-        schema: favorite_quote_pt.clone(),
-        classification: OntologyTypeClassificationMetadata::Owned {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+    api.create_property_type(
+        api.account_id,
+        CreatePropertyTypeParams {
+            schema: favorite_quote_pt.clone(),
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: property_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
         },
-        relationships: property_type_relationships(),
-        conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
-    })
+    )
     .await
     .expect("could not create property type");
 
     let property_type = api
-        .get_property_types(api.account_id, GetPropertyTypesParams {
-            filter: Filter::for_versioned_url(&favorite_quote_pt.id),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
+        .get_property_types(
+            api.account_id,
+            GetPropertyTypesParams {
+                filter: Filter::for_versioned_url(&favorite_quote_pt.id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
+                after: None,
+                limit: None,
+                include_drafts: false,
+                include_count: false,
             },
-            after: None,
-            limit: None,
-            include_drafts: false,
-            include_count: false,
-        })
+        )
         .await
         .expect("could not get property type")
         .property_types
@@ -109,38 +121,50 @@ async fn update() {
         .await
         .expect("could not seed database");
 
-    api.create_property_type(api.account_id, CreatePropertyTypeParams {
-        schema: user_id_pt_v1.clone(),
-        classification: OntologyTypeClassificationMetadata::Owned {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+    api.create_property_type(
+        api.account_id,
+        CreatePropertyTypeParams {
+            schema: user_id_pt_v1.clone(),
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: property_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
         },
-        relationships: property_type_relationships(),
-        conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
-    })
+    )
     .await
     .expect("could not create property type");
 
-    api.update_property_type(api.account_id, UpdatePropertyTypesParams {
-        schema: user_id_pt_v2.clone(),
-        relationships: property_type_relationships(),
-        provenance: ProvidedOntologyEditionProvenance::default(),
-    })
+    api.update_property_type(
+        api.account_id,
+        UpdatePropertyTypesParams {
+            schema: user_id_pt_v2.clone(),
+            relationships: property_type_relationships(),
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
     .await
     .expect("could not update property type");
 
     let returned_user_id_pt_v1 = api
-        .get_property_types(api.account_id, GetPropertyTypesParams {
-            filter: Filter::for_versioned_url(&user_id_pt_v1.id),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
+        .get_property_types(
+            api.account_id,
+            GetPropertyTypesParams {
+                filter: Filter::for_versioned_url(&user_id_pt_v1.id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
+                after: None,
+                limit: None,
+                include_drafts: false,
+                include_count: false,
             },
-            after: None,
-            limit: None,
-            include_drafts: false,
-            include_count: false,
-        })
+        )
         .await
         .expect("could not get property type")
         .property_types
@@ -148,17 +172,23 @@ async fn update() {
         .expect("no property type found");
 
     let returned_user_id_pt_v2 = api
-        .get_property_types(api.account_id, GetPropertyTypesParams {
-            filter: Filter::for_versioned_url(&user_id_pt_v2.id),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
+        .get_property_types(
+            api.account_id,
+            GetPropertyTypesParams {
+                filter: Filter::for_versioned_url(&user_id_pt_v2.id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
+                after: None,
+                limit: None,
+                include_drafts: false,
+                include_count: false,
             },
-            after: None,
-            limit: None,
-            include_drafts: false,
-            include_count: false,
-        })
+        )
         .await
         .expect("could not get property type")
         .property_types
