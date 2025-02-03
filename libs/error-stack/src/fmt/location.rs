@@ -24,7 +24,7 @@ impl fmt::Display for LocationAttachment<'_, '_> {
             ColorMode::None => {}
             ColorMode::Color => style.set_foreground(Color::Black, true),
             ColorMode::Emphasis => style.set_display(DisplayStyle::new().with_italic(true)),
-        };
+        }
 
         fmt.write_fmt(format_args!("at {}", style.apply(&location)))?;
 

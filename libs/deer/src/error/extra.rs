@@ -66,7 +66,7 @@ impl Variant for ObjectItemsExtraError {
                     Display::fmt(&n, fmt)?;
                     fmt.write_str(" unexpected keys")?;
                 }
-            };
+            }
 
             fmt.write_str(" (")?;
             fmt_fold_fields(fmt, received.iter().map(|ReceivedKey(key)| key.as_str()))?;

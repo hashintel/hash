@@ -177,7 +177,7 @@ struct ControlSequence<'a, 'b> {
 }
 
 impl<'a, 'b> ControlSequence<'a, 'b> {
-    fn new(fmt: &'a mut Formatter<'b>) -> Self {
+    const fn new(fmt: &'a mut Formatter<'b>) -> Self {
         Self { fmt, empty: true }
     }
 
@@ -220,20 +220,20 @@ impl DisplayStyle {
         }
     }
 
-    pub(crate) fn set_bold(&mut self, value: bool) {
+    pub(crate) const fn set_bold(&mut self, value: bool) {
         self.bold = value;
     }
 
-    pub(crate) fn with_bold(mut self, value: bool) -> Self {
+    pub(crate) const fn with_bold(mut self, value: bool) -> Self {
         self.set_bold(value);
         self
     }
 
-    pub(crate) fn set_italic(&mut self, value: bool) {
+    pub(crate) const fn set_italic(&mut self, value: bool) {
         self.italic = value;
     }
 
-    pub(crate) fn with_italic(mut self, value: bool) -> Self {
+    pub(crate) const fn with_italic(mut self, value: bool) -> Self {
         self.set_italic(value);
         self
     }
@@ -283,11 +283,11 @@ impl Style {
         StyleDisplay { style: self, value }
     }
 
-    pub(crate) fn set_foreground(&mut self, color: Color, bright: bool) {
+    pub(crate) const fn set_foreground(&mut self, color: Color, bright: bool) {
         self.foreground = Some(Foreground { color, bright });
     }
 
-    pub(crate) fn set_display(&mut self, style: DisplayStyle) {
+    pub(crate) const fn set_display(&mut self, style: DisplayStyle) {
         self.display = Some(style);
     }
 }

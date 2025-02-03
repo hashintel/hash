@@ -15,7 +15,10 @@ pub(crate) struct ObjectAccess<'a, 'b, 'de: 'a> {
 }
 
 impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
-    pub(crate) fn new(deserializer: &'a mut Deserializer<'b, 'de>, length: Option<usize>) -> Self {
+    pub(crate) const fn new(
+        deserializer: &'a mut Deserializer<'b, 'de>,
+        length: Option<usize>,
+    ) -> Self {
         Self {
             deserializer,
 

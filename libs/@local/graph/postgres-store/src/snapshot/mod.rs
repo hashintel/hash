@@ -288,8 +288,10 @@ impl PostgresStorePool {
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
-            .query_raw("SELECT account_id FROM accounts", []
-                as [&(dyn ToSql + Sync); 0])
+            .query_raw(
+                "SELECT account_id FROM accounts",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
             .await
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_ok(|row| Account { id: row.get(0) })
@@ -310,8 +312,10 @@ impl PostgresStorePool {
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
-            .query_raw("SELECT account_group_id FROM account_groups", []
-                as [&(dyn ToSql + Sync); 0])
+            .query_raw(
+                "SELECT account_group_id FROM account_groups",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
             .await
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))

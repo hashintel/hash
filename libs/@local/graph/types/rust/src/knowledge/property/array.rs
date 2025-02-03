@@ -6,7 +6,8 @@ use crate::knowledge::property::{ArrayMetadata, PropertyWithMetadata};
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyWithMetadataArray {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(required))]
     pub value: Vec<PropertyWithMetadata>,
     #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
     pub metadata: ArrayMetadata,

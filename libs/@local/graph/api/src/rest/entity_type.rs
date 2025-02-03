@@ -339,10 +339,13 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::CheckEntityTypePermission {
-            entity_type_id: &entity_type_id,
-            permission,
-        });
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::CheckEntityTypePermission {
+                entity_type_id: &entity_type_id,
+                permission,
+            },
+        );
     }
 
     let response = Ok(Json(PermissionResponse {
@@ -675,15 +678,18 @@ where
 
             Ok(Json(
                 store
-                    .create_entity_type(actor_id, CreateEntityTypeParams {
-                        schema: *schema,
-                        classification: OntologyTypeClassificationMetadata::External {
-                            fetched_at: OffsetDateTime::now_utc(),
+                    .create_entity_type(
+                        actor_id,
+                        CreateEntityTypeParams {
+                            schema: *schema,
+                            classification: OntologyTypeClassificationMetadata::External {
+                                fetched_at: OffsetDateTime::now_utc(),
+                            },
+                            relationships,
+                            conflict_behavior: ConflictBehavior::Fail,
+                            provenance: *provenance,
                         },
-                        relationships,
-                        conflict_behavior: ConflictBehavior::Fail,
-                        provenance: *provenance,
-                    })
+                    )
                     .await
                     .map_err(report_to_response)?,
             ))
@@ -981,11 +987,14 @@ where
         .map_err(report_to_response)?;
 
     store
-        .update_entity_type(actor_id, UpdateEntityTypesParams {
-            schema: entity_type,
-            relationships,
-            provenance,
-        })
+        .update_entity_type(
+            actor_id,
+            UpdateEntityTypesParams {
+                schema: entity_type,
+                relationships,
+                provenance,
+            },
+        )
         .await
         .map_err(report_to_response)
         .map(Json)

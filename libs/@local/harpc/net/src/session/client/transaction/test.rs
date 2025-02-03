@@ -179,8 +179,7 @@ async fn receive_single_response_ok() {
 async fn receive_empty_skipped() {
     let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
 
-    let response =
-        make_response_begin(ResponseFlag::EndOfResponse, ResponseKind::Ok, &[] as &[_]);
+    let response = make_response_begin(ResponseFlag::EndOfResponse, ResponseKind::Ok, &[] as &[_]);
 
     tx.send(response).await.expect("able to send response");
 

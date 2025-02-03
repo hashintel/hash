@@ -8180,6 +8180,9 @@
           {
             "type": "object",
             "title": "PropertyMetadataArray",
+            "required": [
+              "value"
+            ],
             "properties": {
               "metadata": {
                 "$ref": "#/components/schemas/ArrayMetadata"
@@ -8195,6 +8198,9 @@
           {
             "type": "object",
             "title": "PropertyMetadataObject",
+            "required": [
+              "value"
+            ],
             "properties": {
               "metadata": {
                 "$ref": "#/components/schemas/ObjectMetadata"
@@ -8860,6 +8866,9 @@
       },
       "PropertyWithMetadataArray": {
         "type": "object",
+        "required": [
+          "value"
+        ],
         "properties": {
           "metadata": {
             "$ref": "#/components/schemas/ArrayMetadata"
@@ -8875,6 +8884,9 @@
       },
       "PropertyWithMetadataObject": {
         "type": "object",
+        "required": [
+          "value"
+        ],
         "properties": {
           "metadata": {
             "$ref": "#/components/schemas/ObjectMetadata"

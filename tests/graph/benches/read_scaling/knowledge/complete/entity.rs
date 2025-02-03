@@ -1,4 +1,4 @@
-use core::{iter::repeat, str::FromStr as _};
+use core::{iter::repeat_n, str::FromStr as _};
 use std::collections::HashSet;
 
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
@@ -68,10 +68,13 @@ async fn seed_db<A: AuthorizationApi>(
         .await
         .expect("could not insert account id");
     transaction
-        .insert_web_id(account_id, InsertWebIdParams {
-            owned_by_id: OwnedById::new(account_id.into_uuid()),
-            owner: WebOwnerSubject::Account { id: account_id },
-        })
+        .insert_web_id(
+            account_id,
+            InsertWebIdParams {
+                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                owner: WebOwnerSubject::Account { id: account_id },
+            },
+        )
         .await
         .expect("could not create web id");
 
@@ -117,20 +120,22 @@ async fn seed_db<A: AuthorizationApi>(
     let entity_list = transaction
         .create_entities(
             account_id,
-            repeat(CreateEntityParams {
-                owned_by_id,
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([entity_type.id]),
-                properties: PropertyWithMetadataObject::from_parts(properties, None)
-                    .expect("could not create property with metadata object"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
-            })
-            .take(total)
+            repeat_n(
+                CreateEntityParams {
+                    owned_by_id,
+                    entity_uuid: None,
+                    decision_time: None,
+                    entity_type_ids: HashSet::from([entity_type.id]),
+                    properties: PropertyWithMetadataObject::from_parts(properties, None)
+                        .expect("could not create property with metadata object"),
+                    confidence: None,
+                    link_data: None,
+                    draft: false,
+                    relationships: [],
+                    provenance: ProvidedEntityEditionProvenance::default(),
+                },
+                total,
+            )
             .collect(),
         )
         .await
@@ -210,31 +215,34 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
         },
         |entity_record_id| async move {
             store
-                .get_entity_subgraph(actor_id, GetEntitySubgraphParams {
-                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                    graph_resolve_depths,
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                .get_entity_subgraph(
+                    actor_id,
+                    GetEntitySubgraphParams {
+                        filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                        graph_resolve_depths,
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        sorting: EntityQuerySorting {
+                            paths: Vec::new(),
+                            cursor: None,
+                        },
+                        limit: None,
+                        conversions: Vec::new(),
+                        include_count: false,
+                        include_entity_types: None,
+                        include_drafts: false,
+                        include_web_ids: false,
+                        include_created_by_ids: false,
+                        include_edition_created_by_ids: false,
+                        include_type_ids: false,
+                        include_type_titles: false,
                     },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                    conversions: Vec::new(),
-                    include_count: false,
-                    include_entity_types: None,
-                    include_drafts: false,
-                    include_web_ids: false,
-                    include_created_by_ids: false,
-                    include_edition_created_by_ids: false,
-                    include_type_ids: false,
-                    include_type_titles: false,
-                })
+                )
                 .await
                 .expect("failed to read entity from store");
         },

@@ -166,10 +166,13 @@ impl TemporalClient {
         let mut workflow_ids = Vec::with_capacity(entities.len() / CHUNK_SIZE + 1);
         for partial_entities in entities.chunks(CHUNK_SIZE) {
             workflow_ids.push(
-                self.start_ai_workflow("updateEntityEmbeddings", &UpdateEntityEmbeddingsParams {
-                    authentication: AuthenticationContext { actor_id },
-                    entities: partial_entities,
-                })
+                self.start_ai_workflow(
+                    "updateEntityEmbeddings",
+                    &UpdateEntityEmbeddingsParams {
+                        authentication: AuthenticationContext { actor_id },
+                        entities: partial_entities,
+                    },
+                )
                 .await?,
             );
         }
