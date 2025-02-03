@@ -10,7 +10,6 @@ env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_REMOTE_ONLY: true
-  TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
 
   VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
 
@@ -39,8 +38,8 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          UNIT_BENCH_QUERY="query { affectedPackages(base: \"$TURBO_SCM_BASE\", filter: {has: {field: TASK_NAME, value: \"bench:unit\"}}) { items { name path } } }"
-          INTEGRATION_BENCH_QUERY="query { affectedPackages(base: \"$TURBO_SCM_BASE\", filter: {has: {field: TASK_NAME, value: \"bench:integration\"}}) { items { name path } } }"
+          UNIT_BENCH_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "bench:unit"}}) { items { name path } } }'
+          INTEGRATION_BENCH_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "bench:integration"}}) { items { name path } } }'
 
           UNIT_BENCH_PACKAGES=$(turbo query "$UNIT_BENCH_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
@@ -59,7 +58,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.unit) }}
       fail-fast: false
-    if: needs.setup.outputs.unit != '{"package":[],"include":[]}'
+    if: needs.setup.outputs.unit != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -211,7 +210,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration) }}
       fail-fast: false
-    if: needs.setup.outputs.integration != '{"package":[],"include":[]}'
+    if: needs.setup.outputs.integration != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
