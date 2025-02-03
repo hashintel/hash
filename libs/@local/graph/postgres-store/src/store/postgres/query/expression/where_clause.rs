@@ -178,7 +178,7 @@ mod tests {
                     path: DataTypeQueryPath::Version,
                 }),
                 Some(FilterExpression::Parameter {
-                    parameter: Parameter::I32(1),
+                    parameter: Parameter::Integer(1),
                     convert: None,
                 }),
             ),

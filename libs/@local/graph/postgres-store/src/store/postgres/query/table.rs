@@ -870,9 +870,9 @@ impl DatabaseColumn for DataTypeEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::F64,
+            Self::Distance => ParameterType::Decimal,
         }
     }
 
@@ -901,7 +901,7 @@ impl DatabaseColumn for DataTypeInheritsFrom {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::SourceDataTypeOntologyId | Self::TargetDataTypeOntologyId => ParameterType::Uuid,
-            Self::Depth => ParameterType::I32,
+            Self::Depth => ParameterType::Integer,
         }
     }
 
@@ -930,9 +930,9 @@ impl DatabaseColumn for PropertyTypeEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::F64,
+            Self::Distance => ParameterType::Decimal,
         }
     }
 
@@ -962,9 +962,9 @@ impl DatabaseColumn for EntityTypeEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::F64,
+            Self::Distance => ParameterType::Decimal,
         }
     }
 
@@ -997,12 +997,12 @@ impl DatabaseColumn for EntityEmbeddings {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::WebId | Self::EntityUuid => ParameterType::Uuid,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::Property => ParameterType::BaseUrl,
             Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
                 ParameterType::Timestamp
             }
-            Self::Distance => ParameterType::F64,
+            Self::Distance => ParameterType::Decimal,
         }
     }
 
@@ -1047,7 +1047,7 @@ impl DatabaseColumn for EntityEditions {
             Self::EditionId => ParameterType::Uuid,
             Self::Properties | Self::Provenance | Self::PropertyMetadata => ParameterType::Any,
             Self::Archived => ParameterType::Boolean,
-            Self::Confidence => ParameterType::F64,
+            Self::Confidence => ParameterType::Decimal,
         }
     }
 
@@ -1081,7 +1081,7 @@ impl DatabaseColumn for EntityIsOfType {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::EntityEditionId | Self::EntityTypeOntologyId => ParameterType::Uuid,
-            Self::InheritanceDepth => ParameterType::I32,
+            Self::InheritanceDepth => ParameterType::Integer,
         }
     }
 
@@ -1144,7 +1144,7 @@ impl DatabaseColumn for EntityHasLeftEntity {
                 ParameterType::Uuid
             }
             Self::Provenance => ParameterType::Any,
-            Self::Confidence => ParameterType::F64,
+            Self::Confidence => ParameterType::Decimal,
         }
     }
 
@@ -1184,7 +1184,7 @@ impl DatabaseColumn for EntityHasRightEntity {
                 ParameterType::Uuid
             }
             Self::Provenance => ParameterType::Any,
-            Self::Confidence => ParameterType::F64,
+            Self::Confidence => ParameterType::Decimal,
         }
     }
 
@@ -1276,7 +1276,7 @@ impl DatabaseColumn for EntityTypeConstrainsPropertiesOn {
             Self::SourceEntityTypeOntologyId | Self::TargetPropertyTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::I32,
+            Self::InheritanceDepth => ParameterType::Integer,
         }
     }
 
@@ -1306,7 +1306,7 @@ impl DatabaseColumn for EntityTypeInheritsFrom {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::Depth => ParameterType::I32,
+            Self::Depth => ParameterType::Integer,
         }
     }
 
@@ -1336,7 +1336,7 @@ impl DatabaseColumn for EntityTypeConstrainsLinksOn {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::I32,
+            Self::InheritanceDepth => ParameterType::Integer,
         }
     }
 
@@ -1366,7 +1366,7 @@ impl DatabaseColumn for EntityTypeConstrainsLinkDestinationsOn {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::I32,
+            Self::InheritanceDepth => ParameterType::Integer,
         }
     }
 

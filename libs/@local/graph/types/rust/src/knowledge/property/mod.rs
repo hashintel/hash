@@ -1,7 +1,7 @@
 pub mod error;
 pub mod visitor;
 
-use type_system::schema::PropertyValueType;
+use type_system::{Value, schema::PropertyValueType};
 
 pub use self::{
     array::PropertyWithMetadataArray,
@@ -28,19 +28,18 @@ use std::{collections::HashMap, io};
 
 use error_stack::{Report, ResultExt as _};
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 use type_system::{
     schema::JsonSchemaValueType,
     url::{BaseUrl, VersionedUrl},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum Property {
     Array(Vec<Self>),
     Object(PropertyObject),
-    Value(serde_json::Value),
+    Value(Value),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -395,7 +394,7 @@ impl PropertyWithMetadata {
 
 impl Property {
     // TODO: Replace with `gen fn`
-    pub fn properties(&self) -> impl Iterator<Item = (PropertyPath<'_>, &JsonValue)> {
+    pub fn properties(&self) -> impl Iterator<Item = (PropertyPath<'_>, &Value)> {
         let mut vec = Vec::new();
         let mut elements = PropertyPath::default();
         match self {
@@ -617,18 +616,18 @@ impl fmt::Display for Property {
     }
 }
 
-impl PartialEq<JsonValue> for Property {
-    fn eq(&self, other: &JsonValue) -> bool {
+impl PartialEq<Value> for Property {
+    fn eq(&self, other: &Value) -> bool {
         match self {
             Self::Array(lhs) => {
-                let JsonValue::Array(rhs) = other else {
+                let Value::Array(rhs) = other else {
                     return false;
                 };
 
                 lhs == rhs
             }
             Self::Object(lhs) => {
-                let JsonValue::Object(rhs) = other else {
+                let Value::Object(rhs) = other else {
                     return false;
                 };
 

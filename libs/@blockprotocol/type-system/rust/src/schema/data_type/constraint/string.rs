@@ -9,16 +9,18 @@ use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _,
 use iso8601_duration::{Duration, ParseDurationError};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value as JsonValue, json};
 use thiserror::Error;
 use url::{Host, Url};
 use uuid::Uuid;
 
-use crate::schema::{
-    ConstraintError, JsonSchemaValueType, SingleValueConstraints,
-    data_type::{
-        closed::ResolveClosedDataTypeError,
-        constraint::{Constraint, ConstraintValidator, ValueConstraints},
+use crate::{
+    Value,
+    schema::{
+        ConstraintError, JsonSchemaValueType, SingleValueConstraints,
+        data_type::{
+            closed::ResolveClosedDataTypeError,
+            constraint::{Constraint, ConstraintValidator, ValueConstraints},
+        },
     },
 };
 
@@ -239,14 +241,16 @@ impl Constraint for StringSchema {
                 .map(|(lhs, rhs)| (Self::Constrained(lhs), rhs.map(Self::Constrained)))?,
             (Self::Const { r#const }, Self::Constrained(constraints))
             | (Self::Constrained(constraints), Self::Const { r#const }) => {
-                constraints.validate_value(&r#const).change_context(
-                    ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                        json!(r#const),
-                        ValueConstraints::Typed(SingleValueConstraints::String(Self::Constrained(
-                            constraints,
-                        ))),
-                    ),
-                )?;
+                constraints
+                    .validate_value(&r#const)
+                    .change_context_lazy(|| {
+                        ResolveClosedDataTypeError::UnsatisfiedConstraint(
+                            Value::String(r#const.clone()),
+                            ValueConstraints::Typed(SingleValueConstraints::String(
+                                Self::Constrained(constraints),
+                            )),
+                        )
+                    })?;
 
                 (Self::Const { r#const }, None)
             }
@@ -265,22 +269,22 @@ impl Constraint for StringSchema {
                     0 => {
                         // We now properly capture errors to return it to the caller.
                         let () = r#enum
-                            .iter()
+                            .into_iter()
                             .map(|value| {
-                                constraints.validate_value(value).change_context(
+                                constraints.validate_value(&value).change_context(
                                     ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
-                                        json!(*value),
+                                        Value::String(value),
                                     ),
                                 )
                             })
                             .try_collect_reports()
-                            .change_context(
+                            .change_context_lazy(|| {
                                 ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
                                     ValueConstraints::Typed(SingleValueConstraints::String(
                                         Self::Constrained(constraints.clone()),
                                     )),
-                                ),
-                            )?;
+                                )
+                            })?;
 
                         // This should only happen if `enum` is malformed and has no values. This
                         // should be caught by the schema validation, however, if this still happens
@@ -310,8 +314,8 @@ impl Constraint for StringSchema {
                     (Self::Const { r#const: lhs }, None)
                 } else {
                     bail!(ResolveClosedDataTypeError::ConflictingConstValues(
-                        json!(lhs),
-                        json!(rhs),
+                        Value::String(lhs),
+                        Value::String(rhs),
                     ))
                 }
             }
@@ -320,8 +324,8 @@ impl Constraint for StringSchema {
 
                 match intersection.len() {
                     0 => bail!(ResolveClosedDataTypeError::ConflictingEnumValues(
-                        lhs.iter().map(|val| json!(*val)).collect(),
-                        rhs.iter().map(|val| json!(*val)).collect(),
+                        lhs.into_iter().map(Value::String).collect(),
+                        rhs.into_iter().map(Value::String).collect(),
                     )),
                     1 => (
                         Self::Const {
@@ -346,8 +350,8 @@ impl Constraint for StringSchema {
                 ensure!(
                     r#enum.contains(&r#const),
                     ResolveClosedDataTypeError::ConflictingConstEnumValue(
-                        json!(r#const),
-                        r#enum.iter().map(|val| json!(*val)).collect(),
+                        Value::String(r#const),
+                        r#enum.into_iter().map(Value::String).collect(),
                     )
                 );
 
@@ -357,19 +361,19 @@ impl Constraint for StringSchema {
     }
 }
 
-impl ConstraintValidator<JsonValue> for StringSchema {
+impl ConstraintValidator<Value> for StringSchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &JsonValue) -> bool {
-        if let JsonValue::String(string) = value {
+    fn is_valid(&self, value: &Value) -> bool {
+        if let Value::String(string) = value {
             self.is_valid(string.as_str())
         } else {
             false
         }
     }
 
-    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
-        if let JsonValue::String(string) = value {
+    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
+        if let Value::String(string) = value {
             self.validate_value(string.as_str())
         } else {
             bail!(ConstraintError::InvalidType {
@@ -399,16 +403,16 @@ impl ConstraintValidator<str> for StringSchema {
             Self::Const { r#const } => {
                 if value != *r#const {
                     bail!(ConstraintError::InvalidConstValue {
-                        actual: JsonValue::String(value.to_owned()),
-                        expected: JsonValue::String(r#const.clone()),
+                        actual: Value::String(value.to_owned()),
+                        expected: Value::String(r#const.clone()),
                     });
                 }
             }
             Self::Enum { r#enum } => {
                 if !r#enum.contains(value) {
                     bail!(ConstraintError::InvalidEnumValue {
-                        actual: JsonValue::String(value.to_owned()),
-                        expected: r#enum.iter().cloned().map(JsonValue::String).collect(),
+                        actual: Value::String(value.to_owned()),
+                        expected: r#enum.iter().cloned().map(Value::String).collect(),
                     });
                 }
             }
@@ -572,13 +576,16 @@ mod tests {
     use serde_json::{from_value, json};
 
     use super::*;
-    use crate::schema::{
-        JsonSchemaValueType, SingleValueConstraints,
-        data_type::constraint::{
-            ValueConstraints,
-            tests::{
-                check_constraints, check_constraints_error, check_schema_intersection,
-                check_schema_intersection_error, intersect_schemas, read_schema,
+    use crate::{
+        Value,
+        schema::{
+            JsonSchemaValueType, SingleValueConstraints,
+            data_type::constraint::{
+                ValueConstraints,
+                tests::{
+                    check_constraints, check_constraints_error, check_schema_intersection,
+                    check_schema_intersection_error, intersect_schemas, read_schema,
+                },
             },
         },
     };
@@ -589,10 +596,10 @@ mod tests {
             "type": "string",
         }));
 
-        check_constraints(&string_schema, &json!("NaN"));
+        check_constraints(&string_schema, json!("NaN"));
         check_constraints_error(
             &string_schema,
-            &json!(10),
+            json!(10),
             [ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::Number,
                 expected: JsonSchemaValueType::String,
@@ -608,11 +615,11 @@ mod tests {
             "maxLength": 10,
         }));
 
-        check_constraints(&string_schema, &json!("12345"));
-        check_constraints(&string_schema, &json!("1234567890"));
+        check_constraints(&string_schema, json!("12345"));
+        check_constraints(&string_schema, json!("1234567890"));
         check_constraints_error(
             &string_schema,
-            &json!(2),
+            json!(2),
             [ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::Number,
                 expected: JsonSchemaValueType::String,
@@ -620,7 +627,7 @@ mod tests {
         );
         check_constraints_error(
             &string_schema,
-            &json!("1234"),
+            json!("1234"),
             [StringValidationError::MinLength {
                 actual: "1234".to_owned(),
                 expected: 5,
@@ -628,7 +635,7 @@ mod tests {
         );
         check_constraints_error(
             &string_schema,
-            &json!("12345678901"),
+            json!("12345678901"),
             [StringValidationError::MaxLength {
                 actual: "12345678901".to_owned(),
                 expected: 10,
@@ -643,13 +650,13 @@ mod tests {
             "const": "foo",
         }));
 
-        check_constraints(&string_schema, &json!("foo"));
+        check_constraints(&string_schema, json!("foo"));
         check_constraints_error(
             &string_schema,
-            &json!("bar"),
+            json!("bar"),
             [ConstraintError::InvalidConstValue {
-                actual: json!("bar"),
-                expected: json!("foo"),
+                actual: Value::String("bar".to_owned()),
+                expected: Value::String("foo".to_owned()),
             }],
         );
     }
@@ -661,13 +668,13 @@ mod tests {
             "enum": ["foo"],
         }));
 
-        check_constraints(&string_schema, &json!("foo"));
+        check_constraints(&string_schema, json!("foo"));
         check_constraints_error(
             &string_schema,
-            &json!("bar"),
+            json!("bar"),
             [ConstraintError::InvalidEnumValue {
-                actual: json!("bar"),
-                expected: vec![json!("foo")],
+                actual: Value::String("bar".to_owned()),
+                expected: vec![Value::String("foo".to_owned())],
             }],
         );
     }
@@ -970,8 +977,8 @@ mod tests {
                 }),
             ],
             [ResolveClosedDataTypeError::ConflictingConstValues(
-                json!("foo"),
-                json!("bar"),
+                Value::String("foo".to_owned()),
+                Value::String("bar".to_owned()),
             )],
         );
     }
@@ -1015,11 +1022,11 @@ mod tests {
         else {
             panic!("Expected conflicting const-enum values error");
         };
-        assert_eq!(lhs, &json!("foo"));
+        assert_eq!(lhs, &Value::String("foo".to_owned()));
 
         assert_eq!(rhs.len(), 2);
-        assert!(rhs.contains(&json!("bar")));
-        assert!(rhs.contains(&json!("baz")));
+        assert!(rhs.contains(&Value::String("bar".to_owned())));
+        assert!(rhs.contains(&Value::String("baz".to_owned())));
     }
 
     #[test]
@@ -1100,12 +1107,12 @@ mod tests {
             panic!("Expected conflicting enum values error");
         };
         assert_eq!(lhs.len(), 2);
-        assert!(lhs.contains(&json!("foo")));
-        assert!(lhs.contains(&json!("bar")));
+        assert!(lhs.contains(&Value::String("foo".to_owned())));
+        assert!(lhs.contains(&Value::String("bar".to_owned())));
 
         assert_eq!(rhs.len(), 2);
-        assert!(rhs.contains(&json!("baz")));
-        assert!(rhs.contains(&json!("qux")));
+        assert!(rhs.contains(&Value::String("baz".to_owned())));
+        assert!(rhs.contains(&Value::String("qux".to_owned())));
     }
 
     #[test]
@@ -1142,7 +1149,7 @@ mod tests {
                 }),
             ],
             [ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                json!("foo"),
+                Value::String("foo".to_owned()),
                 from_value(json!({
                     "type": "string",
                     "minLength": 5,
@@ -1223,8 +1230,12 @@ mod tests {
                     }))
                     .expect("Failed to parse schema"),
                 ),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(json!("foo")),
-                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(json!("bar")),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::String(
+                    "foo".to_owned(),
+                )),
+                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(Value::String(
+                    "bar".to_owned(),
+                )),
             ],
         );
     }

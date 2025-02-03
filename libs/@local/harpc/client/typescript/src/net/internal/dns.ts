@@ -69,139 +69,138 @@ const resolveAAAA = (hostname: string) =>
     ),
   );
 
-const logEnvironment = (hostname: string) =>
-  Effect.gen(function* () {
-    const servers = dns.getServers();
-    const records = yield* Effect.tryPromise(() =>
-      dns.resolveAny(hostname),
-    ).pipe(Effect.merge);
+const logEnvironment = Effect.fn("logEnvironment")(function* (
+  hostname: string,
+) {
+  const servers = dns.getServers();
+  const records = yield* Effect.tryPromise(() => dns.resolveAny(hostname)).pipe(
+    Effect.merge,
+  );
 
-    yield* Effect.logTrace("resolved DNS environment").pipe(
-      Effect.annotateLogs({ hostname, servers, records }),
-    );
-  });
+  yield* Effect.logTrace("resolved DNS environment").pipe(
+    Effect.annotateLogs({ hostname, servers, records }),
+  );
+});
 
 /** @internal */
-export const resolve = (
+export const resolve = Effect.fn("resolve")(function* (
   hostname: string,
   query: {
     records: NonEmptyReadonlyArray<RecordType>;
   },
-) =>
-  Effect.gen(function* () {
-    const resolvers: Effect.Effect<DnsRecord[], DnsError>[] = [];
+) {
+  const resolvers: Effect.Effect<DnsRecord[], DnsError>[] = [];
 
-    if (query.records.includes("A")) {
-      resolvers.push(resolveA(hostname));
+  if (query.records.includes("A")) {
+    resolvers.push(resolveA(hostname));
 
-      if (isIPv4(hostname)) {
-        return [
-          {
-            type: "A",
-
-            address: hostname,
-            timeToLive: Duration.infinity,
-          } as DnsRecord,
-        ];
-      }
-    }
-
-    if (query.records.includes("AAAA")) {
-      resolvers.push(resolveAAAA(hostname));
-
-      if (isIPv6(hostname)) {
-        return [
-          {
-            type: "AAAA",
-
-            address: hostname,
-            timeToLive: Duration.infinity,
-          } as DnsRecord,
-        ];
-      }
-    }
-
-    if (resolvers.length === 0) {
-      return yield* new DnsError({
-        cause: new Error("No record types to resolve"),
-      });
-    }
-
-    yield* Effect.fork(logEnvironment(hostname));
-
-    const [excluded, satisfying] = yield* Effect.partition(
-      resolvers,
-      Function.identity,
-      {
-        concurrency: "unbounded",
-      },
-    );
-
-    if (satisfying.length === 0) {
-      // means that excluded is non empty
-
-      return yield* Effect.failCause(
-        // reduce without default is save here, because we guarantee non empty satisfying array
-        excluded
-          .map(Cause.fail)
-          .reduce(Cause.parallel),
-      );
-    }
-
-    return Array.flatten(satisfying);
-  });
-
-/** @internal */
-export const lookup = (
-  hostname: string,
-  query: {
-    records: NonEmptyReadonlyArray<RecordType>;
-  },
-) =>
-  Effect.gen(function* () {
-    const records = yield* Effect.tryPromise({
-      try: () => dns.lookup(hostname, { all: true }),
-      catch: (cause) => new DnsError({ cause }),
-    });
-
-    yield* Effect.fork(logEnvironment(hostname));
-
-    // partition into A and AAAA records
-    const [excluded, satisfying] = Array.partition(
-      records,
-      (record) => record.family === 4,
-    );
-
-    // we cannot determine the TTL of lookup records, therefore we set it to infinity
-    // `getaddrinfo` (the underlying call used by dns.lookup) does not return TTLs
-    // to fix this see: https://linear.app/hash/issue/H-3785/create-typescripteffect-dns-package
-    const aRecords = satisfying.map(
-      (record) =>
-        ({
+    if (isIPv4(hostname)) {
+      return [
+        {
           type: "A",
-          address: record.address,
-          timeToLive: Duration.infinity,
-        }) as DnsRecord,
-    );
 
-    const aaaaRecords = excluded.map(
-      (record) =>
-        ({
+          address: hostname,
+          timeToLive: Duration.infinity,
+        } as DnsRecord,
+      ];
+    }
+  }
+
+  if (query.records.includes("AAAA")) {
+    resolvers.push(resolveAAAA(hostname));
+
+    if (isIPv6(hostname)) {
+      return [
+        {
           type: "AAAA",
-          address: record.address,
+
+          address: hostname,
           timeToLive: Duration.infinity,
-        }) as DnsRecord,
+        } as DnsRecord,
+      ];
+    }
+  }
+
+  if (resolvers.length === 0) {
+    return yield* new DnsError({
+      cause: new Error("No record types to resolve"),
+    });
+  }
+
+  yield* Effect.fork(logEnvironment(hostname));
+
+  const [excluded, satisfying] = yield* Effect.partition(
+    resolvers,
+    Function.identity,
+    {
+      concurrency: "unbounded",
+    },
+  );
+
+  if (satisfying.length === 0) {
+    // means that excluded is non empty
+
+    return yield* Effect.failCause(
+      // reduce without default is save here, because we guarantee non empty satisfying array
+      excluded
+        .map(Cause.fail)
+        .reduce(Cause.parallel),
     );
+  }
 
-    const output: DnsRecord[] = [];
+  return Array.flatten(satisfying);
+});
 
-    if (query.records.includes("A")) {
-      output.push(...aRecords);
-    }
-
-    if (query.records.includes("AAAA")) {
-      output.push(...aaaaRecords);
-    }
-
-    return output;
+/** @internal */
+export const lookup = Effect.fn("lookup")(function* (
+  hostname: string,
+  query: {
+    records: NonEmptyReadonlyArray<RecordType>;
+  },
+) {
+  const records = yield* Effect.tryPromise({
+    try: () => dns.lookup(hostname, { all: true }),
+    catch: (cause) => new DnsError({ cause }),
   });
+
+  yield* Effect.fork(logEnvironment(hostname));
+
+  // partition into A and AAAA records
+  const [excluded, satisfying] = Array.partition(
+    records,
+    (record) => record.family === 4,
+  );
+
+  // we cannot determine the TTL of lookup records, therefore we set it to infinity
+  // `getaddrinfo` (the underlying call used by dns.lookup) does not return TTLs
+  // to fix this see: https://linear.app/hash/issue/H-3785/create-typescripteffect-dns-package
+  const aRecords = satisfying.map(
+    (record) =>
+      ({
+        type: "A",
+        address: record.address,
+        timeToLive: Duration.infinity,
+      }) as DnsRecord,
+  );
+
+  const aaaaRecords = excluded.map(
+    (record) =>
+      ({
+        type: "AAAA",
+        address: record.address,
+        timeToLive: Duration.infinity,
+      }) as DnsRecord,
+  );
+
+  const output: DnsRecord[] = [];
+
+  if (query.records.includes("A")) {
+    output.push(...aRecords);
+  }
+
+  if (query.records.includes("AAAA")) {
+    output.push(...aaaaRecords);
+  }
+
+  return output;
+});

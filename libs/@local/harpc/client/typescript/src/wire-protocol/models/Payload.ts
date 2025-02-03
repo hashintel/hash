@@ -2,6 +2,7 @@ import {
   type FastCheck,
   Data,
   Effect,
+  Either,
   Equal,
   Hash,
   Inspectable,
@@ -11,8 +12,13 @@ import {
 } from "effect";
 
 import { U16_MAX, U16_MIN } from "../../constants.js";
-import { createProto, encodeDual, hashUint8Array } from "../../utils.js";
-import * as Buffer from "../Buffer.js";
+import { MutableBuffer } from "../../binary/index.js";
+import {
+  createProto,
+  hashUint8Array,
+  implDecode,
+  implEncode,
+} from "../../utils.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/Payload",
@@ -106,6 +112,16 @@ export const makeAssert = (buffer: Uint8Array<ArrayBuffer>) => {
   return Effect.succeed(makeUnchecked(buffer));
 };
 
+const makeEither = (
+  buffer: Uint8Array<ArrayBuffer>,
+): Either.Either<Payload, PayloadTooLargeError> => {
+  if (buffer.length > MAX_SIZE) {
+    return Either.left(new PayloadTooLargeError({ received: buffer.length }));
+  }
+
+  return Either.right(makeUnchecked(buffer));
+};
+
 /**
  * Creates a new Payload from a buffer, safely handling size validation.
  *
@@ -118,35 +134,29 @@ export const makeAssert = (buffer: Uint8Array<ArrayBuffer>) => {
  */
 export const make = (
   buffer: Uint8Array<ArrayBuffer>,
-): Effect.Effect<Payload, PayloadTooLargeError> => {
-  if (buffer.length > MAX_SIZE) {
-    return Effect.fail(new PayloadTooLargeError({ received: buffer.length }));
-  }
-
-  return Effect.succeed(makeUnchecked(buffer));
-};
+): Effect.Effect<Payload, PayloadTooLargeError> => makeEither(buffer);
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, payload: Payload) =>
-    Effect.gen(function* () {
-      yield* Buffer.putU16(buffer, payload.buffer.length);
-      yield* Buffer.putSlice(buffer, payload.buffer);
+export const encode = implEncode((buffer, payload: Payload) =>
+  Either.gen(function* () {
+    yield* MutableBuffer.putU16(buffer, payload.buffer.length);
+    yield* MutableBuffer.putSlice(buffer, payload.buffer);
 
-      return buffer;
-    }),
+    return buffer;
+  }),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
-    const length = yield* Buffer.getU16(buffer);
-    const slice = yield* Buffer.getSlice(buffer, length);
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
+    const length = yield* MutableBuffer.getU16(buffer);
+    const slice = yield* MutableBuffer.getSlice(buffer, length);
 
-    return yield* make(slice);
-  });
+    return yield* makeEither(slice);
+  }),
+);
 
 export const isPayload = (value: unknown): value is Payload =>
   Predicate.hasProperty(value, TypeId);

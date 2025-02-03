@@ -35,52 +35,45 @@ export const Client = GenericTag<Client>(TypeId.description!);
 // TODO: add a metrics compatability layer
 //  see: https://linear.app/hash/issue/H-3712/libp2p-metrics-compatibility-layer
 
-export const make = (config?: ClientConfig) =>
-  Effect.gen(function* () {
-    const client = yield* internalTransport.make(config?.transport);
+export const make = Effect.fn("make")(function* (config?: ClientConfig) {
+  const client = yield* internalTransport.make(config?.transport);
 
-    return createProto(ClientProto, {
-      client,
-      config,
-    }) satisfies ClientImpl as Client;
-  });
+  return createProto(ClientProto, {
+    client,
+    config,
+  }) satisfies ClientImpl as Client;
+});
 
 export const layer = (config?: ClientConfig) =>
   Layer.scoped(Client, make(config));
 
-export const connect: {
+export const connect = Function.dual<
   (
     address: Transport.Address,
-  ): (
+  ) => (
     self: Client,
   ) => Effect.Effect<
     Connection.Connection,
     Transport.TransportError,
     Scope.Scope
-  >;
+  >,
   (
     self: Client,
     address: Transport.Address,
-  ): Effect.Effect<
+  ) => Effect.Effect<
     Connection.Connection,
     Transport.TransportError,
     Scope.Scope
-  >;
-} = Function.dual(
+  >
+>(
   2,
-  (
-    self: ClientImpl,
-    address: Transport.Address,
-  ): Effect.Effect<
-    Connection.Connection,
-    Transport.TransportError,
-    Scope.Scope
-  > =>
+  Effect.fn("connect")((self, address) =>
     Connection.makeUnchecked(
-      self.client,
-      self.config?.connection ?? {},
+      (self as ClientImpl).client,
+      (self as ClientImpl).config?.connection ?? {},
       address,
     ),
+  ),
 );
 
 export const connectLayer = (address: Transport.Address) =>
