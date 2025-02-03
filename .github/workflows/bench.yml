@@ -10,6 +10,7 @@ env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_REMOTE_ONLY: true
+  TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
 
   VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
 
@@ -38,19 +39,14 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          UNIT_BENCH_FILTER=$(turbo run bench:unit --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
-          UNIT_BENCH_TASKS=$(sh -c "turbo run bench:unit --dry-run=json $UNIT_BENCH_FILTER" | jq -c '.tasks[]')
-          UNIT_BENCH_PACKAGES=$(echo "$UNIT_BENCH_TASKS" \
-            | jq 'select(.task == "bench:unit" and .command != "<NONEXISTENT>")' \
-            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+          UNIT_BENCH_QUERY="query { affectedPackages(base: \"$TURBO_SCM_BASE\", filter: {has: {field: TASK_NAME, value: \"bench:unit\"}}) { items { name path } } }"
+          INTEGRATION_BENCH_QUERY="query { affectedPackages(base: \"$TURBO_SCM_BASE\", filter: {has: {field: TASK_NAME, value: \"bench:integration\"}}) { items { name path } } }"
 
-          INTEGRATION_BENCH_FILTER=$(turbo run bench:integration --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
-          INTEGRATION_BENCH_TASKS=$(sh -c "turbo run bench:integration --dry-run=json $INTEGRATION_BENCH_FILTER" | jq -c '.tasks[]')
-          INTEGRATION_BENCH_PACKAGES=$(echo "$INTEGRATION_BENCH_TASKS" \
-            | jq 'select(.task == "bench:integration" and .command != "<NONEXISTENT>")' \
-            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+          UNIT_BENCH_PACKAGES=$(turbo query "$UNIT_BENCH_QUERY"
+            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
+          INTEGRATION_BENCH_PACKAGES=$(turbo query "$INTEGRATION_BENCH_QUERY" \
+            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 
-          set -x
           echo "unit=$UNIT_BENCH_PACKAGES" | tee -a $GITHUB_OUTPUT
           echo "integration=$INTEGRATION_BENCH_PACKAGES" | tee -a $GITHUB_OUTPUT
 
@@ -86,11 +82,11 @@ jobs:
             echo "create-baseline=false" | tee -a $GITHUB_OUTPUT
           fi
 
-          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
-            if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
-              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
+            if [[ -f "${{ matrix.path }}/rust-toolchain.toml" ]]; then
+              RUST_TOOLCHAIN_FILE="${{ matrix.path }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
@@ -119,14 +115,14 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.benches.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.directory }}
+          working-directory: ${{ matrix.path }}
 
       - name: Prune repository
         if: steps.benches.outputs.create-baseline == 'true'
         uses: ./.github/actions/prune-repository
         with:
           scope: |
-            ${{ matrix.package }}
+            ${{ matrix.name }}
             @rust/hash-repo-chores
             @apps/hash-external-services
 
@@ -138,12 +134,12 @@ jobs:
         if: steps.benches.outputs.has-rust == 'true'
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          workspaces: ${{ matrix.directory }}
+          workspaces: ${{ matrix.path }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Run base benches
         if: steps.benches.outputs.create-baseline == 'true'
-        run: turbo run bench:unit --filter "${{ matrix.package }}"
+        run: turbo run bench:unit --filter "${{ matrix.name }}"
 
       - name: Checkout head branch
         if: steps.benches.outputs.create-baseline == 'true'
@@ -156,13 +152,13 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.benches.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.directory }}
+          working-directory: ${{ matrix.path }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
           scope: |
-            ${{ matrix.package }}
+            ${{ matrix.name }}
             @rust/hash-repo-chores
             @apps/hash-external-services
 
@@ -170,16 +166,16 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Run head benches
-        run: turbo run bench:unit --filter "${{ matrix.package }}"
+        run: turbo run bench:unit --filter "${{ matrix.name }}"
 
       - name: Analyze benchmarks
         if: steps.benches.outputs.create-baseline == 'true'
         run: |
-          TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')
+          TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
-          echo '<details><summary><h2>${{ matrix.package }} – Units</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
+          echo '<details><summary><h2>${{ matrix.name }} – Units</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
-          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
+          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
           cat "/tmp/benches.md" >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo '</details>' >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
 
@@ -197,7 +193,7 @@ jobs:
             aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
 
       - name: Upload benchmark results
-        run: turbo run upload-benchmarks --env-mode=loose -- --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
+        run: turbo run upload-benchmarks --env-mode=loose -- --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
 
       - name: Upload benchmark summary
         if: steps.benches.outputs.create-baseline == 'true'
@@ -238,11 +234,11 @@ jobs:
             echo "create-baseline=false" | tee -a $GITHUB_OUTPUT
           fi
 
-          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
-            if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
-              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
+            if [[ -f "${{ matrix.path }}/rust-toolchain.toml" ]]; then
+              RUST_TOOLCHAIN_FILE="${{ matrix.path }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
@@ -271,14 +267,14 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.benches.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.directory }}
+          working-directory: ${{ matrix.path }}
 
       - name: Prune repository
         if: steps.benches.outputs.create-baseline == 'true'
         uses: ./.github/actions/prune-repository
         with:
           scope: |
-            ${{ matrix.package }}
+            ${{ matrix.name }}
             @rust/hash-repo-chores
             @apps/hash-external-services
 
@@ -290,7 +286,7 @@ jobs:
         if: steps.benches.outputs.has-rust == 'true'
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
-          workspaces: ${{ matrix.directory }}
+          workspaces: ${{ matrix.path }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Launch external services
@@ -305,7 +301,7 @@ jobs:
 
       - name: Run base benches
         if: steps.benches.outputs.create-baseline == 'true'
-        run: turbo run bench:integration --filter "${{ matrix.package }}"
+        run: turbo run bench:integration --filter "${{ matrix.name }}"
 
       - name: Tear down external services
         if: steps.benches.outputs.create-baseline == 'true'
@@ -323,13 +319,13 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.benches.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.directory }}
+          working-directory: ${{ matrix.path }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
           scope: |
-            ${{ matrix.package }}
+            ${{ matrix.name }}
             @rust/hash-repo-chores
             @apps/hash-external-services
 
@@ -346,16 +342,16 @@ jobs:
           yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
 
       - name: Run head benches
-        run: turbo run bench:integration --filter "${{ matrix.package }}"
+        run: turbo run bench:integration --filter "${{ matrix.name }}"
 
       - name: Analyze benchmarks
         if: steps.benches.outputs.create-baseline == 'true'
         run: |
-          TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')
+          TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
-          echo '<details><summary><h2>${{ matrix.package }} – Integrations</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
+          echo '<details><summary><h2>${{ matrix.name }} – Integrations</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
-          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
+          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
           cat "/tmp/benches.md" >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo '</details>' >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
 
@@ -375,7 +371,7 @@ jobs:
 
       - name: Upload benchmark results
         if: github.event.pull_request.head.repo.full_name == github.repository
-        run: turbo run upload-benchmarks --env-mode=loose -- --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
+        run: turbo run upload-benchmarks --env-mode=loose -- --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
 
       - name: Upload benchmark summary
         if: steps.benches.outputs.create-baseline == 'true'
