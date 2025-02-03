@@ -117,11 +117,6 @@ impl ConnectionTask {
         // channel, which drops a transaction if there's too many.
         match &request.body {
             RequestBody::Begin(begin) => {
-                #[expect(
-                    clippy::significant_drop_in_scrutinee,
-                    reason = "This simply returns a drop guard, that is carried through the \
-                              transaction lifetime."
-                )]
                 let (permit, request_tx, request_rx) =
                     match self.transactions.acquire(request_id).await {
                         Ok((permit, tx, rx)) => (permit, tx, rx),
@@ -172,14 +167,17 @@ impl ConnectionTask {
                     }
                 };
 
-                let (transaction, task) = Transaction::from_request(begin, TransactionParts {
-                    peer: self.peer,
-                    session: self.session,
-                    config: self.config,
-                    rx: request_rx,
-                    tx: tx.clone(),
-                    permit,
-                });
+                let (transaction, task) = Transaction::from_request(
+                    begin,
+                    TransactionParts {
+                        peer: self.peer,
+                        session: self.session,
+                        config: self.config,
+                        rx: request_rx,
+                        tx: tx.clone(),
+                        permit,
+                    },
+                );
 
                 // The channel size is a non-zero, meaning that we always have space in the buffer
                 // to send the request and resolve immediately.
@@ -322,7 +320,7 @@ impl ConnectionTask {
             .send(SessionEvent::SessionDropped { id: self.session })
         {
             tracing::debug!(?error, "no receivers connected");
-        };
+        }
 
         // keep the connection alive for a little while, to allow the other side to finish receiving
         // any remaining data

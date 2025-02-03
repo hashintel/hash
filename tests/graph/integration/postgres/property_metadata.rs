@@ -152,15 +152,18 @@ async fn initial_metadata() {
     let mut api = seed(&mut database).await;
 
     let entity_property_metadata = PropertyMetadataObject {
-        value: HashMap::from([(name_property_type_id(), PropertyMetadata::Value {
-            metadata: ValueMetadata {
-                provenance: property_provenance_a(),
-                confidence: Confidence::new(0.5),
-                data_type_id: None,
-                original_data_type_id: None,
-                canonical: HashMap::default(),
+        value: HashMap::from([(
+            name_property_type_id(),
+            PropertyMetadata::Value {
+                metadata: ValueMetadata {
+                    provenance: property_provenance_a(),
+                    confidence: Confidence::new(0.5),
+                    data_type_id: None,
+                    original_data_type_id: None,
+                    canonical: HashMap::default(),
+                },
             },
-        })]),
+        )]),
         metadata: ObjectMetadata {
             provenance: PropertyProvenance::default(),
             confidence: Confidence::new(0.8),
@@ -168,98 +171,119 @@ async fn initial_metadata() {
     };
 
     let entity = api
-        .create_entity(api.account_id, CreateEntityParams {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-            entity_uuid: None,
-            decision_time: None,
-            entity_type_ids: HashSet::from([person_entity_type_id()]),
-            properties: PropertyWithMetadataObject::from_parts(
-                alice(),
-                Some(entity_property_metadata.clone()),
-            )
-            .expect("could not create property with metadata object"),
-            confidence: Confidence::new(0.5),
-            link_data: None,
-            draft: true,
-            relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(
+                    alice(),
+                    Some(entity_property_metadata.clone()),
+                )
+                .expect("could not create property with metadata object"),
+                confidence: Confidence::new(0.5),
+                link_data: None,
+                draft: true,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
     assert_eq!(entity.metadata.confidence, Confidence::new(0.5));
-    assert_eq!(entity.metadata.properties, PropertyMetadataObject {
-        value: HashMap::from([(name_property_type_id(), PropertyMetadata::Value {
-            metadata: ValueMetadata {
-                provenance: property_provenance_a(),
-                confidence: Confidence::new(0.5),
-                data_type_id: Some(text_data_type_id()),
-                original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
-            },
-        },)]),
-        metadata: ObjectMetadata {
-            provenance: PropertyProvenance::default(),
-            confidence: Confidence::new(0.8),
-        },
-    });
-
-    let updated_entity = api
-        .patch_entity(api.account_id, PatchEntityParams {
-            entity_id: entity.metadata.record_id.entity_id,
-            properties: vec![PropertyPatchOperation::Replace {
-                path: once(PropertyPathElement::Property(Cow::Owned(
-                    name_property_type_id(),
-                )))
-                .collect(),
-                property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!("Bob"),
+    assert_eq!(
+        entity.metadata.properties,
+        PropertyMetadataObject {
+            value: HashMap::from([(
+                name_property_type_id(),
+                PropertyMetadata::Value {
                     metadata: ValueMetadata {
                         provenance: property_provenance_a(),
-                        confidence: Confidence::new(0.6),
-                        data_type_id: None,
-                        original_data_type_id: None,
-                        canonical: HashMap::new(),
+                        confidence: Confidence::new(0.5),
+                        data_type_id: Some(text_data_type_id()),
+                        original_data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
                     },
-                }),
-            }],
-            entity_type_ids: HashSet::new(),
-            archived: None,
-            draft: None,
-            decision_time: None,
-            confidence: Confidence::new(0.5),
-            provenance: edition_provenance(),
-        })
+                },
+            )]),
+            metadata: ObjectMetadata {
+                provenance: PropertyProvenance::default(),
+                confidence: Confidence::new(0.8),
+            },
+        }
+    );
+
+    let updated_entity = api
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: once(PropertyPathElement::Property(Cow::Owned(
+                        name_property_type_id(),
+                    )))
+                    .collect(),
+                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                        value: json!("Bob"),
+                        metadata: ValueMetadata {
+                            provenance: property_provenance_a(),
+                            confidence: Confidence::new(0.6),
+                            data_type_id: None,
+                            original_data_type_id: None,
+                            canonical: HashMap::new(),
+                        },
+                    }),
+                }],
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: None,
+                decision_time: None,
+                confidence: Confidence::new(0.5),
+                provenance: edition_provenance(),
+            },
+        )
         .await
         .expect("could not update entity");
 
-    assert_eq!(updated_entity.metadata.properties, PropertyMetadataObject {
-        value: HashMap::from([(name_property_type_id(), PropertyMetadata::Value {
-            metadata: ValueMetadata {
-                provenance: property_provenance_a(),
-                confidence: Confidence::new(0.6),
-                data_type_id: Some(text_data_type_id()),
-                original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Bob"))]),
-            }
-        })]),
-        metadata: ObjectMetadata {
-            provenance: PropertyProvenance::default(),
-            confidence: Confidence::new(0.8),
-        },
-    });
+    assert_eq!(
+        updated_entity.metadata.properties,
+        PropertyMetadataObject {
+            value: HashMap::from([(
+                name_property_type_id(),
+                PropertyMetadata::Value {
+                    metadata: ValueMetadata {
+                        provenance: property_provenance_a(),
+                        confidence: Confidence::new(0.6),
+                        data_type_id: Some(text_data_type_id()),
+                        original_data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Bob"))]),
+                    }
+                }
+            )]),
+            metadata: ObjectMetadata {
+                provenance: PropertyProvenance::default(),
+                confidence: Confidence::new(0.8),
+            },
+        }
+    );
 
     let new_updated_entity = api
-        .patch_entity(api.account_id, PatchEntityParams {
-            entity_id: entity.metadata.record_id.entity_id,
-            properties: Vec::new(),
-            entity_type_ids: HashSet::new(),
-            archived: None,
-            draft: None,
-            decision_time: None,
-            confidence: None,
-            provenance: edition_provenance(),
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                properties: Vec::new(),
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: None,
+                decision_time: None,
+                confidence: None,
+                provenance: edition_provenance(),
+            },
+        )
         .await
         .expect("could not update entity");
 
@@ -277,147 +301,186 @@ async fn no_initial_metadata() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(api.account_id, CreateEntityParams {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-            entity_uuid: None,
-            decision_time: None,
-            entity_type_ids: HashSet::from([person_entity_type_id()]),
-            properties: PropertyWithMetadataObject::from_parts(alice(), None)
-                .expect("could not create property with metadata object"),
-            confidence: None,
-            link_data: None,
-            draft: false,
-            relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
     assert!(entity.metadata.confidence.is_none());
-    assert_eq!(entity.metadata.properties, PropertyMetadataObject {
-        value: HashMap::from([(name_property_type_id(), PropertyMetadata::Value {
-            metadata: ValueMetadata {
-                provenance: PropertyProvenance::default(),
-                confidence: None,
-                data_type_id: Some(text_data_type_id()),
-                original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
-            },
-        },)]),
-        metadata: ObjectMetadata::default(),
-    });
+    assert_eq!(
+        entity.metadata.properties,
+        PropertyMetadataObject {
+            value: HashMap::from([(
+                name_property_type_id(),
+                PropertyMetadata::Value {
+                    metadata: ValueMetadata {
+                        provenance: PropertyProvenance::default(),
+                        confidence: None,
+                        data_type_id: Some(text_data_type_id()),
+                        original_data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                    },
+                },
+            )]),
+            metadata: ObjectMetadata::default(),
+        }
+    );
 
     let updated_entity = api
-        .patch_entity(api.account_id, PatchEntityParams {
-            entity_id: entity.metadata.record_id.entity_id,
-            properties: Vec::new(),
-            entity_type_ids: HashSet::new(),
-            archived: None,
-            draft: None,
-            decision_time: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                properties: Vec::new(),
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: None,
+                decision_time: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not update entity");
 
     assert_eq!(entity, updated_entity);
 
     let updated_entity = api
-        .patch_entity(api.account_id, PatchEntityParams {
-            entity_id: entity.metadata.record_id.entity_id,
-            properties: Vec::new(),
-            entity_type_ids: HashSet::new(),
-            archived: None,
-            draft: None,
-            decision_time: None,
-            confidence: Confidence::new(0.5),
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                properties: Vec::new(),
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: None,
+                decision_time: None,
+                confidence: Confidence::new(0.5),
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not update entity");
 
     assert_eq!(updated_entity.metadata.confidence, Confidence::new(0.5));
-    assert_eq!(entity.metadata.properties, PropertyMetadataObject {
-        value: HashMap::from([(name_property_type_id(), PropertyMetadata::Value {
-            metadata: ValueMetadata {
-                provenance: PropertyProvenance::default(),
-                confidence: None,
-                data_type_id: Some(text_data_type_id()),
-                original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
-            },
-        },)]),
-        metadata: ObjectMetadata::default(),
-    });
+    assert_eq!(
+        entity.metadata.properties,
+        PropertyMetadataObject {
+            value: HashMap::from([(
+                name_property_type_id(),
+                PropertyMetadata::Value {
+                    metadata: ValueMetadata {
+                        provenance: PropertyProvenance::default(),
+                        confidence: None,
+                        data_type_id: Some(text_data_type_id()),
+                        original_data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                    },
+                },
+            )]),
+            metadata: ObjectMetadata::default(),
+        }
+    );
 
     let updated_entity = api
-        .patch_entity(api.account_id, PatchEntityParams {
-            entity_id: entity.metadata.record_id.entity_id,
-            properties: vec![PropertyPatchOperation::Replace {
-                path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!("Alice"),
-                    metadata: ValueMetadata {
-                        confidence: Confidence::new(0.5),
-                        data_type_id: None,
-                        original_data_type_id: None,
-                        provenance: PropertyProvenance::default(),
-                        canonical: HashMap::default(),
-                    },
-                }),
-            }],
-            entity_type_ids: HashSet::new(),
-            archived: None,
-            draft: None,
-            decision_time: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: once(PropertyPathElement::from(name_property_type_id())).collect(),
+                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                        value: json!("Alice"),
+                        metadata: ValueMetadata {
+                            confidence: Confidence::new(0.5),
+                            data_type_id: None,
+                            original_data_type_id: None,
+                            provenance: PropertyProvenance::default(),
+                            canonical: HashMap::default(),
+                        },
+                    }),
+                }],
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: None,
+                decision_time: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not update entity");
 
     assert!(updated_entity.metadata.confidence.is_none());
-    assert_eq!(updated_entity.metadata.properties, PropertyMetadataObject {
-        value: HashMap::from([(name_property_type_id(), PropertyMetadata::Value {
-            metadata: ValueMetadata {
-                provenance: PropertyProvenance::default(),
-                confidence: Confidence::new(0.5),
-                data_type_id: Some(text_data_type_id()),
-                original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
-            },
-        },)]),
-        metadata: ObjectMetadata::default(),
-    });
+    assert_eq!(
+        updated_entity.metadata.properties,
+        PropertyMetadataObject {
+            value: HashMap::from([(
+                name_property_type_id(),
+                PropertyMetadata::Value {
+                    metadata: ValueMetadata {
+                        provenance: PropertyProvenance::default(),
+                        confidence: Confidence::new(0.5),
+                        data_type_id: Some(text_data_type_id()),
+                        original_data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                    },
+                },
+            )]),
+            metadata: ObjectMetadata::default(),
+        }
+    );
 
     let updated_entity = api
-        .patch_entity(api.account_id, PatchEntityParams {
-            entity_id: entity.metadata.record_id.entity_id,
-            properties: Vec::new(),
-            entity_type_ids: HashSet::new(),
-            archived: None,
-            draft: None,
-            decision_time: None,
-            confidence: Confidence::new(0.5),
-            provenance: edition_provenance(),
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                properties: Vec::new(),
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: None,
+                decision_time: None,
+                confidence: Confidence::new(0.5),
+                provenance: edition_provenance(),
+            },
+        )
         .await
         .expect("could not update entity");
 
     assert_eq!(updated_entity.metadata.confidence, Confidence::new(0.5));
-    assert_eq!(updated_entity.metadata.properties, PropertyMetadataObject {
-        value: HashMap::from([(name_property_type_id(), PropertyMetadata::Value {
-            metadata: ValueMetadata {
-                provenance: PropertyProvenance::default(),
-                confidence: Confidence::new(0.5),
-                data_type_id: Some(text_data_type_id()),
-                original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
-            },
-        },)]),
-        metadata: ObjectMetadata::default(),
-    });
+    assert_eq!(
+        updated_entity.metadata.properties,
+        PropertyMetadataObject {
+            value: HashMap::from([(
+                name_property_type_id(),
+                PropertyMetadata::Value {
+                    metadata: ValueMetadata {
+                        provenance: PropertyProvenance::default(),
+                        confidence: Confidence::new(0.5),
+                        data_type_id: Some(text_data_type_id()),
+                        original_data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                    },
+                },
+            )]),
+            metadata: ObjectMetadata::default(),
+        }
+    );
     assert_eq!(
         updated_entity.metadata.provenance.edition.provided,
         edition_provenance()
@@ -430,73 +493,91 @@ async fn properties_add() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(api.account_id, CreateEntityParams {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-            entity_uuid: None,
-            decision_time: None,
-            entity_type_ids: HashSet::from([person_entity_type_id()]),
-            properties: PropertyWithMetadataObject::from_parts(alice(), None)
-                .expect("could not create property with metadata object"),
-            confidence: None,
-            link_data: None,
-            draft: false,
-            relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.metadata.record_id.entity_id;
 
     let path: PropertyPath = once(PropertyPathElement::from(age_property_type_id())).collect();
     let updated_entity = api
-        .patch_entity(api.account_id, PatchEntityParams {
-            entity_id,
-            decision_time: None,
-            entity_type_ids: HashSet::new(),
-            properties: vec![PropertyPatchOperation::Add {
-                path: path.clone(),
-                property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                    value: json!(30),
-                    metadata: ValueMetadata {
-                        confidence: Confidence::new(0.5),
-                        data_type_id: None,
-                        original_data_type_id: None,
-                        provenance: PropertyProvenance::default(),
-                        canonical: HashMap::default(),
-                    },
-                }),
-            }],
-            draft: None,
-            archived: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id,
+                decision_time: None,
+                entity_type_ids: HashSet::new(),
+                properties: vec![PropertyPatchOperation::Add {
+                    path: path.clone(),
+                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                        value: json!(30),
+                        metadata: ValueMetadata {
+                            confidence: Confidence::new(0.5),
+                            data_type_id: None,
+                            original_data_type_id: None,
+                            provenance: PropertyProvenance::default(),
+                            canonical: HashMap::default(),
+                        },
+                    }),
+                }],
+                draft: None,
+                archived: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not patch entity");
 
-    assert_eq!(updated_entity.metadata.properties, PropertyMetadataObject {
-        value: HashMap::from([
-            (name_property_type_id(), PropertyMetadata::Value {
-                metadata: ValueMetadata {
-                    provenance: PropertyProvenance::default(),
-                    confidence: None,
-                    data_type_id: Some(text_data_type_id()),
-                    original_data_type_id: Some(text_data_type_id()),
-                    canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
-                },
-            },),
-            (age_property_type_id(), PropertyMetadata::Value {
-                metadata: ValueMetadata {
-                    provenance: PropertyProvenance::default(),
-                    confidence: Confidence::new(0.5),
-                    data_type_id: Some(number_data_type_id()),
-                    original_data_type_id: Some(number_data_type_id()),
-                    canonical: HashMap::from([(number_data_type_id().base_url, json!(30))]),
-                },
-            },)
-        ]),
-        metadata: ObjectMetadata::default(),
-    });
+    assert_eq!(
+        updated_entity.metadata.properties,
+        PropertyMetadataObject {
+            value: HashMap::from([
+                (
+                    name_property_type_id(),
+                    PropertyMetadata::Value {
+                        metadata: ValueMetadata {
+                            provenance: PropertyProvenance::default(),
+                            confidence: None,
+                            data_type_id: Some(text_data_type_id()),
+                            original_data_type_id: Some(text_data_type_id()),
+                            canonical: HashMap::from([(
+                                text_data_type_id().base_url,
+                                json!("Alice")
+                            )]),
+                        },
+                    },
+                ),
+                (
+                    age_property_type_id(),
+                    PropertyMetadata::Value {
+                        metadata: ValueMetadata {
+                            provenance: PropertyProvenance::default(),
+                            confidence: Confidence::new(0.5),
+                            data_type_id: Some(number_data_type_id()),
+                            original_data_type_id: Some(number_data_type_id()),
+                            canonical: HashMap::from([(number_data_type_id().base_url, json!(30))]),
+                        },
+                    },
+                )
+            ]),
+            metadata: ObjectMetadata::default(),
+        }
+    );
 }
 
 #[tokio::test]
@@ -506,19 +587,22 @@ async fn properties_remove() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(api.account_id, CreateEntityParams {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-            entity_uuid: None,
-            decision_time: None,
-            entity_type_ids: HashSet::from([person_entity_type_id()]),
-            properties: PropertyWithMetadataObject::from_parts(alice(), None)
-                .expect("could not create property with metadata object"),
-            confidence: None,
-            link_data: None,
-            draft: false,
-            relationships: [],
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
     let entity_id = entity.metadata.record_id.entity_id;
@@ -533,102 +617,130 @@ async fn properties_remove() {
     .collect::<PropertyPath>();
 
     let updated_entity = api
-        .patch_entity(api.account_id, PatchEntityParams {
-            entity_id,
-            decision_time: None,
-            entity_type_ids: HashSet::new(),
-            properties: vec![
-                PropertyPatchOperation::Add {
-                    path: once(PropertyPathElement::from(interests_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Object(PropertyWithMetadataObject {
-                        value: HashMap::new(),
-                        metadata: ObjectMetadata {
-                            confidence: Confidence::new(0.4),
-                            provenance: property_provenance_a(),
-                        },
-                    }),
-                },
-                PropertyPatchOperation::Add {
-                    path: film_path.clone(),
-                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
-                        value: json!("Fight Club"),
-                        metadata: ValueMetadata {
-                            confidence: Confidence::new(0.5),
-                            data_type_id: None,
-                            original_data_type_id: None,
-                            provenance: property_provenance_b(),
-                            canonical: HashMap::default(),
-                        },
-                    }),
-                },
-            ],
-            draft: None,
-            archived: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id,
+                decision_time: None,
+                entity_type_ids: HashSet::new(),
+                properties: vec![
+                    PropertyPatchOperation::Add {
+                        path: once(PropertyPathElement::from(interests_property_type_id()))
+                            .collect(),
+                        property: PropertyWithMetadata::Object(PropertyWithMetadataObject {
+                            value: HashMap::new(),
+                            metadata: ObjectMetadata {
+                                confidence: Confidence::new(0.4),
+                                provenance: property_provenance_a(),
+                            },
+                        }),
+                    },
+                    PropertyPatchOperation::Add {
+                        path: film_path.clone(),
+                        property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                            value: json!("Fight Club"),
+                            metadata: ValueMetadata {
+                                confidence: Confidence::new(0.5),
+                                data_type_id: None,
+                                original_data_type_id: None,
+                                provenance: property_provenance_b(),
+                                canonical: HashMap::default(),
+                            },
+                        }),
+                    },
+                ],
+                draft: None,
+                archived: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not patch entity");
 
-    assert_eq!(updated_entity.metadata.properties, PropertyMetadataObject {
-        value: HashMap::from([
-            (name_property_type_id(), PropertyMetadata::Value {
-                metadata: ValueMetadata {
-                    provenance: PropertyProvenance::default(),
-                    confidence: None,
-                    data_type_id: Some(text_data_type_id()),
-                    original_data_type_id: Some(text_data_type_id()),
-                    canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
-                },
-            },),
-            (interests_property_type_id(), PropertyMetadata::Object {
-                value: HashMap::from([(film_property_type_id(), PropertyMetadata::Value {
-                    metadata: ValueMetadata {
-                        provenance: property_provenance_b(),
-                        confidence: Confidence::new(0.5),
-                        data_type_id: Some(text_data_type_id()),
-                        original_data_type_id: Some(text_data_type_id()),
-                        canonical: HashMap::from([(
-                            text_data_type_id().base_url,
-                            json!("Fight Club")
-                        )]),
+    assert_eq!(
+        updated_entity.metadata.properties,
+        PropertyMetadataObject {
+            value: HashMap::from([
+                (
+                    name_property_type_id(),
+                    PropertyMetadata::Value {
+                        metadata: ValueMetadata {
+                            provenance: PropertyProvenance::default(),
+                            confidence: None,
+                            data_type_id: Some(text_data_type_id()),
+                            original_data_type_id: Some(text_data_type_id()),
+                            canonical: HashMap::from([(
+                                text_data_type_id().base_url,
+                                json!("Alice")
+                            )]),
+                        },
                     },
-                },)]),
-                metadata: ObjectMetadata {
-                    provenance: property_provenance_a(),
-                    confidence: Confidence::new(0.4),
-                },
-            }),
-        ]),
-        metadata: ObjectMetadata::default(),
-    });
+                ),
+                (
+                    interests_property_type_id(),
+                    PropertyMetadata::Object {
+                        value: HashMap::from([(
+                            film_property_type_id(),
+                            PropertyMetadata::Value {
+                                metadata: ValueMetadata {
+                                    provenance: property_provenance_b(),
+                                    confidence: Confidence::new(0.5),
+                                    data_type_id: Some(text_data_type_id()),
+                                    original_data_type_id: Some(text_data_type_id()),
+                                    canonical: HashMap::from([(
+                                        text_data_type_id().base_url,
+                                        json!("Fight Club")
+                                    )]),
+                                },
+                            },
+                        )]),
+                        metadata: ObjectMetadata {
+                            provenance: property_provenance_a(),
+                            confidence: Confidence::new(0.4),
+                        },
+                    }
+                ),
+            ]),
+            metadata: ObjectMetadata::default(),
+        }
+    );
 
     let updated_entity = api
-        .patch_entity(api.account_id, PatchEntityParams {
-            entity_id,
-            decision_time: None,
-            entity_type_ids: HashSet::new(),
-            properties: vec![PropertyPatchOperation::Remove {
-                path: interests_path,
-            }],
-            draft: None,
-            archived: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id,
+                decision_time: None,
+                entity_type_ids: HashSet::new(),
+                properties: vec![PropertyPatchOperation::Remove {
+                    path: interests_path,
+                }],
+                draft: None,
+                archived: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not patch entity");
 
-    assert_eq!(updated_entity.metadata.properties, PropertyMetadataObject {
-        value: HashMap::from([(name_property_type_id(), PropertyMetadata::Value {
-            metadata: ValueMetadata {
-                provenance: PropertyProvenance::default(),
-                confidence: None,
-                data_type_id: Some(text_data_type_id()),
-                original_data_type_id: Some(text_data_type_id()),
-                canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
-            },
-        },)]),
-        metadata: ObjectMetadata::default(),
-    });
+    assert_eq!(
+        updated_entity.metadata.properties,
+        PropertyMetadataObject {
+            value: HashMap::from([(
+                name_property_type_id(),
+                PropertyMetadata::Value {
+                    metadata: ValueMetadata {
+                        provenance: PropertyProvenance::default(),
+                        confidence: None,
+                        data_type_id: Some(text_data_type_id()),
+                        original_data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
+                    },
+                },
+            )]),
+            metadata: ObjectMetadata::default(),
+        }
+    );
 }

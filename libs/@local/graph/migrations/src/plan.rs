@@ -86,7 +86,7 @@ where
                     .change_context_lazy(|| MigrationError::new(info.clone()))?;
                 bail!(error);
             }
-        };
+        }
 
         match self.direction {
             MigrationDirection::Up => {
@@ -326,7 +326,7 @@ where
                             } else {
                                 bail!(MigrationPlanError::ChangedMigration(info));
                             }
-                        };
+                        }
                     } else if self.allow_missing {
                         if self.remove_missing {
                             infos_to_remove.insert(info.number, info.clone());

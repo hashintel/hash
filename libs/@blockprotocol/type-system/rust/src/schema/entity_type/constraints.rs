@@ -57,13 +57,16 @@ mod links {
 
         let mut map = serializer.serialize_map(Some(links.len()))?;
         for (url, val) in links {
-            map.serialize_entry(&url, &PropertyValueArray {
-                items: Maybe {
-                    inner: val.items.as_ref(),
+            map.serialize_entry(
+                &url,
+                &PropertyValueArray {
+                    items: Maybe {
+                        inner: val.items.as_ref(),
+                    },
+                    min_items: val.min_items,
+                    max_items: val.max_items,
                 },
-                min_items: val.min_items,
-                max_items: val.max_items,
-            })?;
+            )?;
         }
         map.end()
     }

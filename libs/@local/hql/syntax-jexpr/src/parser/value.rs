@@ -41,15 +41,18 @@ pub(crate) fn parse_value<'arena, 'source>(
                 parent_id: None,
             });
 
-            return Err(unexpected_token(span, [
-                SyntaxKind::True,
-                SyntaxKind::False,
-                SyntaxKind::Null,
-                SyntaxKind::Number,
-                SyntaxKind::String,
-                SyntaxKind::LBracket,
-                SyntaxKind::LBrace,
-            ]));
+            return Err(unexpected_token(
+                span,
+                [
+                    SyntaxKind::True,
+                    SyntaxKind::False,
+                    SyntaxKind::Null,
+                    SyntaxKind::Number,
+                    SyntaxKind::String,
+                    SyntaxKind::LBracket,
+                    SyntaxKind::LBrace,
+                ],
+            ));
         }
     };
 
@@ -252,6 +255,10 @@ mod test {
             }
         }
 
+        #[expect(
+            clippy::unnecessary_semicolon,
+            reason = "false positive, fuzz test requires it"
+        )]
         match (value_result, serde_result) {
             (Ok(lhs), Ok(rhs)) => assert!(partial_eq(&lhs, &rhs)),
             (Err(_), Err(_)) => {}
