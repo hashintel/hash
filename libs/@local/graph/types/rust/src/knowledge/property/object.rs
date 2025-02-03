@@ -194,9 +194,12 @@ impl PropertyWithMetadataObject {
                 ((base_url.clone(), property), (base_url, metadata))
             })
             .unzip();
-        (PropertyObject::new(properties), PropertyMetadataObject {
-            value: metadata_properties,
-            metadata: self.metadata,
-        })
+        (
+            PropertyObject::new(properties),
+            PropertyMetadataObject {
+                value: metadata_properties,
+                metadata: self.metadata,
+            },
+        )
     }
 }

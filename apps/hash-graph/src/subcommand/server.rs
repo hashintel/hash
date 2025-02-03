@@ -333,12 +333,16 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         if args.rpc_enabled {
             tracing::info!("Starting RPC server...");
 
-            server_rpc(args.rpc_address, Dependencies {
-                store: Arc::clone(&dependencies.store),
-                authorization_api: Arc::clone(&dependencies.authorization_api),
-                temporal_client: temporal_client_fn(args.temporal_host, args.temporal_port).await?,
-                codec: (),
-            })?;
+            server_rpc(
+                args.rpc_address,
+                Dependencies {
+                    store: Arc::clone(&dependencies.store),
+                    authorization_api: Arc::clone(&dependencies.authorization_api),
+                    temporal_client: temporal_client_fn(args.temporal_host, args.temporal_port)
+                        .await?,
+                    codec: (),
+                },
+            )?;
         }
 
         rest_api_router(dependencies)

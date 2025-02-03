@@ -82,7 +82,7 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send external metadata")?;
             }
-        };
+        }
 
         self.id
             .start_send(OntologyIdRow {
