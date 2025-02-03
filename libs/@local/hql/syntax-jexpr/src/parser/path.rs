@@ -62,7 +62,10 @@ mod test {
     };
 
     use super::{Path, parse_path};
-    use crate::parser::{string::ParseState, symbol::ParseRestriction};
+    use crate::{
+        error::test::ParseErrorDebug,
+        parser::{string::ParseState, symbol::ParseRestriction},
+    };
 
     #[track_caller]
     #[expect(clippy::type_complexity, reason = "test code")]
@@ -92,11 +95,13 @@ mod test {
     fn parse_err<'arena, 'spans, 'input>(
         state: ParseState<'arena, 'spans>,
         input: &'input str,
-    ) -> ParseError<
+    ) -> ParseErrorDebug<
         Stateful<LocatingSlice<&'input str>, ParseState<'arena, 'spans>>,
         ErrMode<ContextError>,
     > {
-        parse(state, input).expect_err("should be invalid path")
+        parse(state, input)
+            .map_err(ParseErrorDebug)
+            .expect_err("should be invalid path")
     }
 
     macro_rules! setup {
