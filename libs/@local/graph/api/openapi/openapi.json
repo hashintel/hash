@@ -3349,8 +3349,7 @@
             ],
             "properties": {
               "const": {
-                "type": "number",
-                "format": "double"
+                "$ref": "#/components/schemas/Real"
               },
               "type": {
                 "type": "string",
@@ -9161,6 +9160,9 @@
           }
         ],
         "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in queries\nthat return [`Subgraph`]s.\n\nThe [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided\nbounds an inclusive bound at the timestamp at point of resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph"
+      },
+      "Real": {
+        "type": "number"
       },
       "Report": {
         "$ref": "./models/report.json"

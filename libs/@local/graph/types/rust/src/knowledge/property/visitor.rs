@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
 use futures::FutureExt as _;
-use serde_json::Value as JsonValue;
 use type_system::{
+    Value,
     schema::{
         ConstraintError, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema,
         PropertyType, PropertyTypeReference, PropertyValueArray, PropertyValueSchema,
@@ -275,7 +275,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     fn visit_value<P>(
         &mut self,
         desired_data_type_reference: &DataTypeReference,
-        value: &mut JsonValue,
+        value: &mut Value,
         metadata: &mut ValueMetadata,
         type_provider: &P,
     ) -> impl Future<Output = Result<(), ValueValidationReport>> + Send

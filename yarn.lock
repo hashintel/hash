@@ -12860,6 +12860,7 @@ __metadata:
     "@rust/harpc-system": "npm:0.0.0-private"
     "@rust/harpc-tower": "npm:0.0.0-private"
     "@rust/harpc-types": "npm:0.0.0-private"
+    "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@rust/hash-graph-postgres-store": "npm:0.0.0-private"
     "@rust/hash-graph-store": "npm:0.0.0-private"
@@ -12917,6 +12918,7 @@ __metadata:
     "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
+    "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@rust/hash-graph-postgres-store": "npm:0.0.0-private"
     "@rust/hash-graph-store": "npm:0.0.0-private"
@@ -12967,6 +12969,7 @@ __metadata:
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
+    "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hash-graph-types": "npm:0.0.0-private"

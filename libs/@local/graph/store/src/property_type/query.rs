@@ -263,7 +263,7 @@ impl QueryPath for PropertyTypeQueryPath<'_> {
             Self::TransactionTime => ParameterType::TimeInterval,
             Self::Title | Self::Description => ParameterType::Text,
             Self::EditionProvenance(_) => ParameterType::Any,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::DataTypeEdge { path, .. } => path.expected_type(),
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
             Self::EntityTypeEdge { path, .. } => path.expected_type(),

@@ -4,7 +4,6 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use error_stack::{Report, bail, ensure};
 use itertools::Itertools as _;
-use serde_json::json;
 use thiserror::Error;
 
 use crate::{
@@ -70,7 +69,7 @@ pub struct ClosedEntityType {
 pub enum ResolveClosedEntityTypeError {
     #[error(
         "Resolving the entity type encountered unknown schemas in `allOf`: {}.",
-        json!(.0.iter().map(|reference| &reference.url).collect::<Vec<_>>()),
+        serde_json::json!(.0.iter().map(|reference| &reference.url).collect::<Vec<_>>()),
     )]
     UnknownSchemas(HashSet<EntityTypeReference>),
     #[error("Resolving the entity type encountered incompatible property: {0}.")]

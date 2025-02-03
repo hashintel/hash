@@ -2,11 +2,12 @@ use alloc::borrow::Cow;
 use core::{error::Error, fmt, mem, str::FromStr as _};
 
 use error_stack::{Report, ResultExt as _, bail};
+use hash_codec::numeric::Real;
 use hash_graph_temporal_versioning::Timestamp;
 use hash_graph_types::{Embedding, knowledge::entity::EntityEditionId};
 use serde::Deserialize;
-use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
+    Value,
     schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
     url::{OntologyTypeVersion, VersionedUrl},
 };
@@ -16,11 +17,11 @@ use uuid::Uuid;
 #[serde(untagged)]
 pub enum Parameter<'p> {
     Boolean(bool),
-    I32(i32),
-    F64(f64),
+    Integer(i32),
+    Decimal(Real),
     Text(Cow<'p, str>),
     Vector(Embedding<'p>),
-    Any(JsonValue),
+    Any(Value),
     #[serde(skip)]
     Uuid(Uuid),
     #[serde(skip)]
@@ -31,8 +32,8 @@ pub enum Parameter<'p> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ParameterType {
     Boolean,
-    I32,
-    F64,
+    Integer,
+    Decimal,
     OntologyTypeVersion,
     Text,
     Vector(Box<Self>),
@@ -49,8 +50,8 @@ impl fmt::Display for ParameterType {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Boolean => fmt.write_str("boolean"),
-            Self::I32 => fmt.write_str("signed 32 bit integral number"),
-            Self::F64 => fmt.write_str("64 bit floating point number"),
+            Self::Integer => fmt.write_str("signed 32 bit integral number"),
+            Self::Decimal => fmt.write_str("64 bit floating point number"),
             Self::OntologyTypeVersion => fmt.write_str("ontology type version"),
             Self::Text => fmt.write_str("text"),
             Self::Vector(inner) => write!(fmt, "{inner}[]"),
@@ -78,8 +79,8 @@ impl Parameter<'_> {
     pub fn to_owned(&self) -> Parameter<'static> {
         match self {
             Parameter::Boolean(bool) => Parameter::Boolean(*bool),
-            Parameter::I32(number) => Parameter::I32(*number),
-            Parameter::F64(number) => Parameter::F64(*number),
+            Parameter::Integer(number) => Parameter::Integer(*number),
+            Parameter::Decimal(number) => Parameter::Decimal(number.to_owned()),
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
             Parameter::Vector(vector) => Parameter::Vector(vector.to_owned()),
             Parameter::Any(value) => Parameter::Any(value.clone()),
@@ -93,10 +94,10 @@ impl Parameter<'_> {
     pub fn parameter_type(&self) -> ParameterType {
         match self {
             Parameter::Boolean(_) => ParameterType::Boolean,
-            Parameter::I32(_) => ParameterType::I32,
-            Parameter::F64(_) => ParameterType::F64,
+            Parameter::Integer(_) => ParameterType::Integer,
+            Parameter::Decimal(_) => ParameterType::Decimal,
             Parameter::Text(_) => ParameterType::Text,
-            Parameter::Vector(_) => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Parameter::Vector(_) => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Parameter::Any(_) => ParameterType::Any,
             Parameter::Uuid(_) => ParameterType::Uuid,
             Parameter::OntologyTypeVersion(_) => ParameterType::OntologyTypeVersion,
@@ -108,7 +109,7 @@ impl Parameter<'_> {
 #[derive(Debug)]
 pub enum ActualParameterType {
     Parameter(Parameter<'static>),
-    Value(JsonValue),
+    Value(Value),
 }
 
 impl From<Parameter<'static>> for ActualParameterType {
@@ -117,8 +118,8 @@ impl From<Parameter<'static>> for ActualParameterType {
     }
 }
 
-impl From<JsonValue> for ActualParameterType {
-    fn from(value: JsonValue) -> Self {
+impl From<Value> for ActualParameterType {
+    fn from(value: Value) -> Self {
         Self::Value(value)
     }
 }
@@ -133,6 +134,10 @@ pub enum ParameterConversionError {
         actual: ActualParameterType,
         expected: ParameterType,
     },
+    ConversionError {
+        from: ParameterType,
+        to: ParameterType,
+    },
 }
 
 impl fmt::Display for ParameterConversionError {
@@ -141,29 +146,30 @@ impl fmt::Display for ParameterConversionError {
             Self::InvalidParameterType { actual, expected } => {
                 let actual = match actual {
                     ActualParameterType::Parameter(parameter) => match parameter {
-                        Parameter::Any(JsonValue::Null) => "null".to_owned(),
-                        Parameter::Boolean(boolean) | Parameter::Any(JsonValue::Bool(boolean)) => {
+                        Parameter::Any(Value::Null) => "null".to_owned(),
+                        Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
                             boolean.to_string()
                         }
-                        Parameter::I32(number) => number.to_string(),
-                        Parameter::F64(number) => number.to_string(),
-                        Parameter::Any(JsonValue::Number(number)) => number.to_string(),
+                        Parameter::Integer(number) => number.to_string(),
+                        #[expect(clippy::match_same_arms)]
+                        Parameter::Decimal(number) => number.to_string(),
+                        Parameter::Any(Value::Number(number)) => number.to_string(),
                         Parameter::Text(text) => text.to_string(),
                         Parameter::Vector(_) => "vector".to_owned(),
-                        Parameter::Any(JsonValue::String(string)) => string.clone(),
+                        Parameter::Any(Value::String(string)) => string.clone(),
                         Parameter::Uuid(uuid) => uuid.to_string(),
                         Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
                         Parameter::Timestamp(timestamp) => timestamp.to_string(),
-                        Parameter::Any(JsonValue::Object(_)) => "object".to_owned(),
-                        Parameter::Any(JsonValue::Array(_)) => "array".to_owned(),
+                        Parameter::Any(Value::Object(_)) => "object".to_owned(),
+                        Parameter::Any(Value::Array(_)) => "array".to_owned(),
                     },
                     ActualParameterType::Value(value) => match value {
-                        JsonValue::Null => "null".to_owned(),
-                        JsonValue::Bool(boolean) => boolean.to_string(),
-                        JsonValue::Number(number) => number.to_string(),
-                        JsonValue::String(string) => string.clone(),
-                        JsonValue::Array(_) => "array".to_owned(),
-                        JsonValue::Object(_) => "object".to_owned(),
+                        Value::Null => "null".to_owned(),
+                        Value::Bool(boolean) => boolean.to_string(),
+                        Value::Number(number) => number.to_string(),
+                        Value::String(string) => string.clone(),
+                        Value::Array(_) => "array".to_owned(),
+                        Value::Object(_) => "object".to_owned(),
                     },
                 };
 
@@ -172,6 +178,9 @@ impl fmt::Display for ParameterConversionError {
             Self::NoConversionFound { from, to } => {
                 write!(fmt, "no conversion found from `{from}` to `{to}`")
             }
+            Self::ConversionError { from, to } => {
+                write!(fmt, "could not convert from `{from}` to `{to}`")
+            }
         }
     }
 }
@@ -179,46 +188,35 @@ impl fmt::Display for ParameterConversionError {
 impl Error for ParameterConversionError {}
 
 impl Parameter<'_> {
-    #[expect(
-        clippy::too_many_lines,
-        reason = "This is one big match statement. Structural queries has to be changed in the \
-                  near future so we keep the structure as it is."
-    )]
     pub(crate) fn convert_to_parameter_type(
         &mut self,
-        expected: ParameterType,
+        expected: &ParameterType,
     ) -> Result<(), Report<ParameterConversionError>> {
-        match (&mut *self, &expected) {
+        match (&mut *self, expected) {
             // identity
             (actual, expected) if actual.parameter_type() == *expected => {}
 
             // Boolean conversions
             (Parameter::Boolean(bool), ParameterType::Any) => {
-                *self = Parameter::Any(JsonValue::Bool(*bool));
+                *self = Parameter::Any(Value::Bool(*bool));
             }
-            (Parameter::Any(JsonValue::Bool(bool)), ParameterType::Boolean) => {
+            (Parameter::Any(Value::Bool(bool)), ParameterType::Boolean) => {
                 *self = Parameter::Boolean(*bool);
             }
 
             // Integral conversions
-            (Parameter::I32(number), ParameterType::Any) => {
-                *self = Parameter::Any(JsonValue::Number(JsonNumber::from(*number)));
+            (Parameter::Integer(number), ParameterType::Any) => {
+                *self = Parameter::Any(Value::Number(Real::from(*number)));
             }
-            (Parameter::Any(JsonValue::Number(number)), ParameterType::I32) => {
-                let number = number.as_i64().ok_or_else(|| {
-                    Report::new(ParameterConversionError::InvalidParameterType {
-                        actual: self.to_owned().into(),
-                        expected,
-                    })
-                })?;
-                *self = Parameter::I32(i32::try_from(number).change_context_lazy(|| {
+            (Parameter::Any(Value::Number(number)), ParameterType::Integer) => {
+                *self = Parameter::Integer(number.to_i32().ok_or_else(|| {
                     ParameterConversionError::InvalidParameterType {
                         actual: self.to_owned().into(),
-                        expected: ParameterType::OntologyTypeVersion,
+                        expected: ParameterType::Integer,
                     }
                 })?);
             }
-            (Parameter::I32(number), ParameterType::OntologyTypeVersion) => {
+            (Parameter::Integer(number), ParameterType::OntologyTypeVersion) => {
                 *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
                     u32::try_from(*number).change_context_lazy(|| {
                         ParameterConversionError::InvalidParameterType {
@@ -233,30 +231,18 @@ impl Parameter<'_> {
             }
 
             // Floating point conversions
-            (Parameter::F64(number), ParameterType::Any) => {
-                *self = Parameter::Any(JsonValue::Number(
-                    JsonNumber::from_f64(*number).ok_or_else(|| {
-                        Report::new(ParameterConversionError::InvalidParameterType {
-                            actual: self.to_owned().into(),
-                            expected,
-                        })
-                    })?,
-                ));
+            (Parameter::Decimal(number), ParameterType::Any) => {
+                *self = Parameter::Any(Value::Number(number.to_owned()));
             }
-            (Parameter::Any(JsonValue::Number(number)), ParameterType::F64) => {
-                *self = Parameter::F64(number.as_f64().ok_or_else(|| {
-                    Report::new(ParameterConversionError::InvalidParameterType {
-                        actual: self.to_owned().into(),
-                        expected,
-                    })
-                })?);
+            (Parameter::Any(Value::Number(number)), ParameterType::Decimal) => {
+                *self = Parameter::Decimal(number.to_owned());
             }
 
             // Text conversions
             (Parameter::Text(text), ParameterType::Any) => {
-                *self = Parameter::Any(JsonValue::String((*text).to_string()));
+                *self = Parameter::Any(Value::String((*text).to_string()));
             }
-            (Parameter::Any(JsonValue::String(string)), ParameterType::Text) => {
+            (Parameter::Any(Value::String(string)), ParameterType::Text) => {
                 *self = Parameter::Text(Cow::Owned(string.clone()));
             }
             (Parameter::Text(_base_url), ParameterType::BaseUrl) => {
@@ -278,42 +264,34 @@ impl Parameter<'_> {
 
             // Vector conversions
             (Parameter::Vector(vector), ParameterType::Any) => {
-                *self = Parameter::Any(JsonValue::Array(
+                *self = Parameter::Any(Value::Array(
                     vector
                         .iter()
                         .map(|value| {
-                            JsonNumber::from_f64(f64::from(value))
-                                .ok_or_else(|| {
-                                    Report::new(ParameterConversionError::InvalidParameterType {
-                                        actual: Parameter::Vector(vector.to_owned()).into(),
-                                        expected: expected.clone(),
-                                    })
+                            Real::try_from(value)
+                                .change_context_lazy(|| ParameterConversionError::ConversionError {
+                                    from: ParameterType::Vector(Box::new(ParameterType::Decimal)),
+                                    to: ParameterType::Decimal,
                                 })
-                                .map(JsonValue::Number)
+                                .map(Value::Number)
                         })
                         .collect::<Result<_, _>>()?,
                 ));
             }
-            (Parameter::Any(JsonValue::Array(array)), ParameterType::Vector(rhs))
-                if **rhs == ParameterType::F64 =>
+            (Parameter::Any(Value::Array(array)), ParameterType::Vector(rhs))
+                if **rhs == ParameterType::Decimal =>
             {
                 *self = Parameter::Vector(
                     mem::take(array)
                         .into_iter()
                         .map(|value| {
-                            #[expect(
-                                clippy::cast_possible_truncation,
-                                reason = "truncation is expected"
-                            )]
-                            value
-                                .as_f64()
-                                .ok_or_else(|| {
-                                    Report::new(ParameterConversionError::InvalidParameterType {
-                                        actual: self.to_owned().into(),
-                                        expected: expected.clone(),
-                                    })
-                                })
-                                .map(|value| value as f32)
+                            let Value::Number(number) = value else {
+                                bail!(ParameterConversionError::InvalidParameterType {
+                                    actual: self.to_owned().into(),
+                                    expected: expected.clone(),
+                                });
+                            };
+                            Ok(number.to_f32())
                         })
                         .collect::<Result<_, _>>()?,
                 );

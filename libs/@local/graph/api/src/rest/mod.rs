@@ -29,6 +29,7 @@ use axum::{
 };
 use error_stack::{Report, ResultExt as _};
 use futures::{SinkExt as _, channel::mpsc::Sender};
+use hash_codec::numeric::Real;
 use hash_graph_authorization::{
     AuthorizationApiPool,
     schema::{
@@ -422,6 +423,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     ),
     components(
         schemas(
+            Real,
             PermissionResponse,
 
             BaseUrl,

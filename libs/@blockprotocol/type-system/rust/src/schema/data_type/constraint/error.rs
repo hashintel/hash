@@ -1,7 +1,7 @@
-use serde_json::{Value as JsonValue, json};
+use serde_json::json;
 use thiserror::Error;
 
-use crate::schema::JsonSchemaValueType;
+use crate::{Value, schema::JsonSchemaValueType};
 
 #[derive(Debug, Error)]
 pub enum ConstraintError {
@@ -9,15 +9,9 @@ pub enum ConstraintError {
         "the provided value is not equal to the expected value, expected `{actual}` to be equal \
          to `{expected}`"
     )]
-    InvalidConstValue {
-        actual: JsonValue,
-        expected: JsonValue,
-    },
+    InvalidConstValue { actual: Value, expected: Value },
     #[error("the provided value is not one of the expected values, expected `{actual}` to be one of `{}`", json!(expected))]
-    InvalidEnumValue {
-        actual: JsonValue,
-        expected: Vec<JsonValue>,
-    },
+    InvalidEnumValue { actual: Value, expected: Vec<Value> },
     #[error("the value does not match the expected constraints")]
     ValueConstraint,
     #[error(
