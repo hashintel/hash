@@ -59,10 +59,10 @@ pub(crate) fn parse_object<'arena, 'source>(
                 parent_id: None,
             });
 
-            return Err(unexpected_token(span, [
-                SyntaxKind::Comma,
-                SyntaxKind::RBrace,
-            ]));
+            return Err(unexpected_token(
+                span,
+                [SyntaxKind::Comma, SyntaxKind::RBrace],
+            ));
         };
 
         let key_span = key.span;

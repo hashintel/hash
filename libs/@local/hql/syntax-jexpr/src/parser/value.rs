@@ -41,15 +41,18 @@ pub(crate) fn parse_value<'arena, 'source>(
                 parent_id: None,
             });
 
-            return Err(unexpected_token(span, [
-                SyntaxKind::True,
-                SyntaxKind::False,
-                SyntaxKind::Null,
-                SyntaxKind::Number,
-                SyntaxKind::String,
-                SyntaxKind::LBracket,
-                SyntaxKind::LBrace,
-            ]));
+            return Err(unexpected_token(
+                span,
+                [
+                    SyntaxKind::True,
+                    SyntaxKind::False,
+                    SyntaxKind::Null,
+                    SyntaxKind::Number,
+                    SyntaxKind::String,
+                    SyntaxKind::LBracket,
+                    SyntaxKind::LBrace,
+                ],
+            ));
         }
     };
 

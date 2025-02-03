@@ -1133,9 +1133,12 @@ async fn graceful_shutdown() {
         .expect("should not panic");
 
     let event = events.recv().await.expect("should have a shutdown event");
-    assert_eq!(event, SessionEvent::SessionDropped {
-        id: Setup::SESSION_ID
-    });
+    assert_eq!(
+        event,
+        SessionEvent::SessionDropped {
+            id: Setup::SESSION_ID
+        }
+    );
 }
 
 #[tokio::test]

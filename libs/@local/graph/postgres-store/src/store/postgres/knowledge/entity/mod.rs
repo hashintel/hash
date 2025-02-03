@@ -448,18 +448,21 @@ where
                 .raw_entry_mut()
                 .from_key(*first_entity_type_id)
                 .or_insert_with(|| {
-                    ((*first_entity_type_id).clone(), ClosedMultiEntityTypeMap {
-                        schema: ClosedMultiEntityType::from_closed_schema(
-                            closed_types
-                                .get(*first_entity_type_id)
-                                .expect(
-                                    "The entity type was already resolved, so it should be \
-                                     present in the closed types",
-                                )
-                                .clone(),
-                        ),
-                        inner: HashMap::new(),
-                    })
+                    (
+                        (*first_entity_type_id).clone(),
+                        ClosedMultiEntityTypeMap {
+                            schema: ClosedMultiEntityType::from_closed_schema(
+                                closed_types
+                                    .get(*first_entity_type_id)
+                                    .expect(
+                                        "The entity type was already resolved, so it should be \
+                                         present in the closed types",
+                                    )
+                                    .clone(),
+                            ),
+                            inner: HashMap::new(),
+                        },
+                    )
                 });
 
             for entity_type_id in entity_type_id_iter {
@@ -480,10 +483,13 @@ where
                                     .clone(),
                             )
                             .expect("The entity type was constructed before so it has to be valid");
-                        ((*entity_type_id).clone(), ClosedMultiEntityTypeMap {
-                            schema: closed_parent,
-                            inner: HashMap::new(),
-                        })
+                        (
+                            (*entity_type_id).clone(),
+                            ClosedMultiEntityTypeMap {
+                                schema: closed_parent,
+                                inner: HashMap::new(),
+                            },
+                        )
                     });
                 *map = new_map;
             }

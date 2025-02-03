@@ -57,9 +57,12 @@ mod test {
             },
         };
 
-        assert_encode(&subsystem, expect![[r#"
+        assert_encode(
+            &subsystem,
+            expect![[r#"
                 0x01 0x02 0x03 0x04
-            "#]]);
+            "#]],
+        );
     }
 
     #[test]

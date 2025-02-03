@@ -140,10 +140,13 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
         .await
         .expect("could not insert account id");
     transaction
-        .insert_web_id(account_id, InsertWebIdParams {
-            owned_by_id: OwnedById::new(account_id.into_uuid()),
-            owner: WebOwnerSubject::Account { id: account_id },
-        })
+        .insert_web_id(
+            account_id,
+            InsertWebIdParams {
+                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                owner: WebOwnerSubject::Account { id: account_id },
+            },
+        )
         .await
         .expect("could not create web id");
 

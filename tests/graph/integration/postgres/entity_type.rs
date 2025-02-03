@@ -48,15 +48,18 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    api.create_entity_type(api.account_id, CreateEntityTypeParams {
-        schema: person_et,
-        classification: OntologyTypeClassificationMetadata::Owned {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+    api.create_entity_type(
+        api.account_id,
+        CreateEntityTypeParams {
+            schema: person_et,
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: entity_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
         },
-        relationships: entity_type_relationships(),
-        conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
-    })
+    )
     .await
     .expect("could not create entity type");
 }
@@ -76,33 +79,42 @@ async fn query() {
         .await
         .expect("could not seed database");
 
-    api.create_entity_type(api.account_id, CreateEntityTypeParams {
-        schema: organization_et.clone(),
-        classification: OntologyTypeClassificationMetadata::Owned {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+    api.create_entity_type(
+        api.account_id,
+        CreateEntityTypeParams {
+            schema: organization_et.clone(),
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: entity_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
         },
-        relationships: entity_type_relationships(),
-        conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
-    })
+    )
     .await
     .expect("could not create entity type");
 
     let entity_type = api
-        .get_entity_types(api.account_id, GetEntityTypesParams {
-            filter: Filter::for_versioned_url(&organization_et.id),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
+        .get_entity_types(
+            api.account_id,
+            GetEntityTypesParams {
+                filter: Filter::for_versioned_url(&organization_et.id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
+                include_drafts: false,
+                after: None,
+                limit: None,
+                include_entity_types: None,
+                include_count: false,
+                include_web_ids: false,
+                include_edition_created_by_ids: false,
             },
-            include_drafts: false,
-            after: None,
-            limit: None,
-            include_entity_types: None,
-            include_count: false,
-            include_web_ids: false,
-            include_edition_created_by_ids: false,
-        })
+        )
         .await
         .expect("could not get entity type")
         .entity_types
@@ -150,41 +162,53 @@ async fn update() {
         .await
         .expect("could not seed database:");
 
-    api.create_entity_type(api.account_id, CreateEntityTypeParams {
-        schema: page_et_v1.clone(),
-        classification: OntologyTypeClassificationMetadata::Owned {
-            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+    api.create_entity_type(
+        api.account_id,
+        CreateEntityTypeParams {
+            schema: page_et_v1.clone(),
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: entity_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
         },
-        relationships: entity_type_relationships(),
-        conflict_behavior: ConflictBehavior::Fail,
-        provenance: ProvidedOntologyEditionProvenance::default(),
-    })
+    )
     .await
     .expect("could not create entity type");
 
-    api.update_entity_type(api.account_id, UpdateEntityTypesParams {
-        schema: page_et_v2.clone(),
-        relationships: entity_type_relationships(),
-        provenance: ProvidedOntologyEditionProvenance::default(),
-    })
+    api.update_entity_type(
+        api.account_id,
+        UpdateEntityTypesParams {
+            schema: page_et_v2.clone(),
+            relationships: entity_type_relationships(),
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
     .await
     .expect("could not update entity type");
 
     let returned_page_et_v1 = api
-        .get_entity_types(api.account_id, GetEntityTypesParams {
-            filter: Filter::for_versioned_url(&page_et_v1.id),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
+        .get_entity_types(
+            api.account_id,
+            GetEntityTypesParams {
+                filter: Filter::for_versioned_url(&page_et_v1.id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
+                include_drafts: false,
+                after: None,
+                limit: None,
+                include_entity_types: None,
+                include_count: false,
+                include_web_ids: false,
+                include_edition_created_by_ids: false,
             },
-            include_drafts: false,
-            after: None,
-            limit: None,
-            include_entity_types: None,
-            include_count: false,
-            include_web_ids: false,
-            include_edition_created_by_ids: false,
-        })
+        )
         .await
         .expect("could not get entity type")
         .entity_types
@@ -192,20 +216,26 @@ async fn update() {
         .expect("no entity type found");
 
     let returned_page_et_v2 = api
-        .get_entity_types(api.account_id, GetEntityTypesParams {
-            filter: Filter::for_versioned_url(&page_et_v2.id),
-            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                pinned: PinnedTemporalAxisUnresolved::new(None),
-                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
+        .get_entity_types(
+            api.account_id,
+            GetEntityTypesParams {
+                filter: Filter::for_versioned_url(&page_et_v2.id),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
+                include_drafts: false,
+                after: None,
+                limit: None,
+                include_entity_types: None,
+                include_count: false,
+                include_web_ids: false,
+                include_edition_created_by_ids: false,
             },
-            include_drafts: false,
-            after: None,
-            limit: None,
-            include_entity_types: None,
-            include_count: false,
-            include_web_ids: false,
-            include_edition_created_by_ids: false,
-        })
+        )
         .await
         .expect("could not get entity type")
         .entity_types

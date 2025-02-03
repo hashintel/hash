@@ -235,10 +235,13 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::CheckAccountGroupPermission {
-            account_group_id,
-            permission,
-        });
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::CheckAccountGroupPermission {
+                account_group_id,
+                permission,
+            },
+        );
     }
 
     let response = Ok(Json(PermissionResponse {

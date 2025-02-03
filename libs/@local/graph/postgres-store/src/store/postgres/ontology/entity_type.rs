@@ -182,21 +182,24 @@ where
         }
 
         let property_types = self
-            .get_property_type_subgraph(actor_id, GetPropertyTypeSubgraphParams {
-                filter: Filter::for_property_type_uuids(&property_type_uuids),
-                graph_resolve_depths: GraphResolveDepths {
-                    constrains_properties_on: OutgoingEdgeResolveDepth {
-                        outgoing: 255,
-                        incoming: 0,
+            .get_property_type_subgraph(
+                actor_id,
+                GetPropertyTypeSubgraphParams {
+                    filter: Filter::for_property_type_uuids(&property_type_uuids),
+                    graph_resolve_depths: GraphResolveDepths {
+                        constrains_properties_on: OutgoingEdgeResolveDepth {
+                            outgoing: 255,
+                            incoming: 0,
+                        },
+                        ..GraphResolveDepths::default()
                     },
-                    ..GraphResolveDepths::default()
+                    temporal_axes: QueryTemporalAxesUnresolved::default(),
+                    after: None,
+                    limit: None,
+                    include_drafts: false,
+                    include_count: false,
                 },
-                temporal_axes: QueryTemporalAxesUnresolved::default(),
-                after: None,
-                limit: None,
-                include_drafts: false,
-                include_count: false,
-            })
+            )
             .await?
             .subgraph
             .vertices
@@ -250,10 +253,10 @@ where
                         .map(|reference| reference.url)
                         .collect();
                     let schema = row.get::<_, Valid<ClosedDataType>>(1).into_inner();
-                    (schema.id.clone(), ClosedDataTypeDefinition {
-                        schema,
-                        parents,
-                    })
+                    (
+                        schema.id.clone(),
+                        ClosedDataTypeDefinition { schema, parents },
+                    )
                 }),
         );
 
@@ -792,10 +795,13 @@ where
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.insert((entity_type_id, EntityTypeRelationAndSubject::Owner {
-                    subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },
-                    level: 0,
-                }));
+                relationships.insert((
+                    entity_type_id,
+                    EntityTypeRelationAndSubject::Owner {
+                        subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
             }
 
             relationships.extend(
@@ -848,25 +854,28 @@ where
             .change_context(InsertionError)?;
 
         transaction
-            .get_entity_types(actor_id, GetEntityTypesParams {
-                filter: Filter::In(
-                    FilterExpression::Path {
-                        path: EntityTypeQueryPath::OntologyId,
+            .get_entity_types(
+                actor_id,
+                GetEntityTypesParams {
+                    filter: Filter::In(
+                        FilterExpression::Path {
+                            path: EntityTypeQueryPath::OntologyId,
+                        },
+                        ParameterList::EntityTypeIds(&required_reference_ids),
+                    ),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                    ParameterList::EntityTypeIds(&required_reference_ids),
-                ),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                    include_drafts: false,
+                    after: None,
+                    limit: None,
+                    include_entity_types: None,
+                    include_count: false,
+                    include_web_ids: false,
+                    include_edition_created_by_ids: false,
                 },
-                include_drafts: false,
-                after: None,
-                limit: None,
-                include_entity_types: None,
-                include_count: false,
-                include_web_ids: false,
-                include_edition_created_by_ids: false,
-            })
+            )
             .await
             .change_context(InsertionError)
             .attach_printable("Could not read parent entity types")?
@@ -1070,25 +1079,28 @@ where
             .map(EntityTypeUuid::from_url)
             .collect::<Vec<_>>();
         let response = self
-            .get_entity_types(actor_id, GetEntityTypesParams {
-                filter: Filter::In(
-                    FilterExpression::Path {
-                        path: EntityTypeQueryPath::OntologyId,
-                    },
-                    ParameterList::EntityTypeIds(&entity_type_ids),
-                ),
-                temporal_axes: params.temporal_axes,
-                include_drafts: params.include_drafts,
-                after: None,
-                limit: None,
-                include_count: false,
-                include_entity_types: Some(params.include_resolved.map_or(
-                    IncludeEntityTypeOption::Closed,
-                    IncludeEntityTypeOption::from,
-                )),
-                include_web_ids: false,
-                include_edition_created_by_ids: false,
-            })
+            .get_entity_types(
+                actor_id,
+                GetEntityTypesParams {
+                    filter: Filter::In(
+                        FilterExpression::Path {
+                            path: EntityTypeQueryPath::OntologyId,
+                        },
+                        ParameterList::EntityTypeIds(&entity_type_ids),
+                    ),
+                    temporal_axes: params.temporal_axes,
+                    include_drafts: params.include_drafts,
+                    after: None,
+                    limit: None,
+                    include_count: false,
+                    include_entity_types: Some(params.include_resolved.map_or(
+                        IncludeEntityTypeOption::Closed,
+                        IncludeEntityTypeOption::from,
+                    )),
+                    include_web_ids: false,
+                    include_edition_created_by_ids: false,
+                },
+            )
             .await
             .change_context(QueryError)?;
 
@@ -1276,25 +1288,28 @@ where
             .change_context(UpdateError)?;
 
         transaction
-            .get_entity_types(actor_id, GetEntityTypesParams {
-                filter: Filter::In(
-                    FilterExpression::Path {
-                        path: EntityTypeQueryPath::OntologyId,
+            .get_entity_types(
+                actor_id,
+                GetEntityTypesParams {
+                    filter: Filter::In(
+                        FilterExpression::Path {
+                            path: EntityTypeQueryPath::OntologyId,
+                        },
+                        ParameterList::EntityTypeIds(&required_reference_ids),
+                    ),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                    ParameterList::EntityTypeIds(&required_reference_ids),
-                ),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                    include_drafts: false,
+                    after: None,
+                    limit: None,
+                    include_entity_types: None,
+                    include_count: false,
+                    include_web_ids: false,
+                    include_edition_created_by_ids: false,
                 },
-                include_drafts: false,
-                after: None,
-                limit: None,
-                include_entity_types: None,
-                include_count: false,
-                include_web_ids: false,
-                include_edition_created_by_ids: false,
-            })
+            )
             .await
             .change_context(UpdateError)
             .attach_printable("Could not read parent entity types")?
@@ -1394,12 +1409,13 @@ where
 
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_entity_type_embeddings_workflow(actor_id, &[
-                        EntityTypeWithMetadata {
+                    .start_update_entity_type_embeddings_workflow(
+                        actor_id,
+                        &[EntityTypeWithMetadata {
                             schema: schema.into_inner(),
                             metadata: metadata.clone(),
-                        },
-                    ])
+                        }],
+                    )
                     .await
                     .change_context(UpdateError)?;
             }
@@ -1424,11 +1440,14 @@ where
         actor_id: AccountId,
         params: UnarchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        self.unarchive_ontology_type(&params.entity_type_id, &OntologyEditionProvenance {
-            created_by_id: EditionCreatedById::new(actor_id),
-            archived_by_id: None,
-            user_defined: params.provenance,
-        })
+        self.unarchive_ontology_type(
+            &params.entity_type_id,
+            &OntologyEditionProvenance {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+                user_defined: params.provenance,
+            },
+        )
         .await
     }
 

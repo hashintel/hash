@@ -185,17 +185,26 @@ pub(crate) mod test {
 
     #[test]
     fn encode_u16() {
-        assert_encode(&42_u16, expect![[r#"
+        assert_encode(
+            &42_u16,
+            expect![[r#"
                 0x00 b'*'
-            "#]]);
+            "#]],
+        );
 
-        assert_encode(&0_u16, expect![[r#"
+        assert_encode(
+            &0_u16,
+            expect![[r#"
             0x00 0x00
-        "#]]);
+        "#]],
+        );
 
-        assert_encode(&u16::MAX, expect![[r#"
+        assert_encode(
+            &u16::MAX,
+            expect![[r#"
             0xFF 0xFF
-        "#]]);
+        "#]],
+        );
     }
 
     #[test]

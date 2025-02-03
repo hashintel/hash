@@ -172,14 +172,17 @@ impl ConnectionTask {
                     }
                 };
 
-                let (transaction, task) = Transaction::from_request(begin, TransactionParts {
-                    peer: self.peer,
-                    session: self.session,
-                    config: self.config,
-                    rx: request_rx,
-                    tx: tx.clone(),
-                    permit,
-                });
+                let (transaction, task) = Transaction::from_request(
+                    begin,
+                    TransactionParts {
+                        peer: self.peer,
+                        session: self.session,
+                        config: self.config,
+                        rx: request_rx,
+                        tx: tx.clone(),
+                        permit,
+                    },
+                );
 
                 // The channel size is a non-zero, meaning that we always have space in the buffer
                 // to send the request and resolve immediately.
