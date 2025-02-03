@@ -9060,6 +9060,7 @@ __metadata:
     "@temporalio/workflow": "npm:1.11.7"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/node": "npm:22.13.0"
+    "@types/uuid": "npm:9.0.8"
     "@types/wait-on": "npm:5.3.4"
     "@vitest/coverage-istanbul": "npm:2.1.8"
     agentkeepalive: "npm:4.6.0"
@@ -9074,6 +9075,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     slonik: "npm:24.2.0"
     typescript: "npm:5.7.3"
+    uuid: "npm:11.0.5"
     vitest: "npm:2.1.8"
     wait-on: "npm:8.0.2"
     winston: "npm:3.17.0"
@@ -18722,7 +18724,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/uuid@npm:^9.0.1":
+"@types/uuid@npm:9.0.8, @types/uuid@npm:^9.0.1":
   version: 9.0.8
   resolution: "@types/uuid@npm:9.0.8"
   checksum: 10c0/b411b93054cb1d4361919579ef3508a1f12bf15b5fdd97337d3d351bece6c921b52b6daeef89b62340fd73fd60da407878432a1af777f40648cbe53a01723489
