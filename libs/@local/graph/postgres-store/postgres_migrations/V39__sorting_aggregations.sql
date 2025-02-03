@@ -35,10 +35,10 @@ SELECT
         jsonb_array_elements_text(
             jsonb_path_query_array(
                 entity_types.closed_schema,
-                '$.allOf[*].labelProperty'
+                '$.allOf[*].label_property'
             )
         )
-    ) AS property
+    ) AS label_property
 FROM entity_temporal_metadata
 INNER JOIN entity_editions
     ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id
@@ -54,13 +54,19 @@ WHERE ontology_temporal_metadata.transaction_time @> now()
 CREATE VIEW first_entity_labels AS
 SELECT
     entity_label_agg.entity_edition_id,
-    (array_agg(entity_label_agg.property ORDER BY property ASC))[1] AS label
+    (array_agg(
+        entity_label_agg.label_property
+        ORDER BY entity_label_agg.label_property ASC
+    ))[1] AS label_property
 FROM entity_label_agg
 GROUP BY entity_label_agg.entity_edition_id;
 
 CREATE VIEW last_entity_labels AS
 SELECT
     entity_label_agg.entity_edition_id,
-    (array_agg(entity_label_agg.property ORDER BY property DESC))[1] AS label
+    (array_agg(
+        entity_label_agg.label_property
+        ORDER BY entity_label_agg.label_property DESC
+    ))[1] AS label_property
 FROM entity_label_agg
 GROUP BY entity_label_agg.entity_edition_id;

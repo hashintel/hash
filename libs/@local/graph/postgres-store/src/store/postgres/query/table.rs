@@ -747,7 +747,7 @@ impl DatabaseColumn for EntityLabels {
     fn as_str(self) -> &'static str {
         match self {
             Self::EditionId => "entity_edition_id",
-            Self::Label => "label",
+            Self::Label => "label_property",
         }
     }
 }
