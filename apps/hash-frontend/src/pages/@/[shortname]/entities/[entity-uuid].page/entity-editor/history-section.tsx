@@ -141,7 +141,7 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
         <Chip
           size="xs"
           label={editionsLoading ? "–" : `${historyEvents.length} events`}
-          sx={{ color: ({ palette }) => palette.gray[70] }}
+          sx={{ color: ({ palette }) => palette.gray[70], ml: 1 }}
         />
       }
     >

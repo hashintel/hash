@@ -183,7 +183,8 @@ export type PropertyMetadata =
 
 export const isValueMetadata = (
   metadata: PropertyMetadata,
-): metadata is PropertyMetadataValue => !("value" in metadata);
+): metadata is PropertyMetadataValue =>
+  !!metadata.metadata && "dataTypeId" in metadata.metadata;
 
 export const isArrayMetadata = (
   metadata: PropertyMetadata,

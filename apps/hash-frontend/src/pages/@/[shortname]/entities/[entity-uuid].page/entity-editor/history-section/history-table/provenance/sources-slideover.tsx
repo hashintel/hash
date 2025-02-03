@@ -100,7 +100,7 @@ const SourceRow = ({ source }: { source: SourceProvenance }) => {
               wordBreak: "break-word",
             }}
           >
-            {hashMirrorUrl ? "HASH Backup" : location?.uri}
+            {hashMirrorUrl ? "HASH Storage" : location?.uri}
           </Link>
         ) : (
           "Unknown"
