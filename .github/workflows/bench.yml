@@ -42,7 +42,7 @@ jobs:
           UNIT_BENCH_QUERY="query { affectedPackages(base: \"$TURBO_SCM_BASE\", filter: {has: {field: TASK_NAME, value: \"bench:unit\"}}) { items { name path } } }"
           INTEGRATION_BENCH_QUERY="query { affectedPackages(base: \"$TURBO_SCM_BASE\", filter: {has: {field: TASK_NAME, value: \"bench:integration\"}}) { items { name path } } }"
 
-          UNIT_BENCH_PACKAGES=$(turbo query "$UNIT_BENCH_QUERY"
+          UNIT_BENCH_PACKAGES=$(turbo query "$UNIT_BENCH_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
           INTEGRATION_BENCH_PACKAGES=$(turbo query "$INTEGRATION_BENCH_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
