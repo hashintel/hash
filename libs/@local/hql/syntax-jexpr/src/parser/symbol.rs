@@ -2,7 +2,7 @@ use ecow::EcoString;
 use hql_cst::symbol::Symbol;
 use unicode_ident::{is_xid_continue, is_xid_start};
 use winnow::{
-    ModalResult, Parser, Stateful,
+    ModalParser, ModalResult, Parser as _, Stateful,
     combinator::{delimited, empty, fail, opt, peek},
     dispatch,
     error::ParserError,
@@ -60,7 +60,7 @@ const OPERATORS_PREFIX: &[char] = &['=', '!', '>', '<', '+', '-', '*', '/', '|',
 /// ```
 pub(crate) fn parse_symbol<'arena, 'spans, Input, Error>(
     restriction: ParseRestriction,
-) -> impl Parser<Stateful<Input, ParseState<'arena, 'spans>>, Symbol, Error>
+) -> impl ModalParser<Stateful<Input, ParseState<'arena, 'spans>>, Symbol, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>

@@ -1,6 +1,6 @@
 use hql_cst::expr::path::Path;
 use winnow::{
-    Parser, Stateful,
+    ModalParser, Parser as _, Stateful,
     combinator::trace,
     error::ParserError,
     stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
@@ -22,7 +22,7 @@ use crate::span::Span;
 /// ```
 pub(crate) fn parse_path<'arena, 'span, Input, Error>(
     restriction: ParseRestriction,
-) -> impl Parser<Stateful<Input, ParseState<'arena, 'span>>, Path<'arena>, Error>
+) -> impl ModalParser<Stateful<Input, ParseState<'arena, 'span>>, Path<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
