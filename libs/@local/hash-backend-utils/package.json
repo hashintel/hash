@@ -52,6 +52,7 @@
     "logform": "2.7.0",
     "redis": "4.7.0",
     "slonik": "24.2.0",
+    "uuid": "11.0.5",
     "wait-on": "8.0.2",
     "winston": "3.17.0"
   },
@@ -60,6 +61,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.3.3",
     "@types/node": "22.13.0",
+    "@types/uuid": "9.0.8",
     "@types/wait-on": "5.3.4",
     "@vitest/coverage-istanbul": "2.1.8",
     "eslint": "9.19.0",

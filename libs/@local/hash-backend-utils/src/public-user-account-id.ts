@@ -1,5 +1,4 @@
 import type { AccountId } from "@local/hash-graph-types/account";
+import { NIL as UUID_NIL } from "uuid";
 
-// nosemgrep:
-export const publicUserAccountId: AccountId =
-  "00000000-0000-0000-0000-000000000000" as AccountId;
+export const publicUserAccountId: AccountId = UUID_NIL as AccountId;
