@@ -12,6 +12,7 @@ env:
   TURBO_TEAM: hashintel
   TURBO_REMOTE_ONLY: true
   TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+  NEXTEST_PROFILE: ci
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
