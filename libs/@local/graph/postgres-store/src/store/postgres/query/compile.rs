@@ -148,7 +148,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         default
     }
 
-    pub fn set_limit(&mut self, limit: usize) {
+    pub const fn set_limit(&mut self, limit: usize) {
         self.statement.limit = Some(limit);
     }
 
@@ -228,7 +228,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 Expression::Parameter(transaction_time_index),
                             ));
                     }
-                };
+                }
             }
         }
     }

@@ -225,7 +225,7 @@ impl Document {
         // we already have the value inserted, therefore we do not need to add it again
         if let Some(reference) = self.references.get(&type_id) {
             return *reference;
-        };
+        }
 
         // we do not yet have the schema, to avoid cyclic references we already create the id
         let reference = Self::reference::<T>(self.counter.fetch_add());

@@ -66,7 +66,7 @@ impl SizeHint {
     ///
     /// This function panics if `value` is less than `lower`.
     #[inline]
-    pub fn set_upper(&mut self, value: u64) {
+    pub const fn set_upper(&mut self, value: u64) {
         assert!(value >= self.lower, "`value` is less than than `lower`");
 
         self.upper = Some(value);
@@ -86,7 +86,7 @@ impl SizeHint {
 
     /// Set the value of the `lower` and `upper` bounds to exactly the same.
     #[inline]
-    pub fn set_exact(&mut self, value: u64) {
+    pub const fn set_exact(&mut self, value: u64) {
         self.lower = value;
         self.upper = Some(value);
     }

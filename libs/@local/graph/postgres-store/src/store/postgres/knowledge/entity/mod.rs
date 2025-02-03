@@ -1318,7 +1318,7 @@ where
             if schema.all_of.is_empty() {
                 validation_report.metadata.entity_types =
                     Some(EntityTypesError::Empty(Report::new(EmptyEntityTypes)));
-            };
+            }
 
             let mut preprocessor = EntityPreprocessor {
                 components: params.components,

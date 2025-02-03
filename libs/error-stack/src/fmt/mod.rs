@@ -810,7 +810,7 @@ impl Opaque {
         Self(0)
     }
 
-    fn increase(&mut self) {
+    const fn increase(&mut self) {
         self.0 += 1;
     }
 

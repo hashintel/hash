@@ -1,4 +1,4 @@
-use core::{iter::repeat, str::FromStr as _};
+use core::{iter::repeat_n, str::FromStr as _};
 use std::collections::HashSet;
 
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
@@ -102,20 +102,22 @@ async fn seed_db<A: AuthorizationApi>(
     let entity_list = transaction
         .create_entities(
             account_id,
-            repeat(CreateEntityParams {
-                owned_by_id: OwnedById::new(account_id.into_uuid()),
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([entity_type_id]),
-                properties: PropertyWithMetadataObject::from_parts(properties, None)
-                    .expect("could not create property with metadata object"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
-            })
-            .take(total)
+            repeat_n(
+                CreateEntityParams {
+                    owned_by_id: OwnedById::new(account_id.into_uuid()),
+                    entity_uuid: None,
+                    decision_time: None,
+                    entity_type_ids: HashSet::from([entity_type_id]),
+                    properties: PropertyWithMetadataObject::from_parts(properties, None)
+                        .expect("could not create property with metadata object"),
+                    confidence: None,
+                    link_data: None,
+                    draft: false,
+                    relationships: [],
+                    provenance: ProvidedEntityEditionProvenance::default(),
+                },
+                total,
+            )
             .collect(),
         )
         .await

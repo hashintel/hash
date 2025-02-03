@@ -255,6 +255,10 @@ mod test {
             }
         }
 
+        #[expect(
+            clippy::unnecessary_semicolon,
+            reason = "false positive, fuzz test requires it"
+        )]
         match (value_result, serde_result) {
             (Ok(lhs), Ok(rhs)) => assert!(partial_eq(&lhs, &rhs)),
             (Err(_), Err(_)) => {}

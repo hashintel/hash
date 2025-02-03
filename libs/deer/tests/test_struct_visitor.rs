@@ -136,7 +136,7 @@ impl<'de> FieldVisitor<'de> for ExampleFieldVisitor<'_> {
                 match self.a {
                     Some(_) => unimplemented!("planned in follow up PR"),
                     other => *other = Some(value),
-                };
+                }
 
                 Ok(())
             }

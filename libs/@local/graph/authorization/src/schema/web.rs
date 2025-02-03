@@ -282,6 +282,7 @@ impl Relationship for (OwnedById, WebRelationAndSubject) {
     type Subject = WebSubject;
     type SubjectSet = WebSubjectSet;
 
+    #[expect(clippy::too_many_lines)]
     fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
         Ok((
             parts.resource,

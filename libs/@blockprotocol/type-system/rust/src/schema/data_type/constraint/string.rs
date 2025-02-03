@@ -480,7 +480,7 @@ impl Constraint for StringConstraints {
                 remainder.get_or_insert_default().pattern = other.pattern;
             }
             None => self.pattern = self.pattern.or(other.pattern),
-        };
+        }
 
         if let Some((min_length, max_length)) = self.min_length.zip(self.max_length) {
             ensure!(

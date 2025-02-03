@@ -99,7 +99,7 @@ impl ValidateOntologyType<DataType> for DomainValidator {
         if !self.validate_url(base_url.as_str()) {
             return Err(DomainValidationError)
                 .attach_printable("Data Type base URL didn't match the given validation regex");
-        };
+        }
 
         let ShortNameAndKind {
             short_name: _,
@@ -109,7 +109,7 @@ impl ValidateOntologyType<DataType> for DomainValidator {
             return Err(DomainValidationError).attach_printable_lazy(|| {
                 format!("Data Type base URL had the incorrect ontology kind slug: {kind}")
             });
-        };
+        }
 
         // TODO: check that the user has write access to the shortname, this will require us
         //       making the graph aware of shortnames. We can store them alongside accountIds. We
@@ -127,7 +127,7 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
             return Err(DomainValidationError).attach_printable(
                 "Property Type base URL didn't match the given validation regex",
             );
-        };
+        }
 
         let ShortNameAndKind {
             short_name: _,
@@ -137,7 +137,7 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
             return Err(DomainValidationError).attach_printable_lazy(|| {
                 format!("Property Type base URL had the incorrect ontology kind slug: {kind}")
             });
-        };
+        }
 
         // TODO: check that the user has write access to the shortname, this will require us
         //       making the graph aware of shortnames. We can store them alongside accountIds. We
@@ -154,7 +154,7 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
         if !self.validate_url(base_url.as_str()) {
             return Err(DomainValidationError)
                 .attach_printable("Entity Type base URL didn't match the given validation regex");
-        };
+        }
 
         let ShortNameAndKind {
             short_name: _,
@@ -164,7 +164,7 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
             return Err(DomainValidationError).attach_printable_lazy(|| {
                 format!("Entity Type base URL had the incorrect ontology kind slug: {kind}")
             });
-        };
+        }
 
         // TODO: check that the user has write access to the shortname, this will require us
         //       making the graph aware of shortnames. We can store them alongside accountIds. We

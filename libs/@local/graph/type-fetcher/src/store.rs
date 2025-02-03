@@ -220,7 +220,7 @@ where
         Ok(FetcherClient::new(connection_info.config.clone(), transport).spawn())
     }
 
-    pub fn store(&mut self) -> &mut S {
+    pub const fn store(&mut self) -> &mut S {
         &mut self.store
     }
 }

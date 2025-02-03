@@ -300,7 +300,7 @@ where
                         )
                     }),
                 );
-            };
+            }
         }
 
         self.traverse_data_types(

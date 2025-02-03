@@ -317,7 +317,7 @@ impl EntityVisitor for EntityPreprocessor {
                     .try_collect_reports::<()>()
                 {
                     validation_report.provided = Some(ValueValidationError::Constraints { error });
-                };
+                }
 
                 if actual_data_type.r#abstract {
                     validation_report.r#abstract = Some(actual_data_type.id.clone());
@@ -349,7 +349,7 @@ impl EntityVisitor for EntityPreprocessor {
                     {
                         validation_report.target =
                             Some(ValueValidationError::Constraints { error });
-                    };
+                    }
                 }
                 Err(report) => {
                     validation_report.target = Some(ValueValidationError::Retrieval {
@@ -555,7 +555,7 @@ impl EntityVisitor for EntityPreprocessor {
         if let Err(error) = walk_one_of_property_value(self, schema, property, type_provider).await
         {
             property_validation.validations = error.validations;
-        };
+        }
 
         if property_validation.validations.is_some()
             || property_validation.value_conversion.is_some()

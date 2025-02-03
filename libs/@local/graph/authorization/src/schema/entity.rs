@@ -288,6 +288,7 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
     type Subject = EntitySubject;
     type SubjectSet = EntitySubjectSet;
 
+    #[expect(clippy::too_many_lines)]
     fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
         Ok((
             parts.resource,
