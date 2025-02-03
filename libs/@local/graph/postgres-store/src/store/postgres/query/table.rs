@@ -30,10 +30,10 @@ pub enum Table {
     PropertyTypes,
     PropertyTypeEmbeddings,
     EntityTypes,
-    FirstEntityTitles,
-    LastEntityTitles,
-    FirstEntityLabels,
-    LastEntityLabels,
+    FirstTitleForEntity,
+    LastTitleForEntity,
+    FirstLabelForEntity,
+    LastLabelForEntity,
     EntityTypeEmbeddings,
     EntityIds,
     EntityDrafts,
@@ -330,10 +330,10 @@ impl Table {
             Self::PropertyTypes => "property_types",
             Self::PropertyTypeEmbeddings => "property_type_embeddings",
             Self::EntityTypes => "entity_types",
-            Self::FirstEntityTitles => "first_entity_titles",
-            Self::LastEntityTitles => "last_entity_titles",
-            Self::FirstEntityLabels => "first_entity_labels",
-            Self::LastEntityLabels => "last_entity_labels",
+            Self::FirstTitleForEntity => "first_type_title_for_entity",
+            Self::LastTitleForEntity => "last_type_title_for_entity",
+            Self::FirstLabelForEntity => "first_label_for_entity",
+            Self::LastLabelForEntity => "last_label_for_entity",
             Self::EntityTypeEmbeddings => "entity_type_embeddings",
             Self::EntityIds => "entity_ids",
             Self::EntityDrafts => "entity_drafts",
@@ -1405,10 +1405,10 @@ pub enum Column {
     EntityIds(EntityIds),
     EntityTemporalMetadata(EntityTemporalMetadata),
     EntityEditions(EntityEditions),
-    FirstEntityLabels(EntityLabels),
-    LastEntityLabels(EntityLabels),
-    FirstEntityTitles(EntityTitles),
-    LastEntityTitles(EntityTitles),
+    FirstLabelForEntity(EntityLabels),
+    LastLabelForEntity(EntityLabels),
+    FirstTitleForEntity(EntityTitles),
+    LastTitleForEntity(EntityTitles),
     EntityEmbeddings(EntityEmbeddings),
     PropertyTypeConstrainsValuesOn(PropertyTypeConstrainsValuesOn),
     PropertyTypeConstrainsPropertiesOn(PropertyTypeConstrainsPropertiesOn),
@@ -1591,10 +1591,10 @@ impl Column {
             Self::EntityIds(_) => Table::EntityIds,
             Self::EntityTemporalMetadata(_) => Table::EntityTemporalMetadata,
             Self::EntityEditions(_) => Table::EntityEditions,
-            Self::FirstEntityLabels(_) => Table::FirstEntityLabels,
-            Self::LastEntityLabels(_) => Table::LastEntityLabels,
-            Self::FirstEntityTitles(_) => Table::FirstEntityTitles,
-            Self::LastEntityTitles(_) => Table::LastEntityTitles,
+            Self::FirstLabelForEntity(_) => Table::FirstLabelForEntity,
+            Self::LastLabelForEntity(_) => Table::LastLabelForEntity,
+            Self::FirstTitleForEntity(_) => Table::FirstTitleForEntity,
+            Self::LastTitleForEntity(_) => Table::LastTitleForEntity,
             Self::EntityEmbeddings(_) => Table::EntityEmbeddings,
             Self::DataTypeInheritsFrom(_, inheritance_depth) => {
                 Table::Reference(ReferenceTable::DataTypeInheritsFrom { inheritance_depth })
@@ -1670,10 +1670,10 @@ impl DatabaseColumn for Column {
             Self::EntityIds(column) => column.parameter_type(),
             Self::EntityTemporalMetadata(column) => column.parameter_type(),
             Self::EntityEditions(column) => column.parameter_type(),
-            Self::FirstEntityLabels(column) | Self::LastEntityLabels(column) => {
+            Self::FirstLabelForEntity(column) | Self::LastLabelForEntity(column) => {
                 column.parameter_type()
             }
-            Self::FirstEntityTitles(column) | Self::LastEntityTitles(column) => {
+            Self::FirstTitleForEntity(column) | Self::LastTitleForEntity(column) => {
                 column.parameter_type()
             }
             Self::EntityEmbeddings(column) => column.parameter_type(),
@@ -1709,8 +1709,12 @@ impl DatabaseColumn for Column {
             Self::EntityIds(column) => column.nullable(),
             Self::EntityTemporalMetadata(column) => column.nullable(),
             Self::EntityEditions(column) => column.nullable(),
-            Self::FirstEntityLabels(column) | Self::LastEntityLabels(column) => column.nullable(),
-            Self::FirstEntityTitles(column) | Self::LastEntityTitles(column) => column.nullable(),
+            Self::FirstLabelForEntity(column) | Self::LastLabelForEntity(column) => {
+                column.nullable()
+            }
+            Self::FirstTitleForEntity(column) | Self::LastTitleForEntity(column) => {
+                column.nullable()
+            }
             Self::EntityEmbeddings(column) => column.nullable(),
             Self::PropertyTypeConstrainsValuesOn(column) => column.nullable(),
             Self::PropertyTypeConstrainsPropertiesOn(column) => column.nullable(),
@@ -1744,8 +1748,8 @@ impl DatabaseColumn for Column {
             Self::EntityIds(column) => column.as_str(),
             Self::EntityTemporalMetadata(column) => column.as_str(),
             Self::EntityEditions(column) => column.as_str(),
-            Self::FirstEntityLabels(column) | Self::LastEntityLabels(column) => column.as_str(),
-            Self::FirstEntityTitles(column) | Self::LastEntityTitles(column) => column.as_str(),
+            Self::FirstLabelForEntity(column) | Self::LastLabelForEntity(column) => column.as_str(),
+            Self::FirstTitleForEntity(column) | Self::LastTitleForEntity(column) => column.as_str(),
             Self::EntityEmbeddings(column) => column.as_str(),
             Self::PropertyTypeConstrainsValuesOn(column) => column.as_str(),
             Self::PropertyTypeConstrainsPropertiesOn(column) => column.as_str(),
@@ -1847,10 +1851,10 @@ pub enum Relation {
     EntityIsOfTypes,
     EntityIds,
     EntityEditions,
-    FirstEntityTitle,
-    LastEntityTitle,
-    FirstEntityLabel,
-    LastEntityLabel,
+    FirstTitleForEntity,
+    LastTitleForEntity,
+    FirstLabelForEntity,
+    LastLabelForEntity,
     PropertyTypeEmbeddings,
     EntityTypeEmbeddings,
     EntityEmbeddings,
@@ -2031,26 +2035,34 @@ impl Relation {
                 join: Column::EntityEditions(EntityEditions::EditionId),
                 join_type: JoinType::Inner,
             }),
-            Self::FirstEntityTitle => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
-                join: Column::FirstEntityTitles(EntityTitles::EditionId),
-                join_type: JoinType::Inner,
-            }),
-            Self::LastEntityTitle => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
-                join: Column::LastEntityTitles(EntityTitles::EditionId),
-                join_type: JoinType::Inner,
-            }),
-            Self::FirstEntityLabel => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
-                join: Column::FirstEntityLabels(EntityLabels::EditionId),
-                join_type: JoinType::LeftOuter,
-            }),
-            Self::LastEntityLabel => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
-                join: Column::LastEntityLabels(EntityLabels::EditionId),
-                join_type: JoinType::LeftOuter,
-            }),
+            Self::FirstTitleForEntity => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                    join: Column::FirstTitleForEntity(EntityTitles::EditionId),
+                    join_type: JoinType::Inner,
+                })
+            }
+            Self::LastTitleForEntity => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                    join: Column::LastTitleForEntity(EntityTitles::EditionId),
+                    join_type: JoinType::Inner,
+                })
+            }
+            Self::FirstLabelForEntity => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                    join: Column::FirstLabelForEntity(EntityLabels::EditionId),
+                    join_type: JoinType::LeftOuter,
+                })
+            }
+            Self::LastLabelForEntity => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                    join: Column::LastLabelForEntity(EntityLabels::EditionId),
+                    join_type: JoinType::LeftOuter,
+                })
+            }
             Self::EntityEmbeddings => ForeignKeyJoin::from_reference(ForeignKeyReference::Double {
                 on: [
                     Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),

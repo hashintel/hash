@@ -87,10 +87,10 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             })
             .chain(path.relations())
             .collect(),
-            Self::FirstTitle => vec![Relation::FirstEntityTitle],
-            Self::LastTitle => vec![Relation::LastEntityTitle],
-            Self::FirstLabel => vec![Relation::FirstEntityLabel],
-            Self::LastLabel => vec![Relation::LastEntityLabel],
+            Self::FirstTitle => vec![Relation::FirstTitleForEntity],
+            Self::LastTitle => vec![Relation::LastTitleForEntity],
+            Self::FirstLabel => vec![Relation::FirstLabelForEntity],
+            Self::LastLabel => vec![Relation::LastLabelForEntity],
         }
     }
 
@@ -198,10 +198,10 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityHasRightEntity(EntityHasRightEntity::Provenance),
                 None,
             ),
-            Self::FirstTitle => (Column::FirstEntityTitles(EntityTitles::Title), None),
-            Self::LastTitle => (Column::LastEntityTitles(EntityTitles::Title), None),
-            Self::FirstLabel => (Column::FirstEntityLabels(EntityLabels::Label), None),
-            Self::LastLabel => (Column::LastEntityLabels(EntityLabels::Label), None),
+            Self::FirstTitle => (Column::FirstTitleForEntity(EntityTitles::Title), None),
+            Self::LastTitle => (Column::LastTitleForEntity(EntityTitles::Title), None),
+            Self::FirstLabel => (Column::FirstLabelForEntity(EntityLabels::Label), None),
+            Self::LastLabel => (Column::LastLabelForEntity(EntityLabels::Label), None),
         }
     }
 

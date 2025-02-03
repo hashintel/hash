@@ -1,4 +1,4 @@
-CREATE VIEW entity_title_agg AS
+CREATE VIEW type_title_for_entity AS
 SELECT
     entity_temporal_metadata.entity_edition_id,
     entity_types.schema ->> 'title' AS title
@@ -12,22 +12,22 @@ INNER JOIN entity_types
 WHERE ontology_temporal_metadata.transaction_time @> now()
     AND entity_is_of_type.inheritance_depth = 0;
 
-CREATE VIEW first_entity_titles AS
+CREATE VIEW first_type_title_for_entity AS
 SELECT
-    entity_title_agg.entity_edition_id,
-    min(entity_title_agg.title) AS title
-FROM entity_title_agg
-GROUP BY entity_title_agg.entity_edition_id;
+    type_title_for_entity.entity_edition_id,
+    min(type_title_for_entity.title) AS title
+FROM type_title_for_entity
+GROUP BY type_title_for_entity.entity_edition_id;
 
-CREATE VIEW last_entity_titles AS
+CREATE VIEW last_type_title_for_entity AS
 SELECT
-    entity_title_agg.entity_edition_id,
-    max(entity_title_agg.title) AS title
-FROM entity_title_agg
-GROUP BY entity_title_agg.entity_edition_id;
+    type_title_for_entity.entity_edition_id,
+    max(type_title_for_entity.title) AS title
+FROM type_title_for_entity
+GROUP BY type_title_for_entity.entity_edition_id;
 
 
-CREATE VIEW entity_label_agg AS
+CREATE VIEW label_for_entity AS
 SELECT
     entity_temporal_metadata.entity_edition_id,
     jsonb_extract_path(
@@ -51,22 +51,22 @@ INNER JOIN entity_types
 WHERE ontology_temporal_metadata.transaction_time @> now()
     AND entity_is_of_type.inheritance_depth = 0;
 
-CREATE VIEW first_entity_labels AS
+CREATE VIEW first_label_for_entity AS
 SELECT
-    entity_label_agg.entity_edition_id,
+    label_for_entity.entity_edition_id,
     (array_agg(
-        entity_label_agg.label_property
-        ORDER BY entity_label_agg.label_property ASC
+        label_for_entity.label_property
+        ORDER BY label_for_entity.label_property ASC
     ))[1] AS label_property
-FROM entity_label_agg
-GROUP BY entity_label_agg.entity_edition_id;
+FROM label_for_entity
+GROUP BY label_for_entity.entity_edition_id;
 
-CREATE VIEW last_entity_labels AS
+CREATE VIEW last_label_for_entity AS
 SELECT
-    entity_label_agg.entity_edition_id,
+    label_for_entity.entity_edition_id,
     (array_agg(
-        entity_label_agg.label_property
-        ORDER BY entity_label_agg.label_property DESC
+        label_for_entity.label_property
+        ORDER BY label_for_entity.label_property DESC
     ))[1] AS label_property
-FROM entity_label_agg
-GROUP BY entity_label_agg.entity_edition_id;
+FROM label_for_entity
+GROUP BY label_for_entity.entity_edition_id;
