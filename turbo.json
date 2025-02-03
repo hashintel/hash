@@ -111,6 +111,9 @@
 
     // Dot-files
     ".*",
+    ".cargo/**",
+    ".config/**",
+    ".yarn/**",
 
     // Manifest files
     "*.lock",
