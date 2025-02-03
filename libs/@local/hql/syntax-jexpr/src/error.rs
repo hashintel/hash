@@ -10,7 +10,7 @@ pub(crate) const JEXPR_CATEGORY: &Category = &Category {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use core::fmt::{Debug, Display};
+    use core::fmt::Debug;
 
     use winnow::{error::ParseError, stream::AsBStr};
 
