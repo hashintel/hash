@@ -1,4 +1,5 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   EntityQueryCursor,
   GetDataTypeSubgraphParams,
@@ -59,7 +60,7 @@ export const createGraphActivities = ({
 }) => ({
   async getUserAccountIds(): Promise<AccountId[]> {
     return graphApiClient
-      .getEntities("00000000-0000-0000-0000-000000000000", {
+      .getEntities(publicUserAccountId, {
         filter: {
           all: [
             {
