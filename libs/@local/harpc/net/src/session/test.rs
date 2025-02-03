@@ -377,7 +377,6 @@ async fn echo_memory_concurrent() {
 
 #[test_log::test(tokio::test(flavor = "multi_thread", worker_threads = 8))]
 async fn echo_tcp_concurrent() {
-    panic!();
     let address: Multiaddr = [
         multiaddr::Protocol::Ip4(Ipv4Addr::LOCALHOST),
         multiaddr::Protocol::Tcp(0),
