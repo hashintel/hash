@@ -11,7 +11,6 @@ env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_REMOTE_ONLY: true
-  TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -37,7 +36,7 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          PACKAGES_QUERY="query { affectedPackages(base: \"$TURBO_SCM_BASE\") { items { name path } } }"
+          PACKAGES_QUERY='query { affectedPackages(base: "[HEAD^]") { items { name path } } }'
           PACKAGES=$(turbo query "$PACKAGES_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 
