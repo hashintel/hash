@@ -39,8 +39,8 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          UNIT_BENCH_QUERY='query { affectedPackages(base: "[HEAD^]", filter: {has: {field: TASK_NAME, value: "bench:unit"}}) { items { name path } } }'
-          INTEGRATION_BENCH_QUERY='query { affectedPackages(base: "[HEAD^]", filter: {has: {field: TASK_NAME, value: "bench:integration"}}) { items { name path } } }'
+          UNIT_BENCH_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "bench:unit"}}) { items { name path } } }'
+          INTEGRATION_BENCH_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "bench:integration"}}) { items { name path } } }'
 
           UNIT_BENCH_PACKAGES=$(turbo query "$UNIT_BENCH_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')

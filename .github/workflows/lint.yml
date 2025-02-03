@@ -36,7 +36,7 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          PACKAGES_QUERY='query { affectedPackages(base: "[HEAD^]") { items { name path } } }'
+          PACKAGES_QUERY='query { affectedPackages(base: "HEAD^") { items { name path } } }'
           PACKAGES=$(turbo query "$PACKAGES_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 

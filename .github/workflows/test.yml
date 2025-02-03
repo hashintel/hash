@@ -41,9 +41,9 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          UNIT_TEST_QUERY='query { affectedPackages(base: "[HEAD^]", filter: {has: {field: TASK_NAME, value: "test:unit"}}) { items { name path } } }'
-          INTEGRATION_TEST_QUERY='query { affectedPackages(base: "[HEAD^]", filter: {has: {field: TASK_NAME, value: "test:integration"}}) { items { name path } } }'
-          DOCKER_TEST_QUERY='query { affectedPackages(base: "[HEAD^]", filter: {has: {field: TASK_NAME, value: "build:docker"}}) { items { name path } } }'
+          UNIT_TEST_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "test:unit"}}) { items { name path } } }'
+          INTEGRATION_TEST_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "test:integration"}}) { items { name path } } }'
+          DOCKER_TEST_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "build:docker"}}) { items { name path } } }'
 
           UNIT_TEST_PACKAGES=$(turbo query "$UNIT_TEST_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
