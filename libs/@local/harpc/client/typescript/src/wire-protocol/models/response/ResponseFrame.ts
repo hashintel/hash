@@ -1,6 +1,7 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
+  Either,
   Equal,
   Hash,
   Inspectable,
@@ -9,9 +10,9 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../../../utils.js";
-import * as Buffer from "../../Buffer.js";
+import { createProto, implDecode, implEncode } from "../../../utils.js";
 import * as Payload from "../Payload.js";
+import { MutableBuffer } from "../../../binary/index.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/response/ResponseFrame",
@@ -72,24 +73,24 @@ export const make = (payload: Payload.Payload): ResponseFrame =>
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, frame: ResponseFrame) =>
-    pipe(
-      buffer,
-      Buffer.advance(19),
-      Effect.andThen(Payload.encode(frame.payload)),
-    ),
+export const encode = implEncode((buffer, frame: ResponseFrame) =>
+  pipe(
+    buffer,
+    MutableBuffer.advance(19),
+    Either.andThen(Payload.encode(frame.payload)),
+  ),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
-    yield* Buffer.advance(buffer, 19);
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
+    yield* MutableBuffer.advance(buffer, 19);
     const payload = yield* Payload.decode(buffer);
 
     return make(payload);
-  });
+  }),
+);
 
 export const isResponseFrame = (value: unknown): value is ResponseFrame =>
   Predicate.hasProperty(value, TypeId);

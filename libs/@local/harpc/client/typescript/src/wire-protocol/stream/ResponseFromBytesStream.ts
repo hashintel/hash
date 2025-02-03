@@ -1,7 +1,6 @@
 import { Data, Effect, Option, pipe, Stream } from "effect";
 
-import { MutableBytes } from "../../binary/index.js";
-import * as Buffer from "../Buffer.js";
+import { MutableBytes, MutableBuffer } from "../../binary/index.js";
 import { Response } from "../models/response/index.js";
 
 export class IncompleteResponseError extends Data.TaggedError(
@@ -45,9 +44,7 @@ const tryDecodePacket = Effect.fn("tryDecodePacket")(function* (
   const packet = split.value;
 
   // decode the message
-  const reader = yield* Buffer.makeRead(
-    new DataView(MutableBytes.asBuffer(packet)),
-  );
+  const reader = MutableBuffer.makeRead(packet);
   const response = yield* Response.decode(reader);
 
   return Option.some(response);
