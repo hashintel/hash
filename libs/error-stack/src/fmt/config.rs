@@ -9,7 +9,7 @@ pub(crate) struct Config {
 
 #[cfg(any(feature = "std", feature = "hooks"))]
 impl Config {
-    pub(crate) fn new(color_mode: ColorMode, charset: Charset, alternate: bool) -> Self {
+    pub(crate) const fn new(color_mode: ColorMode, charset: Charset, alternate: bool) -> Self {
         let context = HookContext::new(Format::new(alternate, color_mode, charset));
 
         Self { context }

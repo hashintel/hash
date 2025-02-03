@@ -90,9 +90,12 @@ mod test {
 
     #[test]
     fn encode() {
-        assert_encode(&Payload(Bytes::from_static(b"hello world")), expect![[r#"
+        assert_encode(
+            &Payload(Bytes::from_static(b"hello world")),
+            expect![[r#"
                 0x00 0x0B b'h' b'e' b'l' b'l' b'o' b' ' b'w' b'o' b'r' b'l' b'd'
-            "#]]);
+            "#]],
+        );
     }
 
     #[test]

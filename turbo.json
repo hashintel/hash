@@ -101,15 +101,26 @@
     }
   },
   "globalDependencies": [
+    // Changing any `turbo.json` file will trigger a full rebuild
     "**/turbo.json",
-    ".github/actions/**/*.yml",
-    ".github/scripts/**/*.rs",
-    ".github/workflows/**/*",
-    ".env*",
-    ".justfile",
-    ".yarnrc",
+
+    // Changing workflows should trigger a full rebuild so it's checked in CI
+    ".github/actions/**",
+    ".github/scripts/**",
+    ".github/workflows/**",
+
+    // Dot-files
+    ".*",
+
+    // Manifest files
+    "*.lock",
     "Cargo.toml",
     "package.json",
+    "pyproject.toml",
+    "rust-toolchain.toml",
+    "yarn*",
+
+    // External services
     "apps/hash-external-services/**"
   ]
 }

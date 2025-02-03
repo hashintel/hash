@@ -627,9 +627,11 @@ where
         scope: Connection<S, C>,
         params: InsertAccountGroupIdParams,
     ) -> Result<AccountGroupId, Report<AccountError>> {
-        invoke_call_discrete(scope, meta::AccountProcedureId::CreateAccountGroup, [
-            params,
-        ])
+        invoke_call_discrete(
+            scope,
+            meta::AccountProcedureId::CreateAccountGroup,
+            [params],
+        )
         .await
         .change_context(AccountError)
     }
@@ -655,10 +657,11 @@ where
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
-        invoke_call_discrete(scope, meta::AccountProcedureId::AddAccountGroupMember, [(
-            account_group_id,
-            account_id,
-        )])
+        invoke_call_discrete(
+            scope,
+            meta::AccountProcedureId::AddAccountGroupMember,
+            [(account_group_id, account_id)],
+        )
         .await
         .change_context(AccountError)
     }
@@ -669,9 +672,11 @@ where
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
-        invoke_call_discrete(scope, meta::AccountProcedureId::RemoveAccountGroupMember, [
-            (account_group_id, account_id),
-        ])
+        invoke_call_discrete(
+            scope,
+            meta::AccountProcedureId::RemoveAccountGroupMember,
+            [(account_group_id, account_id)],
+        )
         .await
         .change_context(AccountError)
     }

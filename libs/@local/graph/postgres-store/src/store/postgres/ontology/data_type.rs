@@ -169,11 +169,14 @@ where
         #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
         let count = if params.include_count {
             Some(
-                self.count_data_types(actor_id, CountDataTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                })
+                self.count_data_types(
+                    actor_id,
+                    CountDataTypesParams {
+                        filter: params.filter.clone(),
+                        temporal_axes: params.temporal_axes.clone(),
+                        include_drafts: params.include_drafts,
+                    },
+                )
                 .await?,
             )
         } else {
@@ -420,10 +423,13 @@ where
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.insert((data_type_id, DataTypeRelationAndSubject::Owner {
-                    subject: DataTypeOwnerSubject::Web { id: *owned_by_id },
-                    level: 0,
-                }));
+                relationships.insert((
+                    data_type_id,
+                    DataTypeRelationAndSubject::Owner {
+                        subject: DataTypeOwnerSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
             }
 
             relationships.extend(
@@ -484,22 +490,25 @@ where
             .collect::<HashMap<_, _>>();
 
         transaction
-            .get_data_types(actor_id, GetDataTypesParams {
-                filter: Filter::In(
-                    FilterExpression::Path {
-                        path: DataTypeQueryPath::OntologyId,
+            .get_data_types(
+                actor_id,
+                GetDataTypesParams {
+                    filter: Filter::In(
+                        FilterExpression::Path {
+                            path: DataTypeQueryPath::OntologyId,
+                        },
+                        ParameterList::DataTypeIds(&required_reference_ids),
+                    ),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                    ParameterList::DataTypeIds(&required_reference_ids),
-                ),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                    include_drafts: false,
+                    after: None,
+                    limit: None,
+                    include_count: false,
                 },
-                include_drafts: false,
-                after: None,
-                limit: None,
-                include_count: false,
-            })
+            )
             .await
             .change_context(InsertionError)
             .attach_printable("Could not read parent data types")?
@@ -845,22 +854,25 @@ where
             .collect::<HashMap<_, _>>();
 
         transaction
-            .get_data_types(actor_id, GetDataTypesParams {
-                filter: Filter::In(
-                    FilterExpression::Path {
-                        path: DataTypeQueryPath::OntologyId,
+            .get_data_types(
+                actor_id,
+                GetDataTypesParams {
+                    filter: Filter::In(
+                        FilterExpression::Path {
+                            path: DataTypeQueryPath::OntologyId,
+                        },
+                        ParameterList::DataTypeIds(&required_parent_ids),
+                    ),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                    ParameterList::DataTypeIds(&required_parent_ids),
-                ),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                    include_drafts: false,
+                    after: None,
+                    limit: None,
+                    include_count: false,
                 },
-                include_drafts: false,
-                after: None,
-                limit: None,
-                include_count: false,
-            })
+            )
             .await
             .change_context(UpdateError)
             .attach_printable("Could not read parent data types")?
@@ -982,10 +994,13 @@ where
 
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_data_type_embeddings_workflow(actor_id, &[DataTypeWithMetadata {
-                        schema: schema.into_inner(),
-                        metadata: metadata.clone(),
-                    }])
+                    .start_update_data_type_embeddings_workflow(
+                        actor_id,
+                        &[DataTypeWithMetadata {
+                            schema: schema.into_inner(),
+                            metadata: metadata.clone(),
+                        }],
+                    )
                     .await
                     .change_context(UpdateError)?;
             }
@@ -1010,11 +1025,14 @@ where
         actor_id: AccountId,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        self.unarchive_ontology_type(&params.data_type_id, &OntologyEditionProvenance {
-            created_by_id: EditionCreatedById::new(actor_id),
-            archived_by_id: None,
-            user_defined: params.provenance,
-        })
+        self.unarchive_ontology_type(
+            &params.data_type_id,
+            &OntologyEditionProvenance {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+                user_defined: params.provenance,
+            },
+        )
         .await
     }
 
@@ -1157,10 +1175,13 @@ where
                     .change_context(QueryError)?
                     .into_iter()
                     .map(|row| {
-                        (row.get::<_, VersionedUrl>(0), DataTypeConversionTargets {
-                            title: row.get(1),
-                            conversions: vec![row.get(2)],
-                        })
+                        (
+                            row.get::<_, VersionedUrl>(0),
+                            DataTypeConversionTargets {
+                                title: row.get(1),
+                                conversions: vec![row.get(2)],
+                            },
+                        )
                     }),
             );
 
@@ -1180,10 +1201,13 @@ where
                     .change_context(QueryError)?
                     .into_iter()
                     .map(|row| {
-                        (row.get::<_, VersionedUrl>(0), DataTypeConversionTargets {
-                            title: row.get(1),
-                            conversions: vec![row.get(2)],
-                        })
+                        (
+                            row.get::<_, VersionedUrl>(0),
+                            DataTypeConversionTargets {
+                                title: row.get(1),
+                                conversions: vec![row.get(2)],
+                            },
+                        )
                     }),
             );
 

@@ -68,10 +68,13 @@ where
         async move {
             let storage = session;
             let session = storage
-                .get_or_insert(req.session(), RequestInfo {
-                    subsystem: req.subsystem(),
-                    procedure: req.procedure(),
-                })
+                .get_or_insert(
+                    req.session(),
+                    RequestInfo {
+                        subsystem: req.subsystem(),
+                        procedure: req.procedure(),
+                    },
+                )
                 .await;
 
             delegate.call(req, session, codec).await

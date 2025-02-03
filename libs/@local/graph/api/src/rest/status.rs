@@ -72,9 +72,11 @@ where
             status_code
         };
 
-        status_to_response(Status::new(status_code, Some(message), vec![
-            ValidationContent { validation, report },
-        ]))
+        status_to_response(Status::new(
+            status_code,
+            Some(message),
+            vec![ValidationContent { validation, report }],
+        ))
     } else {
         tracing::error!(error = ?report, tags.code = ?status_code.to_http_code());
         status_to_response(Status::new(status_code, Some(message), vec![report]))

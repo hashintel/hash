@@ -111,11 +111,14 @@ where
         #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
         let count = if params.include_count {
             Some(
-                self.count_property_types(actor_id, CountPropertyTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                })
+                self.count_property_types(
+                    actor_id,
+                    CountPropertyTypesParams {
+                        filter: params.filter.clone(),
+                        temporal_axes: params.temporal_axes.clone(),
+                        include_drafts: params.include_drafts,
+                    },
+                )
                 .await?,
             )
         } else {
@@ -297,7 +300,7 @@ where
                         )
                     }),
                 );
-            };
+            }
         }
 
         self.traverse_data_types(
@@ -403,10 +406,13 @@ where
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.insert((property_type_id, PropertyTypeRelationAndSubject::Owner {
-                    subject: PropertyTypeOwnerSubject::Web { id: *owned_by_id },
-                    level: 0,
-                }));
+                relationships.insert((
+                    property_type_id,
+                    PropertyTypeRelationAndSubject::Owner {
+                        subject: PropertyTypeOwnerSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
             }
 
             relationships.extend(
@@ -787,12 +793,13 @@ where
 
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_property_type_embeddings_workflow(actor_id, &[
-                        PropertyTypeWithMetadata {
+                    .start_update_property_type_embeddings_workflow(
+                        actor_id,
+                        &[PropertyTypeWithMetadata {
                             schema: params.schema,
                             metadata: metadata.clone(),
-                        },
-                    ])
+                        }],
+                    )
                     .await
                     .change_context(UpdateError)?;
             }
@@ -817,11 +824,14 @@ where
         actor_id: AccountId,
         params: UnarchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        self.unarchive_ontology_type(&params.property_type_id, &OntologyEditionProvenance {
-            created_by_id: EditionCreatedById::new(actor_id),
-            archived_by_id: None,
-            user_defined: params.provenance,
-        })
+        self.unarchive_ontology_type(
+            &params.property_type_id,
+            &OntologyEditionProvenance {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+                user_defined: params.provenance,
+            },
+        )
         .await
     }
 

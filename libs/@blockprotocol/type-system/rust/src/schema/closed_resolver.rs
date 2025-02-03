@@ -128,10 +128,13 @@ impl OntologyTypeResolver {
         data_type: Arc<DataType>,
         metadata: Arc<DataTypeResolveData>,
     ) {
-        self.data_types.insert(data_type_id, DataTypeCacheEntry {
-            data_type,
-            resolve_data: Some(metadata),
-        });
+        self.data_types.insert(
+            data_type_id,
+            DataTypeCacheEntry {
+                data_type,
+                resolve_data: Some(metadata),
+            },
+        );
     }
 
     fn close_data_type(
@@ -171,11 +174,13 @@ impl OntologyTypeResolver {
         entity_type: Arc<EntityType>,
         metadata: Arc<EntityTypeResolveData>,
     ) {
-        self.entity_types
-            .insert(entity_type_id, EntityTypeCacheEntry {
+        self.entity_types.insert(
+            entity_type_id,
+            EntityTypeCacheEntry {
                 entity_type,
                 resolve_data: Some(metadata),
-            });
+            },
+        );
     }
 
     fn close_entity_type(
