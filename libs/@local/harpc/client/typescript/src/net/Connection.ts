@@ -229,7 +229,6 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
       (array.buffer as ArrayBuffer).slice(
         array.byteOffset,
         array.byteOffset + array.byteLength,
-        ),
       ),
     ),
     ResponseFromBytesStream.make,
@@ -244,12 +243,12 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
     ),
     Sink.mapInputEffect((request: WireRequest.Request) =>
       Effect.gen(function* () {
-          // in the future we might be able to re-use the allocated buffer (we would likely still need to copy the contents tho)
-          const buffer = MutableBuffer.makeWrite();
+        // in the future we might be able to re-use the allocated buffer (we would likely still need to copy the contents tho)
+        const buffer = MutableBuffer.makeWrite();
 
         yield* WireRequest.encode(buffer, request);
 
-          const array = MutableBuffer.take(buffer);
+        const array = MutableBuffer.take(buffer);
 
         return new Uint8Array(array);
       }),

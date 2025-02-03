@@ -43,8 +43,8 @@ const tryDecodePacket = Effect.fn("tryDecodePacket")(function* (
 
   const packet = split.value;
 
-    // decode the message
-    const reader = MutableBuffer.makeRead(packet);
+  // decode the message
+  const reader = MutableBuffer.makeRead(packet);
   const response = yield* Response.decode(reader);
 
   return Option.some(response);
