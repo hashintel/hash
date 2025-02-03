@@ -1,6 +1,8 @@
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{fmt, ops, str::FromStr as _};
+#[cfg(feature = "serde")]
+use core::str::FromStr as _;
+use core::{fmt, ops};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
