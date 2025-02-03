@@ -459,6 +459,30 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Embedding,
+    /// Corresponds to the first title of the [`Entity`].
+    ///
+    /// It's currently not possible to query for the first title directly.
+    ///
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    FirstTitle,
+    /// Corresponds to the last title of the [`Entity`].
+    ///
+    /// It's currently not possible to query for the last title directly.
+    ///
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    LastTitle,
+    /// Corresponds to the first label of the [`Entity`].
+    ///
+    /// It's currently not possible to query for the first label directly.
+    ///
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    FirstLabel,
+    /// Corresponds to the last label of the [`Entity`].
+    ///
+    /// It's currently not possible to query for the last label directly.
+    ///
+    /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    LastLabel,
 }
 
 impl fmt::Display for EntityQueryPath<'_> {
@@ -518,6 +542,10 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::LeftEntityProvenance => fmt.write_str("leftEntityProvenance"),
             Self::RightEntityConfidence => fmt.write_str("rightEntityConfidence"),
             Self::RightEntityProvenance => fmt.write_str("rightEntityProvenance"),
+            Self::FirstTitle => fmt.write_str("firstTitle"),
+            Self::LastTitle => fmt.write_str("lastTitle"),
+            Self::FirstLabel => fmt.write_str("firstLabel"),
+            Self::LastLabel => fmt.write_str("lastLabel"),
         }
     }
 }
@@ -545,6 +573,9 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::Archived => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
+            Self::FirstTitle | Self::LastTitle | Self::FirstLabel | Self::LastLabel => {
+                ParameterType::Text
+            }
         }
     }
 }
@@ -831,7 +862,7 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
         let query_token: String = seq
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
-        let (token, mut parameters) = parse_query_token(&query_token)?;
+        let (token, _parameters) = parse_query_token(&query_token)?;
         self.position += 1;
         Ok(match token {
             EntityQuerySortingToken::Uuid => EntityQueryPath::Uuid,
@@ -850,18 +881,10 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
                     PathToken::Field(Cow::Borrowed("createdAtDecisionTime")),
                 ])))
             }
-            EntityQuerySortingToken::TypeTitle => EntityQueryPath::EntityTypeEdge {
-                edge_kind: SharedEdgeKind::IsOfType,
-                path: EntityTypeQueryPath::Title,
-                inheritance_depth: Some(0),
-            },
-            EntityQuerySortingToken::Label => EntityQueryPath::Label {
-                inheritance_depth: parameters
-                    .remove("inheritanceDepth")
-                    .map(u32::from_str)
-                    .transpose()
-                    .map_err(de::Error::custom)?,
-            },
+            // We don't know the ordering, yet. This will be set later
+            EntityQuerySortingToken::TypeTitle => EntityQueryPath::FirstTitle,
+            // We don't know the ordering, yet. This will be set later
+            EntityQuerySortingToken::Label => EntityQueryPath::FirstLabel,
             EntityQuerySortingToken::Properties => EntityPropertiesPathVisitor {
                 position: self.position,
             }
@@ -928,19 +951,57 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::PropertyMetadata(path) => {
                 EntityQueryPath::PropertyMetadata(path.map(JsonPath::into_owned))
             }
+            Self::FirstTitle => EntityQueryPath::FirstTitle,
+            Self::LastTitle => EntityQueryPath::LastTitle,
+            Self::FirstLabel => EntityQueryPath::FirstLabel,
+            Self::LastLabel => EntityQueryPath::LastLabel,
         }
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct EntityQuerySortingRecord<'s> {
-    #[serde(
-        borrow,
-        deserialize_with = "EntityQueryPath::deserialize_from_sorting_tokens"
-    )]
     pub path: EntityQueryPath<'s>,
     pub ordering: Ordering,
     pub nulls: Option<NullOrdering>,
+}
+
+impl<'s, 'de: 's> Deserialize<'de> for EntityQuerySortingRecord<'s> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct EntityQuerySortingRecord<'s> {
+            #[serde(
+                borrow,
+                deserialize_with = "EntityQueryPath::deserialize_from_sorting_tokens"
+            )]
+            pub path: EntityQueryPath<'s>,
+            pub ordering: Ordering,
+            pub nulls: Option<NullOrdering>,
+        }
+
+        let mut record = EntityQuerySortingRecord::deserialize(deserializer)?;
+        // If we sort in descending order, we use the last title/label instead of the first one.
+        // TODO: Change behavior when order is fixed
+        //   see https://linear.app/hash/issue/H-3997/make-ontology-type-ids-ordered-in-inheritance-and-entities
+        match (&record.path, record.ordering) {
+            (EntityQueryPath::FirstTitle, Ordering::Descending) => {
+                record.path = EntityQueryPath::LastTitle;
+            }
+            (EntityQueryPath::FirstLabel, Ordering::Descending) => {
+                record.path = EntityQueryPath::LastLabel;
+            }
+            _ => {}
+        }
+
+        Ok(Self {
+            path: record.path,
+            ordering: record.ordering,
+            nulls: record.nulls,
+        })
+    }
 }
 
 #[cfg(feature = "utoipa")]

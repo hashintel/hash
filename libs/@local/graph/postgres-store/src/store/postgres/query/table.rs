@@ -30,6 +30,10 @@ pub enum Table {
     PropertyTypes,
     PropertyTypeEmbeddings,
     EntityTypes,
+    FirstEntityTitles,
+    LastEntityTitles,
+    FirstEntityLabels,
+    LastEntityLabels,
     EntityTypeEmbeddings,
     EntityIds,
     EntityDrafts,
@@ -326,6 +330,10 @@ impl Table {
             Self::PropertyTypes => "property_types",
             Self::PropertyTypeEmbeddings => "property_type_embeddings",
             Self::EntityTypes => "entity_types",
+            Self::FirstEntityTitles => "first_entity_titles",
+            Self::LastEntityTitles => "last_entity_titles",
+            Self::FirstEntityLabels => "first_entity_labels",
+            Self::LastEntityLabels => "last_entity_labels",
             Self::EntityTypeEmbeddings => "entity_type_embeddings",
             Self::EntityIds => "entity_ids",
             Self::EntityDrafts => "entity_drafts",
@@ -712,6 +720,62 @@ impl DatabaseColumn for EntityTypes {
             Self::OntologyId => "ontology_id",
             Self::Schema => "schema",
             Self::ClosedSchema => "closed_schema",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityLabels {
+    EditionId,
+    Label,
+}
+
+impl DatabaseColumn for EntityLabels {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::EditionId => ParameterType::Uuid,
+            Self::Label => ParameterType::Text,
+        }
+    }
+
+    fn nullable(self) -> bool {
+        match self {
+            Self::EditionId | Self::Label => false,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::EditionId => "entity_edition_id",
+            Self::Label => "label",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityTitles {
+    EditionId,
+    Title,
+}
+
+impl DatabaseColumn for EntityTitles {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::EditionId => ParameterType::Uuid,
+            Self::Title => ParameterType::Text,
+        }
+    }
+
+    fn nullable(self) -> bool {
+        match self {
+            Self::EditionId | Self::Title => false,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::EditionId => "entity_edition_id",
+            Self::Title => "title",
         }
     }
 }
@@ -1341,6 +1405,10 @@ pub enum Column {
     EntityIds(EntityIds),
     EntityTemporalMetadata(EntityTemporalMetadata),
     EntityEditions(EntityEditions),
+    FirstEntityLabels(EntityLabels),
+    LastEntityLabels(EntityLabels),
+    FirstEntityTitles(EntityTitles),
+    LastEntityTitles(EntityTitles),
     EntityEmbeddings(EntityEmbeddings),
     PropertyTypeConstrainsValuesOn(PropertyTypeConstrainsValuesOn),
     PropertyTypeConstrainsPropertiesOn(PropertyTypeConstrainsPropertiesOn),
@@ -1523,6 +1591,10 @@ impl Column {
             Self::EntityIds(_) => Table::EntityIds,
             Self::EntityTemporalMetadata(_) => Table::EntityTemporalMetadata,
             Self::EntityEditions(_) => Table::EntityEditions,
+            Self::FirstEntityLabels(_) => Table::FirstEntityLabels,
+            Self::LastEntityLabels(_) => Table::LastEntityLabels,
+            Self::FirstEntityTitles(_) => Table::FirstEntityTitles,
+            Self::LastEntityTitles(_) => Table::LastEntityTitles,
             Self::EntityEmbeddings(_) => Table::EntityEmbeddings,
             Self::DataTypeInheritsFrom(_, inheritance_depth) => {
                 Table::Reference(ReferenceTable::DataTypeInheritsFrom { inheritance_depth })
@@ -1598,6 +1670,12 @@ impl DatabaseColumn for Column {
             Self::EntityIds(column) => column.parameter_type(),
             Self::EntityTemporalMetadata(column) => column.parameter_type(),
             Self::EntityEditions(column) => column.parameter_type(),
+            Self::FirstEntityLabels(column) | Self::LastEntityLabels(column) => {
+                column.parameter_type()
+            }
+            Self::FirstEntityTitles(column) | Self::LastEntityTitles(column) => {
+                column.parameter_type()
+            }
             Self::EntityEmbeddings(column) => column.parameter_type(),
             Self::PropertyTypeConstrainsValuesOn(column) => column.parameter_type(),
             Self::PropertyTypeConstrainsPropertiesOn(column) => column.parameter_type(),
@@ -1631,6 +1709,8 @@ impl DatabaseColumn for Column {
             Self::EntityIds(column) => column.nullable(),
             Self::EntityTemporalMetadata(column) => column.nullable(),
             Self::EntityEditions(column) => column.nullable(),
+            Self::FirstEntityLabels(column) | Self::LastEntityLabels(column) => column.nullable(),
+            Self::FirstEntityTitles(column) | Self::LastEntityTitles(column) => column.nullable(),
             Self::EntityEmbeddings(column) => column.nullable(),
             Self::PropertyTypeConstrainsValuesOn(column) => column.nullable(),
             Self::PropertyTypeConstrainsPropertiesOn(column) => column.nullable(),
@@ -1664,6 +1744,8 @@ impl DatabaseColumn for Column {
             Self::EntityIds(column) => column.as_str(),
             Self::EntityTemporalMetadata(column) => column.as_str(),
             Self::EntityEditions(column) => column.as_str(),
+            Self::FirstEntityLabels(column) | Self::LastEntityLabels(column) => column.as_str(),
+            Self::FirstEntityTitles(column) | Self::LastEntityTitles(column) => column.as_str(),
             Self::EntityEmbeddings(column) => column.as_str(),
             Self::PropertyTypeConstrainsValuesOn(column) => column.as_str(),
             Self::PropertyTypeConstrainsPropertiesOn(column) => column.as_str(),
@@ -1765,6 +1847,10 @@ pub enum Relation {
     EntityIsOfTypes,
     EntityIds,
     EntityEditions,
+    FirstEntityTitle,
+    LastEntityTitle,
+    FirstEntityLabel,
+    LastEntityLabel,
     PropertyTypeEmbeddings,
     EntityTypeEmbeddings,
     EntityEmbeddings,
@@ -1944,6 +2030,26 @@ impl Relation {
                 on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
                 join: Column::EntityEditions(EntityEditions::EditionId),
                 join_type: JoinType::Inner,
+            }),
+            Self::FirstEntityTitle => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                join: Column::FirstEntityTitles(EntityTitles::EditionId),
+                join_type: JoinType::Inner,
+            }),
+            Self::LastEntityTitle => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                join: Column::LastEntityTitles(EntityTitles::EditionId),
+                join_type: JoinType::Inner,
+            }),
+            Self::FirstEntityLabel => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                join: Column::FirstEntityLabels(EntityLabels::EditionId),
+                join_type: JoinType::LeftOuter,
+            }),
+            Self::LastEntityLabel => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                join: Column::LastEntityLabels(EntityLabels::EditionId),
+                join_type: JoinType::LeftOuter,
             }),
             Self::EntityEmbeddings => ForeignKeyJoin::from_reference(ForeignKeyReference::Double {
                 on: [

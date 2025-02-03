@@ -7,3 +7,11 @@ DROP TABLE entity_temporal_metadata;
 DROP TABLE entity_editions;
 DROP TABLE entity_drafts;
 DROP TABLE entity_ids;
+
+DROP VIEW IF EXISTS first_entity_titles;
+DROP VIEW IF EXISTS last_entity_titles;
+DROP VIEW IF EXISTS entity_title_agg;
+
+DROP VIEW IF EXISTS first_entity_labels;
+DROP VIEW IF EXISTS last_entity_labels;
+DROP VIEW IF EXISTS entity_label_agg;
