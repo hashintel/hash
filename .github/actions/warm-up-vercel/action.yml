@@ -22,8 +22,9 @@ runs:
           \n
         EOF
 
-        for PATHNAME in "/" "/signin" "/signup" "/@hash" "/@hash/00000000-0000-0000-0000-000000000000" "/@hash/types/entity-type/page/v/1" "/new/types/entity-type" "/new/entity" "/auth/self-service/logout/browser"; do
-          curl -L --output /dev/null --silent --write-out "@curl-format.txt" "${BASE_URL}${PATHNAME}"
+        for PATHNAME in "/" "/signin" "/signup" "/@hash" "/@hash/00000000-0000-0000-0000-000000000000" "/@hash/types/entity-type/page/v/1" "/new/types/entity-type" "/new/entity"; do
+          npx retry-cli@0.6.0 -- curl -L --output /dev/null --silent --write-out "@curl-format.txt" "${BASE_URL}${PATHNAME}"
         done
       env:
         BASE_URL: ${{ inputs.deployment-base-url }}
+        NODE_OPTIONS: --no-deprecation ## https://github.com/tirsen/retry-cli/issues/7
