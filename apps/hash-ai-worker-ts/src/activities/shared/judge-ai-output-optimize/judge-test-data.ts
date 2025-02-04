@@ -95,6 +95,36 @@ export const judgeTestData: JudgeTest[] = [
           isProvidedValueCorrect: (value) =>
             Array.isArray(value) && value.length > 0,
         },
+        {
+          jsonPath: generateJsonPath(["authors"]),
+          type: "correct-missing",
+          isProvidedValueCorrect: (value) => {
+            if (!Array.isArray(value)) {
+              return false;
+            }
+
+            for (const entry of value) {
+              if (!entry || typeof entry !== "object" || !("name" in entry)) {
+                return false;
+              }
+
+              const name = entry.name;
+
+              if (typeof name !== "string") {
+                return false;
+              }
+
+              if (
+                !name.includes("Sarah Young") &&
+                !name.includes("Lori McDermott")
+              ) {
+                return false;
+              }
+            }
+
+            return true;
+          },
+        },
       ],
     },
     inputData: {

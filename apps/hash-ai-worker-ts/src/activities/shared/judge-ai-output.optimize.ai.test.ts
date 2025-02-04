@@ -36,15 +36,27 @@ const metrics: MetricDefinition[] = judgeTestData.map(
           testingParams,
         });
 
-        let score = 1;
+        let score = 0.5;
+
+        const {
+          alreadyCorrectFieldPaths,
+          nonInferrableFieldPaths,
+          expectedCorrections,
+        } = evaluation;
+
+        const rewardPerCorrection = 0.5 / expectedCorrections.length;
+        const penaltyPerMistake =
+          0.5 /
+          (alreadyCorrectFieldPaths.length + nonInferrableFieldPaths.length);
 
         const unhandledCorrections: JudgeCorrection[] = [];
 
         const mistakenlyCorrectedPaths: string[] = [];
         const mistakenlyInferredPaths: string[] = [];
         const missingCorrectionValues: string[] = [];
-        const validCorrections: string[] = [];
         const wrongValueCorrections: string[] = [];
+
+        const validCorrections: string[] = [];
 
         const feedback = "";
 
@@ -55,7 +67,7 @@ const metrics: MetricDefinition[] = judgeTestData.map(
 
           if (isAlreadyCorrect) {
             mistakenlyCorrectedPaths.push(correction.jsonPath.join("."));
-            score -= 0.1;
+            score -= penaltyPerMistake;
             continue;
           }
 
@@ -64,7 +76,7 @@ const metrics: MetricDefinition[] = judgeTestData.map(
           );
           if (isNonInferrable) {
             mistakenlyInferredPaths.push(correction.jsonPath.join("."));
-            score -= 0.1;
+            score -= penaltyPerMistake;
             continue;
           }
 
@@ -80,14 +92,19 @@ const metrics: MetricDefinition[] = judgeTestData.map(
           }
 
           if (applicableCorrection.type === "delete-unfounded") {
-            score += 0.1;
+            score += rewardPerCorrection;
             validCorrections.push(correction.jsonPath.join("."));
             continue;
           }
 
           if (!correction.correctValue) {
             missingCorrectionValues.push(correction.jsonPath.join("."));
-            score -= 0.1;
+            /**
+             * technically applying penalties here lets the score go below 0,
+             * because penaltyPerMistake doesn't take account of provided corrections that are wrong.
+             * But for comparing results the relative score rather than the absolute score is what matters.
+             */
+            score -= penaltyPerMistake;
             continue;
           }
 
@@ -98,14 +115,19 @@ const metrics: MetricDefinition[] = judgeTestData.map(
 
           if (providedValueIsCorrect) {
             validCorrections.push(correction.jsonPath.join("."));
-            score += 0.1;
+            score += rewardPerCorrection;
           } else {
             wrongValueCorrections.push(
               `${correction.jsonPath.join(".")}: ${stringifyPropertyValue(
                 correction.correctValue,
               )}`,
             );
-            score -= 0.1;
+            /**
+             * technically applying penalties here lets the score go below 0,
+             * because penaltyPerMistake doesn't take account of provided corrections that are wrong.
+             * But for comparing results the relative score rather than the absolute score is what matters.
+             */
+            score -= penaltyPerMistake;
           }
         }
 
@@ -147,7 +169,7 @@ test(
       initialSystemPrompt: judgeSystemPrompt,
       directoryPath: baseDirectoryPath,
       metrics,
-      promptIterations: 1,
+      promptIterations: 5,
     });
   },
   {

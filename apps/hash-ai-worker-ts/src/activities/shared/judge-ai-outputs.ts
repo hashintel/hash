@@ -1,5 +1,5 @@
 import type { JsonValue } from "@blockprotocol/graph/types/entity";
-import get from "lodash.get";
+import get from "lodash/get.js";
 
 import { logger } from "./activity-logger.js";
 import { getFlowContext } from "./get-flow-context.js";
@@ -29,6 +29,7 @@ type JudgeAiOutputsParams = {
 };
 
 export type JudgeCorrection = {
+  reasoning: string;
   jsonPath: string[];
   correctionType: "correct-missing" | "correct-incorrect" | "delete-unfounded";
   correctValue?: JsonValue;
@@ -103,6 +104,9 @@ content: [
 The JSON path to the second address is ["addresses", "1"].
 
 ${correctionTypeDescriptions}
+
+Be very sure that your corrections are accurate! Think it through and provide the 'reasoning' for each of your corrections.
+If in doubt, don't issue a correction.
 
 # General feedback
 
@@ -195,6 +199,7 @@ const judgeTool: LlmToolDefinition = {
         items: {
           type: "object",
           properties: {
+            reasoning: { type: "string" },
             jsonPath: { type: "array", items: { type: "string" } },
             correctionType: {
               type: "string",
@@ -335,7 +340,9 @@ export const judgeAiOutputs = async ({
 
   const errors: string[] = [];
   for (const correction of toolCall.input.corrections) {
-    const existingValue = get(lastAiMessage, correction.jsonPath);
+    const existingValue = get(lastAiMessage, correction.jsonPath) as
+      | JsonValue
+      | undefined;
 
     if (
       correction.correctionType !== "correct-missing" &&
