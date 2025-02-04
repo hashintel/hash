@@ -1,14 +1,18 @@
 {
   "name": "@local/effect-dns-hickory",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Hickory DNS implementation of DNS effect library",
   "license": "MIT OR Apache-2.0",
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
     "build": "napi build dist --platform --release",
-    "build:debug": "napi build dist --platform"
+    "build:debug": "napi build dist --platform",
+    "regenerate-packages": "napi create-npm-dir --target=."
   },
   "devDependencies": {
+    "@local/tsconfig": "0.0.0-private",
     "@napi-rs/cli": "2.18.4"
   },
   "napi": {

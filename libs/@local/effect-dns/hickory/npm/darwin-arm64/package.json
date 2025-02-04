@@ -1,14 +1,12 @@
 {
   "name": "@local/effect-dns-hickory-darwin-arm64",
-  "version": "0.0.0",
-  "license": "MIT",
+  "version": "0.0.0-private",
+  "description": "Hickory DNS implementation of DNS effect library",
+  "license": "MIT OR Apache-2.0",
   "main": "effect-dns-hickory.darwin-arm64.node",
   "files": [
     "effect-dns-hickory.darwin-arm64.node"
   ],
-  "engines": {
-    "node": ">= 10"
-  },
   "os": [
     "darwin"
   ],

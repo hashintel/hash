@@ -1,0 +1,9 @@
+{
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["vitest/importMeta"]
+  },
+  "include": ["vitest.config.ts"]
+}

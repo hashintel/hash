@@ -1,5 +1,6 @@
 {
   "name": "@local/effect-dns",
+  "version": "0.0.0-private",
   "private": true,
   "description": "DNS library for the Effect ecosystem",
   "license": "MIT OR Apache-2.0",
