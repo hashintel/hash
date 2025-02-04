@@ -163,7 +163,7 @@ async fn initial_person() {
         .expect("could not get entities")
         .entities;
 
-    assert_eq!(entities[0], entity);
+    assert_equal_entities(&entities[0], &entity);
 
     let updated_entity = api
         .patch_entity(
