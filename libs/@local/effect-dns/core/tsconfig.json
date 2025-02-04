@@ -1,7 +1,4 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "compilerOptions": {
-    "types": ["vitest/importMeta"]
-  },
   "include": ["src", "tests", "eslint.config.js", "vitest.config.ts"]
 }
