@@ -38,7 +38,7 @@
       "@local/harpc-client/*": ["../harpc/client/typescript/src/*/index.ts"],
       "@local/effect-dns": ["../effect-dns/core/src/index.ts"],
       "@local/effect-dns/*": ["../effect-dns/core/src/*/index.ts"],
-      "@local/effect-dns-hickory": ["../effect-dns/hickory/dist/index.d.ts"],
+      "@local/effect-dns-hickory": ["../effect-dns/hickory/dist/index.ts"],
       "@local/eslint": ["../eslint/src/index.ts"],
       "@local/eslint/*": ["../eslint/src/*/index.ts"]
     },
