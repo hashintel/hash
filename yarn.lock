@@ -8982,6 +8982,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/effect-dns@workspace:libs/@local/effect-dns/core"
   dependencies:
+    "@local/eslint": "npm:0.0.0-private"
+    "@local/tsconfig": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:2.1.9"
     eslint: "npm:9.19.0"
     rimraf: "npm:6.0.1"
