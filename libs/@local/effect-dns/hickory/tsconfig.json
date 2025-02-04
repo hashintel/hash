@@ -4,5 +4,5 @@
     "types": ["vitest/importMeta"],
     "rootDirs": ["src", "dist"]
   },
-  "include": ["src", "vitest.config.ts"]
+  "include": ["src", "tests", "vitest.config.ts"]
 }
