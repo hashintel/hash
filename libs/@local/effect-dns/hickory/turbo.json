@@ -6,7 +6,10 @@
       "outputs": ["./dist/**"]
     },
     "test:unit": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["build"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["build"]
     }
   }
 }
