@@ -1856,7 +1856,16 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
 dependencies = [
- "derive_more-impl",
+ "derive_more-impl 1.0.0",
+]
+
+[[package]]
+name = "derive_more"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "093242cf7570c207c83073cf82f79706fe7b8317e98620a47d5be7c3d8497678"
+dependencies = [
+ "derive_more-impl 2.0.1",
 ]
 
 [[package]]
@@ -1864,6 +1873,18 @@ name = "derive_more-impl"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+ "unicode-xid",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2612,7 +2633,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive-where",
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "harpc-codec",
@@ -2651,7 +2672,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "bytes-utils",
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "futures-core",
@@ -2692,7 +2713,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive-where",
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "frunk",
  "frunk_core",
@@ -2729,7 +2750,7 @@ name = "harpc-tower"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "futures-core",
@@ -2785,7 +2806,7 @@ dependencies = [
  "dashu-base",
  "dashu-float",
  "derive-where",
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "harpc-wire-protocol",
  "postgres-types",
@@ -2840,7 +2861,7 @@ dependencies = [
  "axum-core 0.5.0",
  "bytes",
  "derive-where",
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "frunk",
  "futures",
@@ -2963,7 +2984,7 @@ dependencies = [
  "bytes",
  "clap",
  "clap_complete",
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "hash-graph-migrations-macros",
@@ -2982,7 +3003,7 @@ name = "hash-graph-migrations-macros"
 version = "0.0.0"
 dependencies = [
  "convert_case",
- "derive_more",
+ "derive_more 2.0.1",
  "proc-macro-error2",
  "proc-macro2",
  "quote",
@@ -3002,7 +3023,7 @@ dependencies = [
  "deadpool",
  "deadpool-postgres",
  "derive-where",
- "derive_more",
+ "derive_more 2.0.1",
  "dotenv-flow",
  "error-stack",
  "futures",
@@ -3036,7 +3057,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive-where",
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "hash-codec",
@@ -3109,7 +3130,7 @@ dependencies = [
 name = "hash-graph-type-fetcher"
 version = "0.0.0"
 dependencies = [
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "hash-graph-authorization",
@@ -3133,7 +3154,7 @@ name = "hash-graph-types"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "hash-codec",
@@ -3157,7 +3178,7 @@ dependencies = [
 name = "hash-graph-validation"
 version = "0.0.0"
 dependencies = [
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "hash-graph-store",
@@ -3223,7 +3244,7 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "clap_builder",
- "derive_more",
+ "derive_more 2.0.1",
  "error-stack",
  "opentelemetry 0.27.1",
  "opentelemetry-otlp",
@@ -7370,7 +7391,7 @@ dependencies = [
  "backoff",
  "base64 0.22.1",
  "derive_builder",
- "derive_more",
+ "derive_more 1.0.0",
  "futures-retry",
  "futures-util",
  "http 1.2.0",
@@ -7398,7 +7419,7 @@ source = "git+https://github.com/temporalio/sdk-core?rev=4a2368d#4a2368d19f57e97
 dependencies = [
  "async-trait",
  "derive_builder",
- "derive_more",
+ "derive_more 1.0.0",
  "prost",
  "prost-types",
  "serde_json",
@@ -7416,7 +7437,7 @@ source = "git+https://github.com/temporalio/sdk-core?rev=4a2368d#4a2368d19f57e97
 dependencies = [
  "anyhow",
  "base64 0.22.1",
- "derive_more",
+ "derive_more 1.0.0",
  "prost",
  "prost-build",
  "prost-types",
@@ -8160,7 +8181,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "console_error_panic_hook",
- "derive_more",
+ "derive_more 2.0.1",
  "email_address",
  "error-stack",
  "futures",

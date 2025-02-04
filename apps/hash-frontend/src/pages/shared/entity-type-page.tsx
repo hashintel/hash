@@ -38,6 +38,7 @@ import { EntityTypeContext } from "./entity-type-page/shared/entity-type-context
 import { EntityTypeHeader } from "./entity-type-page/shared/entity-type-header";
 import { useCurrentTab } from "./entity-type-page/shared/tabs";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
+import { useGetEntityTypeDependents } from "./entity-type-page/use-entity-type-dependents";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
 import { TopContextBar } from "./top-context-bar";
 
@@ -180,6 +181,21 @@ export const EntityTypePage = ({
       setPreviewEntityTypeUrl(url);
     }
   };
+
+  const getDependents = useGetEntityTypeDependents();
+
+  useEffect(() => {
+    if (!entityType) {
+      return;
+    }
+
+    void getDependents({
+      entityTypeId: entityType.schema.$id,
+      excludeEntityTypeIds: [],
+    }).then((dependents) => {
+      console.log(dependents);
+    });
+  }, [getDependents, entityType]);
 
   if (!entityType) {
     if (loadingRemoteEntityType) {
