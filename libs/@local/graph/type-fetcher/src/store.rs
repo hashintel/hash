@@ -220,7 +220,7 @@ where
         Ok(FetcherClient::new(connection_info.config.clone(), transport).spawn())
     }
 
-    pub fn store(&mut self) -> &mut S {
+    pub const fn store(&mut self) -> &mut S {
         &mut self.store
     }
 }
@@ -268,50 +268,59 @@ where
         match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(_) => self
                 .store
-                .get_data_types(actor_id, GetDataTypesParams {
-                    filter: Filter::for_versioned_url(url),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                .get_data_types(
+                    actor_id,
+                    GetDataTypesParams {
+                        filter: Filter::for_versioned_url(url),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        after: None,
+                        limit: None,
+                        include_drafts: true,
+                        include_count: false,
                     },
-                    after: None,
-                    limit: None,
-                    include_drafts: true,
-                    include_count: false,
-                })
+                )
                 .await
                 .map(|response| !response.data_types.is_empty()),
             OntologyTypeReference::PropertyTypeReference(_) => self
                 .store
-                .get_property_types(actor_id, GetPropertyTypesParams {
-                    filter: Filter::for_versioned_url(url),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                .get_property_types(
+                    actor_id,
+                    GetPropertyTypesParams {
+                        filter: Filter::for_versioned_url(url),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        after: None,
+                        limit: None,
+                        include_drafts: true,
+                        include_count: false,
                     },
-                    after: None,
-                    limit: None,
-                    include_drafts: true,
-                    include_count: false,
-                })
+                )
                 .await
                 .map(|response| !response.property_types.is_empty()),
             OntologyTypeReference::EntityTypeReference(_) => self
                 .store
-                .get_entity_types(actor_id, GetEntityTypesParams {
-                    filter: Filter::for_versioned_url(url),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                .get_entity_types(
+                    actor_id,
+                    GetEntityTypesParams {
+                        filter: Filter::for_versioned_url(url),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: true,
+                        after: None,
+                        limit: None,
+                        include_entity_types: None,
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
                     },
-                    include_drafts: true,
-                    after: None,
-                    limit: None,
-                    include_entity_types: None,
-                    include_count: false,
-                    include_web_ids: false,
-                    include_edition_created_by_ids: false,
-                })
+                )
                 .await
                 .map(|response| !response.entity_types.is_empty()),
         }

@@ -8,15 +8,14 @@ use error_stack::Report;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
-use type_system::url::BaseUrl;
+use type_system::{Value, url::BaseUrl};
 
 use crate::knowledge::property::{
     ObjectMetadata, Property, PropertyDiff, PropertyMetadataObject, PropertyPath,
     PropertyPathElement, PropertyPathError, PropertyWithMetadata,
 };
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct PropertyObject(HashMap<BaseUrl, Property>);
 
@@ -75,9 +74,9 @@ impl PropertyObject {
     }
 }
 
-impl PartialEq<JsonValue> for PropertyObject {
-    fn eq(&self, other: &JsonValue) -> bool {
-        let JsonValue::Object(other_object) = other else {
+impl PartialEq<Value> for PropertyObject {
+    fn eq(&self, other: &Value) -> bool {
+        let Value::Object(other_object) = other else {
             return false;
         };
 
@@ -137,7 +136,8 @@ impl<'a> FromSql<'a> for PropertyObject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyWithMetadataObject {
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(required))]
     pub value: HashMap<BaseUrl, PropertyWithMetadata>,
     #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
     pub metadata: ObjectMetadata,
@@ -193,9 +193,12 @@ impl PropertyWithMetadataObject {
                 ((base_url.clone(), property), (base_url, metadata))
             })
             .unzip();
-        (PropertyObject::new(properties), PropertyMetadataObject {
-            value: metadata_properties,
-            metadata: self.metadata,
-        })
+        (
+            PropertyObject::new(properties),
+            PropertyMetadataObject {
+                value: metadata_properties,
+                metadata: self.metadata,
+            },
+        )
     }
 }

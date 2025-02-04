@@ -36,14 +36,12 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          SOURCEMAPS_FILTER=$(turbo run sentry:sourcemaps --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
-          SOURCEMAPS_FILTER_TASKS=$(sh -c "turbo run sentry:sourcemaps --dry-run=json $SOURCEMAPS_FILTER_FILTER" | jq -c '.tasks[]')
-          SOURCEMAPS_FILTER_PACKAGES=$(echo "$SOURCEMAPS_FILTER_TASKS" \
-            | jq 'select(.task == "sentry:sourcemaps" and .command != "<NONEXISTENT>")' \
-            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+          SOURCEMAPS_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "sentry:sourcemaps"}}) { items { name path } } }'
 
-          set -x
-          echo "sourcemaps=$SOURCEMAPS_FILTER_PACKAGES" | tee -a $GITHUB_OUTPUT
+          SOURCEMAPS_PACKAGES=$(turbo query "$SOURCEMAPS_QUERY" \
+            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
+
+          echo "sourcemaps=$SOURCEMAPS_PACKAGES" | tee -a $GITHUB_OUTPUT
 
   sourcemaps:
     name: Sourcemaps
@@ -51,7 +49,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.sourcemaps) }}
       fail-fast: false
-    if: needs.setup.outputs.sourcemaps != '{"package":[],"include":[]}' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
@@ -81,7 +79,7 @@ jobs:
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
-          scope: ${{ matrix.package }}
+          scope: ${{ matrix.name }}
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -90,7 +88,7 @@ jobs:
         run: yarn sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
 
       - name: Build sourcemaps
-        run: turbo run sentry:sourcemaps --env-mode=loose --filter "${{ matrix.package }}"
+        run: turbo run sentry:sourcemaps --env-mode=loose --filter "${{ matrix.name }}"
 
   passed:
     name: Deployments passed

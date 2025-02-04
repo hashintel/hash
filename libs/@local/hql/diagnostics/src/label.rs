@@ -39,7 +39,7 @@ impl<S> Label<S> {
         self
     }
 
-    pub fn set_order(&mut self, order: i32) -> &mut Self {
+    pub const fn set_order(&mut self, order: i32) -> &mut Self {
         self.order = Some(order);
         self
     }
@@ -50,7 +50,7 @@ impl<S> Label<S> {
         self
     }
 
-    pub fn set_priority(&mut self, priority: i32) -> &mut Self {
+    pub const fn set_priority(&mut self, priority: i32) -> &mut Self {
         self.priority = Some(priority);
         self
     }
@@ -61,7 +61,7 @@ impl<S> Label<S> {
         self
     }
 
-    pub fn set_color(&mut self, color: Color) -> &mut Self {
+    pub const fn set_color(&mut self, color: Color) -> &mut Self {
         self.color = Some(color);
         self
     }

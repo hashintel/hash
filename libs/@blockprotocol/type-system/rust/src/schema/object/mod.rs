@@ -156,15 +156,19 @@ mod tests {
         )
         .await;
 
-        assert_eq!(*object_from_json, PropertyValueObject {
-            properties: HashMap::from([
-                (url_a.base_url.clone(), PropertyTypeReference {
-                    url: url_a.clone()
-                },),
-                (url_b.base_url.clone(), PropertyTypeReference { url: url_b }),
-            ]),
-            required: HashSet::from([url_a.base_url]),
-        },);
+        assert_eq!(
+            *object_from_json,
+            PropertyValueObject {
+                properties: HashMap::from([
+                    (
+                        url_a.base_url.clone(),
+                        PropertyTypeReference { url: url_a.clone() },
+                    ),
+                    (url_b.base_url.clone(), PropertyTypeReference { url: url_b }),
+                ]),
+                required: HashSet::from([url_a.base_url]),
+            },
+        );
     }
 
     #[test]

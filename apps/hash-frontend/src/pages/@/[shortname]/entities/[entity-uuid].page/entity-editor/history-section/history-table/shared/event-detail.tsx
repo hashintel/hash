@@ -1,3 +1,8 @@
+import {
+  isValueMetadata,
+  type PropertyMetadata,
+  type PropertyValue,
+} from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -5,6 +10,22 @@ import { Box } from "@mui/material";
 
 import { ValueChip } from "../../../../../../../../shared/value-chip";
 import type { HistoryEvent } from "../../shared/types";
+
+const createValueText = (value: PropertyValue, metadata: PropertyMetadata) => {
+  if (isValueMetadata(metadata)) {
+    return stringifyPropertyValue(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `list of ${value.length} items`;
+  }
+
+  if (typeof value === "object" && value !== null) {
+    return `object with ${Object.keys(value).length} properties`;
+  }
+
+  return stringifyPropertyValue(value);
+};
 
 export const EventDetail = ({
   event,
@@ -34,7 +55,7 @@ export const EventDetail = ({
       );
     }
     case "property-update": {
-      const { diff, propertyType } = event;
+      const { diff, propertyType, metadata } = event;
 
       switch (diff.op) {
         case "added": {
@@ -46,8 +67,8 @@ export const EventDetail = ({
               <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
                 added as
               </Box>
-              <ValueChip tooltip={diff.added}>
-                {stringifyPropertyValue(diff.added)}
+              <ValueChip tooltip={stringifyPropertyValue(diff.added)}>
+                {createValueText(diff.added, metadata)}
               </ValueChip>
             </>
           );
@@ -61,7 +82,9 @@ export const EventDetail = ({
               <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
                 removed, was
               </Box>
-              <ValueChip>{stringifyPropertyValue(diff.removed)}</ValueChip>
+              <ValueChip tooltip={stringifyPropertyValue(diff.removed)}>
+                {createValueText(diff.removed, metadata)}
+              </ValueChip>
             </>
           );
         }
@@ -74,9 +97,13 @@ export const EventDetail = ({
               <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
                 updated from
               </Box>
-              <ValueChip>{stringifyPropertyValue(diff.old)}</ValueChip>
+              <ValueChip tooltip={stringifyPropertyValue(diff.old)}>
+                {createValueText(diff.old, metadata)}
+              </ValueChip>
               <Box mx={1}>to</Box>
-              <ValueChip>{stringifyPropertyValue(diff.new)}</ValueChip>
+              <ValueChip tooltip={stringifyPropertyValue(diff.new)}>
+                {createValueText(diff.new, metadata)}
+              </ValueChip>
             </>
           );
         }

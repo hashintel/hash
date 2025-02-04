@@ -158,26 +158,24 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
           propertyDiff.path as PropertyPath,
         );
 
-        if (!propertyMetadata || !isValueMetadata(propertyMetadata)) {
-          /**
-           * @todo H-2775 – handle property objects and changes to array contents
-           */
+        if (!propertyMetadata) {
           continue;
         }
 
-        const propertyProvenance = propertyMetadata.metadata.provenance;
+        const propertyProvenance = propertyMetadata.metadata?.provenance;
 
         const propertyBaseUrl = propertyDiff.path[0] as BaseUrl;
         try {
           const propertyTypeWithMetadata = getPropertyTypeForEntity(
             subgraph,
-            firstEntityEdition.metadata.entityTypeIds,
+            changedEntityEdition.metadata.entityTypeIds,
 
             propertyBaseUrl,
           );
 
           events.push({
             number: `${editionNumber}.${subChangeNumber++}`,
+            metadata: propertyMetadata,
             provenance: {
               edition: changedEntityEdition.metadata.provenance.edition,
               property: propertyProvenance,
@@ -234,6 +232,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
 
       events.push({
         number: `1.${index + 1}`,
+        metadata: propertyMetadata,
         provenance: {
           edition: firstEntityEdition.metadata.provenance.edition,
           property: propertyProvenance,

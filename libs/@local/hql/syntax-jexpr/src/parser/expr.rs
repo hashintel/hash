@@ -50,11 +50,10 @@ pub(crate) fn parse_expr<'arena, 'source>(
 
             let span = stream.insert_span(span);
 
-            Err(unexpected_token(span, [
-                SyntaxKind::String,
-                SyntaxKind::LBracket,
-                SyntaxKind::LBrace,
-            ]))
+            Err(unexpected_token(
+                span,
+                [SyntaxKind::String, SyntaxKind::LBracket, SyntaxKind::LBrace],
+            ))
         }
     }
 }

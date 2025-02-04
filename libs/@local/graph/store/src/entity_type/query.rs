@@ -266,12 +266,15 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = EntityTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUrl"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Outgoing,
-    ///     inheritance_depth: None,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::EntityTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Outgoing,
+    ///         inheritance_depth: None,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -283,12 +286,15 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = EntityTypeQueryPath::deserialize(json!(["children", "*", "baseUrl"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Incoming,
-    ///     inheritance_depth: None,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::EntityTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Incoming,
+    ///         inheritance_depth: None,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -306,12 +312,15 @@ pub enum EntityTypeQueryPath<'p> {
     ///     "*",
     ///     "baseUrl"
     /// ]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Outgoing,
-    ///     inheritance_depth: Some(10),
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::EntityTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Outgoing,
+    ///         inheritance_depth: Some(10),
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -324,12 +333,15 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path =
     ///     EntityTypeQueryPath::deserialize(json!(["children(inheritanceDepth=10)", "*", "baseUrl"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Incoming,
-    ///     inheritance_depth: Some(10),
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::EntityTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Incoming,
+    ///         inheritance_depth: Some(10),
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -351,12 +363,15 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = EntityTypeQueryPath::deserialize(json!(["links", "*", "baseUrl"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
-    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Outgoing,
-    ///     inheritance_depth: None,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::EntityTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Outgoing,
+    ///         inheritance_depth: None,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -371,12 +386,15 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path =
     ///     EntityTypeQueryPath::deserialize(json!(["links(inheritanceDepth=10)", "*", "baseUrl"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
-    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Outgoing,
-    ///     inheritance_depth: Some(10),
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::EntityTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Outgoing,
+    ///         inheritance_depth: Some(10),
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -399,12 +417,15 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = EntityTypeQueryPath::deserialize(json!(["linkDestinations", "*", "baseUrl"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Outgoing,
-    ///     inheritance_depth: None,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::EntityTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Outgoing,
+    ///         inheritance_depth: None,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -422,12 +443,15 @@ pub enum EntityTypeQueryPath<'p> {
     ///     "*",
     ///     "baseUrl"
     /// ]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Outgoing,
-    ///     inheritance_depth: Some(10),
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::EntityTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Outgoing,
+    ///         inheritance_depth: Some(10),
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     EntityTypeEdge {
@@ -511,7 +535,7 @@ impl QueryPath for EntityTypeQueryPath<'_> {
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::TransactionTime => ParameterType::TimeInterval,
             Self::Title | Self::Description | Self::Icon => ParameterType::Text,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),

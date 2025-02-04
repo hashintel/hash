@@ -5,10 +5,11 @@ use std::collections::{HashMap, hash_map::Entry};
 use error_stack::{Report, bail};
 use itertools::Itertools as _;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value as JsonValue, json};
+use serde_json::json;
 use thiserror::Error;
 
 use crate::{
+    Value,
     schema::{
         DataType, DataTypeUuid, InheritanceDepth, ValueLabel,
         data_type::{DataTypeEdge, constraint::ValueConstraints},
@@ -49,17 +50,17 @@ pub enum ResolveClosedDataTypeError {
     #[error("The data type constraints intersected to different types.")]
     IntersectedDifferentTypes,
     #[error("The value {} does not satisfy the constraint: {}", .0, json!(.1))]
-    UnsatisfiedConstraint(JsonValue, ValueConstraints),
+    UnsatisfiedConstraint(Value, ValueConstraints),
     #[error("The value {0} does not satisfy the constraint")]
-    UnsatisfiedEnumConstraintVariant(JsonValue),
+    UnsatisfiedEnumConstraintVariant(Value),
     #[error("No value satisfy the constraint: {}", json!(.0))]
     UnsatisfiedEnumConstraint(ValueConstraints),
     #[error("Conflicting const values: {0} and {1}")]
-    ConflictingConstValues(JsonValue, JsonValue),
+    ConflictingConstValues(Value, Value),
     #[error("Conflicting enum values, no common values found: {} and {}", json!(.0), json!(.1))]
-    ConflictingEnumValues(Vec<JsonValue>, Vec<JsonValue>),
+    ConflictingEnumValues(Vec<Value>, Vec<Value>),
     #[error("The const value is not in the enum values: {} and {}", .0, json!(.1))]
-    ConflictingConstEnumValue(JsonValue, Vec<JsonValue>),
+    ConflictingConstEnumValue(Value, Vec<Value>),
     #[error("The constraint is unsatisfiable: {}", json!(.0))]
     UnsatisfiableConstraint(ValueConstraints),
     #[error("The constraints are incompatible: {} <=> {}", json!(.0), json!(.1))]

@@ -96,6 +96,7 @@ const TableRow = memo(
     isFirstRow,
     isLastRow,
     numberColumnWidth,
+    scrollContainerRef,
     subgraph,
   }: HistoryRowData) => {
     const { number, timestamp } = event;
@@ -190,12 +191,31 @@ const TableRow = memo(
                 aria-label="Show provenance"
                 onClick={() => {
                   setShowProvenance((prev) => !prev);
-                  setTimeout(() => {
-                    provenanceRef.current?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "end",
-                    });
-                  }, 200);
+
+                  if (!showProvenance) {
+                    setTimeout(() => {
+                      const contentRect =
+                        provenanceRef.current?.getBoundingClientRect();
+
+                      const containerRect =
+                        scrollContainerRef.current?.getBoundingClientRect();
+
+                      if (!contentRect || !containerRect) {
+                        return;
+                      }
+
+                      const isAlreadyFullyVisible =
+                        contentRect.top >= 0 &&
+                        contentRect.bottom <= containerRect.bottom;
+
+                      if (!isAlreadyFullyVisible) {
+                        provenanceRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                      }
+                    }, 200);
+                  }
                 }}
                 sx={{
                   "&:hover": { background: "none" },
@@ -236,6 +256,7 @@ type HistoryRowData = {
   isFirstRow: boolean;
   isLastRow: boolean;
   numberColumnWidth: number;
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   subgraph: Subgraph;
 };
 
@@ -248,6 +269,7 @@ const createRowContent: CreateVirtualizedRowContentFn<HistoryRowData> = (
     numberColumnWidth={row.data.numberColumnWidth}
     isFirstRow={row.data.isFirstRow}
     isLastRow={row.data.isLastRow}
+    scrollContainerRef={row.data.scrollContainerRef}
     subgraph={row.data.subgraph}
   />
 );
@@ -263,6 +285,8 @@ export const HistoryTable = ({
     fieldId: "time",
     direction: "desc",
   });
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const rows = useMemo<VirtualizedTableRow<HistoryRowData>[]>(() => {
     const numberColumnWidth = generateNumberColumnWidth(events.length);
@@ -292,10 +316,11 @@ export const HistoryTable = ({
           isFirstRow: index === 0,
           isLastRow: index === events.length - 1,
           numberColumnWidth,
+          scrollContainerRef,
           subgraph,
         },
       }));
-  }, [events, sort, subgraph]);
+  }, [events, sort, subgraph, scrollContainerRef]);
 
   const columns = useMemo(() => createColumns(rows.length), [rows]);
 
@@ -310,6 +335,7 @@ export const HistoryTable = ({
   return (
     <Box
       height={tableHeight}
+      ref={scrollContainerRef}
       sx={{
         [`& .${tableContainerClasses.root}`]: { overflowY: "scroll" },
         [`& .${tableHeadClasses.root} th:first-of-type`]: {

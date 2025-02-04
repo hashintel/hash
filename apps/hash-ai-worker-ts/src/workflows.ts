@@ -1,3 +1,4 @@
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   Entity as GraphApiEntity,
   EntityQueryCursor,
@@ -462,7 +463,7 @@ export const updateAllDataTypeEmbeddings =
   async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
     await updateDataTypeEmbeddings({
       authentication: {
-        actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
+        actorId: publicUserAccountId,
       },
       filter: {
         all: [
@@ -482,7 +483,7 @@ export const updateAllPropertyTypeEmbeddings =
   async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
     await updatePropertyTypeEmbeddings({
       authentication: {
-        actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
+        actorId: publicUserAccountId,
       },
       filter: {
         all: [
@@ -502,7 +503,7 @@ export const updateAllEntityTypeEmbeddings =
   async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
     await updateEntityTypeEmbeddings({
       authentication: {
-        actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
+        actorId: publicUserAccountId,
       },
       filter: {
         all: [

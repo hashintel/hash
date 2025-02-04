@@ -294,7 +294,7 @@ async fn uuid() {
     .expect("validation failed");
 
     validate_data(
-        json!("00000000-0000-0000-0000-000000000000"),
+        json!(Uuid::nil()),
         &uuid_type,
         [hash_graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),

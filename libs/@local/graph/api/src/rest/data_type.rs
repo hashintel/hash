@@ -368,16 +368,19 @@ where
 
             Ok(Json(
                 store
-                    .create_data_type(actor_id, CreateDataTypeParams {
-                        schema: *schema,
-                        classification: OntologyTypeClassificationMetadata::External {
-                            fetched_at: OffsetDateTime::now_utc(),
+                    .create_data_type(
+                        actor_id,
+                        CreateDataTypeParams {
+                            schema: *schema,
+                            classification: OntologyTypeClassificationMetadata::External {
+                                fetched_at: OffsetDateTime::now_utc(),
+                            },
+                            relationships,
+                            conflict_behavior: ConflictBehavior::Fail,
+                            provenance: *provenance,
+                            conversions: conversions.clone(),
                         },
-                        relationships,
-                        conflict_behavior: ConflictBehavior::Fail,
-                        provenance: *provenance,
-                        conversions: conversions.clone(),
-                    })
+                    )
                     .await
                     .map_err(report_to_response)?,
             ))
@@ -652,12 +655,15 @@ where
         .map_err(report_to_response)?;
 
     store
-        .update_data_type(actor_id, UpdateDataTypesParams {
-            schema: data_type,
-            relationships,
-            provenance,
-            conversions,
-        })
+        .update_data_type(
+            actor_id,
+            UpdateDataTypesParams {
+                schema: data_type,
+                relationships,
+                provenance,
+                conversions,
+            },
+        )
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -1000,10 +1006,13 @@ where
     A: AuthorizationApiPool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::CheckDataTypePermission {
-            data_type_id: &data_type_id,
-            permission,
-        });
+        query_logger.capture(
+            actor_id,
+            OpenApiQuery::CheckDataTypePermission {
+                data_type_id: &data_type_id,
+                permission,
+            },
+        );
     }
 
     let response = Ok(Json(PermissionResponse {

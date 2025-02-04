@@ -80,7 +80,7 @@ pub enum BufferError {
 pub struct Buffer<'a, B>(&'a mut B);
 
 impl<'a, B> Buffer<'a, B> {
-    pub fn new(buffer: &'a mut B) -> Self {
+    pub const fn new(buffer: &'a mut B) -> Self {
         Self(buffer)
     }
 }

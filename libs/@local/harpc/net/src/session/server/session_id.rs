@@ -8,7 +8,7 @@ impl SessionIdProducer {
         Self { next: 0 }
     }
 
-    pub(crate) fn produce(&mut self) -> SessionId {
+    pub(crate) const fn produce(&mut self) -> SessionId {
         let id = self.next;
         self.next += 1;
 

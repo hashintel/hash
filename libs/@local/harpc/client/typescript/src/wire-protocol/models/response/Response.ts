@@ -1,6 +1,7 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
+  Either,
   Equal,
   Function,
   Hash,
@@ -10,8 +11,7 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../../../utils.js";
-import type * as Buffer from "../../Buffer.js";
+import { createProto, implDecode, implEncode } from "../../../utils.js";
 
 import * as ResponseBody from "./ResponseBody.js";
 import * as ResponseFlags from "./ResponseFlags.js";
@@ -97,33 +97,32 @@ export const prepare = (self: Response) => {
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, request: Response) =>
-    Effect.gen(function* () {
-      const variant = ResponseBody.variant(request.body);
-      const header = ResponseHeader.applyBodyVariant(request.header, variant);
+export const encode = implEncode((buffer, request: Response) =>
+  Either.gen(function* () {
+    const variant = ResponseBody.variant(request.body);
+    const header = ResponseHeader.applyBodyVariant(request.header, variant);
 
-      yield* ResponseHeader.encode(buffer, header);
-      yield* ResponseBody.encode(buffer, request.body);
+    yield* ResponseHeader.encode(buffer, header);
+    yield* ResponseBody.encode(buffer, request.body);
 
-      return buffer;
-    }),
+    return buffer;
+  }),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
     const header = yield* ResponseHeader.decode(buffer);
     const isBegin = ResponseFlags.isBeginOfResponse(header.flags);
 
     const body = yield* ResponseBody.decode(
-      buffer,
       isBegin ? "ResponseBegin" : "ResponseFrame",
-    );
+    )(buffer);
 
     return make(header, body);
-  });
+  }),
+);
 
 export const isResponse = (value: unknown): value is Response =>
   Predicate.hasProperty(value, TypeId);

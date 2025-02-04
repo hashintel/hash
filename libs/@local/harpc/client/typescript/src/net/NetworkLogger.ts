@@ -54,14 +54,13 @@ const NetworkLoggerProto: Omit<NetworkLoggerImpl, "formatters" | "runtime"> = {
 
 export const DefaultFormatters = internal.defaultFormatters;
 
-export const make = (
+export const make = Effect.fn("make")(function* (
   formatters?: FormatterCollection,
-): Effect.Effect<NetworkLogger> =>
-  Effect.gen(function* () {
-    const runtime = yield* Effect.runtime();
+) {
+  const runtime = yield* Effect.runtime();
 
-    return createProto(NetworkLoggerProto, {
-      formatters: formatters ?? DefaultFormatters,
-      runtime,
-    }) satisfies NetworkLoggerImpl;
-  });
+  return createProto(NetworkLoggerProto, {
+    formatters: formatters ?? DefaultFormatters,
+    runtime,
+  }) satisfies NetworkLoggerImpl;
+});

@@ -21,7 +21,7 @@ impl Category<'_> {
                 if let Some(parent) = &self.0.parent {
                     DisplayCategoryId(parent.as_ref()).fmt(fmt)?;
                     fmt.write_str("::")?;
-                };
+                }
 
                 Display::fmt(&self.0.id, fmt)
             }

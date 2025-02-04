@@ -26,7 +26,7 @@ impl Note {
         self
     }
 
-    pub fn set_color(&mut self, color: Color) -> &mut Self {
+    pub const fn set_color(&mut self, color: Color) -> &mut Self {
         self.color = Some(color);
         self
     }
