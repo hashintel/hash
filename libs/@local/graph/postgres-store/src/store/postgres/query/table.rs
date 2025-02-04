@@ -725,12 +725,12 @@ impl DatabaseColumn for EntityTypes {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum EntityLabels {
+pub enum LabelForEntity {
     EditionId,
     Label,
 }
 
-impl DatabaseColumn for EntityLabels {
+impl DatabaseColumn for LabelForEntity {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::EditionId => ParameterType::Uuid,
@@ -753,12 +753,12 @@ impl DatabaseColumn for EntityLabels {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum EntityTitles {
+pub enum TypeTitleForEntity {
     EditionId,
     Title,
 }
 
-impl DatabaseColumn for EntityTitles {
+impl DatabaseColumn for TypeTitleForEntity {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::EditionId => ParameterType::Uuid,
@@ -1405,10 +1405,10 @@ pub enum Column {
     EntityIds(EntityIds),
     EntityTemporalMetadata(EntityTemporalMetadata),
     EntityEditions(EntityEditions),
-    FirstLabelForEntity(EntityLabels),
-    LastLabelForEntity(EntityLabels),
-    FirstTitleForEntity(EntityTitles),
-    LastTitleForEntity(EntityTitles),
+    FirstLabelForEntity(LabelForEntity),
+    LastLabelForEntity(LabelForEntity),
+    FirstTitleForEntity(TypeTitleForEntity),
+    LastTitleForEntity(TypeTitleForEntity),
     EntityEmbeddings(EntityEmbeddings),
     PropertyTypeConstrainsValuesOn(PropertyTypeConstrainsValuesOn),
     PropertyTypeConstrainsPropertiesOn(PropertyTypeConstrainsPropertiesOn),
@@ -2038,28 +2038,28 @@ impl Relation {
             Self::FirstTitleForEntity => {
                 ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
                     on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
-                    join: Column::FirstTitleForEntity(EntityTitles::EditionId),
+                    join: Column::FirstTitleForEntity(TypeTitleForEntity::EditionId),
                     join_type: JoinType::Inner,
                 })
             }
             Self::LastTitleForEntity => {
                 ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
                     on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
-                    join: Column::LastTitleForEntity(EntityTitles::EditionId),
+                    join: Column::LastTitleForEntity(TypeTitleForEntity::EditionId),
                     join_type: JoinType::Inner,
                 })
             }
             Self::FirstLabelForEntity => {
                 ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
                     on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
-                    join: Column::FirstLabelForEntity(EntityLabels::EditionId),
+                    join: Column::FirstLabelForEntity(LabelForEntity::EditionId),
                     join_type: JoinType::LeftOuter,
                 })
             }
             Self::LastLabelForEntity => {
                 ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
                     on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
-                    join: Column::LastLabelForEntity(EntityLabels::EditionId),
+                    join: Column::LastLabelForEntity(LabelForEntity::EditionId),
                     join_type: JoinType::LeftOuter,
                 })
             }

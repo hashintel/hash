@@ -10,8 +10,8 @@ use crate::store::postgres::query::{
     PostgresQueryPath,
     table::{
         Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
-        EntityIds, EntityIsOfTypeIds, EntityLabels, EntityTemporalMetadata, EntityTitles,
-        JsonField, ReferenceTable, Relation,
+        EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, LabelForEntity,
+        ReferenceTable, Relation, TypeTitlesForEntity,
     },
 };
 
@@ -198,10 +198,13 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityHasRightEntity(EntityHasRightEntity::Provenance),
                 None,
             ),
-            Self::FirstTitle => (Column::FirstTitleForEntity(EntityTitles::Title), None),
-            Self::LastTitle => (Column::LastTitleForEntity(EntityTitles::Title), None),
-            Self::FirstLabel => (Column::FirstLabelForEntity(EntityLabels::Label), None),
-            Self::LastLabel => (Column::LastLabelForEntity(EntityLabels::Label), None),
+            Self::FirstTitle => (
+                Column::FirstTitleForEntity(TypeTitlesForEntity::Title),
+                None,
+            ),
+            Self::LastTitle => (Column::LastTitleForEntity(TypeTitlesForEntity::Title), None),
+            Self::FirstLabel => (Column::FirstLabelForEntity(LabelForEntity::Label), None),
+            Self::LastLabel => (Column::LastLabelForEntity(LabelForEntity::Label), None),
         }
     }
 

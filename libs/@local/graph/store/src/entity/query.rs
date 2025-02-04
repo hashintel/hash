@@ -459,29 +459,33 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Embedding,
-    /// Corresponds to the first title of the [`Entity`].
+    /// Corresponds to the title of the [`Entity`]'s first [`EntityType`].
     ///
     /// It's currently not possible to query for the first title directly.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`EntityType`]: type_system::schema::EntityType
     FirstTitle,
-    /// Corresponds to the last title of the [`Entity`].
+    /// Corresponds to the title of the [`Entity`]'s last [`EntityType`].
     ///
     /// It's currently not possible to query for the last title directly.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`EntityType`]: type_system::schema::EntityType
     LastTitle,
-    /// Corresponds to the first label of the [`Entity`].
+    /// Corresponds to the first set label of the [`Entity`] as specified by it's [`EntityType`]s.
     ///
     /// It's currently not possible to query for the first label directly.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`EntityType`]: type_system::schema::EntityType
     FirstLabel,
-    /// Corresponds to the last label of the [`Entity`].
+    /// Corresponds to the last set label of the [`Entity`] as specified by it's [`EntityType`]s.
     ///
     /// It's currently not possible to query for the last label directly.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
+    /// [`EntityType`]: type_system::schema::EntityType
     LastLabel,
 }
 
