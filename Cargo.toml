@@ -161,7 +161,7 @@ aws-config               = { version = "=1.5.15" }
 aws-sdk-s3               = { version = "=1.72.0", default-features = false }
 bitvec                   = { version = "=1.0.1", default-features = false }
 bytes-utils              = { version = "=0.1.4", default-features = false }
-clap                     = { version = "=4.5.27", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
+clap                     = { version = "=4.5.28", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_complete            = { version = "=4.5.44", default-features = false }
 convert_case             = { version = "=0.7.1", default-features = false }
 criterion-macro          = { version = "=0.4.0", default-features = false }
