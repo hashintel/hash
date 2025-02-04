@@ -12,3 +12,6 @@ napi-derive = "2.16.13"
 
 [build-dependencies]
 napi-build = "2.1.4"
+
+[package.metadata.sync.turborepo]
+ignore = true
