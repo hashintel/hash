@@ -1,0 +1,25 @@
+{
+  "name": "@local/effect-dns-hickory",
+  "version": "0.0.0",
+  "license": "MIT OR Apache-2.0",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "napi build dist --platform --release",
+    "build:debug": "napi build dist --platform"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "2.18.4"
+  },
+  "napi": {
+    "name": "effect-dns-hickory",
+    "triples": {
+      "additional": [
+        "aarch64-apple-darwin",
+        "aarch64-unknown-linux-gnu",
+        "aarch64-unknown-linux-musl",
+        "aarch64-pc-windows-msvc"
+      ]
+    }
+  }
+}

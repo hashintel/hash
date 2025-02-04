@@ -6,6 +6,7 @@ members = [
     "apps/hash-graph",
     "libs/@blockprotocol/type-system/rust",
     "libs/@local/codec",
+    "libs/@local/effect-dns/hickory",
     "libs/@local/graph/api",
     "libs/@local/graph/authorization",
     "libs/@local/graph/migrations",

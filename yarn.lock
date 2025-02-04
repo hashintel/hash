@@ -8968,6 +8968,56 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@local/effect-dns-hickory-darwin-arm64@workspace:libs/@local/effect-dns/hickory/npm/darwin-arm64":
+  version: 0.0.0-use.local
+  resolution: "@local/effect-dns-hickory-darwin-arm64@workspace:libs/@local/effect-dns/hickory/npm/darwin-arm64"
+  languageName: unknown
+  linkType: soft
+
+"@local/effect-dns-hickory-darwin-x64@workspace:libs/@local/effect-dns/hickory/npm/darwin-x64":
+  version: 0.0.0-use.local
+  resolution: "@local/effect-dns-hickory-darwin-x64@workspace:libs/@local/effect-dns/hickory/npm/darwin-x64"
+  languageName: unknown
+  linkType: soft
+
+"@local/effect-dns-hickory-linux-arm64-gnu@workspace:libs/@local/effect-dns/hickory/npm/linux-arm64-gnu":
+  version: 0.0.0-use.local
+  resolution: "@local/effect-dns-hickory-linux-arm64-gnu@workspace:libs/@local/effect-dns/hickory/npm/linux-arm64-gnu"
+  languageName: unknown
+  linkType: soft
+
+"@local/effect-dns-hickory-linux-arm64-musl@workspace:libs/@local/effect-dns/hickory/npm/linux-arm64-musl":
+  version: 0.0.0-use.local
+  resolution: "@local/effect-dns-hickory-linux-arm64-musl@workspace:libs/@local/effect-dns/hickory/npm/linux-arm64-musl"
+  languageName: unknown
+  linkType: soft
+
+"@local/effect-dns-hickory-linux-x64-gnu@workspace:libs/@local/effect-dns/hickory/npm/linux-x64-gnu":
+  version: 0.0.0-use.local
+  resolution: "@local/effect-dns-hickory-linux-x64-gnu@workspace:libs/@local/effect-dns/hickory/npm/linux-x64-gnu"
+  languageName: unknown
+  linkType: soft
+
+"@local/effect-dns-hickory-win32-arm64-msvc@workspace:libs/@local/effect-dns/hickory/npm/win32-arm64-msvc":
+  version: 0.0.0-use.local
+  resolution: "@local/effect-dns-hickory-win32-arm64-msvc@workspace:libs/@local/effect-dns/hickory/npm/win32-arm64-msvc"
+  languageName: unknown
+  linkType: soft
+
+"@local/effect-dns-hickory-win32-x64-msvc@workspace:libs/@local/effect-dns/hickory/npm/win32-x64-msvc":
+  version: 0.0.0-use.local
+  resolution: "@local/effect-dns-hickory-win32-x64-msvc@workspace:libs/@local/effect-dns/hickory/npm/win32-x64-msvc"
+  languageName: unknown
+  linkType: soft
+
+"@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory":
+  version: 0.0.0-use.local
+  resolution: "@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory"
+  dependencies:
+    "@napi-rs/cli": "npm:^2.18.4"
+  languageName: unknown
+  linkType: soft
+
 "@local/effect-dns@workspace:libs/@local/effect-dns/core":
   version: 0.0.0-use.local
   resolution: "@local/effect-dns@workspace:libs/@local/effect-dns/core"
@@ -9701,7 +9751,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@napi-rs/cli@npm:2.18.4":
+"@napi-rs/cli@npm:2.18.4, @napi-rs/cli@npm:^2.18.4":
   version: 2.18.4
   resolution: "@napi-rs/cli@npm:2.18.4"
   bin:
