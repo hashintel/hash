@@ -3,7 +3,8 @@
   "compilerOptions": {
     "declaration": true,
     "outDir": "dist",
-    "stripInternal": true
+    "stripInternal": true,
+    "paths": {}
   },
   "include": ["src"]
 }
