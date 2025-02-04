@@ -11,7 +11,7 @@ use crate::store::postgres::query::{
     table::{
         Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
         EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, LabelForEntity,
-        ReferenceTable, Relation, TypeTitlesForEntity,
+        ReferenceTable, Relation, TypeTitleForEntity,
     },
 };
 
@@ -198,11 +198,8 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityHasRightEntity(EntityHasRightEntity::Provenance),
                 None,
             ),
-            Self::FirstTypeTitle => (
-                Column::FirstTitleForEntity(TypeTitlesForEntity::Title),
-                None,
-            ),
-            Self::LastTypeTitle => (Column::LastTitleForEntity(TypeTitlesForEntity::Title), None),
+            Self::FirstTypeTitle => (Column::FirstTitleForEntity(TypeTitleForEntity::Title), None),
+            Self::LastTypeTitle => (Column::LastTitleForEntity(TypeTitleForEntity::Title), None),
             Self::FirstLabel => (Column::FirstLabelForEntity(LabelForEntity::Label), None),
             Self::LastLabel => (Column::LastLabelForEntity(LabelForEntity::Label), None),
         }
