@@ -39,7 +39,10 @@ import {
   type LlmMessageTextContent,
   type LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message.js";
-import type { LlmParams } from "../../shared/get-llm-response/types.js";
+import type {
+  LlmParams,
+  LlmToolDefinition,
+} from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import { judgeAiOutputs } from "../../shared/judge-ai-outputs.js";
 
@@ -48,7 +51,7 @@ const generateOutputSchema = (
 ) => {
   return {
     type: "object",
-    additionalProperties: false,
+    additionalProperties: false as const,
     properties: {
       documentMetadata: {
         anyOf: dereferencedDocEntityTypes.map(
@@ -76,7 +79,7 @@ const generateOutputSchema = (
         type: "array",
         items: {
           type: "object",
-          additionalProperties: false,
+          additionalProperties: false as const,
           properties: {
             affiliatedWith: {
               type: "array",
@@ -90,11 +93,16 @@ const generateOutputSchema = (
               description: "The name of the author",
               type: "string",
             },
+            email: {
+              description: "The email address of the author",
+              type: "string",
+            },
           },
+          required: ["name"],
         },
       },
     },
-  } as const;
+  } satisfies LlmToolDefinition["inputSchema"];
 };
 
 type DocumentMetadataWithSimplifiedProperties = {
@@ -454,8 +462,14 @@ export const getLlmAnalysisOfDoc = async ({
     ${dereferencedDocEntityTypes.map((type) => `- ${type.schema.title}`).join("\n")}
 
     'Doc' is the most generic type. Use this if no other more specific type is appropriate.
+    If you can't find a more specific type, use 'Doc'.
     
-    If you're not confident about any of the metadata fields, omit them.`),
+    If you're not confident about any of the metadata fields, omit them.
+    
+    When dealing with dates in the document metadata, use the format YYYY-MM-DD. Bear in mind the document may use a different format.
+    Also note the difference between 'estimated'/'predicted' and 'actual'/'confirmed' dates. Either, neither or both may be present.
+    Depending on the type of document, this distinction may be important, and the document should give clues as to which dates are which.
+    `),
   };
 
   const fileContent: LlmFileMessageContent = {
@@ -521,6 +535,9 @@ export const getLlmAnalysisOfDoc = async ({
 
   if (!toolCall) {
     logger.error("No tool call found");
+
+    await sleep(2_000);
+
     return getLlmAnalysisOfDoc({ fileEntity });
   }
 
