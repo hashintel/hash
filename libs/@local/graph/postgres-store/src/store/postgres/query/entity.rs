@@ -87,8 +87,8 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             })
             .chain(path.relations())
             .collect(),
-            Self::FirstTitle => vec![Relation::FirstTitleForEntity],
-            Self::LastTitle => vec![Relation::LastTitleForEntity],
+            Self::FirstTypeTitle => vec![Relation::FirstTitleForEntity],
+            Self::LastTypeTitle => vec![Relation::LastTitleForEntity],
             Self::FirstLabel => vec![Relation::FirstLabelForEntity],
             Self::LastLabel => vec![Relation::LastLabelForEntity],
         }
@@ -198,11 +198,11 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityHasRightEntity(EntityHasRightEntity::Provenance),
                 None,
             ),
-            Self::FirstTitle => (
+            Self::FirstTypeTitle => (
                 Column::FirstTitleForEntity(TypeTitlesForEntity::Title),
                 None,
             ),
-            Self::LastTitle => (Column::LastTitleForEntity(TypeTitlesForEntity::Title), None),
+            Self::LastTypeTitle => (Column::LastTitleForEntity(TypeTitlesForEntity::Title), None),
             Self::FirstLabel => (Column::FirstLabelForEntity(LabelForEntity::Label), None),
             Self::LastLabel => (Column::LastLabelForEntity(LabelForEntity::Label), None),
         }

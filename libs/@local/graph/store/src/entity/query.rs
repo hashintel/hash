@@ -465,14 +465,14 @@ pub enum EntityQueryPath<'p> {
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     /// [`EntityType`]: type_system::schema::EntityType
-    FirstTitle,
+    FirstTypeTitle,
     /// Corresponds to the title of the [`Entity`]'s last [`EntityType`].
     ///
     /// It's currently not possible to query for the last title directly.
     ///
     /// [`Entity`]: hash_graph_types::knowledge::entity::Entity
     /// [`EntityType`]: type_system::schema::EntityType
-    LastTitle,
+    LastTypeTitle,
     /// Corresponds to the first set label of the [`Entity`] as specified by it's [`EntityType`]s.
     ///
     /// It's currently not possible to query for the first label directly.
@@ -546,8 +546,8 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::LeftEntityProvenance => fmt.write_str("leftEntityProvenance"),
             Self::RightEntityConfidence => fmt.write_str("rightEntityConfidence"),
             Self::RightEntityProvenance => fmt.write_str("rightEntityProvenance"),
-            Self::FirstTitle => fmt.write_str("firstTitle"),
-            Self::LastTitle => fmt.write_str("lastTitle"),
+            Self::FirstTypeTitle => fmt.write_str("firstTypeTitle"),
+            Self::LastTypeTitle => fmt.write_str("lasttTypeTitle"),
             Self::FirstLabel => fmt.write_str("firstLabel"),
             Self::LastLabel => fmt.write_str("lastLabel"),
         }
@@ -577,7 +577,7 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::Archived => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
-            Self::FirstTitle | Self::LastTitle | Self::FirstLabel | Self::LastLabel => {
+            Self::FirstTypeTitle | Self::LastTypeTitle | Self::FirstLabel | Self::LastLabel => {
                 ParameterType::Text
             }
         }
@@ -886,7 +886,7 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
                 ])))
             }
             // We don't know the ordering, yet. This will be set later
-            EntityQuerySortingToken::TypeTitle => EntityQueryPath::FirstTitle,
+            EntityQuerySortingToken::TypeTitle => EntityQueryPath::FirstTypeTitle,
             // We don't know the ordering, yet. This will be set later
             EntityQuerySortingToken::Label => EntityQueryPath::FirstLabel,
             EntityQuerySortingToken::Properties => EntityPropertiesPathVisitor {
@@ -955,8 +955,8 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::PropertyMetadata(path) => {
                 EntityQueryPath::PropertyMetadata(path.map(JsonPath::into_owned))
             }
-            Self::FirstTitle => EntityQueryPath::FirstTitle,
-            Self::LastTitle => EntityQueryPath::LastTitle,
+            Self::FirstTypeTitle => EntityQueryPath::FirstTypeTitle,
+            Self::LastTypeTitle => EntityQueryPath::LastTypeTitle,
             Self::FirstLabel => EntityQueryPath::FirstLabel,
             Self::LastLabel => EntityQueryPath::LastLabel,
         }
@@ -991,8 +991,8 @@ impl<'s, 'de: 's> Deserialize<'de> for EntityQuerySortingRecord<'s> {
         // TODO: Change behavior when order is fixed
         //   see https://linear.app/hash/issue/H-3997/make-ontology-type-ids-ordered-in-inheritance-and-entities
         match (&record.path, record.ordering) {
-            (EntityQueryPath::FirstTitle, Ordering::Descending) => {
-                record.path = EntityQueryPath::LastTitle;
+            (EntityQueryPath::FirstTypeTitle, Ordering::Descending) => {
+                record.path = EntityQueryPath::LastTypeTitle;
             }
             (EntityQueryPath::FirstLabel, Ordering::Descending) => {
                 record.path = EntityQueryPath::LastLabel;
