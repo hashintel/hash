@@ -26,12 +26,12 @@ import {
 import type {
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
-  UpdateEntityTypeMutation,
-  UpdateEntityTypeMutationVariables,
+  UpdateEntityTypesMutation,
+  UpdateEntityTypesMutationVariables,
 } from "../../../graphql/api-types.gen";
 import {
   createEntityTypeMutation,
-  updateEntityTypeMutation,
+  updateEntityTypesMutation,
 } from "../../../graphql/queries/ontology/entity-type.queries";
 import {
   useEntityTypesLoading,
@@ -59,10 +59,10 @@ export const useEntityTypeValue = (
 
   const isDraft = !entityTypeBaseUrl;
 
-  const [updateEntityType] = useMutation<
-    UpdateEntityTypeMutation,
-    UpdateEntityTypeMutationVariables
-  >(updateEntityTypeMutation);
+  const [updateEntityTypes] = useMutation<
+    UpdateEntityTypesMutation,
+    UpdateEntityTypesMutationVariables
+  >(updateEntityTypesMutation);
 
   const { contextEntityType, latestVersion } = useMemo<{
     contextEntityType: EntityTypeWithMetadata | null;
@@ -190,7 +190,10 @@ export const useEntityTypeValue = (
   }, [entityTypeBaseUrl, refetch]);
 
   const updateCallback = useCallback(
-    async (partialEntityType: Partial<ConstructEntityTypeParams>) => {
+    async (
+      partialEntityType: Partial<ConstructEntityTypeParams>,
+      dependentsToUpgrade: EntityType[],
+    ) => {
       if (!stateEntityTypeRef.current) {
         throw new Error("Cannot update yet");
       }
@@ -199,13 +202,23 @@ export const useEntityTypeValue = (
         schema: { $id, ...restOfEntityType },
       } = stateEntityTypeRef.current;
 
-      const res = await updateEntityType({
+      const primaryUpdate = {
+        entityTypeId: $id,
+        updatedEntityType: {
+          ...restOfEntityType,
+          ...partialEntityType,
+        },
+      };
+
+      const res = await updateEntityTypes({
         variables: {
-          entityTypeId: $id,
-          updatedEntityType: {
-            ...restOfEntityType,
-            ...partialEntityType,
-          },
+          updates: [
+            primaryUpdate,
+            ...dependentsToUpgrade.map(({ $id: dependencyId, ...rest }) => ({
+              entityTypeId: dependencyId,
+              updatedEntityType: rest,
+            })),
+          ],
         },
       });
 
@@ -213,7 +226,7 @@ export const useEntityTypeValue = (
 
       return res;
     },
-    [refetch, updateEntityType],
+    [refetch, updateEntityTypes],
   );
 
   const publishDraft = useCallback(

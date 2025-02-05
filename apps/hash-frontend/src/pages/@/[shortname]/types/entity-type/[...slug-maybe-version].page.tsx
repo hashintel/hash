@@ -83,6 +83,7 @@ const Page: NextPageWithLayout = () => {
       accountId={routeNamespace.accountId}
       draftEntityType={draftEntityType}
       entityTypeBaseUrl={entityTypeBaseUrl}
+      key={`${entityTypeBaseUrl}-${requestedVersion}`}
       requestedVersion={requestedVersion}
     />
   );
