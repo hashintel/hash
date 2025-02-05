@@ -1,0 +1,13 @@
+{
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "types": ["vitest/importMeta"],
+    "rootDirs": ["src", "dist"],
+    "paths": {
+      "@local/effect-dns/hickory": ["src/index.ts"]
+    }
+  },
+  "include": ["src", "tests", "types", "vitest.config.ts"]
+}
