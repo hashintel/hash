@@ -1,9 +1,9 @@
-#![deny(clippy::all)]
+#![expect(clippy::cfg_not_test, reason = "napi macro uses cfg(not(test))")]
 
-#[macro_use]
-extern crate napi_derive;
+use napi_derive::napi;
 
 #[napi]
-pub fn sum(a: i32, b: i32) -> i32 {
-    a + b
+#[must_use]
+pub const fn sum(lhs: i32, rhs: i32) -> i32 {
+    lhs + rhs
 }
