@@ -8968,6 +8968,33 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory":
+  version: 0.0.0-use.local
+  resolution: "@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory"
+  dependencies:
+    "@local/eslint": "npm:0.0.0-private"
+    "@local/tsconfig": "npm:0.0.0-private"
+    "@napi-rs/cli": "npm:2.18.4"
+    "@vitest/coverage-istanbul": "npm:2.1.9"
+    eslint: "npm:9.19.0"
+    rimraf: "npm:6.0.1"
+    typescript: "npm:5.7.3"
+    vitest: "npm:2.1.9"
+  languageName: unknown
+  linkType: soft
+
+"@local/effect-dns@workspace:libs/@local/effect-dns/core":
+  version: 0.0.0-use.local
+  resolution: "@local/effect-dns@workspace:libs/@local/effect-dns/core"
+  dependencies:
+    "@local/eslint": "npm:0.0.0-private"
+    "@local/tsconfig": "npm:0.0.0-private"
+    eslint: "npm:9.19.0"
+    rimraf: "npm:6.0.1"
+    typescript: "npm:5.7.3"
+  languageName: unknown
+  linkType: soft
+
 "@local/eslint@npm:0.0.0-private, @local/eslint@workspace:libs/@local/eslint":
   version: 0.0.0-use.local
   resolution: "@local/eslint@workspace:libs/@local/eslint"
@@ -9686,6 +9713,15 @@ __metadata:
     uint8-varint: "npm:^2.0.1"
     uint8arrays: "npm:^5.0.0"
   checksum: 10c0/0fd1522e5e6e7ab5aa288188b33f958c866f32c754e8ad9270b232ee0842282a4572c15a7fd5480e7c35c237b53ab19862129a87acbf09aa38ea47a5619ae700
+  languageName: node
+  linkType: hard
+
+"@napi-rs/cli@npm:2.18.4":
+  version: 2.18.4
+  resolution: "@napi-rs/cli@npm:2.18.4"
+  bin:
+    napi: scripts/index.js
+  checksum: 10c0/cb80bc86687ba01077a0faa8d38198bc632b7caacf3a42ec42c3ec04700084ca26be9eec13bf7ac7da90e6afb46c65a39de8a86825a53b74dec2f2f459c0a7ea
   languageName: node
   linkType: hard
 
@@ -12537,9 +12573,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rollup/rollup-android-arm-eabi@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-android-arm-eabi@npm:4.34.2"
+  conditions: os=android & cpu=arm
+  languageName: node
+  linkType: hard
+
 "@rollup/rollup-android-arm64@npm:4.34.0":
   version: 4.34.0
   resolution: "@rollup/rollup-android-arm64@npm:4.34.0"
+  conditions: os=android & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@rollup/rollup-android-arm64@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-android-arm64@npm:4.34.2"
   conditions: os=android & cpu=arm64
   languageName: node
   linkType: hard
@@ -12551,9 +12601,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rollup/rollup-darwin-arm64@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-darwin-arm64@npm:4.34.2"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
 "@rollup/rollup-darwin-x64@npm:4.34.0":
   version: 4.34.0
   resolution: "@rollup/rollup-darwin-x64@npm:4.34.0"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@rollup/rollup-darwin-x64@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-darwin-x64@npm:4.34.2"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
@@ -12565,9 +12629,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rollup/rollup-freebsd-arm64@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-freebsd-arm64@npm:4.34.2"
+  conditions: os=freebsd & cpu=arm64
+  languageName: node
+  linkType: hard
+
 "@rollup/rollup-freebsd-x64@npm:4.34.0":
   version: 4.34.0
   resolution: "@rollup/rollup-freebsd-x64@npm:4.34.0"
+  conditions: os=freebsd & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@rollup/rollup-freebsd-x64@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-freebsd-x64@npm:4.34.2"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
@@ -12579,9 +12657,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rollup/rollup-linux-arm-gnueabihf@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-linux-arm-gnueabihf@npm:4.34.2"
+  conditions: os=linux & cpu=arm & libc=glibc
+  languageName: node
+  linkType: hard
+
 "@rollup/rollup-linux-arm-musleabihf@npm:4.34.0":
   version: 4.34.0
   resolution: "@rollup/rollup-linux-arm-musleabihf@npm:4.34.0"
+  conditions: os=linux & cpu=arm & libc=musl
+  languageName: node
+  linkType: hard
+
+"@rollup/rollup-linux-arm-musleabihf@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-linux-arm-musleabihf@npm:4.34.2"
   conditions: os=linux & cpu=arm & libc=musl
   languageName: node
   linkType: hard
@@ -12593,9 +12685,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rollup/rollup-linux-arm64-gnu@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-linux-arm64-gnu@npm:4.34.2"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
 "@rollup/rollup-linux-arm64-musl@npm:4.34.0":
   version: 4.34.0
   resolution: "@rollup/rollup-linux-arm64-musl@npm:4.34.0"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@rollup/rollup-linux-arm64-musl@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-linux-arm64-musl@npm:4.34.2"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
@@ -12607,9 +12713,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rollup/rollup-linux-loongarch64-gnu@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-linux-loongarch64-gnu@npm:4.34.2"
+  conditions: os=linux & cpu=loong64 & libc=glibc
+  languageName: node
+  linkType: hard
+
 "@rollup/rollup-linux-powerpc64le-gnu@npm:4.34.0":
   version: 4.34.0
   resolution: "@rollup/rollup-linux-powerpc64le-gnu@npm:4.34.0"
+  conditions: os=linux & cpu=ppc64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@rollup/rollup-linux-powerpc64le-gnu@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-linux-powerpc64le-gnu@npm:4.34.2"
   conditions: os=linux & cpu=ppc64 & libc=glibc
   languageName: node
   linkType: hard
@@ -12621,9 +12741,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rollup/rollup-linux-riscv64-gnu@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-linux-riscv64-gnu@npm:4.34.2"
+  conditions: os=linux & cpu=riscv64 & libc=glibc
+  languageName: node
+  linkType: hard
+
 "@rollup/rollup-linux-s390x-gnu@npm:4.34.0":
   version: 4.34.0
   resolution: "@rollup/rollup-linux-s390x-gnu@npm:4.34.0"
+  conditions: os=linux & cpu=s390x & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@rollup/rollup-linux-s390x-gnu@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-linux-s390x-gnu@npm:4.34.2"
   conditions: os=linux & cpu=s390x & libc=glibc
   languageName: node
   linkType: hard
@@ -12635,9 +12769,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rollup/rollup-linux-x64-gnu@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-linux-x64-gnu@npm:4.34.2"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
 "@rollup/rollup-linux-x64-musl@npm:4.34.0":
   version: 4.34.0
   resolution: "@rollup/rollup-linux-x64-musl@npm:4.34.0"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@rollup/rollup-linux-x64-musl@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-linux-x64-musl@npm:4.34.2"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
@@ -12649,6 +12797,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rollup/rollup-win32-arm64-msvc@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-win32-arm64-msvc@npm:4.34.2"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
 "@rollup/rollup-win32-ia32-msvc@npm:4.34.0":
   version: 4.34.0
   resolution: "@rollup/rollup-win32-ia32-msvc@npm:4.34.0"
@@ -12656,9 +12811,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rollup/rollup-win32-ia32-msvc@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-win32-ia32-msvc@npm:4.34.2"
+  conditions: os=win32 & cpu=ia32
+  languageName: node
+  linkType: hard
+
 "@rollup/rollup-win32-x64-msvc@npm:4.34.0":
   version: 4.34.0
   resolution: "@rollup/rollup-win32-x64-msvc@npm:4.34.0"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@rollup/rollup-win32-x64-msvc@npm:4.34.2":
+  version: 4.34.2
+  resolution: "@rollup/rollup-win32-x64-msvc@npm:4.34.2"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -25457,9 +25626,9 @@ __metadata:
   linkType: hard
 
 "es-module-lexer@npm:^1.2.1, es-module-lexer@npm:^1.4.1, es-module-lexer@npm:^1.5.3, es-module-lexer@npm:^1.5.4":
-  version: 1.5.4
-  resolution: "es-module-lexer@npm:1.5.4"
-  checksum: 10c0/300a469488c2f22081df1e4c8398c78db92358496e639b0df7f89ac6455462aaf5d8893939087c1a1cbcbf20eed4610c70e0bcb8f3e4b0d80a5d2611c539408c
+  version: 1.6.0
+  resolution: "es-module-lexer@npm:1.6.0"
+  checksum: 10c0/667309454411c0b95c476025929881e71400d74a746ffa1ff4cb450bd87f8e33e8eef7854d68e401895039ac0bac64e7809acbebb6253e055dd49ea9e3ea9212
   languageName: node
   linkType: hard
 
@@ -29387,6 +29556,7 @@ __metadata:
     "@biomejs/biome": "npm:1.9.5-nightly.ff02a0b"
     "@changesets/changelog-github": "npm:0.5.0"
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch"
+    "@napi-rs/cli": "npm:2.18.4"
     "@sentry/cli": "npm:^2.39.1"
     "@taplo/cli": "npm:0.7.0"
     "@yarnpkg/types": "npm:^4.0.0"
@@ -33681,11 +33851,11 @@ __metadata:
   linkType: hard
 
 "magic-string@npm:^0.30.12, magic-string@npm:^0.30.3, magic-string@npm:^0.30.5":
-  version: 0.30.14
-  resolution: "magic-string@npm:0.30.14"
+  version: 0.30.17
+  resolution: "magic-string@npm:0.30.17"
   dependencies:
     "@jridgewell/sourcemap-codec": "npm:^1.5.0"
-  checksum: 10c0/c52c2a6e699dfa8a840e13154da35464a40cd8b07049b695a8b282883b0426c0811af1e36ac26860b4267289340b42772c156a5608e87be97b63d510e617e87a
+  checksum: 10c0/16826e415d04b88378f200fe022b53e638e3838b9e496edda6c0e086d7753a44a6ed187adc72d19f3623810589bf139af1a315541cd6a26ae0771a0193eaf7b8
   languageName: node
   linkType: hard
 
@@ -36194,7 +36364,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nanoid@npm:3.3.8, nanoid@npm:^3.0.0, nanoid@npm:^3.3.4, nanoid@npm:^3.3.6, nanoid@npm:^3.3.7":
+"nanoid@npm:3.3.8, nanoid@npm:^3.0.0, nanoid@npm:^3.3.4, nanoid@npm:^3.3.6, nanoid@npm:^3.3.7, nanoid@npm:^3.3.8":
   version: 3.3.8
   resolution: "nanoid@npm:3.3.8"
   bin:
@@ -38718,13 +38888,13 @@ __metadata:
   linkType: hard
 
 "postcss@npm:^8.3.11, postcss@npm:^8.4.14, postcss@npm:^8.4.23, postcss@npm:^8.4.33, postcss@npm:^8.4.43":
-  version: 8.4.49
-  resolution: "postcss@npm:8.4.49"
+  version: 8.5.1
+  resolution: "postcss@npm:8.5.1"
   dependencies:
-    nanoid: "npm:^3.3.7"
+    nanoid: "npm:^3.3.8"
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.1"
-  checksum: 10c0/f1b3f17aaf36d136f59ec373459f18129908235e65dbdc3aee5eef8eba0756106f52de5ec4682e29a2eab53eb25170e7e871b3e4b52a8f1de3d344a514306be3
+  checksum: 10c0/c4d90c59c98e8a0c102b77d3f4cac190f883b42d63dc60e2f3ed840f16197c0c8e25a4327d2e9a847b45a985612317dc0534178feeebd0a1cf3eb0eecf75cae4
   languageName: node
   linkType: hard
 
@@ -41532,7 +41702,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rollup@npm:4.34.0, rollup@npm:^4.20.0":
+"rollup@npm:4.34.0":
   version: 4.34.0
   resolution: "rollup@npm:4.34.0"
   dependencies:
@@ -41601,6 +41771,78 @@ __metadata:
   bin:
     rollup: dist/bin/rollup
   checksum: 10c0/ff395dc0d4fd26feb3bc8ed405d396eee6741efd6f026db2fc51a7dc0634e472aa7ef05c9d27b069f41884997dea7d07d69e478047916e5849964b515029314d
+  languageName: node
+  linkType: hard
+
+"rollup@npm:^4.20.0":
+  version: 4.34.2
+  resolution: "rollup@npm:4.34.2"
+  dependencies:
+    "@rollup/rollup-android-arm-eabi": "npm:4.34.2"
+    "@rollup/rollup-android-arm64": "npm:4.34.2"
+    "@rollup/rollup-darwin-arm64": "npm:4.34.2"
+    "@rollup/rollup-darwin-x64": "npm:4.34.2"
+    "@rollup/rollup-freebsd-arm64": "npm:4.34.2"
+    "@rollup/rollup-freebsd-x64": "npm:4.34.2"
+    "@rollup/rollup-linux-arm-gnueabihf": "npm:4.34.2"
+    "@rollup/rollup-linux-arm-musleabihf": "npm:4.34.2"
+    "@rollup/rollup-linux-arm64-gnu": "npm:4.34.2"
+    "@rollup/rollup-linux-arm64-musl": "npm:4.34.2"
+    "@rollup/rollup-linux-loongarch64-gnu": "npm:4.34.2"
+    "@rollup/rollup-linux-powerpc64le-gnu": "npm:4.34.2"
+    "@rollup/rollup-linux-riscv64-gnu": "npm:4.34.2"
+    "@rollup/rollup-linux-s390x-gnu": "npm:4.34.2"
+    "@rollup/rollup-linux-x64-gnu": "npm:4.34.2"
+    "@rollup/rollup-linux-x64-musl": "npm:4.34.2"
+    "@rollup/rollup-win32-arm64-msvc": "npm:4.34.2"
+    "@rollup/rollup-win32-ia32-msvc": "npm:4.34.2"
+    "@rollup/rollup-win32-x64-msvc": "npm:4.34.2"
+    "@types/estree": "npm:1.0.6"
+    fsevents: "npm:~2.3.2"
+  dependenciesMeta:
+    "@rollup/rollup-android-arm-eabi":
+      optional: true
+    "@rollup/rollup-android-arm64":
+      optional: true
+    "@rollup/rollup-darwin-arm64":
+      optional: true
+    "@rollup/rollup-darwin-x64":
+      optional: true
+    "@rollup/rollup-freebsd-arm64":
+      optional: true
+    "@rollup/rollup-freebsd-x64":
+      optional: true
+    "@rollup/rollup-linux-arm-gnueabihf":
+      optional: true
+    "@rollup/rollup-linux-arm-musleabihf":
+      optional: true
+    "@rollup/rollup-linux-arm64-gnu":
+      optional: true
+    "@rollup/rollup-linux-arm64-musl":
+      optional: true
+    "@rollup/rollup-linux-loongarch64-gnu":
+      optional: true
+    "@rollup/rollup-linux-powerpc64le-gnu":
+      optional: true
+    "@rollup/rollup-linux-riscv64-gnu":
+      optional: true
+    "@rollup/rollup-linux-s390x-gnu":
+      optional: true
+    "@rollup/rollup-linux-x64-gnu":
+      optional: true
+    "@rollup/rollup-linux-x64-musl":
+      optional: true
+    "@rollup/rollup-win32-arm64-msvc":
+      optional: true
+    "@rollup/rollup-win32-ia32-msvc":
+      optional: true
+    "@rollup/rollup-win32-x64-msvc":
+      optional: true
+    fsevents:
+      optional: true
+  bin:
+    rollup: dist/bin/rollup
+  checksum: 10c0/8e2307cf6e4c37134e46ec845198b50f127c0c95718448323b23c309bd39f1fc5b56ae69992111353b652ce6bc0e644b90f84d880944591979f810fa1c9616aa
   languageName: node
   linkType: hard
 
@@ -44332,9 +44574,9 @@ __metadata:
   linkType: hard
 
 "tinyexec@npm:^0.3.1":
-  version: 0.3.1
-  resolution: "tinyexec@npm:0.3.1"
-  checksum: 10c0/11e7a7c5d8b3bddf8b5cbe82a9290d70a6fad84d528421d5d18297f165723cb53d2e737d8f58dcce5ca56f2e4aa2d060f02510b1f8971784f97eb3e9aec28f09
+  version: 0.3.2
+  resolution: "tinyexec@npm:0.3.2"
+  checksum: 10c0/3efbf791a911be0bf0821eab37a3445c2ba07acc1522b1fa84ae1e55f10425076f1290f680286345ed919549ad67527d07281f1c19d584df3b74326909eb1f90
   languageName: node
   linkType: hard
 
