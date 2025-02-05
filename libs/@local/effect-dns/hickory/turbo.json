@@ -8,6 +8,9 @@
     "test:unit": {
       "dependsOn": ["build"]
     },
+    "lint:eslint": {
+      "dependsOn": ["build"]
+    },
     "lint:tsc": {
       "dependsOn": ["build"]
     }
