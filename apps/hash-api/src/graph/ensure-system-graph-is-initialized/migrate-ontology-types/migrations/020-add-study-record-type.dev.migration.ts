@@ -30,14 +30,6 @@ const migrate: MigrationFunction = async ({
         title: "Trial Phase",
         description:
           "The distinct stage of a clinical trial, categorizing the study's primary goals and level of testing. Phase 0 involves very limited human testing, Phase 1 tests safety, dosage, and administration, Phase 2 tests effectiveness, Phase 3 confirms benefits, and Phase 4 studies long-term effects.",
-        enum: [
-          "Phase 0",
-          "Phase 1",
-          "Phase 2",
-          "Phase 3",
-          "Phase 4",
-          "Not Applicable",
-        ],
         type: "string",
       },
       conversions: {},

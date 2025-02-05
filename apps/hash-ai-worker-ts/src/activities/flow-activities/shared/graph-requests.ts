@@ -18,7 +18,7 @@ import {
   splitEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import isEqual from "lodash.isequal";
+import isEqual from "lodash/isEqual.js";
 
 import type { ExistingEntityForMatching } from "../../shared/match-existing-entity.js";
 

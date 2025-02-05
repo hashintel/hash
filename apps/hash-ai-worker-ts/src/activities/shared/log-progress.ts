@@ -2,7 +2,7 @@ import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
 import type { Client as TemporalClient } from "@temporalio/client";
-import debounce from "lodash.debounce";
+import debounce from "lodash/debounce.js";
 
 import { logProgressSignal } from "../../shared/signals.js";
 import { logger } from "./activity-logger.js";
