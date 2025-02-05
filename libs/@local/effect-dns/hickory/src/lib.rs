@@ -1,4 +1,4 @@
-#![expect(clippy::cfg_not_test, reason = "napi macro uses cfg(not(test))")]
+#![allow(clippy::cfg_not_test, reason = "napi macro uses cfg(not(test))")]
 
 use napi_derive::napi;
 
