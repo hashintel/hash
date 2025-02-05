@@ -17,7 +17,12 @@ export const AddAnotherButton = ({
       variant="tertiary_quiet"
       fullWidth
       startIcon={<FontAwesomeIcon icon={faPlus} />}
-      sx={{ justifyContent: "flex-start", borderRadius: 0 }}
+      sx={{
+        justifyContent: "flex-start",
+        borderRadius: 0,
+        fontSize: 13,
+        color: ({ palette }) => palette.gray[60],
+      }}
     >
       {title}
     </Button>

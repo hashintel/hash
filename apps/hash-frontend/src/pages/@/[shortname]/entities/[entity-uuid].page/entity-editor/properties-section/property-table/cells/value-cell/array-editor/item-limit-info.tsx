@@ -16,9 +16,6 @@ const StyledBox = styled(Box)(({ theme }) =>
   }),
 );
 
-/**
- * @todo fix taking account of this when calculating available space for data type selector
- */
 export const ItemLimitInfo = ({ min, max }: { min?: number; max?: number }) => {
   const minNode = isNumber(min) ? (
     <>
