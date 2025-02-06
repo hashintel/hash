@@ -31,7 +31,7 @@
     "@libp2p/ping": "2.0.17",
     "@libp2p/tcp": "10.0.17",
     "@multiformats/dns": "1.0.6",
-    "@multiformats/multiaddr": "12.3.4",
+    "@multiformats/multiaddr": "12.3.5",
     "effect": "3.12.9",
     "it-stream-types": "2.0.2",
     "libp2p": "2.5.2",
