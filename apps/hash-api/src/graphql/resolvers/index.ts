@@ -94,6 +94,7 @@ import {
   queryEntityTypesResolver,
   unarchiveEntityTypeResolver,
   updateEntityTypeResolver,
+  updateEntityTypesResolver,
 } from "./ontology/entity-type";
 import {
   archivePropertyTypeResolver,
@@ -180,6 +181,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     ),
     createEntityType: loggedInAndSignedUpMiddleware(createEntityTypeResolver),
     updateEntityType: loggedInAndSignedUpMiddleware(updateEntityTypeResolver),
+    updateEntityTypes: loggedInAndSignedUpMiddleware(updateEntityTypesResolver),
     archiveEntityType: loggedInAndSignedUpMiddleware(archiveEntityTypeResolver),
     unarchiveEntityType: loggedInAndSignedUpMiddleware(
       unarchiveEntityTypeResolver,

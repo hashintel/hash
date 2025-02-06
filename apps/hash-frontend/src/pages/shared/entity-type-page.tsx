@@ -1,5 +1,9 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
+import {
+  atLeastOne,
+  extractVersion,
+  mustHaveAtLeastOne,
+} from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { EntityOrTypeIcon, OntologyChip } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
@@ -12,7 +16,7 @@ import {
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { generateLinkMapWithConsistentSelfReferences } from "@local/hash-isomorphic-utils/ontology-types";
+import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import type { Theme } from "@mui/material";
 import { Box, Container, Typography } from "@mui/material";
@@ -38,6 +42,11 @@ import { EntityTypeContext } from "./entity-type-page/shared/entity-type-context
 import { EntityTypeHeader } from "./entity-type-page/shared/entity-type-header";
 import { useCurrentTab } from "./entity-type-page/shared/tabs";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
+import { UpgradeDependentsModal } from "./entity-type-page/upgrade-dependents-modal";
+import {
+  type EntityTypeDependent,
+  useGetEntityTypeDependents,
+} from "./entity-type-page/use-entity-type-dependents";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
 import { TopContextBar } from "./top-context-bar";
 
@@ -71,7 +80,7 @@ export const EntityTypePage = ({
     remoteEntityType,
     latestVersion,
     remotePropertyTypes,
-    updateEntityType,
+    updateEntityTypes,
     publishDraft,
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
@@ -112,6 +121,48 @@ export const EntityTypePage = ({
     entityType?.schema.$id,
   );
 
+  const [entityTypeDependents, setEntityTypeDependents] = useState<
+    Record<BaseUrl, EntityTypeDependent>
+  >({});
+
+  const [dependentsExcludedFromUpgrade, setDependentsExcludedFromUpgrade] =
+    useState<BaseUrl[]>([]);
+
+  const {
+    upgradableDependencies: _upgradableDependencies,
+    entityTypesToUpgrade,
+  } = useMemo(
+    () => ({
+      upgradableDependencies: Object.values(entityTypeDependents).filter(
+        (dependent) =>
+          dependent.noFurtherTraversalBecause !== "external-web" &&
+          dependent.noFurtherTraversalBecause !== "external-type-host",
+      ),
+      entityTypesToUpgrade: Object.values(entityTypeDependents).filter(
+        (dependent) => !dependent.noFurtherTraversalBecause,
+      ),
+    }),
+    [entityTypeDependents],
+  );
+
+  const [showDependencyUpgradeModal, setShowDependencyUpgradeModal] =
+    useState(false);
+
+  const { getEntityTypeDependents, loading } = useGetEntityTypeDependents();
+
+  useEffect(() => {
+    if (!entityType) {
+      return;
+    }
+
+    void getEntityTypeDependents({
+      entityTypeId: entityType.schema.$id,
+      excludeBaseUrls: dependentsExcludedFromUpgrade,
+    }).then((dependents) => {
+      setEntityTypeDependents(dependents);
+    });
+  }, [getEntityTypeDependents, entityType, dependentsExcludedFromUpgrade]);
+
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!isDirty && !isDraft) {
       /**
@@ -133,6 +184,20 @@ export const EntityTypePage = ({
       });
       reset(data);
     } else {
+      if (!remoteEntityType) {
+        throw new Error(
+          "Cannot update entity type without existing entityType schema",
+        );
+      }
+
+      // @todo H-4026: enable this when abillity to update multiple entity types at once is in place
+      // if (upgradableDependencies.length && !showDependencyUpgradeModal) {
+      //   setShowDependencyUpgradeModal(true);
+      //   return;
+      // }
+
+      setShowDependencyUpgradeModal(false);
+
       const currentEntityTypeId = entityType?.schema.$id;
       if (!currentEntityTypeId) {
         throw new Error(
@@ -141,24 +206,27 @@ export const EntityTypePage = ({
       }
 
       /**
-       * If an entity type refers to itself as a link destination, e.g. a Company may have a Parent which is a Company,
-       * we want the version specified as the link target in the schema to be the same as the version of the entity type.
-       * This rewriting of the schema ensures that by looking for self references and giving them the expected next version.
-       * If we don't do this, creating a new version of Company means the new version will have a link to the previous version.
+       * Rewrite schemas of the type and any types dependent on it that the user has choosen to upgrade,
+       * so that they all refer to the latest versions (after the update has been applied).
+       * Types may refer to each other, or reference themselves – via inheritance (allOf), as link types, or as link destinations
        */
-      const schemaWithConsistentSelfReferences = {
-        ...entityTypeSchema,
-        links: generateLinkMapWithConsistentSelfReferences(
-          entityTypeSchema,
-          currentEntityTypeId,
-        ),
-      };
+      const [{ $id: _, ...rootType }, ..._dependents] = mustHaveAtLeastOne(
+        rewriteSchemasToNextVersion([
+          {
+            ...remoteEntityType.schema,
+            ...entityTypeSchema,
+          },
+          ...entityTypesToUpgrade.map((dependent) => dependent.entityType),
+        ]),
+      );
 
-      const res = await updateEntityType(schemaWithConsistentSelfReferences);
+      // @todo H-4026: enable this when abillity to update multiple entity types at once is in place
+      // const res = await updateEntityTypes(rootType, dependents);
+      const res = await updateEntityTypes(rootType, []);
 
-      if (!res.errors?.length && res.data) {
+      if (!res.errors?.length && res.data?.updateEntityTypes[0]) {
         void router.push(
-          generateLinkParameters(res.data.updateEntityType.schema.$id).href,
+          generateLinkParameters(res.data.updateEntityTypes[0].schema.$id).href,
         );
       } else {
         throw new Error("Could not publish changes");
@@ -210,16 +278,57 @@ export const EntityTypePage = ({
     : extractVersion(entityType.schema.$id);
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
+    // @todo H-4026: enable this when abillity to update multiple entity types at once is in place
+    // if (upgradableDependencies.length && !showDependencyUpgradeModal) {
+    //   setShowDependencyUpgradeModal(true);
+    //   return;
+    // }
+
+    if (!remoteEntityType) {
+      throw new Error(
+        "Cannot update entity type without existing entityType schema",
+      );
+    }
+
+    setShowDependencyUpgradeModal(false);
+
     const { schema } = getEntityTypeFromFormData(data);
 
-    const res = await updateEntityType({
-      ...schema,
-      allOf: [{ $ref: linkEntityTypeUrl }, ...(schema.allOf ?? [])],
-    });
+    /**
+     * Rewrite schemas of the type and any types dependent on it that the user has choosen to upgrade,
+     * so that they all refer to the latest versions (after the update has been applied).
+     * Types may refer to each other, or reference themselves – via inheritance (allOf), as link types, or as link destinations
+     */
+    const [rootType, ..._dependents] = mustHaveAtLeastOne(
+      rewriteSchemasToNextVersion([
+        {
+          ...remoteEntityType.schema,
+          ...schema,
+        },
+        ...entityTypesToUpgrade.map((dependent) => dependent.entityType),
+      ]),
+    );
 
-    if (!res.errors?.length && res.data) {
+    // @todo H-4026: enable this when abillity to update multiple entity types at once is in place
+    // const res = await updateEntityTypes(
+    //   {
+    //     ...rootType,
+    //     allOf: [{ $ref: linkEntityTypeUrl }, ...(rootType.allOf ?? [])],
+    //   },
+    //   dependents,
+    // );
+
+    const res = await updateEntityTypes(
+      {
+        ...rootType,
+        allOf: [{ $ref: linkEntityTypeUrl }, ...(rootType.allOf ?? [])],
+      },
+      [],
+    );
+
+    if (!res.errors?.length && res.data?.updateEntityTypes[0]) {
       void router.push(
-        generateLinkParameters(res.data.updateEntityType.schema.$id).href,
+        generateLinkParameters(res.data.updateEntityTypes[0].schema.$id).href,
       );
     } else {
       throw new Error("Could not publish changes");
@@ -235,6 +344,22 @@ export const EntityTypePage = ({
   return (
     <>
       <NextSeo title={`${entityType.schema.title} | Entity Type`} />
+      <UpgradeDependentsModal
+        dependents={entityTypeDependents}
+        excludedDependencies={dependentsExcludedFromUpgrade}
+        loading={loading}
+        open={showDependencyUpgradeModal}
+        onCancel={() => {
+          setShowDependencyUpgradeModal(false);
+        }}
+        onConfirm={() => {
+          void handleSubmit();
+        }}
+        setDependenciesToExclude={(excludedDependencies) => {
+          setDependentsExcludedFromUpgrade(excludedDependencies);
+        }}
+        upgradingEntityType={entityType.schema}
+      />
       <EntityTypeFormProvider {...formMethods}>
         <EntityTypeContext.Provider value={entityType.schema}>
           <Box display="contents" component="form" onSubmit={handleSubmit}>
