@@ -128,7 +128,10 @@ export const EntityTypePage = ({
   const [dependentsExcludedFromUpgrade, setDependentsExcludedFromUpgrade] =
     useState<BaseUrl[]>([]);
 
-  const { upgradableDependencies, entityTypesToUpgrade } = useMemo(
+  const {
+    upgradableDependencies: _upgradableDependencies,
+    entityTypesToUpgrade,
+  } = useMemo(
     () => ({
       upgradableDependencies: Object.values(entityTypeDependents).filter(
         (dependent) =>
