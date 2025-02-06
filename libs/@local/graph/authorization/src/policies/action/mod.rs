@@ -1,3 +1,8 @@
+#![expect(
+    clippy::empty_enum,
+    reason = "serde::Deseiriealize does not use the never-type"
+)]
+
 pub use self::group::{ActionGroup, ActionGroupName};
 
 mod group;
@@ -5,13 +10,25 @@ mod group;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Action {
+    View,
     ViewProperties,
     ViewMetadata,
+}
+
+impl Action {
+    #[must_use]
+    pub const fn parents(self) -> &'static [Self] {
+        match self {
+            Self::View => &[],
+            Self::ViewProperties | Self::ViewMetadata => &[Self::View],
+        }
+    }
 }
 
 impl AsRef<str> for Action {
     fn as_ref(&self) -> &str {
         match self {
+            Self::View => "view",
             Self::ViewProperties => "viewProperties",
             Self::ViewMetadata => "viewMetadata",
         }
@@ -26,17 +43,23 @@ impl AsRef<str> for Action {
     deny_unknown_fields
 )]
 pub enum ActionConstraint {
+    #[expect(
+        clippy::empty_enum_variants_with_brackets,
+        reason = "Serialization is different"
+    )]
     All {},
-    Action { action: Action },
-    Group { group: ActionGroup },
+    Action {
+        action: Action,
+    },
+    Group {
+        group: ActionGroup,
+    },
 }
 
 #[cfg(test)]
 mod tests {
-    use hash_graph_types::account::AccountId;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
-    use uuid::Uuid;
 
     use super::ActionConstraint;
     use crate::{
@@ -52,7 +75,6 @@ mod tests {
     ) {
         check_serialization(&constraint, value);
 
-        #[cfg(feature = "cedar")]
         assert_eq!(
             cedar_policy_core::ast::ActionConstraint::from(constraint).to_string(),
             cedar_string.as_ref(),

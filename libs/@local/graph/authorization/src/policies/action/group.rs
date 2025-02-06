@@ -7,7 +7,7 @@ pub enum ActionGroup {
     Named(ActionGroupName),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ActionGroupName {
     View,

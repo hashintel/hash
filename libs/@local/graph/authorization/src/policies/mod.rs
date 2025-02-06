@@ -1,16 +1,20 @@
-use core::fmt;
+pub mod error;
 
+pub(crate) use self::cedar::cedar_resource_type;
 pub use self::{
     action::{Action, ActionConstraint, ActionGroup, ActionGroupName},
-    principal::{OrganizationRoleConstraint, PrincipalConstraint},
+    principal::{
+        OrganizationId, OrganizationPrincipalConstraint, OrganizationRoleId, PrincipalConstraint,
+        UserId, UserPrincipalConstraint,
+    },
     resource::{EntityResourceConstraint, ResourceConstraint},
 };
-
 mod action;
-#[cfg(feature = "cedar")]
 mod cedar;
 mod principal;
 mod resource;
+
+use core::fmt;
 
 use uuid::Uuid;
 
@@ -24,7 +28,11 @@ pub enum Effect {
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
-#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
+#[cfg_attr(
+    feature = "postgres",
+    derive(postgres_types::FromSql, postgres_types::ToSql),
+    postgres(transparent)
+)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
 pub struct PolicyId(Uuid);
@@ -66,20 +74,18 @@ pub struct Policy {
 
 #[cfg(test)]
 mod tests {
-    use hash_graph_types::account::AccountId;
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
     use uuid::Uuid;
 
     use super::Policy;
-    use crate::test_utils::{check_deserialization_error, check_serialization};
+    use crate::test_utils::check_serialization;
 
     #[track_caller]
     pub(crate) fn check_policy(policy: Policy, value: JsonValue, cedar_string: impl AsRef<str>) {
         check_serialization(&policy, value);
 
-        #[cfg(feature = "cedar")]
         assert_eq!(
             cedar_policy_core::ast::Template::from(policy).to_string(),
             cedar_string.as_ref(),
@@ -92,22 +98,22 @@ mod tests {
         use super::*;
         use crate::policies::{
             ActionConstraint, ActionGroup, ActionGroupName, Effect, EntityResourceConstraint,
-            PolicyId, PrincipalConstraint, ResourceConstraint,
+            PolicyId, PrincipalConstraint, ResourceConstraint, UserId, UserPrincipalConstraint,
         };
 
         #[test]
         fn user_can_view_entity_uuid() {
             let policy_id = PolicyId::new(Uuid::new_v4());
-            let user_id = AccountId::new(Uuid::new_v4());
+            let user_id = UserId::new(Uuid::new_v4());
             let entity_uuid = EntityUuid::new(Uuid::new_v4());
 
             check_policy(
                 Policy {
                     id: policy_id,
                     effect: Effect::Permit,
-                    principal: PrincipalConstraint::User {
+                    principal: PrincipalConstraint::User(UserPrincipalConstraint::Exact {
                         user_id: Some(user_id),
-                    },
+                    }),
                     action: ActionConstraint::Group {
                         group: ActionGroup::Named(ActionGroupName::View),
                     },

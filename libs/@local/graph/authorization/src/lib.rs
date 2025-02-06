@@ -366,7 +366,7 @@ mod test_utils {
     }
 
     #[track_caller]
-    pub(crate) fn check_deserialization_error<T>(value: JsonValue, error: impl ToString)
+    pub(crate) fn check_deserialization_error<T>(value: JsonValue, error: impl AsRef<str>)
     where
         T: fmt::Debug + Serialize + for<'de> Deserialize<'de>,
     {
@@ -375,7 +375,7 @@ mod test_utils {
                 "should not be a valid resource constraint: {:#}",
                 serde_json::to_value(&value).expect("should be JSON representable")
             ),
-            Err(actual_error) => assert_eq!(actual_error.to_string(), error.to_string()),
+            Err(actual_error) => assert_eq!(actual_error.to_string(), error.as_ref()),
         }
     }
 }

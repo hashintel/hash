@@ -3018,6 +3018,7 @@ dependencies = [
  "hash-codec",
  "hash-graph-types",
  "indoc",
+ "postgres-types",
  "pretty_assertions",
  "reqwest",
  "serde",

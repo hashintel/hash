@@ -1,8 +1,15 @@
-pub use self::organization::OrganizationRoleConstraint;
+#![expect(
+    clippy::empty_enum,
+    reason = "serde::Deseiriealize does not use the never-type"
+)]
+
+pub use self::{
+    organization::{OrganizationId, OrganizationPrincipalConstraint, OrganizationRoleId},
+    user::{UserId, UserPrincipalConstraint},
+};
 
 mod organization;
-
-use hash_graph_types::account::AccountId;
+mod user;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(
@@ -12,20 +19,31 @@ use hash_graph_types::account::AccountId;
     deny_unknown_fields
 )]
 pub enum PrincipalConstraint {
+    #[expect(
+        clippy::empty_enum_variants_with_brackets,
+        reason = "Serialization is different"
+    )]
     Public {},
-    User {
-        #[serde(deserialize_with = "Option::deserialize")]
-        user_id: Option<AccountId>,
-    },
-    Organization(OrganizationRoleConstraint),
+    User(UserPrincipalConstraint),
+    Organization(OrganizationPrincipalConstraint),
+}
+
+impl PrincipalConstraint {
+    #[must_use]
+    pub const fn has_slot(&self) -> bool {
+        match self {
+            Self::Public {} => false,
+            Self::User(user) => user.has_slot(),
+            Self::Organization(organization) => organization.has_slot(),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use hash_graph_types::account::AccountId;
+    use cedar_policy_core::ast;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
-    use uuid::Uuid;
 
     use super::PrincipalConstraint;
     use crate::test_utils::{check_deserialization_error, check_serialization};
@@ -38,11 +56,13 @@ mod tests {
     ) {
         check_serialization(&constraint, value);
 
-        #[cfg(feature = "cedar")]
-        assert_eq!(
-            cedar_policy_core::ast::PrincipalConstraint::from(constraint).to_string(),
-            cedar_string.as_ref(),
-        );
+        let has_slot = constraint.has_slot();
+        let cedar_policy = ast::PrincipalConstraint::from(constraint);
+        assert_eq!(cedar_policy.to_string(), cedar_string.as_ref());
+        if !has_slot {
+            PrincipalConstraint::try_from(cedar_policy)
+                .expect("should be able to convert Cedar policy back");
+        }
     }
 
     #[test]
@@ -61,46 +81,6 @@ mod tests {
                 "additional": "unexpected"
             }),
             "unknown field `additional`, there are no fields",
-        );
-    }
-
-    #[test]
-    fn constraint_user() {
-        let user_id = AccountId::new(Uuid::new_v4());
-        check_principal(
-            PrincipalConstraint::User {
-                user_id: Some(user_id),
-            },
-            json!({
-                "type": "user",
-                "userId": user_id,
-            }),
-            format!(r#"principal == HASH::User::"{user_id}""#),
-        );
-
-        check_principal(
-            PrincipalConstraint::User { user_id: None },
-            json!({
-                "type": "user",
-                "userId": null,
-            }),
-            "principal == ?principal",
-        );
-
-        check_deserialization_error::<PrincipalConstraint>(
-            json!({
-                "type": "user",
-            }),
-            "missing field `userId`",
-        );
-
-        check_deserialization_error::<PrincipalConstraint>(
-            json!({
-                "type": "user",
-                "userId": user_id,
-                "additional": "unexpected",
-            }),
-            "unknown field `additional`, expected `userId`",
         );
     }
 }

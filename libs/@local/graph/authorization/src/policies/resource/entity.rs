@@ -1,8 +1,37 @@
+use alloc::sync::Arc;
+use core::{error::Error, str::FromStr as _};
+use std::sync::LazyLock;
+
+use cedar_policy_core::ast;
+use error_stack::Report;
 use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
+use uuid::Uuid;
+
+use crate::policies::cedar::CedarEntityId;
+
+impl CedarEntityId for EntityUuid {
+    fn entity_type() -> &'static Arc<ast::EntityType> {
+        static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
+            LazyLock::new(|| crate::policies::cedar_resource_type(["Entity"]));
+        &ENTITY_TYPE
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        ast::Eid::new(self.to_string())
+    }
+
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged, rename_all_fields = "camelCase", deny_unknown_fields)]
 pub enum EntityResourceConstraint {
+    #[expect(
+        clippy::empty_enum_variants_with_brackets,
+        reason = "Serialization is different"
+    )]
     Any {},
     Exact {
         #[serde(deserialize_with = "Option::deserialize")]
@@ -12,6 +41,20 @@ pub enum EntityResourceConstraint {
         #[serde(deserialize_with = "Option::deserialize")]
         web_id: Option<OwnedById>,
     },
+}
+
+impl EntityResourceConstraint {
+    #[must_use]
+    pub const fn has_slot(&self) -> bool {
+        match self {
+            Self::Any {}
+            | Self::Exact {
+                entity_uuid: Some(_),
+            }
+            | Self::Web { web_id: Some(_) } => false,
+            Self::Exact { entity_uuid: None } | Self::Web { web_id: None } => true,
+        }
+    }
 }
 
 #[cfg(test)]
