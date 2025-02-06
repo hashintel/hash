@@ -322,7 +322,7 @@ __metadata:
     md5: "npm:2.3.0"
     mime-types: "npm:2.1.35"
     officeparser: "npm:4.2.0"
-    openai: "npm:4.82.0"
+    openai: "npm:4.83.0"
     openai-chat-tokens: "npm:0.2.8"
     papaparse: "npm:5.5.2"
     pdf2json: "npm:3.1.5"
@@ -440,7 +440,7 @@ __metadata:
     nanoid: "npm:3.3.8"
     nodemailer: "npm:6.10.0"
     oembed-providers: "npm:1.0.20241022"
-    openai: "npm:4.82.0"
+    openai: "npm:4.83.0"
     rimraf: "npm:6.0.1"
     ts-json-schema-generator: "npm:1.5.1"
     tsx: "npm:4.19.2"
@@ -37276,9 +37276,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openai@npm:4.82.0, openai@npm:^4.73.1":
-  version: 4.82.0
-  resolution: "openai@npm:4.82.0"
+"openai@npm:4.83.0, openai@npm:^4.73.1":
+  version: 4.83.0
+  resolution: "openai@npm:4.83.0"
   dependencies:
     "@types/node": "npm:^18.11.18"
     "@types/node-fetch": "npm:^2.6.4"
@@ -37297,7 +37297,7 @@ __metadata:
       optional: true
   bin:
     openai: bin/cli
-  checksum: 10c0/d1901673b44e7a1e8cd8e7fac0f4b3bc49f7d254ba84e3efa6fcfd23e84a1d55b0d97b1fd317c848abce7f71e2b09505d93eba5569ceb92ba92076df1bc50a38
+  checksum: 10c0/8ca7cf1e67a91b746402575acff035dc664f4b50f95533229caa581a9c4f16e9692765fc53be3e8b0ecda0c5efc6735e803154b02c7d69119149f622792e0bb0
   languageName: node
   linkType: hard
 
