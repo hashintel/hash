@@ -2,7 +2,7 @@ pub mod error;
 
 pub(crate) use self::cedar::cedar_resource_type;
 pub use self::{
-    action::{Action, ActionConstraint, ActionGroup, ActionGroupName},
+    action::{ActionConstraint, ActionId},
     principal::{
         OrganizationId, OrganizationPrincipalConstraint, OrganizationRoleId, PrincipalConstraint,
         UserId, UserPrincipalConstraint,
@@ -60,7 +60,7 @@ impl fmt::Display for PolicyId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Policy {
     pub id: PolicyId,
@@ -74,6 +74,7 @@ pub struct Policy {
 
 #[cfg(test)]
 mod tests {
+    use cedar_policy_core::ast;
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
@@ -86,10 +87,11 @@ mod tests {
     pub(crate) fn check_policy(policy: Policy, value: JsonValue, cedar_string: impl AsRef<str>) {
         check_serialization(&policy, value);
 
-        assert_eq!(
-            cedar_policy_core::ast::Template::from(policy).to_string(),
-            cedar_string.as_ref(),
-        );
+        let cedar_policy = ast::Template::from(&policy);
+        assert_eq!(cedar_policy.to_string(), cedar_string.as_ref());
+        if !policy.principal.has_slot() && !policy.resource.has_slot() {
+            Policy::try_from(cedar_policy).expect("should be able to convert Cedar policy back");
+        }
     }
 
     mod serialization {
@@ -97,8 +99,8 @@ mod tests {
 
         use super::*;
         use crate::policies::{
-            ActionConstraint, ActionGroup, ActionGroupName, Effect, EntityResourceConstraint,
-            PolicyId, PrincipalConstraint, ResourceConstraint, UserId, UserPrincipalConstraint,
+            ActionConstraint, ActionId, Effect, EntityResourceConstraint, PolicyId,
+            PrincipalConstraint, ResourceConstraint, UserId, UserPrincipalConstraint,
         };
 
         #[test]
@@ -114,8 +116,8 @@ mod tests {
                     principal: PrincipalConstraint::User(UserPrincipalConstraint::Exact {
                         user_id: Some(user_id),
                     }),
-                    action: ActionConstraint::Group {
-                        group: ActionGroup::Named(ActionGroupName::View),
+                    action: ActionConstraint::Many {
+                        actions: vec![ActionId::View],
                     },
                     resource: ResourceConstraint::Entity(EntityResourceConstraint::Exact {
                         entity_uuid: Some(entity_uuid),
@@ -130,8 +132,8 @@ mod tests {
                         "userId": user_id,
                     },
                     "action": {
-                        "type": "group",
-                        "group": "view",
+                        "type": "many",
+                        "actions": ["view"],
                     },
                     "resource": {
                         "type": "entity",

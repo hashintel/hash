@@ -33,7 +33,7 @@ impl CedarEntityId for OwnedById {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(
     tag = "type",
     rename_all = "camelCase",
@@ -83,10 +83,9 @@ mod tests {
     ) {
         check_serialization(&constraint, value);
 
-        let has_slot = constraint.has_slot();
-        let cedar_policy = ast::ResourceConstraint::from(constraint);
+        let cedar_policy = ast::ResourceConstraint::from(&constraint);
         assert_eq!(cedar_policy.to_string(), cedar_string.as_ref());
-        if !has_slot {
+        if !constraint.has_slot() {
             ResourceConstraint::try_from(cedar_policy)
                 .expect("should be able to convert Cedar policy back");
         }

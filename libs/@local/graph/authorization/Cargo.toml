@@ -20,7 +20,7 @@ hash-codec  = { workspace = true }
 type-system = { workspace = true }
 
 # Private third-party dependencies
-cedar-policy-core = { workspace = true, optional = true }
+cedar-policy-core = { workspace = true }
 derive-where      = { workspace = true }
 derive_more       = { workspace = true, features = ["display", "error", "from"] }
 futures           = { workspace = true }
@@ -42,7 +42,6 @@ uuid              = { workspace = true, features = ["v4"] }
 
 [features]
 utoipa   = ["dep:utoipa"]
-cedar    = ["dep:cedar-policy-core"]
 postgres = ["dep:postgres-types"]
 
 [lints]

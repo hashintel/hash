@@ -1,17 +1,15 @@
 use alloc::sync::Arc;
 use core::{error::Error, iter, str::FromStr as _};
-use std::sync::LazyLock;
 
 use cedar_policy_core::ast;
-use error_stack::{Report, ResultExt as _, bail, ensure};
+use error_stack::{Report, ResultExt as _, TryReportIteratorExt, bail, ensure};
 use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
 use uuid::Uuid;
 
 use crate::policies::{
-    Action, ActionConstraint, ActionGroup, ActionGroupName, Effect, EntityResourceConstraint,
-    OrganizationId, OrganizationPrincipalConstraint, OrganizationRoleId, Policy,
-    PrincipalConstraint, ResourceConstraint, UserId, UserPrincipalConstraint,
-    error::FromCedarRefernceError,
+    ActionConstraint, ActionId, Effect, EntityResourceConstraint, OrganizationId,
+    OrganizationPrincipalConstraint, OrganizationRoleId, Policy, PolicyId, PrincipalConstraint,
+    ResourceConstraint, UserId, UserPrincipalConstraint, error::FromCedarRefernceError,
 };
 
 pub(crate) trait CedarEntityId: Sized + 'static {
@@ -29,9 +27,7 @@ pub(crate) trait CedarEntityId: Sized + 'static {
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>>;
 
-    fn from_euid(
-        euid: &ast::EntityUID,
-    ) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+    fn from_euid(euid: &ast::EntityUID) -> Result<Self, Report<FromCedarRefernceError>> {
         let entity_type = Self::entity_type();
         ensure!(
             *euid.entity_type() == **entity_type,
@@ -63,25 +59,14 @@ pub(crate) fn cedar_resource_type<const N: usize>(
     ))
 }
 
-static ACTION_TYPE: LazyLock<Arc<ast::EntityType>> =
-    LazyLock::new(|| cedar_resource_type(["Action"]));
-fn action_to_euid(action: Action) -> ast::EntityUID {
-    ast::EntityUID::from_components(
-        ast::EntityType::clone(&ACTION_TYPE),
-        ast::Eid::new(action.as_ref()),
-        None,
-    )
-}
-fn action_group_to_euid(action_group: ActionGroupName) -> ast::EntityUID {
-    ast::EntityUID::from_components(
-        ast::EntityType::clone(&ACTION_TYPE),
-        ast::Eid::new(action_group.as_ref()),
-        None,
-    )
-}
-
 impl From<PrincipalConstraint> for ast::PrincipalConstraint {
     fn from(constraint: PrincipalConstraint) -> Self {
+        Self::from(&constraint)
+    }
+}
+
+impl From<&PrincipalConstraint> for ast::PrincipalConstraint {
+    fn from(constraint: &PrincipalConstraint) -> Self {
         match constraint {
             PrincipalConstraint::Public {} => Self::any(),
             PrincipalConstraint::User(user) => match user {
@@ -134,31 +119,40 @@ impl From<PrincipalConstraint> for ast::PrincipalConstraint {
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-pub enum FromConstraintError {
+pub enum InvalidPrincipalConstraint {
     #[display("Cannot convert constraints containing slots")]
     AmbiguousSlot,
     #[error(ignore)]
     #[display("Unexpected entity type: {_0}")]
-    UnexpectedEntityType(String),
+    UnexpectedEntityType(ast::EntityType),
     #[display("Invalid principal ID")]
     InvalidPrincipalId,
 }
 
 impl TryFrom<ast::PrincipalConstraint> for PrincipalConstraint {
-    type Error = Report<FromConstraintError>;
+    type Error = Report<InvalidPrincipalConstraint>;
 
     fn try_from(constraint: ast::PrincipalConstraint) -> Result<Self, Self::Error> {
-        Ok(match constraint.into_inner() {
+        PrincipalConstraint::try_from(&constraint)
+    }
+}
+impl TryFrom<&ast::PrincipalConstraint> for PrincipalConstraint {
+    type Error = Report<InvalidPrincipalConstraint>;
+
+    fn try_from(constraint: &ast::PrincipalConstraint) -> Result<Self, Self::Error> {
+        Ok(match constraint.as_inner() {
             ast::PrincipalOrResourceConstraint::Any => Self::Public {},
 
             ast::PrincipalOrResourceConstraint::Is(principal_type)
-                if *principal_type == **UserId::entity_type() =>
+                if **principal_type == **UserId::entity_type() =>
             {
                 Self::User(UserPrincipalConstraint::Any {})
             }
-            ast::PrincipalOrResourceConstraint::Is(principal_type) => bail!(
-                FromConstraintError::UnexpectedEntityType(principal_type.to_string())
-            ),
+            ast::PrincipalOrResourceConstraint::Is(principal_type) => {
+                bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
+                    ast::EntityType::clone(&principal_type)
+                ))
+            }
 
             ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(principal))
                 if *principal.entity_type() == **UserId::entity_type() =>
@@ -166,27 +160,30 @@ impl TryFrom<ast::PrincipalConstraint> for PrincipalConstraint {
                 Self::User(UserPrincipalConstraint::Exact {
                     user_id: Some(
                         UserId::from_eid(principal.eid())
-                            .change_context(FromConstraintError::InvalidPrincipalId)?,
+                            .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                     ),
                 })
             }
-            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(principal)) => bail!(
-                FromConstraintError::UnexpectedEntityType(principal.entity_type().to_string())
-            ),
+            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(principal)) => {
+                bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
+                    ast::EntityType::clone(principal.entity_type())
+                ))
+            }
             ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::Slot(_)) => {
-                bail!(FromConstraintError::AmbiguousSlot)
+                bail!(InvalidPrincipalConstraint::AmbiguousSlot)
             }
 
             ast::PrincipalOrResourceConstraint::IsIn(
                 principal_type,
                 ast::EntityReference::EUID(principal),
-            ) if *principal_type == **UserId::entity_type() => {
+            ) if **principal_type == **UserId::entity_type() => {
                 if *principal.entity_type() == **OrganizationId::entity_type() {
                     Self::User(UserPrincipalConstraint::Organization(
                         OrganizationPrincipalConstraint::InOrganization {
                             organization_id: Some(
-                                OrganizationId::from_eid(principal.eid())
-                                    .change_context(FromConstraintError::InvalidPrincipalId)?,
+                                OrganizationId::from_eid(principal.eid()).change_context(
+                                    InvalidPrincipalConstraint::InvalidPrincipalId,
+                                )?,
                             ),
                         },
                     ))
@@ -194,25 +191,26 @@ impl TryFrom<ast::PrincipalConstraint> for PrincipalConstraint {
                     Self::User(UserPrincipalConstraint::Organization(
                         OrganizationPrincipalConstraint::InRole {
                             organization_role_id: Some(
-                                OrganizationRoleId::from_eid(principal.eid())
-                                    .change_context(FromConstraintError::InvalidPrincipalId)?,
+                                OrganizationRoleId::from_eid(principal.eid()).change_context(
+                                    InvalidPrincipalConstraint::InvalidPrincipalId,
+                                )?,
                             ),
                         },
                     ))
                 } else {
-                    bail!(FromConstraintError::UnexpectedEntityType(
-                        principal.entity_type().to_string(),
+                    bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
+                        ast::EntityType::clone(principal.entity_type())
                     ))
                 }
             }
             ast::PrincipalOrResourceConstraint::IsIn(
                 principal_type,
                 ast::EntityReference::EUID(_),
-            ) => bail!(FromConstraintError::UnexpectedEntityType(
-                principal_type.to_string(),
+            ) => bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
+                ast::EntityType::clone(&principal_type)
             )),
             ast::PrincipalOrResourceConstraint::IsIn(_, ast::EntityReference::Slot(_)) => {
-                bail!(FromConstraintError::AmbiguousSlot)
+                bail!(InvalidPrincipalConstraint::AmbiguousSlot)
             }
 
             ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(principal))
@@ -221,7 +219,7 @@ impl TryFrom<ast::PrincipalConstraint> for PrincipalConstraint {
                 Self::Organization(OrganizationPrincipalConstraint::InOrganization {
                     organization_id: Some(
                         OrganizationId::from_eid(principal.eid())
-                            .change_context(FromConstraintError::InvalidPrincipalId)?,
+                            .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                     ),
                 })
             }
@@ -231,15 +229,17 @@ impl TryFrom<ast::PrincipalConstraint> for PrincipalConstraint {
                 Self::Organization(OrganizationPrincipalConstraint::InRole {
                     organization_role_id: Some(
                         OrganizationRoleId::from_eid(principal.eid())
-                            .change_context(FromConstraintError::InvalidPrincipalId)?,
+                            .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
                     ),
                 })
             }
-            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(principal)) => bail!(
-                FromConstraintError::UnexpectedEntityType(principal.entity_type().to_string())
-            ),
+            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(principal)) => {
+                bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
+                    ast::EntityType::clone(principal.entity_type())
+                ))
+            }
             ast::PrincipalOrResourceConstraint::In(ast::EntityReference::Slot(_)) => {
-                bail!(FromConstraintError::AmbiguousSlot)
+                bail!(InvalidPrincipalConstraint::AmbiguousSlot)
             }
         })
     }
@@ -247,21 +247,65 @@ impl TryFrom<ast::PrincipalConstraint> for PrincipalConstraint {
 
 impl From<ActionConstraint> for ast::ActionConstraint {
     fn from(constraint: ActionConstraint) -> Self {
+        Self::from(&constraint)
+    }
+}
+
+impl From<&ActionConstraint> for ast::ActionConstraint {
+    fn from(constraint: &ActionConstraint) -> Self {
         match constraint {
             ActionConstraint::All {} => Self::any(),
-            ActionConstraint::Action { action } => Self::is_eq(action_to_euid(action)),
-            ActionConstraint::Group {
-                group: ActionGroup::Anoynmous(actions),
-            } => Self::is_in(actions.into_iter().map(action_to_euid)),
-            ActionConstraint::Group {
-                group: ActionGroup::Named(action_group),
-            } => Self::is_in(iter::once(action_group_to_euid(action_group))),
+            ActionConstraint::One { action } => Self::is_eq(action.to_euid()),
+            ActionConstraint::Many { actions } => {
+                Self::is_in(actions.iter().map(ActionId::to_euid))
+            }
         }
+    }
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum InvalidActionConstraint {
+    #[display("Invalid action in constraint")]
+    InvalidAction,
+}
+
+impl TryFrom<ast::ActionConstraint> for ActionConstraint {
+    type Error = Report<InvalidActionConstraint>;
+
+    fn try_from(constraint: ast::ActionConstraint) -> Result<Self, Self::Error> {
+        Self::try_from(&constraint)
+    }
+}
+
+impl TryFrom<&ast::ActionConstraint> for ActionConstraint {
+    type Error = Report<InvalidActionConstraint>;
+
+    fn try_from(constraint: &ast::ActionConstraint) -> Result<Self, Self::Error> {
+        Ok(match constraint {
+            ast::ActionConstraint::Any {} => Self::All {},
+            ast::ActionConstraint::Eq(action) => Self::One {
+                action: ActionId::from_euid(action)
+                    .change_context(InvalidActionConstraint::InvalidAction)?,
+            },
+            ast::ActionConstraint::In(actions) => Self::Many {
+                actions: actions
+                    .iter()
+                    .map(|action| ActionId::from_euid(action))
+                    .try_collect_reports()
+                    .change_context(InvalidActionConstraint::InvalidAction)?,
+            },
+        })
     }
 }
 
 impl From<ResourceConstraint> for ast::ResourceConstraint {
     fn from(constraint: ResourceConstraint) -> Self {
+        Self::from(&constraint)
+    }
+}
+
+impl From<&ResourceConstraint> for ast::ResourceConstraint {
+    fn from(constraint: &ResourceConstraint) -> Self {
         match constraint {
             ResourceConstraint::Global {} => Self::any(),
             ResourceConstraint::Web { web_id } => web_id.map_or_else(Self::is_in_slot, |web_id| {
@@ -291,81 +335,105 @@ impl From<ResourceConstraint> for ast::ResourceConstraint {
     }
 }
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum InvalidResourceConstraint {
+    #[display("Cannot convert constraints containing slots")]
+    AmbiguousSlot,
+    #[error(ignore)]
+    #[display("Unexpected entity type: {_0}")]
+    UnexpectedEntityType(ast::EntityType),
+    #[display("Invalid resource ID")]
+    InvalidPrincipalId,
+}
 impl TryFrom<ast::ResourceConstraint> for ResourceConstraint {
-    type Error = Report<FromConstraintError>;
+    type Error = Report<InvalidResourceConstraint>;
 
     fn try_from(constraint: ast::ResourceConstraint) -> Result<Self, Self::Error> {
-        Ok(match constraint.into_inner() {
+        Self::try_from(&constraint)
+    }
+}
+
+impl TryFrom<&ast::ResourceConstraint> for ResourceConstraint {
+    type Error = Report<InvalidResourceConstraint>;
+
+    fn try_from(constraint: &ast::ResourceConstraint) -> Result<Self, Self::Error> {
+        Ok(match constraint.as_inner() {
             ast::PrincipalOrResourceConstraint::Any => Self::Global {},
 
-            ast::PrincipalOrResourceConstraint::Is(principal_type)
-                if *principal_type == **EntityUuid::entity_type() =>
+            ast::PrincipalOrResourceConstraint::Is(resource_type)
+                if **resource_type == **EntityUuid::entity_type() =>
             {
                 Self::Entity(EntityResourceConstraint::Any {})
             }
-            ast::PrincipalOrResourceConstraint::Is(principal_type) => bail!(
-                FromConstraintError::UnexpectedEntityType(principal_type.to_string())
-            ),
+            ast::PrincipalOrResourceConstraint::Is(resource_type) => {
+                bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                    ast::EntityType::clone(resource_type)
+                ))
+            }
 
-            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(principal))
-                if *principal.entity_type() == **EntityUuid::entity_type() =>
+            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(resource))
+                if *resource.entity_type() == **EntityUuid::entity_type() =>
             {
                 Self::Entity(EntityResourceConstraint::Exact {
                     entity_uuid: Some(EntityUuid::new(
-                        Uuid::from_str(principal.eid().as_ref())
-                            .change_context(FromConstraintError::InvalidPrincipalId)?,
+                        Uuid::from_str(resource.eid().as_ref())
+                            .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     )),
                 })
             }
-            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(principal)) => bail!(
-                FromConstraintError::UnexpectedEntityType(principal.entity_type().to_string())
-            ),
+            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(principal)) => {
+                bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                    principal.entity_type().clone()
+                ))
+            }
             ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::Slot(_)) => {
-                bail!(FromConstraintError::AmbiguousSlot)
+                bail!(InvalidResourceConstraint::AmbiguousSlot)
             }
 
             ast::PrincipalOrResourceConstraint::IsIn(
-                principal_type,
-                ast::EntityReference::EUID(principal),
-            ) if *principal_type == **EntityUuid::entity_type() => {
-                if *principal.entity_type() == **OwnedById::entity_type() {
+                resource_type,
+                ast::EntityReference::EUID(resource),
+            ) if **resource_type == **EntityUuid::entity_type() => {
+                if *resource.entity_type() == **OwnedById::entity_type() {
                     Self::Entity(EntityResourceConstraint::Web {
                         web_id: Some(OwnedById::new(
-                            Uuid::from_str(principal.eid().as_ref())
-                                .change_context(FromConstraintError::InvalidPrincipalId)?,
+                            Uuid::from_str(resource.eid().as_ref())
+                                .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                         )),
                     })
                 } else {
-                    bail!(FromConstraintError::UnexpectedEntityType(
-                        principal.entity_type().to_string(),
+                    bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                        resource.entity_type().clone()
                     ))
                 }
             }
             ast::PrincipalOrResourceConstraint::IsIn(
-                principal_type,
+                resource_type,
                 ast::EntityReference::EUID(_),
-            ) => bail!(FromConstraintError::UnexpectedEntityType(
-                principal_type.to_string(),
+            ) => bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                ast::EntityType::clone(&resource_type)
             )),
             ast::PrincipalOrResourceConstraint::IsIn(_, ast::EntityReference::Slot(_)) => {
-                bail!(FromConstraintError::AmbiguousSlot)
+                bail!(InvalidResourceConstraint::AmbiguousSlot)
             }
 
-            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(principal))
-                if *principal.entity_type() == **OwnedById::entity_type() =>
+            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(resource))
+                if *resource.entity_type() == **OwnedById::entity_type() =>
             {
                 Self::Web {
                     web_id: Some(OwnedById::new(
-                        Uuid::from_str(principal.eid().as_ref())
-                            .change_context(FromConstraintError::InvalidPrincipalId)?,
+                        Uuid::from_str(resource.eid().as_ref())
+                            .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     )),
                 }
             }
-            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(principal)) => bail!(
-                FromConstraintError::UnexpectedEntityType(principal.entity_type().to_string())
-            ),
+            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(resource)) => {
+                bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                    resource.entity_type().clone()
+                ))
+            }
             ast::PrincipalOrResourceConstraint::In(ast::EntityReference::Slot(_)) => {
-                bail!(FromConstraintError::AmbiguousSlot)
+                bail!(InvalidResourceConstraint::AmbiguousSlot)
             }
         })
     }
@@ -373,6 +441,12 @@ impl TryFrom<ast::ResourceConstraint> for ResourceConstraint {
 
 impl From<Policy> for ast::Template {
     fn from(policy: Policy) -> Self {
+        Self::from(&policy)
+    }
+}
+
+impl From<&Policy> for ast::Template {
+    fn from(policy: &Policy) -> Self {
         Self::new(
             ast::PolicyID::from_string(policy.id.to_string()),
             None,
@@ -381,10 +455,45 @@ impl From<Policy> for ast::Template {
                 Effect::Permit => ast::Effect::Permit,
                 Effect::Forbid => ast::Effect::Forbid,
             },
-            policy.principal.into(),
-            policy.action.into(),
-            policy.resource.into(),
+            (&policy.principal).into(),
+            (&policy.action).into(),
+            (&policy.resource).into(),
             ast::Expr::val(true),
         )
+    }
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum InvalidPolicy {
+    #[display("Invalid policy id")]
+    InvalidId,
+    #[display("Invalid principal constraint")]
+    InvalidPrincipalConstraint,
+    #[display("Invalid action constraint")]
+    InvalidActionConstraint,
+    #[display("Invalid resource constraint")]
+    InvalidResourceConstraint,
+}
+
+impl TryFrom<ast::Template> for Policy {
+    type Error = Report<InvalidPolicy>;
+
+    fn try_from(policy: ast::Template) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: PolicyId::new(
+                Uuid::from_str(policy.id().as_ref()).change_context(InvalidPolicy::InvalidId)?,
+            ),
+            effect: match policy.effect() {
+                ast::Effect::Permit => Effect::Permit,
+                ast::Effect::Forbid => Effect::Forbid,
+            },
+            principal: PrincipalConstraint::try_from(policy.principal_constraint())
+                .change_context(InvalidPolicy::InvalidPrincipalConstraint)?,
+            action: ActionConstraint::try_from(policy.action_constraint())
+                .change_context(InvalidPolicy::InvalidActionConstraint)?,
+            resource: ResourceConstraint::try_from(policy.resource_constraint())
+                .change_context(InvalidPolicy::InvalidResourceConstraint)?,
+            constraints: None,
+        })
     }
 }
