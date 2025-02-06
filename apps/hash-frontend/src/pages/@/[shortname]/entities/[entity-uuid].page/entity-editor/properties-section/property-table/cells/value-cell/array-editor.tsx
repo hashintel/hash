@@ -294,6 +294,8 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const canAddMore = isNumber(maxItems) ? items.length < maxItems : true;
   const isAddingDraft = editingRow === DRAFT_ROW_KEY;
 
+  const hasConstraints = minItems !== undefined || maxItems !== undefined;
+
   return (
     <GridEditorWrapper>
       <ListWrapper
@@ -333,6 +335,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
       {isAddingDraft && (
         <DraftRow
+          arrayConstraints={hasConstraints ? { minItems, maxItems } : undefined}
           existingItemCount={items.length}
           expectedTypes={permittedDataTypes}
           onDraftSaved={addItem}
@@ -340,7 +343,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         />
       )}
 
-      {(!canAddMore || isAddingDraft) && (
+      {!canAddMore && hasConstraints && (
         <ItemLimitInfo min={minItems} max={maxItems} />
       )}
     </GridEditorWrapper>

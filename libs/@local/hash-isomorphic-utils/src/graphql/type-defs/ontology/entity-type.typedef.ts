@@ -55,6 +55,11 @@ export const entityTypeTypedef = gql`
     ): UserPermissionsOnEntityType!
   }
 
+  input EntityTypeUpdate {
+    entityTypeId: VersionedUrl!
+    updatedEntityType: ConstructEntityTypeParams!
+  }
+
   extend type Mutation {
     """
     Create a entity type.
@@ -80,6 +85,13 @@ export const entityTypeTypedef = gql`
       """
       updatedEntityType: ConstructEntityTypeParams!
     ): EntityTypeWithMetadata!
+
+    """
+    Update multiple entity types at once.
+    """
+    updateEntityTypes(
+      updates: [EntityTypeUpdate!]!
+    ): [EntityTypeWithMetadata!]!
 
     """
     Archive a entity type.

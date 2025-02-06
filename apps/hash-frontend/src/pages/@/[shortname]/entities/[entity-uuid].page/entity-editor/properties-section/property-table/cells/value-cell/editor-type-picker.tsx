@@ -43,6 +43,7 @@ export const EditorTypePicker = ({
   return (
     <DataTypeSelector
       dataTypes={dataTypeTrees}
+      handleScroll
       onSelect={onSelect}
       selectedDataTypeId={selectedDataTypeId}
     />
