@@ -310,7 +310,6 @@ __metadata:
     dotenv-flow: "npm:3.3.0"
     e2b: "npm:0.13.1"
     eslint: "npm:9.19.0"
-    execa: "npm:5.1.1"
     exponential-backoff: "npm:3.1.1"
     googleapis: "npm:133.0.0"
     gpt-tokenizer: "npm:2.8.1"
