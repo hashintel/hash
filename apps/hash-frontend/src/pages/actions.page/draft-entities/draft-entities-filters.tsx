@@ -1,16 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { extractVersion } from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import { type Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Fade, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
@@ -24,7 +18,6 @@ import { useCallback, useMemo } from "react";
 
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
-import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { AsteriskLightIcon } from "../../../shared/icons/asterisk-light-icon";
 import { CalendarDayLightIcon } from "../../../shared/icons/calendar-day-light-icon";
 import { CalendarDaysLightIcon } from "../../../shared/icons/calendar-days-light-icon";
@@ -41,6 +34,7 @@ import { isAiMachineActor } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { FilterSection } from "./draft-entities-filters/filter-section";
 import type { FilterSectionDefinition } from "./draft-entities-filters/types";
+import type { EntityTypeDisplayInfoByBaseUrl } from "./types";
 
 const draftEntitiesFiltersColumnWidth = 200;
 
@@ -77,47 +71,19 @@ export type DraftEntityFilterState = {
   lastEditedTimeRange: LastEditedTimeRanges;
 };
 
-export const getDraftEntityTypes = (params: {
+export const getDraftEntityTypeBaseUrls = ({
+  draftEntities,
+}: {
   draftEntities: Entity[];
-  draftEntitiesSubgraph: Subgraph<EntityRootType>;
-}): EntityTypeWithMetadata[] =>
-  params.draftEntities
-    .flatMap((draftEntity) => draftEntity.metadata.entityTypeIds)
-    .filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index)
-    .reduce<VersionedUrl[]>((prev, entityTypeId) => {
-      const previousEntityTypeId = prev.find(
-        (prevEntityTypeId) =>
-          extractBaseUrl(prevEntityTypeId) === extractBaseUrl(entityTypeId),
-      );
+}): BaseUrl[] => {
+  const baseUrls = draftEntities.flatMap((draftEntity) =>
+    draftEntity.metadata.entityTypeIds.map((entityTypeId) =>
+      extractBaseUrl(entityTypeId),
+    ),
+  );
 
-      if (!previousEntityTypeId) {
-        return [...prev, entityTypeId];
-      } else if (
-        extractVersion(previousEntityTypeId) < extractVersion(entityTypeId)
-      ) {
-        return [
-          ...prev.filter(
-            (prevEntityTypeId) =>
-              extractBaseUrl(prevEntityTypeId) !== extractBaseUrl(entityTypeId),
-          ),
-          entityTypeId,
-        ];
-      }
-      return prev;
-    }, [])
-    .map((entityTypeId) => {
-      const entityType = getEntityTypeById(
-        params.draftEntitiesSubgraph,
-        entityTypeId,
-      );
-
-      /**
-       * We account for the subgraph not yet containing the entity type
-       * of a new draft entity, as the subgraph may be outdated.
-       */
-      return entityType ?? [];
-    })
-    .flat();
+  return Array.from(new Set(baseUrls));
+};
 
 const getDraftEntitySources = (params: {
   draftEntitiesWithCreators: {
@@ -147,13 +113,11 @@ export const generateDefaultFilterState = (params: {
     entity: Entity;
     creator: MinimalActor;
   }[];
-  draftEntitiesSubgraph: Subgraph<EntityRootType>;
 }): DraftEntityFilterState => {
-  const { draftEntitiesWithCreators, draftEntitiesSubgraph } = params;
+  const { draftEntitiesWithCreators } = params;
 
-  const entityTypes = getDraftEntityTypes({
+  const entityTypeBaseUrls = getDraftEntityTypeBaseUrls({
     draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
-    draftEntitiesSubgraph,
   });
 
   const sources = getDraftEntitySources({
@@ -165,9 +129,7 @@ export const generateDefaultFilterState = (params: {
   });
 
   return {
-    entityTypeBaseUrls: entityTypes.map((entityType) =>
-      extractBaseUrl(entityType.schema.$id),
-    ),
+    entityTypeBaseUrls,
     sourceAccountIds: sources.map(({ accountId }) => accountId),
     webOwnedByIds,
     lastEditedTimeRange: "anytime",
@@ -180,21 +142,19 @@ export const isFilerStateDefaultFilterState =
       entity: Entity;
       creator: MinimalActor;
     }[];
-    draftEntitiesSubgraph: Subgraph<EntityRootType>;
   }) =>
   (filterState: DraftEntityFilterState): boolean => {
-    const { draftEntitiesWithCreators, draftEntitiesSubgraph } = params;
+    const { draftEntitiesWithCreators } = params;
 
     if (filterState.lastEditedTimeRange !== "anytime") {
       return false;
     }
 
-    const entityTypes = getDraftEntityTypes({
+    const entityTypeBaseUrls = getDraftEntityTypeBaseUrls({
       draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
-      draftEntitiesSubgraph,
     });
 
-    if (filterState.entityTypeBaseUrls.length !== entityTypes.length) {
+    if (filterState.entityTypeBaseUrls.length !== entityTypeBaseUrls.length) {
       return false;
     }
 
@@ -280,40 +240,27 @@ export const DraftEntitiesFilters: FunctionComponent<{
     creator: MinimalActor;
   }[];
   draftEntitiesSubgraph?: Subgraph<EntityRootType>;
+  entityTypeDisplayInfoByBaseUrl?: EntityTypeDisplayInfoByBaseUrl;
   filterState?: DraftEntityFilterState;
   setFilterState: Dispatch<SetStateAction<DraftEntityFilterState | undefined>>;
 }> = ({
   draftEntitiesWithCreators,
   draftEntitiesSubgraph,
+  entityTypeDisplayInfoByBaseUrl,
   filterState,
   setFilterState,
 }) => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const handleClearAll = useCallback(() => {
     if (draftEntitiesWithCreators && draftEntitiesSubgraph) {
       setFilterState(
         generateDefaultFilterState({
           draftEntitiesWithCreators,
-          draftEntitiesSubgraph,
         }),
       );
     }
   }, [setFilterState, draftEntitiesWithCreators, draftEntitiesSubgraph]);
-
-  const entityTypes = useMemo(
-    () =>
-      draftEntitiesWithCreators && draftEntitiesSubgraph
-        ? getDraftEntityTypes({
-            draftEntities: draftEntitiesWithCreators.map(
-              ({ entity }) => entity,
-            ),
-            draftEntitiesSubgraph,
-          }).sort((a, b) => a.schema.title.localeCompare(b.schema.title))
-        : undefined,
-    [draftEntitiesWithCreators, draftEntitiesSubgraph],
-  );
 
   const sources = useMemo(
     () =>
@@ -401,33 +348,32 @@ export const DraftEntitiesFilters: FunctionComponent<{
       {
         kind: "multiple-choice",
         heading: "Type",
-        options:
-          entityTypes?.map((entityType) => {
-            const entityTypeBaseUrl = extractBaseUrl(entityType.schema.$id);
+        options: Object.values(entityTypeDisplayInfoByBaseUrl ?? {}).map(
+          (entityType) => {
+            const { baseUrl, icon, isLink, title } = entityType;
 
             return {
-              icon: entityType.schema.icon ? (
+              icon: icon ? (
                 <Box marginRight={1.25} maxWidth={14} component="span">
-                  {entityType.schema.icon}
+                  {icon}
                 </Box>
-              ) : isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isLink ? (
+              ) : isLink ? (
                 <LinkRegularIcon />
               ) : (
                 <AsteriskLightIcon />
               ),
-              label: entityType.schema.title,
-              value: entityTypeBaseUrl,
-              checked:
-                !!filterState?.entityTypeBaseUrls.includes(entityTypeBaseUrl),
+              label: title,
+              value: baseUrl,
+              checked: !!filterState?.entityTypeBaseUrls.includes(baseUrl),
               count: filteredDraftEntitiesExceptForFilter?.type.filter(
                 ({ entity }) =>
                   entity.metadata.entityTypeIds.some(
-                    (entityTypeId) =>
-                      extractBaseUrl(entityTypeId) === entityTypeBaseUrl,
+                    (typeId) => extractBaseUrl(typeId) === baseUrl,
                   ),
               ).length,
             };
-          }) ?? [],
+          },
+        ),
         onChange: (updatedBaseUrls: BaseUrl[]) =>
           setFilterState((prev) =>
             prev
@@ -583,22 +529,22 @@ export const DraftEntitiesFilters: FunctionComponent<{
       },
     ];
   }, [
-    entityTypes,
-    sources,
-    authenticatedUser,
-    webs,
     draftEntitiesWithCreators,
     filterState,
-    isSpecialEntityTypeLookup,
+    entityTypeDisplayInfoByBaseUrl,
+    sources,
+    webs,
     setFilterState,
+    authenticatedUser.accountId,
   ]);
 
   const allEntityTypesSelected = useMemo(
     () =>
       filterState &&
-      entityTypes &&
-      filterState.entityTypeBaseUrls.length === entityTypes.length,
-    [filterState, entityTypes],
+      entityTypeDisplayInfoByBaseUrl &&
+      filterState.entityTypeBaseUrls.length ===
+        Object.values(entityTypeDisplayInfoByBaseUrl).length,
+    [filterState, entityTypeDisplayInfoByBaseUrl],
   );
 
   const allSourcesSelected = useMemo(

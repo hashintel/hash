@@ -1,5 +1,6 @@
 import { CloseIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { ClosedMultiEntityType } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, buttonClasses } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -10,14 +11,16 @@ import { DiscardDraftEntityButton } from "../../shared/discard-draft-entity-butt
 import { useDraftEntities } from "../draft-entities-context";
 
 export const DraftEntityActionButtons: FunctionComponent<{
+  closedMultiEntityType: ClosedMultiEntityType;
   entity: Entity;
   subgraph: Subgraph<EntityRootType>;
-}> = ({ entity, subgraph }) => {
+}> = ({ closedMultiEntityType, entity, subgraph }) => {
   const { refetch } = useDraftEntities();
 
   return (
     <Box marginLeft={1} display="flex" columnGap={1}>
       <DiscardDraftEntityButton
+        closedMultiEntityType={closedMultiEntityType}
         draftEntity={entity}
         draftEntitySubgraph={subgraph}
         onDiscardedEntity={refetch}
@@ -39,6 +42,7 @@ export const DraftEntityActionButtons: FunctionComponent<{
         Ignore
       </DiscardDraftEntityButton>
       <AcceptDraftEntityButton
+        closedMultiEntityType={closedMultiEntityType}
         draftEntity={entity}
         draftEntitySubgraph={subgraph}
         size="xs"

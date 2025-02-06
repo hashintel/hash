@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import { type Entity } from "@local/hash-graph-sdk/entity";
+import type { ClosedMultiEntityType } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
@@ -22,11 +23,13 @@ import { Button } from "../../shared/ui";
 
 export const DiscardDraftEntityButton: FunctionComponent<
   {
+    closedMultiEntityType: ClosedMultiEntityType;
     draftEntity: Entity;
     draftEntitySubgraph: Subgraph<EntityRootType>;
     onDiscardedEntity?: () => void;
   } & ButtonProps
 > = ({
+  closedMultiEntityType,
   draftEntity,
   draftEntitySubgraph,
   onDiscardedEntity,
@@ -134,10 +137,9 @@ export const DiscardDraftEntityButton: FunctionComponent<
     onDiscardedEntity,
   ]);
 
-  const label = useMemo(
-    () => generateEntityLabel(draftEntitySubgraph, draftEntity),
-    [draftEntitySubgraph, draftEntity],
-  );
+  const label = useMemo(() => {
+    return generateEntityLabel(closedMultiEntityType, draftEntity);
+  }, [closedMultiEntityType, draftEntity]);
 
   return (
     <>
