@@ -79,7 +79,7 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.isequal": "4.5.8",
-    "@types/node": "22.13.0",
+    "@types/node": "22.13.1",
     "@types/react": "19.0.8",
     "eslint": "9.19.0",
     "rimraf": "6.0.1",
