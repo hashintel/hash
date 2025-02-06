@@ -1,5 +1,6 @@
 import { FeatherRegularIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { ClosedMultiEntityType } from "@local/hash-graph-types/ontology";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
@@ -33,12 +34,14 @@ const buttonSx: ButtonProps["sx"] = ({ palette }) => ({
 });
 
 export const DraftEntityBanner: FunctionComponent<{
+  closedMultiEntityType: ClosedMultiEntityType;
   draftEntity: Entity;
   draftEntitySubgraph: Subgraph<EntityRootType>;
   isModifyingEntity?: boolean;
   onAcceptedEntity: ((entity: Entity) => void) | null;
   owningShortname: string;
 }> = ({
+  closedMultiEntityType,
   draftEntity,
   draftEntitySubgraph,
   isModifyingEntity = false,
@@ -116,6 +119,7 @@ export const DraftEntityBanner: FunctionComponent<{
         ) : (
           <Box display="flex" gap={1.5}>
             <DiscardDraftEntityButton
+              closedMultiEntityType={closedMultiEntityType}
               draftEntity={draftEntity}
               draftEntitySubgraph={draftEntitySubgraph}
               onDiscardedEntity={handleDiscardedEntity}
@@ -125,6 +129,7 @@ export const DraftEntityBanner: FunctionComponent<{
               Discard draft
             </DiscardDraftEntityButton>
             <AcceptDraftEntityButton
+              closedMultiEntityType={closedMultiEntityType}
               draftEntity={draftEntity}
               draftEntitySubgraph={draftEntitySubgraph}
               onAcceptedEntity={onAcceptedEntity}
