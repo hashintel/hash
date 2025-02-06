@@ -89,6 +89,7 @@ const ExpectedValueSelectorDropdown = () => {
           <DataTypeSelector
             allowSelectingAbstractTypes
             dataTypes={dataTypeOptions}
+            handleScroll
             hideHint
             maxHeight={300}
             onSelect={(dataTypeId) => {

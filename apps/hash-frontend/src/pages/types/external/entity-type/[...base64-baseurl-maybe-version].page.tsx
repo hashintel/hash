@@ -21,6 +21,7 @@ const Page: NextPageWithLayout = () => {
   return (
     <EntityTypePage
       entityTypeBaseUrl={entityTypeBaseUrl}
+      key={`${entityTypeBaseUrl}-${requestedVersion}`}
       requestedVersion={requestedVersion}
     />
   );

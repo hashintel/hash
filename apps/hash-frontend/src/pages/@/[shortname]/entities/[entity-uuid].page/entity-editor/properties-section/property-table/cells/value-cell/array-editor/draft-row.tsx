@@ -7,9 +7,14 @@ import { DRAFT_ROW_KEY } from "../array-editor";
 import { getEditorSpecs } from "../editor-specs";
 import { EditorTypePicker } from "../editor-type-picker";
 import { isBlankStringOrNullish } from "../utils";
+import { ItemLimitInfo } from "./item-limit-info";
 import { SortableRow } from "./sortable-row";
 
 interface DraftRowProps {
+  arrayConstraints?: {
+    minItems?: number;
+    maxItems?: number;
+  };
   expectedTypes: ClosedDataTypeDefinition[];
   existingItemCount: number;
   onDraftSaved: (value: unknown, dataTypeId: VersionedUrl) => void;
@@ -17,6 +22,7 @@ interface DraftRowProps {
 }
 
 export const DraftRow = ({
+  arrayConstraints,
   expectedTypes,
   existingItemCount,
   onDraftSaved,
@@ -58,23 +64,31 @@ export const DraftRow = ({
   }
 
   return (
-    <SortableRow
-      editing
-      item={{
-        dataType,
-        id: DRAFT_ROW_KEY,
-        index: existingItemCount,
-        value: undefined,
-      }}
-      onSaveChanges={(_, value) => {
-        if (isBlankStringOrNullish(value)) {
-          return onDraftDiscarded();
-        }
+    <>
+      <SortableRow
+        editing
+        item={{
+          dataType,
+          id: DRAFT_ROW_KEY,
+          index: existingItemCount,
+          value: undefined,
+        }}
+        onSaveChanges={(_, value) => {
+          if (isBlankStringOrNullish(value)) {
+            return onDraftDiscarded();
+          }
 
-        onDraftSaved(value, dataType.$id);
-      }}
-      onDiscardChanges={onDraftDiscarded}
-      expectedTypes={expectedTypes}
-    />
+          onDraftSaved(value, dataType.$id);
+        }}
+        onDiscardChanges={onDraftDiscarded}
+        expectedTypes={expectedTypes}
+      />
+      {arrayConstraints && (
+        <ItemLimitInfo
+          min={arrayConstraints.minItems}
+          max={arrayConstraints.maxItems}
+        />
+      )}
+    </>
   );
 };

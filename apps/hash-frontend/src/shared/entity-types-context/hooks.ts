@@ -76,14 +76,22 @@ export const useLatestEntityTypesOptional = (params?: {
 export const useIsSpecialEntityType = (
   entityType: Pick<EntityType, "allOf"> & { $id?: EntityType["$id"] },
 ) => {
-  const { entityTypes } = useEntityTypesContextRequired();
+  const { entityTypes, loading } = useEntityTypesContextRequired();
 
   return useMemo(() => {
+    if (loading) {
+      return {
+        isFile: false,
+        isImage: false,
+        isLink: false,
+      };
+    }
+
     const typesByVersion: Record<VersionedUrl, EntityTypeWithMetadata> =
       Object.fromEntries(
         (entityTypes ?? []).map((type) => [type.schema.$id, type]),
       );
 
     return isSpecialEntityType(entityType, typesByVersion);
-  }, [entityType, entityTypes]);
+  }, [entityType, entityTypes, loading]);
 };
