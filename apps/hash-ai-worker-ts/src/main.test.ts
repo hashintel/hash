@@ -9,6 +9,7 @@ describe("yarn start", () => {
         ANTHROPIC_API_KEY: "dummy",
         HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID: "dummy",
         HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY: "dummy",
+        OPENAI_API_KEY: "dummy",
       },
     });
 
