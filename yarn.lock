@@ -621,11 +621,10 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/hash-integration-worker@workspace:apps/hash-integration-worker":
+"@apps/hash-integration-worker@npm:0.0.0-private, @apps/hash-integration-worker@workspace:apps/hash-integration-worker":
   version: 0.0.0-use.local
   resolution: "@apps/hash-integration-worker@workspace:apps/hash-integration-worker"
   dependencies:
-    "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@linear/sdk": "npm:6.0.0"
@@ -16879,6 +16878,7 @@ __metadata:
     "@apps/hash-ai-worker-ts": "npm:0.0.0-private"
     "@apps/hash-api": "npm:0.0.0-private"
     "@apps/hash-graph": "npm:0.0.0-private"
+    "@apps/hash-integration-worker": "npm:0.0.0-private"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@graphql-codegen/cli": "npm:^5.0.3"
