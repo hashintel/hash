@@ -21522,14 +21522,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bson@npm:^6.10.1":
-  version: 6.10.1
-  resolution: "bson@npm:6.10.1"
-  checksum: 10c0/89f0ee7a45211648afa5a32d7f4d7ce436e20614b7c5d37c9fd6bc6e9464eec0ddeab8432a836d819bef1f4896256d874044603cf5f4b2123c00734842799601
-  languageName: node
-  linkType: hard
-
-"bson@npm:^6.7.0":
+"bson@npm:^6.10.1, bson@npm:^6.7.0":
   version: 6.10.2
   resolution: "bson@npm:6.10.2"
   checksum: 10c0/308ba3f2bd2d7c2c929ee935a13a6f6c1f05adb3db45be3683b8f9c52bcb1cbf86314c51f42ca9570ea852aa31fabad364ad55d9b4ff6f810f9fb21dc21c4291
