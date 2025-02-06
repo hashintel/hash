@@ -3,7 +3,14 @@ import { describe, expect, it } from "vitest";
 
 describe("yarn start", () => {
   it("should start without errors", async () => {
-    const subprocess = execa("yarn", ["start"], { all: true });
+    const subprocess = execa("yarn", ["start"], {
+      all: true,
+      env: {
+        ANTHROPIC_API_KEY: "dummy",
+        HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID: "dummy",
+        HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY: "dummy",
+      },
+    });
 
     let logs = "";
 
