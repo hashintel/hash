@@ -13,8 +13,10 @@
     "test:integration": "vitest --run"
   },
   "dependencies": {
+    "@apps/hash-ai-worker-ts": "0.0.0-private",
     "@apps/hash-api": "0.0.0-private",
     "@apps/hash-graph": "0.0.0-private",
+    "@apps/hash-integration-worker": "0.0.0-private",
     "@blockprotocol/type-system": "0.1.2-canary.0",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
