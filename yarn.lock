@@ -261,7 +261,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apps/hash-ai-worker-ts@workspace:apps/hash-ai-worker-ts":
+"@apps/hash-ai-worker-ts@npm:0.0.0-private, @apps/hash-ai-worker-ts@workspace:apps/hash-ai-worker-ts":
   version: 0.0.0-use.local
   resolution: "@apps/hash-ai-worker-ts@workspace:apps/hash-ai-worker-ts"
   dependencies:
@@ -16876,6 +16876,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@tests/hash-backend-integration@workspace:tests/hash-backend-integration"
   dependencies:
+    "@apps/hash-ai-worker-ts": "npm:0.0.0-private"
     "@apps/hash-api": "npm:0.0.0-private"
     "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
