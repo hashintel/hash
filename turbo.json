@@ -56,7 +56,7 @@
     },
     "start:test:healthcheck": {
       "cache": false,
-      "dependsOn": ["compile"]
+      "dependsOn": ["start:test:migrate"]
     },
 
     // Test commands
