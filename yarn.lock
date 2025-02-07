@@ -8923,7 +8923,7 @@ __metadata:
   dependencies:
     "@local/tsconfig": "npm:0.0.0-private"
     "@openapitools/openapi-generator-cli": "npm:2.16.3"
-    "@redocly/cli": "npm:1.28.0"
+    "@redocly/cli": "npm:1.28.1"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.13.1"
     axios: "npm:1.7.9"
@@ -12201,11 +12201,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redocly/cli@npm:1.28.0":
-  version: 1.28.0
-  resolution: "@redocly/cli@npm:1.28.0"
+"@redocly/cli@npm:1.28.1":
+  version: 1.28.1
+  resolution: "@redocly/cli@npm:1.28.1"
   dependencies:
-    "@redocly/openapi-core": "npm:1.28.0"
+    "@redocly/openapi-core": "npm:1.28.1"
     abort-controller: "npm:^3.0.0"
     chokidar: "npm:^3.5.1"
     colorette: "npm:^1.2.0"
@@ -12226,7 +12226,7 @@ __metadata:
   bin:
     openapi: bin/cli.js
     redocly: bin/cli.js
-  checksum: 10c0/b97ed937fa8630b48385f967fab2f2681aa243d241f3da0c6d42ec17f3ff163c283d5f4d1163a9075ca2bec8e914c8cdf899d7fc05b47ed65640f38797f162ee
+  checksum: 10c0/e6163c457657cdafe2c6c4048f3359d66a6f03d462e0d8a003419641c774da87604dbcd9d591daeec041254f0d7de3aa1e35e9e11ff7bb5c5947c50398416c4c
   languageName: node
   linkType: hard
 
@@ -12237,9 +12237,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redocly/openapi-core@npm:1.28.0, @redocly/openapi-core@npm:^1.4.0":
-  version: 1.28.0
-  resolution: "@redocly/openapi-core@npm:1.28.0"
+"@redocly/openapi-core@npm:1.28.1, @redocly/openapi-core@npm:^1.4.0":
+  version: 1.28.1
+  resolution: "@redocly/openapi-core@npm:1.28.1"
   dependencies:
     "@redocly/ajv": "npm:^8.11.2"
     "@redocly/config": "npm:^0.20.1"
@@ -12250,7 +12250,7 @@ __metadata:
     minimatch: "npm:^5.0.1"
     pluralize: "npm:^8.0.0"
     yaml-ast-parser: "npm:0.0.43"
-  checksum: 10c0/ccb5014ebfae465525913fe17bdd8a9a0cd6240e990da28584f775dd8e0a1894e6b21d4cc583f9f71ff0b1b29e39fd343f733112e71dd0d8142916e71544af31
+  checksum: 10c0/21f3f946a2f5884f1c25d5381c980c5c1ad4d5fe7a6f54554adb723259d6c12cba27cb6a4ba0f7f781a477c26ff17d0e55f0c938517b5dfd294ce48199a59ea2
   languageName: node
   linkType: hard
 
