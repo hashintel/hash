@@ -36,6 +36,8 @@ runs:
         fi
         rustup toolchain install "$TOOLCHAIN_CHANNEL"
 
+        rustup target add --toolchain "$TOOLCHAIN_CHANNEL" wasm32-unknown-unknown
+
         for component in $COMPONENTS; do
           # depending on the toolchain we need to conditionally skip specific components
           if [[ ! "$TOOLCHAIN_CHANNEL" =~ $NIGHTLY_TOOLCHAIN ]]; then
