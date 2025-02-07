@@ -59,65 +59,6 @@ pub(crate) fn cedar_resource_type<const N: usize>(
     ))
 }
 
-impl From<PrincipalConstraint> for ast::PrincipalConstraint {
-    fn from(constraint: PrincipalConstraint) -> Self {
-        Self::from(&constraint)
-    }
-}
-
-impl From<&PrincipalConstraint> for ast::PrincipalConstraint {
-    fn from(constraint: &PrincipalConstraint) -> Self {
-        match constraint {
-            PrincipalConstraint::Public {} => Self::any(),
-            PrincipalConstraint::User(user) => match user {
-                UserPrincipalConstraint::Any {} => {
-                    Self::is_entity_type(Arc::clone(UserId::entity_type()))
-                }
-                UserPrincipalConstraint::Exact { user_id } => user_id
-                    .map_or_else(Self::is_eq_slot, |user_id| {
-                        Self::is_eq(Arc::new(user_id.to_euid()))
-                    }),
-                UserPrincipalConstraint::Organization(organization) => match organization {
-                    OrganizationPrincipalConstraint::InOrganization { organization_id } => {
-                        organization_id.map_or_else(
-                            || Self::is_entity_type_in_slot(Arc::clone(UserId::entity_type())),
-                            |organization_id| {
-                                Self::is_entity_type_in(
-                                    Arc::clone(UserId::entity_type()),
-                                    Arc::new(organization_id.to_euid()),
-                                )
-                            },
-                        )
-                    }
-                    OrganizationPrincipalConstraint::InRole {
-                        organization_role_id,
-                    } => organization_role_id.map_or_else(
-                        || Self::is_entity_type_in_slot(Arc::clone(UserId::entity_type())),
-                        |organization_role_id| {
-                            Self::is_entity_type_in(
-                                Arc::clone(UserId::entity_type()),
-                                Arc::new(organization_role_id.to_euid()),
-                            )
-                        },
-                    ),
-                },
-            },
-            PrincipalConstraint::Organization(organization) => match organization {
-                OrganizationPrincipalConstraint::InOrganization { organization_id } => {
-                    organization_id.map_or_else(Self::is_in_slot, |organization_id| {
-                        Self::is_in(Arc::new(organization_id.to_euid()))
-                    })
-                }
-                OrganizationPrincipalConstraint::InRole {
-                    organization_role_id,
-                } => organization_role_id.map_or_else(Self::is_in_slot, |organization_role_id| {
-                    Self::is_in(Arc::new(organization_role_id.to_euid()))
-                }),
-            },
-        }
-    }
-}
-
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum InvalidPrincipalConstraint {
     #[display("Cannot convert constraints containing slots")]
@@ -226,6 +167,7 @@ impl TryFrom<&ast::PrincipalConstraint> for PrincipalConstraint {
             ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(principal))
                 if *principal.entity_type() == **OrganizationRoleId::entity_type() =>
             {
+                // Organization from cedar (Some(principal))
                 Self::Organization(OrganizationPrincipalConstraint::InRole {
                     organization_role_id: Some(
                         OrganizationRoleId::from_eid(principal.eid())
@@ -242,24 +184,6 @@ impl TryFrom<&ast::PrincipalConstraint> for PrincipalConstraint {
                 bail!(InvalidPrincipalConstraint::AmbiguousSlot)
             }
         })
-    }
-}
-
-impl From<ActionConstraint> for ast::ActionConstraint {
-    fn from(constraint: ActionConstraint) -> Self {
-        Self::from(&constraint)
-    }
-}
-
-impl From<&ActionConstraint> for ast::ActionConstraint {
-    fn from(constraint: &ActionConstraint) -> Self {
-        match constraint {
-            ActionConstraint::All {} => Self::any(),
-            ActionConstraint::One { action } => Self::is_eq(action.to_euid()),
-            ActionConstraint::Many { actions } => {
-                Self::is_in(actions.iter().map(ActionId::to_euid))
-            }
-        }
     }
 }
 
@@ -295,43 +219,6 @@ impl TryFrom<&ast::ActionConstraint> for ActionConstraint {
                     .change_context(InvalidActionConstraint::InvalidAction)?,
             },
         })
-    }
-}
-
-impl From<ResourceConstraint> for ast::ResourceConstraint {
-    fn from(constraint: ResourceConstraint) -> Self {
-        Self::from(&constraint)
-    }
-}
-
-impl From<&ResourceConstraint> for ast::ResourceConstraint {
-    fn from(constraint: &ResourceConstraint) -> Self {
-        match constraint {
-            ResourceConstraint::Global {} => Self::any(),
-            ResourceConstraint::Web { web_id } => web_id.map_or_else(Self::is_in_slot, |web_id| {
-                Self::is_in(Arc::new(web_id.to_euid()))
-            }),
-            ResourceConstraint::Entity(entity_resource_constraint) => {
-                match entity_resource_constraint {
-                    EntityResourceConstraint::Any {} => {
-                        Self::is_entity_type(Arc::clone(EntityUuid::entity_type()))
-                    }
-                    EntityResourceConstraint::Exact { entity_uuid } => entity_uuid
-                        .map_or_else(Self::is_eq_slot, |entity_uuid| {
-                            Self::is_eq(Arc::new(entity_uuid.to_euid()))
-                        }),
-                    EntityResourceConstraint::Web { web_id } => web_id.map_or_else(
-                        || Self::is_entity_type_in_slot(Arc::clone(EntityUuid::entity_type())),
-                        |web_id| {
-                            Self::is_entity_type_in(
-                                Arc::clone(EntityUuid::entity_type()),
-                                Arc::new(web_id.to_euid()),
-                            )
-                        },
-                    ),
-                }
-            }
-        }
     }
 }
 
@@ -455,9 +342,9 @@ impl From<&Policy> for ast::Template {
                 Effect::Permit => ast::Effect::Permit,
                 Effect::Forbid => ast::Effect::Forbid,
             },
-            (&policy.principal).into(),
-            (&policy.action).into(),
-            (&policy.resource).into(),
+            policy.principal.to_cedar(),
+            policy.action.to_cedar(),
+            policy.resource.to_cedar(),
             ast::Expr::val(true),
         )
     }

@@ -55,6 +55,32 @@ impl EntityResourceConstraint {
             Self::Exact { entity_uuid: None } | Self::Web { web_id: None } => true,
         }
     }
+
+    #[must_use]
+    pub(crate) fn to_cedar(&self) -> ast::ResourceConstraint {
+        match self {
+            Self::Any {} => {
+                ast::ResourceConstraint::is_entity_type(Arc::clone(EntityUuid::entity_type()))
+            }
+            Self::Exact { entity_uuid } => entity_uuid
+                .map_or_else(ast::ResourceConstraint::is_eq_slot, |entity_uuid| {
+                    ast::ResourceConstraint::is_eq(Arc::new(entity_uuid.to_euid()))
+                }),
+            Self::Web { web_id } => web_id.map_or_else(
+                || {
+                    ast::ResourceConstraint::is_entity_type_in_slot(Arc::clone(
+                        EntityUuid::entity_type(),
+                    ))
+                },
+                |web_id| {
+                    ast::ResourceConstraint::is_entity_type_in(
+                        Arc::clone(EntityUuid::entity_type()),
+                        Arc::new(web_id.to_euid()),
+                    )
+                },
+            ),
+        }
+    }
 }
 
 #[cfg(test)]

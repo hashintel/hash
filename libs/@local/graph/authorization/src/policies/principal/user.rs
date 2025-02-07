@@ -90,6 +90,20 @@ impl UserPrincipalConstraint {
             Self::Organization(organization) => organization.has_slot(),
         }
     }
+
+    #[must_use]
+    pub(crate) fn to_cedar(&self) -> ast::PrincipalConstraint {
+        match self {
+            Self::Any {} => {
+                ast::PrincipalConstraint::is_entity_type(Arc::clone(UserId::entity_type()))
+            }
+            Self::Exact { user_id } => user_id
+                .map_or_else(ast::PrincipalConstraint::is_eq_slot, |user_id| {
+                    ast::PrincipalConstraint::is_eq(Arc::new(user_id.to_euid()))
+                }),
+            Self::Organization(organization) => organization.to_cedar_in_type::<UserId>(),
+        }
+    }
 }
 
 #[cfg(test)]

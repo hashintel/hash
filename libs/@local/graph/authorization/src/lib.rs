@@ -362,7 +362,7 @@ mod test_utils {
         assert_eq!(serialized, value);
         let deserialized: T =
             serde_json::from_value(value).expect("should be a valid resource constraint");
-        assert_eq!(deserialized, *constraint);
+        assert_eq!(*constraint, deserialized);
     }
 
     #[track_caller]

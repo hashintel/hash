@@ -3,6 +3,8 @@
     reason = "serde::Deseiriealize does not use the never-type"
 )]
 
+use cedar_policy_core::ast;
+
 pub use self::{
     organization::{OrganizationId, OrganizationPrincipalConstraint, OrganizationRoleId},
     user::{UserId, UserPrincipalConstraint},
@@ -37,11 +39,19 @@ impl PrincipalConstraint {
             Self::Organization(organization) => organization.has_slot(),
         }
     }
+
+    #[must_use]
+    pub(crate) fn to_cedar(&self) -> ast::PrincipalConstraint {
+        match self {
+            Self::Public {} => ast::PrincipalConstraint::any(),
+            Self::User(user) => user.to_cedar(),
+            Self::Organization(organization) => organization.to_cedar(),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use cedar_policy_core::ast;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
 
@@ -56,10 +66,10 @@ mod tests {
     ) {
         check_serialization(&constraint, value);
 
-        let cedar_policy = ast::PrincipalConstraint::from(&constraint);
-        assert_eq!(cedar_policy.to_string(), cedar_string.as_ref());
+        let cedar_constraint = constraint.to_cedar();
+        assert_eq!(cedar_constraint.to_string(), cedar_string.as_ref());
         if !constraint.has_slot() {
-            PrincipalConstraint::try_from(cedar_policy)
+            PrincipalConstraint::try_from(cedar_constraint)
                 .expect("should be able to convert Cedar policy back");
         }
     }

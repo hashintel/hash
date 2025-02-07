@@ -141,6 +141,52 @@ impl OrganizationPrincipalConstraint {
             } => true,
         }
     }
+
+    #[must_use]
+    pub(crate) fn to_cedar(&self) -> ast::PrincipalConstraint {
+        match self {
+            Self::InOrganization { organization_id } => organization_id.map_or_else(
+                ast::PrincipalConstraint::is_in_slot,
+                |organization_id| {
+                    ast::PrincipalConstraint::is_in(Arc::new(organization_id.to_euid()))
+                },
+            ),
+            OrganizationPrincipalConstraint::InRole {
+                organization_role_id,
+            } => organization_role_id.map_or_else(
+                ast::PrincipalConstraint::is_in_slot,
+                |organization_role_id| {
+                    ast::PrincipalConstraint::is_in(Arc::new(organization_role_id.to_euid()))
+                },
+            ),
+        }
+    }
+
+    #[must_use]
+    pub(crate) fn to_cedar_in_type<C: CedarEntityId>(&self) -> ast::PrincipalConstraint {
+        match self {
+            Self::InOrganization { organization_id } => organization_id.map_or_else(
+                || ast::PrincipalConstraint::is_entity_type_in_slot(Arc::clone(C::entity_type())),
+                |organization_id| {
+                    ast::PrincipalConstraint::is_entity_type_in(
+                        Arc::clone(C::entity_type()),
+                        Arc::new(organization_id.to_euid()),
+                    )
+                },
+            ),
+            OrganizationPrincipalConstraint::InRole {
+                organization_role_id,
+            } => organization_role_id.map_or_else(
+                || ast::PrincipalConstraint::is_entity_type_in_slot(Arc::clone(C::entity_type())),
+                |organization_role_id| {
+                    ast::PrincipalConstraint::is_entity_type_in(
+                        Arc::clone(C::entity_type()),
+                        Arc::new(organization_role_id.to_euid()),
+                    )
+                },
+            ),
+        }
+    }
 }
 
 #[cfg(test)]

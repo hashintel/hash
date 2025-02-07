@@ -82,9 +82,21 @@ pub enum ActionConstraint {
     },
 }
 
+impl ActionConstraint {
+    #[must_use]
+    pub(crate) fn to_cedar(&self) -> ast::ActionConstraint {
+        match self {
+            Self::All {} => ast::ActionConstraint::any(),
+            Self::One { action } => ast::ActionConstraint::is_eq(action.to_euid()),
+            Self::Many { actions } => {
+                ast::ActionConstraint::is_in(actions.iter().map(ActionId::to_euid))
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use cedar_policy_core::ast;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
 
@@ -102,9 +114,9 @@ mod tests {
     ) {
         check_serialization(&constraint, value);
 
-        let cedar_policy = ast::ActionConstraint::from(&constraint);
-        assert_eq!(cedar_policy.to_string(), cedar_string.as_ref());
-        ActionConstraint::try_from(cedar_policy)
+        let cedar_constraint = constraint.to_cedar();
+        assert_eq!(cedar_constraint.to_string(), cedar_string.as_ref());
+        ActionConstraint::try_from(cedar_constraint)
             .expect("should be able to convert Cedar policy back");
     }
 

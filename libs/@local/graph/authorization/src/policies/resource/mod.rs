@@ -62,11 +62,22 @@ impl ResourceConstraint {
             Self::Entity(entity) => entity.has_slot(),
         }
     }
+
+    #[must_use]
+    pub(crate) fn to_cedar(&self) -> ast::ResourceConstraint {
+        match self {
+            Self::Global {} => ast::ResourceConstraint::any(),
+            Self::Web { web_id } => web_id
+                .map_or_else(ast::ResourceConstraint::is_in_slot, |web_id| {
+                    ast::ResourceConstraint::is_in(Arc::new(web_id.to_euid()))
+                }),
+            Self::Entity(entity) => entity.to_cedar(),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use cedar_policy_core::ast;
     use hash_graph_types::owned_by_id::OwnedById;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
@@ -83,10 +94,10 @@ mod tests {
     ) {
         check_serialization(&constraint, value);
 
-        let cedar_policy = ast::ResourceConstraint::from(&constraint);
-        assert_eq!(cedar_policy.to_string(), cedar_string.as_ref());
+        let cedar_constraint = constraint.to_cedar();
+        assert_eq!(cedar_constraint.to_string(), cedar_string.as_ref());
         if !constraint.has_slot() {
-            ResourceConstraint::try_from(cedar_policy)
+            ResourceConstraint::try_from(cedar_constraint)
                 .expect("should be able to convert Cedar policy back");
         }
     }
