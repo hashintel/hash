@@ -45,7 +45,7 @@ export const isSpecialEntityType = (
       systemEntityTypes.image.entityTypeBaseUrl
     : false;
 
-  let isLink = false;
+  let isLink = entityType.$id === linkEntityTypeUrl;
 
   for (const id of parentIds) {
     if (extractBaseUrl(id) === systemEntityTypes.file.entityTypeBaseUrl) {

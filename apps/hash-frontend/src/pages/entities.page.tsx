@@ -70,11 +70,14 @@ export const CreateButtons: FunctionComponent<{
     ownedById: activeWorkspaceOwnedById,
   });
 
-  const isFileEntityType = useMemo(
+  const { isFile, isLink } = useMemo(
     () =>
       entityType
-        ? isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isFile
-        : false,
+        ? (isSpecialEntityTypeLookup?.[entityType.schema.$id] ?? {
+            isFile: false,
+            isLink: entityType.schema.$id === linkEntityTypeUrl,
+          })
+        : { isFile: false, isLink: false },
     [isSpecialEntityTypeLookup, entityType],
   );
 
@@ -93,7 +96,7 @@ export const CreateButtons: FunctionComponent<{
        * user to the upload tab of the entity type page instead of the
        * entity editor.
        */
-      entityType && isFileEntityType
+      entityType && isFile
         ? `${generateLinkParameters(entityType.schema.$id).href}?tab=upload`
         : `/new/entity${
             entityType
@@ -101,7 +104,7 @@ export const CreateButtons: FunctionComponent<{
               : ""
           }`,
     );
-  }, [entityType, isFileEntityType, router]);
+  }, [entityType, isFile, router]);
 
   const isViewAllPagesPage = useMemo(() => {
     return entityType?.schema.$id === systemEntityTypes.page.entityTypeId;
@@ -116,6 +119,10 @@ export const CreateButtons: FunctionComponent<{
   }, [entityType]);
 
   const enabledFeatureFlags = useEnabledFeatureFlags();
+
+  if (isLink) {
+    return null;
+  }
 
   return isViewAllPagesPage ||
     isViewAllDocumentsPage ||
@@ -155,9 +162,9 @@ export const CreateButtons: FunctionComponent<{
       variant="tertiary_quiet"
       endIcon={<PlusRegularIcon />}
     >
-      {isFileEntityType ? "Add" : "Create"} new{" "}
+      {isFile ? "Add" : "Create"} new{" "}
       {entityType?.schema.title.toLowerCase() ?? "entity"}
-      {isFileEntityType ? "(s)" : ""}
+      {isFile ? "(s)" : ""}
     </CreateButton>
   );
 };
@@ -266,6 +273,7 @@ const EntitiesPage: NextPageWithLayout = () => {
               /**
                * @todo H-3363 use closed schema to take account of indirectly inherited link status
                */
+              entityType.schema.$id === linkEntityTypeUrl ||
               !!entityType.schema.allOf?.some(
                 (allOf) => allOf.$ref === linkEntityTypeUrl,
               )
@@ -311,6 +319,7 @@ const EntitiesPage: NextPageWithLayout = () => {
                     /**
                      * @todo H-3363 use closed schema to take account of indirectly inherited link status
                      */
+                    entityType?.schema.$id === linkEntityTypeUrl ||
                     !!entityType?.schema.allOf?.some(
                       (allOf) => allOf.$ref === linkEntityTypeUrl,
                     )
