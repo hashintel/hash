@@ -114,7 +114,7 @@ export const EntityTypePage = ({
     [entityType, remotePropertyTypes],
   );
 
-  const isDirty = formMethods.formState.isDirty;
+  const isDirty = Object.keys(formMethods.formState.dirtyFields).length > 0;
   const isDraft = !!draftEntityType;
 
   const { userPermissions } = useUserPermissionsOnEntityType(

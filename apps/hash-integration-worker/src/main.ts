@@ -112,7 +112,7 @@ async function run() {
 
   const httpServer = createHealthCheckServer();
   const port = 4300;
-  httpServer.listen({ host: "::", port });
+  httpServer.listen({ host: "0.0.0.0", port });
   // eslint-disable-next-line no-console
   console.info(`HTTP server listening on port ${port}`);
 

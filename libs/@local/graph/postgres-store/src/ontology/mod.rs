@@ -39,19 +39,14 @@ where
     for<'de> T: Deserialize<'de>,
 {
     if let Some(object) = value.as_object_mut() {
-        if let Some(previous_val) = object.insert(
+        object.insert(
             "$id".to_owned(),
             serde_json::to_value(id).expect("failed to deserialize id"),
-        ) {
-            return Err(PatchAndParseError)
-                .attach_printable("schema already had an $id")
-                .attach_printable(previous_val);
-        }
+        );
+        serde_json::from_value(value).change_context(PatchAndParseError)
     } else {
-        return Err(PatchAndParseError)
+        Err(PatchAndParseError)
             .attach_printable("unexpected schema format, couldn't parse as object")
-            .attach_printable(value);
+            .attach_printable(value)
     }
-
-    serde_json::from_value(value).change_context(PatchAndParseError)
 }
