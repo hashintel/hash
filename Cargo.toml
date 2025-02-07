@@ -192,7 +192,7 @@ napi                     = { version = "=2.16.15", default-features = false }
 napi-build               = { version = "=2.1.4", default-features = false }
 napi-derive              = { version = "=2.16.13", default-features = false }
 num-traits               = { version = "=0.2.19", default-features = false }
-once_cell                = { version = "=1.20.2", default-features = false }
+once_cell                = { version = "=1.20.3", default-features = false }
 opentelemetry            = { version = "=0.27.1", default-features = false }
 opentelemetry-otlp       = { version = "=0.27.0", default-features = false }
 opentelemetry_sdk        = { version = "=0.27.1", default-features = false }
