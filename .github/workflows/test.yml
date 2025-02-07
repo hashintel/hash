@@ -317,6 +317,8 @@ jobs:
 
       - name: Launch external services
         run: |
+          touch .env.local
+
           echo 'OPENAI_API_KEY=dummy' >> .env.local
           echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
           echo 'HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy' >> .env.local
