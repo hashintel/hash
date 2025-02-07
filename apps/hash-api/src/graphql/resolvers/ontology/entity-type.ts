@@ -28,6 +28,7 @@ import type {
   MutationCreateEntityTypeArgs,
   MutationUnarchiveEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
+  MutationUpdateEntityTypesArgs,
   QueryCheckUserPermissionsOnEntityTypeArgs,
   QueryGetClosedMultiEntityTypeArgs,
   QueryGetEntityTypeArgs,
@@ -216,6 +217,46 @@ export const updateEntityTypeResolver: ResolverFn<
         },
       ],
     },
+  );
+
+export const updateEntityTypesResolver: ResolverFn<
+  Promise<EntityTypeWithMetadata[]>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  MutationUpdateEntityTypesArgs
+> = async (_, params, graphQLContext) =>
+  Promise.all(
+    params.updates.map((update) =>
+      updateEntityType(
+        graphQLContextToImpureGraphContext(graphQLContext),
+        graphQLContext.authentication,
+        {
+          entityTypeId: update.entityTypeId,
+          schema: update.updatedEntityType,
+          relationships: [
+            {
+              relation: "setting",
+              subject: {
+                kind: "setting",
+                subjectId: "updateFromWeb",
+              },
+            },
+            {
+              relation: "viewer",
+              subject: {
+                kind: "public",
+              },
+            },
+            {
+              relation: "instantiator",
+              subject: {
+                kind: "public",
+              },
+            },
+          ],
+        },
+      ),
+    ),
   );
 
 export const checkUserPermissionsOnEntityTypeResolver: ResolverFn<

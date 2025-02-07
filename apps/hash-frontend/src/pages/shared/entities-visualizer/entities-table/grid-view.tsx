@@ -1,13 +1,15 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { Grid } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 import { GridViewItem } from "./grid-view/grid-view-item";
 import { GridViewItemSkeleton } from "./grid-view/grid-view-item-skeleton";
 
-export const GridView: FunctionComponent<{ entities?: Entity[] }> = ({
-  entities,
-}) => {
+export const GridView: FunctionComponent<{
+  entities?: Entity[];
+  onEntityClick: (entityId: EntityId) => void;
+}> = ({ entities, onEntityClick }) => {
   return (
     <Grid
       container
@@ -27,8 +29,9 @@ export const GridView: FunctionComponent<{ entities?: Entity[] }> = ({
             <GridViewItem
               key={entity.metadata.recordId.entityId}
               entity={entity}
-              numberOfItems={all.length}
               index={index}
+              onEntityClick={onEntityClick}
+              numberOfItems={all.length}
             />
           ))
         : Array.from({ length: 4 }, (_, index) => (

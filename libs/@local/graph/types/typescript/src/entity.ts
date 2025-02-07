@@ -183,7 +183,8 @@ export type PropertyMetadata =
 
 export const isValueMetadata = (
   metadata: PropertyMetadata,
-): metadata is PropertyMetadataValue => !("value" in metadata);
+): metadata is PropertyMetadataValue =>
+  !!metadata.metadata && "dataTypeId" in metadata.metadata;
 
 export const isArrayMetadata = (
   metadata: PropertyMetadata,
@@ -240,6 +241,21 @@ export type PropertyWithMetadata =
   | PropertyArrayWithMetadata
   | PropertyObjectWithMetadata
   | PropertyValueWithMetadata;
+
+export const isValueWithMetadata = (
+  metadata: PropertyWithMetadata,
+): metadata is PropertyValueWithMetadata =>
+  metadata.metadata !== undefined && "dataTypeId" in metadata.metadata;
+
+export const isArrayWithMetadata = (
+  metadata: PropertyWithMetadata,
+): metadata is PropertyArrayWithMetadata =>
+  !isValueMetadata(metadata) && Array.isArray(metadata.value);
+
+export const isObjectWithMetadata = (
+  metadata: PropertyWithMetadata,
+): metadata is PropertyObjectWithMetadata =>
+  !isValueMetadata(metadata) && !Array.isArray(metadata.value);
 
 /**
  * A path to a property in a properties object

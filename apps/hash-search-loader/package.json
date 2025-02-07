@@ -24,8 +24,8 @@
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/node": "22.12.0",
-    "eslint": "9.17.0",
+    "@types/node": "22.13.1",
+    "eslint": "9.19.0",
     "typescript": "5.7.3"
   }
 }

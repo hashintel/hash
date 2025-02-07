@@ -148,7 +148,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         default
     }
 
-    pub fn set_limit(&mut self, limit: usize) {
+    pub const fn set_limit(&mut self, limit: usize) {
         self.statement.limit = Some(limit);
     }
 
@@ -228,7 +228,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 Expression::Parameter(transaction_time_index),
                             ));
                     }
-                };
+                }
             }
         }
     }
@@ -342,12 +342,15 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
 
             let index = self.statement.selects.len() - 1;
-            self.selections.insert(path, PathSelection {
-                column: expression,
-                index,
-                distinctness,
-                ordering,
-            });
+            self.selections.insert(
+                path,
+                PathSelection {
+                    column: expression,
+                    index,
+                    distinctness,
+                    ordering,
+                },
+            );
             index
         }
     }
@@ -683,9 +686,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         };
 
         // Add a WITH expression selecting the partitioned version
-        self.statement
-            .with
-            .add_statement(Table::OntologyIds, SelectStatement {
+        self.statement.with.add_statement(
+            Table::OntologyIds,
+            SelectStatement {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![
@@ -715,7 +718,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 order_by_expression: OrderByExpression::default(),
                 group_by_expression: GroupByExpression::default(),
                 limit: None,
-            });
+            },
+        );
 
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version
@@ -863,13 +867,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         parameter: &'p Parameter<'f>,
     ) -> (Expression, ParameterType) {
         let parameter_type = match parameter {
-            Parameter::I32(number) => {
+            Parameter::Integer(number) => {
                 self.artifacts.parameters.push(number);
-                ParameterType::I32
+                ParameterType::Integer
             }
-            Parameter::F64(number) => {
+            Parameter::Decimal(number) => {
                 self.artifacts.parameters.push(number);
-                ParameterType::F64
+                ParameterType::Decimal
             }
             Parameter::Text(text) => {
                 self.artifacts.parameters.push(text);
@@ -881,7 +885,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
             Parameter::Vector(vector) => {
                 self.artifacts.parameters.push(vector);
-                ParameterType::Vector(Box::new(ParameterType::F64))
+                ParameterType::Vector(Box::new(ParameterType::Decimal))
             }
             Parameter::Any(json) => {
                 self.artifacts.parameters.push(json);

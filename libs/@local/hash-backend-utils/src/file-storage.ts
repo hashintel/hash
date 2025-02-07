@@ -103,7 +103,7 @@ export interface PresignedStorageRequest {
 /** Parameters needed to allow the download of a stored file */
 export interface PresignedDownloadRequest {
   /** The file entity to provide a download URL for */
-  entity: Entity<File>;
+  entity: Pick<Entity<File>, "properties">;
   /** File storage key * */
   key: string;
   /** Expiry delay for the download authorisation */

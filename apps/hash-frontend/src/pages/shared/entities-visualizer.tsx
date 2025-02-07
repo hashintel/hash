@@ -48,7 +48,7 @@ import { useMemoCompare } from "../../shared/use-memo-compare";
 import type {
   CustomColumn,
   EntityEditorProps,
-} from "../[shortname]/entities/[entity-uuid].page/entity-editor";
+} from "../@/[shortname]/entities/[entity-uuid].page/entity-editor";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
@@ -96,6 +96,7 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
 const generateGraphSort = (
   columnKey: SortableEntitiesTableColumnKey,
   direction: "asc" | "desc",
+  convertTo?: BaseUrl,
 ): EntityQuerySortingRecord => {
   const nulls: NullOrdering = direction === "asc" ? "last" : "first";
   const ordering: Ordering = direction === "asc" ? "ascending" : "descending";
@@ -124,7 +125,11 @@ const generateGraphSort = (
       if (!isBaseUrl(columnKey)) {
         throw new Error(`Unexpected sorting column key: ${columnKey}`);
       }
-      path = ["properties", columnKey];
+      path = ["properties" satisfies EntityQuerySortingToken, columnKey];
+
+      if (convertTo) {
+        path.push("convert", convertTo);
+      }
     }
   }
 
@@ -277,13 +282,15 @@ export const EntitiesVisualizer: FunctionComponent<{
     fetchPolicy: "network-only",
   });
 
-  const [sort, setSort] = useState<ColumnSort<SortableEntitiesTableColumnKey>>({
+  const [sort, setSort] = useState<
+    ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }
+  >({
     columnKey: "entityLabel",
     direction: "asc",
   });
 
   const graphSort = useMemo(
-    () => generateGraphSort(sort.columnKey, sort.direction),
+    () => generateGraphSort(sort.columnKey, sort.direction, sort.convertTo),
     [sort],
   );
 
@@ -645,7 +652,7 @@ export const EntitiesVisualizer: FunctionComponent<{
             />
           </Box>
         ) : view === "Grid" ? (
-          <GridView entities={entities} />
+          <GridView entities={entities} onEntityClick={handleEntityClick} />
         ) : (
           <EntitiesTable
             activeConversions={activeConversions}

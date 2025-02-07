@@ -334,11 +334,10 @@ export const RowsByLocation = (props: CommonRowsProps) => {
         <RowByLocation
           domainOptions={domainOptions}
           key={
-            rule.restrictToDomain
-              ? rule.restrictToDomain
-              : rule.entityTypeIds.length
-                ? "anywhere-saved-rule"
-                : "draft-rule-no-domain"
+            rule.restrictToDomain ??
+            (rule.entityTypeIds.length
+              ? "anywhere-saved-rule"
+              : "draft-rule-no-domain")
           }
           inferenceConfig={inferenceConfig}
           setInferenceConfig={setInferenceConfig}

@@ -1,7 +1,8 @@
 import {
   type FastCheck,
   Data,
-  Effect,
+  type Effect,
+  Either,
   Equal,
   Hash,
   Inspectable,
@@ -10,8 +11,8 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../../utils.js";
-import * as Buffer from "../Buffer.js";
+import { createProto, implDecode, implEncode } from "../../utils.js";
+import { MutableBuffer } from "../../binary/index.js";
 
 import * as ProtocolVersion from "./ProtocolVersion.js";
 
@@ -85,30 +86,29 @@ const MAGIC = new Uint8Array([
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, protocol: Protocol): Buffer.WriteResult => {
-    return pipe(
-      buffer,
-      Buffer.putSlice(MAGIC),
-      Effect.andThen(ProtocolVersion.encode(protocol.version)),
-    );
-  },
+export const encode = implEncode((buffer, protocol: Protocol) =>
+  pipe(
+    buffer,
+    MutableBuffer.putSlice(MAGIC),
+    Either.andThen(ProtocolVersion.encode(protocol.version)),
+  ),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Effect.gen(function* () {
-    const magic = yield* Buffer.getSlice(buffer, 5);
+export const decode = implDecode((buffer) =>
+  Either.gen(function* () {
+    const magic = yield* MutableBuffer.getSlice(buffer, 5);
 
     if (magic.some((byte, index) => byte !== MAGIC[index])) {
-      yield* new InvalidMagicError({ received: magic });
+      yield* Either.left(new InvalidMagicError({ received: magic }));
     }
 
     const version = yield* ProtocolVersion.decode(buffer);
 
     return make(version);
-  });
+  }),
+);
 
 export const isProtocol = (value: unknown): value is Protocol =>
   Predicate.hasProperty(value, TypeId);

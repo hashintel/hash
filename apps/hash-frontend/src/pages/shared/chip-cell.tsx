@@ -128,7 +128,7 @@ export const createRenderChipCell = (params?: {
         interactables.push(
           InteractableManager.createCellInteractable(args, {
             id: generateUuid(),
-            pos: {
+            posRelativeToVisibleGridArea: {
               left: chipLeft,
               right: chipLeft + width + arrowSize + arrowSpacing,
               top,

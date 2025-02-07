@@ -1,6 +1,6 @@
 use hql_cst::expr::signature::{Argument, Generic, List, Return, Signature};
 use winnow::{
-    PResult, Parser as _, Stateful,
+    ModalResult, Parser as _, Stateful,
     combinator::{delimited, opt, preceded, separated_pair, trace},
     error::ParserError,
     stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
@@ -27,7 +27,7 @@ use crate::span::Span;
 /// ```
 pub(crate) fn parse_signature<'arena, 'span, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'span>>,
-) -> PResult<Signature<'arena>, Error>
+) -> ModalResult<Signature<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -82,7 +82,7 @@ where
 
 fn parse_generic<'arena, 'span, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'span>>,
-) -> PResult<Generic<'arena>, Error>
+) -> ModalResult<Generic<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -122,7 +122,7 @@ where
 /// ```
 fn parse_generics<'arena, 'spans, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
-) -> PResult<List<'arena, Generic<'arena>>, Error>
+) -> ModalResult<List<'arena, Generic<'arena>>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -171,7 +171,7 @@ where
 /// ```
 fn parse_argument<'arena, 'spans, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
-) -> PResult<Argument<'arena>, Error>
+) -> ModalResult<Argument<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -213,7 +213,7 @@ where
 /// ```
 fn parse_arguments<'arena, 'spans, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
-) -> PResult<List<'arena, Argument<'arena>>, Error>
+) -> ModalResult<List<'arena, Argument<'arena>>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -262,7 +262,7 @@ where
 /// ```
 fn parse_return<'arena, 'spans, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
-) -> PResult<Return<'arena>, Error>
+) -> ModalResult<Return<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>

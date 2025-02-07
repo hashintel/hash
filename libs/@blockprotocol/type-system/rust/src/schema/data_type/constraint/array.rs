@@ -4,14 +4,16 @@ use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _,
 use hash_codec::serde::constant::ConstBool;
 use itertools::{EitherOrBoth, Itertools as _};
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 use thiserror::Error;
 
-use crate::schema::{
-    ConstraintError, JsonSchemaValueType, NumberSchema, StringSchema, ValueLabel,
-    data_type::{
-        closed::ResolveClosedDataTypeError,
-        constraint::{Constraint, ConstraintValidator, boolean::BooleanSchema},
+use crate::{
+    Value,
+    schema::{
+        ConstraintError, JsonSchemaValueType, NumberSchema, StringSchema, ValueLabel,
+        data_type::{
+            closed::ResolveClosedDataTypeError,
+            constraint::{Constraint, ConstraintValidator, boolean::BooleanSchema},
+        },
     },
 };
 
@@ -67,10 +69,10 @@ impl Constraint for ArrayItemConstraints {
     }
 }
 
-impl ConstraintValidator<JsonValue> for ArrayItemConstraints {
+impl ConstraintValidator<Value> for ArrayItemConstraints {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &JsonValue) -> bool {
+    fn is_valid(&self, value: &Value) -> bool {
         match self {
             Self::Boolean => BooleanSchema.is_valid(value),
             Self::Number(schema) => schema.is_valid(value),
@@ -78,7 +80,7 @@ impl ConstraintValidator<JsonValue> for ArrayItemConstraints {
         }
     }
 
-    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Boolean => BooleanSchema.validate_value(value),
             Self::Number(schema) => schema.validate_value(value),
@@ -184,19 +186,19 @@ impl Constraint for ArraySchema {
     }
 }
 
-impl ConstraintValidator<JsonValue> for ArraySchema {
+impl ConstraintValidator<Value> for ArraySchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &JsonValue) -> bool {
-        if let JsonValue::Array(array) = value {
+    fn is_valid(&self, value: &Value) -> bool {
+        if let Value::Array(array) = value {
             self.is_valid(array.as_slice())
         } else {
             false
         }
     }
 
-    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
-        if let JsonValue::Array(array) = value {
+    fn validate_value(&self, value: &Value) -> Result<(), Report<ConstraintError>> {
+        if let Value::Array(array) = value {
             self.validate_value(array.as_slice())
         } else {
             bail!(ConstraintError::InvalidType {
@@ -207,17 +209,17 @@ impl ConstraintValidator<JsonValue> for ArraySchema {
     }
 }
 
-impl ConstraintValidator<[JsonValue]> for ArraySchema {
+impl ConstraintValidator<[Value]> for ArraySchema {
     type Error = ConstraintError;
 
-    fn is_valid(&self, value: &[JsonValue]) -> bool {
+    fn is_valid(&self, value: &[Value]) -> bool {
         match self {
             Self::Constrained(constraints) => constraints.is_valid(value),
             Self::Tuple(constraints) => constraints.is_valid(value),
         }
     }
 
-    fn validate_value(&self, value: &[JsonValue]) -> Result<(), Report<ConstraintError>> {
+    fn validate_value(&self, value: &[Value]) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Constrained(constraints) => constraints
                 .validate_value(value)
@@ -262,16 +264,16 @@ impl Constraint for ArrayConstraints {
     }
 }
 
-impl ConstraintValidator<[JsonValue]> for ArrayConstraints {
+impl ConstraintValidator<[Value]> for ArrayConstraints {
     type Error = [ArrayValidationError];
 
-    fn is_valid(&self, value: &[JsonValue]) -> bool {
+    fn is_valid(&self, value: &[Value]) -> bool {
         self.items
             .as_ref()
             .is_none_or(|items| value.iter().all(|value| items.constraints.is_valid(value)))
     }
 
-    fn validate_value(&self, value: &[JsonValue]) -> Result<(), Report<[ArrayValidationError]>> {
+    fn validate_value(&self, value: &[Value]) -> Result<(), Report<[ArrayValidationError]>> {
         let mut status = ReportSink::new();
 
         if let Some(items) = &self.items {
@@ -339,10 +341,10 @@ impl Constraint for TupleConstraints {
     }
 }
 
-impl ConstraintValidator<[JsonValue]> for TupleConstraints {
+impl ConstraintValidator<[Value]> for TupleConstraints {
     type Error = [ArrayValidationError];
 
-    fn is_valid(&self, value: &[JsonValue]) -> bool {
+    fn is_valid(&self, value: &[Value]) -> bool {
         let num_values = value.len();
         let num_prefix_items = self.prefix_items.len();
         if num_values != num_prefix_items {
@@ -355,7 +357,7 @@ impl ConstraintValidator<[JsonValue]> for TupleConstraints {
             .all(|(schema, value)| schema.constraints.is_valid(value))
     }
 
-    fn validate_value(&self, value: &[JsonValue]) -> Result<(), Report<[ArrayValidationError]>> {
+    fn validate_value(&self, value: &[Value]) -> Result<(), Report<[ArrayValidationError]>> {
         let mut status = ReportSink::new();
 
         let num_values = value.len();
@@ -389,6 +391,7 @@ impl ConstraintValidator<[JsonValue]> for TupleConstraints {
 
 #[cfg(test)]
 mod tests {
+    use hash_codec::numeric::Real;
     use serde_json::{from_value, json};
 
     use super::*;
@@ -408,9 +411,9 @@ mod tests {
             "type": "array",
         }));
 
-        check_constraints(&array_schema, &json!([]));
-        check_constraints(&array_schema, &json!([1, 2, 3]));
-        check_constraints(&array_schema, &json!([1, "2", true]));
+        check_constraints(&array_schema, json!([]));
+        check_constraints(&array_schema, json!([1, 2, 3]));
+        check_constraints(&array_schema, json!([1, "2", true]));
     }
 
     #[test]
@@ -424,24 +427,32 @@ mod tests {
             },
         }));
 
-        check_constraints(&array_schema, &json!([]));
-        check_constraints(&array_schema, &json!([1, 2, 3]));
-        check_constraints_error(&array_schema, &json!([1, "2", true]), [
-            ArrayValidationError::Items,
-        ]);
-        check_constraints_error(&array_schema, &json!([1, -2, 0]), [
-            ArrayValidationError::Items,
-        ]);
-        check_constraints_error(&array_schema, &json!([1, -2, -4]), [
-            NumberValidationError::Minimum {
-                actual: -2.0,
-                expected: 0.0,
-            },
-            NumberValidationError::Minimum {
-                actual: -4.0,
-                expected: 0.0,
-            },
-        ]);
+        check_constraints(&array_schema, json!([]));
+        check_constraints(&array_schema, json!([1, 2, 3]));
+        check_constraints_error(
+            &array_schema,
+            json!([1, "2", true]),
+            [ArrayValidationError::Items],
+        );
+        check_constraints_error(
+            &array_schema,
+            json!([1, -2, 0]),
+            [ArrayValidationError::Items],
+        );
+        check_constraints_error(
+            &array_schema,
+            json!([1, -2, -4]),
+            [
+                NumberValidationError::Minimum {
+                    actual: Real::from(-2),
+                    expected: Real::from(0),
+                },
+                NumberValidationError::Minimum {
+                    actual: Real::from(-4),
+                    expected: Real::from(0),
+                },
+            ],
+        );
     }
 
     #[test]
@@ -456,25 +467,31 @@ mod tests {
             }],
         }));
 
-        check_constraints_error(&array_schema, &json!([]), [
-            ArrayValidationError::MinItems {
+        check_constraints_error(
+            &array_schema,
+            json!([]),
+            [ArrayValidationError::MinItems {
                 actual: 0,
                 expected: 1,
-            },
-        ]);
-        check_constraints_error(&array_schema, &json!([1, 2, 3]), [
-            ArrayValidationError::MaxItems {
+            }],
+        );
+        check_constraints_error(
+            &array_schema,
+            json!([1, 2, 3]),
+            [ArrayValidationError::MaxItems {
                 actual: 3,
                 expected: 1,
-            },
-        ]);
-        check_constraints(&array_schema, &json!([1]));
-        check_constraints_error(&array_schema, &json!([15]), [
-            NumberValidationError::Maximum {
-                actual: 15.0,
-                expected: 10.0,
-            },
-        ]);
+            }],
+        );
+        check_constraints(&array_schema, json!([1]));
+        check_constraints_error(
+            &array_schema,
+            json!([15]),
+            [NumberValidationError::Maximum {
+                actual: Real::from(15),
+                expected: Real::from(10),
+            }],
+        );
     }
 
     #[test]
@@ -484,13 +501,15 @@ mod tests {
             "items": false,
         }));
 
-        check_constraints(&array_schema, &json!([]));
-        check_constraints_error(&array_schema, &json!([null]), [
-            ArrayValidationError::MaxItems {
+        check_constraints(&array_schema, json!([]));
+        check_constraints_error(
+            &array_schema,
+            json!([null]),
+            [ArrayValidationError::MaxItems {
                 actual: 1,
                 expected: 0,
-            },
-        ]);
+            }],
+        );
     }
 
     #[test]
@@ -645,10 +664,10 @@ mod tests {
                 "description": "A string with a maximum length of 12 characters",
             }],
         });
-        check_schema_intersection([array.clone(), tuple.clone()], [
-            array.clone(),
-            tuple.clone(),
-        ]);
+        check_schema_intersection(
+            [array.clone(), tuple.clone()],
+            [array.clone(), tuple.clone()],
+        );
         check_schema_intersection([tuple.clone(), array.clone()], [tuple, array]);
     }
 

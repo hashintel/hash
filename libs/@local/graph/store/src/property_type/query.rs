@@ -170,11 +170,14 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = PropertyTypeQueryPath::deserialize(json!(["propertyTypes", "*", "title"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::PropertyTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-    ///     path: Box::new(PropertyTypeQueryPath::Title),
-    ///     direction: EdgeDirection::Outgoing,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     PropertyTypeQueryPath::PropertyTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+    ///         path: Box::new(PropertyTypeQueryPath::Title),
+    ///         direction: EdgeDirection::Outgoing,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     PropertyTypeEdge {
@@ -260,7 +263,7 @@ impl QueryPath for PropertyTypeQueryPath<'_> {
             Self::TransactionTime => ParameterType::TimeInterval,
             Self::Title | Self::Description => ParameterType::Text,
             Self::EditionProvenance(_) => ParameterType::Any,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::DataTypeEdge { path, .. } => path.expected_type(),
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
             Self::EntityTypeEdge { path, .. } => path.expected_type(),

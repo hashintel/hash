@@ -34,9 +34,9 @@
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/react-dom": "19.0.2",
+    "@types/react-dom": "19.0.3",
     "block-scripts": "0.3.4",
-    "eslint": "9.17.0",
+    "eslint": "9.19.0",
     "mock-block-dock": "0.1.9",
     "prettier": "3.4.2",
     "react": "19.0.0",

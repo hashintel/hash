@@ -1,6 +1,6 @@
 import type { PropertyProvenance } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
@@ -16,7 +16,10 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Claim as ClaimEntity } from "@local/hash-isomorphic-utils/system-types/claim";
+import type {
+  Claim as ClaimEntity,
+  HasObject,
+} from "@local/hash-isomorphic-utils/system-types/claim";
 import type {
   InstitutionProperties,
   NamePropertyValueWithMetadata,
@@ -153,7 +156,9 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     const authorEntityId = entityIdFromComponents(webId, entityUuid);
 
     /**
-     * Create a claim about the person having authored the document
+     * Create a claim about the person having authored the document (person is the subject)
+     *
+     * The link to this claim will be created in persist-entity-action
      */
     const authorToDocClaim = await createClaim({
       claimText: `${authorName} authored ${documentTitle}`,
@@ -166,6 +171,28 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       subjectText: authorName,
       userActorId: userAuthentication.actorId,
     });
+
+    /**
+     * Create the link between the existing document entity and the claim (document is the object)
+     */
+    await LinkEntity.create<HasObject>(
+      graphApiClient,
+      { actorId: aiAssistantAccountId },
+      {
+        draft: createEntitiesAsDraft,
+        entityTypeIds: [systemLinkEntityTypes.hasObject.linkEntityTypeId],
+        ownedById: webId,
+        provenance,
+        linkData: {
+          leftEntityId: authorToDocClaim.entityId,
+          rightEntityId: documentEntityId,
+        },
+        relationships: createDefaultAuthorizationRelationships({
+          actorId: userAuthentication.actorId,
+        }),
+        properties: { value: {} },
+      },
+    );
 
     const authorClaims: ProposedEntity["claims"] = {
       isObjectOf: [],
@@ -183,13 +210,14 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
 
     proposedEntities.push(authorProposedEntity);
 
-    /**
-     * Propose the link between the document and the author entity
-     */
     const emptyClaims: ProposedEntity["claims"] = {
       isObjectOf: [],
       isSubjectOf: [],
     };
+
+    /**
+     * Propose the authoredBy link between the document and the author entity
+     */
     proposedEntities.push({
       claims: emptyClaims,
       entityTypeIds: [systemLinkEntityTypes.authoredBy.linkEntityTypeId],
@@ -222,7 +250,6 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
 
         /**
          * Create a claim about the person being affiliated with the institution.
-         * This will be linked to the institution entity in the persist-entity step
          */
         const authorToInstitutionClaim = await createClaim({
           claimText: `${authorName} is affiliated with ${affiliateName}`,
@@ -235,6 +262,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
           subjectText: authorName,
           userActorId: userAuthentication.actorId,
         });
+
         authorProposedEntity.claims.isSubjectOf.push(
           authorToInstitutionClaim.entityId,
         );
@@ -255,7 +283,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       }
 
       /**
-       * Create the link between the person and the institution entity
+       * Propose the link between the person and the institution entity
        */
       proposedEntities.push({
         claims: emptyClaims,

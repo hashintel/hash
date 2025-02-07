@@ -39,9 +39,12 @@ mod test {
 
     #[test]
     fn encode_id() {
-        assert_encode(&ProcedureId::new(0x01_02), expect![[r#"
+        assert_encode(
+            &ProcedureId::new(0x01_02),
+            expect![[r#"
                 0x01 0x02
-            "#]]);
+            "#]],
+        );
     }
 
     #[test]

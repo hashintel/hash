@@ -21,7 +21,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { Link } from "../../../../shared/ui";
-import { useRouteNamespace } from "../../../[shortname]/shared/use-route-namespace";
+import { useRouteNamespace } from "../../../@/[shortname]/shared/use-route-namespace";
 import { useDataTypesContext } from "../../data-types-context";
 import { SlideBackForwardCloseBar } from "../../shared/slide-back-forward-close-bar";
 import { EntityTypeContext } from "../shared/entity-type-context";
@@ -127,7 +127,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
-    defaultValues: { allOf: [], properties: [], links: [] },
+    defaultValues: { allOf: [], properties: [], links: [], inverse: {} },
   });
   const { reset } = formMethods;
 

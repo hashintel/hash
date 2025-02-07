@@ -31,9 +31,9 @@ use hash_graph_types::{
     },
     ontology::{DataTypeLookup, OntologyTypeProvider},
 };
-use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
+    Value,
     schema::{
         ClosedDataType, ClosedEntityType, ClosedMultiEntityType, ConstraintValidator as _,
         DataTypeReference, JsonSchemaValueType, PropertyObjectSchema, PropertyType,
@@ -288,7 +288,7 @@ impl EntityVisitor for EntityPreprocessor {
     async fn visit_value<P>(
         &mut self,
         desired_data_type_reference: &DataTypeReference,
-        value: &mut JsonValue,
+        value: &mut Value,
         metadata: &mut ValueMetadata,
         type_provider: &P,
     ) -> Result<(), ValueValidationReport>
@@ -317,7 +317,7 @@ impl EntityVisitor for EntityPreprocessor {
                     .try_collect_reports::<()>()
                 {
                     validation_report.provided = Some(ValueValidationError::Constraints { error });
-                };
+                }
 
                 if actual_data_type.r#abstract {
                     validation_report.r#abstract = Some(actual_data_type.id.clone());
@@ -349,7 +349,7 @@ impl EntityVisitor for EntityPreprocessor {
                     {
                         validation_report.target =
                             Some(ValueValidationError::Constraints { error });
-                    };
+                    }
                 }
                 Err(report) => {
                     validation_report.target = Some(ValueValidationError::Retrieval {
@@ -482,11 +482,11 @@ impl EntityVisitor for EntityPreprocessor {
                             });
                     }
                     Ok(conversions) => {
-                        if let Some(mut value) = property.value.as_f64() {
+                        if let Value::Number(mut value) = property.value.clone() {
                             for conversion in conversions.borrow() {
                                 value = conversion.evaluate(value);
                             }
-                            property.value = JsonValue::from(value);
+                            property.value = Value::Number(value);
                         } else {
                             property_validation.value_conversion =
                                 Some(DataTypeConversionError::WrongType {
@@ -526,15 +526,16 @@ impl EntityVisitor for EntityPreprocessor {
                 Ok(data_type) => {
                     if !data_type.borrow().metadata.conversions.is_empty() {
                         // We only support conversion of numbers for now
-                        if let Some(value) = property.value.as_f64() {
+                        if let Value::Number(value) = &property.value {
                             property.metadata.canonical = data_type
                                 .borrow()
                                 .metadata
                                 .conversions
                                 .iter()
                                 .map(|(target, conversion)| {
-                                    let converted_value = conversion.to.expression.evaluate(value);
-                                    (target.clone(), JsonValue::from(converted_value))
+                                    let converted_value =
+                                        conversion.to.expression.evaluate(value.clone());
+                                    (target.clone(), Value::Number(converted_value))
                                 })
                                 .collect();
                         } else {
@@ -555,7 +556,7 @@ impl EntityVisitor for EntityPreprocessor {
         if let Err(error) = walk_one_of_property_value(self, schema, property, type_provider).await
         {
             property_validation.validations = error.validations;
-        };
+        }
 
         if property_validation.validations.is_some()
             || property_validation.value_conversion.is_some()

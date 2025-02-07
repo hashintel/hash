@@ -1,10 +1,12 @@
 import { Skeleton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import {
@@ -26,9 +28,10 @@ import {
   DraftEntitiesFilters,
   filterDraftEntities,
   generateDefaultFilterState,
-  getDraftEntityTypes,
+  getDraftEntityTypeBaseUrls,
   isFilerStateDefaultFilterState,
 } from "./draft-entities/draft-entities-filters";
+import type { EntityTypeDisplayInfoByBaseUrl } from "./draft-entities/types";
 import { useDraftEntities } from "./draft-entities-context";
 import { DraftEntity } from "./draft-entity";
 
@@ -37,11 +40,15 @@ const incrementNumberOfEntitiesToDisplay = 20;
 export type SortOrder = "created-at-asc" | "created-at-desc";
 
 export const DraftEntities: FunctionComponent<{
+  closedMultiEntityTypesRootMap?: ClosedMultiEntityTypesRootMap;
+  entityTypeDisplayInfoByBaseUrl?: EntityTypeDisplayInfoByBaseUrl;
   sortOrder: SortOrder;
   selectedDraftEntityIds: EntityId[];
   setSelectedDraftEntityIds: Dispatch<SetStateAction<EntityId[]>>;
   draftEntitiesWithLinkedDataSubgraph?: Subgraph<EntityRootType>;
 }> = ({
+  closedMultiEntityTypesRootMap,
+  entityTypeDisplayInfoByBaseUrl,
   sortOrder,
   selectedDraftEntityIds,
   setSelectedDraftEntityIds,
@@ -106,7 +113,6 @@ export const DraftEntities: FunctionComponent<{
   ) {
     const newDraftFilterState = generateDefaultFilterState({
       draftEntitiesWithCreators,
-      draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
     });
 
     // Note that the initial filter state includes all draft entity type Base URLs
@@ -117,14 +123,13 @@ export const DraftEntities: FunctionComponent<{
     setFilterState(newDraftFilterState);
   }
 
-  const rootEntityTypesInSubgraph = useMemo(
+  const rootEntityTypeBaseUrls = useMemo(
     () =>
       draftEntitiesWithCreators && draftEntitiesWithLinkedDataSubgraph
-        ? getDraftEntityTypes({
+        ? getDraftEntityTypeBaseUrls({
             draftEntities: draftEntitiesWithCreators.map(
               ({ entity }) => entity,
             ),
-            draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
           })
         : undefined,
     [draftEntitiesWithCreators, draftEntitiesWithLinkedDataSubgraph],
@@ -132,17 +137,15 @@ export const DraftEntities: FunctionComponent<{
 
   const newDraftEntityTypeBaseUrls = useMemo(
     () =>
-      rootEntityTypesInSubgraph &&
+      rootEntityTypeBaseUrls &&
       previouslyEvaluatedDraftEntityTypeBaseUrls &&
-      rootEntityTypesInSubgraph
-        .map((entityType) => extractBaseUrl(entityType.schema.$id))
-        .filter(
-          (entityTypeBaseUrl) =>
-            !previouslyEvaluatedDraftEntityTypeBaseUrls.includes(
-              entityTypeBaseUrl,
-            ),
-        ),
-    [rootEntityTypesInSubgraph, previouslyEvaluatedDraftEntityTypeBaseUrls],
+      rootEntityTypeBaseUrls.filter(
+        (entityTypeBaseUrl) =>
+          !previouslyEvaluatedDraftEntityTypeBaseUrls.includes(
+            entityTypeBaseUrl,
+          ),
+      ),
+    [rootEntityTypeBaseUrls, previouslyEvaluatedDraftEntityTypeBaseUrls],
   );
 
   if (newDraftEntityTypeBaseUrls && newDraftEntityTypeBaseUrls.length > 0) {
@@ -176,7 +179,6 @@ export const DraftEntities: FunctionComponent<{
       !!draftEntitiesWithLinkedDataSubgraph &&
       isFilerStateDefaultFilterState({
         draftEntitiesWithCreators,
-        draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
       })(filterState),
     [
       filterState,
@@ -332,7 +334,8 @@ export const DraftEntities: FunctionComponent<{
               }}
             >
               {displayedDraftEntitiesWithCreatedAt &&
-              draftEntitiesWithLinkedDataSubgraph ? (
+              draftEntitiesWithLinkedDataSubgraph &&
+              entityTypeDisplayInfoByBaseUrl ? (
                 <>
                   {displayedDraftEntitiesWithCreatedAt.map(
                     ({ entity }, i, all) => {
@@ -342,7 +345,13 @@ export const DraftEntities: FunctionComponent<{
                       return (
                         <Fragment key={entity.metadata.recordId.entityId}>
                           <DraftEntity
+                            closedMultiEntityTypesRootMap={
+                              closedMultiEntityTypesRootMap
+                            }
                             entity={entity}
+                            entityTypeDisplayInfoByBaseUrl={
+                              entityTypeDisplayInfoByBaseUrl
+                            }
                             subgraph={draftEntitiesWithLinkedDataSubgraph}
                             selected={isSelected}
                             toggleSelected={() =>
@@ -417,6 +426,7 @@ export const DraftEntities: FunctionComponent<{
       {draftEntitiesWithCreators &&
       draftEntitiesWithCreators.length === 0 ? null : (
         <DraftEntitiesFilters
+          entityTypeDisplayInfoByBaseUrl={entityTypeDisplayInfoByBaseUrl}
           draftEntitiesWithCreators={draftEntitiesWithCreators}
           draftEntitiesSubgraph={draftEntitiesWithLinkedDataSubgraph}
           filterState={filterState}

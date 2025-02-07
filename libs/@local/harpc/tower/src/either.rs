@@ -62,7 +62,7 @@ impl<L, R> Either<L, R> {
         }
     }
 
-    pub fn left_mut(&mut self) -> Option<&mut L> {
+    pub const fn left_mut(&mut self) -> Option<&mut L> {
         match self {
             Self::Left(left) => Some(left),
             Self::Right(_) => None,
@@ -83,7 +83,7 @@ impl<L, R> Either<L, R> {
         }
     }
 
-    pub fn right_mut(&mut self) -> Option<&mut R> {
+    pub const fn right_mut(&mut self) -> Option<&mut R> {
         match self {
             Self::Left(_) => None,
             Self::Right(right) => Some(right),
@@ -116,7 +116,7 @@ impl<T> Either<T, T> {
         }
     }
 
-    pub fn inner_mut(&mut self) -> &mut T {
+    pub const fn inner_mut(&mut self) -> &mut T {
         match self {
             Self::Left(left) => left,
             Self::Right(right) => right,

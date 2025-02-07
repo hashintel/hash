@@ -53,7 +53,7 @@ impl<B> Response<B> {
         &self.body
     }
 
-    pub fn body_mut(&mut self) -> &mut B {
+    pub const fn body_mut(&mut self) -> &mut B {
         &mut self.body
     }
 
@@ -65,7 +65,7 @@ impl<B> Response<B> {
         &self.head.extensions
     }
 
-    pub fn extensions_mut(&mut self) -> &mut Extensions {
+    pub const fn extensions_mut(&mut self) -> &mut Extensions {
         &mut self.head.extensions
     }
 

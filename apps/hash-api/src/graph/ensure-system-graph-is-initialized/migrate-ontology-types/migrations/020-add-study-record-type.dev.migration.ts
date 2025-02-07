@@ -563,7 +563,7 @@ const migrate: MigrationFunction = async ({
             linkEntityType: investigatedByLinkEntityType.schema.$id,
           },
           {
-            destinationEntityTypes: [contactLinkEntityType.schema.$id],
+            destinationEntityTypes: [personEntityTypeId],
             linkEntityType: contactLinkEntityType.schema.$id,
           },
         ],

@@ -263,6 +263,16 @@
     },
     {
       "matchManagers": ["cargo"],
+      "groupName": "`dashu` Rust crates",
+      "matchPackageNames": ["/^dashu[-_]?/"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "groupName": "`napi` Rust crates",
+      "matchPackageNames": ["/^napi[-_]?/"]
+    },
+    {
+      "matchManagers": ["cargo"],
       "groupName": "`tower` Rust crates",
       "matchPackageNames": ["/^tower[-_]?/"]
     },

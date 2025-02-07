@@ -4,6 +4,7 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   componentsFromVersionedUrl,
+  extractBaseUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 
@@ -123,6 +124,65 @@ export const generateLinkMapWithConsistentSelfReferences = (
     },
     {},
   );
+
+export const rewriteSchemasToNextVersion = (
+  entityTypesToChange: EntityType[],
+) => {
+  const baseUrlToNewVersion: Record<BaseUrl, VersionedUrl> = {};
+
+  for (const entityType of entityTypesToChange) {
+    const { baseUrl, version } = componentsFromVersionedUrl(entityType.$id);
+
+    baseUrlToNewVersion[baseUrl] = versionedUrlFromComponents(
+      baseUrl,
+      version + 1,
+    );
+  }
+
+  const updatedSchemas: EntityType[] = [];
+
+  for (const entityType of entityTypesToChange) {
+    const clonedType = JSON.parse(
+      JSON.stringify(entityType),
+    ) as typeof entityType;
+
+    for (const [linkTypeId, linkSchema] of typedEntries(
+      clonedType.links ?? {},
+    )) {
+      if ("oneOf" in linkSchema.items) {
+        for (const item of linkSchema.items.oneOf) {
+          const baseUrl = extractBaseUrl(item.$ref);
+
+          const newDestinationVersionedUrl = baseUrlToNewVersion[baseUrl];
+          if (newDestinationVersionedUrl) {
+            item.$ref = newDestinationVersionedUrl;
+          }
+        }
+      }
+
+      const baseUrl = extractBaseUrl(linkTypeId);
+      const newLinkTypeId = baseUrlToNewVersion[baseUrl];
+
+      if (newLinkTypeId) {
+        delete clonedType.links?.[linkTypeId];
+        clonedType.links![newLinkTypeId] = linkSchema;
+      }
+    }
+
+    for (const allOf of clonedType.allOf ?? []) {
+      const baseUrl = extractBaseUrl(allOf.$ref);
+      const newAllOfVersionedUrl = baseUrlToNewVersion[baseUrl];
+
+      if (newAllOfVersionedUrl) {
+        allOf.$ref = newAllOfVersionedUrl;
+      }
+    }
+
+    updatedSchemas.push(clonedType);
+  }
+
+  return updatedSchemas;
+};
 
 const hashFormattedVersionedUrlRegExp =
   /https?:\/\/.+\/@(.+)\/types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;

@@ -37,18 +37,27 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
 
     let token = api
         .touch_relationships([
-            (ENTITY_A, EntityRelationAndSubject::Editor {
-                subject: EntityEditorSubject::Account { id: ALICE },
-                level: 0,
-            }),
-            (ENTITY_A, EntityRelationAndSubject::Viewer {
-                subject: EntityViewerSubject::Account { id: BOB },
-                level: 0,
-            }),
-            (ENTITY_B, EntityRelationAndSubject::Editor {
-                subject: EntityEditorSubject::Account { id: BOB },
-                level: 0,
-            }),
+            (
+                ENTITY_A,
+                EntityRelationAndSubject::Editor {
+                    subject: EntityEditorSubject::Account { id: ALICE },
+                    level: 0,
+                },
+            ),
+            (
+                ENTITY_A,
+                EntityRelationAndSubject::Viewer {
+                    subject: EntityViewerSubject::Account { id: BOB },
+                    level: 0,
+                },
+            ),
+            (
+                ENTITY_B,
+                EntityRelationAndSubject::Editor {
+                    subject: EntityEditorSubject::Account { id: BOB },
+                    level: 0,
+                },
+            ),
         ])
         .await?
         .written_at;
@@ -136,10 +145,13 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
 
     let token = api
-        .delete_relationships([(ENTITY_A, EntityRelationAndSubject::Viewer {
-            subject: EntityViewerSubject::Account { id: BOB },
-            level: 0,
-        })])
+        .delete_relationships([(
+            ENTITY_A,
+            EntityRelationAndSubject::Viewer {
+                subject: EntityViewerSubject::Account { id: BOB },
+                level: 0,
+            },
+        )])
         .await?
         .written_at;
 

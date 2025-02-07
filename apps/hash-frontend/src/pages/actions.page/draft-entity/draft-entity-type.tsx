@@ -1,32 +1,28 @@
 import { ArrowUpRegularIcon, EntityOrTypeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
-import { useMemo } from "react";
 
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
+import type { EntityTypeDisplayInfoByBaseUrl } from "../draft-entities/types";
 
 const iconSx = { fontSize: 14, marginRight: 0.5 };
 
 export const DraftEntityType: FunctionComponent<{
   entity: Entity;
-  subgraph: Subgraph<EntityRootType>;
-}> = ({ entity, subgraph }) => {
-  const entityType = useMemo(() => {
-    const entityTypeInSubgraph = getEntityTypeById(
-      subgraph,
-      entity.metadata.entityTypeIds[0],
+  entityTypeDisplayInfoByBaseUrl: EntityTypeDisplayInfoByBaseUrl;
+}> = ({ entity, entityTypeDisplayInfoByBaseUrl }) => {
+  const entityType =
+    entityTypeDisplayInfoByBaseUrl[
+      extractBaseUrl(entity.metadata.entityTypeIds[0])
+    ];
+
+  if (!entityType) {
+    throw new Error(
+      `Entity type for ${entity.metadata.entityTypeIds[0]} not found in entityTypeDisplayInfoByBaseUrl`,
     );
-
-    if (!entityTypeInSubgraph) {
-      throw new Error("Entity type not found in subgraph");
-    }
-
-    return entityTypeInSubgraph;
-  }, [entity, subgraph]);
+  }
 
   const isUpdate =
     !!entity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
@@ -77,6 +73,7 @@ export const DraftEntityType: FunctionComponent<{
         }}
       >
         <Typography
+          component="div"
           sx={{
             fontWeight: 500,
             fontSize: 12,
@@ -88,18 +85,11 @@ export const DraftEntityType: FunctionComponent<{
             entity={null}
             fill={({ palette }) => palette.gray[50]}
             fontSize={12}
-            icon={entityType.schema.icon}
-            isLink={
-              /**
-               * @todo H-3363 use closed schema to take account of indirectly inherited link status
-               */
-              !!entityType.schema.allOf?.some(
-                (allOf) => allOf.$ref === linkEntityTypeUrl,
-              )
-            }
+            icon={entityType.icon}
+            isLink={entityType.isLink}
             sx={{ mr: 0.5 }}
           />
-          {entityType.schema.title}
+          {entityType.title}
         </Typography>
       </Box>
     </Box>

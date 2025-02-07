@@ -178,7 +178,7 @@ mod tests {
                     path: DataTypeQueryPath::Version,
                 }),
                 Some(FilterExpression::Parameter {
-                    parameter: Parameter::I32(1),
+                    parameter: Parameter::Integer(1),
                     convert: None,
                 }),
             ),
@@ -264,12 +264,15 @@ mod tests {
             .map(|parameter| format!("{parameter:?}"))
             .collect::<Vec<_>>();
 
-        assert_eq!(parameters, &[
-            format!("{:?}", temporal_axes.pinned_timestamp()).as_str(),
-            "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
-            "1",
-            "\"some title\"",
-            "\"some description\""
-        ]);
+        assert_eq!(
+            parameters,
+            &[
+                format!("{:?}", temporal_axes.pinned_timestamp()).as_str(),
+                "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
+                "1",
+                "\"some title\"",
+                "\"some description\""
+            ]
+        );
     }
 }

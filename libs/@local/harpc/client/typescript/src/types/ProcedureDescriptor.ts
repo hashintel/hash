@@ -1,6 +1,7 @@
 import {
   type FastCheck,
-  Effect,
+  type Effect,
+  Either,
   Equal,
   Hash,
   Inspectable,
@@ -9,8 +10,7 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, encodeDual } from "../utils.js";
-import type * as Buffer from "../wire-protocol/Buffer.js";
+import { createProto, implDecode, implEncode } from "../utils.js";
 
 import * as ProcedureId from "./ProcedureId.js";
 
@@ -73,15 +73,15 @@ export const make = (id: ProcedureId.ProcedureId): ProcedureDescriptor =>
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, descriptor: ProcedureDescriptor) =>
-    ProcedureId.encode(buffer, descriptor.id),
+export const encode = implEncode((buffer, descriptor: ProcedureDescriptor) =>
+  ProcedureId.encode(buffer, descriptor.id),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  ProcedureId.decode(buffer).pipe(Effect.map(make));
+export const decode = implDecode((buffer) =>
+  ProcedureId.decode(buffer).pipe(Either.map(make)),
+);
 
 export const isProcedureDescriptor = (
   value: unknown,

@@ -1,4 +1,5 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -17,9 +18,7 @@ import { FilePdfLightIcon } from "../../../../../shared/icons/file-pdf-light-ico
 import { FilePowerpointLightIcon } from "../../../../../shared/icons/file-powerpoint-light-icon";
 import { FileVideoLightIcon } from "../../../../../shared/icons/file-video-light-icon";
 import { FileWordLightIcon } from "../../../../../shared/icons/file-word-light-icon";
-import { Link } from "../../../../../shared/ui";
 import { getImageUrlFromEntityProperties } from "../../../get-file-properties";
-import { useEntityHref } from "../../../use-entity-href";
 import { GridViewItemWrapper } from "./grid-view-item-wrapper";
 
 /**
@@ -61,7 +60,8 @@ export const GridViewItem: FunctionComponent<{
   entity: Entity;
   numberOfItems: number;
   index: number;
-}> = ({ entity, numberOfItems, index }) => {
+  onEntityClick: (entityId: EntityId) => void;
+}> = ({ entity, numberOfItems, index, onEntityClick }) => {
   const { includesSpecialEntityTypes } = useEntityTypesContextRequired();
 
   const fileEntity = useMemo(() => {
@@ -122,111 +122,110 @@ export const GridViewItem: FunctionComponent<{
     return defaultFileIcon;
   }, [fileEntity]);
 
-  const href = useEntityHref(entity, false);
-
   const imageUrl = useMemo(() => {
     return getImageUrlFromEntityProperties(entity.properties);
   }, [entity]);
 
   return (
     <GridViewItemWrapper numberOfItems={numberOfItems} index={index}>
-      <Link href={href} noLinkStyle>
+      <Box
+        role="button"
+        title={fileName}
+        onClick={() => onEntityClick(entity.metadata.recordId.entityId)}
+        sx={{
+          cursor: "pointer",
+          padding: 3,
+          width: "100%",
+          height: "100%",
+          background: "transparent",
+          transition: ({ transitions }) => transitions.create("background"),
+          "&:hover": {
+            background: ({ palette }) => palette.gray[15],
+          },
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <Box
-          title={fileName}
           sx={{
-            padding: 3,
-            width: "100%",
-            height: "100%",
-            background: "transparent",
-            transition: ({ transitions }) => transitions.create("background"),
-            "&:hover": {
-              background: ({ palette }) => palette.gray[15],
-            },
+            height: 150,
+            position: "relative",
             display: "flex",
-            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 1,
           }}
         >
-          <Box
-            sx={{
-              height: 150,
-              position: "relative",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 1,
-            }}
-          >
-            {imageUrl ? (
-              <Box
-                component="img"
-                src={imageUrl}
-                alt={fileName ?? "image"}
-                sx={{
-                  borderRadius: "4px",
-                  objectFit: "contain",
-                  maxWidth: "100%",
-                  maxHeight: "100%",
-                }}
-              />
-            ) : (
-              <Box
-                sx={{
-                  borderRadius: "16px",
-                  borderColor: ({ palette }) => palette.teal[30],
-                  borderStyle: "solid",
-                  borderWidth: 1,
-                  background: ({ palette }) => palette.teal[10],
-                  width: 100,
-                  height: 100,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  svg: {
-                    color: ({ palette }) => palette.teal[90],
-                    fontSize: 40,
-                  },
-                }}
-              >
-                {icon}
-              </Box>
-            )}
-          </Box>
-          <Box
-            sx={{
-              flexGrow: 1,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-            }}
-          >
-            <Typography
+          {imageUrl ? (
+            <Box
+              component="img"
+              src={imageUrl}
+              alt={fileName ?? "image"}
               sx={{
-                textAlign: "center",
-                fontSize: 15,
-                color: ({ palette }) => palette.gray[90],
-                fontWeight: 600,
-                display: "-webkit-box",
-                webkitLineClamp: "2",
-                webkitBoxOrient: "vertical",
-                overflow: "hidden",
+                borderRadius: "4px",
+                objectFit: "contain",
+                maxWidth: "100%",
+                maxHeight: "100%",
+              }}
+            />
+          ) : (
+            <Box
+              sx={{
+                borderRadius: "16px",
+                borderColor: ({ palette }) => palette.teal[30],
+                borderStyle: "solid",
+                borderWidth: 1,
+                background: ({ palette }) => palette.teal[10],
+                width: 100,
+                height: 100,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                svg: {
+                  color: ({ palette }) => palette.teal[90],
+                  fontSize: 40,
+                },
               }}
             >
-              {fileNameWithoutExtension}
-              {fileExtension ? (
-                <Box
-                  component="span"
-                  sx={{
-                    color: ({ palette }) => palette.gray[50],
-                    fontWeight: 400,
-                  }}
-                >
-                  .{fileExtension}
-                </Box>
-              ) : undefined}
-            </Typography>
-          </Box>
+              {icon}
+            </Box>
+          )}
         </Box>
-      </Link>
+        <Box
+          sx={{
+            flexGrow: 1,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+          }}
+        >
+          <Typography
+            sx={{
+              textAlign: "center",
+              fontSize: 15,
+              color: ({ palette }) => palette.gray[90],
+              fontWeight: 600,
+              display: "-webkit-box",
+              webkitLineClamp: "2",
+              webkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {fileNameWithoutExtension}
+            {fileExtension ? (
+              <Box
+                component="span"
+                sx={{
+                  color: ({ palette }) => palette.gray[50],
+                  fontWeight: 400,
+                }}
+              >
+                .{fileExtension}
+              </Box>
+            ) : undefined}
+          </Typography>
+        </Box>
+      </Box>
     </GridViewItemWrapper>
   );
 };

@@ -1,12 +1,14 @@
 import type { DataEditorProps } from "@glideapps/glide-data-grid";
 import { isObjectEditorCallbackResult } from "@glideapps/glide-data-grid";
-import type { PropsWithChildren, RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
 import { useScrollLock } from "../../../shared/use-scroll-lock";
 import { InteractableManager } from "./interactable-manager";
 
-const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
+const ScrollLockWrapper = ({
+  children,
+}: { children: ReactNode | Promise<ReactNode> }) => {
   /**
    * The editBarContext provides the node that will have vertical scroll when the page is longer than the viewport
    */

@@ -122,11 +122,10 @@ async fn insert() {
     };
 
     let entities = api
-        .create_entities(api.account_id, vec![
-            alice_entity,
-            friendship_entity,
-            bob_entity,
-        ])
+        .create_entities(
+            api.account_id,
+            vec![alice_entity, friendship_entity, bob_entity],
+        )
         .await
         .expect("could not create entity");
 

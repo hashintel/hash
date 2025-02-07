@@ -2,6 +2,7 @@ import {
   type FastCheck,
   Data,
   Effect,
+  Either,
   Equal,
   Hash,
   Inspectable,
@@ -11,8 +12,8 @@ import {
 } from "effect";
 
 import { U16_MAX, U16_MIN } from "../constants.js";
-import { createProto, encodeDual } from "../utils.js";
-import * as Buffer from "../wire-protocol/Buffer.js";
+import { createProto, implDecode, implEncode } from "../utils.js";
+import { MutableBuffer } from "../binary/index.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/ProcedureId",
@@ -106,15 +107,15 @@ export const make = (
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
-export const encode = encodeDual(
-  (buffer: Buffer.WriteBuffer, procedureId: ProcedureId) =>
-    Buffer.putU16(buffer, procedureId.value),
+export const encode = implEncode((buffer, procedureId: ProcedureId) =>
+  MutableBuffer.putU16(buffer, procedureId.value),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = (buffer: Buffer.ReadBuffer) =>
-  Buffer.getU16(buffer).pipe(Effect.map(makeUnchecked));
+export const decode = implDecode((buffer) =>
+  MutableBuffer.getU16(buffer).pipe(Either.map(makeUnchecked)),
+);
 
 export const isProcedureId = (value: unknown): value is ProcedureId =>
   Predicate.hasProperty(value, TypeId);

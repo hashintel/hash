@@ -394,7 +394,9 @@ export const ClaimsTable = memo(
          * We know we are only setting it as a string, so we can throw an error if it is not.
          */
         if (typeof claimText === "object") {
-          throw new Error(`Claim text is not a string: ${claimText}`);
+          throw new Error(
+            `Claim text is not a string: ${JSON.stringify(claimText)}`,
+          );
         }
 
         const objectText =

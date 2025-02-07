@@ -184,12 +184,15 @@ pub enum DataTypeQueryPath<'p> {
     /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = DataTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUrl"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::DataTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///     path: Box::new(DataTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Outgoing,
-    ///     inheritance_depth: None,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     DataTypeQueryPath::DataTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Outgoing,
+    ///         inheritance_depth: None,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -201,12 +204,15 @@ pub enum DataTypeQueryPath<'p> {
     /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = DataTypeQueryPath::deserialize(json!(["children", "*", "baseUrl"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::DataTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///     path: Box::new(DataTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Incoming,
-    ///     inheritance_depth: None,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     DataTypeQueryPath::DataTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Incoming,
+    ///         inheritance_depth: None,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -224,12 +230,15 @@ pub enum DataTypeQueryPath<'p> {
     ///     "*",
     ///     "baseUrl"
     /// ]))?;
-    /// assert_eq!(path, DataTypeQueryPath::DataTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///     path: Box::new(DataTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Outgoing,
-    ///     inheritance_depth: Some(10),
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     DataTypeQueryPath::DataTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Outgoing,
+    ///         inheritance_depth: Some(10),
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -242,12 +251,15 @@ pub enum DataTypeQueryPath<'p> {
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path =
     ///     DataTypeQueryPath::deserialize(json!(["children(inheritanceDepth=10)", "*", "baseUrl"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::DataTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///     path: Box::new(DataTypeQueryPath::BaseUrl),
-    ///     direction: EdgeDirection::Incoming,
-    ///     inheritance_depth: Some(10),
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     DataTypeQueryPath::DataTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Incoming,
+    ///         inheritance_depth: Some(10),
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     DataTypeEdge {
@@ -331,7 +343,7 @@ impl QueryPath for DataTypeQueryPath<'_> {
             Self::TransactionTime => ParameterType::TimeInterval,
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::Description | Self::Title | Self::Type => ParameterType::Text,
-            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::TargetConversionBaseUrls => {
                 ParameterType::Vector(Box::new(ParameterType::BaseUrl))
             }
