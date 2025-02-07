@@ -150,7 +150,7 @@ async function run() {
 
   const httpServer = createHealthCheckServer();
   const port = 4100;
-  httpServer.listen({ host: "::", port });
+  httpServer.listen({ host: "0.0.0.0", port });
 
   logger.info(`HTTP server listening on port ${port}`);
 
