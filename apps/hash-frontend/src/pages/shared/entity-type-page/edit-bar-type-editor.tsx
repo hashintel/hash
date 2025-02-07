@@ -14,11 +14,11 @@ import {
 } from "../../@/[shortname]/shared/edit-bar";
 
 const useFrozenValue = <T extends number | boolean | object>(value: T): T => {
-  const { isDirty } = useEntityTypeFormState<EntityTypeEditorFormData>();
+  const { dirtyFields } = useEntityTypeFormState<EntityTypeEditorFormData>();
 
   const [frozen, setFrozen] = useState(value);
 
-  if (isDirty && frozen !== value) {
+  if (Object.keys(dirtyFields).length > 0 && frozen !== value) {
     setFrozen(value);
   }
 
@@ -32,12 +32,13 @@ export const EditBarTypeEditor = ({
   currentVersion: number;
   discardButtonProps: Partial<ButtonProps>;
 }) => {
-  const { isDirty, isSubmitting } =
+  const { dirtyFields, isSubmitting } =
     useEntityTypeFormState<EntityTypeEditorFormData>();
   const frozenVersion = useFrozenValue(currentVersion);
   const ref = useFreezeScrollWhileTransitioning();
 
-  const collapseIn = currentVersion === 0 || isDirty;
+  const collapseIn =
+    currentVersion === 0 || Object.keys(dirtyFields).length > 0;
 
   const frozenDiscardButtonProps = useFrozenValue(discardButtonProps);
 
