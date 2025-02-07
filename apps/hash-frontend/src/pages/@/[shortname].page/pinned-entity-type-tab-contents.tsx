@@ -87,6 +87,7 @@ const EntityRow: FunctionComponent<{
               /**
                * @todo H-3363 use closed schema to take account of indirectly inherited link status
                */
+              entityType?.schema.$id === linkEntityTypeUrl ||
               !!entityType?.schema.allOf?.some(
                 (allOf) => allOf.$ref === linkEntityTypeUrl,
               )
