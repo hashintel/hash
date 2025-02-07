@@ -711,7 +711,7 @@ const main = async () => {
   // This is done because the Redis client blocks when instantiated
   // and we must ensure that the health checks are available ASAP.
   await new Promise<void>((resolve) => {
-    httpServer.listen({ port }, () => {
+    httpServer.listen({ host: "0.0.0.0", port }, () => {
       logger.info(`Listening on port ${port}`);
       logger.info(`GraphQL path: ${apolloServer.graphqlPath}`);
       resolve();

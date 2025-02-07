@@ -127,7 +127,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
-    defaultValues: { allOf: [], properties: [], links: [] },
+    defaultValues: { allOf: [], properties: [], links: [], inverse: {} },
   });
   const { reset } = formMethods;
 
