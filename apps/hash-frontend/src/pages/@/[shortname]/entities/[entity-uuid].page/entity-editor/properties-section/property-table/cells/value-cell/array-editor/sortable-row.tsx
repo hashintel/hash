@@ -32,11 +32,14 @@ interface SortableRowProps {
   onEditClicked?: (id: string) => void;
   editing: boolean;
   expectedTypes: ClosedDataTypeDefinition[];
+  isLastRow: boolean;
   onSaveChanges: (index: number, value: unknown) => void;
   onDiscardChanges: () => void;
+  readonly: boolean;
 }
 
 export const SortableRow = ({
+  isLastRow,
   item,
   onRemove,
   selected,
@@ -45,6 +48,7 @@ export const SortableRow = ({
   onSaveChanges,
   onDiscardChanges,
   editing,
+  readonly,
 }: SortableRowProps) => {
   const { id, value, index, dataType } = item;
   const {
@@ -80,7 +84,7 @@ export const SortableRow = ({
   const { arrayEditException } = editorSpec;
 
   const shouldShowActions =
-    !isDragging && !isSorting && (hovered || selected || editing);
+    !readonly && !isDragging && !isSorting && (hovered || selected || editing);
 
   if (prevEditing !== editing) {
     setPrevEditing(editing);
@@ -177,7 +181,7 @@ export const SortableRow = ({
         minHeight: 48,
         display: "flex",
         alignItems: "center",
-        borderBottom: "1px solid",
+        borderBottom: isLastRow ? "none" : "1px solid",
         borderColor: isDragging ? "transparent" : "gray.20",
         position: "relative",
         outline: "none",
@@ -186,23 +190,26 @@ export const SortableRow = ({
       onMouseLeave={() => setHovered(false)}
       onClick={() => onSelect?.(id)}
     >
-      <Box
-        {...listeners}
-        sx={{
-          cursor: isDragging || isSorting ? "grabbing" : "grab",
-          px: 1.5,
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        <DragIndicatorIcon sx={{ fontSize: 14, color: "gray.50" }} />
-      </Box>
+      {!readonly && (
+        <Box
+          {...listeners}
+          sx={{
+            cursor: isDragging || isSorting ? "grabbing" : "grab",
+            pl: 1.5,
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <DragIndicatorIcon sx={{ fontSize: 14, color: "gray.50" }} />
+        </Box>
+      )}
 
       <Typography
         variant="smallTextLabels"
         sx={{
           color: "gray.50",
+          ml: 1.5,
           mr: 1,
         }}
       >
