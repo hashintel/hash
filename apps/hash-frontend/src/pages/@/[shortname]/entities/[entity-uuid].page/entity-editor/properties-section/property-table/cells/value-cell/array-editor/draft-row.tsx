@@ -82,6 +82,8 @@ export const DraftRow = ({
         }}
         onDiscardChanges={onDraftDiscarded}
         expectedTypes={expectedTypes}
+        readonly={false}
+        isLastRow
       />
       {arrayConstraints && (
         <ItemLimitInfo
