@@ -197,7 +197,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
     <Box mb={6}>
       <Box display="flex" alignItems="center" columnGap={1.5} marginBottom={1}>
         <ProfileSectionHeading>{currentTab.pluralTitle}</ProfileSectionHeading>
-        <Box display="flex" alignItems="center" columnGap={1}>
+        <Box display="flex" alignItems="center" columnGap={0.5}>
           <Typography
             sx={{
               fontSize: 12,
@@ -222,7 +222,6 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
                 fontSize: 12,
                 marginRight: 0.5,
                 position: "relative",
-                top: -1,
               },
             }}
             value={sortOrder}
