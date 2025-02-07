@@ -42,7 +42,7 @@
     },
     "start:healthcheck": {
       "cache": false,
-      "dependsOn": ["start:migrate"]
+      "dependsOn": ["build", "^start:healthcheck"]
     },
 
     "start:test:migrate": {
@@ -56,7 +56,7 @@
     },
     "start:test:healthcheck": {
       "cache": false,
-      "dependsOn": ["start:test:migrate"]
+      "dependsOn": ["build", "^start:test:healthcheck"]
     },
 
     // Test commands
