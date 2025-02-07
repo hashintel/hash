@@ -70,7 +70,7 @@
     "dedent": "0.7.0",
     "dotenv-flow": "3.3.0",
     "e2b": "0.13.1",
-    "exponential-backoff": "3.1.1",
+    "exponential-backoff": "3.1.2",
     "googleapis": "133.0.0",
     "gpt-tokenizer": "2.8.1",
     "is-docker": "3.0.0",
