@@ -73,7 +73,7 @@
     "copy-webpack-plugin": "11.0.0",
     "css-loader": "6.11.0",
     "dotenv-flow": "3.3.0",
-    "eslint": "9.19.0",
+    "eslint": "9.20.0",
     "file-loader": "6.2.0",
     "fs-extra": "11.3.0",
     "html-loader": "4.2.0",
