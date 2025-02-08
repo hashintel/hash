@@ -315,7 +315,7 @@ __metadata:
     gpt-tokenizer: "npm:2.8.1"
     is-docker: "npm:3.0.0"
     jsdom: "npm:24.1.3"
-    llamaindex: "npm:0.8.33"
+    llamaindex: "npm:0.8.34"
     lodash.debounce: "npm:4.0.8"
     lodash.isequal: "npm:4.5.0"
     lodash.ismatch: "npm:4.4.0"
@@ -8425,17 +8425,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@llamaindex/clip@npm:0.0.31":
-  version: 0.0.31
-  resolution: "@llamaindex/clip@npm:0.0.31"
+"@llamaindex/clip@npm:0.0.32":
+  version: 0.0.32
+  resolution: "@llamaindex/clip@npm:0.0.32"
   dependencies:
     "@huggingface/transformers": "npm:^3.0.2"
     "@llamaindex/core": "npm:0.4.21"
     "@llamaindex/env": "npm:0.1.25"
-    "@llamaindex/openai": "npm:0.1.47"
+    "@llamaindex/openai": "npm:0.1.48"
   peerDependencies:
     "@huggingface/transformers": ^3.0.2
-  checksum: 10c0/5fedcd90c78b3c5097581318617dcc2a33f538807bf86ca848db3f35b7665b1a4020ff5a7b922a8d849d4ae35c38ecd8dec08e60b981e75f6329a0553a5a10fe
+  checksum: 10c0/83448834663f90c173ab5b7998e8a7f7f05c8a11453145e3d56026e2fbba61d355e119457c3d746b099812f6ca472b9f8696fbb2283e7fadeded253416afdf63
   languageName: node
   linkType: hard
 
@@ -8473,14 +8473,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@llamaindex/deepinfra@npm:0.0.31":
-  version: 0.0.31
-  resolution: "@llamaindex/deepinfra@npm:0.0.31"
+"@llamaindex/deepinfra@npm:0.0.32":
+  version: 0.0.32
+  resolution: "@llamaindex/deepinfra@npm:0.0.32"
   dependencies:
     "@llamaindex/core": "npm:0.4.21"
     "@llamaindex/env": "npm:0.1.25"
-    "@llamaindex/openai": "npm:0.1.47"
-  checksum: 10c0/9108fe46262eb25fe1e26bdb09559af9dc4dfbed2e197ffb166cec60ec47f4f333cd79102d8f69bd82c41fc9daa422ee5341cdf911cb5af260dc7fd41cc60a17
+    "@llamaindex/openai": "npm:0.1.48"
+  checksum: 10c0/30b0fd83a68fdd4dd327f9ce7bdf7a3ac3a79a68870214c0d5e588e8d665a657d9da9ae4fbf2cf9ac7fd3435f31b9f3913e3cacb0c8c2a0090f9714d02be0a0c
   languageName: node
   linkType: hard
 
@@ -8520,29 +8520,29 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@llamaindex/groq@npm:0.0.46":
-  version: 0.0.46
-  resolution: "@llamaindex/groq@npm:0.0.46"
+"@llamaindex/groq@npm:0.0.47":
+  version: 0.0.47
+  resolution: "@llamaindex/groq@npm:0.0.47"
   dependencies:
     "@llamaindex/env": "npm:0.1.25"
-    "@llamaindex/openai": "npm:0.1.47"
+    "@llamaindex/openai": "npm:0.1.48"
     groq-sdk: "npm:0.8.0"
-  checksum: 10c0/8aae10121a11f4ce46336677e94c5dd25ab352a09b7484979f72b34f8e94ff3369c52bd0ef7846bfa8177c3a3f8a9c31fc8fabcebb44e4d12b51d983db82e168
+  checksum: 10c0/69f071de2d5bd64397ed0dc9317df6dab7deba014ff3d7642689e65d30f920e2a0f1479cfd3f770a734ff233014524c904bfdcfcab75ffce04d10424e981e74d
   languageName: node
   linkType: hard
 
-"@llamaindex/huggingface@npm:0.0.31":
-  version: 0.0.31
-  resolution: "@llamaindex/huggingface@npm:0.0.31"
+"@llamaindex/huggingface@npm:0.0.32":
+  version: 0.0.32
+  resolution: "@llamaindex/huggingface@npm:0.0.32"
   dependencies:
     "@huggingface/inference": "npm:^2.8.1"
     "@huggingface/transformers": "npm:^3.0.2"
     "@llamaindex/core": "npm:0.4.21"
     "@llamaindex/env": "npm:0.1.25"
-    "@llamaindex/openai": "npm:0.1.47"
+    "@llamaindex/openai": "npm:0.1.48"
   peerDependencies:
     "@huggingface/transformers": ^3.0.2
-  checksum: 10c0/04e15678f66344796e134817367cd19782112701c90470021d364d119d4767e3383e8873ff8c4244ea1600fc71ae11139e92a43fc4fa2a2a765bf07dc6a7fd61
+  checksum: 10c0/e7afc2a8e93f0fd12ec2316fd33e6df343830cffa11847c1769b1584a6a805a50d61396e2a67be5fb63a004fcdefe8237d276636d12d77a2a66cbb138fc4528f
   languageName: node
   linkType: hard
 
@@ -8617,14 +8617,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@llamaindex/openai@npm:0.1.47":
-  version: 0.1.47
-  resolution: "@llamaindex/openai@npm:0.1.47"
+"@llamaindex/openai@npm:0.1.48":
+  version: 0.1.48
+  resolution: "@llamaindex/openai@npm:0.1.48"
   dependencies:
     "@llamaindex/core": "npm:0.4.21"
     "@llamaindex/env": "npm:0.1.25"
     openai: "npm:^4.73.1"
-  checksum: 10c0/0bb518b99e79565450d82b4ce55b0a98147c222ddd2705a5840a2fd6e50145e7d6ffb623ea4e87147b5c6469fe238c6b4573f619dc68aea57e82092f97b4cb2e
+  checksum: 10c0/735a8995f76c06188094a81682c1ff6c4feef175f824b19cea6832a797b3a94bf8a20a2eb827d7a48e597e19e82c4d808d88a17cc3d902bedaaf3116c9306b69
   languageName: node
   linkType: hard
 
@@ -8726,12 +8726,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@llamaindex/vllm@npm:0.0.17":
-  version: 0.0.17
-  resolution: "@llamaindex/vllm@npm:0.0.17"
+"@llamaindex/vllm@npm:0.0.18":
+  version: 0.0.18
+  resolution: "@llamaindex/vllm@npm:0.0.18"
   dependencies:
-    "@llamaindex/openai": "npm:0.1.47"
-  checksum: 10c0/955230af1b4cda0c0c92841bfb5a35f7b72ecda7b272599bcee73f643fc53a5d868df5bcaff12116059ce41f5b77532f648d667d1cc0eeec90822e9857e71f5a
+    "@llamaindex/openai": "npm:0.1.48"
+  checksum: 10c0/31dc4a775e9144383b21ec24581703307d290eaf48ac14ddf9bb401d385248b2bca1948c1c1ce1108796709f56f560259265c64a13674578705e06ad7a346a85
   languageName: node
   linkType: hard
 
@@ -28738,7 +28738,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"gpt-tokenizer@npm:2.8.1":
+"gpt-tokenizer@npm:2.8.1, gpt-tokenizer@npm:^2.6.2":
   version: 2.8.1
   resolution: "gpt-tokenizer@npm:2.8.1"
   checksum: 10c0/07229cca5a5ab8db0e1165b27f6ce400bf3509f1ab8946b2c3cddb51470e3bd1f3a56f750d564ee47a38885376bc9340291bfaec07858fdfb385f0445cf48e7e
@@ -32786,30 +32786,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"llamaindex@npm:0.8.33":
-  version: 0.8.33
-  resolution: "llamaindex@npm:0.8.33"
+"llamaindex@npm:0.8.34":
+  version: 0.8.34
+  resolution: "llamaindex@npm:0.8.34"
   dependencies:
     "@llamaindex/anthropic": "npm:0.0.31"
     "@llamaindex/astra": "npm:0.0.2"
     "@llamaindex/azure": "npm:0.0.2"
     "@llamaindex/chroma": "npm:0.0.2"
-    "@llamaindex/clip": "npm:0.0.31"
+    "@llamaindex/clip": "npm:0.0.32"
     "@llamaindex/cloud": "npm:2.0.22"
     "@llamaindex/cohere": "npm:0.0.2"
     "@llamaindex/core": "npm:0.4.21"
-    "@llamaindex/deepinfra": "npm:0.0.31"
+    "@llamaindex/deepinfra": "npm:0.0.32"
     "@llamaindex/env": "npm:0.1.25"
     "@llamaindex/google": "npm:0.0.3"
-    "@llamaindex/groq": "npm:0.0.46"
-    "@llamaindex/huggingface": "npm:0.0.31"
+    "@llamaindex/groq": "npm:0.0.47"
+    "@llamaindex/huggingface": "npm:0.0.32"
     "@llamaindex/milvus": "npm:0.0.2"
     "@llamaindex/mistral": "npm:0.0.2"
     "@llamaindex/mixedbread": "npm:0.0.2"
     "@llamaindex/mongodb": "npm:0.0.2"
     "@llamaindex/node-parser": "npm:0.0.22"
     "@llamaindex/ollama": "npm:0.0.37"
-    "@llamaindex/openai": "npm:0.1.47"
+    "@llamaindex/openai": "npm:0.1.48"
     "@llamaindex/pinecone": "npm:0.0.2"
     "@llamaindex/portkey-ai": "npm:0.0.30"
     "@llamaindex/postgres": "npm:0.0.30"
@@ -32817,14 +32817,15 @@ __metadata:
     "@llamaindex/readers": "npm:1.0.23"
     "@llamaindex/replicate": "npm:0.0.30"
     "@llamaindex/upstash": "npm:0.0.2"
-    "@llamaindex/vllm": "npm:0.0.17"
+    "@llamaindex/vllm": "npm:0.0.18"
     "@llamaindex/weaviate": "npm:0.0.2"
     "@types/lodash": "npm:^4.17.7"
     "@types/node": "npm:^22.9.0"
     ajv: "npm:^8.17.1"
+    gpt-tokenizer: "npm:^2.6.2"
     lodash: "npm:^4.17.21"
     magic-bytes.js: "npm:^1.10.0"
-  checksum: 10c0/8ba5420aab308523c59e6b2fa3679a527a8136b7f56acf2ee20b67b1cc2c0cc5e2899c5c5ceb92466ebb39923a652372f37c9a54413f859112ff708674b4ee2d
+  checksum: 10c0/1035ab97d0bad8f6e66931b3fb8e6485502d3d7b229bc78925c2f54dba2afafb4b53df999b3a49645202301ed461104716feabd1d4db4e167a23dbab1fdd9713
   languageName: node
   linkType: hard
 
