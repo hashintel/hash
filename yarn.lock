@@ -4510,23 +4510,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cfaester/enzyme-adapter-react-18@npm:^0.8.0":
-  version: 0.8.0
-  resolution: "@cfaester/enzyme-adapter-react-18@npm:0.8.0"
-  dependencies:
-    enzyme-shallow-equal: "npm:^1.0.0"
-    function.prototype.name: "npm:^1.1.6"
-    has: "npm:^1.0.4"
-    react-is: "npm:^18.2.0"
-    react-shallow-renderer: "npm:^16.15.0"
-  peerDependencies:
-    enzyme: ^3.11.0
-    react: ">=18"
-    react-dom: ">=18"
-  checksum: 10c0/06b2c8d741cfb36179fbc15b7403a56c95f0ff2c884556a9f6858594e5a11f70bf4e100b07ef78049435da6614a7e016558938674d9abe3fb2db776e9e7430a6
-  languageName: node
-  linkType: hard
-
 "@chainsafe/as-chacha20poly1305@npm:^0.1.0":
   version: 0.1.0
   resolution: "@chainsafe/as-chacha20poly1305@npm:0.1.0"
@@ -8923,7 +8906,7 @@ __metadata:
   dependencies:
     "@local/tsconfig": "npm:0.0.0-private"
     "@openapitools/openapi-generator-cli": "npm:2.16.3"
-    "@redocly/cli": "npm:1.28.2"
+    "@redocly/cli": "npm:1.28.5"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.13.1"
     axios: "npm:1.7.9"
@@ -12208,11 +12191,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redocly/cli@npm:1.28.2":
-  version: 1.28.2
-  resolution: "@redocly/cli@npm:1.28.2"
+"@redocly/cli@npm:1.28.5":
+  version: 1.28.5
+  resolution: "@redocly/cli@npm:1.28.5"
   dependencies:
-    "@redocly/openapi-core": "npm:1.28.2"
+    "@redocly/openapi-core": "npm:1.28.5"
     abort-controller: "npm:^3.0.0"
     chokidar: "npm:^3.5.1"
     colorette: "npm:^1.2.0"
@@ -12223,9 +12206,9 @@ __metadata:
     handlebars: "npm:^4.7.6"
     mobx: "npm:^6.0.4"
     pluralize: "npm:^8.0.0"
-    react: "npm:^17.0.0 || ^18.2.0"
-    react-dom: "npm:^17.0.0 || ^18.2.0"
-    redoc: "npm:~2.2.0"
+    react: "npm:^17.0.0 || ^18.2.0 || ^19.0.0"
+    react-dom: "npm:^17.0.0 || ^18.2.0 || ^19.0.0"
+    redoc: "npm:2.4.0"
     semver: "npm:^7.5.2"
     simple-websocket: "npm:^9.0.0"
     styled-components: "npm:^6.0.7"
@@ -12233,7 +12216,7 @@ __metadata:
   bin:
     openapi: bin/cli.js
     redocly: bin/cli.js
-  checksum: 10c0/f86c50358da282dc5f606ad6b29170d5f1e491a5bdfc942816ce2a5540aba1c16a7e1e363864dc22e7b75b2b9c31cfb6f92fbb3c57042555f09b8b378255c00d
+  checksum: 10c0/7e6ac157e33fbdbc54fd27b9bec1d301a5a96f553ff6821269c4e9dd94a5c0c606e49b91ac519bfff4d698f0c63e24142bd1963088a996bfd9d45502ecda8fe1
   languageName: node
   linkType: hard
 
@@ -12244,9 +12227,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redocly/openapi-core@npm:1.28.2, @redocly/openapi-core@npm:^1.4.0":
-  version: 1.28.2
-  resolution: "@redocly/openapi-core@npm:1.28.2"
+"@redocly/openapi-core@npm:1.28.5, @redocly/openapi-core@npm:^1.4.0":
+  version: 1.28.5
+  resolution: "@redocly/openapi-core@npm:1.28.5"
   dependencies:
     "@redocly/ajv": "npm:^8.11.2"
     "@redocly/config": "npm:^0.20.1"
@@ -12257,7 +12240,7 @@ __metadata:
     minimatch: "npm:^5.0.1"
     pluralize: "npm:^8.0.0"
     yaml-ast-parser: "npm:0.0.43"
-  checksum: 10c0/e23c9567a55ae4d355c374973ca0e222a7e6abf6f3ecadc9cdce3874e28c4c79d0871e0c95c44e6a324f8d4b62fd26593525b710e8f0b7d5b65fb7cb825af7fa
+  checksum: 10c0/86a9cc3539a2b0df1254f170326c5b633bf3b465f599f4ef4c67c51728cf7ce8daf5d814ec216428cac450452c1376761f31acf963a02541896f13b8c1cbef00
   languageName: node
   linkType: hard
 
@@ -25149,16 +25132,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"enzyme-shallow-equal@npm:^1.0.0":
-  version: 1.0.7
-  resolution: "enzyme-shallow-equal@npm:1.0.7"
-  dependencies:
-    hasown: "npm:^2.0.0"
-    object-is: "npm:^1.1.5"
-  checksum: 10c0/50bd80c62da4086a20f4c56c2333ab104f162f0d20db3a335406b5b6aa2b92a61eda67bed2248b52aecfc7992abfb368cf40fe5e35a66913b914668665b418c1
-  languageName: node
-  linkType: hard
-
 "err-code@npm:^2.0.2":
   version: 2.0.3
   resolution: "err-code@npm:2.0.3"
@@ -29193,13 +29166,6 @@ __metadata:
   version: 2.0.1
   resolution: "has-unicode@npm:2.0.1"
   checksum: 10c0/ebdb2f4895c26bb08a8a100b62d362e49b2190bcfd84b76bc4be1a3bd4d254ec52d0dd9f2fbcc093fc5eb878b20c52146f9dfd33e2686ed28982187be593b47c
-  languageName: node
-  linkType: hard
-
-"has@npm:^1.0.4":
-  version: 1.0.4
-  resolution: "has@npm:1.0.4"
-  checksum: 10c0/82c1220573dc1f0a014a5d6189ae52a1f820f99dfdc00323c3a725b5002dcb7f04e44f460fea7af068474b2dd7c88cbe1846925c84017be9e31e1708936d305b
   languageName: node
   linkType: hard
 
@@ -39806,13 +39772,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-is@npm:^16.12.0 || ^17.0.0 || ^18.0.0, react-is@npm:^18.2.0":
-  version: 18.3.1
-  resolution: "react-is@npm:18.3.1"
-  checksum: 10c0/f2f1e60010c683479e74c63f96b09fb41603527cd131a9959e2aee1e5a8b0caf270b365e5ca77d4a6b18aae659b60a86150bb3979073528877029b35aecd2072
-  languageName: node
-  linkType: hard
-
 "react-is@npm:^16.13.1, react-is@npm:^16.7.0":
   version: 16.13.1
   resolution: "react-is@npm:16.13.1"
@@ -40052,18 +40011,6 @@ __metadata:
     prop-types: "npm:^15.5.8"
     react-easy-swipe: "npm:^0.0.21"
   checksum: 10c0/47957d48898f550cfc7e3517ad755a4dd94ce78630480310db58ec5896de6d6f3c1ed253347432bee889860036a15e32b508cb19b121c4cdd634e78e6fe83064
-  languageName: node
-  linkType: hard
-
-"react-shallow-renderer@npm:^16.15.0":
-  version: 16.15.0
-  resolution: "react-shallow-renderer@npm:16.15.0"
-  dependencies:
-    object-assign: "npm:^4.1.1"
-    react-is: "npm:^16.12.0 || ^17.0.0 || ^18.0.0"
-  peerDependencies:
-    react: ^16.0.0 || ^17.0.0 || ^18.0.0
-  checksum: 10c0/c194d741792e86043a4ae272f7353c1cb9412bc649945c4220c6a101a6ea5410cceb3d65d5a4d750f11a24f7426e8eec7977e8a4e3ad5d3ee235ca2b18166fa8
   languageName: node
   linkType: hard
 
@@ -40451,11 +40398,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"redoc@npm:~2.2.0":
-  version: 2.2.0
-  resolution: "redoc@npm:2.2.0"
+"redoc@npm:2.4.0":
+  version: 2.4.0
+  resolution: "redoc@npm:2.4.0"
   dependencies:
-    "@cfaester/enzyme-adapter-react-18": "npm:^0.8.0"
     "@redocly/openapi-core": "npm:^1.4.0"
     classnames: "npm:^2.3.2"
     decko: "npm:^1.2.0"
@@ -40480,10 +40426,10 @@ __metadata:
   peerDependencies:
     core-js: ^3.1.4
     mobx: ^6.0.4
-    react: ^16.8.4 || ^17.0.0 || ^18.0.0
-    react-dom: ^16.8.4 || ^17.0.0 || ^18.0.0
+    react: ^16.8.4 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react-dom: ^16.8.4 || ^17.0.0 || ^18.0.0 || ^19.0.0
     styled-components: ^4.1.1 || ^5.1.1 || ^6.0.5
-  checksum: 10c0/12cdb6328b3f49c5b6531fc6c46c56792c2a6bf2bf5d07bbbfec5d9b04fbac02caf4b475305d2a86e41e5b054417d57adb0033b170d7a4923573ba875935bad0
+  checksum: 10c0/94a8c02e4f4962a808a58775036d99c1d09553f8ed31b2780efe43f639a5a7d9affe7a0a77513eed78143a1247cf2b2c79055c06b956d14767e203177f7fb5ae
   languageName: node
   linkType: hard
 
