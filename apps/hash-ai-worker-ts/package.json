@@ -75,7 +75,7 @@
     "gpt-tokenizer": "2.8.1",
     "is-docker": "3.0.0",
     "jsdom": "24.1.3",
-    "llamaindex": "0.8.33",
+    "llamaindex": "0.8.34",
     "lodash.debounce": "4.0.8",
     "lodash.isequal": "4.5.0",
     "lodash.ismatch": "4.4.0",
