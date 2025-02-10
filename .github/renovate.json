@@ -87,6 +87,16 @@
       ]
     },
     {
+      "groupName": "`Rudderstack` Docker images",
+      "matchManagers": ["docker-compose"],
+      "matchPackageNames": ["/^rudderlabs//"]
+    },
+    {
+      "groupName": "`Pino` npm packages",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^pino/", "/^pino-/"]
+    },
+    {
       "groupName": "`artillery` npm packages",
       "matchManagers": ["npm"],
       "automerge": false,
@@ -221,10 +231,27 @@
       "matchPackageNames": ["/^@playwright//", "/^playwright/", "/playwright$/"]
     },
     {
+      "groupName": "`jest` npm packages",
+      "matchManagers": ["npm"],
+      "assignees": ["CiaranMn"],
+      "matchPackageNames": [
+        "/^@types/jest$/",
+        "/^jest/",
+        "/^ts-jest$/",
+        "/^jest-/"
+      ]
+    },
+    {
       "groupName": "`biome` npm packages",
       "matchManagers": ["npm"],
       "dependencyDashboardApproval": false,
       "matchPackageNames": ["/^@biomejs/"]
+    },
+    
+    {
+      "groupName": "`express` npm packages",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@types/express$/", "/^express/", "/^express-/"]
     },
     {
       "groupName": "`prosemirror` npm packages",
