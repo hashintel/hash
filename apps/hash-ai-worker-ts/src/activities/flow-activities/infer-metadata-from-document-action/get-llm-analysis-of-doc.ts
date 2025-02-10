@@ -464,11 +464,11 @@ export const getLlmAnalysisOfDoc = async ({
     'Doc' is the most generic type. Use this if no other more specific type is appropriate.
     If you can't find a more specific type, use 'Doc'.
     
-    If you're not confident about any of the metadata fields, omit them.
-    
     When dealing with dates in the document metadata, use the format YYYY-MM-DD. Bear in mind the document may use a different format.
     Also note the difference between 'estimated'/'predicted' and 'actual'/'confirmed' dates. Either, neither or both may be present.
     Depending on the type of document, this distinction may be important, and the document should give clues as to which dates are which.
+
+    Remember – if you can't determine a specifiy type for the document, use 'Doc'. If you can't find a title, use 'Unknown' as the title.
     `),
   };
 
