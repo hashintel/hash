@@ -1,5 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>hashintel/hash:renovate-base"],
-  "description": "HASH public monorepo (hashintel/hash) Renovate configuration"
+  "description": "HASH public monorepo (hashintel/hash) Renovate configuration",
+  "dependencyDashboardOSVVulnerabilitySummary": "none",
 }
