@@ -1,5 +1,6 @@
-import { type VersionedUrl } from "@blockprotocol/type-system";
+import { type JsonValue, type VersionedUrl } from "@blockprotocol/type-system";
 import { SchemaType } from "@google-cloud/vertexai";
+import { sleep } from "@local/hash-backend-utils/utils";
 import type { PropertyProvenance } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -19,7 +20,11 @@ import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityTypeRootType } from "@local/hash-subgraph";
 import { getEntityTypes } from "@local/hash-subgraph/stdlib";
 import dedent from "dedent";
+import get from "lodash/get.js";
+import set from "lodash/set.js";
+import unset from "lodash/unset.js";
 
+import { logger } from "../../shared/activity-logger.js";
 import {
   type DereferencedEntityType,
   type DereferencedEntityTypeWithSimplifiedKeys,
@@ -34,14 +39,19 @@ import {
   type LlmMessageTextContent,
   type LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message.js";
+import type {
+  LlmParams,
+  LlmToolDefinition,
+} from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
+import { judgeAiOutputs } from "../../shared/judge-ai-outputs.js";
 
 const generateOutputSchema = (
   dereferencedDocEntityTypes: DereferencedEntityType[],
 ) => {
   return {
     type: "object",
-    additionalProperties: false,
+    additionalProperties: false as const,
     properties: {
       documentMetadata: {
         anyOf: dereferencedDocEntityTypes.map(
@@ -69,7 +79,7 @@ const generateOutputSchema = (
         type: "array",
         items: {
           type: "object",
-          additionalProperties: false,
+          additionalProperties: false as const,
           properties: {
             affiliatedWith: {
               type: "array",
@@ -83,11 +93,16 @@ const generateOutputSchema = (
               description: "The name of the author",
               type: "string",
             },
+            email: {
+              description: "The email address of the author",
+              type: "string",
+            },
           },
+          required: ["name"],
         },
       },
     },
-  } as const;
+  } satisfies LlmToolDefinition["inputSchema"];
 };
 
 type DocumentMetadataWithSimplifiedProperties = {
@@ -95,7 +110,7 @@ type DocumentMetadataWithSimplifiedProperties = {
 } & Record<string, PropertyValue>;
 
 type LlmResponseDocumentData = {
-  authors?: { name: string; affiliatedWith?: string[] }[];
+  authors?: { name: string; email?: string; affiliatedWith?: string[] }[];
   documentMetadata: DocumentMetadataWithSimplifiedProperties;
 };
 
@@ -447,8 +462,14 @@ export const getLlmAnalysisOfDoc = async ({
     ${dereferencedDocEntityTypes.map((type) => `- ${type.schema.title}`).join("\n")}
 
     'Doc' is the most generic type. Use this if no other more specific type is appropriate.
+    If you can't find a more specific type, use 'Doc'.
     
-    If you're not confident about any of the metadata fields, omit them.`),
+    When dealing with dates in the document metadata, use the format YYYY-MM-DD. Bear in mind the document may use a different format.
+    Also note the difference between 'estimated'/'predicted' and 'actual'/'confirmed' dates. Either, neither or both may be present.
+    Depending on the type of document, this distinction may be important, and the document should give clues as to which dates are which.
+
+    Remember – if you can't determine a specifiy type for the document, use 'Doc'. If you can't find a title, use 'Unknown' as the title.
+    `),
   };
 
   const fileContent: LlmFileMessageContent = {
@@ -464,18 +485,20 @@ export const getLlmAnalysisOfDoc = async ({
     content: [textContent, fileContent],
   };
 
+  const tools: LlmParams["tools"] = [
+    {
+      name: "provideDocumentMetadata" as const,
+      description: "Provide metadata about the document",
+      inputSchema: schema,
+    },
+  ];
+
   const response = await getLlmResponse(
     {
       model: "gemini-1.5-pro-002",
       messages: [message],
       toolChoice: "required",
-      tools: [
-        {
-          name: "provideDocumentMetadata" as const,
-          description: "Provide metadata about the document",
-          inputSchema: schema,
-        },
-      ],
+      tools,
     },
     {
       customMetadata: {
@@ -490,15 +513,18 @@ export const getLlmAnalysisOfDoc = async ({
   );
 
   if (response.status !== "ok") {
-    throw new Error(
-      `LLM analysis failed: ${
-        response.status === "aborted"
-          ? "aborted"
-          : response.status === "api-error"
-            ? response.message
-            : response.status
+    if (response.status === "aborted") {
+      throw new Error("LLM analysis aborted");
+    }
+
+    await sleep(2_000);
+
+    logger.error(
+      `LLM analysis failed, retrying. ${response.status}: ${
+        "message" in response ? response.message : "unknown error"
       }`,
     );
+    return getLlmAnalysisOfDoc({ fileEntity });
   }
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({
@@ -508,7 +534,52 @@ export const getLlmAnalysisOfDoc = async ({
   const toolCall = toolCalls[0];
 
   if (!toolCall) {
-    throw new Error("No tool call found");
+    logger.error("No tool call found");
+
+    await sleep(2_000);
+
+    return getLlmAnalysisOfDoc({ fileEntity });
+  }
+
+  try {
+    assertIsLlmResponseDocumentData(toolCall.input);
+  } catch (error) {
+    logger.error(
+      `LLM analysis failed: ${error instanceof Error ? error.message : "unknown error"}`,
+    );
+    await sleep(2_000);
+    return getLlmAnalysisOfDoc({ fileEntity });
+  }
+
+  const judgeVerdict = await judgeAiOutputs({
+    exchangeToReview: {
+      messages: [message, response.message],
+      tools,
+    },
+    judgeModel: "gemini-1.5-pro-002",
+  });
+
+  for (const {
+    correctionType,
+    jsonPath,
+    correctValue,
+  } of judgeVerdict.corrections) {
+    if (correctionType === "delete-unfounded") {
+      unset(response.message, jsonPath);
+      logger.info(
+        `Judge correction: remove property ${jsonPath.slice(3).join(".")} from output`,
+      );
+    } else {
+      const previousValue = get(response.message, jsonPath) as
+        | JsonValue
+        | undefined;
+
+      set(response.message, jsonPath, correctValue);
+
+      logger.info(
+        `Judge correction: set property ${jsonPath.slice(3).join(".")} to ${JSON.stringify(correctValue)}.${previousValue !== undefined ? ` (previous value: ${JSON.stringify(previousValue)})` : ""}`,
+      );
+    }
   }
 
   return unsimplifyDocumentMetadata(

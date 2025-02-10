@@ -292,10 +292,7 @@ __metadata:
     "@types/dedent": "npm:0.7.2"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/jsdom": "npm:21.1.7"
-    "@types/lodash.debounce": "npm:4.0.9"
-    "@types/lodash.isequal": "npm:4.5.8"
-    "@types/lodash.ismatch": "npm:4.4.9"
-    "@types/lodash.pickby": "npm:4.6.9"
+    "@types/lodash": "npm:4.17.15"
     "@types/md5": "npm:2.3.5"
     "@types/mime-types": "npm:2.1.4"
     "@types/node": "npm:22.13.1"
@@ -316,10 +313,7 @@ __metadata:
     is-docker: "npm:3.0.0"
     jsdom: "npm:24.1.3"
     llamaindex: "npm:0.8.34"
-    lodash.debounce: "npm:4.0.8"
-    lodash.isequal: "npm:4.5.0"
-    lodash.ismatch: "npm:4.4.0"
-    lodash.pickby: "npm:4.6.0"
+    lodash: "npm:4.17.21"
     md5: "npm:2.3.0"
     mime-types: "npm:2.1.35"
     officeparser: "npm:4.2.0"
@@ -18016,30 +18010,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/lodash.ismatch@npm:4.4.9":
-  version: 4.4.9
-  resolution: "@types/lodash.ismatch@npm:4.4.9"
-  dependencies:
-    "@types/lodash": "npm:*"
-  checksum: 10c0/08784efce765bcb28bd5c18709a34791a550740aca62fd3fb2313b9b2376cb78484d4941394502a35591f83489a034a6a34c10b5706dbf1e6960fa6b809c9c50
-  languageName: node
-  linkType: hard
-
 "@types/lodash.memoize@npm:4.1.9":
   version: 4.1.9
   resolution: "@types/lodash.memoize@npm:4.1.9"
   dependencies:
     "@types/lodash": "npm:*"
   checksum: 10c0/119e4595bd2acdaf1bd318ebf61beb0c5fc63203a526692e2e82a122f9730d40ee1a8ece3f379fdc9a99dfce0a1ce3229788ddedd68a5fa432e4e0d54726fa63
-  languageName: node
-  linkType: hard
-
-"@types/lodash.pickby@npm:4.6.9":
-  version: 4.6.9
-  resolution: "@types/lodash.pickby@npm:4.6.9"
-  dependencies:
-    "@types/lodash": "npm:*"
-  checksum: 10c0/a572e22a24f73e9041e1beca8bb8125875734471c440f7fe9ff48ced10e6ffe45a2392098940f4c1327252e3455afd0e2ea0cc3908a2e3bd0bafe60335e27e6c
   languageName: node
   linkType: hard
 
@@ -25304,9 +25280,9 @@ __metadata:
   linkType: hard
 
 "es-module-lexer@npm:^1.2.1, es-module-lexer@npm:^1.4.1, es-module-lexer@npm:^1.5.3, es-module-lexer@npm:^1.5.4":
-  version: 1.6.0
-  resolution: "es-module-lexer@npm:1.6.0"
-  checksum: 10c0/667309454411c0b95c476025929881e71400d74a746ffa1ff4cb450bd87f8e33e8eef7854d68e401895039ac0bac64e7809acbebb6253e055dd49ea9e3ea9212
+  version: 1.5.4
+  resolution: "es-module-lexer@npm:1.5.4"
+  checksum: 10c0/300a469488c2f22081df1e4c8398c78db92358496e639b0df7f89ac6455462aaf5d8893939087c1a1cbcbf20eed4610c70e0bcb8f3e4b0d80a5d2611c539408c
   languageName: node
   linkType: hard
 
@@ -33065,13 +33041,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.ismatch@npm:4.4.0":
-  version: 4.4.0
-  resolution: "lodash.ismatch@npm:4.4.0"
-  checksum: 10c0/8f96a5dc4b8d3fc5a033dcb259d0c3148a1044fa4d02b4a0e8dce0fa1f2ef3ec4ac131e20b5cb2c985a4e9bcb1c37c0aa5af2cef70094959389617347b8fc645
-  languageName: node
-  linkType: hard
-
 "lodash.isnumber@npm:^3.0.3":
   version: 3.0.3
   resolution: "lodash.isnumber@npm:3.0.3"
@@ -33118,13 +33087,6 @@ __metadata:
   version: 4.6.1
   resolution: "lodash.padend@npm:4.6.1"
   checksum: 10c0/da10eae6e7862541e431d97e652ea66690307104676a30793398e2f66d0fd9a62b07f199451d2185560d9b4627dc6652d33dc7cceb7ab9d843f6e15addec56f5
-  languageName: node
-  linkType: hard
-
-"lodash.pickby@npm:4.6.0":
-  version: 4.6.0
-  resolution: "lodash.pickby@npm:4.6.0"
-  checksum: 10c0/46befadb64ab0f61159977174b291f87b005cec1c7bd73d1b6949ec4cdff483c1be0e34398df8955b76ce06a3e93a4a5c5a552a4299520390d6993c5420c7ab9
   languageName: node
   linkType: hard
 
@@ -33453,11 +33415,11 @@ __metadata:
   linkType: hard
 
 "magic-string@npm:^0.30.12, magic-string@npm:^0.30.3, magic-string@npm:^0.30.5":
-  version: 0.30.17
-  resolution: "magic-string@npm:0.30.17"
+  version: 0.30.14
+  resolution: "magic-string@npm:0.30.14"
   dependencies:
     "@jridgewell/sourcemap-codec": "npm:^1.5.0"
-  checksum: 10c0/16826e415d04b88378f200fe022b53e638e3838b9e496edda6c0e086d7753a44a6ed187adc72d19f3623810589bf139af1a315541cd6a26ae0771a0193eaf7b8
+  checksum: 10c0/c52c2a6e699dfa8a840e13154da35464a40cd8b07049b695a8b282883b0426c0811af1e36ac26860b4267289340b42772c156a5608e87be97b63d510e617e87a
   languageName: node
   linkType: hard
 
@@ -36000,7 +35962,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nanoid@npm:3.3.8, nanoid@npm:^3.0.0, nanoid@npm:^3.3.4, nanoid@npm:^3.3.6, nanoid@npm:^3.3.7, nanoid@npm:^3.3.8":
+"nanoid@npm:3.3.8, nanoid@npm:^3.0.0, nanoid@npm:^3.3.4, nanoid@npm:^3.3.6, nanoid@npm:^3.3.7":
   version: 3.3.8
   resolution: "nanoid@npm:3.3.8"
   bin:
@@ -38516,13 +38478,13 @@ __metadata:
   linkType: hard
 
 "postcss@npm:^8.3.11, postcss@npm:^8.4.14, postcss@npm:^8.4.23, postcss@npm:^8.4.33, postcss@npm:^8.4.43":
-  version: 8.5.1
-  resolution: "postcss@npm:8.5.1"
+  version: 8.4.49
+  resolution: "postcss@npm:8.4.49"
   dependencies:
-    nanoid: "npm:^3.3.8"
+    nanoid: "npm:^3.3.7"
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.1"
-  checksum: 10c0/c4d90c59c98e8a0c102b77d3f4cac190f883b42d63dc60e2f3ed840f16197c0c8e25a4327d2e9a847b45a985612317dc0534178feeebd0a1cf3eb0eecf75cae4
+  checksum: 10c0/f1b3f17aaf36d136f59ec373459f18129908235e65dbdc3aee5eef8eba0756106f52de5ec4682e29a2eab53eb25170e7e871b3e4b52a8f1de3d344a514306be3
   languageName: node
   linkType: hard
 
@@ -44084,9 +44046,9 @@ __metadata:
   linkType: hard
 
 "tinyexec@npm:^0.3.1":
-  version: 0.3.2
-  resolution: "tinyexec@npm:0.3.2"
-  checksum: 10c0/3efbf791a911be0bf0821eab37a3445c2ba07acc1522b1fa84ae1e55f10425076f1290f680286345ed919549ad67527d07281f1c19d584df3b74326909eb1f90
+  version: 0.3.1
+  resolution: "tinyexec@npm:0.3.1"
+  checksum: 10c0/11e7a7c5d8b3bddf8b5cbe82a9290d70a6fad84d528421d5d18297f165723cb53d2e737d8f58dcce5ca56f2e4aa2d060f02510b1f8971784f97eb3e9aec28f09
   languageName: node
   linkType: hard
 

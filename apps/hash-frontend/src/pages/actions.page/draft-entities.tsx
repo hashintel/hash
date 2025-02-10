@@ -1,5 +1,8 @@
 import { Skeleton } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  type Entity,
+  getClosedMultiEntityTypeFromMap,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
@@ -189,9 +192,7 @@ export const DraftEntities: FunctionComponent<{
 
   const filteredAndSortedDraftEntitiesWithCreatedAt = useMemo(
     () =>
-      filterState &&
-      draftEntitiesWithCreators &&
-      draftEntitiesWithLinkedDataSubgraph
+      filterState && draftEntitiesWithCreators
         ? filterDraftEntities({
             draftEntitiesWithCreators,
             filterState,
@@ -203,15 +204,19 @@ export const DraftEntities: FunctionComponent<{
               b.entity.metadata.temporalVersioning.decisionTime.start.limit,
             );
 
+            const aType = getClosedMultiEntityTypeFromMap(
+              closedMultiEntityTypesRootMap,
+              a.entity.metadata.entityTypeIds,
+            );
+
+            const bType = getClosedMultiEntityTypeFromMap(
+              closedMultiEntityTypesRootMap,
+              b.entity.metadata.entityTypeIds,
+            );
+
             return aCreatedAt.getTime() === bCreatedAt.getTime()
-              ? generateEntityLabel(
-                  draftEntitiesWithLinkedDataSubgraph,
-                  a.entity,
-                ).localeCompare(
-                  generateEntityLabel(
-                    draftEntitiesWithLinkedDataSubgraph,
-                    b.entity,
-                  ),
+              ? generateEntityLabel(aType, a.entity).localeCompare(
+                  generateEntityLabel(bType, b.entity),
                 )
               : sortOrder === "created-at-asc"
                 ? aCreatedAt.getTime() - bCreatedAt.getTime()
@@ -222,7 +227,7 @@ export const DraftEntities: FunctionComponent<{
       draftEntitiesWithCreators,
       sortOrder,
       filterState,
-      draftEntitiesWithLinkedDataSubgraph,
+      closedMultiEntityTypesRootMap,
     ],
   );
 
