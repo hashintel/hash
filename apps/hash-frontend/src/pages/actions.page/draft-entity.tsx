@@ -1,5 +1,9 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  type Entity,
+  getClosedMultiEntityTypeFromMap,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Checkbox, Typography } from "@mui/material";
@@ -10,6 +14,7 @@ import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regul
 import { Link } from "../../shared/ui";
 import { EntityEditorSlideStack } from "../shared/entity-editor-slide-stack";
 import { useEntityHref } from "../shared/use-entity-href";
+import type { EntityTypeDisplayInfoByBaseUrl } from "./draft-entities/types";
 import { useDraftEntities } from "./draft-entities-context";
 import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
@@ -17,11 +22,20 @@ import { DraftEntityType } from "./draft-entity/draft-entity-type";
 import { DraftEntityWeb } from "./draft-entity/draft-entity-web";
 
 export const DraftEntity: FunctionComponent<{
-  subgraph: Subgraph<EntityRootType>;
+  closedMultiEntityTypesRootMap?: ClosedMultiEntityTypesRootMap;
   entity: Entity;
+  entityTypeDisplayInfoByBaseUrl: EntityTypeDisplayInfoByBaseUrl;
+  subgraph: Subgraph<EntityRootType>;
   selected: boolean;
   toggleSelected: () => void;
-}> = ({ entity, subgraph, selected, toggleSelected }) => {
+}> = ({
+  closedMultiEntityTypesRootMap,
+  entity,
+  entityTypeDisplayInfoByBaseUrl,
+  subgraph,
+  selected,
+  toggleSelected,
+}) => {
   const { refetch } = useDraftEntities();
 
   const [displayEntityIdInModal, setDisplayEntityIdInModal] =
@@ -29,9 +43,14 @@ export const DraftEntity: FunctionComponent<{
 
   const href = useEntityHref(entity, true);
 
+  const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
+    closedMultiEntityTypesRootMap,
+    entity.metadata.entityTypeIds,
+  );
+
   const label = useMemo(
-    () => generateEntityLabel(subgraph, entity),
-    [subgraph, entity],
+    () => generateEntityLabel(closedMultiEntityType, entity),
+    [closedMultiEntityType, entity],
   );
 
   return (
@@ -117,11 +136,19 @@ export const DraftEntity: FunctionComponent<{
             </Box>
           </Link>
         </Box>
-        <DraftEntityActionButtons entity={entity} subgraph={subgraph} />
+
+        <DraftEntityActionButtons
+          closedMultiEntityType={closedMultiEntityType}
+          entity={entity}
+          subgraph={subgraph}
+        />
       </Box>
       <Box marginTop={1.5} display="flex" justifyContent="space-between">
         <Box display="flex" alignItems="center" columnGap={2}>
-          <DraftEntityType entity={entity} subgraph={subgraph} />
+          <DraftEntityType
+            entity={entity}
+            entityTypeDisplayInfoByBaseUrl={entityTypeDisplayInfoByBaseUrl}
+          />
           <DraftEntityWeb entity={entity} />
           {/*
            * @todo: bring back draft entity viewers when the GQL resolver

@@ -82,11 +82,12 @@ export const EntityPageHeader = ({
         scrollToTop={() => {}}
       />
 
-      {entity && entitySubgraph ? (
+      {entity && entitySubgraph && closedMultiEntityType ? (
         <Collapse
           in={!!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)}
         >
           <DraftEntityBanner
+            closedMultiEntityType={closedMultiEntityType}
             draftEntity={entity}
             draftEntitySubgraph={entitySubgraph}
             isModifyingEntity={isModifyingEntity}

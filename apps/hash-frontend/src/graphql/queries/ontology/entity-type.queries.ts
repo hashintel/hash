@@ -92,6 +92,12 @@ export const updateEntityTypeMutation = gql`
   }
 `;
 
+export const updateEntityTypesMutation = gql`
+  mutation updateEntityTypes($updates: [EntityTypeUpdate!]!) {
+    updateEntityTypes(updates: $updates)
+  }
+`;
+
 export const archiveEntityTypeMutation = gql`
   mutation archiveEntityType($entityTypeId: VersionedUrl!) {
     archiveEntityType(entityTypeId: $entityTypeId)

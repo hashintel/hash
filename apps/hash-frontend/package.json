@@ -13,9 +13,9 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "next start",
-    "start:healthcheck": "wait-on --timeout 600000 http://0.0.0.0:3000",
+    "start:healthcheck": "wait-on --timeout 600000 http://localhost:3000",
     "start:test": "next start",
-    "start:test:healthcheck": "wait-on --timeout 600000 http://0.0.0.0:3000"
+    "start:test:healthcheck": "wait-on --timeout 600000 http://localhost:3000"
   },
   "dependencies": {
     "@apollo/client": "3.10.5",
@@ -112,7 +112,7 @@
     "react-pdf": "9.2.1",
     "react-responsive-carousel": "3.2.23",
     "react-transition-group": "4.4.5",
-    "react-virtuoso": "4.12.3",
+    "react-virtuoso": "4.12.5",
     "react-window": "1.8.11",
     "reactflow": "11.11.4",
     "remark-gfm": "4.0.0",
@@ -148,10 +148,10 @@
     "@types/react-window": "1.8.8",
     "@types/url-regex-safe": "1.0.2",
     "@welldone-software/why-did-you-render": "8.0.3",
-    "eslint": "9.19.0",
+    "eslint": "9.20.0",
     "graphology-types": "0.24.8",
     "rimraf": "6.0.1",
-    "sass": "1.83.4",
+    "sass": "1.84.0",
     "typescript": "5.7.3",
     "wait-on": "8.0.2",
     "webpack": "5.97.1"

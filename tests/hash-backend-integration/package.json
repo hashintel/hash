@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@apps/hash-api": "0.0.0-private",
-    "@apps/hash-graph": "0.0.0-private",
     "@blockprotocol/type-system": "0.1.2-canary.0",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
@@ -31,6 +30,9 @@
     "node-fetch": "2.7.0"
   },
   "devDependencies": {
+    "@apps/hash-ai-worker-ts": "0.0.0-private",
+    "@apps/hash-graph": "0.0.0-private",
+    "@apps/hash-integration-worker": "0.0.0-private",
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@graphql-codegen/cli": "^5.0.3",
     "@graphql-codegen/introspection": "2.2.3",
@@ -41,7 +43,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/node-fetch": "2.6.12",
     "@vitest/coverage-istanbul": "2.1.9",
-    "eslint": "9.19.0",
+    "eslint": "9.20.0",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
     "vitest": "2.1.9"

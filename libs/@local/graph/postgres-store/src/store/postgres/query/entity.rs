@@ -10,7 +10,8 @@ use crate::store::postgres::query::{
     PostgresQueryPath,
     table::{
         Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
-        EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
+        EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, LabelForEntity,
+        ReferenceTable, Relation, TypeTitleForEntity,
     },
 };
 
@@ -86,6 +87,10 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             })
             .chain(path.relations())
             .collect(),
+            Self::FirstTypeTitle => vec![Relation::FirstTitleForEntity],
+            Self::LastTypeTitle => vec![Relation::LastTitleForEntity],
+            Self::FirstLabel => vec![Relation::FirstLabelForEntity],
+            Self::LastLabel => vec![Relation::LastLabelForEntity],
         }
     }
 
@@ -193,6 +198,10 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityHasRightEntity(EntityHasRightEntity::Provenance),
                 None,
             ),
+            Self::FirstTypeTitle => (Column::FirstTitleForEntity(TypeTitleForEntity::Title), None),
+            Self::LastTypeTitle => (Column::LastTitleForEntity(TypeTitleForEntity::Title), None),
+            Self::FirstLabel => (Column::FirstLabelForEntity(LabelForEntity::Label), None),
+            Self::LastLabel => (Column::LastLabelForEntity(LabelForEntity::Label), None),
         }
     }
 
