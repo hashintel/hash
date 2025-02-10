@@ -1,4 +1,4 @@
-import type { JsonValue } from "@blockprotocol/graph/types/entity";
+import type { JsonValue } from "@blockprotocol/graph";
 import get from "lodash/get.js";
 
 import { logger } from "./activity-logger.js";
