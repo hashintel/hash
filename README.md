@@ -57,7 +57,9 @@ This repository's contents is divided across several primary sections:
 
 Please see [CONTRIBUTING](.github/CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
 
-We're also [hiring] for a number of key roles. If you contribute to HASH's public monorepo be sure to mention this in your application.
+We're also [hiring] for a number of key roles. We don't accept applications for engineering roles like a normal company might, but exclusively headhunt (using HASH as a tool to help us find the best people). Contributing to our public monorepo, even in a small way, is one way of guaranteeing you end up on our radar.
+
+We also provide repo-specific example configuration files you can use for popular IDEs, including [VSCode](/.config/_examples/vscode) or [Zed](/.config/_examples/zed).
 
 ## [![a](/.github/assets/gh_icon_license_20px-base.svg)][gh-license] &nbsp; License
 

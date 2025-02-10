@@ -67,8 +67,11 @@ impl Extensions {
     pub fn insert<T: Clone + Send + Sync + 'static>(&mut self, val: T) -> Option<T> {
         self.map
             .get_or_insert_with(Box::default)
-            .insert(TypeId::of::<T>(), Box::new(val))
-            .and_then(|boxed| boxed.into_any().downcast().ok().map(|boxed| *boxed))
+            .insert(TypeId::of::<T>(), Box::new(val))?
+            .into_any()
+            .downcast()
+            .ok()
+            .map(|boxed| *boxed)
     }
 
     /// Get a reference to a type previously inserted on this `Extensions`.
@@ -87,8 +90,9 @@ impl Extensions {
     pub fn get<T: Send + Sync + 'static>(&self) -> Option<&T> {
         self.map
             .as_ref()
-            .and_then(|map| map.get(&TypeId::of::<T>()))
-            .and_then(|boxed| (**boxed).as_any().downcast_ref())
+            .and_then(|map| map.get(&TypeId::of::<T>()))?
+            .as_any()
+            .downcast_ref()
     }
 
     /// Get a mutable reference to a type previously inserted on this `Extensions`.
@@ -105,9 +109,10 @@ impl Extensions {
     /// ```
     pub fn get_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.map
-            .as_mut()
-            .and_then(|map| map.get_mut(&TypeId::of::<T>()))
-            .and_then(|boxed| (**boxed).as_any_mut().downcast_mut())
+            .as_mut()?
+            .get_mut(&TypeId::of::<T>())?
+            .as_any_mut()
+            .downcast_mut()
     }
 
     /// Get a mutable reference to a type, inserting `value` if not already present on this
@@ -187,9 +192,12 @@ impl Extensions {
     /// ```
     pub fn remove<T: Send + Sync + 'static>(&mut self) -> Option<T> {
         self.map
-            .as_mut()
-            .and_then(|map| map.remove(&TypeId::of::<T>()))
-            .and_then(|boxed| boxed.into_any().downcast().ok().map(|boxed| *boxed))
+            .as_mut()?
+            .remove(&TypeId::of::<T>())?
+            .into_any()
+            .downcast()
+            .ok()
+            .map(|boxed| *boxed)
     }
 
     /// Clear the `Extensions` of all inserted extensions.
