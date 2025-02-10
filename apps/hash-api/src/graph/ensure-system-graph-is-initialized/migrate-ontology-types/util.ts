@@ -55,10 +55,10 @@ import {
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import type {
+  DataTypeRelationAndSubject,
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,
-  DataTypeRelationAndSubject,
 } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
