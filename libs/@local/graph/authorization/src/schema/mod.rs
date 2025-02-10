@@ -16,8 +16,9 @@ pub use self::{
         AccountGroupSubjectId,
     },
     data_type::{
-        DataTypeNamespace, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        DataTypeResourceRelation, DataTypeSubject, DataTypeSubjectId, DataTypeViewerSubject,
+        DataTypeEditorSubject, DataTypeNamespace, DataTypeOwnerSubject, DataTypePermission,
+        DataTypeRelationAndSubject, DataTypeResourceRelation, DataTypeSetting,
+        DataTypeSettingSubject, DataTypeSubject, DataTypeSubjectId, DataTypeViewerSubject,
     },
     entity::{
         EntityAdministratorSubject, EntityEditorSubject, EntityNamespace, EntityOwnerSubject,

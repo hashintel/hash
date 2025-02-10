@@ -23,10 +23,7 @@ import {
   PROPERTY_TYPE_META_SCHEMA,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import type {
-  DataTypeRelationAndSubject,
-  UpdatePropertyType,
-} from "@local/hash-graph-client";
+import type { UpdatePropertyType } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity";
 import type {
@@ -61,6 +58,7 @@ import type {
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,
+  DataTypeRelationAndSubject,
 } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
