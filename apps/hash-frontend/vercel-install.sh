@@ -2,55 +2,32 @@
 
 set -euo pipefail
 
-touch ~/.bashrc
-
-# shellcheck disable=SC2016
-echo 'export PATH=/vercel/.local/bin:/usr/local/python/bin/:$PATH' >> ~/.bashrc
-
-# shellcheck disable=SC1090
-source ~/.bashrc
-
 echo "Changing dir to root"
 cd ../..
 
 echo "updating certificates"
 yum update ca-certificates -y
 
-echo "Installing prerequisites"
-yum install -y wget tar gzip jq
-
-echo "Installing eget"
-curl https://zyedidia.github.io/eget.sh | sh
-
-# Setup TurboRepo and get a pruned src folder and lockfile
-echo "Installing turbo"
-npm install -g "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
-
-# Enable corepack
-echo "Enable corepack"
-corepack enable
-
-# TODO: investigate why producing a pruned repo results in a broken Vercel build
-#   update: Probably due to missing `patches/` folder, needs investigation
-
-#echo "Producing pruned repo"
-#turbo prune --scope='@apps/hash-frontend'
-#
-#echo "Deleting contents of non-pruned dir to save space"
-#git ls-files -z | xargs -0 rm -f
-#git ls-tree --name-only -d -r -z HEAD | sort -rz | xargs -0 rm -rf
-#
-#echo "Moving pruned repo back to root"
-#mv out/* .
-#rm out -r
-
 echo "Installing Rust"
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
 source "$HOME/.cargo/env"
-# `rustup show` uses `rust-toolchain.toml` to install the correct toolchain.
-for _ in {1..5}; do rustup show && break || sleep 5; done
+rustup show
+
+echo "installing tools"
+curl https://mise.run | sh
+mise install
+
+echo "Producing pruned repo"
+turbo prune --scope='@apps/hash-frontend'
+
+echo "Deleting contents of non-pruned dir to save space"
+git ls-files -z | xargs -0 rm -f
+git ls-tree --name-only -d -r -z HEAD | sort -rz | xargs -0 rm -rf
+
+echo "Moving pruned repo back to root"
+mv out/* .
+rm out -r
 
 # Install the pruned dependencies
-
 echo "Installing yarn dependencies"
 LEFTHOOK=0 yarn install --immutable
