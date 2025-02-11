@@ -6,6 +6,8 @@ inputs:
     default: ""
     description: "List of browsers separated by space, e.g. 'chrome firefox'"
     required: false
+  token:
+    required: true
 
 runs:
   using: composite
@@ -16,7 +18,7 @@ runs:
       with:
         install_args: --jobs 1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.token }}
 
     - name: Install yarn dependencies
       uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
