@@ -1,0 +1,74 @@
+[tools.biome]
+version = "1.9.5-nightly.ff02a0b"
+backend = "aqua:biomejs/biome"
+
+[tools."cargo:cargo-binstall"]
+version = "1.10.22"
+backend = "cargo:cargo-binstall"
+
+[tools."cargo:cargo-hack"]
+version = "0.6.35"
+backend = "cargo:cargo-hack"
+
+[tools."cargo:cargo-insta"]
+version = "1.42.1"
+backend = "cargo:cargo-insta"
+
+[tools."cargo:cargo-llvm-cov"]
+version = "0.6.16"
+backend = "cargo:cargo-llvm-cov"
+
+[tools."cargo:cargo-nextest"]
+version = "0.9.80"
+backend = "cargo:cargo-nextest"
+
+[tools.lefthook]
+version = "1.10.10"
+backend = "aqua:evilmartians/lefthook"
+
+[tools.lefthook.checksums]
+"lefthook_1.10.10_MacOS_arm64.gz" = "sha256:61ba6c49b02fea9efca5dec0daa9d5271539f693a54617b01f997f43edf6f648"
+
+[tools.markdownlint-cli2]
+version = "0.17.2"
+backend = "npm:markdownlint-cli2"
+
+[tools.node]
+version = "22.14.0"
+backend = "core:node"
+
+[tools."npm:@napi-rs/cli"]
+version = "2.18.4"
+backend = "npm:@napi-rs/cli"
+
+[tools."npm:npm-run-all2"]
+version = "7.0.2"
+backend = "npm:npm-run-all2"
+
+[tools."npm:turbo"]
+version = "2.4.1"
+backend = "npm:turbo"
+
+[tools."pipx:sqlfluff"]
+version = "3.3.1"
+backend = "pipx:sqlfluff"
+
+[tools.python]
+version = "3.13.2"
+backend = "core:python"
+
+[tools.sentry-cli]
+version = "2.41.1"
+backend = "ubi:getsentry/sentry-cli"
+
+[tools.taplo]
+version = "0.9.3"
+backend = "ubi:tamasfe/taplo[matching=full]"
+
+[tools.uv]
+version = "0.5.30"
+backend = "aqua:astral-sh/uv"
+
+[tools.yarn]
+version = "4.6.0"
+backend = "asdf:yarn"
