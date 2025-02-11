@@ -33,6 +33,6 @@ pre-commit:
       stage_fixed: true
     toml:
       tags: [backend, style]
-      glob: "*.toml"
+      glob: "{*.toml,**/*.toml}"
       run: taplo format {staged_files} || true
       stage_fixed: true

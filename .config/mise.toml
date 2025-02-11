@@ -19,12 +19,12 @@ sentry-cli        = '2.41.1'
 taplo             = '0.9.3'
 
 "cargo:cargo-binstall" = "1.10.22"
-"cargo:critcmp" = "0.1.8"
 "cargo:cargo-hack"     = "0.6.35"
 "cargo:cargo-insta"    = "1.42.1"
 "cargo:cargo-llvm-cov" = "0.6.16"
 "cargo:cargo-nextest"  = "0.9.80"
 "cargo:clippy-sarif"   = "0.7.0"
+"cargo:critcmp"        = "0.1.8"
 "cargo:sarif-fmt"      = "0.7.0"
 "cargo:wasm-pack"      = "0.12.1"
 

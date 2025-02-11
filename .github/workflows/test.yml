@@ -311,8 +311,8 @@ jobs:
           # except when running PlayWright tests, the plugin-browser is already pruned out so the
           # command would fail.
           turbo run compile --env-mode=loose
-          mkdir -p logs
-          turbo run start:test --env-mode=loose --log-order stream >var/logs/background-task.log 2>&1 &
+          mkdir -p /tmp/logs
+          turbo run start:test --env-mode=loose --log-order stream >/tmp/logs/background-task.log 2>&1 &
           PID=$!
           echo "pid=$PID" | tee -a $GITHUB_OUTPUT
 
@@ -344,7 +344,7 @@ jobs:
         if: always() && steps.tests.outputs.has-background-tasks == 'true'
         run: |
           kill -15 ${{ steps.background-tasks.outputs.pid }} || true
-          cat var/logs/background-task.log
+          cat /tmp/logs/background-task.log
 
       - name: Upload artifact playwright-report
         if: matrix.name == '@tests/hash-playwright' && success() || failure()
@@ -352,15 +352,6 @@ jobs:
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_report
           path: tests/hash-playwright/playwright-report
-
-      - name: Upload logs
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
-        if: success() || failure()
-        with:
-          name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
-          path: |
-            var/api
-            var/logs
 
   publish:
     name: Publish
