@@ -62,6 +62,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.name }}
+
       - name: Find lint steps to run
         id: lints
         run: |
@@ -90,11 +95,6 @@ jobs:
             echo "has-rustfmt=$(yq '.toolchain.components | contains(["rustfmt"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
             echo "has-clippy=$(yq '.toolchain.components | contains(["clippy"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
-
-      - name: Prune repository
-        uses: ./.github/actions/prune-repository
-        with:
-          scope: ${{ matrix.name }}
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo

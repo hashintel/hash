@@ -26,6 +26,10 @@ backend = "cargo:cargo-nextest"
 version = "0.7.0"
 backend = "cargo:clippy-sarif"
 
+[tools."cargo:critcmp"]
+version = "0.1.8"
+backend = "cargo:critcmp"
+
 [tools."cargo:sarif-fmt"]
 version = "0.7.0"
 backend = "cargo:sarif-fmt"

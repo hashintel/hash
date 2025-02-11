@@ -29,13 +29,10 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Enable corepack
-        uses: ./.github/actions/enable-corepack
-
-      - name: Install tools using Mise
+      - name: Install turbo
         uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
         with:
-          install_args: turbo
+          install_args: npm:turbo
 
       - name: Determine changed packages
         id: packages
@@ -68,11 +65,12 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Enable corepack
-        uses: ./.github/actions/enable-corepack
-
-      - name: Install tools using Mise
+      - name: Install turbo
         uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
+        with:
+          install_args: npm:turbo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find bench steps to run
         id: benches
@@ -94,29 +92,12 @@ jobs:
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
-      - name: Install Rust tools
-        if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@82c3ccf997338625b2600b840b51cd18a38568fd # v2.48.7
-        with:
-          tool: just@1.34.0,critcmp@0.1.8
-
-      - name: Install Protobuf
-        if: steps.benches.outputs.has-rust == 'true'
-        run: sudo apt install protobuf-compiler
-
       - name: Checkout base branch
         if: steps.benches.outputs.create-baseline == 'true'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           clean: false
           ref: ${{ github.event.pull_request.base.sha }}
-
-      - name: Install Rust toolchain
-        if: steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.create-baseline == 'true'
-        uses: ./.github/actions/install-rust-toolchain
-        with:
-          toolchain: ${{ steps.benches.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.path }}
 
       - name: Prune repository
         if: steps.benches.outputs.create-baseline == 'true'
@@ -130,6 +111,8 @@ jobs:
       - name: Warm up repository
         if: steps.benches.outputs.create-baseline == 'true'
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Rust dependencies
         if: steps.benches.outputs.has-rust == 'true'
@@ -148,13 +131,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Install Rust toolchain
-        if: steps.benches.outputs.has-rust == 'true'
-        uses: ./.github/actions/install-rust-toolchain
-        with:
-          toolchain: ${{ steps.benches.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.path }}
-
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
@@ -165,6 +141,8 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run head benches
         run: turbo run bench:unit --filter "${{ matrix.name }}"
@@ -220,11 +198,12 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Install tools using Mise
+      - name: Install turbo
         uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
-
-      - name: Enable corepack
-        uses: ./.github/actions/enable-corepack
+        with:
+          install_args: npm:turbo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find bench steps to run
         id: benches
@@ -246,29 +225,12 @@ jobs:
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
-      - name: Install Rust tools
-        if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@82c3ccf997338625b2600b840b51cd18a38568fd # v2.48.7
-        with:
-          tool: just@1.34.0,critcmp@0.1.8
-
-      - name: Install Protobuf
-        if: steps.benches.outputs.has-rust == 'true'
-        run: sudo apt install protobuf-compiler
-
       - name: Checkout base branch
         if: steps.benches.outputs.create-baseline == 'true'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           clean: false
           ref: ${{ github.event.pull_request.base.sha }}
-
-      - name: Install Rust toolchain
-        if: steps.benches.outputs.has-rust == 'true' && steps.benches.outputs.create-baseline == 'true'
-        uses: ./.github/actions/install-rust-toolchain
-        with:
-          toolchain: ${{ steps.benches.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.path }}
 
       - name: Prune repository
         if: steps.benches.outputs.create-baseline == 'true'
@@ -282,6 +244,8 @@ jobs:
       - name: Warm up repository
         if: steps.benches.outputs.create-baseline == 'true'
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Rust dependencies
         if: steps.benches.outputs.has-rust == 'true'
@@ -315,13 +279,6 @@ jobs:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Install Rust toolchain
-        if: steps.benches.outputs.has-rust == 'true'
-        uses: ./.github/actions/install-rust-toolchain
-        with:
-          toolchain: ${{ steps.benches.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.path }}
-
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
@@ -332,6 +289,8 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Launch external services
         run: |
