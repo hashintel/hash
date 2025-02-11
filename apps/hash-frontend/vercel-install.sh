@@ -14,7 +14,9 @@ source "$HOME/.cargo/env"
 rustup show
 
 echo "installing tools"
-curl https://mise.run | sh
+yum install -y yum-utils
+yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
+yum install -y mise
 mise install
 
 echo "Producing pruned repo"
