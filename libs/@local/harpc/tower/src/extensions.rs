@@ -89,10 +89,9 @@ impl Extensions {
     #[must_use]
     pub fn get<T: Send + Sync + 'static>(&self) -> Option<&T> {
         self.map
-            .as_ref()
-            .and_then(|map| map.get(&TypeId::of::<T>()))?
-            .as_any()
-            .downcast_ref()
+            .as_ref()?
+            .get(&TypeId::of::<T>())
+            .and_then(|boxed| (**boxed).as_any().downcast_ref())
     }
 
     /// Get a mutable reference to a type previously inserted on this `Extensions`.
@@ -110,9 +109,8 @@ impl Extensions {
     pub fn get_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.map
             .as_mut()?
-            .get_mut(&TypeId::of::<T>())?
-            .as_any_mut()
-            .downcast_mut()
+            .get_mut(&TypeId::of::<T>())
+            .and_then(|boxed| (**boxed).as_any_mut().downcast_mut())
     }
 
     /// Get a mutable reference to a type, inserting `value` if not already present on this
