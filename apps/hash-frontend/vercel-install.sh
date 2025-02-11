@@ -19,12 +19,13 @@ yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
 yum install -y mise
 
 echo "installing cargo-binstall"
-curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | sh
 
 echo "installing tools"
 mise install
 
 echo "Producing pruned repo"
+cp -R patches out/
 turbo prune --scope='@apps/hash-frontend'
 
 echo "Deleting contents of non-pruned dir to save space"
