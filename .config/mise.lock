@@ -22,6 +22,10 @@ backend = "cargo:cargo-llvm-cov"
 version = "0.9.80"
 backend = "cargo:cargo-nextest"
 
+[tools."cargo:wasm-pack"]
+version = "0.12.1"
+backend = "cargo:wasm-pack"
+
 [tools.lefthook]
 version = "1.10.10"
 backend = "aqua:evilmartians/lefthook"
@@ -36,6 +40,9 @@ backend = "npm:markdownlint-cli2"
 [tools.node]
 version = "22.14.0"
 backend = "core:node"
+
+[tools.node.checksums]
+"node-v22.14.0-darwin-arm64.tar.gz" = "sha256:e9404633bc02a5162c5c573b1e2490f5fb44648345d64a958b17e325729a5e42"
 
 [tools."npm:@napi-rs/cli"]
 version = "2.18.4"

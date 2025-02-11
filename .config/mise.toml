@@ -1,5 +1,8 @@
 [settings]
+# hooks are experimental
 experimental = true
+
+# We do not use Rust as it's experimental as well.
 disable_tools = ["rust"]
 
 [tools]
@@ -18,6 +21,7 @@ taplo             = '0.9.3'
 "cargo:cargo-insta"    = "1.42.1"
 "cargo:cargo-llvm-cov" = "0.6.16"
 "cargo:cargo-nextest"  = "0.9.80"
+"cargo:wasm-pack"      = "0.12.1"
 
 "npm:@napi-rs/cli" = '2.18.4'
 "npm:npm-run-all2" = '7.0.2'
@@ -27,4 +31,9 @@ taplo             = '0.9.3'
 uv              = '0.5.30'
 
 [hooks]
-postinstall = "lefthook install -f"
+postinstall = [
+  "echo 'Installing lefthook hooks...'",
+  "lefthook install -f && echo 'Done!' || echo 'Failed!'",
+  "echo 'Enabling corepack...'",
+  "corepack enable && echo 'Done!' || echo 'Failed!'",
+]

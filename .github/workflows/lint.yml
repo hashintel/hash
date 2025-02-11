@@ -30,10 +30,7 @@ jobs:
       - name: Install tools using Mise
         uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
         with:
-          install_args: turbo
-
-      - name: Enable corepack
-        uses: ./.github/actions/enable-corepack
+          install_args: npm:turbo
 
       - name: Determine changed packages
         id: packages
@@ -58,11 +55,10 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Enable corepack
-        uses: ./.github/actions/enable-corepack
-
-      - name: Install turbo
-        uses: ./.github/actions/install-turbo
+      - name: Install tools using Mise
+        uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
+        with:
+          install_args: npm:turbo
 
       - name: Find lint steps to run
         id: lints
