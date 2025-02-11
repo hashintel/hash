@@ -18,7 +18,7 @@ protoc            = '25.6'
 sentry-cli        = '2.41.1'
 taplo             = '0.9.3'
 
-cargo-binstall = '1.10.22'
+cargo-binstall         = '1.10.22'
 "cargo:cargo-hack"     = "0.6.35"
 "cargo:cargo-insta"    = "1.42.1"
 "cargo:cargo-llvm-cov" = "0.6.16"
