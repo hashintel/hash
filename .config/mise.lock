@@ -2,6 +2,13 @@
 version = "1.9.5-nightly.ff02a0b"
 backend = "aqua:biomejs/biome"
 
+[tools.cargo-binstall]
+version = "1.10.22"
+backend = "aqua:cargo-bins/cargo-binstall"
+
+[tools.cargo-binstall.checksums]
+"cargo-binstall-aarch64-apple-darwin.zip" = "sha256:97ce4a2f18181f052dda266b042d8bb220e48ffe40ca75e796ae4c5e418b9e01"
+
 [tools."cargo:cargo-binstall"]
 version = "1.10.22"
 backend = "cargo:cargo-binstall"

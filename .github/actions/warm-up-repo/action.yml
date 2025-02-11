@@ -13,10 +13,45 @@ runs:
   using: composite
 
   steps:
+    # We currently don't manage Rust toolchains in Mise, so we install it manually.
+    - name: "Install Rust"
+      shell: bash
+      run: |
+        # regex for components that are only available on nightly and should not be installed on stable
+        # these are in variables due to: https://stackoverflow.com/a/56449915/9077988
+        NIGHTLY_ONLY="miri|llvm-tools|llvm-tools-preview|rustc-codegen-cranelift-preview"
+        NIGHTLY_TOOLCHAIN="nightly-.*"
+
+        # extract components from the rust-toolchain.toml
+        COMPONENTS="$(cat rust-toolchain.toml | yq -p toml '.toolchain.components[]')"
+
+        if [[ "${{ inputs.toolchain }}" != "" ]]; then
+          TOOLCHAIN_CHANNEL="${{ inputs.toolchain }}"
+        else
+          TOOLCHAIN_CHANNEL="$(cat rust-toolchain.toml | yq -p toml '.toolchain.channel')"
+        fi
+        rustup toolchain install "$TOOLCHAIN_CHANNEL"
+
+        for component in $COMPONENTS; do
+          # depending on the toolchain we need to conditionally skip specific components
+          if [[ ! "$TOOLCHAIN_CHANNEL" =~ $NIGHTLY_TOOLCHAIN ]]; then
+            # ensure that we only install components that are meant for stable
+            if [[ ! $component =~ $NIGHTLY_ONLY ]]; then
+              rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
+            fi
+          else
+            rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
+          fi
+        done
+
+        echo "RUSTUP_TOOLCHAIN=$TOOLCHAIN_CHANNEL" >> $GITHUB_ENV
+
     - name: Install Tools
-      uses: ./.github/actions/install-tools
+      uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
       with:
-        token: ${{ inputs.token }}
+        install_args: --jobs 1
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
 
     - name: Install yarn dependencies
       uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
