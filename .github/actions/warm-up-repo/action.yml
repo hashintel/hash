@@ -11,15 +11,10 @@ runs:
   using: composite
 
   steps:
-    - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+    - name: Install tools using Mise
+      uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
       with:
-        node-version: 22 ## aligned with Node version on Vercel
-        # cache: yarn ## Currently disabled because of frequent timeouts
-
-    - name: Install WASM tools
-      uses: taiki-e/install-action@82c3ccf997338625b2600b840b51cd18a38568fd # v2.48.7
-      with:
-        tool: wasm-pack@0.12.1
+        install_args: yarn node
 
     - name: Install yarn dependencies
       uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
@@ -32,6 +27,7 @@ runs:
         # we disable hardened mode (https://yarnpkg.com/features/security), as it significantly slows down the installation
         # immutable installs are still enforced in CI
         command: |
+          mise install yarn node
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
           export YARN_ENABLE_HARDENED_MODE=0
           corepack enable
