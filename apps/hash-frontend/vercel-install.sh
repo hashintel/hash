@@ -8,34 +8,34 @@ cd ../..
 echo "updating certificates"
 yum update ca-certificates -y
 
-echo "Installing Rust"
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
-source "$HOME/.cargo/env"
-rustup show
-
 echo "installing mise"
 yum install -y yum-utils
 yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
 yum install -y mise
 
-echo "installing cargo-binstall"
-curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | sh
+# Setup TurboRepo and get a pruned src folder and lockfile
+echo "Installing turbo"
+mise install npm:turbo python
 
-echo "installing tools"
-mise install
+# TODO: investigate why producing a pruned repo results in a broken Vercel build
+#   update: Probably due to missing `patches/` folder, needs investigation
 
-echo "Producing pruned repo"
-turbo prune --scope='@apps/hash-frontend'
-mkdir -p out/.yarn
-cp -R .yarn/patches out/.yarn/
+#echo "Producing pruned repo"
+#turbo prune --scope='@apps/hash-frontend'
+#
+#echo "Deleting contents of non-pruned dir to save space"
+#git ls-files -z | xargs -0 rm -f
+#git ls-tree --name-only -d -r -z HEAD | sort -rz | xargs -0 rm -rf
+#
+#echo "Moving pruned repo back to root"
+#mv out/* .
+#rm out -r
 
-echo "Deleting contents of non-pruned dir to save space"
-git ls-files -z | xargs -0 rm -f
-git ls-tree --name-only -d -r -z HEAD | sort -rz | xargs -0 rm -rf
-
-echo "Moving pruned repo back to root"
-mv out/* .
-rm out -r
+echo "Installing Rust"
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
+source "$HOME/.cargo/env"
+# `rustup show` uses `rust-toolchain.toml` to install the correct toolchain.
+for _ in {1..5}; do rustup show && break || sleep 5; done
 
 # Install the pruned dependencies
 echo "Installing yarn dependencies"
