@@ -79,6 +79,13 @@ backend = "npm:turbo"
 version = "3.3.1"
 backend = "pipx:sqlfluff"
 
+[tools.protoc]
+version = "25.6"
+backend = "aqua:protocolbuffers/protobuf/protoc"
+
+[tools.protoc.checksums]
+"protoc-25.6-osx-aarch_64.zip" = "sha256:51a00a881f3ddba4d0be4e84c3f3c8adb9956354031fde6e164878c7d26f2fe8"
+
 [tools.python]
 version = "3.13.2"
 backend = "core:python"
