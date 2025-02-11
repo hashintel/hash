@@ -2,7 +2,7 @@
 # hooks are experimental
 experimental = true
 
-# We do not use Rust as it's experimental as well.
+# We do not use Rust, yet, as it's experimental as well.
 disable_tools = ["rust"]
 
 [tools]
