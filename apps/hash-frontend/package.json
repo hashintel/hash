@@ -115,7 +115,7 @@
     "react-virtuoso": "4.12.5",
     "react-window": "1.8.11",
     "reactflow": "11.11.4",
-    "remark-gfm": "4.0.0",
+    "remark-gfm": "4.0.1",
     "rooks": "7.14.1",
     "safe-stable-stringify": "2.5.0",
     "setimmediate": "1.0.5",
