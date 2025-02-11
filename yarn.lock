@@ -576,7 +576,7 @@ __metadata:
     react-virtuoso: "npm:4.12.5"
     react-window: "npm:1.8.11"
     reactflow: "npm:11.11.4"
-    remark-gfm: "npm:4.0.0"
+    remark-gfm: "npm:4.0.1"
     rimraf: "npm:6.0.1"
     rooks: "npm:7.14.1"
     safe-stable-stringify: "npm:2.5.0"
@@ -40664,9 +40664,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"remark-gfm@npm:4.0.0":
-  version: 4.0.0
-  resolution: "remark-gfm@npm:4.0.0"
+"remark-gfm@npm:4.0.1":
+  version: 4.0.1
+  resolution: "remark-gfm@npm:4.0.1"
   dependencies:
     "@types/mdast": "npm:^4.0.0"
     mdast-util-gfm: "npm:^3.0.0"
@@ -40674,7 +40674,7 @@ __metadata:
     remark-parse: "npm:^11.0.0"
     remark-stringify: "npm:^11.0.0"
     unified: "npm:^11.0.0"
-  checksum: 10c0/db0aa85ab718d475c2596e27c95be9255d3b0fc730a4eda9af076b919f7dd812f7be3ac020611a8dbe5253fd29671d7b12750b56e529fdc32dfebad6dbf77403
+  checksum: 10c0/427ecc6af3e76222662061a5f670a3e4e33ec5fffe2cabf04034da6a3f9a1bda1fc023e838a636385ba314e66e2bebbf017ca61ebea357eb0f5200fe0625a4b7
   languageName: node
   linkType: hard
 
