@@ -13,10 +13,15 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --defaul
 source "$HOME/.cargo/env"
 rustup show
 
-echo "installing tools"
+echo "installing mise"
 yum install -y yum-utils
 yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
 yum install -y mise
+
+echo "installing cargo-binstall"
+curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
+echo "installing tools"
 mise install
 
 echo "Producing pruned repo"
