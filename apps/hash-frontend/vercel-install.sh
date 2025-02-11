@@ -25,9 +25,9 @@ echo "installing tools"
 mise install
 
 echo "Producing pruned repo"
+turbo prune --scope='@apps/hash-frontend'
 mkdir -p out/.yarn
 cp -R .yarn/patches out/.yarn/
-turbo prune --scope='@apps/hash-frontend'
 
 echo "Deleting contents of non-pruned dir to save space"
 git ls-files -z | xargs -0 rm -f
