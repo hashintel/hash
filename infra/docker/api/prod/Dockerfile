@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY .config/mise.toml .
 RUN apk add --no-cache yq && \
-    npm install -g "turbo@$(jq -r '.tools[\"npm:turbo\"]' < mise.toml)"
+    npm install -g "turbo@$(yq -r '.tools[\"npm:turbo\"]' < mise.toml)"
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-api' --docker && \
