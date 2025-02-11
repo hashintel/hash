@@ -316,27 +316,6 @@
             "schema": {
               "$ref": "#/components/schemas/AccountId"
             }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of data types to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
-            }
           }
         ],
         "requestBody": {
@@ -416,6 +395,63 @@
           },
           "409": {
             "description": "Data type ID is already archived"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/data-types/bulk": {
+      "put": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "update_data_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UpdateDataTypeRequest"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated data types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataTypeMetadata"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Base data types ID were not found"
           },
           "422": {
             "description": "Provided request body is invalid"
@@ -1754,27 +1790,6 @@
             "schema": {
               "$ref": "#/components/schemas/AccountId"
             }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of entity types to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
-            }
           }
         ],
         "requestBody": {
@@ -1854,6 +1869,63 @@
           },
           "409": {
             "description": "Entity type ID is already archived"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/entity-types/bulk": {
+      "put": {
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
+        "operationId": "update_entity_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UpdateEntityTypeRequest"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated entity types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntityTypeMetadata"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Base entity types ID were not found"
           },
           "422": {
             "description": "Provided request body is invalid"
@@ -2381,27 +2453,6 @@
             "schema": {
               "$ref": "#/components/schemas/AccountId"
             }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of property types to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
-            }
           }
         ],
         "requestBody": {
@@ -2481,6 +2532,63 @@
           },
           "409": {
             "description": "Property type ID is already archived"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/property-types/bulk": {
+      "put": {
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
+        "operationId": "update_property_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UpdatePropertyTypeRequest"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated property types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PropertyTypeMetadata"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Base property types ID were not found"
           },
           "422": {
             "description": "Provided request body is invalid"
