@@ -25,7 +25,8 @@ echo "installing tools"
 mise install
 
 echo "Producing pruned repo"
-cp -R .yarn/patches out/
+mkdir -p out/.yarn
+cp -R .yarn/patches out/.yarn/
 turbo prune --scope='@apps/hash-frontend'
 
 echo "Deleting contents of non-pruned dir to save space"
