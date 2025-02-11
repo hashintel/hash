@@ -22,9 +22,24 @@ backend = "cargo:cargo-llvm-cov"
 version = "0.9.80"
 backend = "cargo:cargo-nextest"
 
+[tools."cargo:clippy-sarif"]
+version = "0.7.0"
+backend = "cargo:clippy-sarif"
+
+[tools."cargo:sarif-fmt"]
+version = "0.7.0"
+backend = "cargo:sarif-fmt"
+
 [tools."cargo:wasm-pack"]
 version = "0.12.1"
 backend = "cargo:wasm-pack"
+
+[tools.just]
+version = "1.39.0"
+backend = "ubi:casey/just"
+
+[tools.just.checksums]
+just-macos-aarch64 = "sha256:078607a1344478fedd83def358448775e165663f5233cd74fab43ef4e1bff431"
 
 [tools.lefthook]
 version = "1.10.10"
@@ -51,6 +66,10 @@ backend = "npm:@napi-rs/cli"
 [tools."npm:npm-run-all2"]
 version = "7.0.2"
 backend = "npm:npm-run-all2"
+
+[tools."npm:renovate"]
+version = "39.166.0"
+backend = "npm:renovate"
 
 [tools."npm:turbo"]
 version = "2.4.1"

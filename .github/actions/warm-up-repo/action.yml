@@ -11,10 +11,8 @@ runs:
   using: composite
 
   steps:
-    - name: Install tools using Mise
+    - name: Install Tools
       uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
-      with:
-        install_args: yarn node
 
     - name: Install yarn dependencies
       uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
@@ -27,10 +25,8 @@ runs:
         # we disable hardened mode (https://yarnpkg.com/features/security), as it significantly slows down the installation
         # immutable installs are still enforced in CI
         command: |
-          mise install yarn node
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
           export YARN_ENABLE_HARDENED_MODE=0
-          corepack enable
           yarn install --immutable
 
     - name: npx playwright install
