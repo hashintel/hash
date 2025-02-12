@@ -41,7 +41,7 @@ import type {
 import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
-fimport { getWebShortname, isExternalTypeId } from "./util";
+import { getWebShortname, isExternalTypeId } from "./util";
 
 /**
  * Create a data type.
