@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{iter::once, mem};
+use core::{iter, mem};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
@@ -787,64 +787,110 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn update_data_type<R>(
+    async fn update_data_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        params: UpdateDataTypesParams<R>,
-    ) -> Result<DataTypeMetadata, Report<UpdateError>>
+        params: P,
+    ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
+        P: IntoIterator<Item = UpdateDataTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
-        let data_type_validator = DataTypeValidator;
-
-        let old_ontology_id = DataTypeUuid::from_url(&VersionedUrl {
-            base_url: params.schema.id.base_url.clone(),
-            version: OntologyTypeVersion::new(
-                params
-                    .schema
-                    .id
-                    .version
-                    .inner()
-                    .checked_sub(1)
-                    .ok_or(UpdateError)
-                    .attach_printable(
-                        "The version of the data type is already at the lowest possible value",
-                    )?,
-            ),
-        });
-        let new_ontology_id = DataTypeUuid::from_url(&params.schema.id);
-        self.authorization_api
-            .check_data_type_permission(
-                actor_id,
-                DataTypePermission::Update,
-                old_ontology_id,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(UpdateError)?
-            .assert_permission()
-            .change_context(UpdateError)?;
-
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let provenance = OntologyProvenance {
-            edition: OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
-                archived_by_id: None,
-                user_defined: params.provenance,
-            },
-        };
+        let mut relationships = HashSet::new();
 
-        let schema = data_type_validator
-            .validate(params.schema)
-            .change_context(UpdateError)?;
+        let mut updated_data_type_metadata = Vec::new();
+        let mut inserted_data_types = Vec::new();
+        let mut data_type_reference_ids = HashSet::new();
+        let mut data_type_conversions_rows = Vec::new();
+
+        for parameters in params {
+            let provenance = OntologyProvenance {
+                edition: OntologyEditionProvenance {
+                    created_by_id: EditionCreatedById::new(actor_id),
+                    archived_by_id: None,
+                    user_defined: parameters.provenance,
+                },
+            };
+
+            let old_ontology_id = DataTypeUuid::from_url(&VersionedUrl {
+                base_url: parameters.schema.id.base_url.clone(),
+                version: OntologyTypeVersion::new(
+                    parameters
+                        .schema
+                        .id
+                        .version
+                        .inner()
+                        .checked_sub(1)
+                        .ok_or(UpdateError)
+                        .attach_printable(
+                            "The version of the data type is already at the lowest possible value",
+                        )?,
+                ),
+            });
+
+            let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
+            let data_type_id = DataTypeUuid::from_url(&parameters.schema.id);
+
+            transaction
+                .authorization_api
+                .check_data_type_permission(
+                    actor_id,
+                    DataTypePermission::Update,
+                    old_ontology_id,
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(UpdateError)?
+                .assert_permission()
+                .change_context(UpdateError)?;
+
+            let (_ontology_id, owned_by_id, temporal_versioning) = transaction
+                .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
+                .await?;
+
+            relationships.extend(
+                iter::once(DataTypeRelationAndSubject::Owner {
+                    subject: DataTypeOwnerSubject::Web { id: owned_by_id },
+                    level: 0,
+                })
+                .chain(parameters.relationships)
+                .map(|relation_and_subject| (data_type_id, relation_and_subject)),
+            );
+
+            data_type_reference_ids.extend(
+                parameters
+                    .schema
+                    .data_type_references()
+                    .map(|(reference, _)| DataTypeUuid::from_url(&reference.url)),
+            );
+            inserted_data_types.push((data_type_id, Arc::new(parameters.schema)));
+            data_type_conversions_rows.extend(parameters.conversions.iter().map(
+                |(base_url, conversions)| DataTypeConversionsRow {
+                    source_data_type_ontology_id: data_type_id,
+                    target_data_type_base_url: base_url.clone(),
+                    from: conversions.from.clone(),
+                    into: conversions.to.clone(),
+                },
+            ));
+            updated_data_type_metadata.push(DataTypeMetadata {
+                record_id,
+                classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                temporal_versioning,
+                provenance,
+                conversions: parameters.conversions,
+            });
+        }
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
-        let required_parent_ids = schema
-            .data_type_references()
-            .map(|(reference, _)| DataTypeUuid::from_url(&reference.url))
-            .collect::<Vec<_>>();
+        for (data_type_id, inserted_data_type) in &inserted_data_types {
+            ontology_type_resolver
+                .add_unresolved_data_type(*data_type_id, Arc::clone(inserted_data_type));
+        }
+
+        let required_parent_ids = data_type_reference_ids.into_iter().collect::<Vec<_>>();
 
         let mut parent_inheritance_data = transaction
             .get_data_type_inheritance_metadata(&required_parent_ids)
@@ -895,41 +941,47 @@ where
                 }
             });
 
-        ontology_type_resolver
-            .add_unresolved_data_type(new_ontology_id, Arc::new(schema.clone().into_inner()));
-        let resolve_data = ontology_type_resolver
-            .resolve_data_type_metadata(new_ontology_id)
-            .change_context(UpdateError)?;
-
-        let closed_schema = data_type_validator
-            .validate(
-                ClosedDataType::from_resolve_data(schema.clone().into_inner(), &resolve_data)
-                    .change_context(UpdateError)?,
-            )
-            .change_context(UpdateError)?;
-        let (_ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update_owned_ontology_id(&schema.id, &provenance.edition)
-            .await?;
-
-        transaction
-            .insert_data_type_with_id(new_ontology_id, &schema, &closed_schema)
-            .await
-            .change_context(UpdateError)?;
-        transaction
-            .insert_data_type_references(new_ontology_id, &resolve_data)
-            .await
-            .change_context(UpdateError)?;
-
-        let data_type_conversions_rows = params
-            .conversions
+        let closed_schemas = inserted_data_types
             .iter()
-            .map(|(base_url, conversions)| DataTypeConversionsRow {
-                source_data_type_ontology_id: new_ontology_id,
-                target_data_type_base_url: base_url.clone(),
-                from: conversions.from.clone(),
-                into: conversions.to.clone(),
+            .map(|(data_type_id, data_type)| {
+                let closed_metadata = ontology_type_resolver
+                    .resolve_data_type_metadata(*data_type_id)
+                    .change_context(UpdateError)?;
+                let closed_schema =
+                    ClosedDataType::from_resolve_data((**data_type).clone(), &closed_metadata)
+                        .change_context(UpdateError)?;
+
+                Ok((closed_schema, closed_metadata))
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, Report<_>>>()?;
+
+        let data_type_validator = DataTypeValidator;
+        for ((closed_schema, _), (data_type_id, data_type)) in
+            closed_schemas.iter().zip(&inserted_data_types)
+        {
+            let schema = data_type_validator
+                .validate_ref(&**data_type)
+                .attach(StatusCode::InvalidArgument)
+                .change_context(UpdateError)?;
+            let closed_schema = data_type_validator
+                .validate_ref(closed_schema)
+                .attach(StatusCode::InvalidArgument)
+                .change_context(UpdateError)?;
+
+            transaction
+                .insert_data_type_with_id(*data_type_id, schema, closed_schema)
+                .await
+                .change_context(UpdateError)?;
+        }
+        for ((_, closed_metadata), (data_type_id, _)) in
+            closed_schemas.iter().zip(&inserted_data_types)
+        {
+            transaction
+                .insert_data_type_references(*data_type_id, closed_metadata)
+                .await
+                .change_context(UpdateError)?;
+        }
+
         let (statement, parameters) = InsertStatementBuilder::from_rows(
             Table::DataTypeConversions,
             &data_type_conversions_rows,
@@ -941,71 +993,64 @@ where
             .await
             .change_context(UpdateError)?;
 
-        let relationships = params
-            .relationships
-            .into_iter()
-            .chain(once(DataTypeRelationAndSubject::Owner {
-                subject: DataTypeOwnerSubject::Web { id: owned_by_id },
-                level: 0,
-            }))
-            .collect::<Vec<_>>();
-
+        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         transaction
             .authorization_api
-            .modify_data_type_relations(relationships.clone().into_iter().map(
-                |relation_and_subject| {
-                    (
-                        ModifyRelationshipOperation::Create,
-                        new_ontology_id,
-                        relation_and_subject,
-                    )
-                },
-            ))
+            .modify_data_type_relations(
+                relationships
+                    .iter()
+                    .map(|(resource, relation_and_subject)| {
+                        (
+                            ModifyRelationshipOperation::Create,
+                            *resource,
+                            *relation_and_subject,
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            )
             .await
             .change_context(UpdateError)?;
 
-        if let Err(error) = transaction.commit().await.change_context(UpdateError) {
+        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
             let mut error = error.expand();
 
             if let Err(auth_error) = self
                 .authorization_api
-                .modify_data_type_relations(relationships.into_iter().map(|relation_and_subject| {
-                    (
-                        ModifyRelationshipOperation::Delete,
-                        new_ontology_id,
-                        relation_and_subject,
-                    )
-                }))
+                .modify_data_type_relations(relationships.into_iter().map(
+                    |(resource, relation_and_subject)| {
+                        (
+                            ModifyRelationshipOperation::Delete,
+                            resource,
+                            relation_and_subject,
+                        )
+                    },
+                ))
                 .await
-                .change_context(UpdateError)
+                .change_context(InsertionError)
             {
                 error.push(auth_error);
             }
 
             Err(error.change_context(UpdateError))
         } else {
-            let metadata = DataTypeMetadata {
-                record_id: OntologyTypeRecordId::from(closed_schema.id.clone()),
-                classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
-                temporal_versioning,
-                provenance,
-                conversions: params.conversions,
-            };
-
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
                     .start_update_data_type_embeddings_workflow(
                         actor_id,
-                        &[DataTypeWithMetadata {
-                            schema: schema.into_inner(),
-                            metadata: metadata.clone(),
-                        }],
+                        &inserted_data_types
+                            .iter()
+                            .zip(&updated_data_type_metadata)
+                            .map(|((_, schema), metadata)| DataTypeWithMetadata {
+                                schema: (**schema).clone(),
+                                metadata: metadata.clone(),
+                            })
+                            .collect::<Vec<_>>(),
                     )
                     .await
                     .change_context(UpdateError)?;
             }
 
-            Ok(metadata)
+            Ok(updated_data_type_metadata)
         }
     }
 
