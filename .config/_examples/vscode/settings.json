@@ -1,0 +1,27 @@
+{
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "files.associations": {
+    "turbo.json": "jsonc",
+    ".sqlfluff": "toml",
+    ".prettierignore": "ignore",
+    ".markdownlintignore": "ignore",
+    ".dockerignore": "ignore",
+    ".sqlfluffignore": "ignore"
+  },
+  "rust-analyzer.imports.prefix": "crate",
+  "rust-analyzer.imports.preferNoStd": true,
+  "rust-analyzer.imports.granularity.enforce": true,
+  "rust-analyzer.cargo.extraEnv": {
+    "PDFIUM_STATIC_LIB_PATH": "${workspaceFolder}/libs/chonky/libs/",
+    "PDFIUM_DYNAMIC_LIB_PATH": "${workspaceFolder}/libs/chonky/libs/"
+  },
+  "rust-analyzer.runnables.extraEnv": {
+    "PDFIUM_STATIC_LIB_PATH": "${workspaceFolder}/libs/chonky/libs/",
+    "PDFIUM_DYNAMIC_LIB_PATH": "${workspaceFolder}/libs/chonky/libs/"
+  }
+}

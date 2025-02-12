@@ -13,6 +13,7 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
+  systemDataTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -144,14 +145,34 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   const institutionEntityIdByName: Record<string, EntityId> = {};
 
   for (const author of authors ?? []) {
-    const { name: authorName, affiliatedWith } = author;
+    const { name: authorName, email, affiliatedWith } = author;
 
     const entityUuid = generateUuid() as EntityUuid;
+
+    const authorPropertyMetadata = JSON.parse(
+      JSON.stringify(nameOnlyPropertyMetadata),
+    ) as typeof nameOnlyPropertyMetadata;
 
     const authorProperties: PersonProperties = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
         authorName,
     };
+
+    if (email) {
+      authorProperties["https://hash.ai/@hash/types/property-type/email/"] = [
+        email,
+      ];
+      authorPropertyMetadata.value[systemDataTypes.email.dataTypeBaseUrl] = {
+        value: [
+          {
+            metadata: {
+              dataTypeId: systemDataTypes.email.dataTypeId,
+              provenance: propertyProvenance,
+            },
+          },
+        ],
+      };
+    }
 
     const authorEntityId = entityIdFromComponents(webId, entityUuid);
 
@@ -204,7 +225,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       entityTypeIds: [systemEntityTypes.person.entityTypeId],
       localEntityId: authorEntityId,
       properties: authorProperties,
-      propertyMetadata: nameOnlyPropertyMetadata,
+      propertyMetadata: authorPropertyMetadata,
       provenance,
     };
 

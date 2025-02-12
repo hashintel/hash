@@ -45,11 +45,7 @@ impl Context {
 
     #[must_use]
     pub fn request_ref<T: 'static>(&self) -> Option<&T> {
-        let type_id = TypeId::of::<T>();
-
-        self.inner
-            .get(&type_id)
-            .and_then(|value| value.downcast_ref())
+        self.inner.get(&TypeId::of::<T>())?.downcast_ref()
     }
 }
 

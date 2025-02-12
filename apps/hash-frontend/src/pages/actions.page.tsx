@@ -223,10 +223,9 @@ const ActionsPage = () => {
             <Box
               display="flex"
               alignItems="center"
-              columnGap={1}
+              columnGap={0.5}
               sx={{
                 "> div": {
-                  lineHeight: 0,
                   [`.${selectClasses.select}.${inputBaseClasses.input}`]: {
                     fontSize: 14,
                     height: 14,
@@ -239,6 +238,7 @@ const ActionsPage = () => {
                   fontSize: 14,
                   fontWeight: 500,
                   color: ({ palette }) => palette.gray[70],
+                  lineHeight: 1,
                 }}
               >
                 <BarsSortRegularIcon
