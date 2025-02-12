@@ -5,6 +5,7 @@
 [github_star]: https://github.com/hashintel/hash/tree/main/libs#
 [hash]: https://github.com/hashintel/hash/tree/main/apps/hash
 [antsi]: antsi
+[chonky]: chonky
 [deer]: deer
 [error-stack]: error-stack
 [sarif]: sarif
