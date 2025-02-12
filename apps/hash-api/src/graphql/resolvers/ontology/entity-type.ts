@@ -21,6 +21,7 @@ import {
   getEntityTypeSubgraphById,
   unarchiveEntityType,
   updateEntityType,
+  updateEntityTypes,
 } from "../../../graph/ontology/primitive/entity-type";
 import type {
   GetClosedMultiEntityTypeResponse,
@@ -225,38 +226,36 @@ export const updateEntityTypesResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationUpdateEntityTypesArgs
 > = async (_, params, graphQLContext) =>
-  Promise.all(
-    params.updates.map((update) =>
-      updateEntityType(
-        graphQLContextToImpureGraphContext(graphQLContext),
-        graphQLContext.authentication,
-        {
-          entityTypeId: update.entityTypeId,
-          schema: update.updatedEntityType,
-          relationships: [
-            {
-              relation: "setting",
-              subject: {
-                kind: "setting",
-                subjectId: "updateFromWeb",
-              },
+  updateEntityTypes(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    {
+      entityTypeUpdates: params.updates.map((update) => ({
+        entityTypeId: update.entityTypeId,
+        schema: update.updatedEntityType,
+        relationships: [
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
             },
-            {
-              relation: "viewer",
-              subject: {
-                kind: "public",
-              },
+          },
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
             },
-            {
-              relation: "instantiator",
-              subject: {
-                kind: "public",
-              },
+          },
+          {
+            relation: "instantiator",
+            subject: {
+              kind: "public",
             },
-          ],
-        },
-      ),
-    ),
+          },
+        ],
+      })),
+    },
   );
 
 export const checkUserPermissionsOnEntityTypeResolver: ResolverFn<
