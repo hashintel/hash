@@ -77,17 +77,6 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
 
-      - name: Install Rust toolchain
-        uses: ./.github/actions/install-rust-toolchain
-
-      - name: Install Node.js
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
-        with:
-          node-version: 22
-
-      - name: Enable corepack
-        uses: ./.github/actions/enable-corepack
-
       - uses: dawidd6/action-download-artifact@20319c5641d495c8a52e688b7dc5fada6c3a9fbc # v8
         if: github.event.inputs.repoCache != 'disabled'
         continue-on-error: true
@@ -106,8 +95,12 @@ jobs:
           mkdir -p $cache_dir
           tar -xzf cache-download/$cache_archive -C $cache_dir
 
-      - name: Install renovate
-        run: npm install -g renovate
+      - name: Install turbo
+        uses: jdx/mise-action@5083fe46898c414b2475087cc79da59e7da859e8 # v2.1.11
+        with:
+          install_args: npm:renovate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run renovate
         env:

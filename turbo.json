@@ -1,11 +1,6 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "tasks": {
-    // Install commands
-    "postinstall": {
-      "cache": false
-    },
-
     // Development commands
     "dev": {
       "cache": false,

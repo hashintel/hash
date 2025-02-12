@@ -2,18 +2,18 @@ FROM node:22.12-alpine AS base
 
 WORKDIR /app
 
-COPY package.json .
-RUN apk add --no-cache jq yq && \
-    npm install -g  "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+COPY .config/mise.toml .
+RUN apk add --no-cache yq && \
+    npm install -g "turbo@$(yq -r '.tools["npm:turbo"]' -p toml -oy mise.toml)"
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-api' --docker && \
     find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
-      [ -f "/app/out/full/$1" ] || ( \
-        mkdir -p "/app/out/full/$(dirname "$1")/src" &&  \
-        echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
-        echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
-      )' _ {} \; && \
+    [ -f "/app/out/full/$1" ] || ( \
+    mkdir -p "/app/out/full/$(dirname "$1")/src" &&  \
+    echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
+    echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
+    )' _ {} \; && \
     cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
 

@@ -1,6 +1,6 @@
 {
   "file_types": {
-    "TOML": [".sqlfluff"],
+    "TOML": [".sqlfluff", "mise.lock", "Cargo.lock"],
     "JSONC": ["turbo.json"],
     "Git Ignore": [
       ".prettierignore",

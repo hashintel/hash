@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# shellcheck disable=SC1090
-source ~/.bashrc
+source "$HOME/.cargo/env"
 
 set -euo pipefail
 

@@ -1,0 +1,118 @@
+[tools.biome]
+version = "1.9.5-nightly.ff02a0b"
+backend = "aqua:biomejs/biome"
+
+[tools.cargo-binstall]
+version = "1.10.22"
+backend = "aqua:cargo-bins/cargo-binstall"
+
+[tools.cargo-binstall.checksums]
+"cargo-binstall-aarch64-apple-darwin.zip" = "sha256:97ce4a2f18181f052dda266b042d8bb220e48ffe40ca75e796ae4c5e418b9e01"
+
+[tools."cargo:cargo-binstall"]
+version = "1.10.22"
+backend = "cargo:cargo-binstall"
+
+[tools."cargo:cargo-hack"]
+version = "0.6.35"
+backend = "cargo:cargo-hack"
+
+[tools."cargo:cargo-insta"]
+version = "1.42.1"
+backend = "cargo:cargo-insta"
+
+[tools."cargo:cargo-llvm-cov"]
+version = "0.6.16"
+backend = "cargo:cargo-llvm-cov"
+
+[tools."cargo:cargo-nextest"]
+version = "0.9.80"
+backend = "cargo:cargo-nextest"
+
+[tools."cargo:clippy-sarif"]
+version = "0.7.0"
+backend = "cargo:clippy-sarif"
+
+[tools."cargo:critcmp"]
+version = "0.1.8"
+backend = "cargo:critcmp"
+
+[tools."cargo:sarif-fmt"]
+version = "0.7.0"
+backend = "cargo:sarif-fmt"
+
+[tools."cargo:wasm-pack"]
+version = "0.12.1"
+backend = "cargo:wasm-pack"
+
+[tools.just]
+version = "1.39.0"
+backend = "ubi:casey/just"
+
+[tools.just.checksums]
+just-macos-aarch64 = "sha256:078607a1344478fedd83def358448775e165663f5233cd74fab43ef4e1bff431"
+
+[tools.lefthook]
+version = "1.10.10"
+backend = "aqua:evilmartians/lefthook"
+
+[tools.lefthook.checksums]
+"lefthook_1.10.10_MacOS_arm64.gz" = "sha256:61ba6c49b02fea9efca5dec0daa9d5271539f693a54617b01f997f43edf6f648"
+
+[tools.markdownlint-cli2]
+version = "0.17.2"
+backend = "npm:markdownlint-cli2"
+
+[tools.node]
+version = "22.14.0"
+backend = "core:node"
+
+[tools.node.checksums]
+"node-v22.14.0-darwin-arm64.tar.gz" = "sha256:e9404633bc02a5162c5c573b1e2490f5fb44648345d64a958b17e325729a5e42"
+
+[tools."npm:@napi-rs/cli"]
+version = "2.18.4"
+backend = "npm:@napi-rs/cli"
+
+[tools."npm:npm-run-all2"]
+version = "7.0.2"
+backend = "npm:npm-run-all2"
+
+[tools."npm:renovate"]
+version = "39.166.0"
+backend = "npm:renovate"
+
+[tools."npm:turbo"]
+version = "2.4.1"
+backend = "npm:turbo"
+
+[tools."pipx:sqlfluff"]
+version = "3.3.1"
+backend = "pipx:sqlfluff"
+
+[tools.protoc]
+version = "25.6"
+backend = "aqua:protocolbuffers/protobuf/protoc"
+
+[tools.protoc.checksums]
+"protoc-25.6-osx-aarch_64.zip" = "sha256:51a00a881f3ddba4d0be4e84c3f3c8adb9956354031fde6e164878c7d26f2fe8"
+
+[tools.python]
+version = "3.13.2"
+backend = "core:python"
+
+[tools.sentry-cli]
+version = "2.41.1"
+backend = "ubi:getsentry/sentry-cli"
+
+[tools.taplo]
+version = "0.9.3"
+backend = "ubi:tamasfe/taplo[matching=full]"
+
+[tools.uv]
+version = "0.5.30"
+backend = "aqua:astral-sh/uv"
+
+[tools.yarn]
+version = "4.6.0"
+backend = "asdf:yarn"

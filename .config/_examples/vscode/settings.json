@@ -8,6 +8,8 @@
   "files.associations": {
     "turbo.json": "jsonc",
     ".sqlfluff": "toml",
+    "mise.lock": "toml",
+    "Cargo.lock": "toml",
     ".prettierignore": "ignore",
     ".markdownlintignore": "ignore",
     ".dockerignore": "ignore",

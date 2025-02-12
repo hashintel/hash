@@ -4,9 +4,10 @@ FROM node:20-alpine3.18 AS base
 
 WORKDIR /app
 
-COPY package.json .
-RUN apk add --no-cache jq yq && \
-    npm install -g "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+COPY .config/mise.toml .
+RUN apk add --no-cache yq && \
+    npm install -g "turbo@$(yq -r '.tools["npm:turbo"]' -p toml -oy mise.toml)"
+RUN turbo --version
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-graph' --docker && \

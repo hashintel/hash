@@ -2,33 +2,20 @@
 
 set -euo pipefail
 
-touch ~/.bashrc
-
-# shellcheck disable=SC2016
-echo 'export PATH=/vercel/.local/bin:/usr/local/python/bin/:$PATH' >> ~/.bashrc
-
-# shellcheck disable=SC1090
-source ~/.bashrc
-
 echo "Changing dir to root"
 cd ../..
 
 echo "updating certificates"
 yum update ca-certificates -y
 
-echo "Installing prerequisites"
-yum install -y wget tar gzip jq
-
-echo "Installing eget"
-curl https://zyedidia.github.io/eget.sh | sh
+echo "installing mise"
+yum install -y yum-utils
+yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
+yum install -y mise
 
 # Setup TurboRepo and get a pruned src folder and lockfile
 echo "Installing turbo"
-npm install -g "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
-
-# Enable corepack
-echo "Enable corepack"
-corepack enable
+mise install npm:turbo python
 
 # TODO: investigate why producing a pruned repo results in a broken Vercel build
 #   update: Probably due to missing `patches/` folder, needs investigation
@@ -51,6 +38,5 @@ source "$HOME/.cargo/env"
 for _ in {1..5}; do rustup show && break || sleep 5; done
 
 # Install the pruned dependencies
-
 echo "Installing yarn dependencies"
 LEFTHOOK=0 yarn install --immutable
