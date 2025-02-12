@@ -270,7 +270,7 @@ __metadata:
     "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
-    "@google-cloud/storage": "npm:7.15.0"
+    "@google-cloud/storage": "npm:7.15.1"
     "@google-cloud/vertexai": "npm:1.9.3"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
@@ -408,7 +408,7 @@ __metadata:
     cors: "npm:2.8.5"
     cross-env: "npm:7.0.3"
     dedent: "npm:0.7.0"
-    effect: "npm:3.12.10"
+    effect: "npm:3.12.11"
     eslint: "npm:9.20.0"
     exponential-backoff: "npm:3.1.2"
     express: "npm:4.21.2"
@@ -5081,53 +5081,53 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/platform-node-shared@npm:^0.25.4":
-  version: 0.25.4
-  resolution: "@effect/platform-node-shared@npm:0.25.4"
+"@effect/platform-node-shared@npm:^0.26.0":
+  version: 0.26.0
+  resolution: "@effect/platform-node-shared@npm:0.26.0"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    "@effect/platform": ^0.75.4
-    effect: ^3.12.10
-  checksum: 10c0/61ca3bb4303f23945e958a30591f5180cbe7d6637ace4a8ada93dad772791cbac60565a93dd9bf9271872f8a92e9b505bfcf9baac0a7f10bcfe8f44ccd20ce1c
+    "@effect/platform": ^0.76.0
+    effect: ^3.12.11
+  checksum: 10c0/b71dada70687a8bc238e7efc54c002d390e96183da7f42cd0ac84ae6f88c363ff78a0ad69f8e9405d2c3e51ff5cd2ad48ee47e9b406ffa02570f8abb71903773
   languageName: node
   linkType: hard
 
-"@effect/platform-node@npm:0.71.4":
-  version: 0.71.4
-  resolution: "@effect/platform-node@npm:0.71.4"
+"@effect/platform-node@npm:0.72.0":
+  version: 0.72.0
+  resolution: "@effect/platform-node@npm:0.72.0"
   dependencies:
-    "@effect/platform-node-shared": "npm:^0.25.4"
+    "@effect/platform-node-shared": "npm:^0.26.0"
     mime: "npm:^3.0.0"
     undici: "npm:^7.1.0"
     ws: "npm:^8.18.0"
   peerDependencies:
-    "@effect/platform": ^0.75.4
-    effect: ^3.12.10
-  checksum: 10c0/980c322a70a290dd35f64ae738b24588cf624894bdfbafe824945ae6faa52eb01ab239cba7a5ef290208420f2afdcce17a17bcb76c57d5998da6294edf4517c7
+    "@effect/platform": ^0.76.0
+    effect: ^3.12.11
+  checksum: 10c0/beb51b8d9d84dfe9c1fba05b284710a2632055daadbe4aab0c34ffa3331c568351dda9690029291205bd1bf168e61644ae46097852aaebb65142cf36bf61560c
   languageName: node
   linkType: hard
 
-"@effect/platform@npm:0.75.4":
-  version: 0.75.4
-  resolution: "@effect/platform@npm:0.75.4"
+"@effect/platform@npm:0.76.0":
+  version: 0.76.0
+  resolution: "@effect/platform@npm:0.76.0"
   dependencies:
     find-my-way-ts: "npm:^0.1.5"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    effect: ^3.12.10
-  checksum: 10c0/edcdea65270ab6534898b133553dd3ebd6c2c22ef60dc59b8cf71edcfed124a07726b4602bb15266c3f63a5b0dede6593b90e2de477f5d499bb07efaf109d465
+    effect: ^3.12.11
+  checksum: 10c0/202fc6ecd1a633ae1366092755fb9a7a46e9140cb3f56c43844cb03fd7db308e9a81a267fb7fc6794a74c9b4d582def2ac5f89d5bc0a0c7e76a8e0698db2a032
   languageName: node
   linkType: hard
 
-"@effect/vitest@npm:0.17.6":
-  version: 0.17.6
-  resolution: "@effect/vitest@npm:0.17.6"
+"@effect/vitest@npm:0.17.7":
+  version: 0.17.7
+  resolution: "@effect/vitest@npm:0.17.7"
   peerDependencies:
-    effect: ^3.12.10
+    effect: ^3.12.11
     vitest: ^2.0.5
-  checksum: 10c0/b46f9c7479f531f9ee5a001c16d75588d349e86bad048069b83bed7cb298ebf532abea9a73cdb3be830f8f3a31787e364b5f3ed3fd157f1ee8db2be68c2e4441
+  checksum: 10c0/6e21aed0c68f046f26f6f38616217b5b99caa314f8da0c1f33651baf611249f680a4b55608624a41c93cbf7c075f0c00d829164311c4cff04c166c262e8b1631
   languageName: node
   linkType: hard
 
@@ -6204,9 +6204,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@google-cloud/storage@npm:7.15.0":
-  version: 7.15.0
-  resolution: "@google-cloud/storage@npm:7.15.0"
+"@google-cloud/storage@npm:7.15.1":
+  version: 7.15.1
+  resolution: "@google-cloud/storage@npm:7.15.1"
   dependencies:
     "@google-cloud/paginator": "npm:^5.0.0"
     "@google-cloud/projectify": "npm:^4.0.0"
@@ -6223,7 +6223,7 @@ __metadata:
     retry-request: "npm:^7.0.0"
     teeny-request: "npm:^9.0.0"
     uuid: "npm:^8.0.0"
-  checksum: 10c0/10a432d2302a6f47f2b4552b97c897d2472aedc314d054a91dac6f83e8a7710f176ecd5aee728357bec53ec722198f519d8dc662f7c4da6c80eac6abe5dedf67
+  checksum: 10c0/91a3185bffc53d2474fb4df43fb64fbc324451122a8eccb5967829cfd2431dbe7192dc78f3212b71d27d0aef99957c298d22d5c2f1d9d3e3ef20d6245bc617ce
   languageName: node
   linkType: hard
 
@@ -8798,7 +8798,7 @@ __metadata:
     "@types/babel__core": "npm:^7"
     "@types/eslint__eslintrc": "npm:2.1.2"
     "@types/node": "npm:22.13.1"
-    effect: "npm:3.12.10"
+    effect: "npm:3.12.11"
     eslint: "npm:9.20.0"
     eslint-config-airbnb: "npm:19.0.4"
     eslint-config-flat-gitignore: "npm:2.0.0"
@@ -8823,9 +8823,9 @@ __metadata:
   dependencies:
     "@chainsafe/libp2p-noise": "npm:16.0.1"
     "@chainsafe/libp2p-yamux": "npm:7.0.1"
-    "@effect/platform": "npm:0.75.4"
-    "@effect/platform-node": "npm:0.71.4"
-    "@effect/vitest": "npm:0.17.6"
+    "@effect/platform": "npm:0.76.0"
+    "@effect/platform-node": "npm:0.72.0"
+    "@effect/vitest": "npm:0.17.7"
     "@libp2p/crypto": "npm:5.0.11"
     "@libp2p/identify": "npm:3.0.18"
     "@libp2p/interface": "npm:2.5.0"
@@ -8838,11 +8838,11 @@ __metadata:
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
     "@types/node": "npm:22.13.1"
     "@vitest/coverage-istanbul": "npm:2.1.9"
-    effect: "npm:3.12.10"
+    effect: "npm:3.12.11"
     eslint: "npm:9.20.0"
     it-stream-types: "npm:2.0.2"
     libp2p: "npm:2.6.1"
-    multiformats: "npm:13.3.1"
+    multiformats: "npm:13.3.2"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
     uint8arraylist: "npm:2.4.8"
@@ -8928,7 +8928,7 @@ __metadata:
     "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:2.1.9"
-    effect: "npm:3.12.10"
+    effect: "npm:3.12.11"
     eslint: "npm:9.20.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
@@ -10393,10 +10393,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@opentelemetry/semantic-conventions@npm:1.29.0, @opentelemetry/semantic-conventions@npm:^1.15.2, @opentelemetry/semantic-conventions@npm:^1.27.0":
-  version: 1.29.0
-  resolution: "@opentelemetry/semantic-conventions@npm:1.29.0"
-  checksum: 10c0/54a4033fa1e7c31394d41f96e812b922aa406551d69361e804dc107ae9e75923328001398f78faf2dbd77cbd9df3c928223662642babc2d0e82b24f5ef0c5347
+"@opentelemetry/semantic-conventions@npm:1.30.0, @opentelemetry/semantic-conventions@npm:^1.15.2, @opentelemetry/semantic-conventions@npm:^1.27.0":
+  version: 1.30.0
+  resolution: "@opentelemetry/semantic-conventions@npm:1.30.0"
+  checksum: 10c0/0bf99552e3b4b7e8b7eb504b678d52f59c6f259df88e740a2011a0d858e523d36fee86047ae1b7f45849c77f00f970c3059ba58e0a06a7d47d6f01dbe8c455bd
   languageName: node
   linkType: hard
 
@@ -16785,7 +16785,7 @@ __metadata:
     "@opentelemetry/resources": "npm:1.30.1"
     "@opentelemetry/sdk-node": "npm:0.57.1"
     "@opentelemetry/sdk-trace-node": "npm:1.30.1"
-    "@opentelemetry/semantic-conventions": "npm:1.29.0"
+    "@opentelemetry/semantic-conventions": "npm:1.30.0"
     "@ory/client": "npm:1.1.41"
     "@rollup/plugin-commonjs": "npm:28.0.2"
     "@rollup/plugin-node-resolve": "npm:16.0.0"
@@ -24911,12 +24911,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"effect@npm:3.12.10":
-  version: 3.12.10
-  resolution: "effect@npm:3.12.10"
+"effect@npm:3.12.11":
+  version: 3.12.11
+  resolution: "effect@npm:3.12.11"
   dependencies:
     fast-check: "npm:^3.23.1"
-  checksum: 10c0/903a81e7287d3daf39057be3dca8aea643b60882c5938115efb9be2a1a2e3c093f7254d00d3cc80be7eaac823b1bbfb650604ecc76953095781b573aefac9fa8
+  checksum: 10c0/3b1503f06ba8781bb2e8712f5a685f51f3104d4a9d18ac03dd68c7e08aec9d8b3a94bca1911fa67b2e7d42620fce5b3fc5015acd7d2e67b4fc2ad08cf9976183
   languageName: node
   linkType: hard
 
@@ -35886,10 +35886,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"multiformats@npm:13.3.1, multiformats@npm:^13.0.0, multiformats@npm:^13.3.1":
-  version: 13.3.1
-  resolution: "multiformats@npm:13.3.1"
-  checksum: 10c0/12a68569a2b74b0b3ed554af866149300ed587aa46ce65ef6539c522fc8d7deb5d38d38e41e004b50bc1109566e2c04bf848f1909c9e687e86f504c6cf586eac
+"multiformats@npm:13.3.2, multiformats@npm:^13.0.0, multiformats@npm:^13.3.1":
+  version: 13.3.2
+  resolution: "multiformats@npm:13.3.2"
+  checksum: 10c0/a2c6f17b04d6a9cd5d0cb7d07e32dc4f3be82804d44fc056357a98e449340a7ad37d0789da41186ccd8c953e0cf783be3b71f03a00b0a84788689f544ecade46
   languageName: node
   linkType: hard
 

@@ -15,7 +15,8 @@ use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, DataTypeViewerSubject,
+        DataTypeEditorSubject, DataTypeOwnerSubject, DataTypePermission,
+        DataTypeRelationAndSubject, DataTypeSetting, DataTypeSettingSubject, DataTypeViewerSubject,
     },
     zanzibar::Consistency,
 };
@@ -86,8 +87,11 @@ use crate::rest::{
     components(
         schemas(
             DataTypeWithMetadata,
+            DataTypeSetting,
 
+            DataTypeSettingSubject,
             DataTypeOwnerSubject,
+            DataTypeEditorSubject,
             DataTypeViewerSubject,
             DataTypePermission,
             DataTypeRelationAndSubject,

@@ -3799,6 +3799,49 @@
           }
         }
       },
+      "DataTypeEditorSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
       "DataTypeInferenceError": {
         "oneOf": [
           {
@@ -4006,6 +4049,42 @@
               "relation": {
                 "type": "string",
                 "enum": [
+                  "setting"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/DataTypeSettingSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "editor"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/DataTypeEditorSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
                   "viewer"
                 ]
               },
@@ -4017,6 +4096,37 @@
         ],
         "discriminator": {
           "propertyName": "relation"
+        }
+      },
+      "DataTypeSetting": {
+        "type": "string",
+        "enum": [
+          "updateFromWeb"
+        ]
+      },
+      "DataTypeSettingSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "setting"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/DataTypeSetting"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
         }
       },
       "DataTypeVertexId": {

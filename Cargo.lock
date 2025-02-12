@@ -1266,9 +1266,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.28"
+version = "4.5.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e77c3243bd94243c03672cb5154667347c457ca271254724f9f393aee1c05ff"
+checksum = "8acebd8ad879283633b343856142139f2da2317c96b05b4dd6181c61e2480184"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1276,9 +1276,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.27"
+version = "4.5.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b26884eb4b57140e4d2d93652abfa49498b938b3c9179f9fc487b0acc3edad7"
+checksum = "f6ba32cbda51c7e1dfd49acc1457ba1a7dec5b64fe360e828acb13ca8dc9c2f9"
 dependencies = [
  "anstream",
  "anstyle",
@@ -4877,9 +4877,9 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "2.16.15"
+version = "2.16.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3437deb8b6ba2448b6a94260c5c6b9e5eeb5a5d6277e44b40b2532d457b0f0d"
+checksum = "839ae2ee5e62c6348669c50098b187c08115bd3cced658c9c0bf945fca0fec83"
 dependencies = [
  "bitflags 2.6.0",
  "ctor",
@@ -5325,9 +5325,9 @@ checksum = "3df3f91c679d7864acd05404f6250963eedfb44fc24046d4321d76caa3e88c7b"
 
 [[package]]
 name = "orx-concurrent-vec"
-version = "3.4.0"
+version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5583951768c907a28de326381295815c553f79149bb61f454e6efacbf9713530"
+checksum = "ad018731e7ef02f526bce8c74aa1578a073c62ff580e43ffb713cc218f41fc2e"
 dependencies = [
  "orx-concurrent-option",
  "orx-fixed-vec",
@@ -5339,9 +5339,9 @@ dependencies = [
 
 [[package]]
 name = "orx-fixed-vec"
-version = "3.14.0"
+version = "3.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67fe408e9525ae38c61d91085c2ab4800e7de3a85dfcdb886b706384407cc011"
+checksum = "866c30b4da32c1b19dd0dd883250cfadd5d07355eb2c590ae71107a0616dc98a"
 dependencies = [
  "orx-iterable",
  "orx-pinned-vec",
@@ -5350,18 +5350,18 @@ dependencies = [
 
 [[package]]
 name = "orx-iterable"
-version = "1.1.1"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "671cb106f54f7af3b84720817cd32725631ad1e835b5b68676efe859ff368a74"
+checksum = "d22609824580ce380e924424a9771c1b6a2786e229fe64185078b17470e445e4"
 dependencies = [
  "orx-self-or",
 ]
 
 [[package]]
 name = "orx-pinned-concurrent-col"
-version = "2.11.0"
+version = "2.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0aa8c377fcdaea243959f00323fe39c1a4631171d30dd139a40db2d5f0a03359"
+checksum = "27c1e948dba7be4743a9dccb561ce79d869b4cf56b18a9b42107627ef9e5065d"
 dependencies = [
  "orx-fixed-vec",
  "orx-pinned-vec",
@@ -5371,9 +5371,9 @@ dependencies = [
 
 [[package]]
 name = "orx-pinned-vec"
-version = "3.14.0"
+version = "3.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32c2101c6690d781ec4476dd37a898fb1164b06a30b775dc1655e27d567ab4d9"
+checksum = "d771de46a0d37e050bd3a8d024006ffdab61ec131bc475329401700ba561be2c"
 dependencies = [
  "orx-iterable",
  "orx-pseudo-default",
@@ -5381,21 +5381,21 @@ dependencies = [
 
 [[package]]
 name = "orx-pseudo-default"
-version = "1.4.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b97dde303d83e7609797d0c1222a9fb02e66445abc47643cc3d7168fd7c804cc"
+checksum = "51774ae0c9a16454856d44c31d2c837e62675f6e410af34ae59c534ec34460d0"
 
 [[package]]
 name = "orx-self-or"
-version = "1.0.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cf66a1b97bad08025f5544f2caceea8a06aeaa6f42b312a2f9a10614478638b"
+checksum = "111567c59e690b4d65bca4076c41df459cfe07296380534ac4b9cc882add13bf"
 
 [[package]]
 name = "orx-split-vec"
-version = "3.14.0"
+version = "3.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4554f6d33eec152c746d78f4f498d91a561c2235c2bd82b63aeaf114002b22c2"
+checksum = "413e86628dbf368abaa47ee6bf55c3e20bedd8504fcb7fe1a7ae72227b9e755f"
 dependencies = [
  "orx-iterable",
  "orx-pinned-vec",

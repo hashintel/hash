@@ -96,7 +96,7 @@ axum               = { version = "=0.7.5" }
 axum-core          = { version = "=0.5.0" }
 bumpalo            = { version = "=3.17.0", default-features = false }
 bytes              = { version = "=1.10.0" }
-clap_builder       = { version = "=4.5.27", default-features = false, features = ["std"] }
+clap_builder       = { version = "=4.5.29", default-features = false, features = ["std"] }
 criterion          = { version = "=0.5.1" }
 dashu-base         = { version = "=0.4.1", default-features = false }
 dashu-float        = { version = "=0.4.3", default-features = false }
@@ -162,7 +162,7 @@ aws-config               = { version = "=1.5.16" }
 aws-sdk-s3               = { version = "=1.74.0", default-features = false }
 bitvec                   = { version = "=1.0.1", default-features = false }
 bytes-utils              = { version = "=0.1.4", default-features = false }
-clap                     = { version = "=4.5.28", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
+clap                     = { version = "=4.5.29", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_complete            = { version = "=4.5.44", default-features = false }
 convert_case             = { version = "=0.7.1", default-features = false }
 criterion-macro          = { version = "=0.4.0", default-features = false }
@@ -188,7 +188,7 @@ logos                    = { version = "=0.15.0", default-features = false }
 memchr                   = { version = "=2.7.4", default-features = false }
 mimalloc                 = { version = "=0.1.43", default-features = false }
 mime                     = { version = "=0.3.17", default-features = false }
-napi                     = { version = "=2.16.15", default-features = false }
+napi                     = { version = "=2.16.16", default-features = false }
 napi-build               = { version = "=2.1.4", default-features = false }
 napi-derive              = { version = "=2.16.13", default-features = false }
 num-traits               = { version = "=0.2.19", default-features = false }
@@ -196,7 +196,7 @@ once_cell                = { version = "=1.20.3", default-features = false }
 opentelemetry            = { version = "=0.27.1", default-features = false }
 opentelemetry-otlp       = { version = "=0.27.0", default-features = false }
 opentelemetry_sdk        = { version = "=0.27.1", default-features = false }
-orx-concurrent-vec       = { version = "=3.4.0", default-features = false }
+orx-concurrent-vec       = { version = "=3.5.0", default-features = false }
 owo-colors               = { version = "=4.1.0", default-features = false }
 paste                    = { version = "=1.0.15", default-features = false }
 pin-project              = { version = "=1.1.9", default-features = false }

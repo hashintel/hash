@@ -108,7 +108,13 @@ describe("Data type CRU", () => {
     createdDataType = await createDataType(graphContext, authentication, {
       ownedById: testOrg.accountGroupId as OwnedById,
       schema: dataTypeSchema,
-      relationships: [{ relation: "viewer", subject: { kind: "public" } }],
+      relationships: [
+        { relation: "viewer", subject: { kind: "public" } },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "updateFromWeb" },
+        },
+      ],
       conversions: {},
     });
   });
@@ -142,7 +148,7 @@ describe("Data type CRU", () => {
       relationships: [{ relation: "viewer", subject: { kind: "public" } }],
       conversions: {},
       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-    }).catch((err) => Promise.reject(err.data));
+    }).catch((err) => Promise.reject(err));
 
     expect(
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
