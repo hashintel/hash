@@ -37,8 +37,6 @@ Planned features such as [pages](https://hash.ai/guide/pages) and [apps](https:/
 
 You can preview most HASH blocks on the [`@hash`](https://blockprotocol.org/@hash/blocks) page in the [Þ Hub](https://blockprotocol.org/hub), and direct links are provided below.
 
-**Please note:** this table/directory contains HASH-published blocks only, and does not contain the full extent of available Þ blocks.
-
 | Directory        | Spec Target | Status         | Þ Hub URL                                                                        | Description |
 | ---------------- | ----------- | -------------- | -------------------------------------------------------------------------------- | ----------- |
 | [`address`]      | 0.3         | **Maintained** | [@hash/blocks/address](https://blockprotocol.org/@hash/blocks/address)           |             |
@@ -63,6 +61,8 @@ You can preview most HASH blocks on the [`@hash`](https://blockprotocol.org/@has
 | [`table`]        | 0.3         | **Maintained** | [@hash/blocks/table](https://blockprotocol.org/@hash/blocks/table)               |             |
 | [`timer`]        | 0.3         | **Maintained** | [@hash/blocks/timer](https://blockprotocol.org/@hash/blocks/timer)               |             |
 | [`video`]        | 0.3         | **Maintained** | [@hash/blocks/video](https://blockprotocol.org/@hash/blocks/video)               |             |
+
+**Please note:** this table/directory contains HASH-developed blocks which are (or were) published to the [Þ Hub](https://blockprotocol.org/hub) under the official `@hash` namespace. This reflects neither the full extent of available Þ blocks, nor even those originally developed by HASH. A number of other publicly-accessible blocks can be found in the `@hashdeps` GitHub org, including the [Calculation Table](https://github.com/hashdeps/calculation-table-block), [Drawing](https://github.com/hashdeps/tldraw-block), and [Pull/Merge Request Overview](https://github.com/hashdeps/github-pr-overview) blocks.
 
 ## Using blocks
 
