@@ -6,7 +6,7 @@ import { useMemo } from "react";
 
 import type { NextPageWithLayout } from "../../../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../../../shared/layout";
-import { EntityTypePage } from "../../../../shared/entity-type-page";
+import { DataType } from "../../../../shared/data-type";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { getEntityTypeBaseUrl } from "../shared/get-entity-type-base-url";
 
@@ -52,6 +52,7 @@ const Page: NextPageWithLayout = () => {
       const { baseUrl, version } = componentsFromVersionedUrl(
         dataTypeSchema.$id,
       );
+
       return {
         metadata: {
           recordId: {
@@ -74,16 +75,16 @@ const Page: NextPageWithLayout = () => {
     if (loadingNamespace) {
       return null;
     } else {
-      throw new Error("Namespace for valid entity somehow missing");
+      throw new Error("Namespace for valid data type somehow missing");
     }
   }
 
   return (
-    <EntityTypePage
+    <DataType
       accountId={routeNamespace.accountId}
-      draftEntityType={draftEntityType}
-      entityTypeBaseUrl={entityTypeBaseUrl}
-      key={`${entityTypeBaseUrl}-${requestedVersion}`}
+      draftNewDataType={draftDataType}
+      dataTypeBaseUrl={dataTypeBaseUrl}
+      key={`${dataTypeBaseUrl}-${requestedVersion}`}
       requestedVersion={requestedVersion}
     />
   );

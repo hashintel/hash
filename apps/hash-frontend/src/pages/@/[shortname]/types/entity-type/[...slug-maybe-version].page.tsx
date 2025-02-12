@@ -52,6 +52,7 @@ const Page: NextPageWithLayout = () => {
       const { baseUrl, version } = componentsFromVersionedUrl(
         entityTypeSchema.$id,
       );
+
       return {
         metadata: {
           recordId: {

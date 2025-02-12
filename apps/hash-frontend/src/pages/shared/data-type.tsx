@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { DataTypeWithMetadata as BpDataTypeWithMetadata } from "@blockprotocol/graph";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
@@ -35,7 +36,7 @@ import { TopContextBar } from "./top-context-bar";
 
 type DataTypeProps = {
   accountId?: AccountId | null;
-  draftNewDataType?: DataTypeWithMetadata | null;
+  draftNewDataType?: BpDataTypeWithMetadata | null;
   dataTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
 };

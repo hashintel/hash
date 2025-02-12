@@ -20,7 +20,7 @@ export const CopyableOntologyChip: FunctionComponent<{
 
   const ontology = parseUrlForOntologyChip(versionedUrl);
 
-  const handleCopyEntityTypeUrl = useCallback(async () => {
+  const handleCopyTypeUrl = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(versionedUrl);
       setTooltipTitle("Copied type URL!");
@@ -53,7 +53,7 @@ export const CopyableOntologyChip: FunctionComponent<{
         }}
       >
         <ButtonBase
-          onClick={handleCopyEntityTypeUrl}
+          onClick={handleCopyTypeUrl}
           onMouseEnter={() => setCopyTooltipIsOpen(true)}
           onMouseLeave={() => setCopyTooltipIsOpen(false)}
         >
