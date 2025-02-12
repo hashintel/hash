@@ -159,7 +159,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     };
 
     if (email) {
-      authorProperties["https://hash.ai/@hash/types/property-type/email/"] = [
+      authorProperties["https://hash.ai/@h/types/property-type/email/"] = [
         email,
       ];
       authorPropertyMetadata.value[systemDataTypes.email.dataTypeBaseUrl] = {
