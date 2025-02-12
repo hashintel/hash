@@ -1,4 +1,4 @@
-import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import type { DataTypeWithMetadata } from "@blockprotocol/graph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
@@ -22,27 +22,27 @@ const Page: NextPageWithLayout = () => {
    *
    * @see https://github.com/vercel/next.js/issues/50212 –– possibly related
    *
-   * @example /@hash/types/entity-type/user/v/1
-   * @example /@hash/types/entity-type/user
+   * @example /@hash/types/data-type/integer/v/1
+   * @example /@hash/types/data-type/integer
    */
-  const [_, shortname, _types, _entityType, slug, _v, requestedVersionString] =
+  const [_, shortname, _types, _dataType, slug, _v, requestedVersionString] =
     router.asPath.split("/") as [
       "",
       `@${string}`,
       "types",
-      "entity-type",
+      "data-type",
       string,
       "v" | undefined,
       `${number}` | undefined,
     ];
 
-  const entityTypeBaseUrl = !isDraft
+  const dataTypeBaseUrl = !isDraft
     ? getEntityTypeBaseUrl(slug, shortname)
     : undefined;
 
-  const draftEntityType = useMemo(() => {
+  const draftDataType = useMemo(() => {
     if (router.query.draft) {
-      const entityTypeSchema = JSON.parse(
+      const dataTypeSchema = JSON.parse(
         Buffer.from(
           decodeURIComponent(router.query.draft.toString()),
           "base64",
@@ -50,7 +50,7 @@ const Page: NextPageWithLayout = () => {
       );
 
       const { baseUrl, version } = componentsFromVersionedUrl(
-        entityTypeSchema.$id,
+        dataTypeSchema.$id,
       );
       return {
         metadata: {
@@ -59,8 +59,8 @@ const Page: NextPageWithLayout = () => {
             version,
           },
         },
-        schema: entityTypeSchema,
-      } satisfies EntityTypeWithMetadata;
+        schema: dataTypeSchema,
+      } satisfies DataTypeWithMetadata;
     } else {
       return null;
     }
@@ -74,7 +74,7 @@ const Page: NextPageWithLayout = () => {
     if (loadingNamespace) {
       return null;
     } else {
-      throw new Error("Namespace for entity type somehow missing");
+      throw new Error("Namespace for valid entity somehow missing");
     }
   }
 

@@ -26,6 +26,8 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
       fetchPolicy: "cache-first",
       variables: {
         constrainsValuesOn: { outgoing: 255 },
+        inheritsFrom: { outgoing: 255 },
+        latestOnly: true,
       },
     },
   );

@@ -5,7 +5,7 @@ import {
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { EntityOrTypeIcon, OntologyChip } from "@hashintel/design-system";
+import { EntityOrTypeIcon } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
   EntityTypeFormProvider,
@@ -430,17 +430,10 @@ export const EntityTypePage = ({
             >
               <Container>
                 <EntityTypeHeader
-                  isDraft={isDraft}
-                  ontologyChip={
-                    <OntologyChip
-                      domain={new URL(entityType.schema.$id).hostname}
-                      path={new URL(entityType.schema.$id).pathname.replace(
-                        /\d+$/,
-                        currentVersion.toString(),
-                      )}
-                    />
-                  }
+                  currentVersion={currentVersion}
                   entityTypeSchema={entityType.schema}
+                  hideOpenInNew
+                  isDraft={isDraft}
                   isLink={isLink}
                   isReadonly={isReadonly}
                   latestVersion={latestVersion}

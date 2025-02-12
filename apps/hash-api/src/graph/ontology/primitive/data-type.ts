@@ -5,6 +5,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   ArchiveDataTypeParams,
   DataTypePermission,
@@ -30,6 +31,7 @@ import {
   mapGraphApiDataTypesToDataTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { UserPermissionsOnDataType } from "@local/hash-isomorphic-utils/types";
 import type {
   DataTypeAuthorizationRelationship,
   DataTypeRelationAndSubject,
@@ -39,6 +41,7 @@ import type {
 import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
+import { checkEntityTypePermission } from "./entity-type";
 import { getWebShortname, isExternalTypeId } from "./util";
 
 /**
@@ -330,3 +333,25 @@ export const checkDataTypePermission: ImpureGraphFunction<
   graphApi
     .checkDataTypePermission(actorId, params.dataTypeId, params.permission)
     .then(({ data }) => data.has_permission);
+
+export const checkPermissionsOnDataType: ImpureGraphFunction<
+  { dataTypeId: VersionedUrl },
+  Promise<UserPermissionsOnDataType>
+> = async (graphContext, { actorId }, params) => {
+  const { dataTypeId } = params;
+
+  const isPublicUser = actorId === publicUserAccountId;
+
+  const canUpdate = isPublicUser
+    ? false
+    : await checkDataTypePermission(
+        graphContext,
+        { actorId },
+        { dataTypeId, permission: "update" },
+      );
+
+  return {
+    edit: canUpdate,
+    view: true,
+  };
+};

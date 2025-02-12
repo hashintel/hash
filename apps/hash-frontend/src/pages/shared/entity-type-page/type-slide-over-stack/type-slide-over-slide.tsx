@@ -1,11 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  ArrowUpRightFromSquareRegularIcon,
-  IconButton,
-  LoadingSpinner,
-  OntologyChip,
-  parseUrlForOntologyChip,
-} from "@hashintel/design-system";
+import { LoadingSpinner } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
   EntityTypeEditor,
@@ -13,90 +7,18 @@ import {
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, ButtonBase, Slide, Tooltip } from "@mui/material";
+import { Box, Slide } from "@mui/material";
 import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { Link } from "../../../../shared/ui";
 import { useRouteNamespace } from "../../../@/[shortname]/shared/use-route-namespace";
 import { useDataTypesContext } from "../../data-types-context";
 import { SlideBackForwardCloseBar } from "../../shared/slide-back-forward-close-bar";
 import { EntityTypeContext } from "../shared/entity-type-context";
 import { EntityTypeHeader } from "../shared/entity-type-header";
 import { useEntityTypeValue } from "../use-entity-type-value";
-
-const CopyableOntologyChip: FunctionComponent<{
-  entityType: EntityTypeWithMetadata;
-}> = ({ entityType }) => {
-  const [tooltipTitle, setTooltipTitle] = useState("Copy type URL");
-
-  const [copyTooltipIsOpen, setCopyTooltipIsOpen] = useState(false);
-
-  const ontology = parseUrlForOntologyChip(entityType.schema.$id);
-
-  const handleCopyEntityTypeUrl = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(entityType.schema.$id);
-      setTooltipTitle("Copied type URL!");
-    } catch {
-      setTooltipTitle("Not allowed to copy to clipboard");
-    } finally {
-      setTimeout(() => {
-        setCopyTooltipIsOpen(false);
-
-        setTimeout(() => {
-          setTooltipTitle("Copy type URL");
-        }, 300);
-      }, 500);
-    }
-  }, [entityType]);
-
-  return (
-    <Box display="flex" alignItems="center" columnGap={1}>
-      <Tooltip
-        open={copyTooltipIsOpen}
-        title={tooltipTitle}
-        placement="top"
-        slotProps={{
-          tooltip: {
-            sx: {
-              maxWidth: "unset",
-              textWrap: "no-wrap",
-            },
-          },
-        }}
-      >
-        <ButtonBase
-          onClick={handleCopyEntityTypeUrl}
-          onMouseEnter={() => setCopyTooltipIsOpen(true)}
-          onMouseLeave={() => setCopyTooltipIsOpen(false)}
-        >
-          <OntologyChip {...ontology} />
-        </ButtonBase>
-      </Tooltip>
-      <Link href={entityType.schema.$id} target="_blank">
-        <IconButton
-          sx={{
-            padding: 0,
-            transition: ({ transitions }) => transitions.create("color"),
-            "&:hover": {
-              background: "transparent",
-              color: ({ palette }) => palette.blue[70],
-            },
-            svg: {
-              fontSize: 14,
-            },
-          }}
-        >
-          <ArrowUpRightFromSquareRegularIcon />
-        </IconButton>
-      </Link>
-    </Box>
-  );
-};
 
 const SLIDE_WIDTH = 1000;
 
@@ -228,15 +150,13 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
             <EntityTypeFormProvider {...formMethods}>
               <EntityTypeContext.Provider value={remoteEntityType.schema}>
                 <EntityTypeHeader
+                  currentVersion={version}
                   isDraft={false}
                   isPreviewSlide
                   isLink={
                     !!entityTypesContext.isSpecialEntityTypeLookup?.[
                       remoteEntityType.schema.$id
                     ]?.isLink
-                  }
-                  ontologyChip={
-                    <CopyableOntologyChip entityType={remoteEntityType} />
                   }
                   entityTypeSchema={remoteEntityType.schema}
                   isReadonly

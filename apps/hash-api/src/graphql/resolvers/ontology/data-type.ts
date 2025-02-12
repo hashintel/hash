@@ -8,16 +8,19 @@ import {
   mapGraphApiSubgraphToSubgraph,
   serializeSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { UserPermissionsOnDataType } from "@local/hash-isomorphic-utils/types";
 import type {
   DataTypeRootType,
   SerializedSubgraph,
 } from "@local/hash-subgraph";
 
 import {
+  checkPermissionsOnDataType,
   getDataTypeConversionTargets,
   getDataTypeSubgraphById,
 } from "../../../graph/ontology/primitive/data-type";
 import type {
+  QueryCheckUserPermissionsOnDataTypeArgs,
   QueryGetDataTypeArgs,
   QueryGetDataTypeConversionTargetsArgs,
   QueryQueryDataTypesArgs,
@@ -33,19 +36,26 @@ export const queryDataTypes: ResolverFn<
   QueryQueryDataTypesArgs
 > = async (
   _,
-  { constrainsValuesOn, includeArchived },
+  { constrainsValuesOn, filter, includeArchived, inheritsFrom, latestOnly },
   { dataSources, authentication },
 ) => {
   const { graphApi } = dataSources;
 
+  const latestOnlyFilter = {
+    equal: [{ path: ["version"] }, { parameter: "latest" }],
+  };
+
   const { data: response } = await graphApi.getDataTypeSubgraph(
     authentication.actorId,
     {
-      filter: {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
-      },
+      filter: latestOnly
+        ? filter
+          ? { all: [filter, latestOnlyFilter] }
+          : latestOnlyFilter
+        : { all: [] },
       graphResolveDepths: {
         ...zeroedGraphResolveDepths,
+        inheritsFrom,
         constrainsValuesOn,
       },
       temporalAxes: includeArchived
@@ -105,3 +115,15 @@ export const getDataTypeConversionTargetsResolver: ResolverFn<
     { dataTypeIds },
   );
 };
+
+export const checkUserPermissionsOnDataTypeResolver: ResolverFn<
+  Promise<UserPermissionsOnDataType>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  QueryCheckUserPermissionsOnDataTypeArgs
+> = async (_, params, { dataSources, authentication, provenance }) =>
+  checkPermissionsOnDataType(
+    { ...dataSources, provenance },
+    authentication,
+    params,
+  );
