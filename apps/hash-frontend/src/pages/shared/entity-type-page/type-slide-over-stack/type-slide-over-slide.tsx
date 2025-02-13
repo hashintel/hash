@@ -65,7 +65,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
   ] = useEntityTypeValue(
     baseUrl,
     version,
-    routeNamespace?.accountId ?? null,
+    routeNamespace?.ownedById ?? null,
     (fetchedEntityType) => {
       reset(getFormDataFromEntityType(fetchedEntityType.schema));
     },

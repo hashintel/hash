@@ -14,7 +14,7 @@ export const useGenerateTypeUrlsForUser = () => {
       title,
       version,
     }: {
-      kind: "entity-type" | "property-type";
+      kind: "entity-type" | "property-type" | "data-type";
       title: string;
       version: number;
     }) => {

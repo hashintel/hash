@@ -22,7 +22,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope, ErrorBoundary } from "@sentry/nextjs";
 import type { AppProps as NextAppProps } from "next/app";
-import { useRouter } from "next/router";
+import router, { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
 import type { FunctionComponent } from "react";
 import { Suspense, useEffect, useState } from "react";
@@ -246,7 +246,9 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       redirectInGetInitialProps({
         appContext,
         location: `/signin${
-          ["", "/", "/404"].includes(pathname) ? "" : `?return_to=${asPath}`
+          ["", "/", "/404"].includes(pathname)
+            ? ""
+            : `?return_to=${req?.url ?? router.asPath}`
         }`,
       });
     }

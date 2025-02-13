@@ -52,7 +52,7 @@ export const queryDataTypes: ResolverFn<
         ? filter
           ? { all: [filter, latestOnlyFilter] }
           : latestOnlyFilter
-        : { all: [] },
+        : (filter ?? { all: [] }),
       graphResolveDepths: {
         ...zeroedGraphResolveDepths,
         inheritsFrom,

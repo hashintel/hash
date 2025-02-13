@@ -13,7 +13,6 @@ import {
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type { AccountId } from "@local/hash-graph-types/account";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
@@ -48,17 +47,21 @@ import {
   useGetEntityTypeDependents,
 } from "./entity-type-page/use-entity-type-dependents";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
+import {
+  TypeDefinitionContainer,
+  typeHeaderContainerStyles,
+} from "./shared/type-editor-styling";
 import { TopContextBar } from "./top-context-bar";
 
 type EntityTypeProps = {
-  accountId?: AccountId | null;
+  ownedById?: OwnedById | null;
   draftEntityType?: EntityTypeWithMetadata | null;
   entityTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
 };
 
 export const EntityTypePage = ({
-  accountId,
+  ownedById,
   draftEntityType,
   entityTypeBaseUrl,
   requestedVersion,
@@ -86,7 +89,7 @@ export const EntityTypePage = ({
   ] = useEntityTypeValue(
     entityTypeBaseUrl ?? null,
     requestedVersion,
-    accountId ?? null,
+    ownedById ?? null,
     (fetchedEntityType) => {
       // Load the initial form data after the entity type has been fetched
       reset({
@@ -419,15 +422,7 @@ export const EntityTypePage = ({
               />
             )}
 
-            <Box
-              ref={titleWrapperRef}
-              sx={{
-                borderBottom: 1,
-                borderColor: "gray.20",
-                pt: 3.75,
-                backgroundColor: "white",
-              }}
-            >
+            <Box ref={titleWrapperRef} sx={typeHeaderContainerStyles}>
               <Container>
                 <EntityTypeHeader
                   currentVersion={currentVersion}
@@ -448,28 +443,26 @@ export const EntityTypePage = ({
               </Container>
             </Box>
 
-            <Box py={5}>
-              <Container>
-                {currentTab === "definition" ? (
-                  entityTypeAndPropertyTypes ? (
-                    <DefinitionTab
-                      entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
-                      onNavigateToType={onNavigateToType}
-                      ownedById={accountId as OwnedById | null}
-                      readonly={isReadonly}
-                    />
-                  ) : (
-                    "Loading..."
-                  )
-                ) : null}
-                {currentTab === "entities" && entityTypeBaseUrl ? (
-                  <EntitiesTab entityTypeBaseUrl={entityTypeBaseUrl} />
-                ) : null}
-                {isFile && currentTab === "upload" ? (
-                  <FileUploadsTab isImage={isImage} />
-                ) : null}
-              </Container>
-            </Box>
+            <TypeDefinitionContainer>
+              {currentTab === "definition" ? (
+                entityTypeAndPropertyTypes ? (
+                  <DefinitionTab
+                    entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
+                    onNavigateToType={onNavigateToType}
+                    ownedById={ownedById ?? null}
+                    readonly={isReadonly}
+                  />
+                ) : (
+                  "Loading..."
+                )
+              ) : null}
+              {currentTab === "entities" && entityTypeBaseUrl ? (
+                <EntitiesTab entityTypeBaseUrl={entityTypeBaseUrl} />
+              ) : null}
+              {isFile && currentTab === "upload" ? (
+                <FileUploadsTab isImage={isImage} />
+              ) : null}
+            </TypeDefinitionContainer>
           </Box>
         </EntityTypeContext.Provider>
       </EntityTypeFormProvider>

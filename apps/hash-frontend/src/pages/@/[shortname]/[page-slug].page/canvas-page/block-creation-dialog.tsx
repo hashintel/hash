@@ -1,7 +1,6 @@
 import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockCollection } from "@local/hash-isomorphic-utils/entity";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
@@ -32,7 +31,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
   const { routeNamespace } = useRouteNamespace();
 
-  const { accountId } = routeNamespace ?? {};
+  const { ownedById } = routeNamespace ?? {};
 
   const { pageEntityId } = usePageContext();
 
@@ -53,9 +52,9 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
       const x = app.viewportPageCenter.x - width / 2;
       const y = app.viewportPageCenter.y - height / 2;
 
-      if (!accountId) {
+      if (!ownedById) {
         throw new Error(
-          "No accountId available – possibly routeNamespace is not yet loaded",
+          "No ownedById available – possibly routeNamespace is not yet loaded",
         );
       }
 
@@ -70,7 +69,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
                   entityTypeIds: blockEntityTypeIds,
                   entityProperties: { value: {} },
                 },
-                ownedById: accountId as OwnedById,
+                ownedById,
                 position: {
                   // These defaults will be overridden when the user draws the shape on the canvas
                   canvasPosition: {
@@ -162,7 +161,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         );
       });
     },
-    [accountId, app, onClose, pageEntityId, updateBlockCollectionContentsFn],
+    [ownedById, app, onClose, pageEntityId, updateBlockCollectionContentsFn],
   );
 
   return creatingEntity ? (

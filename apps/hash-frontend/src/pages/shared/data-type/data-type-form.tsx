@@ -2,18 +2,24 @@ import type {
   DataType,
   SingleValueConstraints,
 } from "@blockprotocol/type-system";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 export type DataTypeFormData = Pick<
   DataType,
-  "allOf" | "abstract" | "description" | "label"
+  "abstract" | "description" | "label" | "title"
 > & {
+  allOf: NonNullable<DataType["allOf"]>;
   constraints: SingleValueConstraints;
 };
 
 export const getDataTypeFromFormData = ({
   constraints,
   ...rest
-}: DataTypeFormData): Omit<DataType, "$id" | "$schema" | "kind" | "title"> => {
+}: DataTypeFormData): DistributiveOmit<
+  DataType,
+  "$id" | "$schema" | "kind"
+> => {
   return {
     ...rest,
     ...constraints,
@@ -27,12 +33,11 @@ export const getFormDataFromDataType = (
     $id: _$id,
     $schema: _$schema,
     kind: _$kind,
-    title: _$title,
-    titlePlural: _$titlePlural,
     allOf,
     abstract,
     description,
     label,
+    title,
     ...constraints
   } = dataType;
 
@@ -41,10 +46,11 @@ export const getFormDataFromDataType = (
   }
 
   return {
-    allOf,
+    allOf: allOf ?? [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
     abstract,
     description,
     label,
+    title,
     constraints,
   };
 };

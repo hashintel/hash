@@ -13,6 +13,9 @@ import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.qu
 
 export type DataTypesContextValue = {
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;
+  latestDataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;
+  loading: boolean;
+  refetch: () => void;
 };
 
 export const DataTypesContext = createContext<null | DataTypesContextValue>(
@@ -20,39 +23,63 @@ export const DataTypesContext = createContext<null | DataTypesContextValue>(
 );
 
 export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
-  const { data } = useQuery<QueryDataTypesQuery, QueryDataTypesQueryVariables>(
-    queryDataTypesQuery,
-    {
-      fetchPolicy: "cache-first",
-      variables: {
-        constrainsValuesOn: { outgoing: 255 },
-        inheritsFrom: { outgoing: 255 },
-        latestOnly: true,
-      },
+  const { data, loading, refetch } = useQuery<
+    QueryDataTypesQuery,
+    QueryDataTypesQueryVariables
+  >(queryDataTypesQuery, {
+    fetchPolicy: "cache-first",
+    variables: {
+      constrainsValuesOn: { outgoing: 255 },
+      inheritsFrom: { outgoing: 255 },
+      latestOnly: false,
     },
-  );
+  });
 
-  const dataTypes = useMemo(() => {
+  const { dataTypes, latestDataTypes } = useMemo(() => {
     if (!data) {
-      return null;
+      return {
+        dataTypes: null,
+        latestDataTypes: null,
+      };
     }
-    const allDataTypes: Record<VersionedUrl, DataTypeWithMetadata> = {};
 
-    for (const vertex of Object.values(data.queryDataTypes.vertices)) {
-      const latestVersion = typedValues(vertex)[0];
-      if (latestVersion?.kind === "dataType") {
-        allDataTypes[latestVersion.inner.schema.$id] = latestVersion.inner;
+    const all: Record<VersionedUrl, DataTypeWithMetadata> = {};
+    const latest: Record<VersionedUrl, DataTypeWithMetadata> = {};
+
+    for (const versionToVertexMap of Object.values(
+      data.queryDataTypes.vertices,
+    )) {
+      let highestVersion: DataTypeWithMetadata | null = null;
+
+      for (const dataTypeVertex of typedValues(versionToVertexMap)) {
+        if (dataTypeVertex.kind === "dataType") {
+          if (
+            !highestVersion ||
+            dataTypeVertex.inner.metadata.recordId.version >
+              highestVersion.metadata.recordId.version
+          ) {
+            highestVersion = dataTypeVertex.inner;
+          }
+          all[dataTypeVertex.inner.schema.$id] = dataTypeVertex.inner;
+        }
+      }
+
+      if (highestVersion) {
+        latest[highestVersion.schema.$id] = highestVersion;
       }
     }
 
-    return allDataTypes;
+    return { dataTypes: all, latestDataTypes: latest };
   }, [data]);
 
   const value = useMemo(() => {
     return {
       dataTypes,
+      latestDataTypes,
+      loading,
+      refetch,
     };
-  }, [dataTypes]);
+  }, [dataTypes, latestDataTypes, loading, refetch]);
 
   return (
     <DataTypesContext.Provider value={value}>

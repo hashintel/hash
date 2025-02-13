@@ -50,3 +50,15 @@ export const checkUserPermissionsOnDataTypeQuery = gql`
     checkUserPermissionsOnDataType(dataTypeId: $dataTypeId)
   }
 `;
+
+export const createDataTypeMutation = gql`
+  mutation createDataType($ownedById: OwnedById!, $dataType: ConstructDataTypeParams!) {
+    createDataType(ownedById: $ownedById, dataType: $dataType)
+  }
+`;
+
+export const updateDataTypeMutation = gql`
+  mutation updateDataType($dataTypeId: VersionedUrl!, $dataType: ConstructDataTypeParams!) {
+    updateDataType(dataTypeId: $dataTypeId, dataType: $dataType)
+  }
+`;

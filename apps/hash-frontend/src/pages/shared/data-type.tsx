@@ -1,53 +1,88 @@
-import { useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import type { DataTypeWithMetadata as BpDataTypeWithMetadata } from "@blockprotocol/graph";
 import { extractVersion } from "@blockprotocol/type-system";
-import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { DataTypeRootType } from "@local/hash-subgraph/types";
 import type { Theme } from "@mui/material";
-import { Box, Container } from "@mui/material";
-import { GlobalStyles } from "@mui/system";
+import { Box, Container, Typography } from "@mui/material";
+import { GlobalStyles, Stack } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 import type {
+  CreateDataTypeMutation,
+  CreateDataTypeMutationVariables,
   QueryDataTypesQuery,
   QueryDataTypesQueryVariables,
+  UpdateDataTypeMutation,
+  UpdateDataTypeMutationVariables,
 } from "../../graphql/api-types.gen";
-import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
-import { isTypeArchived } from "../../shared/is-archived";
+import {
+  createDataTypeMutation,
+  queryDataTypesQuery,
+  updateDataTypeMutation,
+} from "../../graphql/queries/ontology/data-type.queries";
 import { useUserPermissionsOnDataType } from "../../shared/use-user-permissions-on-data-type";
-import { ArchiveMenuItem } from "../@/[shortname]/shared/archive-menu-item";
 import {
   type DataTypeFormData,
   getDataTypeFromFormData,
   getFormDataFromDataType,
 } from "./data-type/data-type-form";
+import { DataTypeHeader } from "./data-type/data-type-header";
+import { DataTypesParents } from "./data-type/data-type-parents";
+import { useDataTypesContext } from "./data-types-context";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
+import {
+  TypeDefinitionContainer,
+  typeHeaderContainerStyles,
+} from "./shared/type-editor-styling";
 import { TopContextBar } from "./top-context-bar";
 
 type DataTypeProps = {
-  accountId?: AccountId | null;
+  inSlide?: boolean;
+  ownedById?: OwnedById | null;
   draftNewDataType?: BpDataTypeWithMetadata | null;
   dataTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
 };
 
 export const DataType = ({
-  accountId,
+  inSlide,
+  ownedById,
   draftNewDataType,
   dataTypeBaseUrl,
   requestedVersion,
 }: DataTypeProps) => {
   const router = useRouter();
+
+  const { refetch } = useDataTypesContext();
+
+  const [createDataType] = useMutation<
+    CreateDataTypeMutation,
+    CreateDataTypeMutationVariables
+  >(createDataTypeMutation, {
+    onCompleted() {
+      refetch();
+    },
+  });
+
+  const [updateDataType] = useMutation<
+    UpdateDataTypeMutation,
+    UpdateDataTypeMutationVariables
+  >(updateDataTypeMutation, {
+    onCompleted() {
+      refetch();
+    },
+  });
 
   const formMethods = useForm<DataTypeFormData>({
     defaultValues: {
@@ -56,7 +91,7 @@ export const DataType = ({
       constraints: { type: "string" },
     },
   });
-  const { handleSubmit: wrapHandleSubmit, reset, watch } = formMethods;
+  const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
   useEffect(() => {
     if (draftNewDataType) {
@@ -70,13 +105,14 @@ export const DataType = ({
   >(queryDataTypesQuery, {
     variables: {
       constrainsValuesOn: { outgoing: 255 },
-      includeArchived: true,
       filter: {
         equal: [{ path: ["baseUrl"] }, { parameter: dataTypeBaseUrl }],
       },
+      includeArchived: true,
       inheritsFrom: { outgoing: 255 },
       latestOnly: false,
     },
+    skip: !dataTypeBaseUrl,
   });
 
   const { remoteDataType, latestVersion } = useMemo<{
@@ -125,7 +161,7 @@ export const DataType = ({
     dataType?.schema.$id,
   );
 
-  const handleSubmit = wrapHandleSubmit((data) => {
+  const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!isDirty && !isDraft) {
       /**
        * Prevent publishing a type unless:
@@ -137,7 +173,43 @@ export const DataType = ({
       return;
     }
 
-    const _dataType = getDataTypeFromFormData(data);
+    const inputData = getDataTypeFromFormData(data);
+
+    if (isDraft) {
+      if (!ownedById) {
+        throw new Error("Cannot publish draft without ownedById");
+      }
+
+      const response = await createDataType({
+        variables: {
+          dataType: inputData,
+          ownedById,
+        },
+      });
+
+      if (!!response.errors?.length || !response.data) {
+        throw new Error("Could not publish new data type");
+      }
+
+      void router.push(response.data.createDataType.schema.$id);
+    }
+
+    if (!remoteDataType?.schema.$id) {
+      throw new Error("Cannot update data type without existing data type");
+    }
+
+    const response = await updateDataType({
+      variables: {
+        dataTypeId: remoteDataType.schema.$id,
+        dataType: inputData,
+      },
+    });
+
+    if (!!response.errors?.length || !response.data) {
+      throw new Error("Could not update data type");
+    }
+
+    void router.push(response.data.updateDataType.schema.$id);
   });
 
   if (!userPermissions || !dataType) {
@@ -150,7 +222,7 @@ export const DataType = ({
 
   const isLatest = !requestedVersion || requestedVersion === latestVersion;
 
-  const isReadonly = !draftNewDataType && (!userPermissions.edit || !isLatest);
+  const isReadOnly = !draftNewDataType && (!userPermissions.edit || !isLatest);
 
   return (
     <>
@@ -158,18 +230,8 @@ export const DataType = ({
       <FormProvider {...formMethods}>
         <Box display="contents" component="form" onSubmit={handleSubmit}>
           <TopContextBar
-            actionMenuItems={[
-              ...(remoteDataType && !isTypeArchived(remoteDataType)
-                ? [
-                    <ArchiveMenuItem
-                      key={dataType.schema.$id}
-                      item={remoteDataType}
-                    />,
-                  ]
-                : []),
-            ]}
             defaultCrumbIcon={null}
-            item={dataType}
+            item={remoteDataType ?? undefined}
             crumbs={[
               {
                 href: "/types",
@@ -191,14 +253,14 @@ export const DataType = ({
             sx={{ bgcolor: "white" }}
           />
 
-          {!isReadonly && (
+          {!isReadOnly && (
             <EditBarTypeEditor
               currentVersion={currentVersion}
               discardButtonProps={
                 // @todo confirmation of discard when draft
                 isDraft
                   ? {
-                      href: `/new/types/entity-type`,
+                      href: `/new/types/data-type`,
                     }
                   : {
                       onClick() {
@@ -210,20 +272,30 @@ export const DataType = ({
             />
           )}
 
-          <Box
-            sx={{
-              borderBottom: 1,
-              borderColor: "gray.20",
-              pt: 3.75,
-              backgroundColor: "white",
-            }}
-          >
-            <Container>{/* TODO: HEADER */}</Container>
+          <Box sx={typeHeaderContainerStyles}>
+            <Container>
+              <DataTypeHeader
+                currentVersion={currentVersion}
+                dataTypeSchema={dataType.schema}
+                hideOpenInNew={!inSlide}
+                isDraft={isDraft}
+                isReadOnly={isReadOnly}
+                isPreviewSlide={inSlide}
+                latestVersion={latestVersion}
+              />
+            </Container>
           </Box>
 
-          <Box py={5}>
-            <Container>{/* @TODO: data type details */}</Container>
-          </Box>
+          <TypeDefinitionContainer>
+            <Stack spacing={6.5}>
+              <Box>
+                <Typography variant="h5" mb={2}>
+                  Extends
+                </Typography>
+                <DataTypesParents isReadOnly={isReadOnly} />
+              </Box>
+            </Stack>
+          </TypeDefinitionContainer>
         </Box>
       </FormProvider>
 

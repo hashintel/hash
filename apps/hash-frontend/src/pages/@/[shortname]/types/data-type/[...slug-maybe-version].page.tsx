@@ -71,6 +71,8 @@ const Page: NextPageWithLayout = () => {
     ? parseInt(requestedVersionString, 10)
     : null;
 
+  console.log({ routeNamespace });
+
   if (!routeNamespace) {
     if (loadingNamespace) {
       return null;
@@ -81,7 +83,7 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <DataType
-      accountId={routeNamespace.accountId}
+      ownedById={routeNamespace.ownedById}
       draftNewDataType={draftDataType}
       dataTypeBaseUrl={dataTypeBaseUrl}
       key={`${dataTypeBaseUrl}-${requestedVersion}`}

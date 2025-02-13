@@ -34,6 +34,7 @@ export const useLogoutFlow = () => {
            * Await redirect to prevent runtime errors in the `useAuthenticatedUser`
            * hook on the current page.
            */
+          console.log("router", router);
           await router.push({
             pathname: "/",
             query: { return_to: router.asPath },

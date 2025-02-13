@@ -11,7 +11,6 @@ import type {
   EntityUuid,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
@@ -231,7 +230,7 @@ const Page: NextPageWithLayout = () => {
       const init = async () => {
         try {
           const entityId = entityIdFromComponents(
-            routeNamespace.accountId as OwnedById,
+            routeNamespace.ownedById,
             entityUuid,
             draftId,
           );
@@ -261,7 +260,7 @@ const Page: NextPageWithLayout = () => {
     }
 
     const entityId = entityIdFromComponents(
-      routeNamespace.accountId as OwnedById,
+      routeNamespace.ownedById,
       entityUuid,
       draftId,
     );
