@@ -102,7 +102,6 @@ export const createMachineActorEntity = async (
     machineAccountId,
     ownedById,
     displayName,
-    shouldBeAbleToCreateMoreMachineEntities,
     systemAccountId,
     machineEntityTypeId,
   }: {
@@ -114,8 +113,6 @@ export const createMachineActorEntity = async (
     ownedById: OwnedById;
     // A display name for the machine actor, to display to users
     displayName: string;
-    // Whether or not this machine should be able to create more machine entities after creating itself
-    shouldBeAbleToCreateMoreMachineEntities: boolean;
     // The accountId of the system account, used to grant the machine actor permissions to instantiate system types
     systemAccountId: AccountId;
     machineEntityTypeId?: VersionedUrl;
@@ -194,25 +191,22 @@ export const createMachineActorEntity = async (
     },
   );
 
-  if (!shouldBeAbleToCreateMoreMachineEntities) {
-    await context.graphApi.modifyEntityTypeAuthorizationRelationships(
-      systemAccountId,
-      [
-        {
-          operation: "delete",
-          resource:
-            machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
-          relationAndSubject: {
-            subject: {
-              kind: "account",
-              subjectId: machineAccountId,
-            },
-            relation: "instantiator",
+  await context.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "delete",
+        resource: machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: machineAccountId,
           },
+          relation: "instantiator",
         },
-      ],
-    );
-  }
+      },
+    ],
+  );
 };
 
 /**
@@ -260,7 +254,6 @@ export const createWebMachineActor = async (
     machineAccountId: machineAccountId as AccountId,
     ownedById,
     displayName: "HASH",
-    shouldBeAbleToCreateMoreMachineEntities: true,
     systemAccountId,
     machineEntityTypeId,
   });

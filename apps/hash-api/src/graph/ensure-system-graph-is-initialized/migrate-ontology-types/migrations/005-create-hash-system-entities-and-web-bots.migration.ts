@@ -128,7 +128,7 @@ const migrate: MigrationFunction = async ({
       if (err instanceof NotFoundError) {
         const orgAdminAccountId = org.metadata.provenance.edition.createdById;
 
-        await createWebMachineActor(
+        const webActorId = await createWebMachineActor(
           context,
           // We have to use an org admin's authority to add the machine to their web
           { actorId: orgAdminAccountId },
@@ -137,7 +137,9 @@ const migrate: MigrationFunction = async ({
             machineEntityTypeId: currentMachineEntityTypeId,
           },
         );
-        logger.info(`Created web machine actor for org ${orgAccountGroupId}`);
+        logger.info(
+          `Created web machine actor for org ${orgAccountGroupId} with accountId ${webActorId} (by actor ${orgAdminAccountId})`,
+        );
       } else {
         throw new Error(
           `Unexpected error attempting to retrieve machine web actor for organization ${org.metadata.recordId.entityId}`,

@@ -171,6 +171,14 @@ export const createOrg: ImpureGraphFunction<
     },
   };
 
+  const entityTypeId =
+    typeof entityTypeVersion === "undefined"
+      ? systemEntityTypes.organization.entityTypeId
+      : versionedUrlFromComponents(
+          systemEntityTypes.organization.entityTypeBaseUrl,
+          entityTypeVersion,
+        );
+
   try {
     await modifyEntityTypeAuthorizationRelationships(
       ctx,
@@ -186,7 +194,7 @@ export const createOrg: ImpureGraphFunction<
             },
             resource: {
               kind: "entityType",
-              resourceId: systemEntityTypes.organization.entityTypeId,
+              resourceId: entityTypeId,
             },
           },
         },
@@ -196,14 +204,7 @@ export const createOrg: ImpureGraphFunction<
     const entity = await createEntity(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
       properties,
-      entityTypeIds: [
-        typeof entityTypeVersion === "undefined"
-          ? systemEntityTypes.organization.entityTypeId
-          : versionedUrlFromComponents(
-              systemEntityTypes.organization.entityTypeBaseUrl,
-              entityTypeVersion,
-            ),
-      ],
+      entityTypeIds: [entityTypeId],
       entityUuid: orgAccountGroupId as string as EntityUuid,
       relationships: [
         {
@@ -227,26 +228,28 @@ export const createOrg: ImpureGraphFunction<
       permitOlderVersions: entityTypeVersion !== undefined,
     });
   } finally {
-    await modifyEntityTypeAuthorizationRelationships(
-      ctx,
-      { actorId: systemAccountId },
-      [
-        {
-          operation: "delete",
-          relationship: {
-            relation: "instantiator",
-            subject: {
-              kind: "account",
-              subjectId: authentication.actorId,
-            },
-            resource: {
-              kind: "entityType",
-              resourceId: systemEntityTypes.organization.entityTypeId,
+    if (authentication.actorId !== systemAccountId) {
+      await modifyEntityTypeAuthorizationRelationships(
+        ctx,
+        { actorId: systemAccountId },
+        [
+          {
+            operation: "delete",
+            relationship: {
+              relation: "instantiator",
+              subject: {
+                kind: "account",
+                subjectId: authentication.actorId,
+              },
+              resource: {
+                kind: "entityType",
+                resourceId: entityTypeId,
+              },
             },
           },
-        },
-      ],
-    );
+        ],
+      );
+    }
   }
 };
 

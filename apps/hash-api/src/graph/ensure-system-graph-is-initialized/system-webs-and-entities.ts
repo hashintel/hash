@@ -192,7 +192,6 @@ export const ensureSystemWebEntitiesExist = async ({
         identifier: webShortname,
         ownedById: accountGroupId as OwnedById,
         displayName,
-        shouldBeAbleToCreateMoreMachineEntities: false,
         systemAccountId,
         machineEntityTypeId,
       });
@@ -320,7 +319,6 @@ export const ensureSystemEntitiesExist = async (params: {
         machineAccountId: aiAssistantAccountId,
         ownedById: hashAccountGroupId as OwnedById,
         displayName: "HASH AI",
-        shouldBeAbleToCreateMoreMachineEntities: false,
         systemAccountId,
       });
 
