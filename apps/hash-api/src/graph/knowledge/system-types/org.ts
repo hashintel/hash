@@ -31,6 +31,8 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
+import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
+import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   getLatestEntityById,
@@ -169,39 +171,83 @@ export const createOrg: ImpureGraphFunction<
     },
   };
 
-  const entity = await createEntity(ctx, authentication, {
-    ownedById: orgAccountGroupId as OwnedById,
-    properties,
-    entityTypeIds: [
-      typeof entityTypeVersion === "undefined"
-        ? systemEntityTypes.organization.entityTypeId
-        : versionedUrlFromComponents(
-            systemEntityTypes.organization.entityTypeBaseUrl,
-            entityTypeVersion,
-          ),
-    ],
-    entityUuid: orgAccountGroupId as string as EntityUuid,
-    relationships: [
-      {
-        relation: "viewer",
-        subject: {
-          kind: "public",
+  try {
+    await modifyEntityTypeAuthorizationRelationships(
+      ctx,
+      { actorId: systemAccountId },
+      [
+        {
+          operation: "touch",
+          relationship: {
+            relation: "instantiator",
+            subject: {
+              kind: "account",
+              subjectId: authentication.actorId,
+            },
+            resource: {
+              kind: "entityType",
+              resourceId: systemEntityTypes.organization.entityTypeId,
+            },
+          },
         },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "administratorFromWeb",
-        },
-      },
-    ],
-  });
+      ],
+    );
 
-  return getOrgFromEntity({
-    entity,
-    permitOlderVersions: entityTypeVersion !== undefined,
-  });
+    const entity = await createEntity(ctx, authentication, {
+      ownedById: orgAccountGroupId as OwnedById,
+      properties,
+      entityTypeIds: [
+        typeof entityTypeVersion === "undefined"
+          ? systemEntityTypes.organization.entityTypeId
+          : versionedUrlFromComponents(
+              systemEntityTypes.organization.entityTypeBaseUrl,
+              entityTypeVersion,
+            ),
+      ],
+      entityUuid: orgAccountGroupId as string as EntityUuid,
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "administratorFromWeb",
+          },
+        },
+      ],
+    });
+
+    return getOrgFromEntity({
+      entity,
+      permitOlderVersions: entityTypeVersion !== undefined,
+    });
+  } finally {
+    await modifyEntityTypeAuthorizationRelationships(
+      ctx,
+      { actorId: systemAccountId },
+      [
+        {
+          operation: "delete",
+          relationship: {
+            relation: "instantiator",
+            subject: {
+              kind: "account",
+              subjectId: authentication.actorId,
+            },
+            resource: {
+              kind: "entityType",
+              resourceId: systemEntityTypes.organization.entityTypeId,
+            },
+          },
+        },
+      ],
+    );
+  }
 };
 
 /**
