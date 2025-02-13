@@ -3,7 +3,9 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
   createMachineActorEntity,
+  createWebMachineActor,
   getMachineActorId,
+  getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import type {
   AccountGroupId,
@@ -12,6 +14,7 @@ import type {
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
@@ -121,9 +124,6 @@ export const getOrCreateOwningAccountGroupId = async (
   logger.info(
     `Created accountGroup for web with shortname ${webShortname}, accountGroupId: ${accountGroupId}`,
   );
-  logger.info(
-    `Created machine actor for web with shortname ${webShortname}, machineActorId: ${machineActorIdForWeb}`,
-  );
 
   owningWebs[webShortname].accountGroupId = accountGroupId;
   owningWebs[webShortname].machineActorAccountId = machineActorIdForWeb;
@@ -154,15 +154,6 @@ export const ensureSystemWebEntitiesExist = async ({
 
   const authentication = { actorId: machineActorAccountId };
 
-  /**
-   * Create a machine entity associated with each machine actorId that created system types.
-   * These machines may also be added to other webs as needed (e.g. for integration workflows).
-   *
-   * Note: these are different from the web-scoped machine actors that EVERY org (system or not) has associated with.
-   *   - the web-scoped machine actors are for taking action in the web, e.g. to grant other bots permissions in it
-   *   - _these_ machine actors are for performing actions across the system related to the types they create, e.g.
-   * Linear actions
-   */
   try {
     await getMachineActorId(context, authentication, {
       identifier: webShortname,
@@ -187,18 +178,24 @@ export const ensureSystemWebEntitiesExist = async ({
     }
 
     if (error instanceof NotFoundError) {
+      /**
+       * Create a machine entity associated with each machine actorId that created system types.
+       * These machines may also be added to other webs as needed (e.g. for integration workflows).
+       *
+       * Note: these are different from the web-scoped machine actors that EVERY org (system or not) has associated with.
+       *   - the web-scoped machine actors are for taking action in the web, e.g. to grant other bots permissions in it
+       *   - _these_ machine actors are for performing actions across the system related to the types they create, e.g.
+       * Linear actions
+       */
       await createMachineActorEntity(context, {
         machineAccountId: machineActorAccountId,
         identifier: webShortname,
+        logger,
         ownedById: accountGroupId as OwnedById,
         displayName,
         systemAccountId,
         machineEntityTypeId,
       });
-
-      logger.info(
-        `Created machine actor entity for '${webShortname}'-related functionality, using accountId ${machineActorAccountId} in accountGroupId '${accountGroupId}`,
-      );
     } else {
       throw error;
     }
@@ -260,6 +257,35 @@ export const ensureSystemEntitiesExist = async (params: {
       webShortname,
       websiteUrl,
     });
+
+    const { accountGroupId, machineActorId: machineActorAccountId } =
+      await getOrCreateOwningAccountGroupId(context, webShortname);
+
+    try {
+      await getWebMachineActorId(
+        context,
+        { actorId: machineActorAccountId },
+        {
+          ownedById: accountGroupId as OwnedById,
+        },
+      );
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        await createWebMachineActor(
+          context,
+          // We have to use an org admin's authority to add the machine to their web
+          { actorId: machineActorAccountId },
+          {
+            ownedById: accountGroupId as OwnedById,
+            logger,
+          },
+        );
+      } else {
+        throw new Error(
+          `Unexpected error attempting to retrieve machine web actor for organization ${webShortname}: ${stringifyError(err)}`,
+        );
+      }
+    }
   }
 
   const authentication = { actorId: systemAccountId };
@@ -273,18 +299,18 @@ export const ensureSystemEntitiesExist = async (params: {
     });
   } catch (error) {
     if (error instanceof NotFoundError) {
-      const aiAssistantAccountId = await createAccount(
-        context,
-        authentication,
-        {},
-      );
-
       const hashAccountGroupId = owningWebs.hash.accountGroupId;
       if (!hashAccountGroupId) {
         throw new Error(
           `Somehow reached the point of creating the HASH AI machine actor without a hash accountGroupId`,
         );
       }
+
+      const aiAssistantAccountId = await createAccount(
+        context,
+        authentication,
+        {},
+      );
 
       await context.graphApi.modifyWebAuthorizationRelationships(
         systemAccountId,
@@ -316,13 +342,12 @@ export const ensureSystemEntitiesExist = async (params: {
 
       await createMachineActorEntity(context, {
         identifier: "hash-ai",
+        logger,
         machineAccountId: aiAssistantAccountId,
         ownedById: hashAccountGroupId as OwnedById,
         displayName: "HASH AI",
         systemAccountId,
       });
-
-      logger.info("Created HASH AI entity");
     } else {
       throw error;
     }

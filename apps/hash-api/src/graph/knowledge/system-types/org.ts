@@ -23,6 +23,7 @@ import {
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 
+import { logger } from "../../../logger";
 import {
   createAccountGroup,
   createWeb,
@@ -131,6 +132,7 @@ export const createOrg: ImpureGraphFunction<
     orgAccountGroupId = params.orgAccountGroupId;
   } else {
     orgAccountGroupId = await createAccountGroup(ctx, authentication, {});
+
     await createWeb(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
       owner: { kind: "accountGroup", subjectId: orgAccountGroupId },
@@ -138,6 +140,7 @@ export const createOrg: ImpureGraphFunction<
 
     await createWebMachineActor(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
+      logger,
     });
   }
 

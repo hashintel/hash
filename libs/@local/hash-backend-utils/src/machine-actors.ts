@@ -16,6 +16,7 @@ import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine"
 import { backOff } from "exponential-backoff";
 
 import { NotFoundError } from "./error.js";
+import type { Logger } from "./logger.js";
 
 export type WebMachineActorIdentifier = `system-${OwnedById}`;
 
@@ -99,6 +100,7 @@ export const createMachineActorEntity = async (
   context: { graphApi: GraphApi },
   {
     identifier,
+    logger,
     machineAccountId,
     ownedById,
     displayName,
@@ -107,6 +109,8 @@ export const createMachineActorEntity = async (
   }: {
     // A unique identifier for the machine actor
     identifier: MachineActorIdentifier;
+    // A logger instance
+    logger: Logger;
     // An existing accountId for the machine actor, which will also be used to authenticate the request
     machineAccountId: AccountId;
     // The OwnedById of the web the actor's entity will belong to
@@ -191,6 +195,10 @@ export const createMachineActorEntity = async (
     },
   );
 
+  logger.info(
+    `Created machine actor entity with identifier '${identifier}' with accountId: ${machineAccountId}, in web ${ownedById}`,
+  );
+
   await context.graphApi.modifyEntityTypeAuthorizationRelationships(
     systemAccountId,
     [
@@ -219,9 +227,11 @@ export const createWebMachineActor = async (
   authentication: { actorId: AccountId },
   {
     ownedById,
+    logger,
     machineEntityTypeId,
   }: {
     ownedById: OwnedById;
+    logger: Logger;
     machineEntityTypeId?: VersionedUrl;
   },
 ): Promise<AccountId> => {
@@ -251,6 +261,7 @@ export const createWebMachineActor = async (
 
   await createMachineActorEntity(context, {
     identifier: `system-${ownedById}`,
+    logger,
     machineAccountId: machineAccountId as AccountId,
     ownedById,
     displayName: "HASH",
