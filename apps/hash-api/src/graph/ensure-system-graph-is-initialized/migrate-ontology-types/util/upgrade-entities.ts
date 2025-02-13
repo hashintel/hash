@@ -26,7 +26,6 @@ import {
   componentsFromVersionedUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
-import isEqual from "lodash/isEqual";
 
 import type { ImpureGraphContext } from "../../../context-types";
 import {
