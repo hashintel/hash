@@ -3,6 +3,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -15,6 +16,7 @@ import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine"
 import { backOff } from "exponential-backoff";
 
 import { NotFoundError } from "./error.js";
+import type { Logger } from "./logger.js";
 
 export type WebMachineActorIdentifier = `system-${OwnedById}`;
 
@@ -98,23 +100,23 @@ export const createMachineActorEntity = async (
   context: { graphApi: GraphApi },
   {
     identifier,
+    logger,
     machineAccountId,
     ownedById,
     displayName,
-    shouldBeAbleToCreateMoreMachineEntities,
     systemAccountId,
     machineEntityTypeId,
   }: {
     // A unique identifier for the machine actor
     identifier: MachineActorIdentifier;
+    // A logger instance
+    logger: Logger;
     // An existing accountId for the machine actor, which will also be used to authenticate the request
     machineAccountId: AccountId;
     // The OwnedById of the web the actor's entity will belong to
     ownedById: OwnedById;
     // A display name for the machine actor, to display to users
     displayName: string;
-    // Whether or not this machine should be able to create more machine entities after creating itself
-    shouldBeAbleToCreateMoreMachineEntities: boolean;
     // The accountId of the system account, used to grant the machine actor permissions to instantiate system types
     systemAccountId: AccountId;
     machineEntityTypeId?: VersionedUrl;
@@ -150,6 +152,7 @@ export const createMachineActorEntity = async (
     { actorId: machineAccountId },
     {
       draft: false,
+      entityUuid: machineAccountId.toString() as EntityUuid,
       entityTypeIds: machineEntityTypeId
         ? ([machineEntityTypeId] as Machine["entityTypeIds"])
         : [systemEntityTypes.machine.entityTypeId],
@@ -192,25 +195,26 @@ export const createMachineActorEntity = async (
     },
   );
 
-  if (!shouldBeAbleToCreateMoreMachineEntities) {
-    await context.graphApi.modifyEntityTypeAuthorizationRelationships(
-      systemAccountId,
-      [
-        {
-          operation: "delete",
-          resource:
-            machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
-          relationAndSubject: {
-            subject: {
-              kind: "account",
-              subjectId: machineAccountId,
-            },
-            relation: "instantiator",
+  logger.info(
+    `Created machine actor entity with identifier '${identifier}' with accountId: ${machineAccountId}, in web ${ownedById}`,
+  );
+
+  await context.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "delete",
+        resource: machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: machineAccountId,
           },
+          relation: "instantiator",
         },
-      ],
-    );
-  }
+      },
+    ],
+  );
 };
 
 /**
@@ -223,9 +227,11 @@ export const createWebMachineActor = async (
   authentication: { actorId: AccountId },
   {
     ownedById,
+    logger,
     machineEntityTypeId,
   }: {
     ownedById: OwnedById;
+    logger: Logger;
     machineEntityTypeId?: VersionedUrl;
   },
 ): Promise<AccountId> => {
@@ -255,10 +261,10 @@ export const createWebMachineActor = async (
 
   await createMachineActorEntity(context, {
     identifier: `system-${ownedById}`,
+    logger,
     machineAccountId: machineAccountId as AccountId,
     ownedById,
     displayName: "HASH",
-    shouldBeAbleToCreateMoreMachineEntities: true,
     systemAccountId,
     machineEntityTypeId,
   });

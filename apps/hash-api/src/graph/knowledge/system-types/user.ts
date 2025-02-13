@@ -29,6 +29,7 @@ import type {
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
 import { kratosIdentityApi } from "../../../auth/ory-kratos";
+import { logger } from "../../../logger";
 import { createAccount, createWeb } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
@@ -321,6 +322,7 @@ export const createUser: ImpureGraphFunction<
     },
     {
       ownedById: userAccountId as OwnedById,
+      logger,
     },
   );
 
