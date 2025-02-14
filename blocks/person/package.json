@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
-    "dompurify": "2.5.8"
+    "dompurify": "3.2.4"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
