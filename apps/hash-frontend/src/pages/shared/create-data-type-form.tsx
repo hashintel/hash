@@ -110,7 +110,7 @@ export const CreateDataTypeForm = ({
       allOf: parentId ? [{ $ref: parentId }] : undefined,
       title: data.title,
       description: data.description,
-      type: "object",
+      type: "string",
     };
 
     const nextUrl = `${baseUrl}?draft=${encodeURIComponent(

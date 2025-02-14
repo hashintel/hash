@@ -1,6 +1,7 @@
 import type {
   DataType,
   SingleValueConstraints,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -9,11 +10,12 @@ export type DataTypeFormData = Pick<
   DataType,
   "abstract" | "description" | "label" | "title"
 > & {
-  allOf: NonNullable<DataType["allOf"]>;
+  allOf: VersionedUrl[];
   constraints: SingleValueConstraints;
 };
 
 export const getDataTypeFromFormData = ({
+  allOf,
   constraints,
   ...rest
 }: DataTypeFormData): DistributiveOmit<
@@ -22,6 +24,7 @@ export const getDataTypeFromFormData = ({
 > => {
   return {
     ...rest,
+    allOf: allOf.map((versionedUrl) => ({ $ref: versionedUrl })),
     ...constraints,
   };
 };
@@ -45,11 +48,22 @@ export const getFormDataFromDataType = (
     throw new Error("anyOf constraints are not supported");
   }
 
-  return {
-    allOf: allOf ?? [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+  const formData = {
+    allOf: allOf?.map(({ $ref }) => $ref) ?? [],
     abstract,
     description,
     label,
+    title,
+    constraints,
+  };
+
+  console.log({ formData });
+
+  return {
+    allOf: allOf?.map(({ $ref }) => $ref) ?? [],
+    abstract: !!abstract,
+    description,
+    label: label ?? {},
     title,
     constraints,
   };

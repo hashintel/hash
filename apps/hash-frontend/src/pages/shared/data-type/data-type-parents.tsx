@@ -9,7 +9,7 @@ import {
   TypeCard,
 } from "@hashintel/design-system";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Stack } from "@mui/system";
+import { Box, Stack } from "@mui/system";
 import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
@@ -24,10 +24,12 @@ type DataTypeParent = {
 
 export const DataTypeParentCard = ({
   isReadOnly,
+  onlyParent,
   parent,
   onRemove,
 }: {
   isReadOnly: boolean;
+  onlyParent: boolean;
   parent: DataTypeParent;
   onRemove: () => void;
 }) => {
@@ -51,13 +53,13 @@ export const DataTypeParentCard = ({
 
     setValue(
       "allOf",
-      directParentDataTypeIds.map(({ $ref }) => {
+      directParentDataTypeIds.map((parentId) => {
         const targetBaseUrl = extractBaseUrl($id);
 
-        if (targetBaseUrl === extractBaseUrl($ref)) {
-          return { $ref: `${targetBaseUrl}v/${newVersion}` as const };
+        if (targetBaseUrl === extractBaseUrl(parentId)) {
+          return `${targetBaseUrl}v/${newVersion}` as const;
         }
-        return { $ref };
+        return parentId;
       }),
       { shouldDirty: true },
     );
@@ -76,6 +78,7 @@ export const DataTypeParentCard = ({
             }
           : undefined
       }
+      swappableOnly={onlyParent}
       title={title}
       url={$id}
       version={extractVersion($id)}
@@ -83,10 +86,6 @@ export const DataTypeParentCard = ({
   );
 };
 
-/**
- * @todo
- * 1. Show 'upgrade' button
- */
 export const DataTypesParents = ({
   isReadOnly,
 }: {
@@ -102,11 +101,11 @@ export const DataTypesParents = ({
   });
 
   const parents: DataTypeParent[] | undefined = dataTypes
-    ? directParentDataTypeIds.map(({ $ref }) => {
-        const parentDataType = dataTypes[$ref];
+    ? directParentDataTypeIds.map((parentId) => {
+        const parentDataType = dataTypes[parentId];
 
         if (!parentDataType) {
-          throw new Error(`Parent data type not found: ${$ref}`);
+          throw new Error(`Parent data type not found: ${parentId}`);
         }
 
         let latestVersion = parentDataType.metadata.recordId.version;
@@ -151,15 +150,16 @@ export const DataTypesParents = ({
   }, [dataTypes]);
 
   const addParent = (dataTypeId: VersionedUrl) => {
-    setValue("allOf", [...directParentDataTypeIds, { $ref: dataTypeId }], {
+    setValue("allOf", [...directParentDataTypeIds, dataTypeId], {
       shouldDirty: true,
     });
   };
 
   const removeParent = (dataTypeId: VersionedUrl) => {
+    console.log("removing parent");
     setValue(
       "allOf",
-      directParentDataTypeIds.filter(({ $ref }) => $ref !== dataTypeId),
+      directParentDataTypeIds.filter((parentId) => parentId !== dataTypeId),
       {
         shouldDirty: true,
       },
@@ -172,16 +172,36 @@ export const DataTypesParents = ({
 
   if (parents.length === 0) {
     return (
-      <DataTypeSelector
-        allowSelectingAbstractTypes
-        dataTypes={dataTypeOptions}
-        handleScroll
-        hideHint
-        maxHeight={300}
-        onSelect={(dataTypeId) => {
-          addParent(dataTypeId);
+      <Box
+        sx={{
+          width: 600,
+          borderRadius: 2,
+          position: "relative",
         }}
-      />
+      >
+        <Box
+          sx={({ palette }) => ({
+            background: palette.common.white,
+            border: `1px solid ${palette.gray[30]}`,
+            borderRadius: 2,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: 600,
+          })}
+        >
+          <DataTypeSelector
+            allowSelectingAbstractTypes
+            dataTypes={dataTypeOptions}
+            handleScroll
+            hideHint
+            maxHeight={300}
+            onSelect={(dataTypeId) => {
+              addParent(dataTypeId);
+            }}
+          />
+        </Box>
+      </Box>
     );
   }
 
@@ -192,6 +212,7 @@ export const DataTypesParents = ({
           <DataTypeParentCard
             key={parent.dataType.$id}
             isReadOnly={isReadOnly}
+            onlyParent={parents.length === 1}
             parent={parent}
             onRemove={() => {
               removeParent(parent.dataType.$id);

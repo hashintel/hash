@@ -16,7 +16,7 @@ import { GlobalStyles, Stack } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 
 import type {
   CreateDataTypeMutation,
@@ -31,7 +31,9 @@ import {
   queryDataTypesQuery,
   updateDataTypeMutation,
 } from "../../graphql/queries/ontology/data-type.queries";
+import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { useUserPermissionsOnDataType } from "../../shared/use-user-permissions-on-data-type";
+import { DataTypeConstraints } from "./data-type/data-type-constraints";
 import {
   type DataTypeFormData,
   getDataTypeFromFormData,
@@ -41,6 +43,7 @@ import { DataTypeHeader } from "./data-type/data-type-header";
 import { DataTypesParents } from "./data-type/data-type-parents";
 import { useDataTypesContext } from "./data-types-context";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
+import { NotFound } from "./not-found";
 import {
   TypeDefinitionContainer,
   typeHeaderContainerStyles,
@@ -86,12 +89,28 @@ export const DataType = ({
 
   const formMethods = useForm<DataTypeFormData>({
     defaultValues: {
-      allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+      allOf: [],
       abstract: false,
       constraints: { type: "string" },
+      label: {},
+      title: "",
     },
   });
-  const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
+
+  const {
+    control,
+    handleSubmit: wrapHandleSubmit,
+    reset,
+    getValues,
+  } = formMethods;
+
+  console.log({ values: getValues() });
+
+  const parents = useWatch({
+    control: formMethods.control,
+    name: "allOf",
+    defaultValue: [],
+  });
 
   useEffect(() => {
     if (draftNewDataType) {
@@ -112,41 +131,63 @@ export const DataType = ({
       inheritsFrom: { outgoing: 255 },
       latestOnly: false,
     },
-    skip: !dataTypeBaseUrl,
+    skip: !!draftNewDataType,
   });
 
-  const { remoteDataType, latestVersion } = useMemo<{
+  const { remoteDataType, latestVersionNumber: latestVersion } = useMemo<{
     remoteDataType: DataTypeWithMetadata | null;
-    latestVersion: number | null;
+    latestVersionNumber: number | null;
   }>(() => {
-    if (!remoteDataTypeData) {
-      return { remoteDataType: null, latestVersion: null };
+    if (!remoteDataTypeData || !!draftNewDataType) {
+      return { remoteDataType: null, latestVersionNumber: null };
     }
 
     const dataTypes = getRoots<DataTypeRootType>(
       mapGqlSubgraphFieldsFragmentToSubgraph(remoteDataTypeData.queryDataTypes),
     );
 
-    let highestVersion = 0;
+    let highestVersionDataType: DataTypeWithMetadata | null = null;
     let matchedDataType: DataTypeWithMetadata | null = null;
     for (const dataType of dataTypes) {
       const version = extractVersion(dataType.schema.$id);
-      if (version > highestVersion) {
-        highestVersion = version;
+      if (
+        !highestVersionDataType ||
+        version > highestVersionDataType.metadata.recordId.version
+      ) {
+        highestVersionDataType = dataType;
       }
       if (version === requestedVersion) {
         matchedDataType = dataType;
       }
     }
 
+    if (!highestVersionDataType) {
+      return {
+        remoteDataType: null,
+        latestVersionNumber: null,
+      };
+    }
+
+    if (!requestedVersion || !matchedDataType) {
+      void router.push(
+        generateLinkParameters(highestVersionDataType.schema.$id).href,
+      );
+
+      return {
+        remoteDataType: highestVersionDataType,
+        latestVersionNumber: highestVersionDataType.metadata.recordId.version,
+      };
+    }
+
     return {
       remoteDataType: matchedDataType,
-      latestVersion: highestVersion,
+      latestVersionNumber: highestVersionDataType.metadata.recordId.version,
     };
-  }, [remoteDataTypeData, requestedVersion]);
+  }, [remoteDataTypeData, requestedVersion, draftNewDataType, router]);
 
   useEffect(() => {
     if (remoteDataType) {
+      console.log("resetting");
       formMethods.reset(getFormDataFromDataType(remoteDataType.schema));
     }
   }, [remoteDataType, formMethods]);
@@ -157,9 +198,8 @@ export const DataType = ({
 
   const isDraft = !!draftNewDataType;
 
-  const { userPermissions } = useUserPermissionsOnDataType(
-    dataType?.schema.$id,
-  );
+  const { userPermissions, loading: loadingUserPermissions } =
+    useUserPermissionsOnDataType(dataType?.schema.$id);
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!isDirty && !isDraft) {
@@ -212,8 +252,28 @@ export const DataType = ({
     void router.push(response.data.updateDataType.schema.$id);
   });
 
-  if (!userPermissions || !dataType) {
+  if (
+    !draftNewDataType &&
+    !dataType &&
+    !loadingRemoteDataType &&
+    !loadingUserPermissions
+  ) {
+    return (
+      <NotFound
+        resourceLabel={{
+          label: "data type",
+          withArticle: "a data type",
+        }}
+      />
+    );
+  }
+
+  if (loadingUserPermissions || loadingRemoteDataType) {
     return null;
+  }
+
+  if (!dataType || !userPermissions) {
+    throw new Error("Cannot render data type without data type");
   }
 
   const currentVersion = draftNewDataType
@@ -268,6 +328,11 @@ export const DataType = ({
                       },
                     }
               }
+              errorMessage={
+                parents.length === 0
+                  ? "must extend another data type"
+                  : undefined
+              }
               key={dataType.schema.$id} // reset edit bar state when the data type changes
             />
           )}
@@ -293,6 +358,12 @@ export const DataType = ({
                   Extends
                 </Typography>
                 <DataTypesParents isReadOnly={isReadOnly} />
+              </Box>
+              <Box>
+                <Typography variant="h5" mb={2}>
+                  Constraints
+                </Typography>
+                <DataTypeConstraints />
               </Box>
             </Stack>
           </TypeDefinitionContainer>

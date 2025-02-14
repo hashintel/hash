@@ -1,25 +1,16 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { useRouter } from "next/router";
-import { useContext } from "react";
 
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
-import { CreateEntityTypeForm } from "../../shared/create-entity-type-form";
-import { WorkspaceContext } from "../../shared/workspace-context";
+import { CreateDataTypeForm } from "../../shared/create-data-type-form";
 import { NewTypePageContainer } from "./shared/new-type-page-container";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const { activeWorkspace } = useContext(WorkspaceContext);
-
-  if (!activeWorkspace) {
-    return null;
-  }
-
   const initialData = {
-    extendsEntityTypeId:
+    extendsDataTypeId:
       typeof router.query.extends === "string"
         ? (router.query.extends as VersionedUrl)
         : undefined,
@@ -27,20 +18,16 @@ const Page: NextPageWithLayout = () => {
       typeof router.query.name === "string" ? router.query.name : undefined,
   };
 
-  const isCreateLinkEntityType =
-    initialData.extendsEntityTypeId === linkEntityTypeUrl;
-
   return (
     <NewTypePageContainer
       form={
-        <CreateEntityTypeForm
+        <CreateDataTypeForm
           key={JSON.stringify(initialData)} // re-render the form to reset state when the initial data changes
           initialData={initialData}
-          isLink={isCreateLinkEntityType}
           onCancel={() => router.push("/")}
         />
       }
-      kind={isCreateLinkEntityType ? "link" : "entity"}
+      kind="data"
     />
   );
 };

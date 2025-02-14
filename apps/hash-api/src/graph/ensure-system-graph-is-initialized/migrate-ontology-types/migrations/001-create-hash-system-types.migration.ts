@@ -1,3 +1,4 @@
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   descriptionPropertyTypeUrl,
   fileUrlPropertyTypeUrl,
@@ -12,6 +13,18 @@ import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
 } from "../util";
+
+/**
+ * @todo H-4065 / H-4066: Support array and tuple data types (add /list/ here, which they should inherit from)
+ */
+const blockProtocolDataTypeIds = [
+  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+  "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1",
+  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+  "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
+] as const;
 
 const migrate: MigrationFunction = async ({
   context,
@@ -1650,6 +1663,31 @@ const migrate: MigrationFunction = async ({
       migrationState,
       instantiator: anyUserInstantiator,
     });
+
+  /**
+   * Ensure the primitive BP data types are loaded
+   */
+  await Promise.all(
+    blockProtocolDataTypeIds.map(async (dataTypeId) => {
+      const existingDataType = await context.graphApi
+        .getDataTypes(authentication.actorId, {
+          filter: {
+            equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
+          },
+          includeDrafts: false,
+          temporalAxes: fullTransactionTimeAxis,
+        })
+        .then((response) => response.data.dataTypes);
+
+      if (existingDataType.length > 0) {
+        return;
+      }
+
+      return context.graphApi.loadExternalDataType(authentication.actorId, {
+        dataTypeId,
+      });
+    }),
+  );
 
   return migrationState;
 };

@@ -28,9 +28,11 @@ const useFrozenValue = <T extends number | boolean | object>(value: T): T => {
 export const EditBarTypeEditor = ({
   currentVersion,
   discardButtonProps,
+  errorMessage,
 }: {
   currentVersion: number;
   discardButtonProps: Partial<ButtonProps>;
+  errorMessage?: string;
 }) => {
   const { dirtyFields, isSubmitting } =
     useEntityTypeFormState<EntityTypeEditorFormData>();
@@ -44,42 +46,49 @@ export const EditBarTypeEditor = ({
 
   const frozenSubmitting = useFrozenValue(isSubmitting);
 
+  let label;
+  if (errorMessage) {
+    label = `before saving${errorMessage ? `: ${errorMessage}` : ""}`;
+  } else if (frozenVersion === 0) {
+    label = "– this type has not yet been created";
+  } else {
+    label = `Version ${frozenVersion} -> ${frozenVersion + 1}`;
+  }
+
   return (
     <EditBarCollapse in={collapseIn} ref={ref}>
-      <EditBarContainer>
-        {frozenVersion === 0 ? (
-          <EditBarContents
-            icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
-            title="Currently editing"
-            label="- this type has not yet been created"
-            discardButtonProps={{
-              children: "Discard this type",
-              disabled: frozenSubmitting,
-              ...frozenDiscardButtonProps,
-            }}
-            confirmButtonProps={{
-              children: "Create",
-              loading: frozenSubmitting,
-              disabled: frozenSubmitting,
-            }}
-          />
-        ) : (
-          <EditBarContents
-            icon={<PencilSimpleLine />}
-            title="Currently editing"
-            label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
-            discardButtonProps={{
-              children: "Discard changes",
-              disabled: frozenSubmitting,
-              ...frozenDiscardButtonProps,
-            }}
-            confirmButtonProps={{
-              children: "Publish update",
-              loading: frozenSubmitting,
-              disabled: frozenSubmitting,
-            }}
-          />
-        )}
+      <EditBarContainer hasErrors={!!errorMessage}>
+        <EditBarContents
+          hideConfirm={!!errorMessage}
+          icon={
+            frozenVersion === 0 ? (
+              <FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />
+            ) : (
+              <PencilSimpleLine />
+            )
+          }
+          title={errorMessage ? "Changes required" : "Currently editing"}
+          label={label}
+          discardButtonProps={{
+            children:
+              frozenVersion === 0 ? "Discard this type" : "Discard changes",
+            disabled: frozenSubmitting,
+            sx: errorMessage
+              ? {
+                  borderColor: "white",
+                  "&:hover": {
+                    backgroundColor: ({ palette }) => palette.red[50],
+                  },
+                }
+              : undefined,
+            ...frozenDiscardButtonProps,
+          }}
+          confirmButtonProps={{
+            children: frozenVersion === 0 ? "Create" : "Publish update",
+            loading: frozenSubmitting,
+            disabled: frozenSubmitting,
+          }}
+        />
       </EditBarContainer>
     </EditBarCollapse>
   );

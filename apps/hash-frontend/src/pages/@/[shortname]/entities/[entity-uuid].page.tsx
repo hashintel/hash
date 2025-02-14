@@ -411,7 +411,9 @@ const Page: NextPageWithLayout = () => {
   }
 
   if (!draftEntity) {
-    return <NotFound />;
+    return (
+      <NotFound resourceLabel={{ label: "entity", withArticle: "an entity" }} />
+    );
   }
 
   if (!draftEntityTypesDetails || !draftEntitySubgraph) {

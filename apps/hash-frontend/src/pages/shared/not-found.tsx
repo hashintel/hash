@@ -33,7 +33,14 @@ const GoBackButton = () => {
   );
 };
 
-export const NotFound = () => {
+export const NotFound = ({
+  resourceLabel = { label: "page", withArticle: "a page" },
+}: {
+  resourceLabel?: {
+    label: string;
+    withArticle?: string;
+  };
+}) => {
   const { authenticatedUser } = useAuthInfo();
 
   return (
@@ -50,7 +57,7 @@ export const NotFound = () => {
     >
       <Stack sx={{ maxWidth: { xs: "90%", md: 500 }, mb: "60px" }}>
         <Typography component="p" variant="h4" sx={{ fontWeight: 400, mb: 2 }}>
-          This page may not exist,{" "}
+          This {resourceLabel.label} may not exist,{" "}
           <Box
             component="span"
             sx={{
@@ -69,8 +76,9 @@ export const NotFound = () => {
               variant="regularTextParagraphs"
               sx={{ color: ({ palette }) => palette.gray[80] }}
             >
-              If you believe you should be able to see a page here, try
-              contacting its owner. You are logged in as{" "}
+              If you believe you should be able to see{" "}
+              {resourceLabel.withArticle} here, try contacting its owner. You
+              are logged in as{" "}
               <strong>{authenticatedUser.emails[0]?.address}</strong>
             </Typography>
             <Box mt={5}>

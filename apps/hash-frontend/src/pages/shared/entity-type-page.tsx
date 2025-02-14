@@ -24,7 +24,6 @@ import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { PageErrorState } from "../../components/page-error-state";
 import { useIsSpecialEntityType } from "../../shared/entity-types-context/hooks";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../shared/is-archived";
@@ -47,6 +46,7 @@ import {
   useGetEntityTypeDependents,
 } from "./entity-type-page/use-entity-type-dependents";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
+import { NotFound } from "./not-found";
 import {
   TypeDefinitionContainer,
   typeHeaderContainerStyles,
@@ -262,7 +262,14 @@ export const EntityTypePage = ({
         </Container>
       );
     } else {
-      return <PageErrorState />;
+      return (
+        <NotFound
+          resourceLabel={{
+            label: "entity type",
+            withArticle: "an entity type",
+          }}
+        />
+      );
     }
   }
 

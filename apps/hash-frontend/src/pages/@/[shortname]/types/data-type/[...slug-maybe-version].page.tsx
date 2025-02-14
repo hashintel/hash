@@ -8,7 +8,7 @@ import type { NextPageWithLayout } from "../../../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../../../shared/layout";
 import { DataType } from "../../../../shared/data-type";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
-import { getEntityTypeBaseUrl } from "../shared/get-entity-type-base-url";
+import { getTypeBaseUrl } from "../shared/get-type-base-url";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -25,19 +25,30 @@ const Page: NextPageWithLayout = () => {
    * @example /@hash/types/data-type/integer/v/1
    * @example /@hash/types/data-type/integer
    */
-  const [_, shortname, _types, _dataType, slug, _v, requestedVersionString] =
-    router.asPath.split("/") as [
-      "",
-      `@${string}`,
-      "types",
-      "data-type",
-      string,
-      "v" | undefined,
-      `${number}` | undefined,
-    ];
+  const [
+    _,
+    shortnameWithAt,
+    _types,
+    _dataType,
+    slug,
+    _v,
+    requestedVersionString,
+  ] = router.asPath.split("/") as [
+    "",
+    `@${string}`,
+    "types",
+    "data-type",
+    string,
+    "v" | undefined,
+    `${number}` | undefined,
+  ];
 
   const dataTypeBaseUrl = !isDraft
-    ? getEntityTypeBaseUrl(slug, shortname)
+    ? getTypeBaseUrl({
+        slug,
+        namespaceWithAt: shortnameWithAt,
+        kind: "data-type",
+      })
     : undefined;
 
   const draftDataType = useMemo(() => {
@@ -70,8 +81,6 @@ const Page: NextPageWithLayout = () => {
   const requestedVersion = requestedVersionString
     ? parseInt(requestedVersionString, 10)
     : null;
-
-  console.log({ routeNamespace });
 
   if (!routeNamespace) {
     if (loadingNamespace) {

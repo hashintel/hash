@@ -1,6 +1,9 @@
+import type { DataTypeWithMetadata } from "@blockprotocol/graph";
+import type { OntologyTemporalMetadata } from "@local/hash-graph-client/dist/api.d";
 import type { DataTypeConversionsMap } from "@local/hash-isomorphic-utils/data-types";
 import {
   currentTimeInstantTemporalAxes,
+  defaultDataTypeAuthorizationRelationships,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -15,11 +18,19 @@ import type {
 } from "@local/hash-subgraph";
 
 import {
+  archiveDataType,
   checkPermissionsOnDataType,
+  createDataType,
   getDataTypeConversionTargets,
   getDataTypeSubgraphById,
+  unarchiveDataType,
+  updateDataType,
 } from "../../../graph/ontology/primitive/data-type";
 import type {
+  MutationArchiveDataTypeArgs,
+  MutationCreateDataTypeArgs,
+  MutationUnarchiveDataTypeArgs,
+  MutationUpdateDataTypeArgs,
   QueryCheckUserPermissionsOnDataTypeArgs,
   QueryGetDataTypeArgs,
   QueryGetDataTypeConversionTargetsArgs,
@@ -115,6 +126,72 @@ export const getDataTypeConversionTargetsResolver: ResolverFn<
     { dataTypeIds },
   );
 };
+
+export const createDataTypeResolver: ResolverFn<
+  Promise<DataTypeWithMetadata>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  MutationCreateDataTypeArgs
+> = async (_, params, { dataSources, authentication, provenance }) => {
+  const { ownedById, dataType } = params;
+
+  const createdDataType = await createDataType(
+    {
+      ...dataSources,
+      provenance,
+    },
+    authentication,
+    {
+      ownedById,
+      schema: dataType,
+      relationships: defaultDataTypeAuthorizationRelationships,
+      conversions: {},
+    },
+  );
+
+  return createdDataType;
+};
+
+export const updateDataTypeResolver: ResolverFn<
+  Promise<DataTypeWithMetadata>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  MutationUpdateDataTypeArgs
+> = async (_, params, graphQLContext) =>
+  updateDataType(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    {
+      dataTypeId: params.dataTypeId,
+      schema: params.dataType,
+      relationships: defaultDataTypeAuthorizationRelationships,
+      conversions: {},
+    },
+  );
+
+export const archiveDataTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  MutationArchiveDataTypeArgs
+> = async (_, params, graphQLContext) =>
+  archiveDataType(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    params,
+  );
+
+export const unarchiveDataTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  MutationUnarchiveDataTypeArgs
+> = async (_, params, graphQLContext) =>
+  unarchiveDataType(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    params,
+  );
 
 export const checkUserPermissionsOnDataTypeResolver: ResolverFn<
   Promise<UserPermissionsOnDataType>,

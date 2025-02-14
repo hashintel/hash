@@ -242,6 +242,7 @@ export const EditBarCollapse = styled(Collapse)(({ theme }) => ({
 export const EditBar = ({
   confirmButtonProps,
   discardButtonProps,
+  errorMessage,
   hasErrors,
   label,
   visible,
@@ -249,6 +250,7 @@ export const EditBar = ({
   confirmButtonProps: Partial<ButtonProps>;
   discardButtonProps: Partial<ButtonProps>;
   hasErrors: boolean;
+  errorMessage?: string;
   label?: ReactNode;
   visible: boolean;
 }) => {
@@ -260,8 +262,12 @@ export const EditBar = ({
         <EditBarContents
           hideConfirm={hasErrors}
           icon={hasErrors ? <WarnIcon /> : <PencilSimpleLine />}
-          title="Currently editing"
-          label={hasErrors ? "– changes required before submitting" : label}
+          title={hasErrors ? "Changes required" : "Currently editing"}
+          label={
+            hasErrors
+              ? `before saving${errorMessage ? `: ${errorMessage}` : ""}`
+              : label
+          }
           discardButtonProps={{
             children: "Discard changes",
             ...discardButtonProps,

@@ -15,7 +15,6 @@ import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useContext, useEffect, useState } from "react";
 
-import { PageErrorState } from "../../../../../components/page-error-state";
 import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
@@ -210,7 +209,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   }
 
   if (!draftEntityTypesDetails) {
-    return <PageErrorState />;
+    throw new Error("No draft entity types details available");
   }
 
   const entityLabel = generateEntityLabel(
