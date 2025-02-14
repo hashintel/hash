@@ -119,7 +119,7 @@ image              = { version = "=0.25.5", default-features = false }
 inferno            = { version = "=0.12.1", default-features = false }
 iso8601-duration   = { version = "=0.2.0", default-features = false }
 json-number        = { version = "=0.4.9", default-features = false }
-jsonptr            = { version = "=0.6.3", default-features = false }
+jsonptr            = { version = "=0.7.0", default-features = false }
 libp2p-core        = { version = "=0.43.0", default-features = false }
 libp2p-identity    = { version = "=0.2.10", default-features = false }
 libp2p-ping        = { version = "=0.46.0", default-features = false }
