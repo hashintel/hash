@@ -119,7 +119,7 @@ image              = { version = "=0.25.5", default-features = false }
 inferno            = { version = "=0.12.1", default-features = false }
 iso8601-duration   = { version = "=0.2.0", default-features = false }
 json-number        = { version = "=0.4.9", default-features = false }
-jsonptr            = { version = "=0.6.3", default-features = false }
+jsonptr            = { version = "=0.7.0", default-features = false }
 libp2p-core        = { version = "=0.43.0", default-features = false }
 libp2p-identity    = { version = "=0.2.10", default-features = false }
 libp2p-ping        = { version = "=0.46.0", default-features = false }
@@ -159,7 +159,7 @@ approx                   = { version = "=0.5.1", default-features = false }
 async-scoped             = { version = "=0.9.0", default-features = false }
 async-trait              = { version = "=0.1.86", default-features = false }
 aws-config               = { version = "=1.5.16" }
-aws-sdk-s3               = { version = "=1.74.0", default-features = false }
+aws-sdk-s3               = { version = "=1.75.0", default-features = false }
 bitvec                   = { version = "=1.0.1", default-features = false }
 bytes-utils              = { version = "=0.1.4", default-features = false }
 clap                     = { version = "=4.5.29", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }

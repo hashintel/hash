@@ -23,6 +23,7 @@ import {
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 
+import { logger } from "../../../logger";
 import {
   createAccountGroup,
   createWeb,
@@ -31,6 +32,8 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
+import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
+import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   getLatestEntityById,
@@ -136,6 +139,7 @@ export const createOrg: ImpureGraphFunction<
     orgAccountGroupId = params.orgAccountGroupId;
   } else {
     orgAccountGroupId = await createAccountGroup(ctx, authentication, {});
+
     await createWeb(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
       owner: { kind: "accountGroup", subjectId: orgAccountGroupId },
@@ -143,6 +147,7 @@ export const createOrg: ImpureGraphFunction<
 
     await createWebMachineActor(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
+      logger,
     });
   }
 
@@ -175,39 +180,86 @@ export const createOrg: ImpureGraphFunction<
     },
   };
 
-  const entity = await createEntity(ctx, authentication, {
-    ownedById: orgAccountGroupId as OwnedById,
-    properties,
-    entityTypeIds: [
-      typeof entityTypeVersion === "undefined"
-        ? systemEntityTypes.organization.entityTypeId
-        : versionedUrlFromComponents(
-            systemEntityTypes.organization.entityTypeBaseUrl,
-            entityTypeVersion,
-          ),
-    ],
-    entityUuid: orgAccountGroupId as string as EntityUuid,
-    relationships: [
-      {
-        relation: "viewer",
-        subject: {
-          kind: "public",
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "administratorFromWeb",
-        },
-      },
-    ],
-  });
+  const entityTypeId =
+    typeof entityTypeVersion === "undefined"
+      ? systemEntityTypes.organization.entityTypeId
+      : versionedUrlFromComponents(
+          systemEntityTypes.organization.entityTypeBaseUrl,
+          entityTypeVersion,
+        );
 
-  return getOrgFromEntity({
-    entity,
-    permitOlderVersions: entityTypeVersion !== undefined,
-  });
+  try {
+    await modifyEntityTypeAuthorizationRelationships(
+      ctx,
+      { actorId: systemAccountId },
+      [
+        {
+          operation: "touch",
+          relationship: {
+            relation: "instantiator",
+            subject: {
+              kind: "account",
+              subjectId: authentication.actorId,
+            },
+            resource: {
+              kind: "entityType",
+              resourceId: entityTypeId,
+            },
+          },
+        },
+      ],
+    );
+
+    const entity = await createEntity(ctx, authentication, {
+      ownedById: orgAccountGroupId as OwnedById,
+      properties,
+      entityTypeIds: [entityTypeId],
+      entityUuid: orgAccountGroupId as string as EntityUuid,
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "administratorFromWeb",
+          },
+        },
+      ],
+    });
+
+    return getOrgFromEntity({
+      entity,
+      permitOlderVersions: entityTypeVersion !== undefined,
+    });
+  } finally {
+    if (authentication.actorId !== systemAccountId) {
+      await modifyEntityTypeAuthorizationRelationships(
+        ctx,
+        { actorId: systemAccountId },
+        [
+          {
+            operation: "delete",
+            relationship: {
+              relation: "instantiator",
+              subject: {
+                kind: "account",
+                subjectId: authentication.actorId,
+              },
+              resource: {
+                kind: "entityType",
+                resourceId: entityTypeId,
+              },
+            },
+          },
+        ],
+      );
+    }
+  }
 };
 
 /**

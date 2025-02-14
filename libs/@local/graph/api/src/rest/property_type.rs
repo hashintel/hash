@@ -75,6 +75,7 @@ use crate::rest::{
         get_property_types,
         get_property_type_subgraph,
         update_property_type,
+        update_property_types,
         update_property_type_embeddings,
         archive_property_type,
         unarchive_property_type,
@@ -129,6 +130,7 @@ impl RoutedResource for PropertyTypeResource {
                     "/",
                     post(create_property_type::<S, A>).put(update_property_type::<S, A>),
                 )
+                .route("/bulk", put(update_property_types::<S, A>))
                 .route(
                     "/relationships",
                     post(modify_property_type_authorization_relationships::<A>),
@@ -537,8 +539,6 @@ struct UpdatePropertyTypeRequest {
     tag = "PropertyType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("after" = Option<String>, Query, description = "The cursor to start reading from"),
-        ("limit" = Option<usize>, Query, description = "The maximum number of property types to read"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = PropertyTypeMetadata),
@@ -594,6 +594,76 @@ where
                 provenance,
             },
         )
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[utoipa::path(
+    put,
+    path = "/property-types/bulk",
+    tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the updated property types", body = [PropertyTypeMetadata]),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Base property types ID were not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = [UpdatePropertyTypeRequest],
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn update_property_types<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    bodies: Json<Vec<UpdatePropertyTypeRequest>>,
+) -> Result<Json<Vec<PropertyTypeMetadata>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    let params = bodies
+        .0
+        .into_iter()
+        .map(
+            |UpdatePropertyTypeRequest {
+                 schema,
+                 mut type_to_update,
+                 relationships,
+                 provenance,
+             }| {
+                type_to_update.version =
+                    OntologyTypeVersion::new(type_to_update.version.inner() + 1);
+
+                Ok(UpdatePropertyTypesParams {
+                    schema: patch_id_and_parse(&type_to_update, schema)
+                        .map_err(report_to_response)?,
+                    relationships,
+                    provenance,
+                })
+            },
+        )
+        .collect::<Result<Vec<_>, Response>>()?;
+    store
+        .update_property_types(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(Json)

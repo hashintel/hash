@@ -255,6 +255,30 @@ pub trait DataTypeStore {
         params: UpdateDataTypesParams<R>,
     ) -> impl Future<Output = Result<DataTypeMetadata, Report<UpdateError>>> + Send
     where
+        Self: Send,
+        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+    {
+        async move {
+            Ok(self
+                .update_data_types(actor_id, iter::once(params))
+                .await?
+                .pop()
+                .expect("created exactly one data type"))
+        }
+    }
+
+    /// Update the definitions of the existing [`DataType`]s.
+    ///
+    /// # Errors
+    ///
+    /// - if the [`DataType`]s do not exist.
+    fn update_data_types<P, R>(
+        &mut self,
+        actor_id: AccountId,
+        params: P,
+    ) -> impl Future<Output = Result<Vec<DataTypeMetadata>, Report<UpdateError>>> + Send
+    where
+        P: IntoIterator<Item = UpdateDataTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync;
 
     /// Archives the definition of an existing [`DataType`].

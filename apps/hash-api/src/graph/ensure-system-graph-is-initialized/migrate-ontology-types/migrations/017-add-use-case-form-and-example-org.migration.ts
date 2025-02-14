@@ -4,6 +4,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { logger } from "../../../../logger";
 import {
   createOrg,
   getOrgByShortname,
@@ -146,6 +147,7 @@ const migrate: MigrationFunction = async ({
           systemEntityTypes.organization.entityTypeBaseUrl
         ],
     });
+    logger.info("Created @example org");
   }
 
   return migrationState;

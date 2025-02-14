@@ -128,10 +128,7 @@ export const EntityTypePage = ({
   const [dependentsExcludedFromUpgrade, setDependentsExcludedFromUpgrade] =
     useState<BaseUrl[]>([]);
 
-  const {
-    upgradableDependencies: _upgradableDependencies,
-    entityTypesToUpgrade,
-  } = useMemo(
+  const { upgradableDependencies, entityTypesToUpgrade } = useMemo(
     () => ({
       upgradableDependencies: Object.values(entityTypeDependents).filter(
         (dependent) =>
@@ -190,11 +187,10 @@ export const EntityTypePage = ({
         );
       }
 
-      // @todo H-4026: enable this when abillity to update multiple entity types at once is in place
-      // if (upgradableDependencies.length && !showDependencyUpgradeModal) {
-      //   setShowDependencyUpgradeModal(true);
-      //   return;
-      // }
+      if (upgradableDependencies.length && !showDependencyUpgradeModal) {
+        setShowDependencyUpgradeModal(true);
+        return;
+      }
 
       setShowDependencyUpgradeModal(false);
 
@@ -210,7 +206,7 @@ export const EntityTypePage = ({
        * so that they all refer to the latest versions (after the update has been applied).
        * Types may refer to each other, or reference themselves – via inheritance (allOf), as link types, or as link destinations
        */
-      const [{ $id: _, ...rootType }, ..._dependents] = mustHaveAtLeastOne(
+      const [{ $id: _, ...rootType }, ...dependents] = mustHaveAtLeastOne(
         rewriteSchemasToNextVersion([
           {
             ...remoteEntityType.schema,
@@ -220,9 +216,7 @@ export const EntityTypePage = ({
         ]),
       );
 
-      // @todo H-4026: enable this when abillity to update multiple entity types at once is in place
-      // const res = await updateEntityTypes(rootType, dependents);
-      const res = await updateEntityTypes(rootType, []);
+      const res = await updateEntityTypes(rootType, dependents);
 
       if (!res.errors?.length && res.data?.updateEntityTypes[0]) {
         void router.push(
@@ -278,11 +272,10 @@ export const EntityTypePage = ({
     : extractVersion(entityType.schema.$id);
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
-    // @todo H-4026: enable this when abillity to update multiple entity types at once is in place
-    // if (upgradableDependencies.length && !showDependencyUpgradeModal) {
-    //   setShowDependencyUpgradeModal(true);
-    //   return;
-    // }
+    if (upgradableDependencies.length && !showDependencyUpgradeModal) {
+      setShowDependencyUpgradeModal(true);
+      return;
+    }
 
     if (!remoteEntityType) {
       throw new Error(
@@ -299,7 +292,7 @@ export const EntityTypePage = ({
      * so that they all refer to the latest versions (after the update has been applied).
      * Types may refer to each other, or reference themselves – via inheritance (allOf), as link types, or as link destinations
      */
-    const [rootType, ..._dependents] = mustHaveAtLeastOne(
+    const [rootType, ...dependents] = mustHaveAtLeastOne(
       rewriteSchemasToNextVersion([
         {
           ...remoteEntityType.schema,
@@ -309,21 +302,12 @@ export const EntityTypePage = ({
       ]),
     );
 
-    // @todo H-4026: enable this when abillity to update multiple entity types at once is in place
-    // const res = await updateEntityTypes(
-    //   {
-    //     ...rootType,
-    //     allOf: [{ $ref: linkEntityTypeUrl }, ...(rootType.allOf ?? [])],
-    //   },
-    //   dependents,
-    // );
-
     const res = await updateEntityTypes(
       {
         ...rootType,
         allOf: [{ $ref: linkEntityTypeUrl }, ...(rootType.allOf ?? [])],
       },
-      [],
+      dependents,
     );
 
     if (!res.errors?.length && res.data?.updateEntityTypes[0]) {

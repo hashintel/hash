@@ -388,15 +388,16 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         Ok(response)
     }
 
-    async fn update_data_type<R>(
+    async fn update_data_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        params: UpdateDataTypesParams<R>,
-    ) -> Result<DataTypeMetadata, Report<UpdateError>>
+        params: P,
+    ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
+        P: IntoIterator<Item = UpdateDataTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
-        self.store.update_data_type(actor_id, params).await
+        self.store.update_data_types(actor_id, params).await
     }
 
     async fn archive_data_type(
@@ -537,15 +538,16 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         Ok(response)
     }
 
-    async fn update_property_type<R>(
+    async fn update_property_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        params: UpdatePropertyTypesParams<R>,
-    ) -> Result<PropertyTypeMetadata, Report<UpdateError>>
+        params: P,
+    ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
+        P: IntoIterator<Item = UpdatePropertyTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
-        self.store.update_property_type(actor_id, params).await
+        self.store.update_property_types(actor_id, params).await
     }
 
     async fn archive_property_type(
@@ -680,15 +682,16 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         Ok(response)
     }
 
-    async fn update_entity_type<R>(
+    async fn update_entity_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        params: UpdateEntityTypesParams<R>,
-    ) -> Result<EntityTypeMetadata, Report<UpdateError>>
+        params: P,
+    ) -> Result<Vec<EntityTypeMetadata>, Report<UpdateError>>
     where
+        P: IntoIterator<Item = UpdateEntityTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
-        self.store.update_entity_type(actor_id, params).await
+        self.store.update_entity_types(actor_id, params).await
     }
 
     async fn archive_entity_type(

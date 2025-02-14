@@ -227,6 +227,30 @@ pub trait PropertyTypeStore {
         params: UpdatePropertyTypesParams<R>,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, Report<UpdateError>>> + Send
     where
+        Self: Send,
+        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+    {
+        async move {
+            Ok(self
+                .update_property_types(actor_id, iter::once(params))
+                .await?
+                .pop()
+                .expect("created exactly one property type"))
+        }
+    }
+
+    /// Update the definitions of the existing [`PropertyType`]s.
+    ///
+    /// # Errors
+    ///
+    /// - if the [`PropertyType`]s do not exist.
+    fn update_property_types<P, R>(
+        &mut self,
+        actor_id: AccountId,
+        params: P,
+    ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>> + Send
+    where
+        P: IntoIterator<Item = UpdatePropertyTypesParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync;
 
     /// Archives the definition of an existing [`PropertyType`].

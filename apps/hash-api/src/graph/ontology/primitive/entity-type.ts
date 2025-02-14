@@ -334,6 +334,13 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
   return subgraph;
 };
 
+type UpdateEntityTypeParams = {
+  entityTypeId: VersionedUrl;
+  schema: ConstructEntityTypeParams;
+  relationships: EntityTypeRelationAndSubject[];
+  provenance?: ProvidedOntologyEditionProvenance;
+};
+
 /**
  * Update an entity type.
  *
@@ -342,12 +349,7 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is updating the entity type
  */
 export const updateEntityType: ImpureGraphFunction<
-  {
-    entityTypeId: VersionedUrl;
-    schema: ConstructEntityTypeParams;
-    relationships: EntityTypeRelationAndSubject[];
-    provenance?: ProvidedOntologyEditionProvenance;
-  },
+  UpdateEntityTypeParams,
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
   const { entityTypeId, schema, provenance } = params;
@@ -380,6 +382,61 @@ export const updateEntityType: ImpureGraphFunction<
     },
     metadata: metadata as EntityTypeMetadata,
   };
+};
+
+/**
+ * Updates multiple entity types.
+ *
+ * @param params.entityTypeId - the id of the entity type that's being updated
+ * @param params.schema - the updated `EntityType`
+ * @param params.actorId - the id of the account that is updating the entity type
+ */
+export const updateEntityTypes: ImpureGraphFunction<
+  {
+    entityTypeUpdates: UpdateEntityTypeParams[];
+  },
+  Promise<EntityTypeWithMetadata[]>
+> = async (ctx, authentication, params) => {
+  const { entityTypeUpdates } = params;
+  const updateArguments: UpdateEntityTypeRequest[] = entityTypeUpdates.map(
+    ({ entityTypeId, schema, relationships, provenance }) => ({
+      typeToUpdate: entityTypeId,
+      schema: {
+        kind: "entityType",
+        $schema: ENTITY_TYPE_META_SCHEMA,
+        ...schema,
+      },
+      relationships,
+      provenance,
+    }),
+  );
+
+  const { data: metadatas } = await ctx.graphApi.updateEntityTypes(
+    authentication.actorId,
+    updateArguments,
+  );
+
+  return metadatas.map((metadata, index) => {
+    const input = entityTypeUpdates[index];
+
+    if (!input) {
+      throw new Error(
+        `Entity type update metadata index ${index} not present in input array`,
+      );
+    }
+
+    return {
+      schema: {
+        kind: "entityType",
+        $schema: ENTITY_TYPE_META_SCHEMA,
+        ...input.schema,
+        $id: ontologyTypeRecordIdToVersionedUrl(
+          metadata.recordId as OntologyTypeRecordId,
+        ),
+      },
+      metadata: metadata as EntityTypeMetadata,
+    };
+  });
 };
 
 // Return true if any type in the provided entity type's ancestors is a link entity type

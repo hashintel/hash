@@ -25,6 +25,7 @@
     "start:frontend": "CARGO_TERM_PROGRESS_WHEN=never turbo run start start:healthcheck --filter @apps/hash-frontend --env-mode=loose",
     "start:graph:test-server": "CARGO_TERM_PROGRESS_WHEN=never turbo run start start:healthcheck --filter @rust/hash-graph-test-server",
     "start:worker": "CARGO_TERM_PROGRESS_WHEN=never turbo run start start:healthcheck --filter '@apps/hash-*-worker*' --env-mode=loose",
+    "start:test:worker": "CARGO_TERM_PROGRESS_WHEN=never turbo run start:test start:test:healthcheck --filter '@apps/hash-*-worker*' --env-mode=loose",
     "start:test": "CARGO_TERM_PROGRESS_WHEN=never turbo run start:test start:test:healthcheck --env-mode=loose",
     "graph:reset-database": "yarn workspace @rust/hash-graph-http-tests reset-database",
     "external-services": "turbo deploy --filter '@apps/hash-external-services' --",
@@ -106,7 +107,7 @@
     "lefthook": "1.10.10",
     "markdownlint-cli2": "0.17.2",
     "npm-run-all2": "7.0.2",
-    "turbo": "2.4.1"
+    "turbo": "2.4.2"
   },
   "packageManager": "yarn@4.6.0",
   "engines": {

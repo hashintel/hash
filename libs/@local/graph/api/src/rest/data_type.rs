@@ -15,7 +15,8 @@ use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, DataTypeViewerSubject,
+        DataTypeEditorSubject, DataTypeOwnerSubject, DataTypePermission,
+        DataTypeRelationAndSubject, DataTypeSetting, DataTypeSettingSubject, DataTypeViewerSubject,
     },
     zanzibar::Consistency,
 };
@@ -78,6 +79,7 @@ use crate::rest::{
         get_data_type_subgraph,
         get_data_type_conversion_targets,
         update_data_type,
+        update_data_types,
         update_data_type_embeddings,
         archive_data_type,
         unarchive_data_type,
@@ -85,8 +87,11 @@ use crate::rest::{
     components(
         schemas(
             DataTypeWithMetadata,
+            DataTypeSetting,
 
+            DataTypeSettingSubject,
             DataTypeOwnerSubject,
+            DataTypeEditorSubject,
             DataTypeViewerSubject,
             DataTypePermission,
             DataTypeRelationAndSubject,
@@ -139,6 +144,7 @@ impl RoutedResource for DataTypeResource {
                     "/",
                     post(create_data_type::<S, A>).put(update_data_type::<S, A>),
                 )
+                .route("/bulk", put(update_data_types::<S, A>))
                 .route(
                     "/relationships",
                     post(modify_data_type_authorization_relationships::<A>),
@@ -605,8 +611,6 @@ struct UpdateDataTypeRequest {
     tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("after" = Option<String>, Query, description = "The cursor to start reading from"),
-        ("limit" = Option<usize>, Query, description = "The maximum number of data types to read"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = DataTypeMetadata),
@@ -664,6 +668,78 @@ where
                 conversions,
             },
         )
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[utoipa::path(
+    put,
+    path = "/data-types/bulk",
+    tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the updated data types", body = [DataTypeMetadata]),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Base data types ID were not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = [UpdateDataTypeRequest],
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn update_data_types<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    bodies: Json<Vec<UpdateDataTypeRequest>>,
+) -> Result<Json<Vec<DataTypeMetadata>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    let params = bodies
+        .0
+        .into_iter()
+        .map(
+            |UpdateDataTypeRequest {
+                 schema,
+                 mut type_to_update,
+                 relationships,
+                 provenance,
+                 conversions,
+             }| {
+                type_to_update.version =
+                    OntologyTypeVersion::new(type_to_update.version.inner() + 1);
+
+                Ok(UpdateDataTypesParams {
+                    schema: patch_id_and_parse(&type_to_update, schema)
+                        .map_err(report_to_response)?,
+                    relationships,
+                    provenance,
+                    conversions,
+                })
+            },
+        )
+        .collect::<Result<Vec<_>, Response>>()?;
+    store
+        .update_data_types(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(Json)

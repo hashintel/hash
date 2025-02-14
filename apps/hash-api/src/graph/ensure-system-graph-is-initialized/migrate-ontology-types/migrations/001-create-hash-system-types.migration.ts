@@ -609,7 +609,10 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
+      instantiator: {
+        kind: "account",
+        subjectId: systemAccountId,
+      },
     },
   );
 
