@@ -150,6 +150,23 @@ pub struct OriginProvenance {
     pub user_agent: Option<String>,
 }
 
+impl OriginProvenance {
+    #[must_use]
+    pub const fn from_empty_type(ty: OriginType) -> Self {
+        Self {
+            ty,
+            id: None,
+            version: None,
+            semantic_version: None,
+            environment: None,
+            device_id: None,
+            session_id: None,
+            api_key_public_id: None,
+            user_agent: None,
+        }
+    }
+}
+
 #[cfg(feature = "utoipa")]
 impl<'__s> ToSchema<'__s> for OriginProvenance {
     fn schema() -> (&'__s str, RefOr<Schema>) {

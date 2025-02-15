@@ -5,7 +5,8 @@ pub use self::{
     error::{SnapshotDumpError, SnapshotRestoreError},
     metadata::{BlockProtocolModuleVersions, CustomGlobalMetadata},
     ontology::{
-        DataTypeSnapshotRecord, EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord,
+        DataTypeEmbeddingRecord, DataTypeSnapshotRecord, EntityTypeEmbeddingRecord,
+        EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord, PropertyTypeEmbeddingRecord,
         PropertyTypeSnapshotRecord,
     },
 };
@@ -60,32 +61,26 @@ use type_system::{
 };
 
 use crate::{
-    snapshot::{
-        entity::{EntityEmbeddingRecord, EntitySnapshotRecord},
-        ontology::{
-            DataTypeEmbeddingRecord, EntityTypeEmbeddingRecord, PropertyTypeEmbeddingRecord,
-        },
-        restore::SnapshotRecordBatch,
-    },
+    snapshot::{entity::EntityEmbeddingRecord, restore::SnapshotRecordBatch},
     store::postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
-    id: AccountId,
+    pub id: AccountId,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountGroup {
-    id: AccountGroupId,
-    relations: Vec<AccountGroupRelationAndSubject>,
+    pub id: AccountGroupId,
+    pub relations: Vec<AccountGroupRelationAndSubject>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Web {
-    id: OwnedById,
+    pub id: OwnedById,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    relations: Vec<WebRelationAndSubject>,
+    pub relations: Vec<WebRelationAndSubject>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -111,7 +106,7 @@ pub enum SnapshotEntry {
     PropertyTypeEmbedding(PropertyTypeEmbeddingRecord),
     EntityType(Box<EntityTypeSnapshotRecord>),
     EntityTypeEmbedding(EntityTypeEmbeddingRecord),
-    Entity(Box<EntitySnapshotRecord>),
+    Entity(Entity),
     EntityEmbedding(EntityEmbeddingRecord),
     Relation(AuthorizationRelation),
 }
@@ -701,13 +696,7 @@ impl PostgresStorePool {
                 scope.spawn(
                     self.create_dump_stream::<Entity>()
                         .try_flatten_stream()
-                        .and_then(move |entity| async move {
-                            Ok(SnapshotEntry::Entity(Box::new(EntitySnapshotRecord {
-                                properties: entity.properties,
-                                link_data: entity.link_data,
-                                metadata: entity.metadata,
-                            })))
-                        })
+                        .map_ok(SnapshotEntry::Entity)
                         .forward(snapshot_record_tx.clone()),
                 );
             }

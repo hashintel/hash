@@ -55,7 +55,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     account::AccountId,
-    knowledge::entity::{Entity, EntityId},
+    knowledge::entity::{ActorType, Entity, EntityId, OriginProvenance, OriginType},
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
@@ -532,7 +532,11 @@ where
                             classification: metadata.classification,
                             relationships: DATA_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
-                            provenance: ProvidedOntologyEditionProvenance::default(),
+                            provenance: ProvidedOntologyEditionProvenance {
+                                actor_type: Some(ActorType::Machine),
+                                origin: Some(OriginProvenance::from_empty_type(OriginType::Api)),
+                                sources: Vec::new(),
+                            },
                             conversions: HashMap::new(),
                         }),
                 )
@@ -551,7 +555,11 @@ where
                             classification: metadata.classification,
                             relationships: PROPERTY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
-                            provenance: ProvidedOntologyEditionProvenance::default(),
+                            provenance: ProvidedOntologyEditionProvenance {
+                                actor_type: Some(ActorType::Machine),
+                                origin: Some(OriginProvenance::from_empty_type(OriginType::Api)),
+                                sources: Vec::new(),
+                            },
                         }),
                 )
                 .await?;
@@ -569,7 +577,11 @@ where
                             classification: metadata.classification,
                             relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
-                            provenance: ProvidedOntologyEditionProvenance::default(),
+                            provenance: ProvidedOntologyEditionProvenance {
+                                actor_type: Some(ActorType::Machine),
+                                origin: Some(OriginProvenance::from_empty_type(OriginType::Api)),
+                                sources: Vec::new(),
+                            },
                         }),
                 )
                 .await?;
@@ -617,7 +629,13 @@ where
                                 classification: metadata.classification,
                                 relationships: DATA_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
-                                provenance: ProvidedOntologyEditionProvenance::default(),
+                                provenance: ProvidedOntologyEditionProvenance {
+                                    actor_type: Some(ActorType::Machine),
+                                    origin: Some(OriginProvenance::from_empty_type(
+                                        OriginType::Api,
+                                    )),
+                                    sources: Vec::new(),
+                                },
                                 conversions: HashMap::new(),
                             }),
                     )
@@ -636,7 +654,13 @@ where
                                 classification: metadata.classification,
                                 relationships: PROPERTY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
-                                provenance: ProvidedOntologyEditionProvenance::default(),
+                                provenance: ProvidedOntologyEditionProvenance {
+                                    actor_type: Some(ActorType::Machine),
+                                    origin: Some(OriginProvenance::from_empty_type(
+                                        OriginType::Api,
+                                    )),
+                                    sources: Vec::new(),
+                                },
                             },
                         ),
                     )
@@ -655,7 +679,13 @@ where
                                 classification: metadata.classification,
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
-                                provenance: ProvidedOntologyEditionProvenance::default(),
+                                provenance: ProvidedOntologyEditionProvenance {
+                                    actor_type: Some(ActorType::Machine),
+                                    origin: Some(OriginProvenance::from_empty_type(
+                                        OriginType::Api,
+                                    )),
+                                    sources: Vec::new(),
+                                },
                             },
                         ),
                     )

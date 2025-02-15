@@ -10,11 +10,11 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use hash_graph_authorization::schema::EntityRelationAndSubject;
-use hash_graph_types::knowledge::entity::EntityUuid;
+use hash_graph_types::knowledge::entity::{Entity, EntityUuid};
 use type_system::schema::{EntityTypeUuid, InheritanceDepth};
 
 use crate::{
-    snapshot::{EntitySnapshotRecord, SnapshotRestoreError, entity::EntityRowBatch},
+    snapshot::{SnapshotRestoreError, entity::EntityRowBatch},
     store::postgres::query::rows::{
         EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
         EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
@@ -39,7 +39,7 @@ pub struct EntitySender {
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `AccountSender` with
 // error-handling added to make it easier to use. It's taking an `EntitySnapshotRecord` and
 // sending the individual rows to the corresponding sinks.
-impl Sink<EntitySnapshotRecord> for EntitySender {
+impl Sink<Entity> for EntitySender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -68,10 +68,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         Poll::Ready(Ok(()))
     }
 
-    fn start_send(
-        mut self: Pin<&mut Self>,
-        entity: EntitySnapshotRecord,
-    ) -> Result<(), Self::Error> {
+    fn start_send(mut self: Pin<&mut Self>, entity: Entity) -> Result<(), Self::Error> {
         self.id
             .start_send_unpin(EntityIdRow {
                 web_id: entity.metadata.record_id.entity_id.owned_by_id,
