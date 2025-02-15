@@ -67,7 +67,7 @@ jobs:
 
       - name: Get token
         id: app-token
-        uses: actions/create-github-app-token@c14f92a8f9fd9aff60349b9d5bb2f2d9933926bd # v1
+        uses: actions/create-github-app-token@0d564482f06ca65fa9e77e2510873638c82206f2 # v1
         with:
           app-id: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_ID }}
           private-key: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_PRIVATE_KEY }}
