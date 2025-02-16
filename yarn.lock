@@ -6265,8 +6265,8 @@ __metadata:
   linkType: hard
 
 "@graphql-codegen/cli@npm:^5.0.3":
-  version: 5.0.4
-  resolution: "@graphql-codegen/cli@npm:5.0.4"
+  version: 5.0.5
+  resolution: "@graphql-codegen/cli@npm:5.0.5"
   dependencies:
     "@babel/generator": "npm:^7.18.13"
     "@babel/template": "npm:^7.18.10"
@@ -6314,7 +6314,7 @@ __metadata:
     graphql-code-generator: cjs/bin.js
     graphql-codegen: cjs/bin.js
     graphql-codegen-esm: esm/bin.js
-  checksum: 10c0/692137f79b67b5cf6cd00fe4cccfac4019b2ff0f494d83416fff0020426bbc1d4dc5c6ad81465863bd726b9d8778329fca0b21462382d3b1b2bff5e62c5afec2
+  checksum: 10c0/f8155b120b293893bd762896f6a0c0a278d1467fddc38fd47396f8a7a7216ea7305db6105d68e9ecd52e2717f66c758f612209b5f1eda94a9ad2a25366cd67f2
   languageName: node
   linkType: hard
 
