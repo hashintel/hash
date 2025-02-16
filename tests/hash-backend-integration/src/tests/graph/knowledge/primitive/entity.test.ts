@@ -226,15 +226,13 @@ describe("Entity CRU", () => {
           [namePropertyType.metadata.recordId.baseUrl]: {
             value: "Bob",
             metadata: {
-              dataTypeId:
-                blockProtocolDataTypes.text.dataTypeId,
+              dataTypeId: blockProtocolDataTypes.text.dataTypeId,
             },
           },
           [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
             value: "some text",
             metadata: {
-              dataTypeId:
-              blockProtocolDataTypes.text.dataTypeId,
+              dataTypeId: blockProtocolDataTypes.text.dataTypeId,
             },
           },
         },
@@ -253,15 +251,13 @@ describe("Entity CRU", () => {
           [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]: {
             value: "Text",
             metadata: {
-              dataTypeId:
-              blockProtocolDataTypes.text.dataTypeId,
+              dataTypeId: blockProtocolDataTypes.text.dataTypeId,
             },
           },
           [blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl]: {
             value: "https://example.com/file",
             metadata: {
-              dataTypeId:
-              systemDataTypes.uri.dataTypeId,
+              dataTypeId: systemDataTypes.uri.dataTypeId,
             },
           },
         },
@@ -379,8 +375,7 @@ describe("Entity CRU", () => {
             property: {
               value: "Updated Bob",
               metadata: {
-                dataTypeId:
-                  blockProtocolDataTypes.text.dataTypeId,
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
               },
             },
           },
@@ -390,8 +385,7 @@ describe("Entity CRU", () => {
             property: {
               value: "Even more text than before",
               metadata: {
-                dataTypeId:
-                  blockProtocolDataTypes.text.dataTypeId,
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
               },
             },
           },
@@ -472,15 +466,13 @@ describe("Entity CRU", () => {
             [namePropertyType.metadata.recordId.baseUrl]: {
               value: "Alice",
               metadata: {
-                dataTypeId:
-                blockProtocolDataTypes.text.dataTypeId,
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
               },
             },
             [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
               value: "some text",
               metadata: {
-                dataTypeId:
-                blockProtocolDataTypes.text.dataTypeId,
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
               },
             },
           },
