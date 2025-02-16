@@ -21,7 +21,7 @@ use crate::{
     },
 };
 
-/// A sink to insert [`EntitySnapshotRecord`]s.
+/// A sink to insert [`Entity`]s.
 ///
 /// An `EntitySender` with the corresponding [`EntityReceiver`] are created using the [`channel`]
 /// function.
