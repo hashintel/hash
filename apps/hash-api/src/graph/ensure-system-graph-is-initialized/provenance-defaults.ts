@@ -2,48 +2,48 @@
  * @file this is a temporary file to store default provenance for entities of specific types.
  *    Provenance will be made required, this is for use in writing a script to apply defaults to existing entities.
  */
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import type {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-const userModified: EnforcedEntityEditionProvenance = {
+const userModified: ProvidedEntityEditionProvenance = {
   actorType: "human",
   origin: {
     type: "web-app",
   },
 };
 
-const browserPluginModified: EnforcedEntityEditionProvenance = {
+const browserPluginModified: ProvidedEntityEditionProvenance = {
   actorType: "human",
   origin: {
     type: "browser-extension",
   },
 };
 
-const aiModified: EnforcedEntityEditionProvenance = {
+const aiModified: ProvidedEntityEditionProvenance = {
   actorType: "ai",
   origin: {
     type: "flow",
   },
 };
 
-const flowMachineModified: EnforcedEntityEditionProvenance = {
+const flowMachineModified: ProvidedEntityEditionProvenance = {
   actorType: "machine",
   origin: {
     type: "flow",
   },
 };
 
-const machineModified: EnforcedEntityEditionProvenance = {
+const machineModified: ProvidedEntityEditionProvenance = {
   actorType: "machine",
   origin: {
     type: "api",
   },
 };
 
-const migrationModified: EnforcedEntityEditionProvenance = {
+const migrationModified: ProvidedEntityEditionProvenance = {
   actorType: "machine",
   origin: {
     type: "migration",
@@ -55,7 +55,7 @@ type SystemEntityTypeId =
 
 const _defaultEntityProvenance: Record<
   SystemEntityTypeId,
-  EnforcedEntityEditionProvenance
+  ProvidedEntityEditionProvenance
 > = {
   "https://hash.ai/@h/types/entity-type/academic-paper/v/1": aiModified,
   "https://hash.ai/@h/types/entity-type/actor/v/2": migrationModified,
@@ -117,7 +117,7 @@ type SystemLinkEntityTypeId =
 
 const _defaultLinkEntityProvenance: Record<
   SystemLinkEntityTypeId,
-  EnforcedEntityEditionProvenance
+  ProvidedEntityEditionProvenance
 > = {
   "https://hash.ai/@h/types/entity-type/affiliated-with/v/1": aiModified,
   "https://hash.ai/@h/types/entity-type/associated-with-account/v/1":

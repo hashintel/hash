@@ -1,3 +1,7 @@
+import type {
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -110,6 +114,15 @@ export const researchEntitiesAction: FlowActionActivity<{
       },
     );
 
+    const provenance: ProvidedEntityEditionProvenance = {
+      actorType: "machine",
+      origin: {
+        type: "flow",
+        id: flowEntityId,
+        stepIds: [stepId],
+      } satisfies OriginProvenance,
+    };
+
     await Promise.all(
       persistedClaims.data.entities
         .filter(
@@ -123,6 +136,7 @@ export const researchEntitiesAction: FlowActionActivity<{
           graphApiClient.patchEntity(userAuthentication.actorId, {
             entityId: claim.metadata.recordId.entityId,
             archived: true,
+            provenance,
           }),
         ),
     );

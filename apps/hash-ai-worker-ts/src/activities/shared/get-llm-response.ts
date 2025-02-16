@@ -1,7 +1,10 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
-import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type {
+  GraphApi,
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -192,7 +195,7 @@ export const getLlmResponse = async <T extends LlmParams>(
         { actorId: aiAssistantAccountId },
       );
 
-      const provenance: EnforcedEntityEditionProvenance = {
+      const provenance: ProvidedEntityEditionProvenance = {
         actorType: "ai",
         origin: {
           type: "flow",
