@@ -26,6 +26,7 @@ use hash_graph_store::{
 };
 use hash_graph_types::{
     account::AccountId,
+    knowledge::entity::{ActorType, OriginProvenance, OriginType},
     ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
     owned_by_id::OwnedById,
 };
@@ -312,7 +313,11 @@ pub async fn seed<D, P, E, C, A>(
                         level: 0,
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
+                    provenance: ProvidedOntologyEditionProvenance {
+                        actor_type: ActorType::Human,
+                        origin: OriginProvenance::from_empty_type(OriginType::Api),
+                        sources: Vec::new(),
+                    },
                     conversions: HashMap::new(),
                 },
             )
@@ -330,7 +335,11 @@ pub async fn seed<D, P, E, C, A>(
                                     subject: DataTypeViewerSubject::Public,
                                     level: 0,
                                 }],
-                                provenance: ProvidedOntologyEditionProvenance::default(),
+                                provenance: ProvidedOntologyEditionProvenance {
+                                    actor_type: ActorType::Human,
+                                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                                    sources: Vec::new(),
+                                },
                                 conversions: HashMap::new(),
                             },
                         )
@@ -360,7 +369,11 @@ pub async fn seed<D, P, E, C, A>(
                         level: 0,
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
+                    provenance: ProvidedOntologyEditionProvenance {
+                        actor_type: ActorType::Human,
+                        origin: OriginProvenance::from_empty_type(OriginType::Api),
+                        sources: Vec::new(),
+                    },
                 },
             )
             .await
@@ -377,7 +390,11 @@ pub async fn seed<D, P, E, C, A>(
                                     subject: PropertyTypeViewerSubject::Public,
                                     level: 0,
                                 }],
-                                provenance: ProvidedOntologyEditionProvenance::default(),
+                                provenance: ProvidedOntologyEditionProvenance {
+                                    actor_type: ActorType::Human,
+                                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                                    sources: Vec::new(),
+                                },
                             },
                         )
                         .await
@@ -406,7 +423,11 @@ pub async fn seed<D, P, E, C, A>(
                         level: 0,
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
+                    provenance: ProvidedOntologyEditionProvenance {
+                        actor_type: ActorType::Human,
+                        origin: OriginProvenance::from_empty_type(OriginType::Api),
+                        sources: Vec::new(),
+                    },
                 },
             )
             .await
@@ -429,7 +450,11 @@ pub async fn seed<D, P, E, C, A>(
                                         level: 0,
                                     },
                                 ],
-                                provenance: ProvidedOntologyEditionProvenance::default(),
+                                provenance: ProvidedOntologyEditionProvenance {
+                                    actor_type: ActorType::Human,
+                                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                                    sources: Vec::new(),
+                                },
                             },
                         )
                         .await
