@@ -31,7 +31,9 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  blockProtocolDataTypes,
   blockProtocolPropertyTypes,
+  systemDataTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
@@ -225,14 +227,14 @@ describe("Entity CRU", () => {
             value: "Bob",
             metadata: {
               dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                blockProtocolDataTypes.text.dataTypeId,
             },
           },
           [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
             value: "some text",
             metadata: {
               dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              blockProtocolDataTypes.text.dataTypeId,
             },
           },
         },
@@ -252,14 +254,14 @@ describe("Entity CRU", () => {
             value: "Text",
             metadata: {
               dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              blockProtocolDataTypes.text.dataTypeId,
             },
           },
           [blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl]: {
             value: "https://example.com/file",
             metadata: {
               dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              systemDataTypes.uri.dataTypeId,
             },
           },
         },
@@ -378,7 +380,7 @@ describe("Entity CRU", () => {
               value: "Updated Bob",
               metadata: {
                 dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  blockProtocolDataTypes.text.dataTypeId,
               },
             },
           },
@@ -389,7 +391,7 @@ describe("Entity CRU", () => {
               value: "Even more text than before",
               metadata: {
                 dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  blockProtocolDataTypes.text.dataTypeId,
               },
             },
           },
@@ -471,14 +473,14 @@ describe("Entity CRU", () => {
               value: "Alice",
               metadata: {
                 dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                blockProtocolDataTypes.text.dataTypeId,
               },
             },
             [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
               value: "some text",
               metadata: {
                 dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                blockProtocolDataTypes.text.dataTypeId,
               },
             },
           },
