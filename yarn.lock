@@ -408,7 +408,7 @@ __metadata:
     cors: "npm:2.8.5"
     cross-env: "npm:7.0.3"
     dedent: "npm:0.7.0"
-    effect: "npm:3.12.11"
+    effect: "npm:3.13.1"
     eslint: "npm:9.20.1"
     exponential-backoff: "npm:3.1.2"
     express: "npm:4.21.2"
@@ -5081,43 +5081,43 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/platform-node-shared@npm:^0.26.0":
-  version: 0.26.0
-  resolution: "@effect/platform-node-shared@npm:0.26.0"
+"@effect/platform-node-shared@npm:^0.27.1":
+  version: 0.27.1
+  resolution: "@effect/platform-node-shared@npm:0.27.1"
   dependencies:
     "@parcel/watcher": "npm:^2.4.1"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    "@effect/platform": ^0.76.0
-    effect: ^3.12.11
-  checksum: 10c0/b71dada70687a8bc238e7efc54c002d390e96183da7f42cd0ac84ae6f88c363ff78a0ad69f8e9405d2c3e51ff5cd2ad48ee47e9b406ffa02570f8abb71903773
+    "@effect/platform": ^0.77.1
+    effect: ^3.13.1
+  checksum: 10c0/4e9c77a691066da59e3804ab7727b8344ff8844323ceb492dca179ca3efbbc9255c3fcd312f97a61e75b0b682cae8c95cbcc0cc55280aa562d133fc23ae0ef8e
   languageName: node
   linkType: hard
 
-"@effect/platform-node@npm:0.72.0":
-  version: 0.72.0
-  resolution: "@effect/platform-node@npm:0.72.0"
+"@effect/platform-node@npm:0.73.1":
+  version: 0.73.1
+  resolution: "@effect/platform-node@npm:0.73.1"
   dependencies:
-    "@effect/platform-node-shared": "npm:^0.26.0"
+    "@effect/platform-node-shared": "npm:^0.27.1"
     mime: "npm:^3.0.0"
     undici: "npm:^7.1.0"
     ws: "npm:^8.18.0"
   peerDependencies:
-    "@effect/platform": ^0.76.0
-    effect: ^3.12.11
-  checksum: 10c0/beb51b8d9d84dfe9c1fba05b284710a2632055daadbe4aab0c34ffa3331c568351dda9690029291205bd1bf168e61644ae46097852aaebb65142cf36bf61560c
+    "@effect/platform": ^0.77.1
+    effect: ^3.13.1
+  checksum: 10c0/10b1549154f74b10109ccb664b0348fd21ffaf9cfbdf5436f42529ae8df5afc0a4545504ff55f6f069fda03e12face0c5b4dd72ebf726bd19ff273a50a65d821
   languageName: node
   linkType: hard
 
-"@effect/platform@npm:0.76.0":
-  version: 0.76.0
-  resolution: "@effect/platform@npm:0.76.0"
+"@effect/platform@npm:0.77.1":
+  version: 0.77.1
+  resolution: "@effect/platform@npm:0.77.1"
   dependencies:
     find-my-way-ts: "npm:^0.1.5"
     multipasta: "npm:^0.2.5"
   peerDependencies:
-    effect: ^3.12.11
-  checksum: 10c0/202fc6ecd1a633ae1366092755fb9a7a46e9140cb3f56c43844cb03fd7db308e9a81a267fb7fc6794a74c9b4d582def2ac5f89d5bc0a0c7e76a8e0698db2a032
+    effect: ^3.13.1
+  checksum: 10c0/1f1dfb3315b4db64f2e0938b02357de49a9a4a5ba97a5a819f030ed954e99be6fe47537101ab256779540ca7174cde8986a5691481469114e83356ddb9b96876
   languageName: node
   linkType: hard
 
@@ -8798,7 +8798,7 @@ __metadata:
     "@types/babel__core": "npm:^7"
     "@types/eslint__eslintrc": "npm:2.1.2"
     "@types/node": "npm:22.13.1"
-    effect: "npm:3.12.11"
+    effect: "npm:3.13.1"
     eslint: "npm:9.20.1"
     eslint-config-airbnb: "npm:19.0.4"
     eslint-config-flat-gitignore: "npm:2.0.0"
@@ -8823,8 +8823,8 @@ __metadata:
   dependencies:
     "@chainsafe/libp2p-noise": "npm:16.0.1"
     "@chainsafe/libp2p-yamux": "npm:7.0.1"
-    "@effect/platform": "npm:0.76.0"
-    "@effect/platform-node": "npm:0.72.0"
+    "@effect/platform": "npm:0.77.1"
+    "@effect/platform-node": "npm:0.73.1"
     "@effect/vitest": "npm:0.17.7"
     "@libp2p/crypto": "npm:5.0.11"
     "@libp2p/identify": "npm:3.0.18"
@@ -8838,7 +8838,7 @@ __metadata:
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
     "@types/node": "npm:22.13.1"
     "@vitest/coverage-istanbul": "npm:2.1.9"
-    effect: "npm:3.12.11"
+    effect: "npm:3.13.1"
     eslint: "npm:9.20.1"
     it-stream-types: "npm:2.0.2"
     libp2p: "npm:2.6.2"
@@ -8928,7 +8928,7 @@ __metadata:
     "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:2.1.9"
-    effect: "npm:3.12.11"
+    effect: "npm:3.13.1"
     eslint: "npm:9.20.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
@@ -15105,6 +15105,13 @@ __metadata:
   version: 3.1.2
   resolution: "@socket.io/component-emitter@npm:3.1.2"
   checksum: 10c0/c4242bad66f67e6f7b712733d25b43cbb9e19a595c8701c3ad99cbeb5901555f78b095e24852f862fffb43e96f1d8552e62def885ca82ae1bb05da3668fd87d7
+  languageName: node
+  linkType: hard
+
+"@standard-schema/spec@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "@standard-schema/spec@npm:1.0.0"
+  checksum: 10c0/a1ab9a8bdc09b5b47aa8365d0e0ec40cc2df6437be02853696a0e377321653b0d3ac6f079a8c67d5ddbe9821025584b1fb71d9cc041a6666a96f1fadf2ece15f
   languageName: node
   linkType: hard
 
@@ -24914,12 +24921,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"effect@npm:3.12.11":
-  version: 3.12.11
-  resolution: "effect@npm:3.12.11"
+"effect@npm:3.13.1":
+  version: 3.13.1
+  resolution: "effect@npm:3.13.1"
   dependencies:
+    "@standard-schema/spec": "npm:^1.0.0"
     fast-check: "npm:^3.23.1"
-  checksum: 10c0/3b1503f06ba8781bb2e8712f5a685f51f3104d4a9d18ac03dd68c7e08aec9d8b3a94bca1911fa67b2e7d42620fce5b3fc5015acd7d2e67b4fc2ad08cf9976183
+  checksum: 10c0/e8b1bff836314b51c276f3cb68a459a792b2577e30948fff1fc2ad082feba74ee60d07b81f03df5a514080996c55f1c652691b59385b73b87782b281bf9ecd96
   languageName: node
   linkType: hard
 
