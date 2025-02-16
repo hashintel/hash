@@ -20,7 +20,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives ."
   },
   "dependencies": {
-    "@babel/core": "7.26.8",
+    "@babel/core": "7.26.9",
     "@babel/eslint-parser": "7.26.8",
     "@eslint/compat": "1.2.6",
     "@eslint/eslintrc": "3.2.0",
