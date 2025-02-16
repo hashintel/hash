@@ -812,7 +812,7 @@ __metadata:
     "@types/webextension-polyfill": "npm:0.12.1"
     "@types/ws": "npm:8.5.14"
     babel-loader: "npm:9.2.1"
-    babel-preset-react-app: "npm:10.0.1"
+    babel-preset-react-app: "npm:10.1.0"
     bowser: "npm:2.11.0"
     clean-webpack-plugin: "npm:4.0.0"
     copy-webpack-plugin: "npm:11.0.0"
@@ -20955,9 +20955,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"babel-preset-react-app@npm:10.0.1":
-  version: 10.0.1
-  resolution: "babel-preset-react-app@npm:10.0.1"
+"babel-preset-react-app@npm:10.1.0":
+  version: 10.1.0
+  resolution: "babel-preset-react-app@npm:10.1.0"
   dependencies:
     "@babel/core": "npm:^7.16.0"
     "@babel/plugin-proposal-class-properties": "npm:^7.16.0"
@@ -20966,6 +20966,7 @@ __metadata:
     "@babel/plugin-proposal-numeric-separator": "npm:^7.16.0"
     "@babel/plugin-proposal-optional-chaining": "npm:^7.16.0"
     "@babel/plugin-proposal-private-methods": "npm:^7.16.0"
+    "@babel/plugin-proposal-private-property-in-object": "npm:^7.16.7"
     "@babel/plugin-transform-flow-strip-types": "npm:^7.16.0"
     "@babel/plugin-transform-react-display-name": "npm:^7.16.0"
     "@babel/plugin-transform-runtime": "npm:^7.16.4"
@@ -20975,7 +20976,7 @@ __metadata:
     "@babel/runtime": "npm:^7.16.3"
     babel-plugin-macros: "npm:^3.1.0"
     babel-plugin-transform-react-remove-prop-types: "npm:^0.4.24"
-  checksum: 10c0/aba225d0caf2591f7cc1aeed69369d1e86419a92fcf6025312421c238f4468347a7b6c12a45a4fb15e879a01f5a060439842fbde5739d7be31077b35c7d20fa5
+  checksum: 10c0/4cb4d85cc08dd813ac9a3e9c39e764e0b32d3333c9464517f5ae9a2289a41fe40e107c5909e8cc9ff6627a38b0c0d50b1c86679bde7623bb36b257902fb8bb20
   languageName: node
   linkType: hard
 
