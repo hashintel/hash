@@ -8225,9 +8225,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@libp2p/tcp@npm:10.0.18":
-  version: 10.0.18
-  resolution: "@libp2p/tcp@npm:10.0.18"
+"@libp2p/tcp@npm:10.0.19":
+  version: 10.0.19
+  resolution: "@libp2p/tcp@npm:10.0.19"
   dependencies:
     "@libp2p/interface": "npm:^2.5.0"
     "@libp2p/utils": "npm:^6.5.1"
@@ -8239,7 +8239,7 @@ __metadata:
     progress-events: "npm:^1.0.1"
     race-event: "npm:^1.3.0"
     stream-to-it: "npm:^1.0.1"
-  checksum: 10c0/b9e384498ff90c8c3c0c38101a69df49e68954259122ff73be0662344fde9e0bd386d67161f31c9337d0a484563ed05f3c776bb073ad2eb681a17602e97eb0e3
+  checksum: 10c0/bf451696c8d0b3db196176fe5c279cab6ad154fb167ee0e4c1ec8d1c5f3674c8ba5796a2be07f5b5f6ca2d66205443de6f54380e9a547d3ed9aed1b61755dbbd
   languageName: node
   linkType: hard
 
@@ -8830,7 +8830,7 @@ __metadata:
     "@libp2p/identify": "npm:3.0.18"
     "@libp2p/interface": "npm:2.5.0"
     "@libp2p/ping": "npm:2.0.18"
-    "@libp2p/tcp": "npm:10.0.18"
+    "@libp2p/tcp": "npm:10.0.19"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@multiformats/dns": "npm:1.0.6"
@@ -8841,7 +8841,7 @@ __metadata:
     effect: "npm:3.12.11"
     eslint: "npm:9.20.1"
     it-stream-types: "npm:2.0.2"
-    libp2p: "npm:2.6.1"
+    libp2p: "npm:2.6.2"
     multiformats: "npm:13.3.2"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
@@ -32637,9 +32637,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"libp2p@npm:2.6.1":
-  version: 2.6.1
-  resolution: "libp2p@npm:2.6.1"
+"libp2p@npm:2.6.2":
+  version: 2.6.2
+  resolution: "libp2p@npm:2.6.2"
   dependencies:
     "@chainsafe/is-ip": "npm:^2.0.2"
     "@chainsafe/netmask": "npm:^2.0.0"
@@ -32669,7 +32669,7 @@ __metadata:
     race-event: "npm:^1.3.0"
     race-signal: "npm:^1.1.0"
     uint8arrays: "npm:^5.1.0"
-  checksum: 10c0/3cee073425f52d5a792dfa8b40cf1a7cb25b8d2039740e570beb3db222fbd96c85db967ee526cf116c60ae3b77f0ed3c7c07385213ebecff9d9c366fba92ba62
+  checksum: 10c0/c1d8da0436cdfcb9c0c7de664fd950e0adb1ff5b574bd101013ca3da4a2f8361b1bbf43c577cf9548f68e6b588bebfde88e19f44dd8e0b70cc68c36c88392458
   languageName: node
   linkType: hard
 
