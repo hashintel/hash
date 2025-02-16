@@ -1,8 +1,8 @@
-import type { GraphApi } from "@local/hash-graph-client";
-import {
-  type EnforcedEntityEditionProvenance,
-  Entity,
-} from "@local/hash-graph-sdk/entity";
+import type {
+  GraphApi,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -301,7 +301,7 @@ export const createUsageRecord = async (
     usageRecordEntityUuid,
   );
 
-  const provenance: EnforcedEntityEditionProvenance = {
+  const provenance: ProvidedEntityEditionProvenance = {
     actorType: "machine",
     origin: {
       type: "api",

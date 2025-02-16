@@ -7,8 +7,11 @@ import type {
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type {
+  GraphApi,
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import {
   Entity,
   mergePropertyObjectAndMetadata,
@@ -29,7 +32,7 @@ import {
   getEntityOutgoingLinks,
 } from "./shared/graph-requests";
 
-const provenance: EnforcedEntityEditionProvenance = {
+const provenance: ProvidedEntityEditionProvenance = {
   actorType: "machine",
   origin: {
     type: "flow",

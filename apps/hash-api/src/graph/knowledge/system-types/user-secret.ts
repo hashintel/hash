@@ -4,8 +4,10 @@ import type {
   VaultClient,
 } from "@local/hash-backend-utils/vault";
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
-import type { GraphApi } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type {
+  GraphApi,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -28,7 +30,7 @@ type CreateUserSecretParams<T extends object> = {
   archiveExistingSecrets: boolean;
   expiresAt: string; // ISO String
   graphApi: GraphApi;
-  provenance: EnforcedEntityEditionProvenance;
+  provenance: ProvidedEntityEditionProvenance;
   /**
    * The bot that will manage the secret, e.g. update, archive, upgrade it.
    * This is the only account that will have edit permissions for the secret.

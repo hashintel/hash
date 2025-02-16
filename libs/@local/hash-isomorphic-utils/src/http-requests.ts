@@ -1,12 +1,10 @@
-import type { ProvidedEntityEditionProvenanceOriginTypeEnum } from "@local/hash-graph-client";
+import type { OriginProvenance } from "@local/hash-graph-client";
 import type { Request } from "express";
 
 export const hashClientTypes = [
-  // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
   "web-app",
-  // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
   "browser-extension",
-] as const satisfies ProvidedEntityEditionProvenanceOriginTypeEnum[];
+] as const satisfies OriginProvenance["type"][];
 
 export type HashClientType = (typeof hashClientTypes)[number];
 
@@ -17,7 +15,7 @@ export const isHashClientType = (value: unknown): value is HashClientType =>
 
 export const getHashClientTypeFromRequest = (
   request: Request,
-): ProvidedEntityEditionProvenanceOriginTypeEnum | undefined => {
+): OriginProvenance["type"] | undefined => {
   const header = request.headers[hashClientHeaderKey];
   if (!header) {
     return undefined;
@@ -35,6 +33,5 @@ export const getHashClientTypeFromRequest = (
     );
   }
 
-  // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
   return header;
 };
