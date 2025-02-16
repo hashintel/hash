@@ -21,7 +21,9 @@ use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, ProvidedEntityEditionProvenance},
+        entity::{
+            ActorType, Entity, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
+        },
         link::LinkData,
         property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
@@ -132,7 +134,11 @@ async fn seed_db<A: AuthorizationApi>(
                     link_data: None,
                     draft: false,
                     relationships: [],
-                    provenance: ProvidedEntityEditionProvenance::default(),
+                    provenance: ProvidedEntityEditionProvenance {
+                        actor_type: ActorType::Human,
+                        origin: OriginProvenance::from_empty_type(OriginType::Api),
+                        sources: Vec::new(),
+                    },
                 },
                 total,
             )
@@ -168,7 +174,11 @@ async fn seed_db<A: AuthorizationApi>(
                         }),
                         draft: false,
                         relationships: [],
-                        provenance: ProvidedEntityEditionProvenance::default(),
+                        provenance: ProvidedEntityEditionProvenance {
+                            actor_type: ActorType::Human,
+                            origin: OriginProvenance::from_empty_type(OriginType::Api),
+                            sources: Vec::new(),
+                        },
                     })
                 })
                 .collect(),

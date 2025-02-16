@@ -2,23 +2,10 @@ use hash_graph_authorization::schema::EntityRelationAndSubject;
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{
     Embedding,
-    knowledge::{
-        entity::{EntityId, EntityMetadata, EntityUuid},
-        link::LinkData,
-        property::PropertyObject,
-    },
+    knowledge::entity::{EntityId, EntityUuid},
 };
 use serde::{Deserialize, Serialize};
 use type_system::url::BaseUrl;
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct EntitySnapshotRecord {
-    pub properties: PropertyObject,
-    pub metadata: EntityMetadata,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub link_data: Option<LinkData>,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -27,7 +14,7 @@ pub struct EntityRelationRecord {
     pub relation: EntityRelationAndSubject,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityEmbeddingRecord {
     pub entity_id: EntityId,

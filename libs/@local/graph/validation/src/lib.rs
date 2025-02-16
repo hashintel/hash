@@ -52,13 +52,17 @@ mod tests {
     };
     use hash_graph_types::{
         account::{AccountId, EditionCreatedById},
-        knowledge::property::{
-            Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
-            PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
-            error::install_error_stack_hooks,
-            visitor::{
-                EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
-                ValueValidationReport,
+        knowledge::{
+            entity::{ActorType, OriginProvenance, OriginType},
+            property::{
+                Property, PropertyMetadata, PropertyObject, PropertyProvenance,
+                PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
+                ValueMetadata,
+                error::install_error_stack_hooks,
+                visitor::{
+                    EntityVisitor as _, ObjectValidationReport, PropertyValidationReport,
+                    ValueValidationReport,
+                },
             },
         },
         ontology::{
@@ -101,7 +105,11 @@ mod tests {
                     edition: OntologyEditionProvenance {
                         created_by_id: EditionCreatedById::new(actor),
                         archived_by_id: None,
-                        user_defined: ProvidedOntologyEditionProvenance::default(),
+                        user_defined: ProvidedOntologyEditionProvenance {
+                            actor_type: ActorType::Human,
+                            origin: OriginProvenance::from_empty_type(OriginType::Api),
+                            sources: Vec::new(),
+                        },
                     },
                 },
                 conversions: HashMap::default(),
