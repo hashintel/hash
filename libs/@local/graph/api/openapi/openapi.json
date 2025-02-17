@@ -3514,6 +3514,7 @@
           "schema",
           "ownedById",
           "relationships",
+          "provenance",
           "conversions"
         ],
         "properties": {
@@ -3558,7 +3559,8 @@
           "entityTypeIds",
           "properties",
           "draft",
-          "relationships"
+          "relationships",
+          "provenance"
         ],
         "properties": {
           "confidence": {
@@ -3621,7 +3623,8 @@
         "required": [
           "schema",
           "ownedById",
-          "relationships"
+          "relationships",
+          "provenance"
         ],
         "properties": {
           "ownedById": {
@@ -3657,7 +3660,8 @@
         "required": [
           "schema",
           "ownedById",
-          "relationships"
+          "relationships",
+          "provenance"
         ],
         "properties": {
           "ownedById": {
@@ -7138,6 +7142,7 @@
             "required": [
               "schema",
               "relationships",
+              "provenance",
               "conversions"
             ],
             "properties": {
@@ -7180,7 +7185,8 @@
             "type": "object",
             "required": [
               "schema",
-              "relationships"
+              "relationships",
+              "provenance"
             ],
             "properties": {
               "provenance": {
@@ -7216,7 +7222,8 @@
             "type": "object",
             "required": [
               "schema",
-              "relationships"
+              "relationships",
+              "provenance"
             ],
             "properties": {
               "provenance": {
@@ -8203,7 +8210,8 @@
       "PatchEntityParams": {
         "type": "object",
         "required": [
-          "entityId"
+          "entityId",
+          "provenance"
         ],
         "properties": {
           "archived": {
@@ -9133,20 +9141,16 @@
       },
       "ProvidedEntityEditionProvenance": {
         "type": "object",
+        "required": [
+          "actorType",
+          "origin"
+        ],
         "properties": {
           "actorType": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ActorType"
-              }
-            ]
+            "$ref": "#/components/schemas/ActorType"
           },
           "origin": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/OriginProvenance"
-              }
-            ]
+            "$ref": "#/components/schemas/OriginProvenance"
           },
           "sources": {
             "type": "array",
@@ -9159,20 +9163,16 @@
       },
       "ProvidedOntologyEditionProvenance": {
         "type": "object",
+        "required": [
+          "actorType",
+          "origin"
+        ],
         "properties": {
           "actorType": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ActorType"
-              }
-            ]
+            "$ref": "#/components/schemas/ActorType"
           },
           "origin": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/OriginProvenance"
-              }
-            ]
+            "$ref": "#/components/schemas/OriginProvenance"
           },
           "sources": {
             "type": "array",
@@ -9597,7 +9597,8 @@
       "UnarchiveDataTypeParams": {
         "type": "object",
         "required": [
-          "dataTypeId"
+          "dataTypeId",
+          "provenance"
         ],
         "properties": {
           "dataTypeId": {
@@ -9612,7 +9613,8 @@
       "UnarchiveEntityTypeParams": {
         "type": "object",
         "required": [
-          "entityTypeId"
+          "entityTypeId",
+          "provenance"
         ],
         "properties": {
           "entityTypeId": {
@@ -9627,7 +9629,8 @@
       "UnarchivePropertyTypeParams": {
         "type": "object",
         "required": [
-          "propertyTypeId"
+          "propertyTypeId",
+          "provenance"
         ],
         "properties": {
           "propertyTypeId": {
@@ -9718,6 +9721,7 @@
           "schema",
           "typeToUpdate",
           "relationships",
+          "provenance",
           "conversions"
         ],
         "properties": {
@@ -9808,7 +9812,8 @@
         "required": [
           "schema",
           "typeToUpdate",
-          "relationships"
+          "relationships",
+          "provenance"
         ],
         "properties": {
           "provenance": {
@@ -9861,7 +9866,8 @@
         "required": [
           "schema",
           "typeToUpdate",
-          "relationships"
+          "relationships",
+          "provenance"
         ],
         "properties": {
           "provenance": {

@@ -11,6 +11,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity_type, property_type};
 use hash_graph_types::{
+    knowledge::entity::{ActorType, OriginProvenance, OriginType},
     ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
     owned_by_id::OwnedById,
 };
@@ -57,7 +58,11 @@ async fn insert() {
             },
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         },
     )
     .await
@@ -88,7 +93,11 @@ async fn query() {
             },
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         },
     )
     .await
@@ -172,7 +181,11 @@ async fn update() {
             },
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         },
     )
     .await
@@ -183,7 +196,11 @@ async fn update() {
         UpdateEntityTypesParams {
             schema: page_et_v2.clone(),
             relationships: entity_type_relationships(),
-            provenance: ProvidedOntologyEditionProvenance::default(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::Human,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
         },
     )
     .await

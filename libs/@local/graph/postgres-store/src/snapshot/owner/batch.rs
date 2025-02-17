@@ -106,12 +106,10 @@ where
             .simple_query(
                 "
                     INSERT INTO accounts
-                    SELECT * FROM accounts_tmp
-                    ON CONFLICT DO NOTHING;
+                    SELECT * FROM accounts_tmp;
 
                     INSERT INTO account_groups
-                    SELECT * FROM account_groups_tmp
-                    ON CONFLICT DO NOTHING;
+                    SELECT * FROM account_groups_tmp;
                 ",
             )
             .await

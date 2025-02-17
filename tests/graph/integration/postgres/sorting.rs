@@ -21,7 +21,9 @@ use hash_graph_store::{
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use hash_graph_types::{
     knowledge::{
-        entity::{EntityUuid, ProvidedEntityEditionProvenance},
+        entity::{
+            ActorType, EntityUuid, OriginProvenance, OriginType, ProvidedEntityEditionProvenance,
+        },
         property::{PropertyObject, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
@@ -208,7 +210,11 @@ async fn insert<A: AuthorizationApi>(
                 link_data: None,
                 draft: false,
                 relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::Human,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
             },
         )
         .await

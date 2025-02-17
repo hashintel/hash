@@ -1,5 +1,7 @@
-import type { PropertyProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type {
+  PropertyProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
@@ -52,7 +54,7 @@ const createClaim = async ({
   objectText: string;
   ownedById: OwnedById;
   propertyProvenance: PropertyProvenance;
-  provenance: EnforcedEntityEditionProvenance;
+  provenance: ProvidedEntityEditionProvenance;
   subjectText: string;
   userActorId: AccountId;
 }) => {
@@ -114,7 +116,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   documentMetadata: Pick<DocumentData, "authors">;
   documentEntityId: EntityId;
   documentTitle: string;
-  provenance: EnforcedEntityEditionProvenance;
+  provenance: ProvidedEntityEditionProvenance;
   propertyProvenance: PropertyProvenance;
 }): Promise<ProposedEntity[]> => {
   const {

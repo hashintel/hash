@@ -3,7 +3,7 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -46,7 +46,7 @@ import {
 } from "../graph/ontology/primitive/property-type";
 import { logger } from "../logger";
 
-const provenance: EnforcedEntityEditionProvenance = {
+const provenance: ProvidedEntityEditionProvenance = {
   actorType: "machine",
   origin: {
     type: "migration",

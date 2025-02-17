@@ -143,6 +143,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "description": "A unit of length"
     }
   ],
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "conversions": {},
   "relationships": [
     {
@@ -204,6 +210,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "title": "Text",
     "description": "An ordered sequence of characters",
     "type": "string"
+  },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
   },
   "conversions": {},
   "relationships": [{
@@ -302,6 +314,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "description": "A unit of length equal to 100 centimeters",
       "minimum": 0
     },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      }
+    },
     "conversions": {},
     "relationships": [
       {
@@ -368,6 +386,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -423,6 +447,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "$ref": "{{meter_data_type_id_2}}"
       }
     ]
+  },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
   },
   "relationships": [{
     "relation": "setting",
@@ -515,6 +545,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "$ref": "{{text_data_type_id}}"
       }
     ]
+  },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
   },
   "relationships": [{
     "relation": "setting",
@@ -611,6 +647,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "description": "The most generic connection between two entities, defining a relationship from a source to a target. It serves as a parent type for more specific link entity types, enabling consistent and interoperable data relationships.",
     "properties": {}
   },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "viewer",
     "subject": {
@@ -667,6 +709,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ],
     "properties": {}
+  },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
   },
   "relationships": [{
     "relation": "setting",
@@ -786,6 +834,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "http://localhost:3000/@alice/types/property-type/name/": {
         "$ref": "http://localhost:3000/@alice/types/property-type/name/v/1"
       }
+    }
+  },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
     }
   },
   "relationships": [{
@@ -916,6 +970,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     },
     "labelProperty": "http://localhost:3000/@alice/types/property-type/name/"
+  },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
   },
   "relationships": [{
     "relation": "setting",
@@ -1318,6 +1378,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   },
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/1"],
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -1447,7 +1513,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         }
       }
     }
-  ]
+  ],
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  }
 }
 
 > {%
@@ -1515,6 +1587,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   },
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "draft": true,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -1666,6 +1744,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{person_b_entity_id}}"
   },
   "draft": true,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -1691,7 +1775,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "entityId": "{{person_b_entity_id}}",
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
-  "draft": false
+  "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  }
 }
 
 > {%
@@ -1710,7 +1800,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "entityId": "{{link_entity_id}}",
   "entityTypeIds": ["{{friendship_link_entity_type_id}}"],
-  "draft": false
+  "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  }
 }
 
 > {%
@@ -1830,7 +1926,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "entityId": "{{person_b_entity_id}}",
-  "archived": true
+  "archived": true,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  }
 }
 
 > {%
@@ -2173,6 +2275,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   },
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -2211,7 +2319,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         }
       }
     }
-  ]
+  ],
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  }
 }
 
 > {%
@@ -2242,7 +2356,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     }
   ],
-  "draft": false
+  "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  }
 }
 
 > {%

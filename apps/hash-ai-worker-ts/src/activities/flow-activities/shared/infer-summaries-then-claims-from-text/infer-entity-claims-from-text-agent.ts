@@ -1,4 +1,4 @@
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
@@ -62,13 +62,13 @@ const generateToolDefinitions = (params: {
               subjectEntityLocalId: {
                 oneOf: [{ type: "string" }, { type: "null" }],
                 description:
-                  dedent(`The localId of the subject entity of the claim. 
+                  dedent(`The localId of the subject entity of the claim.
                   If you don't have a relevant subject entity, you may either omit the claim (PREFERRED), or pass 'null' here.`),
               },
               valueNotFound: {
                 type: "boolean",
                 description:
-                  dedent(`If attempting to provide a value for an attribute of the entity, but it is not in the text, this should be 'true'. 
+                  dedent(`If attempting to provide a value for an attribute of the entity, but it is not in the text, this should be 'true'.
                   You may alternatively simply omit any claim for that attribute.`),
               },
               text: {
@@ -84,8 +84,8 @@ const generateToolDefinitions = (params: {
                   - must not be lists or contain multiple pieces of information – each piece of information must be expressed as a standalone claim
                   - must not include prepositional phrases, these must be provided separately in the "prepositionalPhrases" argument
                   - must include full and complete units when specifying numeric data as the object of the claim
-                  
-                  Don't include a claim unless you know the value. 
+
+                  Don't include a claim unless you know the value.
                   INCORRECT: 'Bill Gates has a LinkedIn URL'
                   INCORRECT: 'Bill Gates's LinkedIn URL is <UNKNOWN>'
                   INCORRECT: 'Bill Gate's LinkedIn URL is not in the text'
@@ -101,7 +101,7 @@ const generateToolDefinitions = (params: {
                     A list of prepositional phrases that provide additional context to the predicate in the claim. Predicate phrases:
                     - must not refer to other entities
                     - must not provide additional information about the subject or object themselves, only focus on the predicate
-                    
+
                     Examples of prepositional phrases for the example claim "Company X acquired Company Y":
                     - "on January 1, 2022"
                     - "for $8.5 billion"
@@ -128,7 +128,7 @@ const generateToolDefinitions = (params: {
 
 const systemPrompt = dedent(`
   You are a claim extracting agent. Your job is to consider some content, and identify claims about entities from within it.
-  
+
   The user may be focused on particular entities and/or particular attributes of those entities to extract claims about.
 
   The user will provide you with:
@@ -136,7 +136,7 @@ const systemPrompt = dedent(`
     - URL: the URL the text was taken from, if any.
     - Title: The title of the text, if any.
     - Goal: A prompt specifying what entities or claims about entities you should focus on.
-    - Subject Entities: the subject entities of claims that the user is looking for, each of which are of the same type (i.e. have the same properties and outgoing links). 
+    - Subject Entities: the subject entities of claims that the user is looking for, each of which are of the same type (i.e. have the same properties and outgoing links).
     - Relevant Properties: a list of properties the user is looking for in the text. Pay particular attention to these properties when extracting claims.
     - Relevant Outgoing Links: a definition of the possible outgoing links the user is looking for in the text. Pay particular attention to relationships (links) with other entities of these kinds.
     - Potential Object Entities: a list of other entities mentioned in the text, which may be the object of claims. Include their id as the object of the claim if they are the object of the claim.
@@ -147,27 +147,27 @@ const systemPrompt = dedent(`
 
   These claims will be later used to construct the entities with the properties and links which the user will specify.
   If any information in the text is relevant for constructing the relevant properties or outgoing links, you must include them as claims.
-  
+
   Each claim should be in the format <subject> <predicate> <object>, where the subject is the singular subject of the claim.
   Example:
   [{ text: "Company X acquired Company Y.", prepositionalPhrases: ["in 2019", "for $10 million"], subjectEntityLocalId: "companyXabc", objectEntityLocalId: "companyYdef" }]
-  Don't include claims which start with a subject you can't provide an id for. 
+  Don't include claims which start with a subject you can't provide an id for.
   Omit any claims that don't start with one of the subject entities provided.
-  
+
   IMPORTANT: pay attention to the name of each SubjectEntity – each claim MUST start with one of these names, exactly as it is expressed in the <SubjectEntity>
              If this is slightly different to how the entity is named in the text, use the name of the SubjectEntity!
-             
+
   Remember to particularly focus on the entities and the properties the user is looking for, guided by the prompt.
-  
+
   If an attribute isn't present, don't include a claim about it. Don't say 'X's attribute Y is unknown', or 'X's attribute Y is not in the text' – just omit it.
-  If an attribute IS present, mention the value in the claim, i.e. say 'X's attribute Y is <value>' 
+  If an attribute IS present, mention the value in the claim, i.e. say 'X's attribute Y is <value>'
   – don't say 'X's attribute Y is in the text', or 'X has an attribute Y' without providing the value.
-  
+
   INCORRECT: 'Bill Gates has a LinkedIn URL'
   INCORRECT: 'Bill Gates's LinkedURL is <UNKNOWN>'
   INCORRECT: 'Bill Gates's LinkedUrl is not in the text'
   CORRECT: 'Bill Gate's LinkedIn URL is https://www.linkedin.com/in/williamhgates', IF this URL is present in the text.
-  
+
   Or omit the claim if the value is not known.
 `);
 
@@ -233,13 +233,13 @@ description: ${description}</Property>`),
           Pay attention to any claims which imply these sorts of relationships, and make sure to include them.
           Include the properties of the link as prepositional phrases in the claim
           Where the link is to another entity listed in subject or object entities, include its id as the objectEntityId.
-          
+
           Example:
           text: "Company X acquired Company Y."
           prepositionalPhrases: ["in 2019", "for $3 billion"]
           subjectEntityId: companyXlocalEntityId
           objectEntityId: companyYlocalEntityId
-          
+
           ${Object.keys(dereferencedEntityType.links ?? {})
             .map((linkEntityTypeId) => {
               const linkEntityType = linkEntityTypesById[linkEntityTypeId];
@@ -301,7 +301,7 @@ summary: ${summary}</SubjectEntity>`),
               .join(
                 ", ",
               )}. You must include claims about these properties IF they are present in the text.
-            
+
           Do NOT include claims such as:
           'Bill Gates has a LinkedIn URL'
           'Bill Gates's LinkedURL is <UNKNOWN>'
@@ -639,7 +639,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
           },
         ];
 
-        const provenance: EnforcedEntityEditionProvenance = {
+        const provenance: ProvidedEntityEditionProvenance = {
           actorType: "ai",
           origin: {
             id: flowEntityId,
@@ -781,7 +781,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
             prepositionalPhrases: ${stringify(
               invalidClaim.prepositionalPhrases,
             )}
-            
+
             Invalid because: ${invalidClaim.invalidReason}
             Please correct this!
             </InvalidClaims>`,

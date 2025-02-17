@@ -8,11 +8,9 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
-  ActorType,
   ArrayMetadata,
+  EntityEditionProvenance as EntityEditionProvenanceGraphApi,
   ObjectMetadata,
-  ProvidedEntityEditionProvenanceOrigin,
-  SourceProvenance,
   ValueMetadata,
 } from "@local/hash-graph-client";
 
@@ -287,12 +285,12 @@ export type EntityProvenance = {
   firstNonDraftCreatedAtTransactionTime?: CreatedAtTransactionTime;
 };
 
-export type EntityEditionProvenance = {
+export type EntityEditionProvenance = Omit<
+  EntityEditionProvenanceGraphApi,
+  "createdById" | "archivedById"
+> & {
   createdById: EditionCreatedById;
   archivedById?: EditionArchivedById;
-  actorType?: ActorType;
-  origin?: ProvidedEntityEditionProvenanceOrigin;
-  sources?: Array<SourceProvenance>;
 };
 
 export type AddPropertyPatchOperation = {

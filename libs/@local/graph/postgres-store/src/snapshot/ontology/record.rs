@@ -30,7 +30,7 @@ pub type PropertyTypeSnapshotRecord =
 pub type EntityTypeSnapshotRecord =
     OntologyTypeSnapshotRecord<EntityType, EntityTypeRelationAndSubject>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DataTypeEmbeddingRecord {
     pub data_type_id: VersionedUrl,
@@ -38,7 +38,7 @@ pub struct DataTypeEmbeddingRecord {
     pub updated_at_transaction_time: Timestamp<TransactionTime>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PropertyTypeEmbeddingRecord {
     pub property_type_id: VersionedUrl,
@@ -46,7 +46,7 @@ pub struct PropertyTypeEmbeddingRecord {
     pub updated_at_transaction_time: Timestamp<TransactionTime>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityTypeEmbeddingRecord {
     pub entity_type_id: VersionedUrl,

@@ -63,6 +63,10 @@ export const createInitialDraftEntitySubgraph = (
         createdById: creator,
         edition: {
           createdById: creator,
+          actorType: "human",
+          origin: {
+            type: "api",
+          },
         },
       },
     },

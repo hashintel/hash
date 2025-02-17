@@ -1,7 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import type {
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import {
   Entity,
   mergePropertyObjectAndMetadata,
@@ -516,7 +518,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
 
     const proposedOutgoingLinkEntities: ProposedEntity[] = [];
 
-    const editionProvenance: EnforcedEntityEditionProvenance = {
+    const editionProvenance: ProvidedEntityEditionProvenance = {
       actorType: "ai",
       origin: {
         type: "flow",

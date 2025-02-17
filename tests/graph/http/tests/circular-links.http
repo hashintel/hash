@@ -49,6 +49,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "description": "The most generic connection between two entities, defining a relationship from a source to a target. It serves as a parent type for more specific link entity types, enabling consistent and interoperable data relationships.",
     "properties": {}
   },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "viewer",
     "subject": {
@@ -80,6 +86,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "description": "A link entity type",
     "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" }],
     "properties": {}
+  },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
   },
   "relationships": [{
     "relation": "setting",
@@ -146,6 +158,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     }
   },
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -195,6 +213,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/object/v/1"],
   "entityUuid": "0000000A-0001-0000-0000-000000000000",
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -223,6 +247,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/object/v/1"],
   "entityUuid": "0000000B-0001-0000-0000-000000000000",
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -251,6 +281,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/object/v/1"],
   "entityUuid": "0000000C-0001-0000-0000-000000000000",
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -279,6 +315,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/object/v/1"],
   "entityUuid": "0000000D-0001-0000-0000-000000000000",
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -311,6 +353,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{entity_b}}"
   },
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -342,6 +390,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{entity_c}}"
   },
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -373,6 +427,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{entity_d}}"
   },
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -404,6 +464,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{entity_a}}"
   },
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -436,6 +502,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{entity_a}}"
   },
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -469,6 +541,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{entity_b}}"
   },
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -502,6 +580,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{entity_c}}"
   },
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {
@@ -535,6 +619,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{entity_d}}"
   },
   "draft": false,
+  "provenance": {
+    "actorType": "machine",
+    "origin": {
+      "type": "api"
+    }
+  },
   "relationships": [{
     "relation": "setting",
     "subject": {

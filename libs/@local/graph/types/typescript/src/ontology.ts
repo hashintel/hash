@@ -26,12 +26,10 @@ import type { Brand } from "@local/advanced-types/brand";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
-  ActorType,
   ClosedMultiEntityTypeMap,
   EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
   GetClosedMultiEntityTypeResponseDefinitions,
-  ProvidedEntityEditionProvenanceOrigin,
-  SourceProvenance,
+  OntologyEditionProvenance as OntologyEditionProvenanceGraphApi,
 } from "@local/hash-graph-client";
 
 import type { EditionArchivedById, EditionCreatedById } from "./account.js";
@@ -54,12 +52,12 @@ export type OntologyProvenance = {
   edition: OntologyEditionProvenance;
 };
 
-export type OntologyEditionProvenance = {
+export type OntologyEditionProvenance = Omit<
+  OntologyEditionProvenanceGraphApi,
+  "createdById" | "archivedById"
+> & {
   createdById: EditionCreatedById;
   archivedById?: EditionArchivedById;
-  actorType?: ActorType;
-  origin?: ProvidedEntityEditionProvenanceOrigin;
-  sources?: Array<SourceProvenance>;
 };
 
 export type OntologyTypeRecordId = {

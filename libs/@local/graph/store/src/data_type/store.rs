@@ -38,7 +38,6 @@ pub struct CreateDataTypeParams<R> {
     pub classification: OntologyTypeClassificationMetadata,
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub conversions: HashMap<BaseUrl, Conversions>,
@@ -109,7 +108,6 @@ pub struct GetDataTypesResponse {
 pub struct UpdateDataTypesParams<R> {
     pub schema: DataType,
     pub relationships: R,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub conversions: HashMap<BaseUrl, Conversions>,
@@ -128,7 +126,6 @@ pub struct ArchiveDataTypeParams<'a> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnarchiveDataTypeParams {
     pub data_type_id: VersionedUrl,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
 }
 

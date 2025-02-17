@@ -1,8 +1,11 @@
 import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
-import type { GraphApi as GraphApiClient } from "@local/hash-graph-client";
+import type {
+  ActorType,
+  GraphApi as GraphApiClient,
+  OriginProvenance,
+} from "@local/hash-graph-client";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import type { DataSource } from "apollo-datasource";
 
 export type GraphApi = GraphApiClient & DataSource;
@@ -12,7 +15,10 @@ export type ImpureGraphContext<
   RequiresTemporal extends boolean = false,
 > = {
   graphApi: GraphApi;
-  provenance: EnforcedEntityEditionProvenance;
+  provenance: {
+    actorType: ActorType;
+    origin: OriginProvenance;
+  };
 } & (RequiresUpload extends true
   ? { uploadProvider: UploadableStorageProvider }
   : { uploadProvider?: UploadableStorageProvider }) &

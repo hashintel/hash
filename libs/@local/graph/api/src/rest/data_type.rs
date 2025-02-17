@@ -186,10 +186,6 @@ struct CreateDataTypeRequest {
     schema: MaybeListOfDataType,
     owned_by_id: OwnedById,
     relationships: Vec<DataTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
     provenance: ProvidedOntologyEditionProvenance,
     conversions: HashMap<BaseUrl, Conversions>,
 }
@@ -289,10 +285,6 @@ enum LoadExternalDataTypeRequest {
     Create {
         schema: Box<DataType>,
         relationships: Vec<DataTypeRelationAndSubject>,
-        #[serde(
-            default,
-            skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-        )]
         provenance: Box<ProvidedOntologyEditionProvenance>,
         conversions: HashMap<BaseUrl, Conversions>,
     },
@@ -597,10 +589,6 @@ struct UpdateDataTypeRequest {
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
     relationships: Vec<DataTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
     provenance: ProvidedOntologyEditionProvenance,
     conversions: HashMap<BaseUrl, Conversions>,
 }

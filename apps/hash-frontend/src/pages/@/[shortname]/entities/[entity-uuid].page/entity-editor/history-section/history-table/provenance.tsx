@@ -5,7 +5,7 @@ import {
   Skeleton,
   WandMagicSparklesIcon,
 } from "@hashintel/design-system";
-import type { ProvidedEntityEditionProvenanceOriginTypeEnum } from "@local/hash-graph-client";
+import type { OriginProvenance } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
@@ -36,15 +36,7 @@ const provenanceIconSx: SxProps<Theme> = {
 };
 
 const provenanceIconMap: Record<
-  | ProvidedEntityEditionProvenanceOriginTypeEnum
-  /**
-   * @todo: remove this when remaining possible values have been correctly included in `ProvidedEntityEditionProvenanceOrigin`
-   */
-  | "flow"
-  | "browser-extension"
-  | "web-app"
-  | "mobile-app"
-  | "api",
+  OriginProvenance["type"],
   FunctionComponent<SvgIconProps>
 > = {
   flow: InfinityLightIcon,
@@ -102,22 +94,19 @@ export const Provenance = ({
     );
   }
 
-  const originType = edition.origin?.type;
+  const originType = edition.origin.type;
   const actorType = edition.actorType;
 
   const originTextPrefix = event.type === "created" ? "Created" : "Updated";
 
-  let originText = originType
-    ? `${originTextPrefix} from the`
-    : `${originTextPrefix} from`;
-  // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+  let originText = `${originTextPrefix} from the`;
   if (originType === "flow" || originType === "migration") {
     originText = `${originTextPrefix} by a`;
   }
 
-  const OriginIcon = originType && provenanceIconMap[originType];
+  const OriginIcon = provenanceIconMap[originType];
 
-  const flowRunEntityId = edition.origin?.id as EntityId | undefined;
+  const flowRunEntityId = edition.origin.id as EntityId | undefined;
 
   const sources =
     event.type === "property-update"
@@ -146,52 +135,48 @@ export const Provenance = ({
         <Stack direction="row" gap={4}>
           <Stack gap={0.8}>
             <ProvenanceHeader label="Change origins" />
-            {originType && (
-              <ProvenanceRow>
-                {OriginIcon ? <OriginIcon sx={provenanceIconSx} /> : null}
-                <Typography sx={typographySx}>
-                  {originText}
-                  <Box component="span" sx={{ fontWeight: 600, ml: 0.5 }}>
-                    {originType.split("-").join(" ")}
-                  </Box>
-                </Typography>
-                {flowRunEntityId && (
-                  <Link
-                    href={generateWorkerRunPath({
-                      flowRunId: extractEntityUuidFromEntityId(flowRunEntityId),
-                      shortname,
-                    })}
+            <ProvenanceRow>
+              <OriginIcon sx={provenanceIconSx} />
+              <Typography sx={typographySx}>
+                {originText}
+                <Box component="span" sx={{ fontWeight: 600, ml: 0.5 }}>
+                  {originType.split("-").join(" ")}
+                </Box>
+              </Typography>
+              {flowRunEntityId && (
+                <Link
+                  href={generateWorkerRunPath({
+                    flowRunId: extractEntityUuidFromEntityId(flowRunEntityId),
+                    shortname,
+                  })}
+                  sx={{
+                    ...typographySx,
+                    display: "flex",
+                    alignItems: "center",
+                    fontWeight: 600,
+                    textDecoration: "none",
+                    pl: 1.5,
+                    borderLeft: ({ palette }) =>
+                      `1px solid ${palette.gray[40]}`,
+                  }}
+                  target="_blank"
+                >
+                  View run
+                  <ArrowUpRightRegularIcon
                     sx={{
+                      fill: ({ palette }) => palette.blue[70],
+                      ml: 0.5,
                       ...typographySx,
-                      display: "flex",
-                      alignItems: "center",
-                      fontWeight: 600,
-                      textDecoration: "none",
-                      pl: 1.5,
-                      borderLeft: ({ palette }) =>
-                        `1px solid ${palette.gray[40]}`,
                     }}
-                    target="_blank"
-                  >
-                    View run
-                    <ArrowUpRightRegularIcon
-                      sx={{
-                        fill: ({ palette }) => palette.blue[70],
-                        ml: 0.5,
-                        ...typographySx,
-                      }}
-                    />
-                  </Link>
-                )}
-              </ProvenanceRow>
-            )}
+                  />
+                </Link>
+              )}
+            </ProvenanceRow>
             <ProvenanceRow>
               {actorType === "ai" ? (
                 <WandMagicSparklesIcon sx={provenanceIconSx} />
-              ) : OriginIcon ? (
-                <OriginIcon sx={provenanceIconSx} />
               ) : (
-                <UserIcon sx={provenanceIconSx} />
+                <OriginIcon sx={provenanceIconSx} />
               )}
               <Typography sx={typographySx}>
                 {originTextPrefix} by

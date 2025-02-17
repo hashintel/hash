@@ -176,7 +176,6 @@ struct CreateEntityTypeRequest {
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
     relationships: Vec<EntityTypeRelationAndSubject>,
-    #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -566,9 +565,7 @@ enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
     Create {
         schema: Box<EntityType>,
-
         relationships: Vec<EntityTypeRelationAndSubject>,
-        #[serde(default)]
         provenance: Box<ProvidedOntologyEditionProvenance>,
     },
 }
@@ -928,9 +925,7 @@ struct UpdateEntityTypeRequest {
     #[schema(value_type = UpdateEntityType)]
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
-
     relationships: Vec<EntityTypeRelationAndSubject>,
-    #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
 }
 
