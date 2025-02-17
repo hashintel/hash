@@ -4466,9 +4466,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blockprotocol/type-system-rs@workspace:libs/@blockprotocol/type-system/rust"
   dependencies:
+    "@local/tsconfig": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-test-data": "npm:0.0.0-private"
+    typescript: "npm:5.7.3"
     wasm-pack: "npm:0.13.1"
   languageName: unknown
   linkType: soft

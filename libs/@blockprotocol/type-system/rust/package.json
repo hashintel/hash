@@ -22,6 +22,7 @@
     "build:wasm": "wasm-pack build --target web --out-name type-system --scope blockprotocol --release . && rm pkg/package.json",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy && just clippy --target wasm32-unknown-unknown",
+    "lint:tsc": "tsc --noEmit",
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
@@ -29,7 +30,9 @@
     "@rust/hash-codec": "0.0.0-private"
   },
   "devDependencies": {
+    "@local/tsconfig": "0.0.0-private",
     "@rust/hash-graph-test-data": "0.0.0-private",
+    "typescript": "5.7.3",
     "wasm-pack": "0.13.1"
   }
 }
