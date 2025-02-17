@@ -150,13 +150,25 @@ export const DataTypesParents = ({
   }, [dataTypes]);
 
   const addParent = (dataTypeId: VersionedUrl) => {
+    const parent = dataTypes?.[dataTypeId]?.schema;
+
+    if (!parent) {
+      throw new Error(`Parent data type not found: ${dataTypeId}`);
+    }
+
+    if (!("type" in parent)) {
+      throw new Error(`Parent data type does not have a type: ${dataTypeId}`);
+    }
+
     setValue("allOf", [...directParentDataTypeIds, dataTypeId], {
+      shouldDirty: true,
+    });
+    setValue("constraints.type", parent.type, {
       shouldDirty: true,
     });
   };
 
   const removeParent = (dataTypeId: VersionedUrl) => {
-    console.log("removing parent");
     setValue(
       "allOf",
       directParentDataTypeIds.filter((parentId) => parentId !== dataTypeId),
@@ -177,6 +189,7 @@ export const DataTypesParents = ({
           width: 600,
           borderRadius: 2,
           position: "relative",
+          zIndex: 3,
         }}
       >
         <Box

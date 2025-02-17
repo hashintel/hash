@@ -4,7 +4,6 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 export type DataTypeFormData = Pick<
   DataType,

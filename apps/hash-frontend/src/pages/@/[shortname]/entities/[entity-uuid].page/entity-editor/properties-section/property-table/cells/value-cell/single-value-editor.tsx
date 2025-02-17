@@ -18,12 +18,12 @@ import type {
   GetDataTypeConversionTargetsQueryVariables,
 } from "../../../../../../../../../../graphql/api-types.gen";
 import { getDataTypeConversionTargetsQuery } from "../../../../../../../../../../graphql/queries/ontology/data-type.queries";
+import { NumberOrTextInput } from "../../../../../../../../../shared/number-or-text-input";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { getEditorSpecs } from "./editor-specs";
 import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
 import { JsonInput } from "./inputs/json-input";
-import { NumberOrTextInput } from "./inputs/number-or-text-input";
 import type { ValueCell, ValueCellEditorComponent } from "./types";
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {

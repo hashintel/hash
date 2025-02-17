@@ -16,10 +16,10 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Stack, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 
+import { NumberOrTextInput } from "../../../../../../../../../../shared/number-or-text-input";
 import { getEditorSpecs } from "../editor-specs";
 import { BooleanInput } from "../inputs/boolean-input";
 import { JsonInput } from "../inputs/json-input";
-import { NumberOrTextInput } from "../inputs/number-or-text-input";
 import { RowAction } from "./row-action";
 import type { SortableItem } from "./types";
 import { ValueChip } from "./value-chip";

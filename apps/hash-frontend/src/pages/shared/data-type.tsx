@@ -97,17 +97,10 @@ export const DataType = ({
     },
   });
 
-  const {
-    control,
-    handleSubmit: wrapHandleSubmit,
-    reset,
-    getValues,
-  } = formMethods;
-
-  console.log({ values: getValues() });
+  const { control, handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
   const parents = useWatch({
-    control: formMethods.control,
+    control,
     name: "allOf",
     defaultValue: [],
   });
@@ -187,7 +180,6 @@ export const DataType = ({
 
   useEffect(() => {
     if (remoteDataType) {
-      console.log("resetting");
       formMethods.reset(getFormDataFromDataType(remoteDataType.schema));
     }
   }, [remoteDataType, formMethods]);
@@ -363,7 +355,7 @@ export const DataType = ({
                 <Typography variant="h5" mb={2}>
                   Constraints
                 </Typography>
-                <DataTypeConstraints />
+                <DataTypeConstraints isReadOnly={isReadOnly} />
               </Box>
             </Stack>
           </TypeDefinitionContainer>

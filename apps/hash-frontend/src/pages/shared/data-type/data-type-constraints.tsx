@@ -5,18 +5,19 @@ import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { useDataTypesContext } from "../data-types-context";
-import { HumanReadableExplanation } from "./data-type-constraints/human-readable-explanation";
+import { StringConstraints } from "./data-type-constraints/string-constraints";
 import type { InheritedConstraints } from "./data-type-constraints/types";
 import type { DataTypeFormData } from "./data-type-form";
+import { NumberConstraints } from "./data-type-constraints/number-constraints";
 
-export const DataTypeConstraints = () => {
+export const DataTypeConstraints = ({
+  isReadOnly,
+}: { isReadOnly: boolean }) => {
   const { control } = useFormContext<DataTypeFormData>();
 
   const { dataTypes } = useDataTypesContext();
 
-  const abstract = useWatch({ control, name: "abstract" });
   const allOf = useWatch({ control, name: "allOf" });
-  const constraints = useWatch({ control, name: "constraints" });
 
   const inheritedConstraints = useMemo(() => {
     if (!dataTypes) {
@@ -226,11 +227,26 @@ export const DataTypeConstraints = () => {
     return narrowedConstraints;
   }, [dataTypes, allOf]);
 
-  console.log(inheritedConstraints);
+  const ownConstraints = useWatch({ control, name: "constraints" });
 
-  return (
-    <Box>
-      <HumanReadableExplanation inheritedConstraints={inheritedConstraints} />
-    </Box>
-  );
+  const type = inheritedConstraints.type?.value ?? ownConstraints.type;
+
+  switch (type) {
+    case "string":
+      return (
+        <StringConstraints
+          inheritedConstraints={inheritedConstraints}
+          isReadOnly={isReadOnly}
+        />
+      );
+    case "number":
+      return (
+        <NumberConstraints
+          inheritedConstraints={inheritedConstraints}
+          isReadOnly={isReadOnly}
+        />
+      );
+    default:
+      return null;
+  }
 };

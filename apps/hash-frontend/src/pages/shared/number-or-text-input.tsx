@@ -1,9 +1,7 @@
 import type { TextFieldProps } from "@hashintel/design-system";
 import { TextField } from "@hashintel/design-system";
-import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
+import type { MergedValueSchema } from "@local/hash-isomorphic-utils/data-types";
 import { format, formatISO, parseISO } from "date-fns";
-
-import type { CellInputProps } from "./types";
 
 /**
  * Get the current offset from UTC according to the user's device.
@@ -33,17 +31,21 @@ const convertDateTimeToLocalRFC3339 = (dateTimeStringWithoutOffset: string) => {
 };
 
 export const NumberOrTextInput = ({
+  fontSize,
   isNumber,
   onBlur,
   onChange,
   onEnterPressed,
   schema,
   value: uncheckedValue,
-}: CellInputProps<number | string | undefined> & {
+}: {
+  fontSize?: number;
   isNumber: boolean;
   onBlur?: TextFieldProps["onBlur"];
-  schema: MergedDataTypeSingleSchema;
+  onChange: (value: number | string | undefined) => void;
+  schema: MergedValueSchema;
   onEnterPressed?: () => void;
+  value: number | string | undefined;
 }) => {
   const minLength = "minLength" in schema ? schema.minLength : undefined;
   const maxLength = "maxLength" in schema ? schema.maxLength : undefined;
@@ -119,6 +121,9 @@ export const NumberOrTextInput = ({
           minimum,
           maximum,
           step,
+        },
+        sx: {
+          fontSize,
         },
       }}
       autoFocus
