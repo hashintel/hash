@@ -74,7 +74,7 @@ const Page: NextPageWithLayout = () => {
     if (loadingNamespace) {
       return null;
     } else {
-      throw new Error("Namespace for valid entity somehow missing");
+      throw new Error("Namespace for entity type somehow missing");
     }
   }
 
@@ -83,6 +83,7 @@ const Page: NextPageWithLayout = () => {
       accountId={routeNamespace.accountId}
       draftEntityType={draftEntityType}
       entityTypeBaseUrl={entityTypeBaseUrl}
+      key={`${entityTypeBaseUrl}-${requestedVersion}`}
       requestedVersion={requestedVersion}
     />
   );

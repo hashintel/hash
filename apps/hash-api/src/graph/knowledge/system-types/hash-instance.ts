@@ -8,6 +8,7 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { HASHInstance as HashInstanceEntity } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
+import { logger } from "../../../logger";
 import { createAccountGroup } from "../../account-permission-management";
 import type { ImpureGraphFunction } from "../../context-types";
 import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
@@ -46,12 +47,6 @@ export const createHashInstance: ImpureGraphFunction<
     throw new Error("HASH instance entity already exists.");
   }
 
-  const hashInstanceAdminsAccountGroupId = await createAccountGroup(
-    ctx,
-    authentication,
-    {},
-  );
-
   const hashOrg = await getOrgByShortname(ctx, authentication, {
     shortname: "hash",
     permitOlderVersions: true,
@@ -62,6 +57,16 @@ export const createHashInstance: ImpureGraphFunction<
       "Cannot create HASH Instance entity before HASH Org is created",
     );
   }
+
+  const hashInstanceAdminsAccountGroupId = await createAccountGroup(
+    ctx,
+    authentication,
+    {},
+  );
+
+  logger.info(
+    `Created account group for hash instance admins with id: ${hashInstanceAdminsAccountGroupId}`,
+  );
 
   const entity = await createEntity<HashInstanceEntity>(ctx, authentication, {
     ownedById: hashOrg.accountGroupId as OwnedById,

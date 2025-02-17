@@ -157,7 +157,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     return undefined;
   },
   provideEditor: ({ data }) => {
-    if (data.readonly) {
+    if (data.readonly && !data.propertyRow.isArray) {
       return {
         disableStyling: true,
         disablePadding: true,

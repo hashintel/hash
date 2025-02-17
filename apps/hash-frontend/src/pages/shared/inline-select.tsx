@@ -24,12 +24,12 @@ export const InlineSelect = styled(
   ),
 )(({ theme }) => ({
   position: "relative",
-  top: 1,
+  top: 0.5,
   svg: {
     fontSize: 12,
     marginRight: 0.5,
     position: "relative",
-    top: -1,
+    top: -0.5,
   },
   [`.${selectClasses.select}.${inputBaseClasses.input}`]: {
     fontSize: 12,
@@ -37,6 +37,7 @@ export const InlineSelect = styled(
     fontWeight: 500,
     color: theme.palette.gray[90],
     minHeight: "unset",
+    padding: 0,
     paddingRight: 18,
     "&:focus": {
       background: "transparent",

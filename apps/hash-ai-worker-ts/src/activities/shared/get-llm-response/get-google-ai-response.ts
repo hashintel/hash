@@ -1,6 +1,8 @@
 import {
   type Content,
+  FunctionCallingMode,
   type FunctionDeclaration,
+  type GenerateContentRequest,
   type GenerateContentResponse,
   type Part,
 } from "@google-cloud/vertexai";
@@ -41,6 +43,7 @@ export const getGoogleAiResponse = async <ToolName extends string>(
   const {
     model,
     tools,
+    toolChoice,
     systemPrompt,
     messages,
     previousInvalidResponses,
@@ -76,9 +79,23 @@ export const getGoogleAiResponse = async <ToolName extends string>(
   }
 
   let response: GenerateContentResponse;
+
   const transformedRequest = {
     contents,
     systemInstruction: systemPrompt,
+    // @ts-expect-error -- the casing in the library is toolConfig/functionCallingConfig but this doesn't work.
+    tool_config:
+      toolChoice && tools
+        ? {
+            function_calling_config: {
+              mode: FunctionCallingMode.ANY,
+              allowed_function_names:
+                toolChoice !== "required"
+                  ? [toolChoice]
+                  : tools.map((tool) => tool.name),
+            },
+          }
+        : undefined,
     tools: tools
       ? [
           {
@@ -88,7 +105,7 @@ export const getGoogleAiResponse = async <ToolName extends string>(
           },
         ]
       : undefined,
-  } as const;
+  } satisfies GenerateContentRequest;
 
   try {
     ({ response } = await gemini.generateContent(transformedRequest));

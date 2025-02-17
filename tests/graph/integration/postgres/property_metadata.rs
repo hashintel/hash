@@ -26,7 +26,7 @@ use type_system::{
     url::{BaseUrl, VersionedUrl},
 };
 
-use crate::{DatabaseApi, DatabaseTestWrapper};
+use crate::{DatabaseApi, DatabaseTestWrapper, assert_equal_entities};
 
 async fn seed<A: AuthorizationApi>(
     database: &mut DatabaseTestWrapper<A>,
@@ -370,7 +370,7 @@ async fn no_initial_metadata() {
         .await
         .expect("could not update entity");
 
-    assert_eq!(entity, updated_entity);
+    assert_equal_entities(&entity, &updated_entity);
 
     let updated_entity = api
         .patch_entity(

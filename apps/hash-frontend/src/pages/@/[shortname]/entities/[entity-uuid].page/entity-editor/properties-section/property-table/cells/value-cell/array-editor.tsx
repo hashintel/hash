@@ -52,6 +52,9 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   onChange,
 }) => {
   const listWrapperRef = useRef<HTMLDivElement>(null);
+
+  const { readonly } = cell.data;
+
   const {
     value: propertyValue,
     valueMetadata,
@@ -291,8 +294,11 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     updateItem(index, value);
   };
 
-  const canAddMore = isNumber(maxItems) ? items.length < maxItems : true;
+  const canAddMore =
+    !readonly && (isNumber(maxItems) ? items.length < maxItems : true);
   const isAddingDraft = editingRow === DRAFT_ROW_KEY;
+
+  const hasConstraints = minItems !== undefined || maxItems !== undefined;
 
   return (
     <GridEditorWrapper>
@@ -306,9 +312,10 @@ export const ArrayEditor: ValueCellEditorComponent = ({
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
-            {items.map((item) => (
+            {items.map((item, index) => (
               <SortableRow
                 key={item.id}
+                isLastRow={index === items.length - 1}
                 item={item}
                 onRemove={removeItem}
                 onEditClicked={(id) => setEditingRow(id)}
@@ -318,6 +325,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
                 selected={selectedRow === item.id}
                 onSelect={toggleSelectedRow}
                 expectedTypes={permittedDataTypes}
+                readonly={readonly}
               />
             ))}
           </SortableContext>
@@ -333,6 +341,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
       {isAddingDraft && (
         <DraftRow
+          arrayConstraints={hasConstraints ? { minItems, maxItems } : undefined}
           existingItemCount={items.length}
           expectedTypes={permittedDataTypes}
           onDraftSaved={addItem}
@@ -340,7 +349,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         />
       )}
 
-      {(!canAddMore || isAddingDraft) && (
+      {!canAddMore && !readonly && hasConstraints && (
         <ItemLimitInfo min={minItems} max={maxItems} />
       )}
     </GridEditorWrapper>

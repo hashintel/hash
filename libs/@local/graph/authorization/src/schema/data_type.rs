@@ -1,6 +1,9 @@
 use core::error::Error;
 
-use hash_graph_types::owned_by_id::OwnedById;
+use hash_graph_types::{
+    account::{AccountGroupId, AccountId},
+    owned_by_id::OwnedById,
+};
 use serde::{Deserialize, Serialize};
 use type_system::schema::DataTypeUuid;
 use uuid::Uuid;
@@ -46,6 +49,8 @@ impl Resource for DataTypeUuid {
 #[serde(rename_all = "snake_case")]
 pub enum DataTypeResourceRelation {
     Owner,
+    Setting,
+    Editor,
     Viewer,
 }
 
@@ -62,24 +67,48 @@ pub enum DataTypePermission {
 impl Permission<DataTypeUuid> for DataTypePermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum DataTypeSetting {
+    UpdateFromWeb,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum DataTypeSubject {
     Web(OwnedById),
+    Setting(DataTypeSetting),
     Public,
+    Account(AccountId),
+    AccountGroup(AccountGroupId),
 }
+
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DataTypeSubjectSet {
+    #[default]
+    Member,
+}
+
+impl Relation<DataTypeSubject> for DataTypeSubjectSet {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DataTypeSubjectNamespace {
     #[serde(rename = "graph/web")]
     Web,
+    #[serde(rename = "graph/setting")]
+    Setting,
     #[serde(rename = "graph/account")]
     Account,
+    #[serde(rename = "graph/account_group")]
+    AccountGroup,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DataTypeSubjectId {
     Uuid(Uuid),
+    Setting(DataTypeSetting),
     Asteriks(PublicAccess),
 }
 
@@ -89,14 +118,29 @@ impl Resource for DataTypeSubject {
 
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
+            (DataTypeSubjectNamespace::Web, DataTypeSubjectId::Uuid(uuid)) => {
+                Self::Web(OwnedById::new(uuid))
+            }
+            (DataTypeSubjectNamespace::Setting, DataTypeSubjectId::Setting(setting)) => {
+                Self::Setting(setting)
+            }
             (
                 DataTypeSubjectNamespace::Account,
                 DataTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => Self::Public,
-            (DataTypeSubjectNamespace::Web, DataTypeSubjectId::Uuid(uuid)) => {
-                Self::Web(OwnedById::new(uuid))
+            (DataTypeSubjectNamespace::Account, DataTypeSubjectId::Uuid(id)) => {
+                Self::Account(AccountId::new(id))
             }
-            (DataTypeSubjectNamespace::Account | DataTypeSubjectNamespace::Web, _) => {
+            (DataTypeSubjectNamespace::AccountGroup, DataTypeSubjectId::Uuid(id)) => {
+                Self::AccountGroup(AccountGroupId::new(id))
+            }
+            (
+                DataTypeSubjectNamespace::Web
+                | DataTypeSubjectNamespace::Setting
+                | DataTypeSubjectNamespace::Account
+                | DataTypeSubjectNamespace::AccountGroup,
+                _,
+            ) => {
                 return Err(InvalidResource::<Self>::invalid_id(kind, id));
             }
         })
@@ -108,9 +152,21 @@ impl Resource for DataTypeSubject {
                 DataTypeSubjectNamespace::Web,
                 DataTypeSubjectId::Uuid(web_id.into_uuid()),
             ),
+            Self::Setting(setting) => (
+                DataTypeSubjectNamespace::Setting,
+                DataTypeSubjectId::Setting(setting),
+            ),
             Self::Public => (
                 DataTypeSubjectNamespace::Account,
                 DataTypeSubjectId::Asteriks(PublicAccess::Public),
+            ),
+            Self::Account(id) => (
+                DataTypeSubjectNamespace::Account,
+                DataTypeSubjectId::Uuid(id.into_uuid()),
+            ),
+            Self::AccountGroup(id) => (
+                DataTypeSubjectNamespace::AccountGroup,
+                DataTypeSubjectId::Uuid(id.into_uuid()),
             ),
         }
     }
@@ -133,6 +189,32 @@ pub enum DataTypeOwnerSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum DataTypeSettingSubject {
+    Setting {
+        #[serde(rename = "subjectId")]
+        id: DataTypeSetting,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum DataTypeEditorSubject {
+    Account {
+        #[serde(rename = "subjectId")]
+        id: AccountId,
+    },
+    AccountGroup {
+        #[serde(rename = "subjectId")]
+        id: AccountGroupId,
+        #[serde(skip)]
+        set: DataTypeSubjectSet,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum DataTypeViewerSubject {
     Public,
 }
@@ -143,6 +225,16 @@ pub enum DataTypeViewerSubject {
 pub enum DataTypeRelationAndSubject {
     Owner {
         subject: DataTypeOwnerSubject,
+        #[serde(skip)]
+        level: u8,
+    },
+    Setting {
+        subject: DataTypeSettingSubject,
+        #[serde(skip)]
+        level: u8,
+    },
+    Editor {
+        subject: DataTypeEditorSubject,
         #[serde(skip)]
         level: u8,
     },
@@ -157,16 +249,67 @@ impl Relationship for (DataTypeUuid, DataTypeRelationAndSubject) {
     type Relation = DataTypeResourceRelation;
     type Resource = DataTypeUuid;
     type Subject = DataTypeSubject;
-    type SubjectSet = !;
+    type SubjectSet = DataTypeSubjectSet;
 
     fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
         Ok((
             parts.resource,
             match parts.relation.name {
-                DataTypeResourceRelation::Owner => DataTypeRelationAndSubject::Owner {
+                DataTypeResourceRelation::Owner => match (parts.subject, parts.subject_set) {
+                    (DataTypeSubject::Web(id), None) => DataTypeRelationAndSubject::Owner {
+                        subject: DataTypeOwnerSubject::Web { id },
+                        level: parts.relation.level,
+                    },
+                    (DataTypeSubject::Web(_), _) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                    }
+                    (
+                        DataTypeSubject::Setting(_)
+                        | DataTypeSubject::Public
+                        | DataTypeSubject::Account(_)
+                        | DataTypeSubject::AccountGroup(_),
+                        _,
+                    ) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
+                },
+                DataTypeResourceRelation::Setting => DataTypeRelationAndSubject::Setting {
                     subject: match (parts.subject, parts.subject_set) {
-                        (DataTypeSubject::Web(id), None) => DataTypeOwnerSubject::Web { id },
-                        (DataTypeSubject::Public, None) => {
+                        (DataTypeSubject::Setting(id), None) => {
+                            DataTypeSettingSubject::Setting { id }
+                        }
+                        (DataTypeSubject::Setting(_), _) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                        }
+                        (
+                            DataTypeSubject::Web(_)
+                            | DataTypeSubject::Public
+                            | DataTypeSubject::Account(_)
+                            | DataTypeSubject::AccountGroup(_),
+                            _,
+                        ) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                        }
+                    },
+                    level: parts.relation.level,
+                },
+                DataTypeResourceRelation::Editor => DataTypeRelationAndSubject::Editor {
+                    subject: match (parts.subject, parts.subject_set) {
+                        (DataTypeSubject::Account(id), None) => {
+                            DataTypeEditorSubject::Account { id }
+                        }
+                        (DataTypeSubject::AccountGroup(id), Some(set)) => {
+                            DataTypeEditorSubject::AccountGroup { id, set }
+                        }
+                        (DataTypeSubject::Account(_) | DataTypeSubject::AccountGroup(_), _) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                        }
+                        (
+                            DataTypeSubject::Web(_)
+                            | DataTypeSubject::Setting(_)
+                            | DataTypeSubject::Public,
+                            _,
+                        ) => {
                             return Err(InvalidRelationship::<Self>::invalid_subject(parts));
                         }
                     },
@@ -175,7 +318,16 @@ impl Relationship for (DataTypeUuid, DataTypeRelationAndSubject) {
                 DataTypeResourceRelation::Viewer => DataTypeRelationAndSubject::Viewer {
                     subject: match (parts.subject, parts.subject_set) {
                         (DataTypeSubject::Public, None) => DataTypeViewerSubject::Public,
-                        (DataTypeSubject::Web(_), None) => {
+                        (DataTypeSubject::Public, _) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                        }
+                        (
+                            DataTypeSubject::Web(_)
+                            | DataTypeSubject::Setting(_)
+                            | DataTypeSubject::Account(_)
+                            | DataTypeSubject::AccountGroup(_),
+                            _,
+                        ) => {
                             return Err(InvalidRelationship::<Self>::invalid_subject(parts));
                         }
                     },
@@ -198,6 +350,27 @@ impl Relationship for (DataTypeUuid, DataTypeRelationAndSubject) {
                 },
                 match subject {
                     DataTypeOwnerSubject::Web { id } => (DataTypeSubject::Web(id), None),
+                },
+            ),
+            DataTypeRelationAndSubject::Setting { subject, level } => (
+                LeveledRelation {
+                    name: DataTypeResourceRelation::Setting,
+                    level,
+                },
+                match subject {
+                    DataTypeSettingSubject::Setting { id } => (DataTypeSubject::Setting(id), None),
+                },
+            ),
+            DataTypeRelationAndSubject::Editor { subject, level } => (
+                LeveledRelation {
+                    name: DataTypeResourceRelation::Editor,
+                    level,
+                },
+                match subject {
+                    DataTypeEditorSubject::Account { id } => (DataTypeSubject::Account(id), None),
+                    DataTypeEditorSubject::AccountGroup { id, set } => {
+                        (DataTypeSubject::AccountGroup(id), Some(set))
+                    }
                 },
             ),
             DataTypeRelationAndSubject::Viewer { subject, level } => (

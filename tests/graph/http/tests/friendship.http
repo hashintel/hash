@@ -144,12 +144,21 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   ],
   "conversions": {},
-  "relationships": [{
-    "relation": "viewer",
-    "subject": {
-      "kind": "public"
+  "relationships": [
+    {
+      "relation": "viewer",
+      "subject": {
+        "kind": "public"
+      }
+    },
+    {
+      "relation": "setting",
+      "subject": {
+        "kind": "setting",
+        "subjectId": "updateFromWeb"
+      }
     }
-  }]
+  ]
 }
 
 > {%
@@ -276,37 +285,48 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Update Meter data type
-PUT http://127.0.0.1:4000/data-types
+PUT http://127.0.0.1:4000/data-types/bulk
 Content-Type: application/json
 Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
-{
-  "typeToUpdate": "{{meter_data_type_id}}",
-  "schema": {
-    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-    "kind": "dataType",
-    "title": "Meter",
-    "allOf": [{ "$ref": "http://localhost:3000/@alice/types/data-type/length/v/1" }],
-    "type": "number",
-    "description": "A unit of length equal to 100 centimeters",
-    "minimum": 0
-  },
-  "conversions": {},
-  "relationships": [{
-    "relation": "viewer",
-    "subject": {
-      "kind": "public"
-    }
-  }]
-}
+[
+  {
+    "typeToUpdate": "{{meter_data_type_id}}",
+    "schema": {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "kind": "dataType",
+      "title": "Meter",
+      "allOf": [{ "$ref": "http://localhost:3000/@alice/types/data-type/length/v/1" }],
+      "type": "number",
+      "description": "A unit of length equal to 100 centimeters",
+      "minimum": 0
+    },
+    "conversions": {},
+    "relationships": [
+      {
+        "relation": "viewer",
+        "subject": {
+          "kind": "public"
+        }
+      },
+      {
+        "relation": "setting",
+        "subject": {
+          "kind": "setting",
+          "subjectId": "updateFromWeb"
+        }
+      }
+    ]
+  }
+]
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("meter_data_type_id_2", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
-    client.global.set("meter_data_type_transaction_time_2", `${response.body.temporalVersioning.transactionTime.start.limit}`);
+    client.global.set("meter_data_type_id_2", `${response.body[0].recordId.baseUrl}v/${response.body[0].recordId.version}`);
+    client.global.set("meter_data_type_transaction_time_2", `${response.body[0].temporalVersioning.transactionTime.start.limit}`);
 %}
 
 ### Update Meter v2 data type embeddings

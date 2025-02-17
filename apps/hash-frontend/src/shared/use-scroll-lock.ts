@@ -60,14 +60,23 @@ export const useScrollLock = (
 ) => {
   const scrollbarSize = useLastScrollbarSize(elementToLock);
 
+  const madeChangesRequiringRemoval = useRef(false);
+
   useLayoutEffect(() => {
-    if (active && scrollbarSize) {
+    const overflow = elementToLock.style.overflow;
+
+    const overflowWasAlreadyHidden = overflow === "hidden";
+
+    if (active && scrollbarSize && !overflowWasAlreadyHidden) {
       elementToLock.style.setProperty("padding-right", `${scrollbarSize}px`);
       elementToLock.style.setProperty("overflow", `hidden`);
-    } else {
-      removeStylesFromElement(elementToLock);
+      madeChangesRequiringRemoval.current = true;
     }
 
-    return () => removeStylesFromElement(elementToLock);
+    return () => {
+      if (madeChangesRequiringRemoval.current) {
+        removeStylesFromElement(elementToLock);
+      }
+    };
   }, [active, scrollbarSize, elementToLock]);
 };
