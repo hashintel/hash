@@ -75,12 +75,12 @@
     "typescript": "5.7.3"
   },
   "devDependencies": {
-    "@apidevtools/json-schema-ref-parser": "11.9.0",
+    "@apidevtools/json-schema-ref-parser": "11.9.1",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.isequal": "4.5.8",
-    "@types/node": "22.13.1",
-    "@types/react": "19.0.8",
+    "@types/node": "22.13.4",
+    "@types/react": "19.0.9",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.3"
