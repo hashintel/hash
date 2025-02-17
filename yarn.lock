@@ -9056,7 +9056,7 @@ __metadata:
     globby: "npm:11.1.0"
     ignore: "npm:7.0.3"
     regex-parser: "npm:2.3.1"
-    sort-package-json: "npm:2.12.0"
+    sort-package-json: "npm:2.14.0"
     tsx: "npm:4.19.2"
     typescript: "npm:5.7.3"
   languageName: unknown
@@ -42449,9 +42449,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sort-package-json@npm:2.12.0":
-  version: 2.12.0
-  resolution: "sort-package-json@npm:2.12.0"
+"sort-package-json@npm:2.14.0":
+  version: 2.14.0
+  resolution: "sort-package-json@npm:2.14.0"
   dependencies:
     detect-indent: "npm:^7.0.1"
     detect-newline: "npm:^4.0.0"
@@ -42463,7 +42463,7 @@ __metadata:
     tinyglobby: "npm:^0.2.9"
   bin:
     sort-package-json: cli.js
-  checksum: 10c0/3c6b31068cfdd06a09993fa149e23d52ba33fe4cb54868aef06c4e589a1ad701b2cd74ff552749d06fbc2c64183fe0a0aee82fbef312f7f3cc14dd043430dc8f
+  checksum: 10c0/bcc114a3b5e11d4539ba46dd4eeda6d6909202cb1a9526c230850f1edfdfcf8712e9479b71f98d8f6cb8554740294acdfcaae84461dcecd90592867e1ba90924
   languageName: node
   linkType: hard
 
