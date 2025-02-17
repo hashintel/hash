@@ -470,8 +470,6 @@
 //! `unstable`     | Enables unstable features, these features are not covered by semver | disabled
 //!
 //!
-//! [`set_debug_hook`]: Report::set_debug_hook
-//!
 //! [`Error`]: core::error::Error
 //! [`Error::provide`]: core::error::Error::provide
 //! [`Backtrace`]: std::backtrace::Backtrace
