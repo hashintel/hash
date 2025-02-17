@@ -151,7 +151,7 @@ impl OrganizationPrincipalConstraint {
                     ast::PrincipalConstraint::is_in(Arc::new(organization_id.to_euid()))
                 },
             ),
-            OrganizationPrincipalConstraint::InRole {
+            Self::InRole {
                 organization_role_id,
             } => organization_role_id.map_or_else(
                 ast::PrincipalConstraint::is_in_slot,
@@ -174,7 +174,7 @@ impl OrganizationPrincipalConstraint {
                     )
                 },
             ),
-            OrganizationPrincipalConstraint::InRole {
+            Self::InRole {
                 organization_role_id,
             } => organization_role_id.map_or_else(
                 || ast::PrincipalConstraint::is_entity_type_in_slot(Arc::clone(C::entity_type())),
@@ -191,6 +191,8 @@ impl OrganizationPrincipalConstraint {
 
 #[cfg(test)]
 mod tests {
+    use core::error::Error;
+
     use serde_json::json;
     use uuid::Uuid;
 
@@ -204,10 +206,10 @@ mod tests {
     };
 
     #[test]
-    fn in_organization() {
+    fn in_organization() -> Result<(), Box<dyn Error>> {
         let organization_id = OrganizationId::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InOrganization {
+            &PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InOrganization {
                 organization_id: Some(organization_id),
             }),
             json!({
@@ -215,10 +217,10 @@ mod tests {
                 "organizationId": organization_id,
             }),
             format!(r#"principal in HASH::Organization::"{organization_id}""#),
-        );
+        )?;
 
         check_principal(
-            PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InOrganization {
+            &PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InOrganization {
                 organization_id: None,
             }),
             json!({
@@ -226,14 +228,14 @@ mod tests {
                 "organizationId": null,
             }),
             "principal in ?principal",
-        );
+        )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
                 "type": "organization",
             }),
             "data did not match any variant of untagged enum OrganizationPrincipalConstraint",
-        );
+        )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
@@ -242,14 +244,16 @@ mod tests {
                 "additional": "unexpected",
             }),
             "data did not match any variant of untagged enum OrganizationPrincipalConstraint",
-        );
+        )?;
+
+        Ok(())
     }
 
     #[test]
-    fn in_role() {
+    fn in_role() -> Result<(), Box<dyn Error>> {
         let role_id = OrganizationRoleId::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InRole {
+            &PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InRole {
                 organization_role_id: Some(role_id),
             }),
             json!({
@@ -257,10 +261,10 @@ mod tests {
                 "organizationRoleId": role_id,
             }),
             format!(r#"principal in HASH::Organization::Role::"{role_id}""#),
-        );
+        )?;
 
         check_principal(
-            PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InRole {
+            &PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InRole {
                 organization_role_id: None,
             }),
             json!({
@@ -268,7 +272,7 @@ mod tests {
                 "organizationRoleId": null,
             }),
             "principal in ?principal",
-        );
+        )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
@@ -277,6 +281,8 @@ mod tests {
                 "organizationRoleId": Uuid::new_v4(),
             }),
             "data did not match any variant of untagged enum OrganizationPrincipalConstraint",
-        );
+        )?;
+
+        Ok(())
     }
 }

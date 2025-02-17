@@ -108,6 +108,8 @@ impl UserPrincipalConstraint {
 
 #[cfg(test)]
 mod tests {
+    use core::error::Error;
+
     use serde_json::json;
     use uuid::Uuid;
 
@@ -121,14 +123,14 @@ mod tests {
     };
 
     #[test]
-    fn any() {
+    fn any() -> Result<(), Box<dyn Error>> {
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Any {}),
+            &PrincipalConstraint::User(UserPrincipalConstraint::Any {}),
             json!({
                 "type": "user",
             }),
             "principal is HASH::User",
-        );
+        )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
@@ -136,14 +138,16 @@ mod tests {
                 "additional": "unexpected",
             }),
             "data did not match any variant of untagged enum UserPrincipalConstraint",
-        );
+        )?;
+
+        Ok(())
     }
 
     #[test]
-    fn exact() {
+    fn exact() -> Result<(), Box<dyn Error>> {
         let user_id = UserId::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Exact {
+            &PrincipalConstraint::User(UserPrincipalConstraint::Exact {
                 user_id: Some(user_id),
             }),
             json!({
@@ -151,16 +155,16 @@ mod tests {
                 "userId": user_id,
             }),
             format!(r#"principal == HASH::User::"{user_id}""#),
-        );
+        )?;
 
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Exact { user_id: None }),
+            &PrincipalConstraint::User(UserPrincipalConstraint::Exact { user_id: None }),
             json!({
                 "type": "user",
                 "userId": null,
             }),
             "principal == ?principal",
-        );
+        )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
@@ -169,14 +173,16 @@ mod tests {
                 "additional": "unexpected",
             }),
             "data did not match any variant of untagged enum UserPrincipalConstraint",
-        );
+        )?;
+
+        Ok(())
     }
 
     #[test]
-    fn organization() {
+    fn organization() -> Result<(), Box<dyn Error>> {
         let organization_id = OrganizationId::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Organization(
+            &PrincipalConstraint::User(UserPrincipalConstraint::Organization(
                 OrganizationPrincipalConstraint::InOrganization {
                     organization_id: Some(organization_id),
                 },
@@ -186,10 +192,10 @@ mod tests {
                 "organizationId": organization_id,
             }),
             format!(r#"principal is HASH::User in HASH::Organization::"{organization_id}""#),
-        );
+        )?;
 
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Organization(
+            &PrincipalConstraint::User(UserPrincipalConstraint::Organization(
                 OrganizationPrincipalConstraint::InOrganization {
                     organization_id: None,
                 },
@@ -199,7 +205,7 @@ mod tests {
                 "organizationId": null,
             }),
             "principal is HASH::User in ?principal",
-        );
+        )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
@@ -208,14 +214,16 @@ mod tests {
                 "additional": "unexpected",
             }),
             "data did not match any variant of untagged enum UserPrincipalConstraint",
-        );
+        )?;
+
+        Ok(())
     }
 
     #[test]
-    fn organization_role() {
+    fn organization_role() -> Result<(), Box<dyn Error>> {
         let organization_role_id = OrganizationRoleId::new(Uuid::new_v4());
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Organization(
+            &PrincipalConstraint::User(UserPrincipalConstraint::Organization(
                 OrganizationPrincipalConstraint::InRole {
                     organization_role_id: Some(organization_role_id),
                 },
@@ -227,10 +235,10 @@ mod tests {
             format!(
                 r#"principal is HASH::User in HASH::Organization::Role::"{organization_role_id}""#
             ),
-        );
+        )?;
 
         check_principal(
-            PrincipalConstraint::User(UserPrincipalConstraint::Organization(
+            &PrincipalConstraint::User(UserPrincipalConstraint::Organization(
                 OrganizationPrincipalConstraint::InRole {
                     organization_role_id: None,
                 },
@@ -240,7 +248,7 @@ mod tests {
                 "organizationRoleId": null,
             }),
             "principal is HASH::User in ?principal",
-        );
+        )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
@@ -249,6 +257,8 @@ mod tests {
                 "additional": "unexpected",
             }),
             "data did not match any variant of untagged enum UserPrincipalConstraint",
-        );
+        )?;
+
+        Ok(())
     }
 }

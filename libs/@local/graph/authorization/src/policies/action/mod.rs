@@ -1,6 +1,6 @@
 #![expect(
     clippy::empty_enum,
-    reason = "serde::Deseiriealize does not use the never-type"
+    reason = "serde::Deserialize does not use the never-type"
 )]
 
 use alloc::sync::Arc;
@@ -8,8 +8,8 @@ use core::{error::Error, fmt, str::FromStr};
 use std::sync::LazyLock;
 
 use cedar_policy_core::ast;
-use error_stack::Report;
-use serde::Serialize;
+use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
+use serde::Serialize as _;
 
 use crate::policies::cedar::CedarEntityId;
 
@@ -40,8 +40,8 @@ impl CedarEntityId for ActionId {
 impl FromStr for ActionId {
     type Err = Report<impl Error + Send + Sync + 'static>;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(serde_plain::from_str(s)?)
+    fn from_str(action: &str) -> Result<Self, Self::Err> {
+        Ok(serde_plain::from_str(action)?)
     }
 }
 
@@ -59,6 +59,12 @@ impl ActionId {
             Self::ViewProperties | Self::ViewMetadata => &[Self::View],
         }
     }
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub(crate) enum InvalidActionConstraint {
+    #[display("Invalid action in constraint")]
+    InvalidAction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -83,6 +89,25 @@ pub enum ActionConstraint {
 }
 
 impl ActionConstraint {
+    pub(crate) fn try_from_cedar(
+        constraint: &ast::ActionConstraint,
+    ) -> Result<Self, Report<InvalidActionConstraint>> {
+        Ok(match constraint {
+            ast::ActionConstraint::Any => Self::All {},
+            ast::ActionConstraint::Eq(action) => Self::One {
+                action: ActionId::from_euid(action)
+                    .change_context(InvalidActionConstraint::InvalidAction)?,
+            },
+            ast::ActionConstraint::In(actions) => Self::Many {
+                actions: actions
+                    .iter()
+                    .map(|action| ActionId::from_euid(action))
+                    .try_collect_reports()
+                    .change_context(InvalidActionConstraint::InvalidAction)?,
+            },
+        })
+    }
+
     #[must_use]
     pub(crate) fn to_cedar(&self) -> ast::ActionConstraint {
         match self {
@@ -96,7 +121,10 @@ impl ActionConstraint {
 }
 
 #[cfg(test)]
+#[expect(clippy::panic_in_result_fn, reason = "Assertions in test are expected")]
 mod tests {
+    use core::error::Error;
+
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
 
@@ -108,27 +136,27 @@ mod tests {
 
     #[track_caller]
     pub(crate) fn check_action(
-        constraint: ActionConstraint,
+        constraint: &ActionConstraint,
         value: JsonValue,
         cedar_string: impl AsRef<str>,
-    ) {
-        check_serialization(&constraint, value);
+    ) -> Result<(), Box<dyn Error>> {
+        check_serialization(constraint, value);
 
         let cedar_constraint = constraint.to_cedar();
         assert_eq!(cedar_constraint.to_string(), cedar_string.as_ref());
-        ActionConstraint::try_from(cedar_constraint)
-            .expect("should be able to convert Cedar policy back");
+        ActionConstraint::try_from_cedar(&cedar_constraint)?;
+        Ok(())
     }
 
     #[test]
-    fn constraint_all() {
+    fn constraint_all() -> Result<(), Box<dyn Error>> {
         check_action(
-            ActionConstraint::All {},
+            &ActionConstraint::All {},
             json!({
                 "type": "all",
             }),
             "action",
-        );
+        )?;
 
         check_deserialization_error::<ActionConstraint>(
             json!({
@@ -136,27 +164,29 @@ mod tests {
                 "additional": "unexpected"
             }),
             "unknown field `additional`, there are no fields",
-        );
+        )?;
+
+        Ok(())
     }
 
     #[test]
-    fn constraint_one() {
+    fn constraint_one() -> Result<(), Box<dyn Error>> {
         let action = ActionId::ViewProperties;
         check_action(
-            ActionConstraint::One { action },
+            &ActionConstraint::One { action },
             json!({
                 "type": "one",
                 "action": action,
             }),
             format!(r#"action == HASH::Action::"{action}""#),
-        );
+        )?;
 
         check_deserialization_error::<ActionConstraint>(
             json!({
                 "type": "one",
             }),
             "missing field `action`",
-        );
+        )?;
 
         check_deserialization_error::<ActionConstraint>(
             json!({
@@ -165,14 +195,16 @@ mod tests {
                 "additional": "unexpected",
             }),
             "unknown field `additional`, expected `action`",
-        );
+        )?;
+
+        Ok(())
     }
 
     #[test]
-    fn constraint_many() {
+    fn constraint_many() -> Result<(), Box<dyn Error>> {
         let actions = [ActionId::ViewProperties, ActionId::ViewMetadata];
         check_action(
-            ActionConstraint::Many {
+            &ActionConstraint::Many {
                 actions: actions.to_vec(),
             },
             json!({
@@ -183,14 +215,14 @@ mod tests {
                 r#"action in [HASH::Action::"{}",HASH::Action::"{}"]"#,
                 actions[0], actions[1]
             ),
-        );
+        )?;
 
         check_deserialization_error::<ActionConstraint>(
             json!({
                 "type": "many",
             }),
             "missing field `actions`",
-        );
+        )?;
 
         check_deserialization_error::<ActionConstraint>(
             json!({
@@ -199,6 +231,8 @@ mod tests {
                 "additional": "unexpected",
             }),
             "unknown field `additional`, expected `actions`",
-        );
+        )?;
+
+        Ok(())
     }
 }

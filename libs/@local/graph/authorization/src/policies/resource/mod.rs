@@ -8,14 +8,14 @@ use core::{error::Error, str::FromStr as _};
 use std::sync::LazyLock;
 
 use cedar_policy_core::ast;
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _, bail};
 use uuid::Uuid;
 
 pub use self::entity::EntityResourceConstraint;
 use crate::policies::cedar::CedarEntityId;
 mod entity;
 
-use hash_graph_types::owned_by_id::OwnedById;
+use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
 
 impl CedarEntityId for OwnedById {
     fn entity_type() -> &'static Arc<ast::EntityType> {
@@ -53,6 +53,17 @@ pub enum ResourceConstraint {
     Entity(EntityResourceConstraint),
 }
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub(crate) enum InvalidResourceConstraint {
+    #[display("Cannot convert constraints containing slots")]
+    AmbiguousSlot,
+    #[error(ignore)]
+    #[display("Unexpected entity type: {_0}")]
+    UnexpectedEntityType(ast::EntityType),
+    #[display("Invalid resource ID")]
+    InvalidPrincipalId,
+}
+
 impl ResourceConstraint {
     #[must_use]
     pub const fn has_slot(&self) -> bool {
@@ -74,10 +85,97 @@ impl ResourceConstraint {
             Self::Entity(entity) => entity.to_cedar(),
         }
     }
+
+    pub(crate) fn try_from_cedar(
+        constraint: &ast::ResourceConstraint,
+    ) -> Result<Self, Report<InvalidResourceConstraint>> {
+        Ok(match constraint.as_inner() {
+            ast::PrincipalOrResourceConstraint::Any => Self::Global {},
+
+            ast::PrincipalOrResourceConstraint::Is(resource_type)
+                if **resource_type == **EntityUuid::entity_type() =>
+            {
+                Self::Entity(EntityResourceConstraint::Any {})
+            }
+            ast::PrincipalOrResourceConstraint::Is(resource_type) => {
+                bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                    ast::EntityType::clone(resource_type)
+                ))
+            }
+
+            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(resource))
+                if *resource.entity_type() == **EntityUuid::entity_type() =>
+            {
+                Self::Entity(EntityResourceConstraint::Exact {
+                    entity_uuid: Some(EntityUuid::new(
+                        Uuid::from_str(resource.eid().as_ref())
+                            .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
+                    )),
+                })
+            }
+            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(principal)) => {
+                bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                    principal.entity_type().clone()
+                ))
+            }
+            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::Slot(_)) => {
+                bail!(InvalidResourceConstraint::AmbiguousSlot)
+            }
+
+            ast::PrincipalOrResourceConstraint::IsIn(
+                resource_type,
+                ast::EntityReference::EUID(resource),
+            ) if **resource_type == **EntityUuid::entity_type() => {
+                if *resource.entity_type() == **OwnedById::entity_type() {
+                    Self::Entity(EntityResourceConstraint::Web {
+                        web_id: Some(OwnedById::new(
+                            Uuid::from_str(resource.eid().as_ref())
+                                .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
+                        )),
+                    })
+                } else {
+                    bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                        resource.entity_type().clone()
+                    ))
+                }
+            }
+            ast::PrincipalOrResourceConstraint::IsIn(
+                resource_type,
+                ast::EntityReference::EUID(_),
+            ) => bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                ast::EntityType::clone(resource_type)
+            )),
+            ast::PrincipalOrResourceConstraint::IsIn(_, ast::EntityReference::Slot(_)) => {
+                bail!(InvalidResourceConstraint::AmbiguousSlot)
+            }
+
+            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(resource))
+                if *resource.entity_type() == **OwnedById::entity_type() =>
+            {
+                Self::Web {
+                    web_id: Some(OwnedById::new(
+                        Uuid::from_str(resource.eid().as_ref())
+                            .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
+                    )),
+                }
+            }
+            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(resource)) => {
+                bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                    resource.entity_type().clone()
+                ))
+            }
+            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::Slot(_)) => {
+                bail!(InvalidResourceConstraint::AmbiguousSlot)
+            }
+        })
+    }
 }
 
 #[cfg(test)]
+#[expect(clippy::panic_in_result_fn, reason = "Assertions in test are expected")]
 mod tests {
+    use core::error::Error;
+
     use hash_graph_types::owned_by_id::OwnedById;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
@@ -88,29 +186,30 @@ mod tests {
 
     #[track_caller]
     pub(crate) fn check_resource(
-        constraint: ResourceConstraint,
+        constraint: &ResourceConstraint,
         value: JsonValue,
         cedar_string: impl AsRef<str>,
-    ) {
-        check_serialization(&constraint, value);
+    ) -> Result<(), Box<dyn Error>> {
+        check_serialization(constraint, value);
 
         let cedar_constraint = constraint.to_cedar();
         assert_eq!(cedar_constraint.to_string(), cedar_string.as_ref());
         if !constraint.has_slot() {
-            ResourceConstraint::try_from(cedar_constraint)
-                .expect("should be able to convert Cedar policy back");
+            ResourceConstraint::try_from_cedar(&cedar_constraint)?;
         }
+
+        Ok(())
     }
 
     #[test]
-    fn constraint_any() {
+    fn constraint_any() -> Result<(), Box<dyn Error>> {
         check_resource(
-            ResourceConstraint::Global {},
+            &ResourceConstraint::Global {},
             json!({
                 "type": "global",
             }),
             "resource",
-        );
+        )?;
 
         check_deserialization_error::<ResourceConstraint>(
             json!({
@@ -118,14 +217,16 @@ mod tests {
                 "additional": "unexpected"
             }),
             "unknown field `additional`, there are no fields",
-        );
+        )?;
+
+        Ok(())
     }
 
     #[test]
-    fn constraint_in_web() {
+    fn constraint_in_web() -> Result<(), Box<dyn Error>> {
         let web_id = OwnedById::new(Uuid::new_v4());
         check_resource(
-            ResourceConstraint::Web {
+            &ResourceConstraint::Web {
                 web_id: Some(web_id),
             },
             json!({
@@ -133,23 +234,23 @@ mod tests {
                 "webId": web_id,
             }),
             format!(r#"resource in HASH::Web::"{web_id}""#),
-        );
+        )?;
 
         check_resource(
-            ResourceConstraint::Web { web_id: None },
+            &ResourceConstraint::Web { web_id: None },
             json!({
                 "type": "web",
                 "webId": null,
             }),
             "resource in ?resource",
-        );
+        )?;
 
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "web",
             }),
             "missing field `webId`",
-        );
+        )?;
 
         check_deserialization_error::<ResourceConstraint>(
             json!({
@@ -158,6 +259,8 @@ mod tests {
                 "additional": "unexpected",
             }),
             "unknown field `additional`, expected `webId`",
-        );
+        )?;
+
+        Ok(())
     }
 }

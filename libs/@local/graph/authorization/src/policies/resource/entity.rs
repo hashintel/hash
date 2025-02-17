@@ -85,6 +85,8 @@ impl EntityResourceConstraint {
 
 #[cfg(test)]
 mod tests {
+    use core::error::Error;
+
     use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
     use serde_json::json;
     use uuid::Uuid;
@@ -96,14 +98,14 @@ mod tests {
     };
 
     #[test]
-    fn constraint_any() {
+    fn constraint_any() -> Result<(), Box<dyn Error>> {
         check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Any {}),
+            &ResourceConstraint::Entity(EntityResourceConstraint::Any {}),
             json!({
                 "type": "entity"
             }),
             "resource is HASH::Entity",
-        );
+        )?;
 
         check_deserialization_error::<ResourceConstraint>(
             json!({
@@ -111,14 +113,16 @@ mod tests {
                 "additional": "unexpected"
             }),
             "data did not match any variant of untagged enum EntityResourceConstraint",
-        );
+        )?;
+
+        Ok(())
     }
 
     #[test]
-    fn constraint_exact() {
+    fn constraint_exact() -> Result<(), Box<dyn Error>> {
         let entity_uuid = EntityUuid::new(Uuid::new_v4());
         check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Exact {
+            &ResourceConstraint::Entity(EntityResourceConstraint::Exact {
                 entity_uuid: Some(entity_uuid),
             }),
             json!({
@@ -126,15 +130,16 @@ mod tests {
                 "entityUuid": entity_uuid,
             }),
             format!(r#"resource == HASH::Entity::"{entity_uuid}""#),
-        );
+        )?;
+
         check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Exact { entity_uuid: None }),
+            &ResourceConstraint::Entity(EntityResourceConstraint::Exact { entity_uuid: None }),
             json!({
                 "type": "entity",
                 "entityUuid": null,
             }),
             "resource == ?resource",
-        );
+        )?;
 
         check_deserialization_error::<ResourceConstraint>(
             json!({
@@ -143,14 +148,16 @@ mod tests {
                 "entityUuid": entity_uuid,
             }),
             "data did not match any variant of untagged enum EntityResourceConstraint",
-        );
+        )?;
+
+        Ok(())
     }
 
     #[test]
-    fn constraint_in_web() {
+    fn constraint_in_web() -> Result<(), Box<dyn Error>> {
         let web_id = OwnedById::new(Uuid::new_v4());
         check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Web {
+            &ResourceConstraint::Entity(EntityResourceConstraint::Web {
                 web_id: Some(web_id),
             }),
             json!({
@@ -158,16 +165,16 @@ mod tests {
                 "webId": web_id,
             }),
             format!(r#"resource is HASH::Entity in HASH::Web::"{web_id}""#),
-        );
+        )?;
 
         check_resource(
-            ResourceConstraint::Entity(EntityResourceConstraint::Web { web_id: None }),
+            &ResourceConstraint::Entity(EntityResourceConstraint::Web { web_id: None }),
             json!({
                 "type": "entity",
                 "webId": null,
             }),
             "resource is HASH::Entity in ?resource",
-        );
+        )?;
 
         check_deserialization_error::<ResourceConstraint>(
             json!({
@@ -176,6 +183,8 @@ mod tests {
                 "entityUuid": EntityUuid::new(Uuid::new_v4()),
             }),
             "data did not match any variant of untagged enum EntityResourceConstraint",
-        );
+        )?;
+
+        Ok(())
     }
 }

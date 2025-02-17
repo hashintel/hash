@@ -346,8 +346,9 @@ where
 }
 
 #[cfg(test)]
+#[expect(clippy::panic_in_result_fn, reason = "Assertions in test are expected")]
 mod test_utils {
-    use core::fmt;
+    use core::{error::Error, fmt};
 
     use pretty_assertions::assert_eq;
     use serde::{Deserialize, Serialize};
@@ -366,16 +367,20 @@ mod test_utils {
     }
 
     #[track_caller]
-    pub(crate) fn check_deserialization_error<T>(value: JsonValue, error: impl AsRef<str>)
+    pub(crate) fn check_deserialization_error<T>(
+        value: JsonValue,
+        error: impl AsRef<str>,
+    ) -> Result<(), Box<dyn Error>>
     where
         T: fmt::Debug + Serialize + for<'de> Deserialize<'de>,
     {
         match serde_json::from_value::<T>(value) {
             Ok(value) => panic!(
                 "should not be a valid resource constraint: {:#}",
-                serde_json::to_value(&value).expect("should be JSON representable")
+                serde_json::to_value(&value)?
             ),
             Err(actual_error) => assert_eq!(actual_error.to_string(), error.as_ref()),
         }
+        Ok(())
     }
 }
