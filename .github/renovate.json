@@ -8,5 +8,5 @@
     "branchTopic": "lock-regenerate",
     "commitMessageAction": "Regenerate lock files",
     "schedule": ["before 4am on sunday"]
-  },
+  }
 }
