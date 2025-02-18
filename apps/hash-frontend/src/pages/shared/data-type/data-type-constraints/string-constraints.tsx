@@ -79,14 +79,12 @@ const StringLengthEditor = ({
 };
 
 export const StringConstraintEditor = ({
-  ownConst,
   ownFormat,
   ownEnum,
   ownMinLength,
   ownMaxLength,
   inheritedConstraints,
 }: {
-  ownConst?: string;
   ownEnum?: [string, ...string[]];
   ownFormat?: StringFormat;
   ownMinLength?: number;
@@ -261,8 +259,7 @@ export const StringConstraints = ({
       </Box>
       {!isReadOnly && (
         <StringConstraintEditor
-          ownConst={ownConst}
-          ownEnum={ownEnum}
+          ownEnum={ownEnum as [string, ...string[]]}
           ownMinLength={ownMinLength}
           ownMaxLength={ownMaxLength}
           inheritedConstraints={inheritedConstraints}

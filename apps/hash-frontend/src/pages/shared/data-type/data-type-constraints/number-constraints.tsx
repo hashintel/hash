@@ -371,7 +371,7 @@ export const NumberConstraints = ({
       </Box>
       {!isReadOnly && !ownConst && !inheritedConstraints.const && (
         <NumberConstraintEditor
-          ownEnum={ownEnum}
+          ownEnum={ownEnum as [number, ...number[]]}
           ownMinimum={ownMinimum}
           ownMaximum={ownMaximum}
           ownExclusiveMinimum={ownExclusiveMinimum}

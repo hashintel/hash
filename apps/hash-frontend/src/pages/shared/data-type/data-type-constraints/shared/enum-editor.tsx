@@ -301,8 +301,6 @@ export const EnumEditor = ({
 
   const errors = formState.errors;
 
-  console.log({ errors });
-
   const items = ownEnum ?? inheritedConstraints.enum?.value;
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
