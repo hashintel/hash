@@ -1,6 +1,7 @@
 import type { StringFormat } from "@blockprotocol/type-system";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Box, Stack, Typography } from "@mui/material";
+import { useEffect } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
 import type { DataTypeFormData } from "../data-type-form";
@@ -83,14 +84,12 @@ const StringLengthEditor = ({
 };
 
 export const StringConstraintEditor = ({
-  hasEnum,
   ownFormat,
   ownEnum,
   ownMinLength,
   ownMaxLength,
   inheritedConstraints,
 }: {
-  hasEnum: boolean;
   ownEnum?: [string, ...string[]];
   ownFormat?: StringFormat;
   ownMinLength?: number;
@@ -98,6 +97,8 @@ export const StringConstraintEditor = ({
   inheritedConstraints: InheritedConstraints;
 }) => {
   const format = ownFormat ?? inheritedConstraints.format?.value;
+
+  const hasEnum = "enum" in inheritedConstraints || !!ownEnum;
 
   return (
     <Stack gap={3} mt={2}>
@@ -184,21 +185,18 @@ export const StringConstraints = ({
   inheritedConstraints: InheritedConstraints;
   isReadOnly: boolean;
 }) => {
-  const { control } = useFormContext<DataTypeFormData>();
+  const { control, setValue } = useFormContext<DataTypeFormData>();
 
   const constraints = useWatch({ control, name: "constraints" });
 
   const type = inheritedConstraints.type?.value ?? constraints.type;
-
-  if (type !== "string") {
-    throw new Error("String constraint expected");
-  }
 
   const ownFormat = "format" in constraints ? constraints.format : undefined;
   const ownMinLength =
     "minLength" in constraints ? constraints.minLength : undefined;
   const ownMaxLength =
     "maxLength" in constraints ? constraints.maxLength : undefined;
+
   const ownPattern = "pattern" in constraints ? constraints.pattern : undefined;
   const ownConst = "const" in constraints ? constraints.const : undefined;
   const ownEnum = "enum" in constraints ? constraints.enum : undefined;
@@ -214,6 +212,17 @@ export const StringConstraints = ({
   const patterns: string[] = [];
   if (ownPattern) {
     patterns.push(ownPattern);
+  }
+
+  useEffect(() => {
+    if (["date", "date-time"].includes(format ?? "")) {
+      setValue("constraints.minLength", undefined, { shouldDirty: true });
+      setValue("constraints.maxLength", undefined, { shouldDirty: true });
+    }
+  }, [format, setValue]);
+
+  if (type !== "string") {
+    throw new Error("String constraint expected");
   }
 
   if (

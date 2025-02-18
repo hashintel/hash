@@ -103,7 +103,7 @@ const itemContainerStyles: SxProps<Theme> = ({ palette }) => ({
 
 const EnumItem = ({
   error,
-  isLastItem,
+  isOnlyItem,
   onDelete,
   inheritedFromTitle,
   item,
@@ -113,7 +113,7 @@ const EnumItem = ({
   onDelete: () => void;
   inheritedFromTitle?: string;
   item: number | string;
-  isLastItem: boolean;
+  isOnlyItem: boolean;
   setEditing: () => void;
 }) => {
   const {
@@ -128,7 +128,7 @@ const EnumItem = ({
     id: item,
   });
 
-  const isLastUnremovableItem = isLastItem && inheritedFromTitle;
+  const isLastUnremovableItem = isOnlyItem && inheritedFromTitle;
 
   return (
     <Stack
@@ -379,14 +379,16 @@ export const EnumEditor = ({
       return;
     }
 
-    if (editingIndex === items?.length) {
-      const newItems = [...items, draftValue] as NonNullable<typeof items>;
+    if (!items?.length || editingIndex === items.length) {
+      const newItems = [...(items ?? []), draftValue] as NonNullable<
+        typeof items
+      >;
       setValue("constraints.enum", newItems, { shouldDirty: true });
 
       setDraftValue("");
       setEditingIndex(newItems.length);
     } else {
-      const newItems = [...(items ?? [])];
+      const newItems = [...items];
       newItems[editingIndex] = draftValue;
       setValue("constraints.enum", newItems as NonNullable<typeof items>, {
         shouldDirty: true,
@@ -470,28 +472,25 @@ export const EnumEditor = ({
           });
           continue;
         }
-        if (mergedSchema.format === "email") {
-          if (!emailRegExp.test(value)) {
-            setError(`constraints.enum.${index}`, {
-              message: "Value must be a valid email address",
-            });
-          }
+        if (mergedSchema.format === "email" && !emailRegExp.test(value)) {
+          setError(`constraints.enum.${index}`, {
+            message: "Value must be a valid email address",
+          });
           continue;
         }
-        if (mergedSchema.format === "date-time") {
-          if (!dateTimeRegExp.test(value)) {
-            setError(`constraints.enum.${index}`, {
-              message: "Value must be a valid date & time in ISO 8601 format",
-            });
-          }
+        if (
+          mergedSchema.format === "date-time" &&
+          !dateTimeRegExp.test(value)
+        ) {
+          setError(`constraints.enum.${index}`, {
+            message: "Value must be a valid date & time in ISO 8601 format",
+          });
           continue;
         }
-        if (mergedSchema.format === "date") {
-          if (!yyyymmddRegExp.test(value)) {
-            setError(`constraints.enum.${index}`, {
-              message: "Value must be a valid date in YYYY-MM-DD format",
-            });
-          }
+        if (mergedSchema.format === "date" && !yyyymmddRegExp.test(value)) {
+          setError(`constraints.enum.${index}`, {
+            message: "Value must be a valid date in YYYY-MM-DD format",
+          });
           continue;
         }
         if (mergedSchema.format === "uri") {
@@ -512,8 +511,8 @@ export const EnumEditor = ({
             setError(`constraints.enum.${index}`, {
               message: `Value must match the RegExp pattern: ${failedPattern}`,
             });
+            continue;
           }
-          continue;
         }
 
         clearErrors(`constraints.enum.${index}`);
@@ -608,7 +607,7 @@ export const EnumEditor = ({
                       }
                       key={item}
                       inheritedFromTitle={inheritedEnum?.from.title}
-                      isLastItem={index === (items?.length ?? 0) - 1}
+                      isOnlyItem={items?.length === 1}
                       item={item}
                       onDelete={() => removeItem(index)}
                       setEditing={() => {

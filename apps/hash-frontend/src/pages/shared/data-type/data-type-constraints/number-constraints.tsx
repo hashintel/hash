@@ -49,6 +49,16 @@ const NumberRangeEditor = ({
     defaultValue: ownMaximum ?? inheritedMaximum?.value.value,
   });
 
+  const exclusiveMinimumDisabled =
+    hasEnum ||
+    (ownMinimum === inheritedMinimum?.value.value &&
+      inheritedConstraints.minimum?.value.exclusive === true);
+
+  const exclusiveMaximumDisabled =
+    hasEnum ||
+    (ownMaximum === inheritedMaximum?.value.value &&
+      inheritedConstraints.maximum?.value.exclusive === true);
+
   return (
     <Stack direction="row" gap={3}>
       <Box>
@@ -77,7 +87,7 @@ const NumberRangeEditor = ({
               ownExclusiveMinimum ??
               inheritedConstraints.minimum?.value.exclusive
             }
-            disabled={inheritedConstraints.minimum?.value.exclusive ?? hasEnum}
+            disabled={exclusiveMinimumDisabled}
             onChange={(event) =>
               setValue("constraints.exclusiveMinimum", event.target.checked)
             }
@@ -85,6 +95,15 @@ const NumberRangeEditor = ({
               svg: {
                 width: 14,
                 height: 14,
+                rect: {
+                  fill: exclusiveMinimumDisabled
+                    ? ({ palette }) =>
+                        (ownExclusiveMinimum ??
+                        inheritedConstraints.minimum?.value.exclusive)
+                          ? palette.gray[40]
+                          : palette.gray[20]
+                    : undefined,
+                },
               },
             }}
           />
@@ -131,15 +150,21 @@ const NumberRangeEditor = ({
               ownExclusiveMaximum ??
               inheritedConstraints.maximum?.value.exclusive
             }
-            disabled={
-              typeof inheritedConstraints.maximum?.value.exclusive !==
-              "undefined"
-            }
+            disabled={exclusiveMaximumDisabled}
             onChange={(event) =>
               setValue("constraints.exclusiveMaximum", event.target.checked)
             }
             sx={{
               svg: {
+                rect: {
+                  fill: exclusiveMaximumDisabled
+                    ? ({ palette }) =>
+                        (ownExclusiveMaximum ??
+                        inheritedConstraints.maximum?.value.exclusive)
+                          ? palette.gray[40]
+                          : palette.gray[20]
+                    : undefined,
+                },
                 width: 14,
                 height: 14,
               },

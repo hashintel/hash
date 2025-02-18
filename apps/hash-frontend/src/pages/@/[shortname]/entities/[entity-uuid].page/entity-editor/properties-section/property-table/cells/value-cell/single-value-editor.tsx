@@ -309,7 +309,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     }
 
     return (
-      <GridEditorWrapper sx={{ px: 2 }}>
+      <GridEditorWrapper>
         <Autocomplete
           componentsProps={{
             paper: {
