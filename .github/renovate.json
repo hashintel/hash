@@ -2,5 +2,11 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>hashintel/.github:renovate-config"],
   "description": "HASH public monorepo (hashintel/hash) Renovate configuration",
-  "dependencyDashboardOSVVulnerabilitySummary": "none"
+  "dependencyDashboardOSVVulnerabilitySummary": "none",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "branchTopic": "lock-regenerate",
+    "commitMessageAction": "Regenerate lock files",
+    "schedule": ["before 4am on sunday"]
+  }
 }
