@@ -10,12 +10,14 @@ import { NumberInput } from "./shared/number-input";
 import type { InheritedConstraints } from "./types";
 
 const NumberRangeEditor = ({
+  hasEnum,
   ownMinimum,
   ownMaximum,
   ownExclusiveMinimum,
   ownExclusiveMaximum,
   inheritedConstraints,
 }: {
+  hasEnum: boolean;
   ownMinimum?: number;
   ownMaximum?: number;
   ownExclusiveMinimum?: boolean;
@@ -57,6 +59,7 @@ const NumberRangeEditor = ({
         </ItemLabel>
         <NumberInput
           {...minimumController.field}
+          disabled={hasEnum}
           min={inheritedMinimum?.value.value}
           max={ownMaximum ?? inheritedMaximum?.value.value}
         />
@@ -74,7 +77,7 @@ const NumberRangeEditor = ({
               ownExclusiveMinimum ??
               inheritedConstraints.minimum?.value.exclusive
             }
-            disabled={inheritedConstraints.minimum?.value.exclusive}
+            disabled={inheritedConstraints.minimum?.value.exclusive ?? hasEnum}
             onChange={(event) =>
               setValue("constraints.exclusiveMinimum", event.target.checked)
             }
@@ -109,6 +112,7 @@ const NumberRangeEditor = ({
         </ItemLabel>
         <NumberInput
           {...maximumController.field}
+          disabled={hasEnum}
           min={ownMinimum ?? inheritedMinimum?.value.value}
           max={inheritedMaximum?.value.value}
         />
@@ -182,6 +186,7 @@ export const NumberConstraintEditor = ({
     <Stack gap={3} mt={2}>
       {!inheritedConstraints.enum && (
         <NumberRangeEditor
+          hasEnum={"enum" in inheritedConstraints || !!ownEnum}
           ownMinimum={ownMinimum}
           ownMaximum={ownMaximum}
           ownExclusiveMinimum={ownExclusiveMinimum}

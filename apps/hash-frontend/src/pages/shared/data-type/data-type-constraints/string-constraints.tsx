@@ -15,10 +15,12 @@ const isStringLengthIrrelevant = (format?: StringFormat) => {
 };
 
 const StringLengthEditor = ({
+  hasEnum,
   ownMinLength,
   ownMaxLength,
   inheritedConstraints,
 }: {
+  hasEnum: boolean;
   ownMinLength?: number;
   ownMaxLength?: number;
   inheritedConstraints: InheritedConstraints;
@@ -58,6 +60,7 @@ const StringLengthEditor = ({
         </ItemLabel>
         <NumberInput
           {...minLengthController.field}
+          disabled={hasEnum}
           min={inheritedMinLength?.value}
           max={ownMaxLength ?? inheritedMaxLength?.value}
         />
@@ -70,6 +73,7 @@ const StringLengthEditor = ({
         </ItemLabel>
         <NumberInput
           {...maxLengthController.field}
+          disabled={hasEnum}
           min={ownMinLength ?? inheritedMinLength?.value}
           max={inheritedMaxLength?.value}
         />
@@ -79,12 +83,14 @@ const StringLengthEditor = ({
 };
 
 export const StringConstraintEditor = ({
+  hasEnum,
   ownFormat,
   ownEnum,
   ownMinLength,
   ownMaxLength,
   inheritedConstraints,
 }: {
+  hasEnum: boolean;
   ownEnum?: [string, ...string[]];
   ownFormat?: StringFormat;
   ownMinLength?: number;
@@ -97,6 +103,7 @@ export const StringConstraintEditor = ({
     <Stack gap={3} mt={2}>
       {!inheritedConstraints.enum && !isStringLengthIrrelevant(format) && (
         <StringLengthEditor
+          hasEnum={hasEnum}
           ownMinLength={ownMinLength}
           ownMaxLength={ownMaxLength}
           inheritedConstraints={inheritedConstraints}

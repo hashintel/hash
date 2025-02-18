@@ -22,11 +22,18 @@ export const getDataTypeFromFormData = ({
   DataType,
   "$id" | "$schema" | "kind"
 > => {
+  const enumConstraint = "enum" in constraints ? constraints.enum : undefined;
+
   return {
     ...rest,
     allOf: allOf.map((versionedUrl) => ({ $ref: versionedUrl })),
     label: Object.keys(label ?? {}).length > 0 ? label : undefined,
-    ...constraints,
+    ...(enumConstraint
+      ? {
+          enum: enumConstraint as [number, ...number[]],
+          type: constraints.type as "number",
+        }
+      : constraints),
   };
 };
 

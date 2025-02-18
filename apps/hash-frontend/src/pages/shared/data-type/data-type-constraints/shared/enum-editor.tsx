@@ -103,6 +103,7 @@ const itemContainerStyles: SxProps<Theme> = ({ palette }) => ({
 
 const EnumItem = ({
   error,
+  isLastItem,
   onDelete,
   inheritedFromTitle,
   item,
@@ -112,6 +113,7 @@ const EnumItem = ({
   onDelete: () => void;
   inheritedFromTitle?: string;
   item: number | string;
+  isLastItem: boolean;
   setEditing: () => void;
 }) => {
   const {
@@ -125,6 +127,8 @@ const EnumItem = ({
   } = useSortable({
     id: item,
   });
+
+  const isLastUnremovableItem = isLastItem && inheritedFromTitle;
 
   return (
     <Stack
@@ -161,7 +165,7 @@ const EnumItem = ({
           variant="smallTextParagraphs"
           sx={{
             lineHeight: 1,
-            mr: 2,
+            mr: isLastUnremovableItem ? 0.5 : 2,
             fontSize: 13,
             ml: inheritedFromTitle ? 0.5 : 0,
           }}
@@ -193,7 +197,9 @@ const EnumItem = ({
             </IconButton>
           </Tooltip>
         )}
-        <DeleteOrCancelButton onClick={onDelete} type="Delete" />
+        {!isLastUnremovableItem && (
+          <DeleteOrCancelButton onClick={onDelete} type="Delete" />
+        )}
       </Stack>
       {error && (
         <Tooltip title={error} placement="top">
@@ -602,6 +608,7 @@ export const EnumEditor = ({
                       }
                       key={item}
                       inheritedFromTitle={inheritedEnum?.from.title}
+                      isLastItem={index === (items?.length ?? 0) - 1}
                       item={item}
                       onDelete={() => removeItem(index)}
                       setEditing={() => {
