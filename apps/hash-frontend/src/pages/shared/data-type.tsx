@@ -7,8 +7,8 @@ import type {
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 import type { DataTypeRootType } from "@local/hash-subgraph/types";
 import type { Theme } from "@mui/material";
 import { Box, Container, Typography } from "@mui/material";
@@ -32,6 +32,7 @@ import {
   updateDataTypeMutation,
 } from "../../graphql/queries/ontology/data-type.queries";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
+import { Link } from "../../shared/ui/link";
 import { useUserPermissionsOnDataType } from "../../shared/use-user-permissions-on-data-type";
 import { DataTypeConstraints } from "./data-type/data-type-constraints";
 import {
@@ -97,7 +98,12 @@ export const DataType = ({
     },
   });
 
-  const { control, handleSubmit: wrapHandleSubmit, reset } = formMethods;
+  const {
+    control,
+    formState,
+    handleSubmit: wrapHandleSubmit,
+    reset,
+  } = formMethods;
 
   const parents = useWatch({
     control,
@@ -125,6 +131,7 @@ export const DataType = ({
       latestOnly: false,
     },
     skip: !!draftNewDataType,
+    fetchPolicy: "cache-and-network",
   });
 
   const { remoteDataType, latestVersionNumber: latestVersion } = useMemo<{
@@ -162,12 +169,8 @@ export const DataType = ({
     }
 
     if (!requestedVersion || !matchedDataType) {
-      void router.push(
-        generateLinkParameters(highestVersionDataType.schema.$id).href,
-      );
-
       return {
-        remoteDataType: highestVersionDataType,
+        remoteDataType: null,
         latestVersionNumber: highestVersionDataType.metadata.recordId.version,
       };
     }
@@ -176,7 +179,7 @@ export const DataType = ({
       remoteDataType: matchedDataType,
       latestVersionNumber: highestVersionDataType.metadata.recordId.version,
     };
-  }, [remoteDataTypeData, requestedVersion, draftNewDataType, router]);
+  }, [remoteDataTypeData, requestedVersion, draftNewDataType]);
 
   useEffect(() => {
     if (remoteDataType) {
@@ -224,6 +227,7 @@ export const DataType = ({
       }
 
       void router.push(response.data.createDataType.schema.$id);
+      return;
     }
 
     if (!remoteDataType?.schema.$id) {
@@ -253,9 +257,26 @@ export const DataType = ({
     return (
       <NotFound
         resourceLabel={{
-          label: "data type",
-          withArticle: "a data type",
+          label: latestVersion ? "data type version" : "data type",
+          withArticle: latestVersion ? "a version" : "a data type",
         }}
+        additionalText={
+          latestVersion && dataTypeBaseUrl ? (
+            <>
+              The latest version can be found{" "}
+              <Link
+                href={
+                  generateLinkParameters(
+                    versionedUrlFromComponents(dataTypeBaseUrl, latestVersion),
+                  ).href
+                }
+              >
+                here
+              </Link>
+              .
+            </>
+          ) : undefined
+        }
       />
     );
   }
@@ -323,7 +344,9 @@ export const DataType = ({
               errorMessage={
                 parents.length === 0
                   ? "must extend another data type"
-                  : undefined
+                  : Object.keys(formState.errors).length > 0
+                    ? "see validation errors below"
+                    : undefined
               }
               key={dataType.schema.$id} // reset edit bar state when the data type changes
             />

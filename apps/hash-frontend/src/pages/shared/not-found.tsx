@@ -4,6 +4,7 @@ import {
   UserPlusRegularIcon,
 } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
+import type { ReactNode } from "react";
 
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { Button } from "../../shared/ui/button";
@@ -34,8 +35,10 @@ const GoBackButton = () => {
 };
 
 export const NotFound = ({
+  additionalText,
   resourceLabel = { label: "page", withArticle: "a page" },
 }: {
+  additionalText?: ReactNode;
   resourceLabel?: {
     label: string;
     withArticle?: string;
@@ -81,6 +84,15 @@ export const NotFound = ({
               are logged in as{" "}
               <strong>{authenticatedUser.emails[0]?.address}</strong>
             </Typography>
+            {additionalText && (
+              <Typography
+                component="p"
+                variant="regularTextParagraphs"
+                sx={{ color: ({ palette }) => palette.gray[80], mt: 2 }}
+              >
+                {additionalText}
+              </Typography>
+            )}
             <Box mt={5}>
               <GoBackButton />
             </Box>

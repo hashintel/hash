@@ -357,6 +357,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
         ref={textInputFormRef}
       >
         <NumberOrTextInput
+          multiLineText={schema.type === "string"}
           schema={schema}
           isNumber={schema.type === "number"}
           value={(value as number | string | undefined) ?? ""}

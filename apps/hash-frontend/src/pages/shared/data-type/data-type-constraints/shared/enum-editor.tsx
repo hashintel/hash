@@ -25,16 +25,11 @@ import {
 import type { MergedValueSchema } from "@local/hash-isomorphic-utils/data-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Tooltip, Typography } from "@mui/material";
-import {
-  Box,
-  Stack,
-  type fontSize,
-  type SxProps,
-  type Theme,
-} from "@mui/system";
-import { useState } from "react";
+import { Box, Stack, type SxProps, type Theme } from "@mui/system";
+import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import { useFormContext } from "react-hook-form";
 
+import { TriangleExclamationRegularIcon } from "../../../../../shared/icons/triangle-exclamation-regular-icon";
 import { Button } from "../../../../../shared/ui";
 import { NumberOrTextInput } from "../../../number-or-text-input";
 import type { DataTypeFormData } from "../../data-type-form";
@@ -103,16 +98,19 @@ const itemContainerStyles: SxProps<Theme> = ({ palette }) => ({
   px: 1,
   py: 0.6,
   flex: 0,
+  position: "relative",
 });
 
 const EnumItem = ({
+  error,
   onDelete,
-  inheritedFrom,
+  inheritedFromTitle,
   item,
   setEditing,
 }: {
+  error?: string;
   onDelete: () => void;
-  inheritedFrom?: string;
+  inheritedFromTitle?: string;
   item: number | string;
   setEditing: () => void;
 }) => {
@@ -139,33 +137,40 @@ const EnumItem = ({
       {...attributes}
     >
       <Stack direction="row" alignItems="center">
-        <Box
-          component="span"
-          sx={{
-            cursor: isDragging || isSorting ? "grabbing" : "grab",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            mr: 1,
-          }}
-          {...listeners}
-        >
-          <DragIndicatorIcon
+        {!inheritedFromTitle && (
+          <Box
+            component="span"
             sx={{
-              fontSize: 16,
-              color: ({ palette }) => palette.gray[50],
+              cursor: isDragging || isSorting ? "grabbing" : "grab",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              mr: 1,
             }}
-          />
-        </Box>
+            {...listeners}
+          >
+            <DragIndicatorIcon
+              sx={{
+                fontSize: 16,
+                color: ({ palette }) => palette.gray[50],
+              }}
+            />
+          </Box>
+        )}
         <Typography
           variant="smallTextParagraphs"
-          sx={{ lineHeight: 1, mr: 2, fontSize: 13 }}
+          sx={{
+            lineHeight: 1,
+            mr: 2,
+            fontSize: 13,
+            ml: inheritedFromTitle ? 0.5 : 0,
+          }}
         >
           {item}
         </Typography>
       </Stack>
       <Stack direction="row" alignItems="center" gap={0.2}>
-        {!inheritedFrom && (
+        {!inheritedFromTitle && (
           <Tooltip title="Edit" placement="top">
             <IconButton
               onClick={() => setEditing()}
@@ -190,50 +195,78 @@ const EnumItem = ({
         )}
         <DeleteOrCancelButton onClick={onDelete} type="Delete" />
       </Stack>
+      {error && (
+        <Tooltip title={error} placement="top">
+          <TriangleExclamationRegularIcon
+            sx={{
+              fontSize: 14,
+              color: ({ palette }) => palette.red[70],
+              position: "absolute",
+              right: -25,
+            }}
+          />
+        </Tooltip>
+      )}
     </Stack>
   );
 };
 
 const EditingRow = ({
-  mergedSchema,
   draftValue,
-  setDraftValue,
+  mergedSchema,
   saveItem,
+  setDraftValue,
   setEditingIndex,
   type,
 }: {
+  draftValue: string | number;
   mergedSchema: MergedValueSchema;
-  draftValue: string | number | undefined;
-  setDraftValue: (value: string | number | undefined) => void;
   saveItem: () => void;
+  setDraftValue: (value: string | number) => void;
   setEditingIndex: (index: number | null) => void;
   type: "string" | "number";
-}) => (
-  <Stack
-    direction="row"
-    alignItems="center"
-    sx={[itemContainerStyles, { pl: 1.5, maxWidth: 200 }]}
-  >
-    <NumberOrTextInput
-      fontSize={14}
-      isNumber={type === "number"}
-      onChange={(value) => {
-        setDraftValue(value);
-      }}
-      schema={mergedSchema}
-      value={draftValue}
-    />
-    <Stack direction="row" gap={0.2}>
-      <SaveButton onClick={saveItem} />
-      <DeleteOrCancelButton
-        onClick={() => setEditingIndex(null)}
-        type="Cancel"
-      />
-    </Stack>
-  </Stack>
-);
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null);
 
-export const EnumEditor = <T extends string | number>({
+  const submit = () => {
+    const valid = inputRef.current?.checkValidity();
+    if (valid) {
+      saveItem();
+    } else {
+      inputRef.current?.reportValidity();
+    }
+  };
+
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      sx={[itemContainerStyles, { pl: 1.5, maxWidth: 200 }]}
+    >
+      <NumberOrTextInput
+        fontSize={14}
+        inputRef={inputRef}
+        isNumber={type === "number"}
+        onChange={(value) => {
+          setDraftValue(value ?? "");
+        }}
+        onEnterPressed={submit}
+        onEscapePressed={() => setEditingIndex(null)}
+        schema={mergedSchema}
+        value={draftValue}
+      />
+      <Stack direction="row" gap={0.2}>
+        <SaveButton onClick={submit} />
+        <DeleteOrCancelButton
+          onClick={() => setEditingIndex(null)}
+          type="Cancel"
+        />
+      </Stack>
+    </Stack>
+  );
+};
+
+export const EnumEditor = ({
   ownEnum,
   ownFormat,
   ownMinLength,
@@ -246,7 +279,7 @@ export const EnumEditor = <T extends string | number>({
   inheritedConstraints,
   type,
 }: {
-  ownEnum?: T[];
+  ownEnum?: [string, ...string[]] | [number, ...number[]];
   ownFormat?: StringFormat;
   ownMinLength?: number;
   ownMaxLength?: number;
@@ -258,12 +291,15 @@ export const EnumEditor = <T extends string | number>({
   inheritedConstraints: InheritedConstraints;
   type: "string" | "number";
 }) => {
-  const { setValue } = useFormContext<DataTypeFormData>();
+  const { clearErrors, setError, setValue, formState } =
+    useFormContext<DataTypeFormData>();
+
+  const errors = formState.errors;
+
+  console.log({ errors });
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [draftValue, setDraftValue] = useState<string | number | undefined>(
-    undefined,
-  );
+  const [draftValue, setDraftValue] = useState<string | number>("");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -272,24 +308,48 @@ export const EnumEditor = <T extends string | number>({
     }),
   );
 
-  const items = ownEnum ?? inheritedConstraints.enum?.value ?? [];
+  const items = ownEnum ?? inheritedConstraints.enum?.value;
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+
+    if (!items) {
+      throw new Error("Items array is undefined");
+    }
 
     if (active.id !== over?.id) {
       const oldIndex = items.findIndex((value) => value === active.id);
       const newIndex = items.findIndex((value) => value === over?.id);
 
-      const newItems = arrayMove(items as T[], oldIndex, newIndex);
+      const newItems = arrayMove(
+        items as string[],
+        oldIndex,
+        newIndex,
+      ) as typeof items;
 
-      setValue("constraints.enum", newItems);
+      if (newItems.length > 0) {
+        setValue("constraints.enum", newItems, { shouldDirty: true });
+      } else {
+        throw new Error("New items array is empty");
+      }
     }
   };
 
   const removeItem = (index: number) => {
+    if (!items) {
+      throw new Error("Items array is undefined");
+    }
+
     const newItems = items.filter((_, i) => i !== index);
-    setValue("constraints.enum", newItems as T[]);
+
+    if (newItems.length > 0) {
+      setValue("constraints.enum", newItems as typeof items, {
+        shouldDirty: true,
+      });
+    } else {
+      // @ts-expect-error -- we can't send an empty array for enum
+      setValue("constraints.enum", undefined, { shouldDirty: true });
+    }
   };
 
   const saveItem = () => {
@@ -297,41 +357,145 @@ export const EnumEditor = <T extends string | number>({
       throw new Error("Editing index is null");
     }
 
-    if (editingIndex === items.length) {
-      setValue("constraints.enum", [...items, draftValue]);
-    } else {
-      const newItems = [...items];
-      newItems[editingIndex] = draftValue as (typeof items)[number];
-      setValue("constraints.enum", newItems);
+    if (!draftValue) {
+      setEditingIndex(null);
+      return;
     }
 
-    setDraftValue(undefined);
-    setEditingIndex(null);
+    if (editingIndex === items?.length) {
+      const newItems = [...items, draftValue] as NonNullable<typeof items>;
+      setValue("constraints.enum", newItems, { shouldDirty: true });
+
+      setDraftValue("");
+      setEditingIndex(newItems.length);
+    } else {
+      const newItems = [...(items ?? [])];
+      newItems[editingIndex] = draftValue;
+      setValue("constraints.enum", newItems as NonNullable<typeof items>, {
+        shouldDirty: true,
+      });
+
+      setDraftValue("");
+      setEditingIndex(null);
+    }
   };
 
   const inheritedEnum = inheritedConstraints.enum;
 
-  let tooltip = "Restrict to only these values.";
+  let tooltip: string | ReactElement = "Restrict to only these values.";
 
   if (inheritedEnum) {
-    tooltip += `Parent type ${inheritedEnum.from.title} restricts values to ${inheritedEnum.value.map((value) => `'${value}'`).join(", ")}. Permitted values can be removed but not edited or added.`;
+    tooltip = (
+      <Stack gap={1}>
+        <Box>
+          {`Parent type ${inheritedEnum.from.title} restricts values to `}
+          {inheritedEnum.value.map((value) => `'${value}'`).join(", ")}.
+        </Box>
+        <Box>Permitted values can be removed, but not amended or added.</Box>
+      </Stack>
+    );
   }
 
-  const mergedSchema: MergedValueSchema = {
-    format: ownFormat ?? inheritedConstraints.format?.value,
-    minimum: ownMinimum ?? inheritedConstraints.minimum?.value.value,
-    maximum: ownMaximum ?? inheritedConstraints.maximum?.value.value,
-    exclusiveMinimum:
-      ownExclusiveMinimum ?? inheritedConstraints.minimum?.value.exclusive,
-    exclusiveMaximum:
-      ownExclusiveMaximum ?? inheritedConstraints.maximum?.value.exclusive,
-    multipleOf: ownMultipleOf
-      ? [ownMultipleOf]
-      : inheritedConstraints.multipleOf?.map(({ value }) => value),
-    minLength: ownMinLength ?? inheritedConstraints.minLength?.value,
-    maxLength: ownMaxLength ?? inheritedConstraints.maxLength?.value,
-    type,
-  };
+  const mergedSchema: MergedValueSchema = useMemo(
+    () => ({
+      format: ownFormat ?? inheritedConstraints.format?.value,
+      minimum: ownMinimum ?? inheritedConstraints.minimum?.value.value,
+      maximum: ownMaximum ?? inheritedConstraints.maximum?.value.value,
+      exclusiveMinimum:
+        ownExclusiveMinimum ?? inheritedConstraints.minimum?.value.exclusive,
+      exclusiveMaximum:
+        ownExclusiveMaximum ?? inheritedConstraints.maximum?.value.exclusive,
+      multipleOf: ownMultipleOf
+        ? [ownMultipleOf]
+        : inheritedConstraints.multipleOf?.map(({ value }) => value),
+      minLength: ownMinLength ?? inheritedConstraints.minLength?.value,
+      maxLength: ownMaxLength ?? inheritedConstraints.maxLength?.value,
+      type,
+    }),
+    [
+      ownFormat,
+      ownMinLength,
+      ownMaxLength,
+      ownMinimum,
+      ownMaximum,
+      ownExclusiveMinimum,
+      ownExclusiveMaximum,
+      ownMultipleOf,
+      inheritedConstraints,
+      type,
+    ],
+  );
+
+  useEffect(() => {
+    for (const [index, value] of (items ?? []).entries()) {
+      if (mergedSchema.type === "string") {
+        if (typeof value !== "string") {
+          setError(`constraints.enum.${index}`, {
+            message: "Value must be a string",
+          });
+          continue;
+        }
+        if (
+          typeof mergedSchema.minLength !== "undefined" &&
+          value.length < mergedSchema.minLength
+        ) {
+          setError(`constraints.enum.${index}`, {
+            message: `Value must be at least ${mergedSchema.minLength} characters`,
+          });
+          continue;
+        }
+        if (
+          typeof mergedSchema.maxLength !== "undefined" &&
+          value.length > mergedSchema.maxLength
+        ) {
+          setError(`constraints.enum.${index}`, {
+            message: `Value must be at most ${mergedSchema.maxLength} characters`,
+          });
+          continue;
+        }
+        /** @todo test formats and patterns */
+
+        clearErrors(`constraints.enum.${index}`);
+      }
+      if (mergedSchema.type === "number") {
+        if (typeof value !== "number") {
+          setError(`constraints.enum.${index}`, {
+            message: "Value must be a number",
+          });
+          continue;
+        }
+        if (typeof mergedSchema.minimum !== "undefined") {
+          if (mergedSchema.exclusiveMinimum && value <= mergedSchema.minimum) {
+            setError(`constraints.enum.${index}`, {
+              message: `Value must be greater than ${mergedSchema.minimum}`,
+            });
+            continue;
+          }
+          if (!mergedSchema.exclusiveMinimum && value < mergedSchema.minimum) {
+            setError(`constraints.enum.${index}`, {
+              message: `Value must be greater than or equal to ${mergedSchema.minimum}`,
+            });
+            continue;
+          }
+        }
+        if (typeof mergedSchema.maximum !== "undefined") {
+          if (mergedSchema.exclusiveMaximum && value >= mergedSchema.maximum) {
+            setError(`constraints.enum.${index}`, {
+              message: `Value must be less than ${mergedSchema.maximum}`,
+            });
+            continue;
+          }
+          if (!mergedSchema.exclusiveMaximum && value > mergedSchema.maximum) {
+            setError(`constraints.enum.${index}`, {
+              message: `Value must be less than or equal to ${mergedSchema.maximum}`,
+            });
+            continue;
+          }
+        }
+        clearErrors(`constraints.enum.${index}`);
+      }
+    }
+  }, [items, mergedSchema, setError, clearErrors]);
 
   return (
     <Stack>
@@ -339,14 +503,11 @@ export const EnumEditor = <T extends string | number>({
         <ItemLabel tooltip={tooltip}>Permitted values</ItemLabel>
         <Stack
           sx={{
-            maxHeight: 300,
-            overflowY: "auto",
-            overflowX: "hidden",
-            mt: 0.5,
+            mt: 0.8,
             width: "fit-content",
           }}
         >
-          {items.length === 0 && (
+          {editingIndex === null && !items?.length && (
             <Typography
               variant="smallTextParagraphs"
               sx={{ color: ({ palette }) => palette.gray[50], fontSize: 13 }}
@@ -360,11 +521,11 @@ export const EnumEditor = <T extends string | number>({
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={items}
+              items={items ?? []}
               strategy={verticalListSortingStrategy}
             >
               <Stack gap={1} sx={{ display: "inline-flex" }}>
-                {items.map((item, index) =>
+                {(items ?? []).map((item, index) =>
                   editingIndex === index ? (
                     <EditingRow
                       key={item}
@@ -377,7 +538,15 @@ export const EnumEditor = <T extends string | number>({
                     />
                   ) : (
                     <EnumItem
+                      error={
+                        errors.constraints &&
+                        "enum" in errors.constraints &&
+                        Array.isArray(errors.constraints.enum)
+                          ? errors.constraints.enum[index]?.message
+                          : undefined
+                      }
                       key={item}
+                      inheritedFromTitle={inheritedEnum?.from.title}
                       item={item}
                       onDelete={() => removeItem(index)}
                       setEditing={() => {
@@ -392,20 +561,21 @@ export const EnumEditor = <T extends string | number>({
           </DndContext>
           {!inheritedEnum && editingIndex === null && (
             <Button
-              onClick={() => setEditingIndex(items.length)}
+              onClick={() => setEditingIndex(items?.length ?? 0)}
               size="xs"
               sx={{
                 fontSize: 13,
                 border: ({ palette }) => `1px solid ${palette.gray[20]}`,
                 mt: 1,
               }}
+              type="button"
               variant="tertiary"
             >
               Add value
             </Button>
           )}
         </Stack>
-        {editingIndex === items.length && (
+        {editingIndex === (items?.length ?? 0) && (
           <Box mt={1}>
             <EditingRow
               mergedSchema={mergedSchema}

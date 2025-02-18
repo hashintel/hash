@@ -2,6 +2,7 @@ import type { TextFieldProps } from "@hashintel/design-system";
 import { TextField } from "@hashintel/design-system";
 import type { MergedValueSchema } from "@local/hash-isomorphic-utils/data-types";
 import { format, formatISO, parseISO } from "date-fns";
+import type { Ref } from "react";
 
 /**
  * Get the current offset from UTC according to the user's device.
@@ -32,19 +33,25 @@ const convertDateTimeToLocalRFC3339 = (dateTimeStringWithoutOffset: string) => {
 
 export const NumberOrTextInput = ({
   fontSize,
+  inputRef,
   isNumber,
+  multiLineText,
   onBlur,
   onChange,
   onEnterPressed,
+  onEscapePressed,
   schema,
   value: uncheckedValue,
 }: {
   fontSize?: number;
+  inputRef?: Ref<HTMLInputElement>;
   isNumber: boolean;
+  multiLineText?: boolean;
   onBlur?: TextFieldProps["onBlur"];
   onChange: (value: number | string | undefined) => void;
   schema: MergedValueSchema;
   onEnterPressed?: () => void;
+  onEscapePressed?: () => void;
   value: number | string | undefined;
 }) => {
   const minLength = "minLength" in schema ? schema.minLength : undefined;
@@ -118,16 +125,17 @@ export const NumberOrTextInput = ({
         inputProps: {
           minLength,
           maxLength,
-          minimum,
-          maximum,
+          min: minimum,
+          max: maximum,
           step,
         },
+        inputRef,
         sx: {
           fontSize,
         },
       }}
       autoFocus
-      multiline={inputType === "text"}
+      multiline={inputType === "text" && multiLineText}
       minRows={1}
       value={value}
       type={inputType}
@@ -154,8 +162,14 @@ export const NumberOrTextInput = ({
       }}
       onKeyDown={(event) => {
         if (onEnterPressed && event.key === "Enter") {
+          event.preventDefault();
           event.stopPropagation();
           onEnterPressed();
+        }
+
+        if (onEscapePressed && event.key === "Escape") {
+          event.stopPropagation();
+          onEscapePressed();
         }
       }}
     />

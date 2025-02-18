@@ -1,14 +1,13 @@
 import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Box } from "@mui/material";
 import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { useDataTypesContext } from "../data-types-context";
+import { NumberConstraints } from "./data-type-constraints/number-constraints";
 import { StringConstraints } from "./data-type-constraints/string-constraints";
 import type { InheritedConstraints } from "./data-type-constraints/types";
 import type { DataTypeFormData } from "./data-type-form";
-import { NumberConstraints } from "./data-type-constraints/number-constraints";
 
 export const DataTypeConstraints = ({
   isReadOnly,

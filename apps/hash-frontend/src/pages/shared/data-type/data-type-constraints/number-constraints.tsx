@@ -1,3 +1,4 @@
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Box, Checkbox, Stack, Tooltip, Typography } from "@mui/material";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
@@ -61,7 +62,12 @@ const NumberRangeEditor = ({
         />
         <Box
           component="label"
-          sx={{ display: "flex", alignItems: "center", mt: 0.8 }}
+          sx={{
+            display: "flex",
+            cursor: "pointer",
+            alignItems: "center",
+            mt: 0.8,
+          }}
         >
           <Checkbox
             checked={
@@ -72,6 +78,12 @@ const NumberRangeEditor = ({
             onChange={(event) =>
               setValue("constraints.exclusiveMinimum", event.target.checked)
             }
+            sx={{
+              svg: {
+                width: 14,
+                height: 14,
+              },
+            }}
           />
           <Tooltip
             title={`If checked, the value must be greater than the minimum value.${typeof inheritedConstraints.minimum?.value.exclusive === "boolean" ? ` (inherited from ${inheritedConstraints.minimum.from.title}).` : ""}`}
@@ -103,7 +115,12 @@ const NumberRangeEditor = ({
 
         <Box
           component="label"
-          sx={{ display: "flex", alignItems: "center", mt: 0.8 }}
+          sx={{
+            display: "flex",
+            cursor: "pointer",
+            alignItems: "center",
+            mt: 0.8,
+          }}
         >
           <Checkbox
             checked={
@@ -117,6 +134,12 @@ const NumberRangeEditor = ({
             onChange={(event) =>
               setValue("constraints.exclusiveMaximum", event.target.checked)
             }
+            sx={{
+              svg: {
+                width: 14,
+                height: 14,
+              },
+            }}
           />
           <Tooltip
             title={`If checked, the value must be less than the maximum value.${typeof inheritedConstraints.maximum?.value.exclusive === "boolean" ? ` (inherited from ${inheritedConstraints.maximum.from.title}).` : ""}`}
@@ -139,7 +162,6 @@ const NumberRangeEditor = ({
 };
 
 export const NumberConstraintEditor = ({
-  ownConst,
   ownEnum,
   ownMinimum,
   ownMaximum,
@@ -148,8 +170,7 @@ export const NumberConstraintEditor = ({
   ownMultipleOf,
   inheritedConstraints,
 }: {
-  ownConst?: number;
-  ownEnum?: number[];
+  ownEnum?: [number, ...number[]];
   ownMinimum?: number;
   ownMaximum?: number;
   ownExclusiveMinimum?: boolean;
@@ -159,13 +180,15 @@ export const NumberConstraintEditor = ({
 }) => {
   return (
     <Stack gap={3} mt={2}>
-      <NumberRangeEditor
-        ownMinimum={ownMinimum}
-        ownMaximum={ownMaximum}
-        ownExclusiveMinimum={ownExclusiveMinimum}
-        ownExclusiveMaximum={ownExclusiveMaximum}
-        inheritedConstraints={inheritedConstraints}
-      />
+      {!inheritedConstraints.enum && (
+        <NumberRangeEditor
+          ownMinimum={ownMinimum}
+          ownMaximum={ownMaximum}
+          ownExclusiveMinimum={ownExclusiveMinimum}
+          ownExclusiveMaximum={ownExclusiveMaximum}
+          inheritedConstraints={inheritedConstraints}
+        />
+      )}
       <EnumEditor
         ownEnum={ownEnum}
         ownMinimum={ownMinimum}
@@ -291,6 +314,8 @@ export const NumberConstraints = ({
   const ownConst = "const" in constraints ? constraints.const : undefined;
   const ownEnum = "enum" in constraints ? constraints.enum : undefined;
 
+  const constant = ownConst ?? inheritedConstraints.const?.value;
+
   const minimum = ownMinimum ?? inheritedConstraints.minimum?.value.value;
   const maximum = ownMaximum ?? inheritedConstraints.maximum?.value.value;
   const exclusiveMinimum =
@@ -309,29 +334,41 @@ export const NumberConstraints = ({
             text="number"
             from={inheritedConstraints.type?.from}
           />
-          {typeof minimum === "number" || typeof maximum === "number" ? (
-            <NumberRangeText
-              minimum={minimum}
-              maximum={maximum}
-              exclusiveMinimum={exclusiveMinimum}
-              exclusiveMaximum={exclusiveMaximum}
-              inheritedConstraints={inheritedConstraints}
-            />
-          ) : null}
-          {typeof multipleOf === "number" && (
+          {typeof constant !== "undefined" ? (
             <>
-              {" It must be a multiple of "}
+              {". It must have the value "}
               <ConstraintText
-                text={multipleOf.toString()}
-                from={inheritedConstraints.multipleOf?.[0]?.from}
+                text={stringifyPropertyValue(constant)}
+                from={inheritedConstraints.const?.from}
               />
             </>
+          ) : (
+            <>
+              {typeof minimum === "number" || typeof maximum === "number" ? (
+                <NumberRangeText
+                  minimum={minimum}
+                  maximum={maximum}
+                  exclusiveMinimum={exclusiveMinimum}
+                  exclusiveMaximum={exclusiveMaximum}
+                  inheritedConstraints={inheritedConstraints}
+                />
+              ) : null}
+              {typeof multipleOf === "number" && (
+                <>
+                  {". It must be a multiple of "}
+                  <ConstraintText
+                    text={multipleOf.toString()}
+                    from={inheritedConstraints.multipleOf?.[0]?.from}
+                  />
+                </>
+              )}
+            </>
           )}
+          .
         </Typography>
       </Box>
-      {!isReadOnly && (
+      {!isReadOnly && !ownConst && !inheritedConstraints.const && (
         <NumberConstraintEditor
-          ownConst={ownConst}
           ownEnum={ownEnum}
           ownMinimum={ownMinimum}
           ownMaximum={ownMaximum}

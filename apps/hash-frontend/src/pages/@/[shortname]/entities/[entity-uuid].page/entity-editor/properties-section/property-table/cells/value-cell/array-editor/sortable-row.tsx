@@ -135,6 +135,7 @@ export const SortableRow = ({
 
     return (
       <NumberOrTextInput
+        multiLineText={schema.type === "string"}
         isNumber={schema.type === "number"}
         onEnterPressed={saveChanges}
         /** @todo is this casting ok? */

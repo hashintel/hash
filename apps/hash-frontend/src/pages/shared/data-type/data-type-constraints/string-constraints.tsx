@@ -1,4 +1,5 @@
 import type { StringFormat } from "@blockprotocol/type-system";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Box, Stack, Typography } from "@mui/material";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
@@ -82,7 +83,7 @@ export const StringConstraintEditor = ({
   inheritedConstraints,
 }: {
   ownConst?: string;
-  ownEnum?: string[];
+  ownEnum?: [string, ...string[]];
   ownFormat?: StringFormat;
   ownMinLength?: number;
   ownMaxLength?: number;
@@ -90,11 +91,13 @@ export const StringConstraintEditor = ({
 }) => {
   return (
     <Stack gap={3} mt={2}>
-      <StringLengthEditor
-        ownMinLength={ownMinLength}
-        ownMaxLength={ownMaxLength}
-        inheritedConstraints={inheritedConstraints}
-      />
+      {!inheritedConstraints.enum && (
+        <StringLengthEditor
+          ownMinLength={ownMinLength}
+          ownMaxLength={ownMaxLength}
+          inheritedConstraints={inheritedConstraints}
+        />
+      )}
       <EnumEditor
         ownEnum={ownEnum}
         ownFormat={ownFormat}
@@ -187,6 +190,8 @@ export const StringConstraints = ({
   const ownConst = "const" in constraints ? constraints.const : undefined;
   const ownEnum = "enum" in constraints ? constraints.enum : undefined;
 
+  const constant = ownConst ?? inheritedConstraints.const?.value;
+
   const format = ownFormat ?? inheritedConstraints.format?.value;
 
   const minLength = ownMinLength ?? inheritedConstraints.minLength?.value;
@@ -232,6 +237,15 @@ export const StringConstraints = ({
               inheritedConstraints={inheritedConstraints}
             />
           ) : null}
+          {constant && (
+            <>
+              {" It must have the value "}
+              <ConstraintText
+                text={stringifyPropertyValue(constant)}
+                from={inheritedConstraints.const?.from}
+              />
+            </>
+          )}
           .
         </Typography>
       </Box>

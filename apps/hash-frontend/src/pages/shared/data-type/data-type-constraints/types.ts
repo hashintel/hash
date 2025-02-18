@@ -27,6 +27,6 @@ export type InheritedConstraints = {
   multipleOf?: InheritedConstraint<number>[];
   pattern?: InheritedConstraint<string>[];
   format?: InheritedConstraint<StringFormat>;
-  enum?: InheritedConstraint<string[] | number[]>;
+  enum?: InheritedConstraint<[string, ...string[]] | [number, ...number[]]>;
   const?: InheritedConstraint<JsonValue>;
 };
