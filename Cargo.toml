@@ -279,7 +279,8 @@ nonstandard_style   = { level = "warn", priority = -1 }
 unreachable_pub = "warn"
 unsafe_code     = "deny"
 
-[workspace.lints.cargo]
+# TODO: Enable `cargo` lints when supported
+# [workspace.lints.cargo]
 
 [workspace.lints.clippy]
 all         = { level = "warn", priority = -1 }
