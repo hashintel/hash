@@ -17,7 +17,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
   const { createEntity } = useBlockProtocolCreateEntity(ownedById);
 
   const createBlockCollectionEntity = useCallback(
-    async (params: { kind: "page" | "quickNote" | "profileBio" }) => {
+    async (params: { kind: "page" | "note" | "profileBio" }) => {
       const { kind } = params;
 
       const [blockCollectionEntity, blockEntity, textEntity] =

@@ -56,28 +56,28 @@ export const metadataSchemaKind = "metadataSchema";
  * – we'll add import statements for the types in post-processing.
  */
 export const propertyProvenanceSchema: JsonSchema = {
-  $id: "https://hash.ai/@hash/schemas/property-provenance/v/1",
+  $id: "https://hash.ai/@h/schemas/property-provenance/v/1",
   title: "PropertyProvenance",
   kind: metadataSchemaKind,
   const: redundantTypePlaceholder,
 };
 
 export const objectMetadataSchema: JsonSchema = {
-  $id: "https://hash.ai/@hash/schemas/object-metadata/v/1",
+  $id: "https://hash.ai/@h/schemas/object-metadata/v/1",
   title: "ObjectMetadata",
   kind: metadataSchemaKind,
   const: redundantTypePlaceholder,
 };
 
 export const arrayMetadataSchema: JsonSchema = {
-  $id: "https://hash.ai/@hash/schemas/array-metadata/v/1",
+  $id: "https://hash.ai/@h/schemas/array-metadata/v/1",
   title: "ArrayMetadata",
   kind: metadataSchemaKind,
   const: redundantTypePlaceholder,
 };
 
 export const confidenceMetadataSchema: JsonSchema = {
-  $id: "https://hash.ai/@hash/schemas/confidence/v/1",
+  $id: "https://hash.ai/@h/schemas/confidence/v/1",
   title: "Confidence",
   kind: metadataSchemaKind,
   const: redundantTypePlaceholder,

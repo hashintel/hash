@@ -147,26 +147,26 @@ export const judgeTestData: JudgeTest[] = [
                 properties: {
                   "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
                     "study_record_ISRCTN15438979_2025-01-20.pdf",
-                  "https://hash.ai/@hash/types/property-type/file-storage-region/":
+                  "https://hash.ai/@h/types/property-type/file-storage-region/":
                     "local",
                   "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
                     "study_record_ISRCTN15438979_2025-01-20.pdf",
-                  "https://hash.ai/@hash/types/property-type/file-storage-endpoint/":
+                  "https://hash.ai/@h/types/property-type/file-storage-endpoint/":
                     "http://localhost:9000",
-                  "https://hash.ai/@hash/types/property-type/file-storage-provider/":
+                  "https://hash.ai/@h/types/property-type/file-storage-provider/":
                     "AWS_S3",
                   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
                     "http://localhost:5001/file/files/f89989c3-c5b9-4662-9cff-651384f4a0da~4043537b-6fc0-4d1b-95b5-2c84d03e9bbf/0050a41f-113e-409c-a54c-d46d89ba103b/study_record_ISRCTN15438979_2025-01-20.pdf",
-                  "https://hash.ai/@hash/types/property-type/file-storage-key/":
+                  "https://hash.ai/@h/types/property-type/file-storage-key/":
                     "files/f89989c3-c5b9-4662-9cff-651384f4a0da~4043537b-6fc0-4d1b-95b5-2c84d03e9bbf/0050a41f-113e-409c-a54c-d46d89ba103b/study_record_ISRCTN15438979_2025-01-20.pdf",
                   "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/": 45633,
-                  "https://hash.ai/@hash/types/property-type/upload-completed-at/":
+                  "https://hash.ai/@h/types/property-type/upload-completed-at/":
                     "2025-01-31T18:20:01.069Z",
-                  "https://hash.ai/@hash/types/property-type/file-storage-bucket/":
+                  "https://hash.ai/@h/types/property-type/file-storage-bucket/":
                     "dev-hash-bucket",
                   "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
                     "application/pdf",
-                  "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/": true,
+                  "https://hash.ai/@h/types/property-type/file-storage-force-path-style/": true,
                   "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
                     "Upload",
                 },
@@ -230,7 +230,7 @@ export const judgeTestData: JudgeTest[] = [
                   "actual-study-start-date": "2024-07-01",
                   isrctn: "ISRCTN15438979",
                   entityTypeId:
-                    "https://hash.ai/@hash/types/entity-type/study-record/v/1",
+                    "https://hash.ai/@h/types/entity-type/study-record/v/1",
                   location: "Canada",
                   "study-type": "Safety, Efficacy",
                   doi: "10.1186/ISRCTN15438979",
@@ -271,13 +271,13 @@ export const judgeTestData: JudgeTest[] = [
                       entityTypeId: {
                         type: "STRING",
                         enum: [
-                          "https://hash.ai/@hash/types/entity-type/study-record/v/1",
+                          "https://hash.ai/@h/types/entity-type/study-record/v/1",
                         ],
                       },
                       objective: {
                         type: "array",
                         items: {
-                          $id: "https://hash.ai/@hash/types/property-type/objective/v/1",
+                          $id: "https://hash.ai/@h/types/property-type/objective/v/1",
                           title: "Objective",
                           description: "The goal or aim of something.",
                           oneOf: [
@@ -291,13 +291,13 @@ export const judgeTestData: JudgeTest[] = [
                         },
                       },
                       "actual-study-primary-completion-date": {
-                        $id: "https://hash.ai/@hash/types/property-type/actual-study-primary-completion-date/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/actual-study-primary-completion-date/v/1",
                         title: "Actual Study Primary Completion Date",
                         description:
                           "The date on which the last participant in a study was examined or received an intervention to collect final data for the primary outcome measure.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/date/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/date/v/1",
                             title: "Date",
                             description:
                               "A reference to a particular day represented within a calendar system, formatted according to RFC 3339.",
@@ -307,13 +307,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       isrctn: {
-                        $id: "https://hash.ai/@hash/types/property-type/isrctn/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/isrctn/v/1",
                         title: "ISRCTN",
                         description:
                           "The ISRCTN Registry identifier for something.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/isrctn/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/isrctn/v/1",
                             title: "ISRCTN",
                             description:
                               "The unique id for a study registered with the ISRCTN Registry.",
@@ -322,7 +322,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       status: {
-                        $id: "https://hash.ai/@hash/types/property-type/status/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/status/v/1",
                         title: "Status",
                         description: "The status of something.",
                         oneOf: [
@@ -335,13 +335,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       doi: {
-                        $id: "https://hash.ai/@hash/types/property-type/doi/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/doi/v/1",
                         title: "DOI",
                         description:
                           "The Digital Object Identifier (DOI) of an object",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/doi/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/doi/v/1",
                             title: "DOI",
                             description:
                               "A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.",
@@ -350,13 +350,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "doi-link": {
-                        $id: "https://hash.ai/@hash/types/property-type/doi-link/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/doi-link/v/1",
                         title: "DOI Link",
                         description:
                           "A permanent link for a digital object, using its Digital Object Identifier (DOI), which resolves to a webpage describing it",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/uri/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/uri/v/1",
                             title: "URI",
                             description:
                               "A unique identifier for a resource (e.g. a URL, or URN).",
@@ -366,7 +366,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "study-type": {
-                        $id: "https://hash.ai/@hash/types/property-type/study-type/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/study-type/v/1",
                         title: "Study Type",
                         description:
                           "Describes the nature of a clinical study. Study types include interventional studies, which aim to find out more about a particular intervention by assigning people to different treatment groups, and observational studies, where the researchers do not influence what treatment the participants receive.",
@@ -380,13 +380,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "trial-phase": {
-                        $id: "https://hash.ai/@hash/types/property-type/trial-phase/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/trial-phase/v/1",
                         title: "Trial Phase",
                         description:
                           "The stage of a clinical trial studying a drug or biological product.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/trial-phase/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/trial-phase/v/1",
                             title: "Trial Phase",
                             description:
                               "The distinct stage of a clinical trial, categorizing the study's primary goals and level of testing. Phase 0 involves very limited human testing, Phase 1 tests safety, dosage, and administration, Phase 2 tests effectiveness, Phase 3 confirms benefits, and Phase 4 studies long-term effects.",
@@ -405,7 +405,7 @@ export const judgeTestData: JudgeTest[] = [
                       "study-arm": {
                         type: "array",
                         items: {
-                          $id: "https://hash.ai/@hash/types/property-type/study-arm/v/1",
+                          $id: "https://hash.ai/@h/types/property-type/study-arm/v/1",
                           title: "Study Arm",
                           description:
                             "A specific treatment group in a clinical trial. Each arm represents a unique intervention strategy or control group, allowing researchers to compare outcomes between different approaches.",
@@ -413,7 +413,7 @@ export const judgeTestData: JudgeTest[] = [
                             {
                               properties: {
                                 methodology: {
-                                  $id: "https://hash.ai/@hash/types/property-type/methodology/v/1",
+                                  $id: "https://hash.ai/@h/types/property-type/methodology/v/1",
                                   title: "Methodology",
                                   description:
                                     "The procedure via which something was produced, analyzed, or otherwise approached.",
@@ -428,7 +428,7 @@ export const judgeTestData: JudgeTest[] = [
                                   ],
                                 },
                                 intervention: {
-                                  $id: "https://hash.ai/@hash/types/property-type/intervention/v/1",
+                                  $id: "https://hash.ai/@h/types/property-type/intervention/v/1",
                                   title: "Intervention",
                                   description:
                                     "An action taken to change something, typically to address a problem or otherwise bring about a desirable outcome.",
@@ -466,13 +466,13 @@ export const judgeTestData: JudgeTest[] = [
                         },
                       },
                       "nct-id": {
-                        $id: "https://hash.ai/@hash/types/property-type/nct-id/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/nct-id/v/1",
                         title: "NCT ID",
                         description:
                           "The National Clinical Trial (NCT) Identifier Number for a study registered with ClinicalTrials.gov",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/nct-id/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/nct-id/v/1",
                             title: "NCT ID",
                             description:
                               "National Clinical Trial (NCT) Identifier Number, which is a unique identifier assigned to each clinical trial registered with ClinicalTrials.gov.",
@@ -483,7 +483,7 @@ export const judgeTestData: JudgeTest[] = [
                       "medical-condition": {
                         type: "array",
                         items: {
-                          $id: "https://hash.ai/@hash/types/property-type/medical-condition/v/1",
+                          $id: "https://hash.ai/@h/types/property-type/medical-condition/v/1",
                           title: "Medical Condition",
                           description:
                             "A disease, disorder, syndrome, illness, or injury, which may relate to either or both of physical and mental health.",
@@ -498,13 +498,13 @@ export const judgeTestData: JudgeTest[] = [
                         },
                       },
                       "actual-study-completion-date": {
-                        $id: "https://hash.ai/@hash/types/property-type/actual-study-completion-date/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/actual-study-completion-date/v/1",
                         title: "Actual Study Completion Date",
                         description:
                           "The date on which the last participant in a clinical study was examined or received an intervention to collect final data for the primary outcome measures, secondary outcome measures, and adverse events (that is, the last participant's last visit).",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/date/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/date/v/1",
                             title: "Date",
                             description:
                               "A reference to a particular day represented within a calendar system, formatted according to RFC 3339.",
@@ -516,7 +516,7 @@ export const judgeTestData: JudgeTest[] = [
                       "outcome-measure": {
                         type: "array",
                         items: {
-                          $id: "https://hash.ai/@hash/types/property-type/outcome-measure/v/1",
+                          $id: "https://hash.ai/@h/types/property-type/outcome-measure/v/1",
                           title: "Outcome Measure",
                           description:
                             "A measurement used to evaluate the outcome of a trial",
@@ -524,7 +524,7 @@ export const judgeTestData: JudgeTest[] = [
                             {
                               properties: {
                                 "time-frame": {
-                                  $id: "https://hash.ai/@hash/types/property-type/time-frame/v/1",
+                                  $id: "https://hash.ai/@h/types/property-type/time-frame/v/1",
                                   title: "Time Frame",
                                   description:
                                     "The time period over which something occurs or is measured.",
@@ -579,7 +579,7 @@ export const judgeTestData: JudgeTest[] = [
                       "exclusion-criteria": {
                         type: "array",
                         items: {
-                          $id: "https://hash.ai/@hash/types/property-type/exclusion-criteria/v/1",
+                          $id: "https://hash.ai/@h/types/property-type/exclusion-criteria/v/1",
                           title: "Exclusion Criteria",
                           description:
                             "Criteria that would prevent someone or something from being included in something.",
@@ -594,13 +594,13 @@ export const judgeTestData: JudgeTest[] = [
                         },
                       },
                       "estimated-enrollment": {
-                        $id: "https://hash.ai/@hash/types/property-type/estimated-enrollment/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/estimated-enrollment/v/1",
                         title: "Estimated Enrollment",
                         description:
                           "The estimated number of participants that will be enrolled in something.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/integer/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/integer/v/1",
                             title: "Integer",
                             description:
                               "The number zero (0), a positive natural number (e.g. 1, 2, 3), or the negation of a positive natural number (e.g. -1, -2, -3).",
@@ -610,13 +610,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "estimated-study-start-date": {
-                        $id: "https://hash.ai/@hash/types/property-type/estimated-study-start-date/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/estimated-study-start-date/v/1",
                         title: "Estimated Study Start Date",
                         description:
                           "The estimated date on which the first participant will be enrolled in a clinical study.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/date/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/date/v/1",
                             title: "Date",
                             description:
                               "A reference to a particular day represented within a calendar system, formatted according to RFC 3339.",
@@ -626,13 +626,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "estimated-study-completion-date": {
-                        $id: "https://hash.ai/@hash/types/property-type/estimated-study-completion-date/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/estimated-study-completion-date/v/1",
                         title: "Estimated Study Completion Date",
                         description:
                           "The estimated date on which the last participant in a clinical study will be examined or receive an intervention to collect final data for the primary outcome measures, secondary outcome measures, and adverse events (that is, the last participant's last visit).",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/date/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/date/v/1",
                             title: "Date",
                             description:
                               "A reference to a particular day represented within a calendar system, formatted according to RFC 3339.",
@@ -642,7 +642,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       methodology: {
-                        $id: "https://hash.ai/@hash/types/property-type/methodology/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/methodology/v/1",
                         title: "Methodology",
                         description:
                           "The procedure via which something was produced, analyzed, or otherwise approached.",
@@ -656,13 +656,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "actual-enrollment": {
-                        $id: "https://hash.ai/@hash/types/property-type/actual-enrollment/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/actual-enrollment/v/1",
                         title: "Actual Enrollment",
                         description:
                           "The actual number of participants enrolled in something.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/integer/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/integer/v/1",
                             title: "Integer",
                             description:
                               "The number zero (0), a positive natural number (e.g. 1, 2, 3), or the negation of a positive natural number (e.g. -1, -2, -3).",
@@ -674,7 +674,7 @@ export const judgeTestData: JudgeTest[] = [
                       "inclusion-criteria": {
                         type: "array",
                         items: {
-                          $id: "https://hash.ai/@hash/types/property-type/inclusion-criteria/v/1",
+                          $id: "https://hash.ai/@h/types/property-type/inclusion-criteria/v/1",
                           title: "Inclusion Criteria",
                           description:
                             "Criteria that must be met for someone or something to be included in something.",
@@ -689,13 +689,13 @@ export const judgeTestData: JudgeTest[] = [
                         },
                       },
                       "actual-study-start-date": {
-                        $id: "https://hash.ai/@hash/types/property-type/actual-study-start-date/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/actual-study-start-date/v/1",
                         title: "Actual Study Start Date",
                         description:
                           "The actual date on which the first participant was enrolled in a clinical study.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/date/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/date/v/1",
                             title: "Date",
                             description:
                               "A reference to a particular day represented within a calendar system, formatted according to RFC 3339.",
@@ -705,13 +705,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "estimated-primary-completion-date": {
-                        $id: "https://hash.ai/@hash/types/property-type/estimated-primary-completion-date/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/estimated-primary-completion-date/v/1",
                         title: "Estimated Primary Completion Date",
                         description:
                           "The estimated date on which the last participant in a study will be examined or receive an intervention to collect final data for the primary outcome measure.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/date/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/date/v/1",
                             title: "Date",
                             description:
                               "A reference to a particular day represented within a calendar system, formatted according to RFC 3339.",
@@ -721,7 +721,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       location: {
-                        $id: "https://hash.ai/@hash/types/property-type/location/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/location/v/1",
                         title: "Location",
                         description:
                           "A location for something, expressed as a single string",
@@ -735,7 +735,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       summary: {
-                        $id: "https://hash.ai/@hash/types/property-type/summary/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/summary/v/1",
                         title: "Summary",
                         description: "The summary of the something.",
                         oneOf: [
@@ -748,7 +748,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "number-of-pages": {
-                        $id: "https://hash.ai/@hash/types/property-type/number-of-pages/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/number-of-pages/v/1",
                         title: "Number of Pages",
                         description: "The total number of pages something has.",
                         oneOf: [
@@ -762,13 +762,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "publication-year": {
-                        $id: "https://hash.ai/@hash/types/property-type/publication-year/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/publication-year/v/1",
                         title: "Publication Year",
                         description:
                           "The year in which something was first published.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/year/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/year/v/1",
                             title: "Year",
                             description: "A year in the Gregorian calendar.",
                             type: "number",
@@ -776,7 +776,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       title: {
-                        $id: "https://hash.ai/@hash/types/property-type/title/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/title/v/1",
                         title: "Title",
                         description: "The title of something.",
                         oneOf: [
@@ -802,12 +802,10 @@ export const judgeTestData: JudgeTest[] = [
                     properties: {
                       entityTypeId: {
                         type: "STRING",
-                        enum: [
-                          "https://hash.ai/@hash/types/entity-type/doc/v/1",
-                        ],
+                        enum: ["https://hash.ai/@h/types/entity-type/doc/v/1"],
                       },
                       summary: {
-                        $id: "https://hash.ai/@hash/types/property-type/summary/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/summary/v/1",
                         title: "Summary",
                         description: "The summary of the something.",
                         oneOf: [
@@ -820,7 +818,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "number-of-pages": {
-                        $id: "https://hash.ai/@hash/types/property-type/number-of-pages/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/number-of-pages/v/1",
                         title: "Number of Pages",
                         description: "The total number of pages something has.",
                         oneOf: [
@@ -834,13 +832,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "publication-year": {
-                        $id: "https://hash.ai/@hash/types/property-type/publication-year/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/publication-year/v/1",
                         title: "Publication Year",
                         description:
                           "The year in which something was first published.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/year/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/year/v/1",
                             title: "Year",
                             description: "A year in the Gregorian calendar.",
                             type: "number",
@@ -848,7 +846,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       title: {
-                        $id: "https://hash.ai/@hash/types/property-type/title/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/title/v/1",
                         title: "Title",
                         description: "The title of something.",
                         oneOf: [
@@ -870,17 +868,17 @@ export const judgeTestData: JudgeTest[] = [
                       entityTypeId: {
                         type: "STRING",
                         enum: [
-                          "https://hash.ai/@hash/types/entity-type/academic-paper/v/1",
+                          "https://hash.ai/@h/types/entity-type/academic-paper/v/1",
                         ],
                       },
                       "doi-link": {
-                        $id: "https://hash.ai/@hash/types/property-type/doi-link/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/doi-link/v/1",
                         title: "DOI Link",
                         description:
                           "A permanent link for a digital object, using its Digital Object Identifier (DOI), which resolves to a webpage describing it",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/uri/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/uri/v/1",
                             title: "URI",
                             description:
                               "A unique identifier for a resource (e.g. a URL, or URN).",
@@ -890,7 +888,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       methodology: {
-                        $id: "https://hash.ai/@hash/types/property-type/methodology/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/methodology/v/1",
                         title: "Methodology",
                         description:
                           "The procedure via which something was produced, analyzed, or otherwise approached.",
@@ -904,7 +902,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "experimental-subject": {
-                        $id: "https://hash.ai/@hash/types/property-type/experimental-subject/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/experimental-subject/v/1",
                         title: "Experimental Subject",
                         description:
                           "The type of participant or observed entity in an experiment or study.",
@@ -918,13 +916,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       doi: {
-                        $id: "https://hash.ai/@hash/types/property-type/doi/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/doi/v/1",
                         title: "DOI",
                         description:
                           "The Digital Object Identifier (DOI) of an object",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/doi/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/doi/v/1",
                             title: "DOI",
                             description:
                               "A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.",
@@ -933,7 +931,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       title: {
-                        $id: "https://hash.ai/@hash/types/property-type/title/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/title/v/1",
                         title: "Title",
                         description: "The title of something.",
                         oneOf: [
@@ -946,7 +944,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       finding: {
-                        $id: "https://hash.ai/@hash/types/property-type/finding/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/finding/v/1",
                         title: "Finding",
                         description:
                           "The results or conclusion of an experiment, research project, investigation, etc.",
@@ -960,7 +958,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       summary: {
-                        $id: "https://hash.ai/@hash/types/property-type/summary/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/summary/v/1",
                         title: "Summary",
                         description: "The summary of the something.",
                         oneOf: [
@@ -973,7 +971,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "number-of-pages": {
-                        $id: "https://hash.ai/@hash/types/property-type/number-of-pages/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/number-of-pages/v/1",
                         title: "Number of Pages",
                         description: "The total number of pages something has.",
                         oneOf: [
@@ -987,13 +985,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "publication-year": {
-                        $id: "https://hash.ai/@hash/types/property-type/publication-year/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/publication-year/v/1",
                         title: "Publication Year",
                         description:
                           "The year in which something was first published.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/year/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/year/v/1",
                             title: "Year",
                             description: "A year in the Gregorian calendar.",
                             type: "number",
@@ -1009,18 +1007,16 @@ export const judgeTestData: JudgeTest[] = [
                     properties: {
                       entityTypeId: {
                         type: "STRING",
-                        enum: [
-                          "https://hash.ai/@hash/types/entity-type/book/v/1",
-                        ],
+                        enum: ["https://hash.ai/@h/types/entity-type/book/v/1"],
                       },
                       isbn: {
-                        $id: "https://hash.ai/@hash/types/property-type/isbn/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/isbn/v/1",
                         title: "ISBN",
                         description:
                           "The International Standard Book Number (ISBN) of a book",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/isbn/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/isbn/v/1",
                             title: "ISBN",
                             description:
                               "International Standard Book Number: a numeric commercial book identifier that is intended to be unique, issued by an affiliate of the International ISBN Agency.",
@@ -1029,7 +1025,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       summary: {
-                        $id: "https://hash.ai/@hash/types/property-type/summary/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/summary/v/1",
                         title: "Summary",
                         description: "The summary of the something.",
                         oneOf: [
@@ -1042,7 +1038,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "number-of-pages": {
-                        $id: "https://hash.ai/@hash/types/property-type/number-of-pages/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/number-of-pages/v/1",
                         title: "Number of Pages",
                         description: "The total number of pages something has.",
                         oneOf: [
@@ -1056,13 +1052,13 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       "publication-year": {
-                        $id: "https://hash.ai/@hash/types/property-type/publication-year/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/publication-year/v/1",
                         title: "Publication Year",
                         description:
                           "The year in which something was first published.",
                         oneOf: [
                           {
-                            $id: "https://hash.ai/@hash/types/data-type/year/v/1",
+                            $id: "https://hash.ai/@h/types/data-type/year/v/1",
                             title: "Year",
                             description: "A year in the Gregorian calendar.",
                             type: "number",
@@ -1070,7 +1066,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                       title: {
-                        $id: "https://hash.ai/@hash/types/property-type/title/v/1",
+                        $id: "https://hash.ai/@h/types/property-type/title/v/1",
                         title: "Title",
                         description: "The title of something.",
                         oneOf: [

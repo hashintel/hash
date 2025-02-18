@@ -77,7 +77,7 @@ import { visualizerViewIcons } from "./visualizer-views";
  */
 const allFileEntityTypeOntologyIds = [
   systemEntityTypes.file,
-  systemEntityTypes.image,
+  systemEntityTypes.imageFile,
   systemEntityTypes.documentFile,
   systemEntityTypes.docxDocument,
   systemEntityTypes.pdfDocument,

@@ -38,7 +38,7 @@ const isContextObject = (obj: unknown): obj is ContextObject =>
  *               "attachments": [],
  *               "sources": [ // This might be empty depending on where the validation failure occurs
  *                 {
- *                   "context": "the property `https://hash.ai/@hash/types/property-type/title/` was specified, but not in the schema",
+ *                   "context": "the property `https://hash.ai/@h/types/property-type/title/` was specified, but not in the schema",
  *                   "attachments": [],
  *                   "sources": []
  *                 },

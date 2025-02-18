@@ -13,7 +13,7 @@ import { slugifyTypeTitle } from "./slugify-type-title.js";
 
 export type SchemaKind = "data-type" | "property-type" | "entity-type";
 
-export const systemTypeWebShortnames = ["hash", "google", "linear"] as const;
+export const systemTypeWebShortnames = ["h", "google", "linear"] as const;
 export type SystemTypeWebShortname = (typeof systemTypeWebShortnames)[number];
 
 /**

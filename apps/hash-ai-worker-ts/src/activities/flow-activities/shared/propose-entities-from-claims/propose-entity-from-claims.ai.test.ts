@@ -31,7 +31,7 @@ const huntingPlcEntitySummary: LocalEntitySummary = {
   summary:
     "HUNTING PLC, represented by the stock code HTG, has a market cap of 614.40 million GBX, a last recorded price of 452.50 GBX, and experienced a recent price change of 80.00 GBX, translating to a 21.48% increase.",
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+    "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
   ],
 };
 
@@ -73,7 +73,7 @@ test(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+        "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -125,7 +125,7 @@ const graphicsCardEntitySummary: LocalEntitySummary = {
   name: "NVIDIA GeForce RTX 2080 Ti",
   summary:
     "The GeForce RTX 2080 Ti is a PC GPU based on the TU102 graphics processor with 11GB of memory, 352-bit memory bus, and approximately 120 teraflops of performance.",
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/graphics-card/v/1"],
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/graphics-card/v/1"],
 };
 
 const claimsAboutGraphicsCard: Claim[] = [
@@ -239,9 +239,7 @@ test(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: [
-        "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
-      ],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/graphics-card/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
     });

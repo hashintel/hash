@@ -356,7 +356,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
         </IconButton>
       </Box>
       <Box
-        minWidth={500}
+        minWidth={{ sm: 500 }}
         p={3}
         component="form"
         display="block"

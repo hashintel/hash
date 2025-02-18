@@ -26,6 +26,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [currentFileEntityTypeId],
         title: "Document File",
+        titlePlural: "Document Files",
+        icon: "/icons/types/file-lines.svg",
         description: "A document file.",
         properties: [
           {
@@ -35,7 +37,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -48,9 +50,11 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [documentFileEntityType.schema.$id],
         title: "PDF Document",
+        titlePlural: "PDF Documents",
+        icon: "/icons/types/file-pdf.svg",
         description: "A PDF document.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -63,9 +67,11 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [documentFileEntityType.schema.$id],
         title: "DOCX Document",
+        titlePlural: "DOCX Documents",
+        icon: "/icons/types/file-word.svg",
         description: "A Microsoft Word document.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -82,6 +88,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [currentFileEntityTypeId],
         title: "Presentation File",
+        titlePlural: "Presentation Files",
+        icon: "/icons/types/presentation-screen.svg",
         description: "A presentation file.",
         properties: [
           {
@@ -91,7 +99,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -104,9 +112,11 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [slideshowFileEntityType.schema.$id],
         title: "PPTX Presentation",
+        titlePlural: "PPTX Presentations",
+        icon: "/icons/types/file-powerpoint.svg",
         description: "A Microsoft PowerPoint presentation.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },

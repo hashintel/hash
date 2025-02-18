@@ -63,7 +63,7 @@ export const getFileEntityFromGcpStorageUri = ({
   const fileEntity = fileEntities.find(
     (entity) =>
       entity.properties[
-        "https://hash.ai/@hash/types/property-type/file-storage-key/"
+        "https://hash.ai/@h/types/property-type/file-storage-key/"
       ] === hashFileStorageKey,
   );
 
@@ -93,7 +93,7 @@ export const uploadFileToGcpStorage = async ({
 
   const hashFileStorageKey =
     fileEntity.properties[
-      "https://hash.ai/@hash/types/property-type/file-storage-key/"
+      "https://hash.ai/@h/types/property-type/file-storage-key/"
     ];
 
   if (!hashFileStorageKey) {

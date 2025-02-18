@@ -52,7 +52,7 @@ export const processAutomaticBrowsingSettingsAction: FlowActionActivity =
     const automaticInferenceConfig = (
       userBrowserPluginSettings as Entity<BrowserPluginSettings>
     ).properties[
-      "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/"
+      "https://hash.ai/@h/types/property-type/automatic-inference-configuration/"
     ];
 
     if (Object.keys(automaticInferenceConfig).length === 0) {

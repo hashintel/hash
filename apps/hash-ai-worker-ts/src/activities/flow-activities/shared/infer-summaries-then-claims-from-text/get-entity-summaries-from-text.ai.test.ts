@@ -22,7 +22,7 @@ test(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+        "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -67,9 +67,9 @@ test(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@hash/types/entity-type/person/v/1",
-        "https://hash.ai/@hash/types/entity-type/has-author/v/1",
-        "https://hash.ai/@hash/types/entity-type/research-paper/v/1",
+        "https://hash.ai/@h/types/entity-type/person/v/1",
+        "https://hash.ai/@h/types/entity-type/has-author/v/1",
+        "https://hash.ai/@h/types/entity-type/research-paper/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -111,7 +111,7 @@ test(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
     });

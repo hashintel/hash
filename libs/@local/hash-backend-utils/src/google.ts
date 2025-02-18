@@ -125,9 +125,7 @@ export const getTokensForGoogleAccount = async ({
   const { userSecret } = secretAndLinkPairs[0];
 
   const vaultPath =
-    userSecret.properties[
-      "https://hash.ai/@hash/types/property-type/vault-path/"
-    ];
+    userSecret.properties["https://hash.ai/@h/types/property-type/vault-path/"];
 
   try {
     const vaultResponse = await vaultClient.read<Auth.Credentials>({

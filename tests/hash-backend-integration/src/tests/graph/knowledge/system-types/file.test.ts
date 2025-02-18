@@ -55,21 +55,20 @@ describe("File", () => {
         Promise.resolve({
           fileStorageProperties: {
             value: {
-              "https://hash.ai/@hash/types/property-type/file-storage-key/": {
+              "https://hash.ai/@h/types/property-type/file-storage-key/": {
                 value: fileKey,
                 metadata: {
                   dataTypeId:
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
               },
-              "https://hash.ai/@hash/types/property-type/file-storage-provider/":
-                {
-                  value: "LOCAL_FILE_SYSTEM",
-                  metadata: {
-                    dataTypeId:
-                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                  },
+              "https://hash.ai/@h/types/property-type/file-storage-provider/": {
+                value: "LOCAL_FILE_SYSTEM",
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
+              },
             },
           } as const,
           presignedPut: { url: uploadUrl },

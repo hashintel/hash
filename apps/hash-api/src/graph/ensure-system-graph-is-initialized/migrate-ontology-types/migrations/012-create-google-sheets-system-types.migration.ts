@@ -62,6 +62,8 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Account",
+        titlePlural: "Accounts",
+        icon: "/icons/types/google.svg",
         description: "A Google user account.",
         properties: [
           {
@@ -100,10 +102,13 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [linkEntityTypeUrl],
         title: "Associated With Account",
+        inverse: {
+          title: "Account For",
+        },
         description: "The account that something is associated with.",
         properties: [],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     });
@@ -117,7 +122,7 @@ const migrate: MigrationFunction = async ({
         description: "A system identifier for a file.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -135,7 +140,7 @@ const migrate: MigrationFunction = async ({
         type: "string",
       },
       conversions: {},
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -149,7 +154,7 @@ const migrate: MigrationFunction = async ({
         description: "The expected audience for some data.",
         possibleValues: [{ dataTypeId: actorTypeDataType.schema.$id }],
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
     },
   );
@@ -166,9 +171,11 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [currentFileEntityTypeId],
         title: "Spreadsheet File",
+        titlePlural: "Spreadsheet Files",
+        icon: "/icons/types/file-spreadsheet.svg",
         description: "A spreadsheet file.",
       },
-      webShortname: "hash",
+      webShortname: "h",
       migrationState,
       instantiator: anyUserInstantiator,
     },
@@ -181,6 +188,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [spreadsheetFileEntityType.schema.$id],
         title: "Google Sheets File",
+        titlePlural: "Google Sheets Files",
         description: "A Google Sheets file.",
         properties: [
           {

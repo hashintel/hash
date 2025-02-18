@@ -44,7 +44,7 @@ import type { FlowActionActivity } from "./types.js";
 
 export const fileEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.file.entityTypeId,
-  systemEntityTypes.image.entityTypeId,
+  systemEntityTypes.imageFile.entityTypeId,
   systemEntityTypes.documentFile.entityTypeId,
   systemEntityTypes.pdfDocument.entityTypeId,
   systemEntityTypes.docxDocument.entityTypeId,
@@ -265,7 +265,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     });
 
     const entityTypeId =
-      `https://hash.ai/@hash/types/entity-type/${linkType}/v/1` as const;
+      `https://hash.ai/@h/types/entity-type/${linkType}/v/1` as const;
 
     return LinkEntity.create<T extends "has-subject" ? HasSubject : HasObject>(
       graphApiClient,

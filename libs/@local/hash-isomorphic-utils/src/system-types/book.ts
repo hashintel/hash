@@ -27,6 +27,8 @@ import type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   Institution,
@@ -84,6 +86,8 @@ export type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   Institution,
@@ -126,7 +130,7 @@ export type {
  * A written work, typically longer than an article, often published in print form.
  */
 export type Book = {
-  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/book/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/book/v/1"];
   properties: BookProperties;
   propertiesWithMetadata: BookPropertiesWithMetadata;
 };
@@ -138,31 +142,21 @@ export type BookOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A written work, typically longer than an article, often published in print form.
  */
-export type BookProperties = BookProperties1 & BookProperties2;
-export type BookProperties1 = DocProperties;
-
-export type BookProperties2 = {
-  "https://hash.ai/@hash/types/property-type/isbn/"?: ISBNPropertyValue;
+export type BookProperties = DocProperties & {
+  "https://hash.ai/@h/types/property-type/isbn/"?: ISBNPropertyValue;
 };
 
-export type BookPropertiesWithMetadata = BookPropertiesWithMetadata1 &
-  BookPropertiesWithMetadata2;
-export type BookPropertiesWithMetadata1 = DocPropertiesWithMetadata;
-
-export type BookPropertiesWithMetadata2 = {
+export type BookPropertiesWithMetadata = DocPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@hash/types/property-type/isbn/"?: ISBNPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/isbn/"?: ISBNPropertyValueWithMetadata;
   };
 };
 
 /**
  * International Standard Book Number: a numeric commercial book identifier that is intended to be unique, issued by an affiliate of the International ISBN Agency.
  */
-export type ISBNDataType = ISBNDataType1;
-export type ISBNDataType1 = TextDataType;
-
-export type ISBNDataType2 = string;
+export type ISBNDataType = TextDataType;
 
 export type ISBNDataTypeWithMetadata = {
   value: ISBNDataType;
@@ -171,7 +165,7 @@ export type ISBNDataTypeWithMetadata = {
 export type ISBNDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@hash/types/data-type/isbn/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/isbn/v/1";
 };
 
 /**

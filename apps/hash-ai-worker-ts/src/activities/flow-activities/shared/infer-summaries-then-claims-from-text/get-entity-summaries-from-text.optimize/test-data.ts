@@ -23,7 +23,7 @@ export const testData: {
   {
     name: "Find people working on AI, with misleading relevant entities prompt",
     entityType: {
-      $id: "https://hash.ai/@hash/types/entity-type/person/v/1",
+      $id: "https://hash.ai/@h/types/entity-type/person/v/1",
       title: "Person",
       description: "A human person",
     },
@@ -77,7 +77,7 @@ export const testData: {
   {
     name: "Find AI companies from news article",
     entityType: {
-      $id: "https://hash.ai/@hash/types/entity-type/company/v/1",
+      $id: "https://hash.ai/@h/types/entity-type/company/v/1",
       title: "Company",
       description:
         "A legal entity representing an association of people with a specific objective.",
@@ -168,7 +168,7 @@ export const testData: {
   {
     name: "Find FTSE 350 constituents from table",
     entityType: {
-      $id: "https://hash.ai/@hash/types/entity-type/company/v/1",
+      $id: "https://hash.ai/@h/types/entity-type/company/v/1",
       title: "Company",
       description:
         "A legal entity representing an association of people with a specific objective.",
@@ -277,7 +277,7 @@ export const testData: {
   {
     name: "Find members of Church Lab",
     entityType: {
-      $id: "https://hash.ai/@hash/types/entity-type/person/v/1",
+      $id: "https://hash.ai/@h/types/entity-type/person/v/1",
       title: "Person",
       description: "Individual human being.",
     },
@@ -681,7 +681,7 @@ export const testData: {
   {
     name: "Find books from GPT-generated HTML",
     entityType: {
-      $id: "https://hash.ai/@hash/types/entity-type/book/v/1",
+      $id: "https://hash.ai/@h/types/entity-type/book/v/1",
       title: "Book",
       description:
         "A written or printed work consisting of pages glued or sewn together along one side and bound in covers.",
@@ -748,7 +748,7 @@ export const testData: {
   {
     name: "Find graphics cards from NVIDIA sales page",
     entityType: {
-      $id: "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
+      $id: "https://hash.ai/@h/types/entity-type/graphics-card/v/1",
       title: "Graphics Card",
       description: "A specific model of a graphics card",
     },

@@ -42,30 +42,32 @@ export type AllowedAuthServicePropertyValueWithMetadata =
 /**
  * The time at which the entity was archived. Null if the entity has not been archived.
  */
-export type ArchivedAtPropertyValue = TextDataType;
+export type ArchivedAtPropertyValue = DateTimeDataType;
 
-export type ArchivedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type ArchivedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The time at which the issue was automatically archived by the auto pruning process.
  */
-export type AutoArchivedAtPropertyValue = TextDataType;
+export type AutoArchivedAtPropertyValue = DateTimeDataType;
 
-export type AutoArchivedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type AutoArchivedAtPropertyValueWithMetadata =
+  DateTimeDataTypeWithMetadata;
 
 /**
  * The time at which the issue was automatically closed by the auto pruning process.
  */
-export type AutoClosedAtPropertyValue = TextDataType;
+export type AutoClosedAtPropertyValue = DateTimeDataType;
 
-export type AutoClosedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type AutoClosedAtPropertyValueWithMetadata =
+  DateTimeDataTypeWithMetadata;
 
 /**
  * An URL to the user's avatar image.
  */
-export type AvatarURLPropertyValue = TextDataType;
+export type AvatarURLPropertyValue = URIDataType;
 
-export type AvatarURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type AvatarURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * The organization the user belongs to.
@@ -85,22 +87,13 @@ export type BelongsToOrganizationOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The organization the user belongs to.
  */
-export type BelongsToOrganizationProperties = BelongsToOrganizationProperties1 &
-  BelongsToOrganizationProperties2;
-export type BelongsToOrganizationProperties1 = LinkProperties;
-
-export type BelongsToOrganizationProperties2 = {};
+export type BelongsToOrganizationProperties = LinkProperties & {};
 
 export type BelongsToOrganizationPropertiesWithMetadata =
-  BelongsToOrganizationPropertiesWithMetadata1 &
-    BelongsToOrganizationPropertiesWithMetadata2;
-export type BelongsToOrganizationPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type BelongsToOrganizationPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
 
 /**
  * A True or False value
@@ -127,23 +120,23 @@ export type BranchNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The time at which the issue was moved into canceled state.
  */
-export type CanceledAtPropertyValue = TextDataType;
+export type CanceledAtPropertyValue = DateTimeDataType;
 
-export type CanceledAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type CanceledAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The time at which the issue was moved into completed state.
  */
-export type CompletedAtPropertyValue = TextDataType;
+export type CompletedAtPropertyValue = DateTimeDataType;
 
-export type CompletedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type CompletedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The time at which the entity was created.
  */
-export type CreatedAtPropertyValue = TextDataType;
+export type CreatedAtPropertyValue = DateTimeDataType;
 
-export type CreatedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type CreatedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * Number of issues created.
@@ -162,12 +155,42 @@ export type CustomerTicketCountPropertyValueWithMetadata =
   NumberDataTypeWithMetadata;
 
 /**
+ * A reference to a particular day represented within a calendar system, formatted according to RFC 3339.
+ */
+export type DateDataType = TextDataType;
+
+export type DateDataTypeWithMetadata = {
+  value: DateDataType;
+  metadata: DateDataTypeMetadata;
+};
+export type DateDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/date/v/1";
+};
+
+/**
+ * A reference to a particular date and time, formatted according to RFC 3339.
+ */
+export type DateTimeDataType = TextDataType;
+
+export type DateTimeDataTypeWithMetadata = {
+  value: DateTimeDataType;
+  metadata: DateTimeDataTypeMetadata;
+};
+export type DateTimeDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1";
+};
+
+/**
  * The time at which deletion of the organization was requested.
  */
-export type DeletionRequestedAtPropertyValue = TextDataType;
+export type DeletionRequestedAtPropertyValue = DateTimeDataType;
 
 export type DeletionRequestedAtPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+  DateTimeDataTypeWithMetadata;
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -193,16 +216,31 @@ export type DisplayNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The date at which the issue is due.
  */
-export type DueDatePropertyValue = TextDataType;
+export type DueDatePropertyValue = DateDataType;
 
-export type DueDatePropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type DueDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
+
+/**
+ * An identifier for an email box to which messages are delivered.
+ */
+export type EmailDataType = TextDataType;
+
+export type EmailDataTypeWithMetadata = {
+  value: EmailDataType;
+  metadata: EmailDataTypeMetadata;
+};
+export type EmailDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1";
+};
 
 /**
  * An email address
  */
-export type EmailPropertyValue = TextDataType;
+export type EmailPropertyValue = EmailDataType;
 
-export type EmailPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type EmailPropertyValueWithMetadata = EmailDataTypeWithMetadata;
 
 /**
  * The estimate of the complexity of the issue.
@@ -264,17 +302,9 @@ export type HasAssigneeOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The user to whom the issue is assigned to.
  */
-export type HasAssigneeProperties = HasAssigneeProperties1 &
-  HasAssigneeProperties2;
-export type HasAssigneeProperties1 = LinkProperties;
+export type HasAssigneeProperties = LinkProperties & {};
 
-export type HasAssigneeProperties2 = {};
-
-export type HasAssigneePropertiesWithMetadata =
-  HasAssigneePropertiesWithMetadata1 & HasAssigneePropertiesWithMetadata2;
-export type HasAssigneePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasAssigneePropertiesWithMetadata2 = {
+export type HasAssigneePropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -295,17 +325,9 @@ export type HasCreatorOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The user who created something.
  */
-export type HasCreatorProperties = HasCreatorProperties1 &
-  HasCreatorProperties2;
-export type HasCreatorProperties1 = LinkProperties;
+export type HasCreatorProperties = LinkProperties & {};
 
-export type HasCreatorProperties2 = {};
-
-export type HasCreatorPropertiesWithMetadata =
-  HasCreatorPropertiesWithMetadata1 & HasCreatorPropertiesWithMetadata2;
-export type HasCreatorPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasCreatorPropertiesWithMetadata2 = {
+export type HasCreatorPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -328,17 +350,9 @@ export type HasSubscriberOutgoingLinksByLinkEntityTypeId = {};
 /**
  * A user who is subscribed to the issue.
  */
-export type HasSubscriberProperties = HasSubscriberProperties1 &
-  HasSubscriberProperties2;
-export type HasSubscriberProperties1 = LinkProperties;
+export type HasSubscriberProperties = LinkProperties & {};
 
-export type HasSubscriberProperties2 = {};
-
-export type HasSubscriberPropertiesWithMetadata =
-  HasSubscriberPropertiesWithMetadata1 & HasSubscriberPropertiesWithMetadata2;
-export type HasSubscriberPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type HasSubscriberPropertiesWithMetadata2 = {
+export type HasSubscriberPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -356,6 +370,21 @@ export type IDPropertyValueWithMetadata = TextDataTypeWithMetadata;
 export type IdentifierPropertyValue = TextDataType;
 
 export type IdentifierPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
+ * A measure of information content.
+ */
+export type InformationDataType = NumberDataType;
+
+export type InformationDataTypeWithMetadata = {
+  value: InformationDataType;
+  metadata: InformationDataTypeMetadata;
+};
+export type InformationDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/information/v/1";
+};
 
 /**
  * Integration type that created this issue, if applicable. (e.g. slack)
@@ -454,7 +483,7 @@ export type IssueProperties = {
   "https://hash.ai/@linear/types/property-type/started-at/"?: StartedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/started-triage-at/"?: StartedTriageAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/sub-issue-sort-order/"?: SubIssueSortOrderPropertyValue;
-  "https://hash.ai/@linear/types/property-type/title/": Title1PropertyValue;
+  "https://hash.ai/@linear/types/property-type/title/": TitlePropertyValue;
   "https://hash.ai/@linear/types/property-type/trashed/"?: TrashedPropertyValue;
   "https://hash.ai/@linear/types/property-type/triaged-at/"?: TriagedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
@@ -490,7 +519,7 @@ export type IssuePropertiesWithMetadata = {
     "https://hash.ai/@linear/types/property-type/started-at/"?: StartedAtPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/started-triage-at/"?: StartedTriageAtPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/sub-issue-sort-order/"?: SubIssueSortOrderPropertyValueWithMetadata;
-    "https://hash.ai/@linear/types/property-type/title/": TitlePropertyValueWithMetadata1;
+    "https://hash.ai/@linear/types/property-type/title/": TitlePropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/trashed/"?: TrashedPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/triaged-at/"?: TriagedAtPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValueWithMetadata;
@@ -504,16 +533,16 @@ export type IssueStateLink = { linkEntity: State; rightEntity: WorkflowState };
 /**
  * The URL of the issue.
  */
-export type IssueURLPropertyValue = TextDataType;
+export type IssueURLPropertyValue = URIDataType;
 
-export type IssueURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type IssueURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * The last time the user was seen online. If null, the user is currently online.
  */
-export type LastSeenPropertyValue = TextDataType;
+export type LastSeenPropertyValue = DateTimeDataType;
 
-export type LastSeenPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type LastSeenPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * undefined
@@ -540,9 +569,9 @@ export type LinkPropertiesWithMetadata = {
 /**
  * The organization's logo URL.
  */
-export type LogoURLPropertyValue = TextDataType;
+export type LogoURLPropertyValue = URIDataType;
 
-export type LogoURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type LogoURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * The issue's description in markdown format.
@@ -551,6 +580,21 @@ export type MarkdownDescriptionPropertyValue = TextDataType;
 
 export type MarkdownDescriptionPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
+
+/**
+ * A unit of information equal to one million bytes.
+ */
+export type MegabytesDataType = InformationDataType;
+
+export type MegabytesDataTypeWithMetadata = {
+  value: MegabytesDataType;
+  metadata: MegabytesDataTypeMetadata;
+};
+export type MegabytesDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/megabytes/v/1";
+};
 
 /**
  * The organization's name.
@@ -665,16 +709,9 @@ export type ParentOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The parent of the issue.
  */
-export type ParentProperties = ParentProperties1 & ParentProperties2;
-export type ParentProperties1 = LinkProperties;
+export type ParentProperties = LinkProperties & {};
 
-export type ParentProperties2 = {};
-
-export type ParentPropertiesWithMetadata = ParentPropertiesWithMetadata1 &
-  ParentPropertiesWithMetadata2;
-export type ParentPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type ParentPropertiesWithMetadata2 = {
+export type ParentPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -682,10 +719,10 @@ export type ParentPropertiesWithMetadata2 = {
 /**
  * Rolling 30-day total upload volume for the organization, in megabytes.
  */
-export type PeriodUploadVolumePropertyValue = NumberDataType;
+export type PeriodUploadVolumePropertyValue = MegabytesDataType;
 
 export type PeriodUploadVolumePropertyValueWithMetadata =
-  NumberDataTypeWithMetadata;
+  MegabytesDataTypeWithMetadata;
 
 /**
  * Previous identifier of the issue if it has been moved between teams.
@@ -719,9 +756,9 @@ export type PriorityPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 /**
  * User's profile URL.
  */
-export type ProfileURLPropertyValue = TextDataType;
+export type ProfileURLPropertyValue = URIDataType;
 
-export type ProfileURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type ProfileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
  * The hour at which to prompt for project updates.
@@ -769,16 +806,9 @@ export type SnoozedByOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The user who snoozed the issue.
  */
-export type SnoozedByProperties = SnoozedByProperties1 & SnoozedByProperties2;
-export type SnoozedByProperties1 = LinkProperties;
+export type SnoozedByProperties = LinkProperties & {};
 
-export type SnoozedByProperties2 = {};
-
-export type SnoozedByPropertiesWithMetadata = SnoozedByPropertiesWithMetadata1 &
-  SnoozedByPropertiesWithMetadata2;
-export type SnoozedByPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type SnoozedByPropertiesWithMetadata2 = {
+export type SnoozedByPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -786,9 +816,10 @@ export type SnoozedByPropertiesWithMetadata2 = {
 /**
  * The time until an issue will be snoozed in Triage view.
  */
-export type SnoozedUntilAtPropertyValue = TextDataType;
+export type SnoozedUntilAtPropertyValue = DateTimeDataType;
 
-export type SnoozedUntilAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type SnoozedUntilAtPropertyValueWithMetadata =
+  DateTimeDataTypeWithMetadata;
 
 /**
  * The order of the item in relation to other items in the organization.
@@ -800,16 +831,17 @@ export type SortOrderPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 /**
  * The time at which the issue was moved into started state.
  */
-export type StartedAtPropertyValue = TextDataType;
+export type StartedAtPropertyValue = DateTimeDataType;
 
-export type StartedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type StartedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The time at which the issue entered triage.
  */
-export type StartedTriageAtPropertyValue = TextDataType;
+export type StartedTriageAtPropertyValue = DateTimeDataType;
 
-export type StartedTriageAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type StartedTriageAtPropertyValueWithMetadata =
+  DateTimeDataTypeWithMetadata;
 
 /**
  * The workflow state that the issue is associated with.
@@ -827,16 +859,9 @@ export type StateOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The workflow state that the issue is associated with.
  */
-export type StateProperties = StateProperties1 & StateProperties2;
-export type StateProperties1 = LinkProperties;
+export type StateProperties = LinkProperties & {};
 
-export type StateProperties2 = {};
-
-export type StatePropertiesWithMetadata = StatePropertiesWithMetadata1 &
-  StatePropertiesWithMetadata2;
-export type StatePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type StatePropertiesWithMetadata2 = {
+export type StatePropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -858,9 +883,10 @@ export type StatusLabelPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A date at which the user current status should be cleared.
  */
-export type StatusUntilAtPropertyValue = TextDataType;
+export type StatusUntilAtPropertyValue = DateTimeDataType;
 
-export type StatusUntilAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type StatusUntilAtPropertyValueWithMetadata =
+  DateTimeDataTypeWithMetadata;
 
 /**
  * The order of the item in the sub-issue list. Only set if the issue has a parent.
@@ -895,9 +921,9 @@ export type TimezonePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The issue's title.
  */
-export type Title1PropertyValue = TextDataType;
+export type TitlePropertyValue = TextDataType;
 
-export type TitlePropertyValueWithMetadata1 = TextDataTypeWithMetadata;
+export type TitlePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A flag that indicates whether the issue is in the trash bin.
@@ -909,16 +935,31 @@ export type TrashedPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 /**
  * The time at which the issue left triage.
  */
-export type TriagedAtPropertyValue = TextDataType;
+export type TriagedAtPropertyValue = DateTimeDataType;
 
-export type TriagedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type TriagedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The time at which the trial of the plus plan will end.
  */
-export type TrialEndsAtPropertyValue = TextDataType;
+export type TrialEndsAtPropertyValue = DateTimeDataType;
 
-export type TrialEndsAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type TrialEndsAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
+
+/**
+ * A unique identifier for a resource (e.g. a URL, or URN).
+ */
+export type URIDataType = TextDataType;
+
+export type URIDataTypeWithMetadata = {
+  value: URIDataType;
+  metadata: URIDataTypeMetadata;
+};
+export type URIDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1";
+};
 
 /**
  * The organization's unique URL key.
@@ -930,12 +971,12 @@ export type URLKeyPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't been updated after creation.
  */
-export type UpdatedAtPropertyValue = TextDataType;
+export type UpdatedAtPropertyValue = DateTimeDataType;
 
-export type UpdatedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export type UpdatedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
- * A user that has access to the the resources of an organization.
+ * A user that has access to the resources of an organization.
  */
 export type User = {
   entityTypeIds: ["https://hash.ai/@linear/types/entity-type/user/v/1"];
@@ -962,11 +1003,11 @@ export type UserOutgoingLinksByLinkEntityTypeId = {
 };
 
 /**
- * A user that has access to the the resources of an organization.
+ * A user that has access to the resources of an organization.
  */
 export type UserProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
-  "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValue;
+  "https://hash.ai/@h/types/property-type/email/": EmailPropertyValue;
   "https://hash.ai/@linear/types/property-type/active/": ActivePropertyValue;
   "https://hash.ai/@linear/types/property-type/admin/": AdminPropertyValue;
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
@@ -993,7 +1034,7 @@ export type UserPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/email/": EmailPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/active/": ActivePropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/admin/": AdminPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValueWithMetadata;

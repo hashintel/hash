@@ -80,12 +80,11 @@ export const CanvasPageBlock = ({
     app.createShapes(
       contents.map(({ linkEntity, rightEntity: blockEntity }) => {
         const {
-          "https://hash.ai/@hash/types/property-type/x-position/": x,
-          "https://hash.ai/@hash/types/property-type/y-position/": y,
-          "https://hash.ai/@hash/types/property-type/width-in-pixels/": width,
-          "https://hash.ai/@hash/types/property-type/height-in-pixels/": height,
-          "https://hash.ai/@hash/types/property-type/rotation-in-rads/":
-            rotation,
+          "https://hash.ai/@h/types/property-type/x-position/": x,
+          "https://hash.ai/@h/types/property-type/y-position/": y,
+          "https://hash.ai/@h/types/property-type/width-in-pixels/": width,
+          "https://hash.ai/@h/types/property-type/height-in-pixels/": height,
+          "https://hash.ai/@h/types/property-type/rotation-in-rads/": rotation,
         } = linkEntity.properties as HasSpatiallyPositionedContentProperties;
 
         return {

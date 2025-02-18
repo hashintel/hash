@@ -1,7 +1,7 @@
 {
   "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
   "kind": "dataType",
-  "$id": "https://hash.ai/@hash/types/data-type/length/v/1",
+  "$id": "https://hash.ai/@h/types/data-type/length/v/1",
   "allOf": [
     {
       "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"

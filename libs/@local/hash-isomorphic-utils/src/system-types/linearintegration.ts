@@ -34,6 +34,8 @@ import type {
   BrowserPluginSettingsPropertiesWithMetadata,
   BrowserPluginTabPropertyValue,
   BrowserPluginTabPropertyValueWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   ComponentIdPropertyValue,
   ComponentIdPropertyValueWithMetadata,
   ConnectionSourceNamePropertyValue,
@@ -46,6 +48,8 @@ import type {
   DisplayNamePropertyValueWithMetadata,
   DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EnabledFeatureFlagsPropertyValue,
@@ -114,11 +118,13 @@ import type {
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
   HasServiceAccountProperties,
   HasServiceAccountPropertiesWithMetadata,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
-  ImagePropertiesWithMetadata,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
+  ImageFilePropertiesWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -180,9 +186,12 @@ import type {
   TextDataTypeWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
+  UserHasCoverImageLink,
   UserHasLink,
   UserHasServiceAccountLink,
   UserIsMemberOfLink,
@@ -231,6 +240,8 @@ export type {
   BrowserPluginSettingsPropertiesWithMetadata,
   BrowserPluginTabPropertyValue,
   BrowserPluginTabPropertyValueWithMetadata,
+  BytesDataType,
+  BytesDataTypeWithMetadata,
   ComponentIdPropertyValue,
   ComponentIdPropertyValueWithMetadata,
   ConnectionSourceNamePropertyValue,
@@ -243,6 +254,8 @@ export type {
   DisplayNamePropertyValueWithMetadata,
   DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
+  EmailDataType,
+  EmailDataTypeWithMetadata,
   EmailPropertyValue,
   EmailPropertyValueWithMetadata,
   EnabledFeatureFlagsPropertyValue,
@@ -311,11 +324,13 @@ export type {
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
   HasServiceAccountProperties,
   HasServiceAccountPropertiesWithMetadata,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
-  ImagePropertiesWithMetadata,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
+  ImageFilePropertiesWithMetadata,
+  InformationDataType,
+  InformationDataTypeWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -377,9 +392,12 @@ export type {
   TextDataTypeWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
+  URIDataType,
+  URIDataTypeWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
+  UserHasCoverImageLink,
   UserHasLink,
   UserHasServiceAccountLink,
   UserIsMemberOfLink,
@@ -403,7 +421,7 @@ export type {
  */
 export type LinearIntegration = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/linear-integration/v/7",
+    "https://hash.ai/@h/types/entity-type/linear-integration/v/7",
   ];
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
@@ -414,21 +432,21 @@ export type LinearIntegrationOutgoingLinkAndTarget =
   | LinearIntegrationUsesUserSecretLink;
 
 export type LinearIntegrationOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1": LinearIntegrationSyncLinearDataWithLink;
-  "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1": LinearIntegrationUsesUserSecretLink;
+  "https://hash.ai/@h/types/entity-type/sync-linear-data-with/v/1": LinearIntegrationSyncLinearDataWithLink;
+  "https://hash.ai/@h/types/entity-type/uses-user-secret/v/1": LinearIntegrationUsesUserSecretLink;
 };
 
 /**
  * An instance of an integration with Linear.
  */
 export type LinearIntegrationProperties = {
-  "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValue;
+  "https://hash.ai/@h/types/property-type/linear-org-id/": LinearOrgIdPropertyValue;
 };
 
 export type LinearIntegrationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
   };
 };
 
@@ -461,7 +479,7 @@ export type LinearTeamIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
  */
 export type SyncLinearDataWith = {
   entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1",
+    "https://hash.ai/@h/types/entity-type/sync-linear-data-with/v/1",
   ];
   properties: SyncLinearDataWithProperties;
   propertiesWithMetadata: SyncLinearDataWithPropertiesWithMetadata;
@@ -474,37 +492,26 @@ export type SyncLinearDataWithOutgoingLinksByLinkEntityTypeId = {};
 /**
  * Something that syncs linear data with something.
  */
-export type SyncLinearDataWithProperties = SyncLinearDataWithProperties1 &
-  SyncLinearDataWithProperties2;
-export type SyncLinearDataWithProperties1 = LinkProperties;
-
-export type SyncLinearDataWithProperties2 = {
-  "https://hash.ai/@hash/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
+export type SyncLinearDataWithProperties = LinkProperties & {
+  "https://hash.ai/@h/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
 };
 
 export type SyncLinearDataWithPropertiesWithMetadata =
-  SyncLinearDataWithPropertiesWithMetadata1 &
-    SyncLinearDataWithPropertiesWithMetadata2;
-export type SyncLinearDataWithPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type SyncLinearDataWithPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/linear-team-id/"?: {
-      value: LinearTeamIdPropertyValueWithMetadata[];
-      metadata?: ArrayMetadata;
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@h/types/property-type/linear-team-id/"?: {
+        value: LinearTeamIdPropertyValueWithMetadata[];
+        metadata?: ArrayMetadata;
+      };
     };
   };
-};
 
 /**
  * The user secret something uses.
  */
 export type UsesUserSecret = {
-  entityTypeIds: [
-    "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/uses-user-secret/v/1"];
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
 };
@@ -516,17 +523,10 @@ export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The user secret something uses.
  */
-export type UsesUserSecretProperties = UsesUserSecretProperties1 &
-  UsesUserSecretProperties2;
-export type UsesUserSecretProperties1 = LinkProperties;
-
-export type UsesUserSecretProperties2 = {};
+export type UsesUserSecretProperties = LinkProperties & {};
 
 export type UsesUserSecretPropertiesWithMetadata =
-  UsesUserSecretPropertiesWithMetadata1 & UsesUserSecretPropertiesWithMetadata2;
-export type UsesUserSecretPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type UsesUserSecretPropertiesWithMetadata2 = {
-  metadata?: ObjectMetadata;
-  value: {};
-};
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };

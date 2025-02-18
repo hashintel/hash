@@ -42,7 +42,7 @@ export const isSpecialEntityType = (
 
   let isImage = entityType.$id
     ? extractBaseUrl(entityType.$id) ===
-      systemEntityTypes.image.entityTypeBaseUrl
+      systemEntityTypes.imageFile.entityTypeBaseUrl
     : false;
 
   let isLink = entityType.$id === linkEntityTypeUrl;
@@ -51,7 +51,7 @@ export const isSpecialEntityType = (
     if (extractBaseUrl(id) === systemEntityTypes.file.entityTypeBaseUrl) {
       isFile = true;
     }
-    if (extractBaseUrl(id) === systemEntityTypes.image.entityTypeBaseUrl) {
+    if (extractBaseUrl(id) === systemEntityTypes.imageFile.entityTypeBaseUrl) {
       isImage = true;
     }
     if (extractBaseUrl(id) === extractBaseUrl(linkEntityTypeUrl)) {

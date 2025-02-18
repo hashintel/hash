@@ -46,7 +46,7 @@ export const useFileSystemPathFromEntity = async <CallbackResponse = unknown>(
 
   const storageKey =
     fileEntity.properties[
-      "https://hash.ai/@hash/types/property-type/file-storage-key/"
+      "https://hash.ai/@h/types/property-type/file-storage-key/"
     ];
 
   if (!storageKey) {
