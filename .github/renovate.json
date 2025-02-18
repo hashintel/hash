@@ -3,7 +3,7 @@
   "extends": ["github>hashintel/.github:renovate-config"],
   "description": "HASH public monorepo (hashintel/hash) Renovate configuration",
   "dependencyDashboardOSVVulnerabilitySummary": "none",
-  "lockFileMaintenance": { 
+  "lockFileMaintenance": {
     "enabled": true,
     "branchTopic": "lock-regenerate",
     "commitMessageAction": "Regenerate lock files",
