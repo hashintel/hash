@@ -294,7 +294,9 @@ export const NumberConstraints = ({
 
   const constraints = useWatch({ control, name: "constraints" });
 
-  if (constraints.type !== "number") {
+  const type = inheritedConstraints.type?.value ?? constraints.type;
+
+  if (type !== "number") {
     throw new Error("Number constraint expected");
   }
 

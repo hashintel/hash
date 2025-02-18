@@ -16,6 +16,7 @@ export type DataTypeFormData = Pick<
 export const getDataTypeFromFormData = ({
   allOf,
   constraints,
+  label,
   ...rest
 }: DataTypeFormData): DistributiveOmit<
   DataType,
@@ -24,6 +25,7 @@ export const getDataTypeFromFormData = ({
   return {
     ...rest,
     allOf: allOf.map((versionedUrl) => ({ $ref: versionedUrl })),
+    label: Object.keys(label ?? {}).length > 0 ? label : undefined,
     ...constraints,
   };
 };
@@ -46,17 +48,6 @@ export const getFormDataFromDataType = (
   if ("anyOf" in constraints) {
     throw new Error("anyOf constraints are not supported");
   }
-
-  const formData = {
-    allOf: allOf?.map(({ $ref }) => $ref) ?? [],
-    abstract,
-    description,
-    label,
-    title,
-    constraints,
-  };
-
-  console.log({ formData });
 
   return {
     allOf: allOf?.map(({ $ref }) => $ref) ?? [],

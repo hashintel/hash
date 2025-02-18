@@ -241,7 +241,7 @@ const EditingRow = ({
     <Stack
       direction="row"
       alignItems="center"
-      sx={[itemContainerStyles, { pl: 1.5, maxWidth: 200 }]}
+      sx={[itemContainerStyles, { pl: 1.5, maxWidth: 260 }]}
     >
       <NumberOrTextInput
         fontSize={14}
@@ -265,6 +265,11 @@ const EditingRow = ({
     </Stack>
   );
 };
+
+const emailRegExp = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const yyyymmddRegExp = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const dateTimeRegExp =
+  /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(Z|[+-][01]\d:[0-5]\d)?$/;
 
 export const EnumEditor = ({
   ownEnum,
@@ -298,8 +303,16 @@ export const EnumEditor = ({
 
   console.log({ errors });
 
+  const items = ownEnum ?? inheritedConstraints.enum?.value;
+
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draftValue, setDraftValue] = useState<string | number>("");
+
+  useEffect(() => {
+    if (editingIndex !== null && editingIndex > (items?.length ?? 0)) {
+      setEditingIndex(null);
+    }
+  }, [editingIndex, items?.length]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -307,8 +320,6 @@ export const EnumEditor = ({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
-
-  const items = ownEnum ?? inheritedConstraints.enum?.value;
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -346,9 +357,11 @@ export const EnumEditor = ({
       setValue("constraints.enum", newItems as typeof items, {
         shouldDirty: true,
       });
+      clearErrors(`constraints.enum.${index}`);
     } else {
       // @ts-expect-error -- we can't send an empty array for enum
       setValue("constraints.enum", undefined, { shouldDirty: true });
+      clearErrors("constraints.enum");
     }
   };
 
@@ -453,7 +466,51 @@ export const EnumEditor = ({
           });
           continue;
         }
-        /** @todo test formats and patterns */
+        if (mergedSchema.format === "email") {
+          if (!emailRegExp.test(value)) {
+            setError(`constraints.enum.${index}`, {
+              message: "Value must be a valid email address",
+            });
+          }
+          continue;
+        }
+        if (mergedSchema.format === "date-time") {
+          if (!dateTimeRegExp.test(value)) {
+            setError(`constraints.enum.${index}`, {
+              message: "Value must be a valid date & time in ISO 8601 format",
+            });
+          }
+          continue;
+        }
+        if (mergedSchema.format === "date") {
+          if (!yyyymmddRegExp.test(value)) {
+            setError(`constraints.enum.${index}`, {
+              message: "Value must be a valid date in YYYY-MM-DD format",
+            });
+          }
+          continue;
+        }
+        if (mergedSchema.format === "uri") {
+          try {
+            void new URL(value);
+          } catch {
+            setError(`constraints.enum.${index}`, {
+              message: "Value must be a valid URL",
+            });
+            continue;
+          }
+        }
+        if (mergedSchema.pattern) {
+          const failedPattern = mergedSchema.pattern.find(
+            (pattern) => !new RegExp(pattern).test(value),
+          );
+          if (failedPattern) {
+            setError(`constraints.enum.${index}`, {
+              message: `Value must match the RegExp pattern: ${failedPattern}`,
+            });
+          }
+          continue;
+        }
 
         clearErrors(`constraints.enum.${index}`);
       }

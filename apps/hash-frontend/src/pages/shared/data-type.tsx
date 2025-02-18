@@ -92,7 +92,7 @@ export const DataType = ({
     defaultValues: {
       allOf: [],
       abstract: false,
-      constraints: { type: "string" },
+      constraints: {},
       label: {},
       title: "",
     },

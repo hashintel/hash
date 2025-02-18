@@ -61,7 +61,7 @@ export const NumberOrTextInput = ({
     throw new Error("multipleOf with multiple values is not supported");
   }
 
-  const step =
+  let step =
     "multipleOf" in schema && schema.multipleOf?.[0] !== undefined
       ? schema.multipleOf[0]
       : 0.001;
@@ -95,8 +95,13 @@ export const NumberOrTextInput = ({
       if (typeof value === "string" && value) {
         const datetime = parseISO(value);
         // reformat the date to match the datetime-local input type
-        value = format(datetime, "yyyy-MM-dd'T'HH:mm:ss.SSS");
+        try {
+          value = format(datetime, "yyyy-MM-dd'T'HH:mm:ss.SSS");
+        } catch {
+          value = "";
+        }
       }
+      step = 60;
       break;
     case "date":
       inputType = "date";
@@ -107,6 +112,7 @@ export const NumberOrTextInput = ({
         // drop the offset from the end of the time to match the input type
         value = value.split(/([Z+-])/)[0];
       }
+      step = 60;
       break;
     case "email":
       inputType = "email";

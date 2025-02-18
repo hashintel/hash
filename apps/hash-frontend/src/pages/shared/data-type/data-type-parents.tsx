@@ -10,7 +10,7 @@ import {
 } from "@hashintel/design-system";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack } from "@mui/system";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { Link } from "../../../shared/ui/link";
@@ -160,13 +160,39 @@ export const DataTypesParents = ({
       throw new Error(`Parent data type does not have a type: ${dataTypeId}`);
     }
 
-    setValue("allOf", [...directParentDataTypeIds, dataTypeId], {
+    const parentsWithoutOlderVersion = directParentDataTypeIds.filter(
+      (parentId) => {
+        const existingParentBaseUrl = extractBaseUrl(parentId);
+        const newParentBaseUrl = extractBaseUrl(dataTypeId);
+
+        return existingParentBaseUrl !== newParentBaseUrl;
+      },
+    );
+
+    setValue("allOf", [...parentsWithoutOlderVersion, dataTypeId], {
       shouldDirty: true,
     });
     setValue("constraints.type", parent.type, {
       shouldDirty: true,
     });
   };
+
+  const type = useWatch({
+    control,
+    name: "constraints.type",
+  });
+
+  useEffect(() => {
+    const firstParentType = parents?.[0]?.dataType;
+
+    if (
+      firstParentType &&
+      "type" in firstParentType &&
+      type !== firstParentType.type
+    ) {
+      setValue("constraints.type", firstParentType.type, { shouldDirty: true });
+    }
+  }, [type, parents, setValue]);
 
   const removeParent = (dataTypeId: VersionedUrl) => {
     setValue(
@@ -212,6 +238,7 @@ export const DataTypesParents = ({
             onSelect={(dataTypeId) => {
               addParent(dataTypeId);
             }}
+            selectedDataTypeIds={directParentDataTypeIds}
           />
         </Box>
       </Box>

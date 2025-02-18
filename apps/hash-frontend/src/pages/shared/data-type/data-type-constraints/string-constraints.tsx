@@ -10,6 +10,10 @@ import { ItemLabel } from "./shared/item-label";
 import { NumberInput } from "./shared/number-input";
 import type { InheritedConstraints } from "./types";
 
+const isStringLengthIrrelevant = (format?: StringFormat) => {
+  return ["date", "time", "date-time"].includes(format ?? "");
+};
+
 const StringLengthEditor = ({
   ownMinLength,
   ownMaxLength,
@@ -89,9 +93,11 @@ export const StringConstraintEditor = ({
   ownMaxLength?: number;
   inheritedConstraints: InheritedConstraints;
 }) => {
+  const format = ownFormat ?? inheritedConstraints.format?.value;
+
   return (
     <Stack gap={3} mt={2}>
-      {!inheritedConstraints.enum && (
+      {!inheritedConstraints.enum && !isStringLengthIrrelevant(format) && (
         <StringLengthEditor
           ownMinLength={ownMinLength}
           ownMaxLength={ownMaxLength}
@@ -177,7 +183,9 @@ export const StringConstraints = ({
 
   const constraints = useWatch({ control, name: "constraints" });
 
-  if (constraints.type !== "string") {
+  const type = inheritedConstraints.type?.value ?? constraints.type;
+
+  if (type !== "string") {
     throw new Error("String constraint expected");
   }
 
@@ -230,7 +238,9 @@ export const StringConstraints = ({
               />
             </>
           )}
-          {typeof minLength === "number" || typeof maxLength === "number" ? (
+          {typeof minLength === "number" ||
+          typeof maxLength === "number" ||
+          !isStringLengthIrrelevant(format) ? (
             <StringLengthText
               minLength={minLength}
               maxLength={maxLength}

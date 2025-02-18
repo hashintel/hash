@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
 import type { ClosedDataType } from "@blockprotocol/type-system";
-import { Chip } from "@hashintel/design-system";
+import { Autocomplete, Chip } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import type { PropertyMetadataValue } from "@local/hash-graph-types/entity";
 import { isValueMetadata } from "@local/hash-graph-types/entity";
@@ -9,7 +9,7 @@ import {
   createConversionFunction,
   getMergedDataTypeSchema,
 } from "@local/hash-isomorphic-utils/data-types";
-import { Box } from "@mui/material";
+import { Box, outlinedInputClasses, Typography } from "@mui/material";
 import produce from "immer";
 import { useEffect, useRef, useState } from "react";
 
@@ -298,6 +298,73 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
             onFinishedEditing(newCell);
           }}
           label={title}
+        />
+      </GridEditorWrapper>
+    );
+  }
+
+  if ("enum" in schema) {
+    if (!schema.enum) {
+      throw new Error("schema.enum is undefined");
+    }
+
+    return (
+      <GridEditorWrapper sx={{ px: 2 }}>
+        <Autocomplete
+          componentsProps={{
+            paper: {
+              className: GRID_CLICK_IGNORE_CLASS,
+            },
+          }}
+          disableCloseOnSelect={false}
+          options={schema.enum}
+          inputProps={{
+            endAdornment: <Box />,
+            startAdornment: <Box />,
+            sx: {
+              [`&.${outlinedInputClasses.root}`]: {
+                pr: 0,
+                py: 0,
+                "& input": {
+                  fontSize: 14,
+                },
+              },
+            },
+          }}
+          isOptionEqualToValue={(option, val) => option === val}
+          value={value}
+          onChange={(_event, newValue) => {
+            const newCell = produce(cell, (draftCell) => {
+              draftCell.data.propertyRow.value = newValue;
+            });
+
+            onFinishedEditing(newCell);
+          }}
+          renderOption={({ key, ...itemProps }, item) => (
+            <Box
+              component="li"
+              key={key}
+              {...itemProps}
+              className={GRID_CLICK_IGNORE_CLASS}
+              sx={{
+                cursor: item === "value" ? "default" : "pointer",
+                px: 1,
+                py: 1,
+                background:
+                  item === value ? ({ palette }) => palette.blue[15] : "none",
+              }}
+            >
+              <Typography
+                variant="smallTextParagraphs"
+                sx={{
+                  color: ({ palette }) => palette.gray[90],
+                  fontSize: 14,
+                }}
+              >
+                {String(item)}
+              </Typography>
+            </Box>
+          )}
         />
       </GridEditorWrapper>
     );

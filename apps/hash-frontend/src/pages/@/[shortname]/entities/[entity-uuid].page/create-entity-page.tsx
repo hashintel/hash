@@ -56,8 +56,10 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     setDraftLinksToArchive,
   ] = useDraftLinkState();
 
-  const { getClosedMultiEntityType, loading: closedTypeLoading } =
-    useGetClosedMultiEntityType();
+  const { getClosedMultiEntityType } = useGetClosedMultiEntityType();
+
+  const [closedTypeRequestPending, setClosedTypeRequestPending] =
+    useState(true);
 
   const [draftEntityTypesDetails, setDraftEntityTypesDetails] =
     useState<
@@ -73,8 +75,10 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const fetchAndSetTypeDetails = useCallback(
     async (entityTypeIds: VersionedUrl[]) => {
+      setClosedTypeRequestPending(true);
       await getClosedMultiEntityType(entityTypeIds).then((result) => {
         setDraftEntityTypesDetails(result);
+        setClosedTypeRequestPending(false);
       });
     },
     [getClosedMultiEntityType],
@@ -204,7 +208,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     }
   };
 
-  if (closedTypeLoading) {
+  if (closedTypeRequestPending) {
     return <EntityPageLoadingState />;
   }
 
