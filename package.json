@@ -112,7 +112,7 @@
     "node": ">= v22"
   },
   "repository": {
-		"type": "git",
-		"url": "https://github.com/hashintel/hash.git"
-	}
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git"
+  }
 }
