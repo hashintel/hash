@@ -273,7 +273,7 @@ impl Constraint for StringSchema {
                     bail!(ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
                         ValueConstraints::Typed(SingleValueConstraints::String(Self::Constrained(
                             constraints
-                        ),)),
+                        ))),
                     ))
                 }
 

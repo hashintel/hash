@@ -138,14 +138,14 @@ impl Constraint for NumberSchema {
                     bail!(ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
                         ValueConstraints::Typed(SingleValueConstraints::Number(Self::Constrained(
                             constraints
-                        ),)),
+                        ))),
                     ))
                 }
 
                 (Self::Enum { r#enum: passed }, None)
             }
             (Self::Enum { r#enum: lhs }, Self::Enum { r#enum: rhs }) => {
-                // We use a `HashSet` to find the actual intersection of the two enums. It's not
+                // We use a `BTreeSet` to find the actual intersection of the two enums. It's not
                 // required to clone the values.
                 let lhs_set = lhs.iter().collect::<BTreeSet<_>>();
                 let rhs_set = rhs.iter().collect::<BTreeSet<_>>();
