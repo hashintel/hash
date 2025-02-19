@@ -699,7 +699,7 @@ mod tests {
             "type": "number",
             "enum": [50, 50],
         }))
-        .expect_err("Deserialized number schema with mixed properties");
+        .expect_err("Deserialized number schema with duplicate enum values");
     }
 
     #[test]
