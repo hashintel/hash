@@ -66,13 +66,10 @@ pub enum NumberTypeTag {
 #[serde(untagged, rename_all = "camelCase", deny_unknown_fields)]
 pub enum NumberSchema {
     Constrained(NumberConstraints),
-    Const {
-        #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
-        r#const: Real,
-    },
     Enum {
         #[cfg_attr(target_arch = "wasm32", tsify(type = "[number, ...number[]]"))]
-        r#enum: BTreeSet<Real>,
+        #[serde(deserialize_with = "hash_codec::serde::unique_vec::btree")]
+        r#enum: Vec<Real>,
     },
 }
 
@@ -96,7 +93,6 @@ fn float_multiple_of(lhs: &Real, rhs: &Real) -> bool {
 }
 
 impl Constraint for NumberSchema {
-    #[expect(clippy::too_many_lines)]
     fn intersection(
         self,
         other: Self,
@@ -105,21 +101,6 @@ impl Constraint for NumberSchema {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => lhs
                 .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Constrained(lhs), rhs.map(Self::Constrained)))?,
-            (Self::Const { r#const }, Self::Constrained(constraints))
-            | (Self::Constrained(constraints), Self::Const { r#const }) => {
-                constraints
-                    .validate_value(&r#const)
-                    .change_context_lazy(|| {
-                        ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                            Value::Number(r#const.clone()),
-                            ValueConstraints::Typed(SingleValueConstraints::Number(
-                                Self::Constrained(constraints),
-                            )),
-                        )
-                    })?;
-
-                (Self::Const { r#const }, None)
-            }
             (Self::Enum { r#enum }, Self::Constrained(constraints))
             | (Self::Constrained(constraints), Self::Enum { r#enum }) => {
                 // We use the fast way to filter the values that pass the constraints and collect
@@ -129,99 +110,64 @@ impl Constraint for NumberSchema {
                     .iter()
                     .filter(|&value| constraints.is_valid(value))
                     .cloned()
-                    .collect::<BTreeSet<_>>();
+                    .collect::<Vec<_>>();
 
-                match passed.len() {
-                    0 => {
-                        // We now properly capture errors to return it to the caller.
-                        let () = r#enum
-                            .into_iter()
-                            .map(|value| {
-                                constraints.validate_value(&value).change_context(
-                                    ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
-                                        Value::Number(value),
-                                    ),
-                                )
-                            })
-                            .try_collect_reports()
-                            .change_context_lazy(|| {
-                                ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
-                                    ValueConstraints::Typed(SingleValueConstraints::Number(
-                                        Self::Constrained(constraints.clone()),
-                                    )),
-                                )
-                            })?;
+                if passed.is_empty() {
+                    // We now properly capture errors to return it to the caller.
+                    let () = r#enum
+                        .into_iter()
+                        .map(|value| {
+                            constraints.validate_value(&value).change_context(
+                                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
+                                    Value::Number(value),
+                                ),
+                            )
+                        })
+                        .try_collect_reports()
+                        .change_context_lazy(|| {
+                            ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
+                                ValueConstraints::Typed(SingleValueConstraints::Number(
+                                    Self::Constrained(constraints.clone()),
+                                )),
+                            )
+                        })?;
 
-                        // This should only happen if `enum` is malformed and has no values. This
-                        // should be caught by the schema validation, however, if this still happens
-                        // we return an error as validating empty enum will always fail.
-                        bail!(ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
-                            ValueConstraints::Typed(SingleValueConstraints::Number(
-                                Self::Constrained(constraints),
-                            )),
-                        ))
-                    }
-                    1 => (
-                        Self::Const {
-                            r#const: passed.into_iter().next().unwrap_or_else(|| {
-                                unreachable!(
-                                    "we have exactly one value in the enum that passed the \
-                                     constraints"
-                                )
-                            }),
-                        },
-                        None,
-                    ),
-                    _ => (Self::Enum { r#enum: passed }, None),
-                }
-            }
-            (Self::Const { r#const: lhs }, Self::Const { r#const: rhs }) => {
-                if float_eq(&lhs, &rhs) {
-                    (Self::Const { r#const: lhs }, None)
-                } else {
-                    bail!(ResolveClosedDataTypeError::ConflictingConstValues(
-                        Value::Number(lhs),
-                        Value::Number(rhs),
+                    // This should only happen if `enum` is malformed and has no values. This
+                    // should be caught by the schema validation, however, if this still happens
+                    // we return an error as validating empty enum will always fail.
+                    bail!(ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
+                        ValueConstraints::Typed(SingleValueConstraints::Number(Self::Constrained(
+                            constraints
+                        ),)),
                     ))
                 }
+
+                (Self::Enum { r#enum: passed }, None)
             }
             (Self::Enum { r#enum: lhs }, Self::Enum { r#enum: rhs }) => {
-                let intersection = lhs.intersection(&rhs).cloned().collect::<BTreeSet<_>>();
+                // We use a `HashSet` to find the actual intersection of the two enums. It's not
+                // required to clone the values.
+                let lhs_set = lhs.iter().collect::<BTreeSet<_>>();
+                let rhs_set = rhs.iter().collect::<BTreeSet<_>>();
+                let intersection = lhs_set.intersection(&rhs_set).collect::<BTreeSet<_>>();
 
-                match intersection.len() {
-                    0 => bail!(ResolveClosedDataTypeError::ConflictingEnumValues(
+                ensure!(
+                    !intersection.is_empty(),
+                    ResolveClosedDataTypeError::ConflictingEnumValues(
                         lhs.into_iter().map(Value::Number).collect(),
                         rhs.into_iter().map(Value::Number).collect(),
-                    )),
-                    1 => (
-                        Self::Const {
-                            r#const: intersection.into_iter().next().unwrap_or_else(|| {
-                                unreachable!(
-                                    "we have exactly least one value in the enum intersection"
-                                )
-                            }),
-                        },
-                        None,
-                    ),
-                    _ => (
-                        Self::Enum {
-                            r#enum: intersection,
-                        },
-                        None,
-                    ),
-                }
-            }
-            (Self::Const { r#const }, Self::Enum { r#enum })
-            | (Self::Enum { r#enum }, Self::Const { r#const }) => {
-                ensure!(
-                    r#enum.iter().any(|value| float_eq(value, &r#const)),
-                    ResolveClosedDataTypeError::ConflictingConstEnumValue(
-                        Value::Number(r#const),
-                        r#enum.into_iter().map(Value::Number).collect(),
                     )
                 );
 
-                (Self::Const { r#const }, None)
+                (
+                    Self::Enum {
+                        r#enum: lhs
+                            .into_iter()
+                            .filter(|value| rhs.contains(value))
+                            .collect(),
+                    },
+                    None,
+                )
             }
         })
     }
@@ -256,7 +202,6 @@ impl ConstraintValidator<Real> for NumberSchema {
     fn is_valid(&self, value: &Real) -> bool {
         match self {
             Self::Constrained(constraints) => constraints.is_valid(value),
-            Self::Const { r#const } => float_eq(value, r#const),
             Self::Enum { r#enum } => r#enum.iter().any(|expected| float_eq(value, expected)),
         }
     }
@@ -266,14 +211,6 @@ impl ConstraintValidator<Real> for NumberSchema {
             Self::Constrained(constraints) => constraints
                 .validate_value(value)
                 .change_context(ConstraintError::ValueConstraint)?,
-            Self::Const { r#const } => {
-                if !float_eq(value, r#const) {
-                    bail!(ConstraintError::InvalidConstValue {
-                        actual: Value::Number(value.clone()),
-                        expected: Value::Number(r#const.clone()),
-                    });
-                }
-            }
             Self::Enum { r#enum } => {
                 ensure!(
                     r#enum.iter().any(|expected| float_eq(value, expected)),
@@ -454,7 +391,7 @@ mod tests {
                 ValueConstraints,
                 tests::{
                     check_constraints, check_constraints_error, check_schema_intersection,
-                    check_schema_intersection_error, intersect_schemas, read_schema,
+                    check_schema_intersection_error, read_schema,
                 },
             },
         },
@@ -712,24 +649,6 @@ mod tests {
     }
 
     #[test]
-    fn constant() {
-        let number_schema = read_schema(&json!({
-            "type": "number",
-            "const": 50.0,
-        }));
-
-        check_constraints(&number_schema, json!(50.0));
-        check_constraints_error(
-            &number_schema,
-            json!(10.0),
-            [ConstraintError::InvalidConstValue {
-                actual: Value::Number(Real::from(10)),
-                expected: Value::Number(Real::from(50)),
-            }],
-        );
-    }
-
-    #[test]
     fn enumeration() {
         let number_schema = read_schema(&json!({
             "type": "number",
@@ -768,20 +687,18 @@ mod tests {
     fn mixed() {
         from_value::<ValueConstraints>(json!({
             "type": "number",
-            "const": 50,
-            "minimum": 0,
-        }))
-        .expect_err("Deserialized number schema with mixed properties");
-        from_value::<ValueConstraints>(json!({
-            "type": "number",
             "enum": [50],
             "minimum": 0,
         }))
         .expect_err("Deserialized number schema with mixed properties");
+    }
+
+    #[test]
+    fn duplicate_enum_values() {
         from_value::<ValueConstraints>(json!({
             "type": "number",
-            "const": 50,
             "enum": [50],
+            "minimum": 0,
         }))
         .expect_err("Deserialized number schema with mixed properties");
     }
@@ -1012,123 +929,27 @@ mod tests {
     }
 
     #[test]
-    fn intersect_const_const_same() {
-        check_schema_intersection(
-            [
-                json!({
-                    "type": "number",
-                    "const": 5.0,
-                }),
-                json!({
-                    "type": "number",
-                    "const": 5.0,
-                }),
-            ],
-            [json!({
-                "type": "number",
-                "const": 5.0,
-            })],
-        );
-    }
-
-    #[test]
-    fn intersect_const_const_different() {
-        check_schema_intersection_error(
-            [
-                json!({
-                    "type": "number",
-                    "const": 5.0,
-                }),
-                json!({
-                    "type": "number",
-                    "const": 10.0,
-                }),
-            ],
-            [ResolveClosedDataTypeError::ConflictingConstValues(
-                Value::Number(Real::from(5)),
-                Value::Number(Real::from(10)),
-            )],
-        );
-    }
-
-    #[test]
-    fn intersect_const_enum_compatible() {
-        check_schema_intersection(
-            [
-                json!({
-                    "type": "number",
-                    "const": 5.0,
-                }),
-                json!({
-                    "type": "number",
-                    "enum": [5.0, 10.0],
-                }),
-            ],
-            [json!({
-                "type": "number",
-                "const": 5.0,
-            })],
-        );
-    }
-
-    #[test]
-    fn intersect_const_enum_incompatible() {
-        let report = intersect_schemas([
-            json!({
-                "type": "number",
-                "const": 5.0,
-            }),
-            json!({
-                "type": "number",
-                "enum": [10.0, 15.0],
-            }),
-        ])
-        .expect_err("Intersected invalid schemas");
-
-        let Some(ResolveClosedDataTypeError::ConflictingConstEnumValue(lhs, rhs)) =
-            report.downcast_ref::<ResolveClosedDataTypeError>()
-        else {
-            panic!("Expected conflicting const-enum values error");
-        };
-        assert_eq!(lhs, &Value::Number(Real::from(5)));
-
-        assert_eq!(rhs.len(), 2);
-        assert!(rhs.contains(&Value::Number(Real::from(10))));
-        assert!(rhs.contains(&Value::Number(Real::from(15))));
-    }
-
-    #[test]
     fn intersect_enum_enum_compatible_multi() {
-        let intersection = intersect_schemas([
-            json!({
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "enum": [15.0, 5.0, 10.0],
+                }),
+                json!({
+                    "type": "number",
+                    "enum": [5.0, 15.0, 20.0],
+                }),
+                json!({
+                    "type": "number",
+                    "enum": [0.0, 5.0, 15.0],
+                }),
+            ],
+            [json!({
                 "type": "number",
-                "enum": [5.0, 10.0, 15.0],
-            }),
-            json!({
-                "type": "number",
-                "enum": [5.0, 15.0, 20.0],
-            }),
-            json!({
-                "type": "number",
-                "enum": [0.0, 5.0, 15.0],
-            }),
-        ])
-        .expect("Intersected invalid constraints")
-        .into_iter()
-        .map(|schema| {
-            from_value::<SingleValueConstraints>(schema).expect("Failed to deserialize schema")
-        })
-        .collect::<Vec<_>>();
-
-        // We need to manually check the intersection because the order of the enum values is not
-        // guaranteed.
-        assert_eq!(intersection.len(), 1);
-        let SingleValueConstraints::Number(NumberSchema::Enum { r#enum }) = &intersection[0] else {
-            panic!("Expected string enum schema");
-        };
-        assert_eq!(r#enum.len(), 2);
-        assert!(r#enum.contains(&Real::from(5)));
-        assert!(r#enum.contains(&Real::from(15)));
+                "enum": [15.0, 5.0],
+            })],
+        );
     }
 
     #[test]
@@ -1150,125 +971,27 @@ mod tests {
             ],
             [json!({
                 "type": "number",
-                "const": 5.0,
+                "enum": [5.0],
             })],
         );
     }
 
     #[test]
     fn intersect_enum_enum_incompatible() {
-        let report = intersect_schemas([
-            json!({
-                "type": "number",
-                "enum": [5.0, 10.0, 15.0],
-            }),
-            json!({
-                "type": "number",
-                "enum": [20.0, 25.0, 30.0],
-            }),
-        ])
-        .expect_err("Intersected invalid schemas");
-
-        let Some(ResolveClosedDataTypeError::ConflictingEnumValues(lhs, rhs)) =
-            report.downcast_ref::<ResolveClosedDataTypeError>()
-        else {
-            panic!("Expected conflicting enum values error");
-        };
-        assert_eq!(lhs.len(), 3);
-        assert!(lhs.contains(&Value::Number(Real::from(5))));
-        assert!(lhs.contains(&Value::Number(Real::from(10))));
-        assert!(lhs.contains(&Value::Number(Real::from(15))));
-
-        assert_eq!(rhs.len(), 3);
-        assert!(rhs.contains(&Value::Number(Real::from(20))));
-        assert!(rhs.contains(&Value::Number(Real::from(25))));
-        assert!(rhs.contains(&Value::Number(Real::from(30))));
-    }
-
-    #[test]
-    fn intersect_const_constraint_compatible() {
-        check_schema_intersection(
-            [
-                json!({
-                    "type": "number",
-                    "const": 5.0,
-                }),
-                json!({
-                    "type": "number",
-                    "minimum": 0.0,
-                    "maximum": 10.0,
-                }),
-            ],
-            [json!({
-                "type": "number",
-                "const": 5.0,
-            })],
-        );
-
-        check_schema_intersection(
-            [
-                json!({
-                    "type": "number",
-                    "minimum": 0.0,
-                    "maximum": 10.0,
-                }),
-                json!({
-                    "type": "number",
-                    "const": 5.0,
-                }),
-            ],
-            [json!({
-                "type": "number",
-                "const": 5.0,
-            })],
-        );
-    }
-
-    #[test]
-    fn intersect_const_constraint_incompatible() {
         check_schema_intersection_error(
             [
                 json!({
                     "type": "number",
-                    "const": 5.0,
+                    "enum": [5.0, 10.0, 15.0],
                 }),
                 json!({
                     "type": "number",
-                    "minimum": 10.0,
-                    "maximum": 15.0,
+                    "enum": [20.0, 25.0, 30.0],
                 }),
             ],
-            [ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                Value::Number(Real::from(5)),
-                from_value(json!({
-                    "type": "number",
-                    "minimum": 10.0,
-                    "maximum": 15.0,
-                }))
-                .expect("Failed to parse schema"),
-            )],
-        );
-
-        check_schema_intersection_error(
-            [
-                json!({
-                    "type": "number",
-                    "minimum": 10.0,
-                    "maximum": 15.0,
-                }),
-                json!({
-                    "type": "number",
-                    "const": 5.0,
-                }),
-            ],
-            [ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                Value::Number(Real::from(5)),
-                from_value(json!({
-                    "type": "number",
-                    "minimum": 10.0,
-                    "maximum": 15.0,
-                }))
-                .expect("Failed to parse schema"),
+            [ResolveClosedDataTypeError::ConflictingEnumValues(
+                from_value(json!([5.0, 10.0, 15.0])).expect("Failed to parse enum"),
+                from_value(json!([20.0, 25.0, 30.0])).expect("Failed to parse enum"),
             )],
         );
     }
@@ -1295,39 +1018,29 @@ mod tests {
             ],
             [json!({
                 "type": "number",
-                "const": 5.0,
+                "enum": [5.0],
             })],
         );
     }
 
     #[test]
     fn intersect_enum_constraint_compatible_multi() {
-        let intersection = intersect_schemas([
-            json!({
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "number",
+                    "enum": [5.0, 10.0, 15.0],
+                }),
+                json!({
+                    "type": "number",
+                    "minimum": 10.0,
+                }),
+            ],
+            [json!({
                 "type": "number",
-                "enum": [5.0, 10.0, 15.0],
-            }),
-            json!({
-                "type": "number",
-                "minimum": 10.0,
-            }),
-        ])
-        .expect("Intersected invalid constraints")
-        .into_iter()
-        .map(|schema| {
-            from_value::<SingleValueConstraints>(schema).expect("Failed to deserialize schema")
-        })
-        .collect::<Vec<_>>();
-
-        // We need to manually check the intersection because the order of the enum values is not
-        // guaranteed.
-        assert_eq!(intersection.len(), 1);
-        let SingleValueConstraints::Number(NumberSchema::Enum { r#enum }) = &intersection[0] else {
-            panic!("Expected string enum schema");
-        };
-        assert_eq!(r#enum.len(), 2);
-        assert!(r#enum.contains(&Real::from(10)));
-        assert!(r#enum.contains(&Real::from(15)));
+                "enum": [10.0, 15.0],
+            })],
+        );
     }
 
     #[test]
@@ -1432,7 +1145,7 @@ mod tests {
                 }),
                 json!({
                     "type": "number",
-                    "const": 10.0,
+                    "enum": [10.0, 20.0],
                 }),
                 json!({
                     "type": "number",
@@ -1450,7 +1163,7 @@ mod tests {
             ],
             [json!({
                 "type": "number",
-                "const": 10.0,
+                "enum": [10.0],
             })],
         );
     }
