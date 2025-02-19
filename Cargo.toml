@@ -210,7 +210,7 @@ proc-macro2              = { version = "=1.0.93", default-features = false }
 proptest                 = { version = "=1.6.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
 quote                    = { version = "=1.0.38", default-features = false }
 rand                     = { version = "=0.9.0", default-features = false }
-refinery                 = { version = "=0.8.14", default-features = false }
+refinery                 = { version = "=0.8.15", default-features = false }
 rustc_version            = { version = "=0.4.1", default-features = false }
 scc                      = { version = "=2.3.3", default-features = false }
 sentry                   = { version = "=0.36.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
