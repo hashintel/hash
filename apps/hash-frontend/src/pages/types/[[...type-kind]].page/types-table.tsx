@@ -45,7 +45,7 @@ import type { ChipCell } from "../../shared/chip-cell";
 import { createRenderChipCell } from "../../shared/chip-cell";
 import type { TextIconCell } from "../../shared/entities-visualizer/entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "../../shared/entities-visualizer/entities-table/text-icon-cell";
-import { TypeSlideOverStack } from "../../shared/entity-type-page/type-slide-over-stack";
+import { SlideStack } from "../../shared/slide-stack";
 import { TableHeaderToggle } from "../../shared/table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
@@ -506,8 +506,11 @@ export const TypesTable: FunctionComponent<{
   return (
     <>
       {selectedEntityType && (
-        <TypeSlideOverStack
-          rootTypeId={selectedEntityType.entityTypeId}
+        <SlideStack
+          rootItem={{
+            type: "entityType",
+            itemId: selectedEntityType.entityTypeId,
+          }}
           onClose={() => setSelectedEntityType(null)}
           slideContainerRef={selectedEntityType.slideContainerRef}
         />

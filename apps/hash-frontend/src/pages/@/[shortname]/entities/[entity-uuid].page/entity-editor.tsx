@@ -35,7 +35,6 @@ export interface EntityEditorProps extends DraftLinkState {
   closedMultiEntityTypesMap: ClosedMultiEntityTypesRootMap | null;
   customColumns?: CustomColumn[];
   defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
-  disableTypeClick?: boolean;
   isDirty: boolean;
   entityLabel: string;
   entitySubgraph: Subgraph<EntityRootType>;
@@ -45,6 +44,10 @@ export interface EntityEditorProps extends DraftLinkState {
     removedLinkTypesBaseUrls: BaseUrl[];
   }) => Promise<void>;
   onEntityClick: (entityId: EntityId) => void;
+  onTypeClick: (
+    type: "dataType" | "entityType",
+    versionedUrl: VersionedUrl,
+  ) => void;
   setEntity: (entity: Entity) => void;
   readonly: boolean;
   onEntityUpdated: ((entity: Entity) => void) | null;

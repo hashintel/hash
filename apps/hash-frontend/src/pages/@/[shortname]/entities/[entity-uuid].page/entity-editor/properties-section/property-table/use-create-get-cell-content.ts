@@ -23,7 +23,7 @@ export const useCreateGetCellContent = (
   showTooltip: UseGridTooltipResponse["showTooltip"],
   hideTooltip: UseGridTooltipResponse["hideTooltip"],
 ) => {
-  const { readonly } = useEntityEditor();
+  const { readonly, onTypeClick } = useEntityEditor();
 
   const createGetCellContent = useCallback(
     (rows: PropertyRow[]) =>
@@ -164,6 +164,7 @@ export const useCreateGetCellContent = (
               copyData: row.permittedDataTypes
                 .map((type) => type.schema.title)
                 .join(", "),
+              cursor: "pointer",
               data: {
                 kind: "chip-cell",
                 chips: row.permittedDataTypes.map((type) => {
@@ -184,13 +185,16 @@ export const useCreateGetCellContent = (
                     text: type.schema.title,
                     icon: { inbuiltIcon: editorSpec.gridIcon },
                     faIconDefinition: { icon: editorSpec.icon },
+                    onClick: () => {
+                      onTypeClick("dataType", type.schema.$id);
+                    },
                   };
                 }),
               },
             };
         }
       },
-    [showTooltip, hideTooltip, readonly],
+    [showTooltip, hideTooltip, readonly, onTypeClick],
   );
 
   return createGetCellContent;

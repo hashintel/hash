@@ -46,6 +46,7 @@ const Constraint = ({
                   : `a ${type}`
             }
           />
+          .
         </Typography>
       );
   }

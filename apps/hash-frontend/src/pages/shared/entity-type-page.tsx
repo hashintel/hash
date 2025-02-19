@@ -39,7 +39,6 @@ import { FileUploadsTab } from "./entity-type-page/file-uploads-tab";
 import { EntityTypeContext } from "./entity-type-page/shared/entity-type-context";
 import { EntityTypeHeader } from "./entity-type-page/shared/entity-type-header";
 import { useCurrentTab } from "./entity-type-page/shared/tabs";
-import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { UpgradeDependentsModal } from "./entity-type-page/upgrade-dependents-modal";
 import {
   type EntityTypeDependent,
@@ -51,6 +50,7 @@ import {
   TypeDefinitionContainer,
   typeHeaderContainerStyles,
 } from "./shared/type-editor-styling";
+import { SlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 
 type EntityTypeProps = {
@@ -233,16 +233,21 @@ export const EntityTypePage = ({
 
   const currentTab = useCurrentTab();
 
-  const [previewEntityTypeUrl, setPreviewEntityTypeUrl] =
-    useState<VersionedUrl | null>(null);
+  const [typeInSlide, setTypeInSlide] = useState<{
+    kind: "entityType" | "dataType";
+    url: VersionedUrl;
+  } | null>(null);
 
   const titleWrapperRef = useRef<HTMLDivElement>(null);
 
-  const onNavigateToType = (url: VersionedUrl) => {
+  const onNavigateToType = (
+    kind: "entityType" | "dataType",
+    url: VersionedUrl,
+  ) => {
     if (entityType && url === entityType.schema.$id) {
       titleWrapperRef.current?.scrollIntoView({ behavior: "smooth" });
     } else {
-      setPreviewEntityTypeUrl(url);
+      setTypeInSlide({ kind, url });
     }
   };
 
@@ -474,10 +479,15 @@ export const EntityTypePage = ({
         </EntityTypeContext.Provider>
       </EntityTypeFormProvider>
 
-      {previewEntityTypeUrl ? (
-        <TypeSlideOverStack
-          rootTypeId={previewEntityTypeUrl}
-          onClose={() => setPreviewEntityTypeUrl(null)}
+      {typeInSlide ? (
+        <SlideStack
+          isReadOnly
+          hideOpenInNew={false}
+          rootItem={{
+            type: typeInSlide.kind,
+            itemId: typeInSlide.url,
+          }}
+          onClose={() => setTypeInSlide(null)}
         />
       ) : null}
 

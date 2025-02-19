@@ -50,7 +50,7 @@ export const TypeButton = ({
   currentEntityType: MinimalTypeData;
   newerEntityType?: Pick<MinimalTypeData, "entityTypeId" | "version">;
 }) => {
-  const { disableTypeClick, readonly, handleTypesChange } = useEntityEditor();
+  const { readonly, handleTypesChange, onTypeClick } = useEntityEditor();
 
   const newVersion = newerEntityType?.version;
 
@@ -152,10 +152,10 @@ export const TypeButton = ({
   return (
     <>
       <TypeCard
-        disableClick={disableTypeClick}
         LinkComponent={Link}
         icon={currentEntityType.icon}
         isLink={currentEntityType.isLink}
+        onClick={() => onTypeClick("entityType", entityTypeId)}
         onDelete={readonly || !allowDelete ? undefined : onDeleteClicked}
         url={entityTypeId}
         title={entityTypeTitle}

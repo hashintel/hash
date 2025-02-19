@@ -29,6 +29,7 @@ interface TypeCardProps {
   disableClick?: boolean;
   icon?: string | null;
   isLink: boolean;
+  onClick?: () => void;
   LinkComponent?: ElementType;
   newVersionConfig?: { newVersion: number; onUpdateVersion: () => void };
   onDelete?: () => void;
@@ -44,6 +45,7 @@ export const TypeCard = ({
   isLink,
   LinkComponent,
   newVersionConfig,
+  onClick,
   onDelete,
   swappableOnly,
   title,
@@ -58,6 +60,13 @@ export const TypeCard = ({
     <WhiteCard
       href={disableClick ? undefined : url}
       LinkComponent={LinkComponent}
+      onClick={(event) => {
+        if (onClick) {
+          event.preventDefault();
+          event.stopPropagation();
+          onClick();
+        }
+      }}
       onMouseEnter={() => (onDelete ? setHovered(true) : null)}
       onMouseLeave={() => (onDelete ? setHovered(false) : null)}
     >

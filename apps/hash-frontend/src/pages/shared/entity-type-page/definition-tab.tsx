@@ -16,7 +16,10 @@ type DefinitionTabProps = {
     entityType: EntityTypeWithMetadata;
     propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
   };
-  onNavigateToType: (url: VersionedUrl) => void;
+  onNavigateToType: (
+    kind: "entityType" | "dataType",
+    url: VersionedUrl,
+  ) => void;
   readonly: boolean;
 };
 

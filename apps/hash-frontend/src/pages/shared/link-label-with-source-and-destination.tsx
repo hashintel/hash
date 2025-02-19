@@ -588,7 +588,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   subgraph,
   sx,
 }) => {
-  const { disableTypeClick } = useEntityEditor();
+  const { onTypeClick } = useEntityEditor();
 
   const { leftEntity, rightEntity, linkEntityTypes } = useMemo(() => {
     return {
@@ -681,29 +681,23 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
       >
         {linkEntityTypes.map((linkEntityType, index) => (
           <Fragment key={linkEntityType.$id}>
-            {disableTypeClick ? (
-              <Box>
-                <LinkTypeInner
-                  amongMultipleTypes={linkEntityTypes.length > 1}
-                  clickable={false}
-                  linkEntityType={linkEntityType}
-                  elementRef={linkTypeRefs.current[index]!}
-                />
-              </Box>
-            ) : (
-              <Link
-                openInNew={openInNew}
-                href={generateLinkParameters(linkEntityType.$id).href}
-                noLinkStyle
-              >
-                <LinkTypeInner
-                  amongMultipleTypes={linkEntityTypes.length > 1}
-                  clickable
-                  linkEntityType={linkEntityType}
-                  elementRef={linkTypeRefs.current[index]!}
-                />
-              </Link>
-            )}
+            <Link
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onTypeClick("entityType", linkEntityType.$id);
+              }}
+              openInNew={openInNew}
+              href={generateLinkParameters(linkEntityType.$id).href}
+              noLinkStyle
+            >
+              <LinkTypeInner
+                amongMultipleTypes={linkEntityTypes.length > 1}
+                clickable
+                linkEntityType={linkEntityType}
+                elementRef={linkTypeRefs.current[index]!}
+              />
+            </Link>
             {linkEntityTypes.length > 0 && linkTypeRefs.current[index] && (
               /**
                * In cases where we have multiple link entity types, draw a line from:

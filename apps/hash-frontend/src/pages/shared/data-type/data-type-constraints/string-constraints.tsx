@@ -100,7 +100,7 @@ export const StringConstraintEditor = ({
   const hasEnum = "enum" in inheritedConstraints || !!ownEnum;
 
   return (
-    <Stack gap={3} mt={2}>
+    <Stack gap={4} mt={2}>
       {!inheritedConstraints.enum && !isStringLengthIrrelevant(format) && (
         <StringLengthEditor
           hasEnum={hasEnum}

@@ -12,7 +12,7 @@ import { useMemo, useState } from "react";
 
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { Link } from "../../shared/ui";
-import { EntityEditorSlideStack } from "../shared/entity-editor-slide-stack";
+import { SlideStack } from "../shared/slide-stack";
 import { useEntityHref } from "../shared/use-entity-href";
 import type { EntityTypeDisplayInfoByBaseUrl } from "./draft-entities/types";
 import { useDraftEntities } from "./draft-entities-context";
@@ -77,14 +77,18 @@ export const DraftEntity: FunctionComponent<{
             }}
           />
           {displayEntityIdInModal ? (
-            <EntityEditorSlideStack
-              rootEntityId={displayEntityIdInModal}
-              onClose={() => setDisplayEntityIdInModal(null)}
-              onSubmit={() => {
-                void refetch();
-                setDisplayEntityIdInModal(null);
+            <SlideStack
+              hideOpenInNew={false}
+              rootItem={{
+                type: "entity",
+                itemId: displayEntityIdInModal,
+                onSubmit: () => {
+                  void refetch();
+                  setDisplayEntityIdInModal(null);
+                },
               }}
-              readonly={
+              onClose={() => setDisplayEntityIdInModal(null)}
+              isReadOnly={
                 displayEntityIdInModal !== entity.metadata.recordId.entityId
               }
             />

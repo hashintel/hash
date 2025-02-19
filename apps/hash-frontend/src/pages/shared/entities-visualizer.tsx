@@ -57,14 +57,13 @@ import type {
   SortableEntitiesTableColumnKey,
 } from "./entities-visualizer/entities-table/types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
-import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
-import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import type {
   DynamicNodeSizing,
   GraphVizConfig,
   GraphVizFilters,
 } from "./graph-visualizer";
+import { SlideStack } from "./slide-stack";
 import { generateEntityRootedSubgraph } from "./subgraphs";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
@@ -162,14 +161,6 @@ export const EntitiesVisualizer: FunctionComponent<{
    */
   defaultView?: VisualizerView;
   /**
-   * Hide the option to open entities in a new tab
-   */
-  disableEntityOpenInNew?: boolean;
-  /**
-   * Disable clicking on a type to navigate to it
-   */
-  disableTypeClick?: boolean;
-  /**
    * Limit the entities displayed to only those matching any version of this type
    */
   entityTypeBaseUrl?: BaseUrl;
@@ -208,8 +199,6 @@ export const EntitiesVisualizer: FunctionComponent<{
   defaultGraphConfig,
   defaultGraphFilters,
   defaultView = "Table",
-  disableEntityOpenInNew,
-  disableTypeClick,
   entityTypeBaseUrl,
   entityTypeId,
   fullScreenMode,
@@ -496,12 +485,13 @@ export const EntitiesVisualizer: FunctionComponent<{
         setSelectedEntity({
           options,
           entityId,
-          slideContainerRef: modalContainerRef,
+          slideContainerRef:
+            modalContainerRef ?? selectedEntity?.slideContainerRef,
           subgraph: entitySubgraph,
         });
       }
     },
-    [subgraph],
+    [selectedEntity, subgraph],
   );
 
   const currentlyDisplayedColumnsRef = useRef<SizedGridColumn[] | null>(null);
@@ -538,36 +528,42 @@ export const EntitiesVisualizer: FunctionComponent<{
   return (
     <>
       {selectedEntityType && (
-        <TypeSlideOverStack
-          rootTypeId={selectedEntityType.entityTypeId}
+        <SlideStack
+          customColumns={customColumns}
+          hideOpenInNew={false}
+          isReadOnly={readonly ?? false}
+          rootItem={{
+            type: "entityType",
+            itemId: selectedEntityType.entityTypeId,
+          }}
           onClose={() => setSelectedEntityType(null)}
           slideContainerRef={selectedEntityType.slideContainerRef}
         />
       )}
       {selectedEntity ? (
-        <EntityEditorSlideStack
+        <SlideStack
           customColumns={customColumns}
-          /*
-            The subgraphWithLinkedEntities can take a long time to load with many entities.
-            We pass the subgraph without linked entities so that there is _some_ data to load into the editor,
-            which will be missing links. passing entityId below means the slideover fetches the entity
-            with its links, so they'll load in shortly.
-            It's unlikely subgraphWithLinkedEntities will be used but if it happens to be available already,
-            it means the links will load in immediately.
-           */
-          entitySubgraph={selectedEntity.subgraph}
-          disableTypeClick={disableTypeClick}
-          hideOpenInNew={disableEntityOpenInNew}
-          rootEntityId={selectedEntity.entityId}
-          rootEntityOptions={{
+          hideOpenInNew={false}
+          isReadOnly={readonly ?? false}
+          onClose={() => setSelectedEntity(null)}
+          rootItem={{
+            type: "entity",
+            itemId: selectedEntity.entityId,
             defaultOutgoingLinkFilters:
               selectedEntity.options?.defaultOutgoingLinkFilters,
+            /*
+                The subgraphWithLinkedEntities can take a long time to load with many entities.
+                We pass the subgraph without linked entities so that there is _some_ data to load into the editor,
+                which will be missing links. passing entityId below means the slideover fetches the entity
+                with its links, so they'll load in shortly.
+                It's unlikely subgraphWithLinkedEntities will be used but if it happens to be available already,
+                it means the links will load in immediately.
+              */
+            entitySubgraph: selectedEntity.subgraph,
+            onSubmit: () => {
+              throw new Error(`Editing not yet supported from this screen`);
+            },
           }}
-          onClose={() => setSelectedEntity(null)}
-          onSubmit={() => {
-            throw new Error(`Editing not yet supported from this screen`);
-          }}
-          readonly
           /*
              If we've been given a specific DOM element to contain the modal, pass it here.
              This is for use when attaching to the body is not suitable (e.g. a specific DOM element is full-screened).

@@ -41,10 +41,9 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
-import { EntityEditorSlideStack } from "../../../../shared/entity-editor-slide-stack";
-import { TypeSlideOverStack } from "../../../../shared/entity-type-page/type-slide-over-stack";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../../shared/get-file-properties";
+import { SlideStack } from "../../../../shared/slide-stack";
 import { generateEntityRootedSubgraph } from "../../../../shared/subgraphs";
 import { ClaimsOutput } from "./outputs/claims-output";
 import { Deliverables } from "./outputs/deliverables";
@@ -597,16 +596,26 @@ export const Outputs = ({
   return (
     <>
       {slideOver?.type === "entityType" && (
-        <TypeSlideOverStack
-          rootTypeId={slideOver.entityTypeId}
+        <SlideStack
+          rootItem={{ type: "entityType", itemId: slideOver.entityTypeId }}
           onClose={() => setSlideOver(null)}
         />
       )}
       {selectedEntitySubgraph && slideOver?.type === "entity" && (
-        <EntityEditorSlideStack
+        <SlideStack
           entitySubgraph={selectedEntitySubgraph}
           hideOpenInNew={persistedEntities.length === 0}
-          rootEntityId={slideOver.entityId}
+          rootItem={{
+            type: "entity",
+            isReadOnly: true,
+            itemId: slideOver.entityId,
+            rootEntityOptions: {
+              entitySubgraph: selectedEntitySubgraph,
+            },
+            onSubmit: () => {
+              throw new Error(`Editing not yet supported from this screen`);
+            },
+          }}
           onClose={() => setSlideOver(null)}
           onSubmit={() => {
             throw new Error(`Editing not yet supported from this screen`);

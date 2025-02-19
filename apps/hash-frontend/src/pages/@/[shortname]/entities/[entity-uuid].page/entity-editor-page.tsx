@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 
 import { useSnackbar } from "../../../../../components/hooks/use-snackbar";
-import { EntityEditorSlideStack } from "../../../../shared/entity-editor-slide-stack";
+import { SlideStack } from "../../../../shared/slide-stack";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditor } from "./entity-editor";
 import { EntityPageWrapper } from "./entity-page-wrapper";
@@ -63,13 +63,16 @@ export const EntityEditorPage = ({
       <NextSeo title={`${entityLabel} | Entity`} />
 
       {selectedEntity ? (
-        <EntityEditorSlideStack
-          rootEntityId={selectedEntity.entityId}
-          onClose={() => setSelectedEntity(null)}
-          onSubmit={() => {
-            throw new Error(`Editing not yet supported from this screen`);
+        <SlideStack
+          rootItem={{
+            type: "entity",
+            isReadOnly: true,
+            itemId: selectedEntity.entityId,
+            onSubmit: () => {
+              throw new Error(`Editing not yet supported from this screen`);
+            },
           }}
-          readonly
+          onClose={() => setSelectedEntity(null)}
         />
       ) : null}
 
