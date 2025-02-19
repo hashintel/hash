@@ -248,7 +248,7 @@ const transformConstraint = (
   const { description, label, type } = constraint;
 
   if (type === "string") {
-    if ("enum" in constraint || "const" in constraint) {
+    if ("enum" in constraint) {
       return constraint;
     }
 
@@ -258,7 +258,7 @@ const transformConstraint = (
     };
   }
   if (type === "number") {
-    if ("enum" in constraint || "const" in constraint) {
+    if ("enum" in constraint) {
       return constraint;
     }
 
