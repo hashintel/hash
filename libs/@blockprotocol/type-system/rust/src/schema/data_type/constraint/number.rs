@@ -697,8 +697,7 @@ mod tests {
     fn duplicate_enum_values() {
         from_value::<ValueConstraints>(json!({
             "type": "number",
-            "enum": [50],
-            "minimum": 0,
+            "enum": [50, 50],
         }))
         .expect_err("Deserialized number schema with mixed properties");
     }
