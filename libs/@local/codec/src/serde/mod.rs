@@ -5,6 +5,7 @@
 
 pub mod constant;
 pub mod string_hash_map;
+pub mod unique_vec;
 
 mod size_hint;
 
