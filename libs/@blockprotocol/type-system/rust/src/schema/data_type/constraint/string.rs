@@ -220,17 +220,14 @@ pub enum StringTypeTag {
 #[serde(untagged, rename_all = "camelCase", deny_unknown_fields)]
 pub enum StringSchema {
     Constrained(StringConstraints),
-    Const {
-        r#const: String,
-    },
     Enum {
         #[cfg_attr(target_arch = "wasm32", tsify(type = "[string, ...string[]]"))]
-        r#enum: HashSet<String>,
+        #[serde(deserialize_with = "hash_codec::serde::unique_vec::hashed")]
+        r#enum: Vec<String>,
     },
 }
 
 impl Constraint for StringSchema {
-    #[expect(clippy::too_many_lines)]
     fn intersection(
         self,
         other: Self,
@@ -239,21 +236,6 @@ impl Constraint for StringSchema {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => lhs
                 .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Constrained(lhs), rhs.map(Self::Constrained)))?,
-            (Self::Const { r#const }, Self::Constrained(constraints))
-            | (Self::Constrained(constraints), Self::Const { r#const }) => {
-                constraints
-                    .validate_value(&r#const)
-                    .change_context_lazy(|| {
-                        ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                            Value::String(r#const.clone()),
-                            ValueConstraints::Typed(SingleValueConstraints::String(
-                                Self::Constrained(constraints),
-                            )),
-                        )
-                    })?;
-
-                (Self::Const { r#const }, None)
-            }
             (Self::Enum { r#enum }, Self::Constrained(constraints))
             | (Self::Constrained(constraints), Self::Enum { r#enum }) => {
                 // We use the fast way to filter the values that pass the constraints and collect
@@ -263,99 +245,64 @@ impl Constraint for StringSchema {
                     .iter()
                     .filter(|&value| constraints.is_valid(value))
                     .cloned()
-                    .collect::<HashSet<_>>();
+                    .collect::<Vec<_>>();
 
-                match passed.len() {
-                    0 => {
-                        // We now properly capture errors to return it to the caller.
-                        let () = r#enum
-                            .into_iter()
-                            .map(|value| {
-                                constraints.validate_value(&value).change_context(
-                                    ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
-                                        Value::String(value),
-                                    ),
-                                )
-                            })
-                            .try_collect_reports()
-                            .change_context_lazy(|| {
-                                ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
-                                    ValueConstraints::Typed(SingleValueConstraints::String(
-                                        Self::Constrained(constraints.clone()),
-                                    )),
-                                )
-                            })?;
+                if passed.is_empty() {
+                    // We now properly capture errors to return it to the caller.
+                    let () = r#enum
+                        .into_iter()
+                        .map(|value| {
+                            constraints.validate_value(&value).change_context(
+                                ResolveClosedDataTypeError::UnsatisfiedEnumConstraintVariant(
+                                    Value::String(value),
+                                ),
+                            )
+                        })
+                        .try_collect_reports()
+                        .change_context_lazy(|| {
+                            ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
+                                ValueConstraints::Typed(SingleValueConstraints::String(
+                                    Self::Constrained(constraints.clone()),
+                                )),
+                            )
+                        })?;
 
-                        // This should only happen if `enum` is malformed and has no values. This
-                        // should be caught by the schema validation, however, if this still happens
-                        // we return an error as validating empty enum will always fail.
-                        bail!(ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
-                            ValueConstraints::Typed(SingleValueConstraints::String(
-                                Self::Constrained(constraints),
-                            )),
-                        ))
-                    }
-                    1 => (
-                        Self::Const {
-                            r#const: passed.into_iter().next().unwrap_or_else(|| {
-                                unreachable!(
-                                    "we have exactly one value in the enum that passed the \
-                                     constraints"
-                                )
-                            }),
-                        },
-                        None,
-                    ),
-                    _ => (Self::Enum { r#enum: passed }, None),
-                }
-            }
-            (Self::Const { r#const: lhs }, Self::Const { r#const: rhs }) => {
-                if lhs == rhs {
-                    (Self::Const { r#const: lhs }, None)
-                } else {
-                    bail!(ResolveClosedDataTypeError::ConflictingConstValues(
-                        Value::String(lhs),
-                        Value::String(rhs),
+                    // This should only happen if `enum` is malformed and has no values. This
+                    // should be caught by the schema validation, however, if this still happens
+                    // we return an error as validating empty enum will always fail.
+                    bail!(ResolveClosedDataTypeError::UnsatisfiedEnumConstraint(
+                        ValueConstraints::Typed(SingleValueConstraints::String(Self::Constrained(
+                            constraints
+                        ))),
                     ))
                 }
+
+                (Self::Enum { r#enum: passed }, None)
             }
             (Self::Enum { r#enum: lhs }, Self::Enum { r#enum: rhs }) => {
-                let intersection = lhs.intersection(&rhs).cloned().collect::<HashSet<_>>();
+                // We use a `HashSet` to find the actual intersection of the two enums. It's not
+                // required to clone the values.
+                let lhs_set = lhs.iter().collect::<HashSet<_>>();
+                let rhs_set = rhs.iter().collect::<HashSet<_>>();
+                let intersection = lhs_set.intersection(&rhs_set).collect::<HashSet<_>>();
 
-                match intersection.len() {
-                    0 => bail!(ResolveClosedDataTypeError::ConflictingEnumValues(
+                ensure!(
+                    !intersection.is_empty(),
+                    ResolveClosedDataTypeError::ConflictingEnumValues(
                         lhs.into_iter().map(Value::String).collect(),
                         rhs.into_iter().map(Value::String).collect(),
-                    )),
-                    1 => (
-                        Self::Const {
-                            r#const: intersection.into_iter().next().unwrap_or_else(|| {
-                                unreachable!(
-                                    "we have exactly least one value in the enum intersection"
-                                )
-                            }),
-                        },
-                        None,
-                    ),
-                    _ => (
-                        Self::Enum {
-                            r#enum: intersection,
-                        },
-                        None,
-                    ),
-                }
-            }
-            (Self::Const { r#const }, Self::Enum { r#enum })
-            | (Self::Enum { r#enum }, Self::Const { r#const }) => {
-                ensure!(
-                    r#enum.contains(&r#const),
-                    ResolveClosedDataTypeError::ConflictingConstEnumValue(
-                        Value::String(r#const),
-                        r#enum.into_iter().map(Value::String).collect(),
                     )
                 );
 
-                (Self::Const { r#const }, None)
+                (
+                    Self::Enum {
+                        r#enum: lhs
+                            .into_iter()
+                            .filter(|value| rhs.contains(value))
+                            .collect(),
+                    },
+                    None,
+                )
             }
         })
     }
@@ -390,8 +337,7 @@ impl ConstraintValidator<str> for StringSchema {
     fn is_valid(&self, value: &str) -> bool {
         match self {
             Self::Constrained(constraints) => constraints.is_valid(value),
-            Self::Const { r#const } => value == r#const,
-            Self::Enum { r#enum } => r#enum.contains(value),
+            Self::Enum { r#enum } => r#enum.iter().any(|item| item == value),
         }
     }
 
@@ -400,16 +346,8 @@ impl ConstraintValidator<str> for StringSchema {
             Self::Constrained(constraints) => constraints
                 .validate_value(value)
                 .change_context(ConstraintError::ValueConstraint)?,
-            Self::Const { r#const } => {
-                if value != *r#const {
-                    bail!(ConstraintError::InvalidConstValue {
-                        actual: Value::String(value.to_owned()),
-                        expected: Value::String(r#const.clone()),
-                    });
-                }
-            }
             Self::Enum { r#enum } => {
-                if !r#enum.contains(value) {
+                if !r#enum.iter().any(|item| item == value) {
                     bail!(ConstraintError::InvalidEnumValue {
                         actual: Value::String(value.to_owned()),
                         expected: r#enum.iter().cloned().map(Value::String).collect(),
@@ -579,12 +517,12 @@ mod tests {
     use crate::{
         Value,
         schema::{
-            JsonSchemaValueType, SingleValueConstraints,
+            JsonSchemaValueType,
             data_type::constraint::{
                 ValueConstraints,
                 tests::{
                     check_constraints, check_constraints_error, check_schema_intersection,
-                    check_schema_intersection_error, intersect_schemas, read_schema,
+                    check_schema_intersection_error, read_schema,
                 },
             },
         },
@@ -644,24 +582,6 @@ mod tests {
     }
 
     #[test]
-    fn constant() {
-        let string_schema = read_schema(&json!({
-            "type": "string",
-            "const": "foo",
-        }));
-
-        check_constraints(&string_schema, json!("foo"));
-        check_constraints_error(
-            &string_schema,
-            json!("bar"),
-            [ConstraintError::InvalidConstValue {
-                actual: Value::String("bar".to_owned()),
-                expected: Value::String("foo".to_owned()),
-            }],
-        );
-    }
-
-    #[test]
     fn enumeration() {
         let string_schema = read_schema(&json!({
             "type": "string",
@@ -716,6 +636,15 @@ mod tests {
             "enum": ["foo", "bar"],
         }))
         .expect_err("Deserialized string schema with mixed properties");
+    }
+
+    #[test]
+    fn duplicate_enum_values() {
+        from_value::<ValueConstraints>(json!({
+            "type": "string",
+            "enum": ["foo", "foo"],
+        }))
+        .expect_err("Deserialized string schema with duplicate enum values");
     }
 
     #[test]
@@ -944,123 +873,27 @@ mod tests {
     }
 
     #[test]
-    fn intersect_const_const_same() {
-        check_schema_intersection(
-            [
-                json!({
-                    "type": "string",
-                    "const": "foo",
-                }),
-                json!({
-                    "type": "string",
-                    "const": "foo",
-                }),
-            ],
-            [json!({
-                "type": "string",
-                "const": "foo",
-            })],
-        );
-    }
-
-    #[test]
-    fn intersect_const_const_different() {
-        check_schema_intersection_error(
-            [
-                json!({
-                    "type": "string",
-                    "const": "foo",
-                }),
-                json!({
-                    "type": "string",
-                    "const": "bar",
-                }),
-            ],
-            [ResolveClosedDataTypeError::ConflictingConstValues(
-                Value::String("foo".to_owned()),
-                Value::String("bar".to_owned()),
-            )],
-        );
-    }
-
-    #[test]
-    fn intersect_const_enum_compatible() {
-        check_schema_intersection(
-            [
-                json!({
-                    "type": "string",
-                    "const": "foo",
-                }),
-                json!({
-                    "type": "string",
-                    "enum": ["foo", "bar"],
-                }),
-            ],
-            [json!({
-                "type": "string",
-                "const": "foo",
-            })],
-        );
-    }
-
-    #[test]
-    fn intersect_const_enum_incompatible() {
-        let report = intersect_schemas([
-            json!({
-                "type": "string",
-                "const": "foo",
-            }),
-            json!({
-                "type": "string",
-                "enum": ["bar", "baz"],
-            }),
-        ])
-        .expect_err("Intersected invalid schemas");
-
-        let Some(ResolveClosedDataTypeError::ConflictingConstEnumValue(lhs, rhs)) =
-            report.downcast_ref::<ResolveClosedDataTypeError>()
-        else {
-            panic!("Expected conflicting const-enum values error");
-        };
-        assert_eq!(lhs, &Value::String("foo".to_owned()));
-
-        assert_eq!(rhs.len(), 2);
-        assert!(rhs.contains(&Value::String("bar".to_owned())));
-        assert!(rhs.contains(&Value::String("baz".to_owned())));
-    }
-
-    #[test]
     fn intersect_enum_enum_compatible_multi() {
-        let intersection = intersect_schemas([
-            json!({
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "enum": ["foo", "bar", "baz"],
+                }),
+                json!({
+                    "type": "string",
+                    "enum": ["foo", "baz", "qux"],
+                }),
+                json!({
+                    "type": "string",
+                    "enum": ["foo", "bar", "qux", "baz"],
+                }),
+            ],
+            [json!({
                 "type": "string",
-                "enum": ["foo", "bar", "baz"],
-            }),
-            json!({
-                "type": "string",
-                "enum": ["foo", "baz", "qux"],
-            }),
-            json!({
-                "type": "string",
-                "enum": ["foo", "bar", "qux", "baz"],
-            }),
-        ])
-        .expect("Intersected invalid constraints")
-        .into_iter()
-        .map(|schema| {
-            from_value::<SingleValueConstraints>(schema).expect("Failed to deserialize schema")
-        })
-        .collect::<Vec<_>>();
-
-        // We need to manually check the intersection because the order of the enum values is not
-        // guaranteed.
-        assert_eq!(intersection.len(), 1);
-        let SingleValueConstraints::String(StringSchema::Enum { r#enum }) = &intersection[0] else {
-            panic!("Expected string enum schema");
-        };
-        assert_eq!(r#enum.len(), 2);
-        assert!(r#enum.contains("foo"));
-        assert!(r#enum.contains("baz"));
+                "enum": ["foo", "baz"],
+            })],
+        );
     }
 
     #[test]
@@ -1082,79 +915,27 @@ mod tests {
             ],
             [json!({
                 "type": "string",
-                "const": "foo",
+                "enum": ["foo"],
             })],
         );
     }
 
     #[test]
     fn intersect_enum_enum_incompatible() {
-        let report = intersect_schemas([
-            json!({
-                "type": "string",
-                "enum": ["foo", "bar"],
-            }),
-            json!({
-                "type": "string",
-                "enum": ["baz", "qux"],
-            }),
-        ])
-        .expect_err("Intersected invalid schemas");
-
-        let Some(ResolveClosedDataTypeError::ConflictingEnumValues(lhs, rhs)) =
-            report.downcast_ref::<ResolveClosedDataTypeError>()
-        else {
-            panic!("Expected conflicting enum values error");
-        };
-        assert_eq!(lhs.len(), 2);
-        assert!(lhs.contains(&Value::String("foo".to_owned())));
-        assert!(lhs.contains(&Value::String("bar".to_owned())));
-
-        assert_eq!(rhs.len(), 2);
-        assert!(rhs.contains(&Value::String("baz".to_owned())));
-        assert!(rhs.contains(&Value::String("qux".to_owned())));
-    }
-
-    #[test]
-    fn intersect_const_constraint_compatible() {
-        check_schema_intersection(
-            [
-                json!({
-                    "type": "string",
-                    "const": "foo",
-                }),
-                json!({
-                    "type": "string",
-                    "minLength": 3,
-                }),
-            ],
-            [json!({
-                "type": "string",
-                "const": "foo",
-            })],
-        );
-    }
-
-    #[test]
-    fn intersect_const_constraint_incompatible() {
         check_schema_intersection_error(
             [
                 json!({
                     "type": "string",
-                    "const": "foo",
+                    "enum": ["foo", "bar"],
                 }),
                 json!({
                     "type": "string",
-                    "minLength": 5,
+                    "enum": ["baz", "qux"],
                 }),
             ],
-            [ResolveClosedDataTypeError::UnsatisfiedConstraint(
-                Value::String("foo".to_owned()),
-                from_value(json!({
-                    "type": "string",
-                    "minLength": 5,
-                }))
-                .expect("Failed to parse schema"),
+            [ResolveClosedDataTypeError::ConflictingEnumValues(
+                from_value(json!(["foo", "bar"])).expect("Failed to parse enum"),
+                from_value(json!(["baz", "qux"])).expect("Failed to parse enum"),
             )],
         );
     }
@@ -1174,39 +955,29 @@ mod tests {
             ],
             [json!({
                 "type": "string",
-                "const": "foobar",
+                "enum": ["foobar"],
             })],
         );
     }
 
     #[test]
     fn intersect_enum_constraint_compatible_multi() {
-        let intersection = intersect_schemas([
-            json!({
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "enum": ["foo", "foobar", "bar"],
+                }),
+                json!({
+                    "type": "string",
+                    "maxLength": 3,
+                }),
+            ],
+            [json!({
                 "type": "string",
-                "enum": ["foo", "foobar", "bar"],
-            }),
-            json!({
-                "type": "string",
-                "maxLength": 3,
-            }),
-        ])
-        .expect("Intersected invalid constraints")
-        .into_iter()
-        .map(|schema| {
-            from_value::<SingleValueConstraints>(schema).expect("Failed to deserialize schema")
-        })
-        .collect::<Vec<_>>();
-
-        // We need to manually check the intersection because the order of the enum values is not
-        // guaranteed.
-        assert_eq!(intersection.len(), 1);
-        let SingleValueConstraints::String(StringSchema::Enum { r#enum }) = &intersection[0] else {
-            panic!("Expected string enum schema");
-        };
-        assert_eq!(r#enum.len(), 2);
-        assert!(r#enum.contains("foo"));
-        assert!(r#enum.contains("bar"));
+                "enum": ["foo", "bar"],
+            })],
+        );
     }
 
     #[test]
@@ -1313,7 +1084,7 @@ mod tests {
             ],
             [json!({
                 "type": "string",
-                "const": "foo",
+                "enum": ["foo"],
             })],
         );
     }
