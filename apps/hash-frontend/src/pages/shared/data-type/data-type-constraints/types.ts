@@ -1,6 +1,5 @@
 import type {
   DataType,
-  JsonValue,
   SingleValueConstraints,
   StringFormat,
 } from "@blockprotocol/type-system";
@@ -28,5 +27,4 @@ export type InheritedConstraints = {
   pattern?: InheritedConstraint<string>[];
   format?: InheritedConstraint<StringFormat>;
   enum?: InheritedConstraint<[string, ...string[]] | [number, ...number[]]>;
-  const?: InheritedConstraint<JsonValue>;
 };

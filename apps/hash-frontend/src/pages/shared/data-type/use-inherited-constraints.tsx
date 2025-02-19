@@ -83,26 +83,6 @@ export const useInheritedConstraints = () => {
 
       allOfStack.push(...(parent.schema.allOf?.map(({ $ref }) => $ref) ?? []));
 
-      if ("const" in parentSchema) {
-        /**
-         * The Graph will not reject a child data type which (pointlessly) repeats a const from a parent,
-         * so we want to make sure we catch the earliest one as the 'true' origin of the constraint.
-         * Therefore we keep overwriting it as we encounter a 'const' in earlier ancestors.
-         *
-         * The Graph will _reject_ children which define a different 'const' to a parent, so we don't need to handle that.
-         */
-        narrowedConstraints.const = {
-          value: parentSchema.const,
-          from: parentSchema,
-        };
-
-        /**
-         * Don't bother looking at any other constraints because a 'const' makes them pointless.
-         * If there are any in the tree, they are now redundant, and would be confusing to show.
-         */
-        continue;
-      }
-
       if ("enum" in parentSchema) {
         if (
           !narrowedConstraints.enum ||

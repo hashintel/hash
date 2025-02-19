@@ -1,4 +1,3 @@
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Box, Checkbox, Stack, Tooltip, Typography } from "@mui/material";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
@@ -343,10 +342,7 @@ export const NumberConstraints = ({
   const ownMultipleOf =
     "multipleOf" in constraints ? constraints.multipleOf : undefined;
 
-  const ownConst = "const" in constraints ? constraints.const : undefined;
   const ownEnum = "enum" in constraints ? constraints.enum : undefined;
-
-  const constant = ownConst ?? inheritedConstraints.const?.value;
 
   const minimum = ownMinimum ?? inheritedConstraints.minimum?.value.value;
   const maximum = ownMaximum ?? inheritedConstraints.maximum?.value.value;
@@ -366,40 +362,28 @@ export const NumberConstraints = ({
             text="number"
             from={inheritedConstraints.type?.from}
           />
-          {typeof constant !== "undefined" ? (
+          {typeof minimum === "number" || typeof maximum === "number" ? (
+            <NumberRangeText
+              minimum={minimum}
+              maximum={maximum}
+              exclusiveMinimum={exclusiveMinimum}
+              exclusiveMaximum={exclusiveMaximum}
+              inheritedConstraints={inheritedConstraints}
+            />
+          ) : null}
+          {typeof multipleOf === "number" && (
             <>
-              {". It must have the value "}
+              {". It must be a multiple of "}
               <ConstraintText
-                text={stringifyPropertyValue(constant)}
-                from={inheritedConstraints.const?.from}
+                text={multipleOf.toString()}
+                from={inheritedConstraints.multipleOf?.[0]?.from}
               />
-            </>
-          ) : (
-            <>
-              {typeof minimum === "number" || typeof maximum === "number" ? (
-                <NumberRangeText
-                  minimum={minimum}
-                  maximum={maximum}
-                  exclusiveMinimum={exclusiveMinimum}
-                  exclusiveMaximum={exclusiveMaximum}
-                  inheritedConstraints={inheritedConstraints}
-                />
-              ) : null}
-              {typeof multipleOf === "number" && (
-                <>
-                  {". It must be a multiple of "}
-                  <ConstraintText
-                    text={multipleOf.toString()}
-                    from={inheritedConstraints.multipleOf?.[0]?.from}
-                  />
-                </>
-              )}
             </>
           )}
           .
         </Typography>
       </Box>
-      {!isReadOnly && !ownConst && !inheritedConstraints.const && (
+      {!isReadOnly && (
         <NumberConstraintEditor
           ownEnum={ownEnum as [number, ...number[]]}
           ownMinimum={ownMinimum}
