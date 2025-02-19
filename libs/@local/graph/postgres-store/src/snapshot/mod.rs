@@ -106,7 +106,7 @@ pub enum SnapshotEntry {
     PropertyTypeEmbedding(PropertyTypeEmbeddingRecord),
     EntityType(Box<EntityTypeSnapshotRecord>),
     EntityTypeEmbedding(EntityTypeEmbeddingRecord),
-    Entity(Entity),
+    Entity(Box<Entity>),
     EntityEmbedding(EntityEmbeddingRecord),
     Relation(AuthorizationRelation),
 }
@@ -696,7 +696,7 @@ impl PostgresStorePool {
                 scope.spawn(
                     self.create_dump_stream::<Entity>()
                         .try_flatten_stream()
-                        .map_ok(SnapshotEntry::Entity)
+                        .map_ok(|entity| SnapshotEntry::Entity(Box::new(entity)))
                         .forward(snapshot_record_tx.clone()),
                 );
             }

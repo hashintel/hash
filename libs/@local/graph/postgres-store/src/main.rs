@@ -3,8 +3,7 @@
     clippy::print_stdout,
     clippy::print_stderr,
     clippy::panic_in_result_fn,
-    clippy::std_instead_of_alloc,
-    clippy::cognitive_complexity
+    clippy::std_instead_of_alloc
 )]
 #![feature(impl_trait_in_assoc_type)]
 #![feature(type_alias_impl_trait)]
@@ -164,6 +163,11 @@ const OLD_INSTANCE_ADMIN_ACCOUNT_GROUP_ID: AccountGroupId =
 const NEW_INSTANCE_ADMIN_ACCOUNT_GROUP_ID: AccountGroupId =
     AccountGroupId::new(Uuid::from_u128(0xFA4472BB_54B8_42B1_B731_61C726D76AA5));
 
+type EntityMapValue = (
+    Vec<Entity>,
+    Vec<EntityRelationAndSubject>,
+    Vec<EntityEmbeddingRecord>,
+);
 struct SnapshotData {
     metadata: SnapshotMetadata,
     accounts: HashSet<AccountId>,
@@ -180,17 +184,11 @@ struct SnapshotData {
     >,
     entity_types:
         BTreeMap<VersionedUrl, (EntityTypeSnapshotRecord, Option<EntityTypeEmbeddingRecord>)>,
-    entities: HashMap<
-        EntityUuid,
-        (
-            Vec<Entity>,
-            Vec<EntityRelationAndSubject>,
-            Vec<EntityEmbeddingRecord>,
-        ),
-    >,
+    entities: HashMap<EntityUuid, EntityMapValue>,
 }
 
 impl SnapshotData {
+    #[expect(clippy::too_many_lines)]
     fn from_stdin() -> Result<Self, Box<dyn Error>> {
         let old_system_account_id_string = OLD_SYSTEM_ACCOUNT_ID.to_string();
         let new_system_account_id_string = NEW_SYSTEM_ACCOUNT_ID.to_string();
@@ -289,7 +287,7 @@ impl SnapshotData {
                     for (namespace, provenance) in &namespace_to_retain {
                         if !data_type.schema.id.base_url.as_str().starts_with(namespace) {
                             continue;
-                        };
+                        }
 
                         let data_type_provenance =
                             &mut data_type.metadata.provenance.edition.user_defined;
@@ -403,7 +401,7 @@ impl SnapshotData {
                     entities
                         .entry(entity.metadata.record_id.entity_id.entity_uuid)
                         .or_default()
-                        .push(entity);
+                        .push(*entity);
                 }
                 SnapshotEntry::EntityEmbedding(entity_embedding) => {
                     entity_embeddings
@@ -420,10 +418,10 @@ impl SnapshotData {
                         .or_default()
                         .push(relationship);
                 }
-            };
+            }
         }
 
-        Ok(SnapshotData {
+        Ok(Self {
             metadata: snapshot_metadata.expect("Missing snapshot metadata"),
             accounts,
             account_groups,
@@ -577,7 +575,10 @@ impl SnapshotData {
     fn print_entities(&self) {
         for (editions, _, _) in self.entities.values() {
             for edition in editions {
-                println!("{}", json!(SnapshotEntry::Entity(edition.clone())));
+                println!(
+                    "{}",
+                    json!(SnapshotEntry::Entity(Box::new(edition.clone())))
+                );
             }
         }
     }
@@ -589,7 +590,7 @@ impl SnapshotData {
                     "{}",
                     json!(SnapshotEntry::Relation(AuthorizationRelation::Entity {
                         object: *entity_uuid,
-                        relationship: relation.clone(),
+                        relationship: *relation,
                     }))
                 );
             }
@@ -696,7 +697,7 @@ impl SnapshotData {
                                     metadata.original_data_type_id = None;
                                 }
                             }
-                            _ => {}
+                            PropertyMetadata::Object { .. } => {}
                         },
                         "https://hash.ai/@h/types/property-type/website-url/"
                         | "https://hash.ai/@h/types/property-type/pinned-entity-type-base-url/" => {
@@ -720,7 +721,7 @@ impl SnapshotData {
                                         metadata.original_data_type_id = None;
                                     }
                                 }
-                                _ => {}
+                                PropertyMetadata::Object { .. } => {}
                             }
                         }
                         _ => {}
@@ -774,9 +775,10 @@ impl SnapshotData {
                             .created_by_id
                             .into_uuid(),
                     );
-                    if entity_uuids.contains(&new_entity_uuid) {
-                        panic!("Duplicate entity UUID: {new_entity_uuid}");
-                    }
+                    assert!(
+                        !entity_uuids.contains(&new_entity_uuid),
+                        "Duplicate entity UUID: {new_entity_uuid}"
+                    );
                     for edition in &mut editions {
                         edition.metadata.record_id.entity_id.entity_uuid = new_entity_uuid;
                     }
@@ -895,7 +897,7 @@ impl SnapshotData {
                 )
             };
             let retain = if identifier != "hash" && identifier != "hash-ai" {
-                let Some((ty, uuid)) = identifier.split_once("-") else {
+                let Some((ty, uuid)) = identifier.split_once('-') else {
                     panic!("Invalid machine identifier: {identifier}");
                 };
 
@@ -1262,7 +1264,6 @@ impl SnapshotData {
     }
 }
 
-#[expect(clippy::too_many_lines)]
 fn main() -> Result<(), Box<dyn Error>> {
     let mut snapshot = SnapshotData::from_stdin()?;
 
