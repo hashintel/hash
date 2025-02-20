@@ -1,18 +1,9 @@
+pub mod action;
 pub mod error;
+pub mod principal;
+pub mod resource;
 
-pub(crate) use self::cedar::cedar_resource_type;
-pub use self::{
-    action::{ActionConstraint, ActionId},
-    principal::{
-        OrganizationId, OrganizationPrincipalConstraint, OrganizationRoleId, PrincipalConstraint,
-        UserId, UserPrincipalConstraint,
-    },
-    resource::{EntityResourceConstraint, ResourceConstraint},
-};
-mod action;
 mod cedar;
-mod principal;
-mod resource;
 
 use alloc::{collections::BTreeMap, sync::Arc};
 use core::{error::Error, fmt, str::FromStr as _};
@@ -24,8 +15,14 @@ use cedar_policy_core::{
     parser::parse_policy_or_template_to_est_and_ast,
 };
 use error_stack::{Report, ResultExt as _};
-use hash_graph_types::knowledge::entity::EntityUuid;
 use uuid::Uuid;
+
+pub(crate) use self::cedar::cedar_resource_type;
+use self::{
+    action::{ActionConstraint, ActionId},
+    principal::{PrincipalConstraint, user::User},
+    resource::{Resource, ResourceConstraint},
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -81,10 +78,6 @@ pub struct Policy {
     pub constraints: Option<()>,
 }
 
-pub struct User {
-    pub id: UserId,
-}
-
 #[non_exhaustive]
 pub struct RequestContext;
 
@@ -98,14 +91,14 @@ impl RequestContext {
     }
 }
 
-pub struct Request {
-    user: User,
+pub struct Request<'a> {
+    user: &'a User,
     action: ActionId,
-    resource: EntityUuid,
+    resource: &'a Resource<'a>,
     context: RequestContext,
 }
 
-impl Request {
+impl Request<'_> {
     pub(crate) fn to_cedar(&self) -> Result<ast::Request, Box<dyn Error>> {
         Ok(ast::Request::new(
             (self.user.id.to_euid(), None),
@@ -240,15 +233,18 @@ mod tests {
     }
 
     mod serialization {
-        use core::error::Error;
+        use alloc::borrow::Cow;
+        use core::{error::Error, str::FromStr as _};
 
-        use hash_graph_types::knowledge::entity::EntityUuid;
+        use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
+        use type_system::url::VersionedUrl;
 
         use super::*;
         use crate::policies::{
-            ActionConstraint, ActionId, Effect, EntityResourceConstraint, PolicyId,
-            PrincipalConstraint, Request, RequestContext, ResourceConstraint, User, UserId,
-            UserPrincipalConstraint,
+            ActionConstraint, ActionId, Effect, PolicyId, PrincipalConstraint, Request,
+            RequestContext, ResourceConstraint,
+            principal::user::{User, UserId, UserPrincipalConstraint},
+            resource::{EntityResource, EntityResourceConstraint, Resource},
         };
 
         #[test]
@@ -302,17 +298,31 @@ mod tests {
                 ),
             )?;
 
+            let actor = User {
+                id: user_id,
+                roles: Vec::new(),
+            };
+
+            let entity = Resource::Entity(EntityResource {
+                web_id: OwnedById::new(Uuid::new_v4()),
+                entity_uuid,
+                entity_type: Cow::Owned(vec![
+                    VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/1")
+                        .expect("Invalid entity type URL"),
+                ]),
+            });
+
             assert!(policy.evaluate(&Request {
-                user: User { id: user_id },
+                user: &actor,
                 action: ActionId::View,
-                resource: entity_uuid,
+                resource: &entity,
                 context: RequestContext,
             })?);
 
             assert!(!policy.evaluate(&Request {
-                user: User { id: user_id },
-                action: ActionId::ViewMetadata,
-                resource: entity_uuid,
+                user: &actor,
+                action: ActionId::Update,
+                resource: &entity,
                 context: RequestContext,
             })?);
 

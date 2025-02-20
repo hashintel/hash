@@ -4,32 +4,27 @@
 )]
 
 use alloc::sync::Arc;
-use core::{error::Error, str::FromStr as _};
-use std::sync::LazyLock;
+use core::str::FromStr as _;
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
 use uuid::Uuid;
 
-pub use self::entity::EntityResourceConstraint;
-use crate::policies::cedar::CedarEntityId;
+pub use self::entity::{EntityResource, EntityResourceConstraint};
+use crate::policies::cedar::CedarEntityId as _;
 mod entity;
 
 use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
 
-impl CedarEntityId for OwnedById {
-    fn entity_type() -> &'static Arc<ast::EntityType> {
-        static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
-            LazyLock::new(|| crate::policies::cedar_resource_type(["Web"]));
-        &ENTITY_TYPE
-    }
+pub enum Resource<'a> {
+    Entity(EntityResource<'a>),
+}
 
-    fn to_eid(&self) -> ast::Eid {
-        ast::Eid::new(self.to_string())
-    }
-
-    fn from_eid(eid: &ast::Eid) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
-        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+impl Resource<'_> {
+    pub(crate) fn to_euid(&self) -> ast::EntityUID {
+        match self {
+            Self::Entity(entity) => entity.entity_uuid.to_euid(),
+        }
     }
 }
 

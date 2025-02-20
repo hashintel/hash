@@ -5,17 +5,20 @@
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
+use hash_graph_types::owned_by_id::OwnedById;
 
-pub use self::{
-    organization::{OrganizationId, OrganizationPrincipalConstraint, OrganizationRoleId},
+use self::{
+    team::{TeamId, TeamPrincipalConstraint, TeamRoleId},
     user::{UserId, UserPrincipalConstraint},
+    web::{WebPrincipalConstraint, WebRoleId, WebTeamId, WebTeamRoleId},
 };
 use super::cedar::CedarEntityId as _;
 
-mod organization;
-mod user;
+pub mod team;
+pub mod user;
+pub mod web;
 
-#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(
     tag = "type",
     rename_all = "camelCase",
@@ -29,7 +32,76 @@ pub enum PrincipalConstraint {
     )]
     Public {},
     User(UserPrincipalConstraint),
-    Organization(OrganizationPrincipalConstraint),
+    Web(WebPrincipalConstraint),
+    Team(TeamPrincipalConstraint),
+}
+
+enum InPrincipalConstraint {
+    Web(WebPrincipalConstraint),
+    Team(TeamPrincipalConstraint),
+}
+
+impl InPrincipalConstraint {
+    pub(crate) fn try_from_cedar_in(
+        principal: &ast::EntityUID,
+    ) -> Result<Self, Report<InvalidPrincipalConstraint>> {
+        if *principal.entity_type() == **OwnedById::entity_type() {
+            Ok(Self::Web(WebPrincipalConstraint::InWeb {
+                id: Some(
+                    OwnedById::from_eid(principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            }))
+        } else if *principal.entity_type() == **WebRoleId::entity_type() {
+            Ok(Self::Web(WebPrincipalConstraint::InRole {
+                role_id: Some(
+                    WebRoleId::from_eid(principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            }))
+        } else if *principal.entity_type() == **WebTeamId::entity_type() {
+            Ok(Self::Web(WebPrincipalConstraint::InTeam {
+                team_id: Some(
+                    WebTeamId::from_eid(principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            }))
+        } else if *principal.entity_type() == **WebTeamRoleId::entity_type() {
+            Ok(Self::Web(WebPrincipalConstraint::InTeamRole {
+                team_role_id: Some(
+                    WebTeamRoleId::from_eid(principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            }))
+        } else if *principal.entity_type() == **TeamId::entity_type() {
+            Ok(Self::Team(TeamPrincipalConstraint::InTeam {
+                id: Some(
+                    TeamId::from_eid(principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            }))
+        } else if *principal.entity_type() == **TeamRoleId::entity_type() {
+            Ok(Self::Team(TeamPrincipalConstraint::InRole {
+                role_id: Some(
+                    TeamRoleId::from_eid(principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            }))
+        } else {
+            bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
+                ast::EntityType::clone(principal.entity_type())
+            ))
+        }
+    }
+}
+
+impl From<InPrincipalConstraint> for PrincipalConstraint {
+    fn from(value: InPrincipalConstraint) -> Self {
+        match value {
+            InPrincipalConstraint::Web(web) => Self::Web(web),
+            InPrincipalConstraint::Team(team) => Self::Team(team),
+        }
+    }
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -49,7 +121,8 @@ impl PrincipalConstraint {
         match self {
             Self::Public {} => false,
             Self::User(user) => user.has_slot(),
-            Self::Organization(organization) => organization.has_slot(),
+            Self::Web(web) => web.has_slot(),
+            Self::Team(team) => team.has_slot(),
         }
     }
 
@@ -58,107 +131,60 @@ impl PrincipalConstraint {
     ) -> Result<Self, Report<InvalidPrincipalConstraint>> {
         Ok(match constraint.as_inner() {
             ast::PrincipalOrResourceConstraint::Any => Self::Public {},
-
-            ast::PrincipalOrResourceConstraint::Is(principal_type)
-                if **principal_type == **UserId::entity_type() =>
-            {
-                Self::User(UserPrincipalConstraint::Any {})
-            }
             ast::PrincipalOrResourceConstraint::Is(principal_type) => {
-                bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
-                    ast::EntityType::clone(principal_type)
-                ))
+                Self::try_from_cedar_is_in(principal_type, None)?
             }
-
-            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(principal))
-                if *principal.entity_type() == **UserId::entity_type() =>
-            {
-                Self::User(UserPrincipalConstraint::Exact {
-                    user_id: Some(
-                        UserId::from_eid(principal.eid())
-                            .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
-                    ),
-                })
-            }
-            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(principal)) => {
-                bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
-                    ast::EntityType::clone(principal.entity_type())
-                ))
-            }
-            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::Slot(_)) => {
-                bail!(InvalidPrincipalConstraint::AmbiguousSlot)
-            }
-
-            ast::PrincipalOrResourceConstraint::IsIn(
-                principal_type,
-                ast::EntityReference::EUID(principal),
-            ) if **principal_type == **UserId::entity_type() => {
-                if *principal.entity_type() == **OrganizationId::entity_type() {
-                    Self::User(UserPrincipalConstraint::Organization(
-                        OrganizationPrincipalConstraint::InOrganization {
-                            organization_id: Some(
-                                OrganizationId::from_eid(principal.eid()).change_context(
-                                    InvalidPrincipalConstraint::InvalidPrincipalId,
-                                )?,
-                            ),
-                        },
-                    ))
-                } else if *principal.entity_type() == **OrganizationRoleId::entity_type() {
-                    Self::User(UserPrincipalConstraint::Organization(
-                        OrganizationPrincipalConstraint::InRole {
-                            organization_role_id: Some(
-                                OrganizationRoleId::from_eid(principal.eid()).change_context(
-                                    InvalidPrincipalConstraint::InvalidPrincipalId,
-                                )?,
-                            ),
-                        },
-                    ))
-                } else {
-                    bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
-                        ast::EntityType::clone(principal.entity_type())
-                    ))
-                }
+            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::EUID(entity_ref)) => {
+                Self::try_from_cedar_eq(entity_ref)?
             }
             ast::PrincipalOrResourceConstraint::IsIn(
                 principal_type,
-                ast::EntityReference::EUID(_),
-            ) => bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
-                ast::EntityType::clone(principal_type)
-            )),
-            ast::PrincipalOrResourceConstraint::IsIn(_, ast::EntityReference::Slot(_)) => {
-                bail!(InvalidPrincipalConstraint::AmbiguousSlot)
-            }
-
-            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(principal))
-                if *principal.entity_type() == **OrganizationId::entity_type() =>
-            {
-                Self::Organization(OrganizationPrincipalConstraint::InOrganization {
-                    organization_id: Some(
-                        OrganizationId::from_eid(principal.eid())
-                            .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
-                    ),
-                })
-            }
-            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(principal))
-                if *principal.entity_type() == **OrganizationRoleId::entity_type() =>
-            {
-                // Organization from cedar (Some(principal))
-                Self::Organization(OrganizationPrincipalConstraint::InRole {
-                    organization_role_id: Some(
-                        OrganizationRoleId::from_eid(principal.eid())
-                            .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
-                    ),
-                })
-            }
+                ast::EntityReference::EUID(entity_ref),
+            ) => Self::try_from_cedar_is_in(principal_type, Some(entity_ref))?,
             ast::PrincipalOrResourceConstraint::In(ast::EntityReference::EUID(principal)) => {
-                bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
-                    ast::EntityType::clone(principal.entity_type())
-                ))
+                Self::from(InPrincipalConstraint::try_from_cedar_in(principal)?)
             }
-            ast::PrincipalOrResourceConstraint::In(ast::EntityReference::Slot(_)) => {
-                bail!(InvalidPrincipalConstraint::AmbiguousSlot)
+            ast::PrincipalOrResourceConstraint::Eq(ast::EntityReference::Slot(_))
+            | ast::PrincipalOrResourceConstraint::IsIn(_, ast::EntityReference::Slot(_))
+            | ast::PrincipalOrResourceConstraint::In(ast::EntityReference::Slot(_)) => {
+                bail!(InvalidPrincipalConstraint::AmbiguousSlot);
             }
         })
+    }
+
+    pub(crate) fn try_from_cedar_eq(
+        principal: &ast::EntityUID,
+    ) -> Result<Self, Report<InvalidPrincipalConstraint>> {
+        if *principal.entity_type() == **UserId::entity_type() {
+            Ok(Self::User(UserPrincipalConstraint::Exact {
+                user_id: Some(
+                    UserId::from_eid(principal.eid())
+                        .change_context(InvalidPrincipalConstraint::InvalidPrincipalId)?,
+                ),
+            }))
+        } else {
+            bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
+                ast::EntityType::clone(principal.entity_type())
+            ))
+        }
+    }
+
+    pub(crate) fn try_from_cedar_is_in(
+        principal_type: &ast::EntityType,
+        in_principal: Option<&ast::EntityUID>,
+    ) -> Result<Self, Report<InvalidPrincipalConstraint>> {
+        if *principal_type == **UserId::entity_type() {
+            let Some(in_principal) = in_principal else {
+                return Ok(Self::User(UserPrincipalConstraint::Any {}));
+            };
+            Ok(Self::User(UserPrincipalConstraint::from(
+                InPrincipalConstraint::try_from_cedar_in(in_principal)?,
+            )))
+        } else {
+            bail!(InvalidPrincipalConstraint::UnexpectedEntityType(
+                ast::EntityType::clone(principal_type)
+            ))
+        }
     }
 
     #[must_use]
@@ -166,7 +192,8 @@ impl PrincipalConstraint {
         match self {
             Self::Public {} => ast::PrincipalConstraint::any(),
             Self::User(user) => user.to_cedar(),
-            Self::Organization(organization) => organization.to_cedar(),
+            Self::Web(organization) => organization.to_cedar(),
+            Self::Team(team) => team.to_cedar(),
         }
     }
 }

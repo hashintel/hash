@@ -32,13 +32,12 @@ tokio             = { workspace = true }
 tokio-util        = { workspace = true, features = ["io"] }
 tracing           = { workspace = true, features = ["attributes"] }
 utoipa            = { workspace = true, optional = true }
-uuid              = { workspace = true }
+uuid              = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
 indoc             = { workspace = true }
 pretty_assertions = { workspace = true }
 tokio             = { workspace = true, features = ["macros", "rt-multi-thread"] }
-uuid              = { workspace = true, features = ["v4"] }
 
 [features]
 utoipa   = ["dep:utoipa"]

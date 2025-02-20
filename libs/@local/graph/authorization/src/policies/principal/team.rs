@@ -18,9 +18,9 @@ use crate::policies::cedar::CedarEntityId;
 )]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
-pub struct OrganizationId(Uuid);
+pub struct TeamId(Uuid);
 
-impl OrganizationId {
+impl TeamId {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
@@ -37,16 +37,16 @@ impl OrganizationId {
     }
 }
 
-impl fmt::Display for OrganizationId {
+impl fmt::Display for TeamId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl CedarEntityId for OrganizationId {
+impl CedarEntityId for TeamId {
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
-            LazyLock::new(|| crate::policies::cedar_resource_type(["Organization"]));
+            LazyLock::new(|| crate::policies::cedar_resource_type(["Team"]));
         &ENTITY_TYPE
     }
 
@@ -69,9 +69,9 @@ impl CedarEntityId for OrganizationId {
 )]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
-pub struct OrganizationRoleId(Uuid);
+pub struct TeamRoleId(Uuid);
 
-impl OrganizationRoleId {
+impl TeamRoleId {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
@@ -88,16 +88,16 @@ impl OrganizationRoleId {
     }
 }
 
-impl fmt::Display for OrganizationRoleId {
+impl fmt::Display for TeamRoleId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl CedarEntityId for OrganizationRoleId {
+impl CedarEntityId for TeamRoleId {
     fn entity_type() -> &'static Arc<ast::EntityType> {
         static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
-            LazyLock::new(|| crate::policies::cedar_resource_type(["Organization", "Role"]));
+            LazyLock::new(|| crate::policies::cedar_resource_type(["Team", "Role"]));
         &ENTITY_TYPE
     }
 
@@ -110,78 +110,59 @@ impl CedarEntityId for OrganizationRoleId {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged, rename_all_fields = "camelCase", deny_unknown_fields)]
-pub enum OrganizationPrincipalConstraint {
-    InOrganization {
+pub enum TeamPrincipalConstraint {
+    InTeam {
         #[serde(deserialize_with = "Option::deserialize")]
-        organization_id: Option<OrganizationId>,
+        id: Option<TeamId>,
     },
     InRole {
         #[serde(deserialize_with = "Option::deserialize")]
-        organization_role_id: Option<OrganizationRoleId>,
+        role_id: Option<TeamRoleId>,
     },
 }
 
-impl OrganizationPrincipalConstraint {
+impl TeamPrincipalConstraint {
     #[must_use]
     pub const fn has_slot(&self) -> bool {
         match self {
-            Self::InOrganization {
-                organization_id: Some(_),
-            }
-            | Self::InRole {
-                organization_role_id: Some(_),
-            } => false,
-            Self::InOrganization {
-                organization_id: None,
-            }
-            | Self::InRole {
-                organization_role_id: None,
-            } => true,
+            Self::InTeam { id: Some(_) } | Self::InRole { role_id: Some(_) } => false,
+            Self::InTeam { id: None } | Self::InRole { role_id: None } => true,
         }
     }
 
     #[must_use]
     pub(crate) fn to_cedar(&self) -> ast::PrincipalConstraint {
         match self {
-            Self::InOrganization { organization_id } => organization_id.map_or_else(
-                ast::PrincipalConstraint::is_in_slot,
-                |organization_id| {
-                    ast::PrincipalConstraint::is_in(Arc::new(organization_id.to_euid()))
-                },
-            ),
-            Self::InRole {
-                organization_role_id,
-            } => organization_role_id.map_or_else(
-                ast::PrincipalConstraint::is_in_slot,
-                |organization_role_id| {
-                    ast::PrincipalConstraint::is_in(Arc::new(organization_role_id.to_euid()))
-                },
-            ),
+            Self::InTeam { id } => id.map_or_else(ast::PrincipalConstraint::is_in_slot, |id| {
+                ast::PrincipalConstraint::is_in(Arc::new(id.to_euid()))
+            }),
+            Self::InRole { role_id } => role_id
+                .map_or_else(ast::PrincipalConstraint::is_in_slot, |role_id| {
+                    ast::PrincipalConstraint::is_in(Arc::new(role_id.to_euid()))
+                }),
         }
     }
 
     #[must_use]
     pub(crate) fn to_cedar_in_type<C: CedarEntityId>(&self) -> ast::PrincipalConstraint {
         match self {
-            Self::InOrganization { organization_id } => organization_id.map_or_else(
+            Self::InTeam { id } => id.map_or_else(
                 || ast::PrincipalConstraint::is_entity_type_in_slot(Arc::clone(C::entity_type())),
-                |organization_id| {
+                |id| {
                     ast::PrincipalConstraint::is_entity_type_in(
                         Arc::clone(C::entity_type()),
-                        Arc::new(organization_id.to_euid()),
+                        Arc::new(id.to_euid()),
                     )
                 },
             ),
-            Self::InRole {
-                organization_role_id,
-            } => organization_role_id.map_or_else(
+            Self::InRole { role_id } => role_id.map_or_else(
                 || ast::PrincipalConstraint::is_entity_type_in_slot(Arc::clone(C::entity_type())),
-                |organization_role_id| {
+                |role_id| {
                     ast::PrincipalConstraint::is_entity_type_in(
                         Arc::clone(C::entity_type()),
-                        Arc::new(organization_role_id.to_euid()),
+                        Arc::new(role_id.to_euid()),
                     )
                 },
             ),
@@ -196,54 +177,47 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    use super::OrganizationPrincipalConstraint;
+    use super::{TeamId, TeamPrincipalConstraint, TeamRoleId};
     use crate::{
-        policies::{
-            OrganizationId, OrganizationRoleId, PrincipalConstraint,
-            principal::tests::check_principal,
-        },
+        policies::{PrincipalConstraint, principal::tests::check_principal},
         test_utils::check_deserialization_error,
     };
 
     #[test]
-    fn in_organization() -> Result<(), Box<dyn Error>> {
-        let organization_id = OrganizationId::new(Uuid::new_v4());
+    fn in_team() -> Result<(), Box<dyn Error>> {
+        let team_id = TeamId::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InOrganization {
-                organization_id: Some(organization_id),
-            }),
+            &PrincipalConstraint::Team(TeamPrincipalConstraint::InTeam { id: Some(team_id) }),
             json!({
-                "type": "organization",
-                "organizationId": organization_id,
+                "type": "team",
+                "id": team_id,
             }),
-            format!(r#"principal in HASH::Organization::"{organization_id}""#),
+            format!(r#"principal in HASH::Team::"{team_id}""#),
         )?;
 
         check_principal(
-            &PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InOrganization {
-                organization_id: None,
-            }),
+            &PrincipalConstraint::Team(TeamPrincipalConstraint::InTeam { id: None }),
             json!({
-                "type": "organization",
-                "organizationId": null,
+                "type": "team",
+                "id": null,
             }),
             "principal in ?principal",
         )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "organization",
+                "type": "team",
             }),
-            "data did not match any variant of untagged enum OrganizationPrincipalConstraint",
+            "data did not match any variant of untagged enum TeamPrincipalConstraint",
         )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "organization",
-                "organizationId": organization_id,
+                "type": "team",
+                "id": team_id,
                 "additional": "unexpected",
             }),
-            "data did not match any variant of untagged enum OrganizationPrincipalConstraint",
+            "data did not match any variant of untagged enum TeamPrincipalConstraint",
         )?;
 
         Ok(())
@@ -251,36 +225,34 @@ mod tests {
 
     #[test]
     fn in_role() -> Result<(), Box<dyn Error>> {
-        let role_id = OrganizationRoleId::new(Uuid::new_v4());
+        let role_id = TeamRoleId::new(Uuid::new_v4());
         check_principal(
-            &PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InRole {
-                organization_role_id: Some(role_id),
+            &PrincipalConstraint::Team(TeamPrincipalConstraint::InRole {
+                role_id: Some(role_id),
             }),
             json!({
-                "type": "organization",
-                "organizationRoleId": role_id,
+                "type": "team",
+                "roleId": role_id,
             }),
-            format!(r#"principal in HASH::Organization::Role::"{role_id}""#),
+            format!(r#"principal in HASH::Team::Role::"{role_id}""#),
         )?;
 
         check_principal(
-            &PrincipalConstraint::Organization(OrganizationPrincipalConstraint::InRole {
-                organization_role_id: None,
-            }),
+            &PrincipalConstraint::Team(TeamPrincipalConstraint::InRole { role_id: None }),
             json!({
-                "type": "organization",
-                "organizationRoleId": null,
+                "type": "team",
+                "roleId": null,
             }),
             "principal in ?principal",
         )?;
 
         check_deserialization_error::<PrincipalConstraint>(
             json!({
-                "type": "organization",
+                "type": "team",
                 "roleId": role_id,
-                "organizationRoleId": Uuid::new_v4(),
+                "id": Uuid::new_v4(),
             }),
-            "data did not match any variant of untagged enum OrganizationPrincipalConstraint",
+            "data did not match any variant of untagged enum TeamPrincipalConstraint",
         )?;
 
         Ok(())

@@ -1,13 +1,20 @@
-use alloc::sync::Arc;
+use alloc::{borrow::Cow, sync::Arc};
 use core::{error::Error, str::FromStr as _};
 use std::sync::LazyLock;
 
 use cedar_policy_core::ast;
 use error_stack::Report;
 use hash_graph_types::{knowledge::entity::EntityUuid, owned_by_id::OwnedById};
+use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
 use crate::policies::cedar::CedarEntityId;
+
+pub struct EntityResource<'a> {
+    pub web_id: OwnedById,
+    pub entity_uuid: EntityUuid,
+    pub entity_type: Cow<'a, [VersionedUrl]>,
+}
 
 impl CedarEntityId for EntityUuid {
     fn entity_type() -> &'static Arc<ast::EntityType> {
