@@ -51,7 +51,7 @@
     "prosemirror-view": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
     "serialize-error": "12.0.0",
     "tsx": "4.19.3",
-    "uuid": "11.0.5"
+    "uuid": "11.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.5-nightly.ff02a0b",
